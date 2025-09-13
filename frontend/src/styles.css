@@ -1,0 +1,5 @@
+/* DEPRECATED: legacy CSS from before Tailwind migration.
+   The project now uses Tailwind (`tailwind.css`) and `EntryPage.tailwind.jsx`.
+   This file is kept as a harmless placeholder to avoid accidental breakage
+   if someone references it locally. Feel free to delete it from the repo.
+*/

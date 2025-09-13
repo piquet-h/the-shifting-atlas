@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Keep Tailwind base and allow theme tokens (atlas.*) from config to drive utilities. */
+@layer base {
+
+    html,
+    body,
+    #root {
+        height: 100%;
+    }
+
+    /* Apply Tailwind theme utilities so the actual hex values live in tailwind.config.js */
+    body {
+        @apply bg-atlas-bg text-slate-100 antialiased;
+    }
+}
