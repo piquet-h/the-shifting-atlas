@@ -1,6 +1,10 @@
 param location string = resourceGroup().location
-param staticWebAppName string = 'tsa-static-${uniqueString(resourceGroup().id)}'
-param cosmosAccountName string = 'tsacosmos${uniqueString(resourceGroup().id)}'
+// Naming: subscription dedicated to this project so we avoid redundant prefixes.
+// Stable hash keeps uniqueness when required.
+// Static Web App: web-${hash}
+// Cosmos DB Account: cosmos${hash}
+param staticWebAppName string = 'web-${uniqueString(resourceGroup().id)}'
+param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 param repositoryUrl string
 param branch string
 
