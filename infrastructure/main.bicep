@@ -1,88 +1,60 @@
-@description('Location for all resources')
 param location string = resourceGroup().location
+param staticWebAppName string = 'tsa-static-${uniqueString(resourceGroup().id)}'
+param cosmosAccountName string = 'tsacosmos${uniqueString(resourceGroup().id)}'
+param repositoryUrl string
+param branch string
 
-var storageName = toLower('tsa${uniqueString(resourceGroup().id)}')
-
-resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' = {
-  name: storageName
+// Cosmos DB account (Gremlin) - minimal configuration for development & testing
+resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: cosmosAccountName
   location: location
-  sku: {
-    name: 'Standard_LRS'
-  }
-  kind: 'StorageV2'
   properties: {
-    accessTier: 'Hot'
-  }
-}
-
-// App Service plan for Functions (Elastic Premium or Consumption is typically used,
-// but for simplicity we create a Linux Consumption-like plan via a placeholder; note: Consumption plans are implicit.)
-resource hostingPlan 'Microsoft.Web/serverfarms@2021-02-01' = {
-  name: 'tsa-plan-${uniqueString(resourceGroup().id)}'
-  location: location
-  sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
-  }
-  properties: {
-    maximumElasticWorkerCount: 1
-  }
-}
-
-// Website API Function App
-resource websiteApi 'Microsoft.Web/sites@2021-02-01' = {
-  name: 'tsa-website-api-${uniqueString(resourceGroup().id)}'
-  location: location
-  kind: 'functionapp,linux'
-  properties: {
-    serverFarmId: hostingPlan.id
-    siteConfig: {
-      linuxFxVersion: 'Node|20'
-      appSettings: [
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'node'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storage.properties.primaryEndpoints.blob
-        }
-      ]
+    databaseAccountOfferType: 'Standard'
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    // Enable Gremlin (graph) API
+    capabilities: [
+      {
+        name: 'EnableGremlin'
+      }
+    ]
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
     }
   }
 }
 
-// Queue Worker Function App
-resource queueWorker 'Microsoft.Web/sites@2021-02-01' = {
-  name: 'tsa-queue-worker-${uniqueString(resourceGroup().id)}'
+// Static Web App (lightweight resource). Note: For production you may prefer to
+// create the Static Web App in the portal or via az cli with a deployment token.
+resource staticSite 'Microsoft.Web/staticSites@2022-09-01' = {
+  name: staticWebAppName
   location: location
-  kind: 'functionapp,linux'
+  sku: {
+    name: 'Free'
+    tier: 'Free'
+  }
   properties: {
-    serverFarmId: hostingPlan.id
-    siteConfig: {
-      linuxFxVersion: 'Node|20'
-      appSettings: [
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'node'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storage.properties.primaryEndpoints.blob
-        }
-      ]
+    repositoryUrl: repositoryUrl
+    branch: branch
+    buildProperties: {
+      skipGithubActionWorkflowGeneration: true
+    }
+  }
+
+  resource config 'config@2024-11-01' = {
+    name: 'functionappsettings'
+    properties: {
+      COSMOS_ENDPOINT: cosmos.properties.documentEndpoint
+      COSMOS_KEY: cosmos.listKeys().primaryMasterKey
     }
   }
 }
 
-output storageAccountName string = storage.name
-output websiteApiName string = websiteApi.name
-output queueWorkerName string = queueWorker.name
+output cosmosAccountName string = cosmos.name
+output cosmosEndpoint string = cosmos.properties.documentEndpoint
+output staticWebAppName string = staticSite.name

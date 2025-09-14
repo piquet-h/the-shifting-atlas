@@ -22,6 +22,10 @@ Files:
 
 The Azure Static Web App resource is not yet defined here. Create it separately (Portal, Azure CLI, or future Bicep module) and point it at the repository. Local emulation uses `npm run swa` (root) which relies on `swa-cli.config.json`.
 
+Identity & Authentication (infrastructure notes):
+
+- Consider provisioning Microsoft Entra External Identities resources (or configuring an existing Entra tenant) when creating the Static Web App. For production, register an application for the frontend (SWA) and another for backend APIs (Functions), configure redirect URIs, and optionally enable social identity providers. Store OIDC metadata and client IDs in outputs or parameterize them for CI/CD secrets handling (Key Vault recommended).
+
 ## Deploy Example
 
 ```bash

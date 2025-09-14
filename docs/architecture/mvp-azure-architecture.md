@@ -29,8 +29,9 @@
 ```
 
 🧩 Core Components
+
 1. Frontend
-Service: Azure Static Web Apps (Free Tier)
+   Service: Azure Static Web Apps (Free Tier)
 
 Purpose: Serve the game client (text UI or lightweight web app).
 
@@ -43,7 +44,7 @@ Built‑in HTTPS and global CDN.
 Integrated with Managed API for backend calls.
 
 2. Managed API
-Service: Azure Functions hosted inside Static Web Apps (Consumption Plan).
+   Service: Azure Functions hosted inside Static Web Apps (Consumption Plan).
 
 Purpose:
 
@@ -59,10 +60,15 @@ Single deployment pipeline for frontend + backend.
 
 Automatic authentication/authorization integration with SWA.
 
+Authentication guidance:
+
+- For user authentication and identity management we recommend Microsoft Entra External Identities (consumer & guest scenarios). Entra integrates with Azure Static Web Apps (SWA) and Azure Functions via OIDC/OAuth2 and can provide social federation (Microsoft, Google, Apple, etc.).
+- Store minimal profile claims in Entra and map the stable external id (e.g., `sub` claim) to a player GUID stored in Cosmos DB. Validate ID tokens in your Managed API and enforce role/claim checks server-side.
+
 No separate Functions App needed for MVP.
 
 3. Persistence Layer
-Service: Azure Cosmos DB (Gremlin API)
+   Service: Azure Cosmos DB (Gremlin API)
 
 Purpose:
 
@@ -77,7 +83,7 @@ Free tier: 400 RU/s + 5GB storage.
 Graph model fits your semantic exits + procedural expansion.
 
 4. AI Integration
-Service: Azure OpenAI Service (Pay‑as‑you‑go, low usage)
+   Service: Azure OpenAI Service (Pay‑as‑you‑go, low usage)
 
 Purpose:
 
@@ -90,12 +96,12 @@ Keep AI calls optional in MVP — fallback to static content for cost control.
 🏗 MVP Core Pillars
 These are the non‑negotiables to start meaningful playtesting.
 
-Pillar	Why It’s Essential	MVP Implementation
-World State & Persistence	Without persistence, you can’t test continuity, player agency, or emergent storytelling.	Minimal persistent datastore (Cosmos DB Gremlin API) storing rooms, exits, and player state.
-Navigation & Traversal	Movement is the backbone of exploration and pacing.	Semantic exits + deterministic coordinates. AI‑generated room descriptions can be layered later.
-Basic Interaction Loop	Players need something to do beyond moving.	Simple verbs: look, move, take, use, talk. Even placeholder NPCs or objects are fine.
-Session Context	Ensures AI/NPCs respond consistently.	Lightweight context manager that pulls relevant world + player state into each interaction.
-Minimal Content Seed	You need enough world to test flow, not depth.	Hand‑crafted starter zone (5–10 rooms) with 1–2 NPCs and 2–3 interactable objects.
+Pillar Why It’s Essential MVP Implementation
+World State & Persistence Without persistence, you can’t test continuity, player agency, or emergent storytelling. Minimal persistent datastore (Cosmos DB Gremlin API) storing rooms, exits, and player state.
+Navigation & Traversal Movement is the backbone of exploration and pacing. Semantic exits + deterministic coordinates. AI‑generated room descriptions can be layered later.
+Basic Interaction Loop Players need something to do beyond moving. Simple verbs: look, move, take, use, talk. Even placeholder NPCs or objects are fine.
+Session Context Ensures AI/NPCs respond consistently. Lightweight context manager that pulls relevant world + player state into each interaction.
+Minimal Content Seed You need enough world to test flow, not depth. Hand‑crafted starter zone (5–10 rooms) with 1–2 NPCs and 2–3 interactable objects.
 📜 Suggested Build Order
 Skeleton World Model
 

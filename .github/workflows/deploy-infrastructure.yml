@@ -1,0 +1,95 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/deploy-infrastructure.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  BICEP_FILE: infrastructure/main.bicep
+
+jobs:
+  validate:
+    name: Validate Bicep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Compute values
+        id: compute
+        run: |
+          RG="rg-shifting-atlas"
+          echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
+          echo "Using resource group: $RG"
+
+      - name: Ensure resource group exists
+        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westeurope
+
+      - name: What-if (validate)
+        run: |
+          az deployment group validate \
+            --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
+            --template-file $BICEP_FILE \
+            --parameters repositoryUrl="https://github.com/${{ github.repository }}" branch="${{ github.ref_name }}"
+
+  deploy:
+    name: Deploy
+    needs: validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Compute values
+        id: compute
+        run: |
+          RG="rg-shifting-atlas"
+          echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
+
+      - name: Ensure resource group exists
+        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westeurope
+
+      - name: Deploy (Cosmos + Static Web App)
+        run: |
+          az deployment group create \
+            --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
+            --template-file $BICEP_FILE \
+            --name infra-${{ github.run_number }} \
+            --mode Incremental \
+            --parameters repositoryUrl="https://github.com/${{ github.repository }}" branch="${{ github.ref_name }}"
+
+      - name: (Optional) Output Static Web App hostname
+        run: |
+          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} \
+            --resource-type Microsoft.Web/staticSites \
+            --query '[0].properties.defaultHostname' -o tsv || true
+
+      - name: Show resulting resources
+        run: |
+          echo 'Cosmos Accounts:'
+          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --resource-type Microsoft.DocumentDB/databaseAccounts --query '[].name' -o tsv || true
+          echo 'Static Web Apps:'
+          az staticwebapp list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --query '[].name' -o tsv || true

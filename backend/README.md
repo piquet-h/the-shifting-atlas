@@ -38,6 +38,10 @@ Adding a new HTTP function: extend `src/index.ts` with another `app.http(...)` c
 - `SERVICE_BUS_CONNECTION` (or identity + namespace)
 - Feature flags for modules (economy, traversal experimentation)
 
+Authentication / Identity:
+
+- When enabling user sign-in in production, use Microsoft Entra External Identities for player authentication and federation. Add environment settings to support token validation (for example, `ENTRA_TENANT`, `ENTRA_CLIENT_ID`, and OIDC discovery URL) and ensure Functions validate incoming ID tokens and enforce claims-based authorization.
+
 ## Roadmap
 
 - DONE: Health / echo validation.

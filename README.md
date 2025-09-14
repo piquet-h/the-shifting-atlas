@@ -205,4 +205,25 @@ MIT – see `LICENSE`.
 
 ---
 
+## Infrastructure CI/CD (GitHub Actions)
+
+A GitHub Actions workflow has been added at `.github/workflows/deploy-infrastructure.yml` to validate and deploy the Bicep templates under the `infrastructure/` folder.
+
+Secrets required in the repository settings:
+
+- `AZURE_CREDENTIALS` — JSON service principal credentials for `azure/login` (see Azure docs on creating a service principal and storing it as a secret). This replaces the Azure service connection used in Azure Pipelines.
+
+How it works:
+
+- On push to `main` touching files under `infrastructure/`, the workflow runs a `validate` job which ensures the resource group exists, disconnects any Static Web Apps that would conflict, and runs `az deployment group validate`.
+- After validation, a `deploy` job runs (only on `main`) that performs the same pre-deploy cleanup and runs `az deployment group create --mode Complete` to apply the Bicep template.
+
+Manual runs:
+
+- Use the Actions tab and run the `Deploy Infrastructure` workflow manually via `workflow_dispatch`. You can optionally pass the `environment` input (default `prod`).
+
+Notes:
+
+- The workflow expects the Bicep template at `infrastructure/deploy.bicep` and uses `rg-website-<environment>` as the resource group name by default. Adjust the workflow if you need different naming conventions.
+
 Return to top: [▲](#top)

@@ -29,6 +29,10 @@ What happens:
 - Functions host for `frontend/api` (http://localhost:7071)
 - SWA emulator proxy (http://localhost:4280) combining both + auth emulation
 
+Auth emulation / local testing:
+
+- The SWA emulator can emulate authentication flows for development. For realistic end-to-end tests with Microsoft Entra External Identities, configure a test Entra application and use the emulator's auth features to simulate sign-in. When running functions locally, validate tokens against the test tenant's OIDC metadata or use short-lived developer tokens for integration tests.
+
 Test an API route:
 
 ```bash
