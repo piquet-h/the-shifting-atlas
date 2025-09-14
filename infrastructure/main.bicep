@@ -8,6 +8,12 @@ param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 param repositoryUrl string
 param branch string
+@description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
+@allowed([
+  'Free'
+  'Standard'
+])
+param staticWebAppSku string = 'Free'
 
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
@@ -36,14 +42,19 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
 
 // Static Web App (lightweight resource). Note: For production you may prefer to
 // create the Static Web App in the portal or via az cli with a deployment token.
-// Updated API version to 2023-12-01 (latest GA as of 2025) – older version returned SkuCode 'Free' is invalid.
-// Valid SKU values are 'Free' or 'Standard'. Object form with name+tier accepted.
-resource staticSite 'Microsoft.Web/staticSites@2023-12-01' = {
+// Static Web App resource
+// Note: Some historical deployment errors ('SkuCode "Free" is invalid') can occur if:
+//  1) Using an older API version
+//  2) Attempting to downgrade from Standard -> Free (not supported) on an existing site
+//  3) Region transient validation issues. Retry or choose a widely supported region (e.g. westus2, centralus, westeurope)
+// API version aligned with current template reference (2024-04-01). Valid sku values: Free | Standard.
+resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
   name: staticWebAppName
   location: location
   sku: {
-    name: 'Free'
-    tier: 'Free'
+    // For staticSites the platform derives tier from name; including tier is optional.
+    name: staticWebAppSku
+    tier: staticWebAppSku
   }
   identity: {
     type: 'SystemAssigned'
@@ -95,11 +106,11 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
 
 // Store Cosmos primary key as a secret so application can retrieve it at runtime via managed identity.
 resource cosmosPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  name: '${keyVault.name}/cosmos-primary-key'
+  name: 'cosmos-primary-key'
+  parent: keyVault
   properties: {
     value: cosmos.listKeys().primaryMasterKey
   }
-  dependsOn: [keyVault]
 }
 
 output cosmosAccountName string = cosmos.name
