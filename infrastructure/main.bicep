@@ -13,7 +13,7 @@ param branch string
   'Free'
   'Standard'
 ])
-param staticWebAppSku string = 'Free'
+param staticWebAppSku string = 'Standard'
 
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
