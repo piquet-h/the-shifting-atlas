@@ -20,7 +20,7 @@ Files:
 
 ## Static Web App
 
-Create separately (Portal, Azure CLI, or future Bicep) and link to this repository for the frontend + co-located API. This template does not manage the Static Web App resource.
+The Azure Static Web App resource is not yet defined here. Create it separately (Portal, Azure CLI, or future Bicep module) and point it at the repository. Local emulation uses `npm run swa` (root) which relies on `swa-cli.config.json`.
 
 ## Deploy Example
 
@@ -38,3 +38,5 @@ az deployment group create \
 - Introduce Application Insights and wire instrumentation key.
 - Provide managed identity and role assignments.
 - Replace placeholder storage setting with secure approach (KV or identity-based).
+- Add Static Web App + deployment token output (or adopt SWA managed GitHub Action).
+- Parameterize environment-specific naming & location.

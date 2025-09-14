@@ -1,6 +1,6 @@
-# Backend (Azure Functions) – Placeholder
+# Backend (Azure Functions v4, TypeScript)
 
-This directory currently holds only the scaffolding (`host.json`, `local.settings.json`, `package.json`). No actual Functions are implemented yet.
+TypeScript Azure Functions backend. Initial HTTP functions live in `src/index.ts` (`BackendHealth`, `BackendPing`). Queue & world logic will follow in dedicated folders. During early development most player-facing endpoints are still co-located under `frontend/api` and served via the SWA emulator (`npm run swa`). This package exists to prepare for separation of concerns (world simulation, queues, graph access).
 
 Planned structure (mirrors design docs / persistent world model):
 
@@ -13,19 +13,22 @@ backend/
 
 ## Scripts (package.json)
 
-Current scripts reference non-existent subfolders and will fail until those folders exist:
+Scripts:
 
-- `npm run start` – starts Functions host at repo root (no functions yet)
-- `npm run start:http` – expects `./http-app` (to be replaced with `HttpPlayerActions`)
-- `npm run start:worker` – expects `./worker-app` (to be replaced with `QueueWorldLogic`)
+- `npm run build` – compile TS (`src` -> `dist`)
+- `npm start` – build then run Functions host
 
-These will be updated once the actual directories are created.
+## Local Development
 
-## Local Development (Future)
+Standalone (when adding or testing backend-only logic):
 
-1. Add Functions (e.g. `HttpMovePlayer/index.js`).
-2. Install deps: `npm install` (shared modules may be plain JS initially; later a workspace setup / build step could appear).
-3. Start host: `npm start` or run individually via `func start --script-root <folder>`.
+1. Install deps: `npm install`
+2. Build: `npm run build`
+3. Start: `npm start`
+
+While the unified SWA workflow (`npm run swa` at repo root) is primary for front-end + co-located API, you can run both concurrently if exploring new backend endpoints not yet proxied by SWA.
+
+Adding a new HTTP function: extend `src/index.ts` with another `app.http(...)` call or create an additional module imported from there; keep handlers small and stateless.
 
 ## Environment & Settings
 
@@ -37,10 +40,11 @@ These will be updated once the actual directories are created.
 
 ## Roadmap
 
-- Add first HTTP action: health / echo to validate pipeline.
-- Implement player movement with optimistic validation.
-- Introduce queue event for NPC patrol tick.
-- Add tests (Node `--test`) for shared utility modules.
+- DONE: Health / echo validation.
+- Player movement endpoint → enqueue world event.
+- Queue world processor (NPC patrol tick, environmental shifts).
+- Cosmos graph integration helpers (shared/graph.ts).
+- Tests (Node `--test`) for shared utilities + first movement logic.
 
 ## Notes
 

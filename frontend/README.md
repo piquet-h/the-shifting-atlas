@@ -1,6 +1,37 @@
-# Frontend (Vite + React + Tailwind)
+# Frontend (Vite + React + Tailwind + TypeScript)
 
-Mobile‑first client prototype for The Shifting Atlas. Includes a minimal health check call and simple navigation.
+Mobile‑first client prototype for The Shifting Atlas. Includes a minimal health check call, simple navigation, and Tailwind‑styled entry experience. This package provides the player-facing SPA and is written in **TypeScript** (strict) – see `tsconfig.json`.
+
+## Scripts
+
+| Script               | Purpose                                                                   |
+| -------------------- | ------------------------------------------------------------------------- |
+| `npm run dev`        | Start Vite dev server (React Fast Refresh).                               |
+| `npm run typecheck`  | Run `tsc --noEmit` for full type safety.                                  |
+| `npm run build`      | Create production build (Vite).                                           |
+| `npm run preview`    | Preview production build locally.                                         |
+| `npm run swa`        | Start SWA CLI from this workspace (frontend + co-located Functions).      |
+| `npm run swa` (root) | Preferred: from repo root, launches unified emulator (alias `swa start`). |
+
+## TypeScript Conventions
+
+- Module resolution uses `Bundler` to avoid file extension noise in imports.
+- React components are typed with explicit `React.ReactElement` returns for clarity.
+- Environment variables follow `import.meta.env.*`; extend types via a `env.d.ts` if custom keys are added.
+- Service calls live in `src/services/` (see `api.ts`).
+
+## API Integration
+
+TypeScript Azure Functions co-located under `api/` expose routes like `/website/health` and `/website/player/actions` (surfaced under `/api/*` by SWA). The SPA calls them through `/api` (or `VITE_API_BASE` override). During `npm run dev` (pure Vite) these Functions are not proxied; use `npm run swa` (root) for the integrated environment.
+
+## Styling
+
+Tailwind + custom color palette (see `tailwind.config.js`). `EntryPage.tailwind.tsx` is the canonical landing component; legacy plain styles have been deprecated.
+
+## Adding New Components
+
+1. Create a `.tsx` file under `src/components/` or `src/pages/`.
+2. Keep components small and typed; prefer explicit prop interfaces when props grow beyond a few primitives.
 
 ## Quick Start
 
@@ -26,19 +57,18 @@ npm run preview
 ## Notable Files
 
 - `index.html` – Vite entry
-- `src/main.jsx` – React bootstrap
-- `src/App.jsx` – Root component + Router outlet
-- `src/components/EntryPage.tailwind.jsx` – Initial landing UI (utility-first styles)
-- `src/components/Nav.jsx` – Simple navigation
-- `src/pages/About.jsx` – Example secondary page
-- `src/services/api.js` – Minimal API wrapper (currently for health check)
+- `src/main.tsx` – React bootstrap (TypeScript)
+- `src/App.tsx` – Root component + Router outlet
+- `src/components/EntryPage.tailwind.tsx` – Landing UI
+- `src/components/Nav.tsx` – Navigation bar
+- `src/pages/About.tsx` – Example informational page
+- `src/pages/DemoForm.tsx` – Example interactive form
+- `src/services/api.ts` – Minimal API wrapper (health check; extend for player actions)
 - `tailwind.config.js` – Tailwind configuration
 
 ## Co-Located API (`api/`)
 
-The `api/` folder houses Azure Static Web Apps style Functions (e.g., `HealthCheck`, `HttpPlayerActions`). These are early stubs; logic will move / expand as backend services mature. When deployed via an Azure Static Web App, routes are available under `/api/*`.
-
-During plain `vite dev`, these functions are not automatically executed. To test them locally as Functions, you can run the Functions host from inside `api/` with Azure Functions Core Tools.
+Co-located Azure Functions (health + player action stubs). Served when using SWA CLI. For deeper debugging you can start the Functions host inside `api/`, but typically the root `npm run swa` is sufficient early on.
 
 ## Styling
 
@@ -52,4 +82,4 @@ Tailwind CSS with the Typography and Forms plugins enabled. Global styles live i
 
 ## Notes
 
-This frontend is intentionally lean; domain logic resides in backend Functions and will be invoked through a typed client layer later.
+Frontend remains intentionally lean; domain/world logic will move into dedicated Functions + queued processors. Keep UI free of game rules beyond minimal validation.

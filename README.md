@@ -90,41 +90,45 @@ Visit: http://localhost:5173
 
 ### Option B: Unified SWA Emulator (Frontend + API on one origin)
 
-One-time (repo root):
+Install once at repo root (includes all workspaces):
 
 ```bash
-npm install
+npm install --workspaces
 ```
 
-Run:
+Start the full stack (frontend dev server + co-located Functions API + emulator):
 
 ```bash
-npm run swa:start   # wraps: npx swa start dev
+npm run swa   # alias for: swa start dev (uses swa-cli.config.json)
 ```
 
-Or from inside `frontend/`:
+The SWA emulator UI + proxy lives at: http://localhost:4280
+
+Underlying dev servers:
+
+- Frontend: http://localhost:5173
+- Functions API: http://localhost:7071
+
+Test an API endpoint (health):
 
 ```bash
-npm run swa
+curl http://localhost:4280/api/website/health
 ```
 
-Unified origin: http://localhost:4280
+If you prefer the explicit script names you can still run `npm run swa:start` or a verbose mode with `npm run swa:start:verbose`.
 
-Example API calls:
+### Split Backend Functions (Future Evolution)
 
-```bash
-curl http://localhost:4280/api/health
-```
-
-### (Future) Split Backend Functions
-
-When Functions move to `backend/` you will start them with:
+The `backend/` workspace currently contains only scaffolding (`BackendHealth`, `BackendPing`). Once world / queue logic moves out of the co-located `frontend/api` package, start the separated app like:
 
 ```bash
 cd backend
 npm install
-npm start
+npm run build
+npm start   # builds then launches Azure Functions host
 ```
+
+During the transition both `frontend/api` and `backend/` may coexist; the SWA emulator will continue serving only the co-located API unless configured otherwise.
 
 ### Build Artifacts
 
@@ -133,7 +137,7 @@ cd frontend
 npm run build
 ```
 
-Output: `frontend/dist/` (referenced in `swa-cli.config.json`).
+Output: `frontend/dist/` (referenced in `swa-cli.config.json` via `outputLocation`).
 
 ## 6. Development Workflow
 

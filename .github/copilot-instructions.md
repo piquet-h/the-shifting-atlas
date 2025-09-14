@@ -1,11 +1,13 @@
 # MMO Project – Copilot Persistent Instructions
 
 ## 📜 Purpose
+
 These instructions give GitHub Copilot the always‑on context it needs to generate code and content aligned with our MMO text adventure’s architecture, conventions, and persistent world design.
 
 ---
 
 ## 🏛 Architecture Overview
+
 - **Frontend:** Azure Static Web Apps (Free Tier) – serves the player client UI.
 - **Backend:** Azure Functions (Consumption Plan) – stateless, event‑driven logic.
 - **API Gateway:** Azure API Management (Consumption Tier) – routing, throttling, versioning.
@@ -16,7 +18,8 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 ---
 
 ## 🧩 Module Structure
-- **frontend/** – Static Web App client (React/Vue/Svelte or vanilla JS).
+
+- **frontend/** – Static Web App client (React + Vite + Tailwind). Use `npm run swa` at root for integrated local dev.
 - **backend/** – Azure Functions:
   - `HttpPlayerActions/` – HTTP‑triggered Functions for player commands.
   - `QueueWorldLogic/` – Queue‑triggered Functions for persistent world updates.
@@ -27,6 +30,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 ---
 
 ## 🖋 Coding Conventions
+
 - Use **ES modules** for all JS/TS code.
 - Function names reflect their role and trigger type (e.g., `HttpMovePlayer`, `QueueProcessNPCStep`).
 - Keep Functions **single‑purpose** and **stateless**.
@@ -41,6 +45,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 ---
 
 ## 🌍 Persistent World Rules
+
 - **Rooms** persist to Cosmos DB with semantic exits (`north`, `south`, `up`, `down`, etc.).
 - **NPC state changes** are processed via Service Bus queue triggers.
 - **Player actions** are handled via HTTP‑triggered Functions and may enqueue follow‑up events.
@@ -50,6 +55,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 ---
 
 ## 🧠 Copilot Usage Guidelines
+
 - When writing new logic, **reference relevant design docs** in `/docs` or `.github/instructions/`.
 - For module‑specific rules, open the `.instructions.md` in that module’s folder.
 - Maintain **class/function scaffolds** that match design module names for better Copilot inference.
@@ -58,6 +64,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 ---
 
 ## 🔄 Maintenance
+
 - Update this file whenever architecture, conventions, or persistent rules change.
 - Keep `.github/instructions/` in sync with module‑level design docs.
 - Treat Copilot as a **tactical generator** – architecture and integration decisions remain human‑led.

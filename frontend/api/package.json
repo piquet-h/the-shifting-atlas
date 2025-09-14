@@ -3,14 +3,20 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "main": "index.js",
+    "main": "dist/index.js",
     "scripts": {
-        "start": "func start"
+        "build": "tsc",
+        "start": "npm run build && func start"
     },
     "engines": {
         "node": ">=20.0.0"
     },
     "dependencies": {
         "@azure/functions": "^4.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.1.13",
+        "@types/react-dom": "^19.1.9",
+        "typescript": "^5.9.2"
     }
 }

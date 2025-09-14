@@ -3,11 +3,12 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "main": "index.js",
+    "main": "dist/index.js",
     "scripts": {
+        "build": "tsc",
         "test": "node --test",
         "lint": "eslint . || true",
-        "start": "func start",
+        "start": "npm run build && func start"
     },
     "engines": {
         "node": ">=20.0.0"
@@ -16,6 +17,7 @@
         "@azure/functions": "^4.0.0"
     },
     "devDependencies": {
-        "eslint": "^8.0.0"
+        "eslint": "^8.0.0",
+        "typescript": "^5.4.0"
     }
 }
