@@ -1,6 +1,6 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import EntryPageTailwind from './components/EntryPage.tailwind'
+import EntryPageTailwind from './components/EntryPage'
 import About from './pages/About'
 import DemoForm from './pages/DemoForm'
 import Nav from './components/Nav'
