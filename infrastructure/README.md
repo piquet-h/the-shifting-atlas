@@ -73,6 +73,7 @@ az deployment group create \
 ## Post-Deployment Checklist
 
 1. Configure GitHub Action or SWA build workflow (since auto-generation is disabled) to publish the frontend and `/frontend/api` Functions.
+   - Implemented: see `.github/workflows/frontend-swa-deploy.yml` and `docs/ci-cd.md` (OIDC-based, path-filtered).
 2. Seed Cosmos Gremlin graph with initial rooms/NPCs (script or manual queries).
 3. Store AI / future secret values securely (temporary: SWA app settings; planned: Key Vault or managed identity with Data Plane RBAC once feasible).
 4. Rotate Cosmos key if shared or exposed during testing. Plan migration to a managed identity approach (e.g., when using Data API Builder or Azure Functions with identity-based access patterns).

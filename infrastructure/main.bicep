@@ -36,7 +36,9 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
 
 // Static Web App (lightweight resource). Note: For production you may prefer to
 // create the Static Web App in the portal or via az cli with a deployment token.
-resource staticSite 'Microsoft.Web/staticSites@2022-09-01' = {
+// Updated API version to 2023-12-01 (latest GA as of 2025) – older version returned SkuCode 'Free' is invalid.
+// Valid SKU values are 'Free' or 'Standard'. Object form with name+tier accepted.
+resource staticSite 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
   location: location
   sku: {
