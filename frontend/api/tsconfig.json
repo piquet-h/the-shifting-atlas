@@ -7,8 +7,9 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "sourceMap": true,
-    "types": ["node"],
-    "noEmitOnError": true
+    "types": ["node", "@azure/functions"],
+    "noEmitOnError": true,
+    "skipLibCheck": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
