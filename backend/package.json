@@ -15,11 +15,11 @@
         "node": ">=20.0.0"
     },
     "dependencies": {
-
+        "@azure/functions": "^4.4.0"
     },
     "devDependencies": {
         "eslint": "^8.0.0",
-        "@azure/functions": "^4.4.0",
+
         "typescript": "^5.4.0"
     }
 }

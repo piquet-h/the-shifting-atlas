@@ -1,19 +1,4 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "dist",
-    "rootDir": "src",
-    "module": "ESNext",
-    "target": "ESNext",
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "strict": true,
-    "sourceMap": true,
-    // '@azure/functions' ships its own type declarations; do not list it in 'types'.
-    "types": ["node"],
-    "noEmitOnError": true,
-    "skipLibCheck": true
-  },
   "include": ["src/**/*.ts"]
 }
