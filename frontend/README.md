@@ -1,17 +1,17 @@
-# Frontend (Vite + React + Tailwind + TypeScript)
+# Frontend (Vite + React + Tailwind)
 
-Mobile‑first client prototype for The Shifting Atlas. Includes a minimal health check call, simple navigation, and Tailwind‑styled entry experience. This package provides the player-facing SPA and is written in **TypeScript** (strict) – see `tsconfig.json`.
+Player‑facing SPA prototype. Minimal health check call, simple navigation, Tailwind styling. TypeScript is strict (see `tsconfig.json`). Keep UI free of world/game logic.
 
 ## Scripts
 
-| Script               | Purpose                                                                   |
-| -------------------- | ------------------------------------------------------------------------- |
-| `npm run dev`        | Start Vite dev server (React Fast Refresh).                               |
-| `npm run typecheck`  | Run `tsc --noEmit` for full type safety.                                  |
-| `npm run build`      | Create production build (Vite).                                           |
-| `npm run preview`    | Preview production build locally.                                         |
-| `npm run swa`        | Start SWA CLI from this workspace (frontend + co-located Functions).      |
-| `npm run swa` (root) | Preferred: from repo root, launches unified emulator (alias `swa start`). |
+| Script               | Purpose                                                              |
+| -------------------- | -------------------------------------------------------------------- |
+| `npm run dev`        | Start Vite dev server (React Fast Refresh).                          |
+| `npm run typecheck`  | Run `tsc --noEmit` for full type safety.                             |
+| `npm run build`      | Create production build (Vite).                                      |
+| `npm run preview`    | Preview production build locally.                                    |
+| `npm run swa`        | Start SWA CLI (frontend + co‑located Functions) from this workspace. |
+| `npm run swa` (root) | Preferred unified emulator (alias defined at repo root).             |
 
 ## TypeScript Conventions
 
@@ -22,11 +22,11 @@ Mobile‑first client prototype for The Shifting Atlas. Includes a minimal healt
 
 ## API Integration
 
-TypeScript Azure Functions co-located under `api/` expose routes like `/website/health` and `/website/player/actions` (surfaced under `/api/*` by SWA). The SPA calls them through `/api` (or `VITE_API_BASE` override). During `npm run dev` (pure Vite) these Functions are not proxied; use `npm run swa` (root) for the integrated environment.
+Co‑located Azure Functions in `api/` expose routes like `/website/health` (available at `/api/website/health`) and `/website/player/actions`. During plain `npm run dev` they are not available; use `npm run swa` for integrated mode.
 
 ## Styling
 
-Tailwind + custom color palette (see `tailwind.config.js`). `EntryPage.tailwind.tsx` is the canonical landing component; legacy plain styles have been deprecated.
+Tailwind + basic palette (`tailwind.config.js`).
 
 ## Adding New Components
 
@@ -70,9 +70,7 @@ npm run preview
 
 Co-located Azure Functions (health + player action stubs). Served when using SWA CLI. For deeper debugging you can start the Functions host inside `api/`, but typically the root `npm run swa` is sufficient early on.
 
-## Styling
-
-Tailwind CSS with the Typography and Forms plugins enabled. Global styles live in `src/tailwind.css` and `src/styles.css`.
+Global styles: `src/tailwind.css` (single source). Typography + Forms plugins enabled.
 
 ## Roadmap
 
@@ -82,4 +80,4 @@ Tailwind CSS with the Typography and Forms plugins enabled. Global styles live i
 
 ## Notes
 
-Frontend remains intentionally lean; domain/world logic will move into dedicated Functions + queued processors. Keep UI free of game rules beyond minimal validation.
+Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.

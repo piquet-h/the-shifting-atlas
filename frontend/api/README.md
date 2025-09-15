@@ -1,6 +1,6 @@
-# Website API (Azure Functions v4, TypeScript)
+# Website API (Azure Functions, TypeScript)
 
-TypeScript Azure Functions that back the Static Web App frontend. Provides basic health + player action placeholder endpoints.
+Co‑located Functions backing the Static Web App frontend. Currently exposes a health endpoint + placeholder player action dispatcher.
 
 ## Functions
 
@@ -17,9 +17,7 @@ npm run build
 npm start   # builds then launches Azure Functions host
 ```
 
-Edits occur in `src/` (TypeScript). Build emits to `dist/` and `package.json#main` points to `dist/index.js`.
-
-After adding new function files, re-run `npm run build` (or rely on a watcher if configured) before starting the host.
+Edit TypeScript in `src/`. Build outputs to `dist/`. Re‑run `npm run build` (or add a watch script) after adding function files. Prefer running via the SWA emulator from the repo root (`npm run swa`) for integrated local testing.
 
 ## Handler Pattern
 
@@ -40,6 +38,6 @@ app.http("Example", {
 ## Notes
 
 - Use `jsonBody` for JSON responses.
-- Use `req.query.get('param')` or `await req.json()` for input.
-- Keep this API focused on lightweight website interactions; deeper game mechanics should live in the main backend Functions app.
-- To add another endpoint, create a `src/<descriptiveName>.ts` and register via `app.http("Name", { route, methods, handler })`.
+- Input helpers: `req.query.get('param')`, `await req.json()`.
+- Keep this layer thin; move heavier simulation logic to the future dedicated backend.
+- Add new endpoints with `app.http("Name", { route, methods, handler })` in a new file under `src/`.

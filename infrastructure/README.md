@@ -1,30 +1,31 @@
 # Infrastructure (Bicep)
 
-Current Bicep template provisions the two core MVP platform resources:
+Provisioned resources:
 
-| Resource                              | Purpose                                                          | Notes                                                                                                         |
-| ------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Azure Static Web App (Free tier)      | Hosts frontend + Managed API (Functions in `/frontend/api`).     | Workflow generation disabled (`skipGithubActionWorkflowGeneration: true`). You must configure CI/CD manually. |
-| Azure Cosmos DB Account (Gremlin API) | Persistent world graph: Rooms, Exits, NPCs, Items, Player State. | Session consistency; Gremlin enabled via capability.                                                          |
+| Resource                      | Purpose                                               | Notes                                                                    |
+| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| Azure Static Web App (SWA)    | Hosts frontend + managed API (`/frontend/api`).       | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`). |
+| Azure Cosmos DB (Gremlin API) | World graph: rooms, exits, NPCs, items, player state. | Session consistency; Gremlin capability enabled.                         |
+| Azure Key Vault               | Stores Cosmos primary key secret.                     | Access policy grants SWA system identity get/list for secrets.           |
 
-Current Bicep template provisions the following MVP resources:
 Files:
 
-- `main.bicep` – resource definitions (Static Web App + Cosmos DB, app settings injection)
-- `parameters.json` – currently empty (you pass parameters inline)
-  | Azure Key Vault | Secure storage for Cosmos primary key (secret). | Using access policy granting SWA identity secret get/list. |
+- `main.bicep` – SWA + Cosmos + Key Vault + secret injection
+- `parameters.json` – example / placeholder (not required; inline params acceptable)
 
-The earlier placeholder description (Storage + separate Function Apps) is obsolete. Backend logic should live inside the Static Web App managed API (`/frontend/api`) per architecture docs.
+Earlier storage + separate Function App plan has been superseded by co‑located managed API for MVP.
 
 ## Parameters
 
-| Name                         | Type                                           | Default                 | Required | Description                                                 |
-| ---------------------------- | ---------------------------------------------- | ----------------------- | -------- | ----------------------------------------------------------- |
-| `location`                   | string                                         | resource group location | No       | Deployment region override.                                 |
-| `keyVaultName`               | Name of the provisioned Key Vault.             |
-| `cosmosPrimaryKeySecretName` | Full name (vault/secret) of stored Cosmos key. |
-| `repositoryUrl`              | string                                         | —                       | Yes      | Git repository for SWA to reference (no workflow auto‑gen). |
-| `branch`                     | string                                         | —                       | Yes      | Branch name for SWA build context.                          |
+| Name                | Type   | Default                 | Required | Description                       |
+| ------------------- | ------ | ----------------------- | -------- | --------------------------------- |
+| `location`          | string | resource group location | No       | Region (override).                |
+| `staticWebAppSku`   | string | Standard                | No       | SWA tier (`Free` or `Standard`).  |
+| `staticWebAppName`  | string | derived unique string   | No       | Auto‑generated if not overridden. |
+| `cosmosAccountName` | string | derived unique string   | No       | Auto‑generated if not overridden. |
+| `keyVaultName`      | string | derived unique string   | No       | Auto‑generated if not overridden. |
+
+Secrets/keys are injected via Key Vault; no repository URL parameter is currently required because CI handles deployment.
 
 Example parameter usage inline or via a parameter file you maintain separately.
 
@@ -72,11 +73,10 @@ az deployment group create \
 
 ## Post-Deployment Checklist
 
-1. Configure GitHub Action or SWA build workflow (since auto-generation is disabled) to publish the frontend and `/frontend/api` Functions.
-   - Implemented: see `.github/workflows/frontend-swa-deploy.yml` and `docs/ci-cd.md` (OIDC-based, path-filtered).
-2. Seed Cosmos Gremlin graph with initial rooms/NPCs (script or manual queries).
-3. Store AI / future secret values securely (temporary: SWA app settings; planned: Key Vault or managed identity with Data Plane RBAC once feasible).
-4. Rotate Cosmos key if shared or exposed during testing. Plan migration to a managed identity approach (e.g., when using Data API Builder or Azure Functions with identity-based access patterns).
+1. (Done) CI workflow builds & deploys SWA + API (`.github/workflows/frontend-swa-deploy.yml`).
+2. Seed Gremlin graph (rooms/NPCs) – script pending.
+3. Move runtime code to managed identity access (stop surfacing raw key to Functions once Gremlin SDK usage added).
+4. Add Application Insights + instrumentation (future Bicep update).
 
 ## Security & Limitations
 
@@ -85,7 +85,7 @@ az deployment group create \
 | Cosmos Key Exposure | Primary key injected into SWA app settings (`COSMOS_KEY`). | Replace with Key Vault or identity-based access.                    |
 | Observability       | No Application Insights yet.                               | Add App Insights + sampling & dependency tracking.                  |
 | Messaging           | No Service Bus / queues.                                   | Add Service Bus namespace + queue for world events.                 |
-| Secrets Management  | No Key Vault.                                              | Introduce Key Vault, reference secrets in Bicep.                    |
+| Secrets Management  | Key Vault present (Cosmos key).                            | Expand to additional secrets (api keys, feature flags).             |
 | Identity / RBAC     | No managed identity assignments.                           | Add system-assigned / user-assigned identity and Cosmos RBAC roles. |
 | CI/CD               | Workflow not auto-generated.                               | Author SWA + seeding GitHub Actions manually.                       |
 
@@ -99,11 +99,10 @@ az deployment group create \
 
 - Service Bus namespace + queue (world events / async NPC processing)
 - Application Insights (telemetry for commands, performance)
-- Key Vault (central secret store; remove raw Cosmos key from settings)
-- Managed Identity + RBAC (Static Web App identity -> Cosmos Data Reader/Contributor roles)
-- Optional Azure OpenAI resource (gated, low-usage) + config outputs
-- Gremlin database/graph explicit provisioning module (if needed for automation)
-- Tagging strategy (`env`, `project`, `costCenter`) across resources
+- Managed identity RBAC assignments (Cosmos data plane roles)
+- Optional Azure OpenAI / AI service (low usage prototype) outputs
+- Gremlin database/graph explicit provisioning (if automated seeding)
+- Tagging strategy (`env`, `project`, `costCenter`)
 
 ## Changelog
 

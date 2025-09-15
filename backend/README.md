@@ -1,14 +1,19 @@
-# Backend (Azure Functions v4, TypeScript)
+# Backend (Azure Functions – scaffolding)
 
-TypeScript Azure Functions backend. Initial HTTP functions live in `src/index.ts` (`BackendHealth`, `BackendPing`). Queue & world logic will follow in dedicated folders. During early development most player-facing endpoints are still co-located under `frontend/api` and served via the SWA emulator (`npm run swa`). This package exists to prepare for separation of concerns (world simulation, queues, graph access).
+This workspace is reserved for the future separated Functions app (world events, queue processors, richer HTTP endpoints). Today it only contains trivial example handlers (`BackendHealth`, `BackendPing`) in `src/index.ts`.
 
-Planned structure (mirrors design docs / persistent world model):
+Why keep it now?
+
+- Enforces separation point once queue + world logic move out of `frontend/api`.
+- Lets CI / infra evolve without a large refactor later.
+
+Planned structure (aligned with domain docs):
 
 ```
 backend/
-	HttpPlayerActions/    # HTTP-triggered functions handling player commands (move, look, interact)
-	QueueWorldLogic/      # Queue-triggered functions processing NPC ticks, world events
-	shared/               # Reusable utilities: Cosmos graph client (Gremlin), validation, constants
+  HttpPlayerActions/   # HTTP player commands (move, look, interact)
+  QueueWorldLogic/     # Queue-triggered world / NPC / economy events
+  shared/              # Reusable helpers (Gremlin client, validation, constants)
 ```
 
 ## Scripts (package.json)
@@ -20,36 +25,35 @@ Scripts:
 
 ## Local Development
 
-Standalone (when adding or testing backend-only logic):
+When actual logic is added:
 
-1. Install deps: `npm install`
-2. Build: `npm run build`
-3. Start: `npm start`
+1. `npm install`
+2. `npm run start` (build + Functions host)
 
-While the unified SWA workflow (`npm run swa` at repo root) is primary for front-end + co-located API, you can run both concurrently if exploring new backend endpoints not yet proxied by SWA.
+During early phase prefer the SWA co‑located API in `frontend/api` for simple endpoints. Only add code here when a concern clearly doesn’t belong in the website API (e.g., long‑running queue processing).
 
-Adding a new HTTP function: extend `src/index.ts` with another `app.http(...)` call or create an additional module imported from there; keep handlers small and stateless.
+Adding a temporary HTTP function (for experimentation): extend `src/index.ts` with another `app.http(...)` call. Delete or migrate experimental handlers promptly.
 
 ## Environment & Settings
 
-`local.settings.json` is currently minimal. Future keys:
+`local.settings.json` is intentionally sparse. Expected future additions:
 
-- `COSMOS_ENDPOINT`, `COSMOS_KEY` (or managed identity + database/graph names)
-- `SERVICE_BUS_CONNECTION` (or identity + namespace)
-- Feature flags for modules (economy, traversal experimentation)
+- Cosmos (prefer managed identity over keys once runtime integration exists)
+- Service Bus connection / namespace
+- Feature flags (enable experimental modules)
 
-Authentication / Identity:
-
-- When enabling user sign-in in production, use Microsoft Entra External Identities for player authentication and federation. Add environment settings to support token validation (for example, `ENTRA_TENANT`, `ENTRA_CLIENT_ID`, and OIDC discovery URL) and ensure Functions validate incoming ID tokens and enforce claims-based authorization.
+Identity (future): Microsoft Entra External Identities for player auth. Plan: validate ID tokens in HTTP Functions (claims-based authorization), then issue gameplay session tokens if needed.
 
 ## Roadmap
 
-- DONE: Health / echo validation.
-- Player movement endpoint → enqueue world event.
-- Queue world processor (NPC patrol tick, environmental shifts).
-- Cosmos graph integration helpers (shared/graph.ts).
-- Tests (Node `--test`) for shared utilities + first movement logic.
+Status / roadmap snapshot:
+
+- DONE: Basic health + echo
+- NEXT: Player command handler → enqueue event (once queue infra added)
+- Queue world processor (NPC patrols / environmental shifts)
+- Cosmos graph helpers (`shared/graph.ts`)
+- Tests (Node `--test`) for graph + movement logic
 
 ## Notes
 
-Until real Functions are added, deployment templates will create essentially empty Function Apps.
+Until logic lands here, infrastructure deploys an essentially empty artifact (low cost footprint).
