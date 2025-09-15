@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "NodeNext",
-    "allowJs": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": false,
     "checkJs": false,
     "strict": true,
     "skipLibCheck": true,
@@ -12,8 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmitOnError": true,
-    "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "types": []
   }
 }

@@ -4,10 +4,10 @@ TypeScript Azure Functions that back the Static Web App frontend. Provides basic
 
 ## Functions
 
-| Name                       | Route                     | Methods  | Description                             |
-| -------------------------- | ------------------------- | -------- | --------------------------------------- |
-| `WebsiteHealthCheck`       | `/website/health`         | GET      | Returns service status JSON.            |
-| `WebsiteHttpPlayerActions` | `/website/player/actions` | GET/POST | Placeholder for player action dispatch. |
+| Name                       | Source File                       | Route                     | Methods  | Description                             |
+| -------------------------- | --------------------------------- | ------------------------- | -------- | --------------------------------------- |
+| `WebsiteHealthCheck`       | `src/websiteHealthCheck.ts`       | `/website/health`         | GET      | Returns service status JSON.            |
+| `WebsiteHttpPlayerActions` | `src/websiteHttpPlayerActions.ts` | `/website/player/actions` | GET/POST | Placeholder for player action dispatch. |
 
 ## Development
 
@@ -18,6 +18,8 @@ npm start   # builds then launches Azure Functions host
 ```
 
 Edits occur in `src/` (TypeScript). Build emits to `dist/` and `package.json#main` points to `dist/index.js`.
+
+After adding new function files, re-run `npm run build` (or rely on a watcher if configured) before starting the host.
 
 ## Handler Pattern
 
@@ -39,4 +41,5 @@ app.http("Example", {
 
 - Use `jsonBody` for JSON responses.
 - Use `req.query.get('param')` or `await req.json()` for input.
-- Extend with queues/events later for world logic.
+- Keep this API focused on lightweight website interactions; deeper game mechanics should live in the main backend Functions app.
+- To add another endpoint, create a `src/<descriptiveName>.ts` and register via `app.http("Name", { route, methods, handler })`.
