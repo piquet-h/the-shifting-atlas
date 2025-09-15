@@ -89,6 +89,4 @@ npm run swa # optional integrated emulator
 2. Hit `/api/website/health` endpoint and check new build time or version marker (add one if needed).
 3. (PR) Validate preview URL (named environment `pr<PR_NUMBER>`) appears in PR conversation or Portal.
 
----
 
-Last updated: 2025-09-14
