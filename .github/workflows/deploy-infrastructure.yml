@@ -79,8 +79,7 @@ jobs:
             --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
             --template-file $BICEP_FILE \
             --name infra-${{ github.run_number }} \
-            --mode Incremental \
-            --parameters repositoryUrl="https://github.com/${{ github.repository }}" branch="${{ github.ref_name }}"
+            --mode Complete
 
       - name: (Optional) Output Static Web App hostname
         run: |
