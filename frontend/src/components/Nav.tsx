@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 export default function Nav(): React.ReactElement {
   return (
-    <nav className="w-full flex items-center justify-between py-3">
+    <nav className="w-full flex items-center justify-between py-3" aria-label="Primary">
       <div className="flex items-center gap-3">
         <Link to="/" className="text-lg font-semibold text-slate-100">The Shifting Atlas</Link>
       </div>

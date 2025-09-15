@@ -10,7 +10,11 @@
         "start": "vite",
         "swa:install": "npm install -D @azure/static-web-apps-cli",
         "swa": "npx swa start dev --run 'npm run dev'",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint --ext .ts,.tsx src",
+        "a11y:serve": "vite --port 5173",
+        "a11y:scan": "axe http://localhost:5173 --exit 1 --dir ./axe-report --save",
+        "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan"
     },
     "dependencies": {
         "react": "^18.2.0",
@@ -25,9 +29,12 @@
         "@types/react-dom": "^19.1.9",
         "autoprefixer": "^10.4.0",
         "eslint": "^9.35.0",
+        "eslint-plugin-jsx-a11y": "^6.9.0",
         "postcss": "^8.4.0",
         "tailwindcss": "^3.4.0",
         "typescript": "^5.9.2",
-        "vite": "^7.1.5"
+        "vite": "^7.1.5",
+        "@axe-core/cli": "^4.9.0",
+        "start-server-and-test": "^2.0.8"
     }
 }

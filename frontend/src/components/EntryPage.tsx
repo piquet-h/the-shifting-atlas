@@ -13,19 +13,19 @@ function Logo(): React.ReactElement {
 
 export default function EntryPageTailwind(): React.ReactElement {
   return (
-    <main className="min-h-screen flex flex-col gap-4 p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bg-dark">
+    <main id="main" className="min-h-screen flex flex-col gap-4 p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bg-dark" aria-labelledby="page-title">
       <header className="flex items-center gap-3">
         <Logo />
         <div>
-          <h1 className="text-xl font-semibold">The Shifting Atlas</h1>
+          <h1 id="page-title" tabIndex={-1} className="text-xl font-semibold">The Shifting Atlas</h1>
           <p className="text-sm text-atlas-muted">A text-adventure MMO of drifting maps and hidden rooms.</p>
         </div>
       </header>
 
-      <section className="bg-white/3 p-4 rounded-xl shadow-lg">
+      <section className="bg-white/3 p-4 rounded-xl shadow-lg" aria-labelledby="begin-journey">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
-            <h2 className="text-lg font-semibold">Begin your journey</h2>
+            <h2 id="begin-journey" className="text-lg font-semibold">Begin your journey</h2>
             <p className="text-sm text-atlas-muted">Explore. Trade. Survive. Shape the Atlas with other players.</p>
           </div>
 
@@ -36,7 +36,7 @@ export default function EntryPageTailwind(): React.ReactElement {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="Game pillars">
         <div className="p-3 rounded-lg bg-white/3">
           <h3 className="font-semibold">Persistent world</h3>
           <p className="text-sm text-atlas-muted">Actions persist through asynchronous world events.</p>

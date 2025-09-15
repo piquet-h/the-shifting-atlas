@@ -10,8 +10,13 @@
         "typescriptreact"
     ],
     "editor.codeActionsOnSave": {
-        "source.fixAll": "always"
+        "source.fixAll": "always",
+        "source.fixAll.eslint": "always",
+        "source.organizeImports": "always"
     },
+    "eslint.rules.customizations": [
+        { "rule": "jsx-a11y/*", "severity": "error" }
+    ],
     "tailwindCSS.includeLanguages": {
         "javascript": "javascript",
         "html": "html",
@@ -24,5 +29,6 @@
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.projectLanguageModel": 4,
     "azureFunctions.preDeployTask": "npm prune (functions)",
-    "azurite.location": "/Volumes/External/azurite_db"
+    "azurite.location": "/Volumes/External/azurite_db",
+    "problems.autoReveal": false
 }

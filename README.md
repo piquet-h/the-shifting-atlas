@@ -4,6 +4,8 @@
 
 Experimental persistent‑world (MMO‑style) text adventure prototype on an Azure‑native, event‑driven stack. Code today = lightweight scaffolding; most domain depth lives in design docs and roadmap.
 
+> Core Tenet: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see `docs/ux/accessibility-guidelines.md`) before merge.
+
 ---
 
 ## Table of Contents
@@ -19,6 +21,7 @@ Experimental persistent‑world (MMO‑style) text adventure prototype on an Azu
 9. Known Gaps & Technical Debt
 10. Contributing Guidelines
 11. License
+12. Accessibility (Core Tenet)
 
 ---
 
@@ -183,6 +186,26 @@ Current gaps:
 ## 11. License
 
 MIT – see `LICENSE`.
+
+## 12. Accessibility (Core Tenet)
+
+Accessibility is treated as a first‑class requirement (not a polish phase). Refer to `docs/ux/accessibility-guidelines.md` for:
+- WCAG 2.2 AA mapping to game concerns
+- Required skip link, landmarks, focus management
+- Live announcement strategy for world events
+- Definition of Done checklist additions
+
+### Automated Axe Scan
+Run locally:
+
+```bash
+npm install --workspaces
+npm run a11y  # runs vite dev server then axe scan of http://localhost:5173
+```
+
+GitHub Actions workflow `.github/workflows/a11y.yml` executes on PRs touching frontend code. Reports are saved as an artifact (`axe-report`). The command currently fails build on any violation (`--exit 1`). Adjust strategy later for severity filtering.
+
+PRs introducing UI or interaction changes must note: keyboard path validated, no new a11y lint violations, focus order predictable, and contrast checked. Regressions block merge.
 
 ---
 

@@ -2,11 +2,14 @@
 
 This directory centralizes player experience artifacts: wireframes, user flows, interaction notes, and iteration history for The Shifting Atlas.
 
+> Accessibility is a core, non‑negotiable tenet. All UX artifacts must comply with and extend the baseline described in `accessibility-guidelines.md`. New flows cannot be approved while introducing WCAG regressions.
+
 ## Goals
 
 1. Provide a lightweight, versioned trail of UX decisions aligned with gameplay modules.
 2. Keep artifacts diff‑friendly (Markdown + Mermaid) – no external binary design sources required.
 3. Enable rapid iteration without losing historical context.
+4. Encode accessibility from inception (see `accessibility-guidelines.md`).
 
 ## Structure
 
@@ -137,7 +140,10 @@ sequenceDiagram
 
 - Prune `deprecated` artifacts quarterly.
 - Ensure every approved user flow maps to at least one QA test scenario (future automation hook).
+- Validate against accessibility checklist (landmarks, focus order, keyboard traversal) before status moves to `review`.
 
 ---
 
 For questions: open an issue with label `ux`.
+
+See also: `accessibility-guidelines.md` for mandatory patterns.
