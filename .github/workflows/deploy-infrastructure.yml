@@ -45,8 +45,7 @@ jobs:
         run: |
           az deployment group validate \
             --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
-            --template-file $BICEP_FILE \
-            --parameters repositoryUrl="https://github.com/${{ github.repository }}" branch="${{ github.ref_name }}"
+            --template-file $BICEP_FILE
 
   deploy:
     name: Deploy

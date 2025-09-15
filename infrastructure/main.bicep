@@ -6,8 +6,6 @@ param location string = resourceGroup().location
 param staticWebAppName string = 'web-${uniqueString(resourceGroup().id)}'
 param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
-param repositoryUrl string
-param branch string
 @description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
 @allowed([
   'Free'
@@ -60,8 +58,6 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    repositoryUrl: repositoryUrl
-    branch: branch
     buildProperties: {
       skipGithubActionWorkflowGeneration: true
     }
