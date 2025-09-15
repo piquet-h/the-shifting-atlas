@@ -72,7 +72,7 @@ jobs:
             --env production \
             --app-location frontend \
             --output-location dist \
-            --api-location frontend/api \
+            --api-location frontend/api/dist \
             --verbose
 
   preview:
