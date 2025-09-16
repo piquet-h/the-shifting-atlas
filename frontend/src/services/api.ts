@@ -1,11 +1,11 @@
 const BASE: string = (import.meta.env.VITE_API_BASE as string) || '/api';
 
 export interface HealthResponse {
-  status?: string
-  service?: string
-  message?: string
-  error?: string
-  [key: string]: unknown
+  status?: string;
+  service?: string;
+  message?: string;
+  error?: string;
+  [key: string]: unknown;
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {

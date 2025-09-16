@@ -3,8 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Homepage from './components/Homepage';
 import LiveAnnouncer from './components/LiveAnnouncer';
 import Nav from './components/Nav';
-import About from './pages/About';
-import DemoForm from './pages/DemoForm';
+// Removed About & DemoForm pages (cleaned unused demo routes)
 
 function ScrollAndFocus(): null {
   const location = useLocation();
@@ -31,8 +30,7 @@ export default function App(): React.ReactElement {
         <LiveAnnouncer />
         <Routes>
           <Route path="/" element={<Homepage />} />
-          <Route path="/demo/form" element={<DemoForm />} />
-          <Route path="/about" element={<About />} />
+          {/* Demo and About routes removed during cleanup */}
         </Routes>
       </div>
       <ScrollAndFocus />

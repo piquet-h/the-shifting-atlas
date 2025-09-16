@@ -10,7 +10,9 @@ export default function DemoForm(): React.ReactElement {
         <h1 className="text-2xl font-semibold mb-4">Demo Form</h1>
         <form className="space-y-4 bg-white/3 p-4 rounded-lg" aria-labelledby="demo-form-heading">
           <div>
-            <label htmlFor="demo-name" className="block text-sm font-medium mb-1">Name</label>
+            <label htmlFor="demo-name" className="block text-sm font-medium mb-1">
+              Name
+            </label>
             <input
               id="demo-name"
               value={name}
@@ -21,7 +23,9 @@ export default function DemoForm(): React.ReactElement {
           </div>
 
           <div>
-            <label htmlFor="demo-email" className="block text-sm font-medium mb-1">Email</label>
+            <label htmlFor="demo-email" className="block text-sm font-medium mb-1">
+              Email
+            </label>
             <input
               id="demo-email"
               type="email"
@@ -31,11 +35,18 @@ export default function DemoForm(): React.ReactElement {
               placeholder="you@example.com"
               aria-describedby="demo-email-help"
             />
-            <p id="demo-email-help" className="sr-only">Enter a valid email address.</p>
+            <p id="demo-email-help" className="sr-only">
+              Enter a valid email address.
+            </p>
           </div>
 
           <div className="flex justify-end">
-            <button type="button" className="px-4 py-2 rounded bg-atlas-accent text-emerald-900 font-semibold">Submit</button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded bg-atlas-accent text-emerald-900 font-semibold"
+            >
+              Submit
+            </button>
           </div>
         </form>
       </div>
