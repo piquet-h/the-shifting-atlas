@@ -59,7 +59,7 @@ npm run preview
 - `index.html` – Vite entry
 - `src/main.tsx` – React bootstrap (TypeScript)
 - `src/App.tsx` – Root component + Router outlet
-- `src/components/EntryPage.tailwind.tsx` – Landing UI
+- `src/components/Homepage.tsx` – Landing UI (renamed from EntryPage)
 - `src/components/Nav.tsx` – Navigation bar
 - `src/pages/About.tsx` – Example informational page
 - `src/pages/DemoForm.tsx` – Example interactive form

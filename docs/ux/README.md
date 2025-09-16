@@ -48,7 +48,7 @@ authors: ["@your-handle"]
 updated: 2025-09-15
 related:
   modules: ["navigation", "player-identity"]
-  components: ["EntryPage", "Nav", "DemoForm"]
+  components: ["Homepage", "Nav", "DemoForm"]
 wireframePrototype: react-live # indicates layout expressed directly in React components
 exportedImage: ../assets/entry-onboarding-flow.png        # optional static reference (PNG/SVG) if needed
 ---
@@ -85,7 +85,7 @@ Keep diagrams small & focused; split large journeys into linked sub‑flows.
 
 ## Linking Code & Gameplay Modules
 
-Reference source code by relative path with backticks (e.g., `frontend/src/components/EntryPage.tsx`).
+Reference source code by relative path with backticks (e.g., `frontend/src/components/Homepage.tsx`).
 Reference gameplay design modules in `docs/modules/` using bracket links: `[Navigation & Traversal](../modules/navigation-and-traversal.md)`.
 
 ## Workflow for Adding a New Artifact
@@ -123,6 +123,7 @@ Rather than exporting images from a sketch tool, create a skeletal implementatio
 Keep diagrams narrowly scoped. If a flow exceeds ~25 nodes or a sequence exceeds ~12 messages, split it into linked sub‑documents.
 
 Example sequence snippet:
+
 ```mermaid
 sequenceDiagram
   participant C as Client (React UI)
