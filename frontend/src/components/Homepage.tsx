@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useVisitState } from '../hooks/useVisitState';
 
 /**
  * Homepage
@@ -15,51 +16,17 @@ import React, { useEffect, useState } from 'react';
  *  - Use ordered list for steps, each with short imperative label
  *  - Provide skip-to-main anchor already present in shell
  *  - Ensure CTAs have discernible text & focus styles (Tailwind utilities)
+ *  - Removed visual duplicate heading/nav cluster (nav already includes branding). h1 kept as sr-only to avoid repetition.
  */
 
-// Renamed from EntryPage to Homepage to better reflect its role as the landing experience.
-function Logo(): React.ReactElement {
-  return (
-    <div className="w-12 h-12 text-atlas-accent flex items-center justify-center" aria-hidden>
-      <svg
-        width="48"
-        height="48"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M7 12h10M12 7v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      </svg>
-    </div>
-  );
-}
+// Logo moved to dedicated component `Logo.tsx` for reuse.
 
 export default function Homepage(): React.ReactElement {
-  const [isNewUser, setIsNewUser] = useState<boolean>(true);
+  const { isNewUser, acknowledge } = useVisitState();
   const [acknowledged, setAcknowledged] = useState(false);
 
-  // Detect returning visitor using localStorage (MVP placeholder)
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && 'localStorage' in window) {
-        const flag = window.localStorage.getItem('tsa.hasVisited');
-        if (flag === '1') setIsNewUser(false);
-      }
-    } catch {
-      /* non-blocking */
-    }
-  }, []);
-
   const handlePrimaryCTA = () => {
-    try {
-      if (typeof window !== 'undefined' && 'localStorage' in window) {
-        window.localStorage.setItem('tsa.hasVisited', '1');
-      }
-    } catch {
-      /* ignore */
-    }
-    setIsNewUser(false);
+    acknowledge();
     setAcknowledged(true);
   };
 
@@ -79,17 +46,9 @@ export default function Homepage(): React.ReactElement {
       className="min-h-screen flex flex-col gap-6 p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bg-dark"
       aria-labelledby="page-title"
     >
-      <header className="flex items-center gap-3">
-        <Logo />
-        <div>
-          <h1 id="page-title" tabIndex={-1} className="text-xl font-semibold tracking-tight">
-            The Shifting Atlas
-          </h1>
-          <p className="text-sm text-atlas-muted">
-            A text-adventure MMO of drifting maps and hidden rooms.
-          </p>
-        </div>
-      </header>
+      <h1 id="page-title" tabIndex={-1} className="sr-only">
+        The Shifting Atlas
+      </h1>
 
       {isNewUser ? (
         <>
@@ -139,33 +98,40 @@ export default function Homepage(): React.ReactElement {
             </div>
           </section>
 
-          {/* Quick Start Steps */}
-          <section aria-labelledby="quick-start-title" className="grid gap-4 sm:grid-cols-3">
-            <h2 id="quick-start-title" className="sr-only">
+          {/* Quick Start Steps (ordered list for better SR context) */}
+          <section aria-labelledby="quick-start-title" className="mt-2">
+            <h2 id="quick-start-title" className="text-sm font-semibold tracking-wide mb-3 sr-only">
               Quick start steps
             </h2>
-            {[
-              {
-                title: '1. Claim a Starting Room',
-                body: 'You begin at the Fringe. Each room you explore anchors the map for others until it drifts again.',
-              },
-              {
-                title: '2. Gather & Trade',
-                body: 'Collect curios and lore fragments—trade asynchronously even while players are offline.',
-              },
-              {
-                title: '3. Influence the Atlas',
-                body: 'Trigger world events that reroute passages, unlock factions, and reshape traversal.',
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="p-4 rounded-xl bg-white/4 ring-1 ring-white/10 flex flex-col gap-2"
-              >
-                <h3 className="text-sm font-semibold tracking-wide text-white">{item.title}</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">{item.body}</p>
-              </div>
-            ))}
+            <ol className="grid gap-4 sm:grid-cols-3 list-none m-0 p-0">
+              {[
+                {
+                  label: 'Claim a Starting Room',
+                  body: 'You begin at the Fringe. Each room you explore anchors the map for others until it drifts again.',
+                },
+                {
+                  label: 'Gather & Trade',
+                  body: 'Collect curios and lore fragments—trade asynchronously even while players are offline.',
+                },
+                {
+                  label: 'Influence the Atlas',
+                  body: 'Trigger world events that reroute passages, unlock factions, and reshape traversal.',
+                },
+              ].map((item, idx) => (
+                <li
+                  key={item.label}
+                  className="p-4 rounded-xl bg-white/4 ring-1 ring-white/10 flex flex-col gap-2"
+                >
+                  <h3 className="text-sm font-semibold tracking-wide text-white">
+                    <span className="text-atlas-accent mr-1" aria-hidden>
+                      {idx + 1}.
+                    </span>
+                    {item.label}
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed">{item.body}</p>
+                </li>
+              ))}
+            </ol>
           </section>
 
           {/* Secondary Pillars reused (semantic reinforcement) */}
