@@ -1,4 +1,3 @@
-/* global process */
 /**
  * WebsiteHealthCheck
  * Simple HTTP-triggered Azure Function returning service status.

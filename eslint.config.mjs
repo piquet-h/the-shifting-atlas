@@ -26,7 +26,7 @@ export default [
         },
     },
     {
-        files: ['frontend/src/**/*.{ts,tsx}', 'frontend/api/src/**/*.{ts,tsx}'],
+        files: ['frontend/src/**/*.{ts,tsx}'],
         languageOptions: {
             parser: tsParser,
             ecmaVersion: 'latest',
@@ -58,6 +58,21 @@ export default [
             // Indentation via Prettier
         },
         settings: { react: { version: 'detect' } },
+    },
+    {
+        // Frontend public API Azure Functions (node env but may share some TS conventions)
+        files: ['frontend/api/src/**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+            globals: { process: 'readonly' },
+        },
+        plugins: { '@typescript-eslint': tsPlugin },
+        rules: {
+            ...tsPlugin.configs.recommended.rules,
+            '@typescript-eslint/no-explicit-any': 'warn',
+        },
     },
     {
         // Backend Azure Functions (no React)
