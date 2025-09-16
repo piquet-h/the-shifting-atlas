@@ -62,6 +62,18 @@ jobs:
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+            - name: Configure SWA AAD app settings
+              env:
+                  AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AAD_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AAD_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+              run: |
+                  ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
+                  if [ -n "$AAD_CLIENT_SECRET" ]; then
+                    ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
+                  fi
+                  az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
+
             - name: Upload to Static Web App (production)
               # Using az cli since we rely on OIDC; this avoids needing the deployment token.
               run: |
@@ -109,6 +121,18 @@ jobs:
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+            - name: Configure SWA AAD app settings
+              env:
+                  AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AAD_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AAD_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+              run: |
+                  ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
+                  if [ -n "$AAD_CLIENT_SECRET" ]; then
+                    ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
+                  fi
+                  az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
+
             - name: Deploy Preview (OIDC only)
               run: |
                   npm install -g @azure/static-web-apps-cli@2
@@ -120,7 +144,7 @@ jobs:
                     --env "$ENV_NAME" \
                     --app-location frontend \
                     --output-location dist \
-                    --api-location frontend/api \
+                    --api-location frontend/api/dist \
                     --verbose
 
     preview-cleanup:

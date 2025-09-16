@@ -42,7 +42,7 @@ export default function Nav(): React.ReactElement {
                         ) : (
                             <>
                                 <a
-                                    href="/.auth/login/aad?post_login_redirect_uri=/"
+                                    href="/.auth/login/msa?post_login_redirect_uri=/"
                                     className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10"
                                 >
                                     Sign In with Microsoft

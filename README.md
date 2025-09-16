@@ -137,6 +137,55 @@ npm run build
 
 Output: `frontend/dist/` (referenced in `swa-cli.config.json` via `outputLocation`).
 
+### Authentication (Azure AD / Entra ID) – Single‑Tenant Configuration
+
+The Static Web App uses Azure AD (Entra ID) Easy Auth and is currently locked to a single tenant:
+
+Tenant ID: `fecae6e9-696f-46e4-b1c8-5b471b499a24`
+
+`frontend/public/staticwebapp.config.json` contains a hard‑coded `openIdIssuer` pointing at that tenant (v2.0 endpoint). If multi‑tenant or environment‑specific tenant substitution is required later, reintroduce a `<TENANT_ID>` placeholder and a replacement step in the deploy workflow.
+
+Deployment still provisions / refreshes SWA app settings (`AAD_CLIENT_ID`, `AAD_TENANT_ID`, optional `AAD_CLIENT_SECRET`) using `az staticwebapp appsettings set` before `swa deploy`.
+
+Required GitHub repository (or org) Secrets (Settings → Secrets and variables → Actions):
+
+| Secret Name             | Source (Azure Portal)                                    | Used For                                 |
+| ----------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| `AZURE_CLIENT_ID`       | App Registration → Overview → Application (client) ID    | Azure OIDC login + passed to SWA setting |
+| `AZURE_TENANT_ID`       | Azure AD (Entra) → Tenant / Directory ID                 | Azure OIDC login + tenant substitution   |
+| `AZURE_SUBSCRIPTION_ID` | Subscription overview                                    | Azure OIDC login (scopes actions)        |
+| `AZURE_CLIENT_SECRET`   | App Registration → Certificates & secrets (secret value) | (Optional) SWA AAD confidential flow     |
+
+SWA App Settings populated (mapped in workflow):
+
+| Setting Key         | Value Source             | Referenced In                                     |
+| ------------------- | ------------------------ | ------------------------------------------------- |
+| `AAD_CLIENT_ID`     | `AZURE_CLIENT_ID` secret | `staticwebapp.config.json` registration (by name) |
+| `AAD_TENANT_ID`     | `AZURE_TENANT_ID` secret | (Optional for app logic / diagnostics)            |
+| `AAD_CLIENT_SECRET` | `AZURE_CLIENT_SECRET`    | `staticwebapp.config.json` (by name, optional)    |
+
+Security notes:
+
+- The workflow never echoes secret values; only key names are shown.
+- Rotating the client secret requires updating the GitHub secret; the next deploy overwrites the SWA setting.
+- If you adopt certificate-based credentials later, remove `AZURE_CLIENT_SECRET` and rely on federated credentials.
+
+Local emulator:
+
+- The SWA CLI local auth emulator is used; if you need to test provider redirects locally you can configure a dev app registration redirect URI pointing to `http://localhost:4280/.auth/login/aad/callback`.
+
+Local auth convenience:
+
+- `npm run swa` launches `scripts/swa-auth.sh` which loads `.env` (if present) and starts the emulator. Tenant replacement logic was removed because the issuer is now hard‑coded.
+- Missing `AAD_CLIENT_ID` yields a warning; the app still serves anonymously.
+- For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
+
+Next steps (future hardening):
+
+- Optional: revert to placeholder + dynamic substitution for multi‑environment builds.
+- Manage Entra app via IaC (Bicep/Terraform) and output identifiers automatically.
+- Add a preflight script validating required app settings before deploy.
+
 ## 6. Development Workflow
 
 See `docs/developer-workflow/local-dev-setup.md` for environment setup. Guidelines:

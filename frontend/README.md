@@ -94,6 +94,26 @@ Notes:
 - For local development without SWA auth configured the hook simply treats the visitor as anonymous (no errors thrown).
 - Future enhancements: global AuthContext, silent refresh, provider selection UI, role-based gating of navigation.
 
+### Azure AD (Entra ID) Integration (Single‑Tenant)
+
+The app is currently configured for a single Azure AD tenant; the `openIdIssuer` in `staticwebapp.config.json` is hard‑coded to that tenant's v2.0 endpoint. SWA app settings still provide runtime values for:
+
+- `AAD_CLIENT_ID` (GitHub secret `AZURE_CLIENT_ID`)
+- `AAD_TENANT_ID` (GitHub secret `AZURE_TENANT_ID`, mainly informational now)
+- `AAD_CLIENT_SECRET` (optional; only if confidential flow required)
+
+If multi‑tenant or environment‑specific tenant substitution is needed later, reintroduce a `<TENANT_ID>` placeholder and a replacement step inside the deploy workflow.
+
+Local auth emulator:
+
+- The SWA CLI provides a lightweight built‑in auth simulation; real AAD issuer redirects require a dev redirect URI added to the app registration (`http://localhost:4280/.auth/login/aad/callback`).
+
+Secret Handling Guidelines:
+
+- Rotate the client secret in Entra ID, then update the GitHub secret; no code change required.
+- Avoid logging values—only presence/absence.
+- If reverting to dynamic tenant substitution, remove the hard‑coded issuer and restore a placeholder prior to commit.
+
 ## Notes
 
 Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.

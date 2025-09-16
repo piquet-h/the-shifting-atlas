@@ -1,5 +1,7 @@
 node_modules/
 .env
-.local.settings.json
 dist
 .DS_Store
+
+# Ignore any Functions local settings (front or backend) universally
+**/local.settings.json

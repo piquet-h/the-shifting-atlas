@@ -178,13 +178,16 @@ Key checks the backend must perform:
         "identityProviders": {
             "azureActiveDirectory": {
                 "registration": {
-                    "openIdIssuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+                    // Single-tenant locked (see repo README for tenant id rationale)
+                    "openIdIssuer": "https://login.microsoftonline.com/fecae6e9-696f-46e4-b1c8-5b471b499a24/v2.0",
                 },
             },
         },
     },
 }
 ```
+
+> Note: To revert to a dynamic / multi-tenant friendly setup, replace the hard-coded issuer with `https://login.microsoftonline.com/<TENANT_ID>/v2.0` and add a build/deploy substitution step.
 
 #### Azure Function (decode principal) – TypeScript snippet
 
