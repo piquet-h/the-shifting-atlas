@@ -1,4 +1,4 @@
-const BASE: string = (import.meta.env.VITE_API_BASE as string) || '/api'
+const BASE: string = (import.meta.env.VITE_API_BASE as string) || '/api';
 
 export interface HealthResponse {
   status?: string
@@ -10,12 +10,12 @@ export interface HealthResponse {
 
 export async function fetchHealth(): Promise<HealthResponse> {
   try {
-    const res = await fetch(`${BASE}/health`)
-    if (!res.ok) throw new Error('Network response not ok')
-    return res.json() as Promise<HealthResponse>
+    const res = await fetch(`${BASE}/health`);
+    if (!res.ok) throw new Error('Network response not ok');
+    return res.json() as Promise<HealthResponse>;
   } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Unknown error' }
+    return { error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }
 
-export default { fetchHealth }
+export default { fetchHealth };

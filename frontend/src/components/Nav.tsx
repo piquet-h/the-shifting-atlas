@@ -1,5 +1,5 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Nav(): React.ReactElement {
   return (
@@ -12,5 +12,5 @@ export default function Nav(): React.ReactElement {
         <Link to="/about" className="text-sm text-slate-300 hover:text-white">About</Link>
       </div>
     </nav>
-  )
+  );
 }

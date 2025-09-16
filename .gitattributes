@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+# Mark images as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg text
+
+# Keep lockfiles with LF
+package-lock.json text eol=lf

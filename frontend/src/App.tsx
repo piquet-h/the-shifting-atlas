@@ -1,20 +1,20 @@
-import React, { useEffect, useRef } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import EntryPageTailwind from './components/EntryPage'
-import About from './pages/About'
-import DemoForm from './pages/DemoForm'
-import Nav from './components/Nav'
-import LiveAnnouncer from './components/LiveAnnouncer'
+import React, { useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import EntryPageTailwind from './components/EntryPage';
+import About from './pages/About';
+import DemoForm from './pages/DemoForm';
+import Nav from './components/Nav';
+import LiveAnnouncer from './components/LiveAnnouncer';
 
 function ScrollAndFocus(): null {
-  const location = useLocation()
-  const mainRef = useRef<HTMLElement | null>(null)
+  const location = useLocation();
+  const mainRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     // On route change focus the first h1 for screen reader context
-    const heading = mainRef.current?.querySelector('h1') as HTMLHeadingElement | null
-    if (heading) heading.focus()
-  }, [location])
-  return null
+    const heading = mainRef.current?.querySelector('h1') as HTMLHeadingElement | null;
+    if (heading) heading.focus();
+  }, [location]);
+  return null;
 }
 
 export default function App(): React.ReactElement {
@@ -37,5 +37,5 @@ export default function App(): React.ReactElement {
       </div>
       <ScrollAndFocus />
     </BrowserRouter>
-  )
+  );
 }

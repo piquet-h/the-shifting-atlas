@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 
 function Logo(): React.ReactElement {
   return (
@@ -8,7 +8,7 @@ function Logo(): React.ReactElement {
         <path d="M7 12h10M12 7v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       </svg>
     </div>
-  )
+  );
 }
 
 export default function EntryPageTailwind(): React.ReactElement {
@@ -53,5 +53,5 @@ export default function EntryPageTailwind(): React.ReactElement {
 
       <footer className="mt-auto text-center text-slate-400 text-sm p-3">© The Shifting Atlas — built with love</footer>
     </main>
-  )
+  );
 }
