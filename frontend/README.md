@@ -78,6 +78,22 @@ Global styles: `src/tailwind.css` (single source). Typography + Forms plugins en
 - Introduce UI components for room traversal and NPC interactions.
 - Implement API error surface + loading skeletons.
 
+## Authentication & Sign Out (MVP Stub)
+
+This frontend now includes a minimal client-only hook `useAuth` that queries Azure Static Web Apps' built-in endpoint `/.auth/me` to determine whether a user is authenticated. If a user is present the nav menu shows a "Sign Out" action.
+
+Sign-out behavior:
+
+1. Clicking "Sign Out" triggers a redirect to `/.auth/logout?post_logout_redirect_uri=/`.
+2. SWA clears the auth session (and upstream provider cookie where applicable) and then returns to the homepage.
+3. The hook re-runs on load and the menu reverts to the anonymous state.
+
+Notes:
+
+- Sign-in links still display placeholder buttons. When providers are configured you can replace these with direct links like `/.auth/login/github` or a custom login page.
+- For local development without SWA auth configured the hook simply treats the visitor as anonymous (no errors thrown).
+- Future enhancements: global AuthContext, silent refresh, provider selection UI, role-based gating of navigation.
+
 ## Notes
 
 Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.

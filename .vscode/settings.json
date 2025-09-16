@@ -27,5 +27,13 @@
     // Prettier project-wide config now lives in .prettierrc.json.
     // Remove workspace overrides that conflicted with repository standard.
     // Keep only editor integration essentials below (can add others if needed):
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "prettier.printWidth": 160,
+    "prettier.requireConfig": true,
+    "ipynb.experimental.serialization": false,
+    "ipynb.pasteImagesAsAttachments.enabled": false,
+    "prettier.configPath": "./prettier.config.cjs",
+    "prettier.semi": false,
+    "prettier.tabWidth": 4,
+    "prettier.trailingComma": "none"
 }

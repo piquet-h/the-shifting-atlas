@@ -6,7 +6,25 @@
     "routes": [
         {
             "route": "/api/*",
-            "allowedRoles": ["anonymous"]
+            "allowedRoles": ["anonymous", "authenticated"]
+        },
+        {
+            "route": "/player/*",
+            "allowedRoles": ["authenticated"]
         }
-    ]
+    ],
+    "auth": {
+        "identityProviders": {
+            "azureActiveDirectory": {
+                "registration": {
+                    "openIdIssuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+                    "clientIdSettingName": "AAD_CLIENT_ID",
+                    "clientSecretSettingName": "AAD_CLIENT_SECRET"
+                },
+                "login": {
+                    "loginParameters": ["response_type=code"]
+                }
+            }
+        }
+    }
 }
