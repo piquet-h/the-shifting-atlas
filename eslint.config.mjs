@@ -10,6 +10,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
     {
+        // Unified ignore patterns (mirrors legacy .eslintrc and CJS flat variant)
         ignores: ['dist', '**/dist/**', 'node_modules', '**/.azure/**', '**/coverage/**'],
     },
     js.configs.recommended,
@@ -25,7 +26,7 @@ export default [
         },
     },
     {
-        files: ['frontend/src/**/*.{ts,tsx}'],
+        files: ['frontend/src/**/*.{ts,tsx}', 'frontend/api/src/**/*.{ts,tsx}'],
         languageOptions: {
             parser: tsParser,
             ecmaVersion: 'latest',
@@ -59,21 +60,8 @@ export default [
         settings: { react: { version: 'detect' } },
     },
     {
+        // Backend Azure Functions (no React)
         files: ['backend/src/**/*.ts'],
-        languageOptions: {
-            parser: tsParser,
-            ecmaVersion: 'latest',
-            sourceType: 'module',
-            globals: { process: 'readonly' },
-        },
-        plugins: { '@typescript-eslint': tsPlugin },
-        rules: {
-            ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn',
-        },
-    },
-    {
-        files: ['frontend/api/src/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             ecmaVersion: 'latest',
