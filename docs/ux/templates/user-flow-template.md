@@ -2,11 +2,11 @@
 title: FLOW TITLE
 status: draft
 version: 0.1.0
-authors: ["@handle"]
+authors: ['@handle']
 updated: 2025-09-15
 related:
-  modules: []
-  components: []
+    modules: []
+    components: []
 wireframePrototype: react-live # indicates layout expressed in React instead of external wireframe
 exportedImage: # optional static PNG/SVG if needed for clarity
 ---

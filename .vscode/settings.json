@@ -1,31 +1,31 @@
 {
-  "editor.formatOnSave": true,
-  "files.exclude": {
-    "**/node_modules": true
-  },
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "always",
-    "source.fixAll.eslint": "always",
-    "source.organizeImports": "always"
-  },
-  "eslint.rules.customizations": [{ "rule": "jsx-a11y/*", "severity": "error" }],
-  "tailwindCSS.includeLanguages": {
-    "javascript": "javascript",
-    "html": "html",
-    "javascriptreact": "javascript"
-  },
-  "azureFunctions.deploySubpath": "backend",
-  "azureFunctions.postDeployTask": "npm install (functions)",
-  "azureFunctions.projectLanguage": "TypeScript",
-  "azureFunctions.projectRuntime": "~4",
-  "debug.internalConsoleOptions": "neverOpen",
-  "azureFunctions.projectLanguageModel": 4,
-  "azureFunctions.preDeployTask": "npm prune (functions)",
-  "azurite.location": "/Volumes/External/azurite_db",
-  "problems.autoReveal": false,
-  // Prettier project-wide config now lives in .prettierrc.json.
-  // Remove workspace overrides that conflicted with repository standard.
-  // Keep only editor integration essentials below (can add others if needed):
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.formatOnSave": true,
+    "files.exclude": {
+        "**/node_modules": true
+    },
+    "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "always",
+        "source.fixAll.eslint": "always",
+        "source.organizeImports": "always"
+    },
+    "eslint.rules.customizations": [{ "rule": "jsx-a11y/*", "severity": "error" }],
+    "tailwindCSS.includeLanguages": {
+        "javascript": "javascript",
+        "html": "html",
+        "javascriptreact": "javascript"
+    },
+    "azureFunctions.deploySubpath": "backend",
+    "azureFunctions.postDeployTask": "npm install (functions)",
+    "azureFunctions.projectLanguage": "TypeScript",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.projectLanguageModel": 4,
+    "azureFunctions.preDeployTask": "npm prune (functions)",
+    "azurite.location": "/Volumes/External/azurite_db",
+    "problems.autoReveal": false,
+    // Prettier project-wide config now lives in .prettierrc.json.
+    // Remove workspace overrides that conflicted with repository standard.
+    // Keep only editor integration essentials below (can add others if needed):
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
 }

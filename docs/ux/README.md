@@ -95,10 +95,10 @@ Reference gameplay design modules in `docs/modules/` using bracket links: `[Navi
 3. Draft narrative + diagram.
 4. Add iteration log initial row.
 5. Open PR with label `ux` and checklist:
-   - [ ] Links to related modules
-   - [ ] Diagram renders locally (preview plugin / Mermaid)
-   - [ ] Component names match code
-   - [ ] Status = draft
+    - [ ] Links to related modules
+    - [ ] Diagram renders locally (preview plugin / Mermaid)
+    - [ ] Component names match code
+    - [ ] Status = draft
 6. Reviewer updates status to `review` or requests changes.
 7. When approved, change status to `approved` in same or follow‑up PR.
 

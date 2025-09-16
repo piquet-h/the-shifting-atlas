@@ -27,80 +27,71 @@ Extension points will allow developers to create extensions to the world like un
 Below each module name links to its dedicated design document (if present). Use these as entry points for deeper system details.
 
 - 🧭 **Navigation & Traversal** ([doc](modules/navigation-and-traversal.md)): Movement systems, terrain interaction, pathfinding
-
-  - Terrain types and modifiers
-  - Fast travel and teleportation systems
-  - Environmental hazards and traversal challenges
-  - Dynamic map generation and fog of war
-  - Traversal skill checks tied to D&D mechanics (e.g. climbing cliffs, swimming rivers)
-  - Semantic exits using natural language descriptions (e.g. "a narrow path through the mist")
-  - Environmental interactivity (e.g. burn vines, freeze rivers)
-  - Linked faction zones with terrain access restrictions
-  - Map injection API for developer-created regions and traversal puzzles
+    - Terrain types and modifiers
+    - Fast travel and teleportation systems
+    - Environmental hazards and traversal challenges
+    - Dynamic map generation and fog of war
+    - Traversal skill checks tied to D&D mechanics (e.g. climbing cliffs, swimming rivers)
+    - Semantic exits using natural language descriptions (e.g. "a narrow path through the mist")
+    - Environmental interactivity (e.g. burn vines, freeze rivers)
+    - Linked faction zones with terrain access restrictions
+    - Map injection API for developer-created regions and traversal puzzles
 
 - 🧠 **AI Prompt Engineering** ([doc](modules/ai-prompt-engineering.md)): Structuring inputs for consistent world generation
-
-  - Prompt templates for NPCs, quests, and locations
-  - Contextual memory and continuity enforcement
-  - Style and tone modulation
-  - Safety filters and content boundaries
+    - Prompt templates for NPCs, quests, and locations
+    - Contextual memory and continuity enforcement
+    - Style and tone modulation
+    - Safety filters and content boundaries
 
 - 🏗️ **World Rules & Lore** ([doc](modules/world-rules-and-lore.md)): Biome transitions, danger scaling, thematic cohesion
-
-  - Biome classification and transitions
-  - Danger level scaling and encounter balancing
-  - Lore codex and historical timelines
-  - Environmental storytelling and world myths
-  - Time progression and seasonal cycles
-  - Time-based events and quest availability
+    - Biome classification and transitions
+    - Danger level scaling and encounter balancing
+    - Lore codex and historical timelines
+    - Environmental storytelling and world myths
+    - Time progression and seasonal cycles
+    - Time-based events and quest availability
 
 - 🧑‍🤝‍🧑 **Multiplayer Mechanics** ([doc](modules/multiplayer-mechanics.md)): Syncing player states, cooperative exploration
-
-  - Real-time state synchronization
-  - Party formation and shared objectives
-  - PvP and PvE mechanics
-  - Instance management and matchmaking
+    - Real-time state synchronization
+    - Party formation and shared objectives
+    - PvP and PvE mechanics
+    - Instance management and matchmaking
 
 - 🏛️ **Factions & Governance** ([doc](modules/factions-and-governance.md)): Religions, secret organisations, political systems
-
-  - Faction reputation systems
-  - Dynamic power structures and influence zones
-  - Religious belief trees and schisms
-  - Political elections, coups, and diplomacy
+    - Faction reputation systems
+    - Dynamic power structures and influence zones
+    - Religious belief trees and schisms
+    - Political elections, coups, and diplomacy
 
 - 🧩 **Extension Framework** ([doc](modules/extension-framework.md)): Developer APIs, modding, sandboxing
-
-  - Quest and dungeon creation tools
-  - Item and NPC injection interfaces
-  - World event scripting
-  - Versioning and sandbox isolation
+    - Quest and dungeon creation tools
+    - Item and NPC injection interfaces
+    - World event scripting
+    - Versioning and sandbox isolation
 
 - 📜 **Quest & Dialogue Trees** ([doc](modules/quest-and-dialogue-trees.md)): NPC interactions, branching narratives
-
-  - Dialogue branching logic and emotional tone
-  - Quest types (fetch, escort, puzzle, etc.)
-  - Quest dependencies and chaining
-  - NPC memory and relationship tracking
+    - Dialogue branching logic and emotional tone
+    - Quest types (fetch, escort, puzzle, etc.)
+    - Quest dependencies and chaining
+    - NPC memory and relationship tracking
 
 - 🎭 **Player Identity & Roles** ([doc](modules/player-identity-and-roles.md)): Guilds, classes, reputation, alignment
-
-  - Class-based skill trees and progression
-  - Guild creation, management, and alliances
-  - Alignment tracking and moral consequences
-  - Reputation systems across regions and factions
+    - Class-based skill trees and progression
+    - Guild creation, management, and alliances
+    - Alignment tracking and moral consequences
+    - Reputation systems across regions and factions
 
 - 🧳 **Inventory & Item Systems** (TBD doc): Ownership, usage, crafting
-
-  - Item categorization and rarity tiers
-  - Crafting recipes and material dependencies
-  - Equipment slots and stat modifiers
-  - Item degradation and repair mechanics
+    - Item categorization and rarity tiers
+    - Crafting recipes and material dependencies
+    - Equipment slots and stat modifiers
+    - Item degradation and repair mechanics
 
 - 📈 **Economy & Trade Systems** ([doc](modules/economy-and-trade-systems.md)): Currency, marketplaces, resource flow
-  - Dynamic pricing and supply-demand mechanics
-  - Crafting economies and resource harvesting
-  - Trade routes and merchant NPCs
-  - Black markets and smuggling systems
+    - Dynamic pricing and supply-demand mechanics
+    - Crafting economies and resource harvesting
+    - Trade routes and merchant NPCs
+    - Black markets and smuggling systems
 
 ---
 

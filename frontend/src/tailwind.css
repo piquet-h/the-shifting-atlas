@@ -4,7 +4,6 @@
 
 /* Keep Tailwind base and allow theme tokens (atlas.*) from config to drive utilities. */
 @layer base {
-
     html,
     body,
     #root {

@@ -21,9 +21,9 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 
 - **frontend/** – Static Web App client (React + Vite + Tailwind). Use `npm run swa` at root for integrated local dev.
 - **backend/** – Azure Functions:
-  - `HttpPlayerActions/` – HTTP‑triggered Functions for player commands.
-  - `QueueWorldLogic/` – Queue‑triggered Functions for persistent world updates.
-  - `shared/` – Shared utilities (Cosmos DB access, validation, constants).
+    - `HttpPlayerActions/` – HTTP‑triggered Functions for player commands.
+    - `QueueWorldLogic/` – Queue‑triggered Functions for persistent world updates.
+    - `shared/` – Shared utilities (Cosmos DB access, validation, constants).
 - **docs/** – Design documents (architecture, modules, gameplay, workflow).
 - **.github/instructions/** – Module‑specific Copilot instructions.
 
@@ -35,10 +35,10 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 - Function names reflect their role and trigger type (e.g., `HttpMovePlayer`, `QueueProcessNPCStep`).
 - Keep Functions **single‑purpose** and **stateless**.
 - Cosmos DB collections:
-  - `Rooms` – room nodes with semantic exits.
-  - `NPCs` – non‑player characters and their state.
-  - `Players` – player profiles, inventory, progress.
-  - `Events` – queued world events.
+    - `Rooms` – room nodes with semantic exits.
+    - `NPCs` – non‑player characters and their state.
+    - `Players` – player profiles, inventory, progress.
+    - `Events` – queued world events.
 - All IDs are **GUIDs**; relationships are stored as Gremlin edges.
 - Use **async/await** for all I/O.
 

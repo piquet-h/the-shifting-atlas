@@ -1,148 +1,148 @@
 name: Frontend Static Web App Deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-  pull_request:
-    branches: [main]
-    paths:
-      - "frontend/**"
-  workflow_dispatch:
-    inputs:
-      reason:
-        description: "Manual redeploy reason"
-        required: false
+    push:
+        branches: [main]
+        paths:
+            - 'frontend/**'
+    pull_request:
+        branches: [main]
+        paths:
+            - 'frontend/**'
+    workflow_dispatch:
+        inputs:
+            reason:
+                description: 'Manual redeploy reason'
+                required: false
 
 permissions:
-  id-token: write # OIDC for azure/login
-  contents: read
+    id-token: write # OIDC for azure/login
+    contents: read
 
 concurrency:
-  group: swa-frontend
-  cancel-in-progress: true
+    group: swa-frontend
+    cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
-  # Expect these as repository variables (Settings > Variables > Actions):
-  # AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME
+    NODE_VERSION: '20'
+    # Expect these as repository variables (Settings > Variables > Actions):
+    # AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy (main)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    build-and-deploy:
+        name: Build & Deploy (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+            - name: Set up Node ${{ env.NODE_VERSION }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
 
-      - name: Install dependencies (workspace root)
-        run: npm install --workspaces
+            - name: Install dependencies (workspace root)
+              run: npm install --workspaces
 
-      - name: Typecheck frontend
-        run: npm run typecheck -w frontend
+            - name: Typecheck frontend
+              run: npm run typecheck -w frontend
 
-      - name: Build frontend
-        run: npm run build -w frontend
+            - name: Build frontend
+              run: npm run build -w frontend
 
-      - name: Build API (co-located Functions)
-        run: npm run build -w frontend/api
+            - name: Build API (co-located Functions)
+              run: npm run build -w frontend/api
 
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            - name: Azure login (OIDC)
+              uses: azure/login@v2
+              with:
+                  client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                  subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Upload to Static Web App (production)
-        # Using az cli since we rely on OIDC; this avoids needing the deployment token.
-        run: |
-          npm install -g @azure/static-web-apps-cli@2
-          # Build output already produced: frontend/dist ; functions in frontend/api
-          swa deploy \
-            --app-name "${{ vars.SWA_NAME }}" \
-            --env production \
-            --app-location frontend \
-            --output-location dist \
-            --api-location frontend/api/dist \
-            --verbose
+            - name: Upload to Static Web App (production)
+              # Using az cli since we rely on OIDC; this avoids needing the deployment token.
+              run: |
+                  npm install -g @azure/static-web-apps-cli@2
+                  # Build output already produced: frontend/dist ; functions in frontend/api
+                  swa deploy \
+                    --app-name "${{ vars.SWA_NAME }}" \
+                    --env production \
+                    --app-location frontend \
+                    --output-location dist \
+                    --api-location frontend/api/dist \
+                    --verbose
 
-  preview:
-    name: Preview Environment (PR)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    preview:
+        name: Preview Environment (PR)
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+            contents: read
+            pull-requests: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Set up Node ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+            - name: Set up Node ${{ env.NODE_VERSION }}
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install --workspaces
+            - name: Install dependencies
+              run: npm install --workspaces
 
-      - name: Build frontend
-        run: npm run build -w frontend
+            - name: Build frontend
+              run: npm run build -w frontend
 
-      - name: Build API
-        run: npm run build -w frontend/api
+            - name: Build API
+              run: npm run build -w frontend/api
 
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            - name: Azure login (OIDC)
+              uses: azure/login@v2
+              with:
+                  client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                  subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy Preview (OIDC only)
-        run: |
-          npm install -g @azure/static-web-apps-cli@2
-          # Use PR number to create deterministic preview environment name.
-          ENV_NAME="pr${{ github.event.number }}"
-          echo "Deploying preview environment: $ENV_NAME"
-          swa deploy \
-            --app-name "${{ vars.SWA_NAME }}" \
-            --env "$ENV_NAME" \
-            --app-location frontend \
-            --output-location dist \
-            --api-location frontend/api \
-            --verbose
+            - name: Deploy Preview (OIDC only)
+              run: |
+                  npm install -g @azure/static-web-apps-cli@2
+                  # Use PR number to create deterministic preview environment name.
+                  ENV_NAME="pr${{ github.event.number }}"
+                  echo "Deploying preview environment: $ENV_NAME"
+                  swa deploy \
+                    --app-name "${{ vars.SWA_NAME }}" \
+                    --env "$ENV_NAME" \
+                    --app-location frontend \
+                    --output-location dist \
+                    --api-location frontend/api \
+                    --verbose
 
-  preview-cleanup:
-    name: Cleanup Preview (PR Closed)
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    preview-cleanup:
+        name: Cleanup Preview (PR Closed)
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Azure login (OIDC)
+              uses: azure/login@v2
+              with:
+                  client-id: ${{ secrets.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+                  subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Delete preview environment
-        run: |
-          npm install -g @azure/static-web-apps-cli@2
-          ENV_NAME="pr${{ github.event.number }}"
-          echo "Attempting to delete preview environment $ENV_NAME (best-effort)."
-          # CLI currently lacks a direct delete subcommand; using REST API as fallback if needed.
-          # Placeholder for future deletion logic if supported.
-          echo "(No-op) Ensure stale preview $ENV_NAME is cleaned up manually if the service doesn't auto-expire it."
+            - name: Delete preview environment
+              run: |
+                  npm install -g @azure/static-web-apps-cli@2
+                  ENV_NAME="pr${{ github.event.number }}"
+                  echo "Attempting to delete preview environment $ENV_NAME (best-effort)."
+                  # CLI currently lacks a direct delete subcommand; using REST API as fallback if needed.
+                  # Placeholder for future deletion logic if supported.
+                  echo "(No-op) Ensure stale preview $ENV_NAME is cleaned up manually if the service doesn't auto-expire it."

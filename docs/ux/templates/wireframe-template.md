@@ -2,11 +2,11 @@
 title: TITLE GOES HERE
 status: draft
 version: 0.1.0
-authors: ["@handle"]
+authors: ['@handle']
 updated: 2025-09-15
 related:
-  modules: []
-  components: []
+    modules: []
+    components: []
 wireframePrototype: react-live # wireframe realized directly in React components
 exportedImage: # optional static PNG/SVG reference if necessary
 ---

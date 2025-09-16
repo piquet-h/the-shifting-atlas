@@ -1,43 +1,43 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch: {}
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+    workflow_dispatch: {}
 
 permissions:
-  contents: read
-  pull-requests: read
+    contents: read
+    pull-requests: read
 
 jobs:
-  lint-and-typecheck:
-    name: Lint & Typecheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    lint-and-typecheck:
+        name: Lint & Typecheck
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Use Node.js 20.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
+            - name: Use Node.js 20.x
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: 'npm'
 
-      - name: Install dependencies
-        run: npm install --workspaces
+            - name: Install dependencies
+              run: npm install --workspaces
 
-      - name: Lint
-        run: npm run lint
+            - name: Lint
+              run: npm run lint
 
-      - name: Typecheck
-        run: npm run typecheck
+            - name: Typecheck
+              run: npm run typecheck
 
-      - name: Upload ESLint report (optional placeholder)
-        if: failure()
-        run: |
-          echo "Consider adding eslint --format junit > report.xml and upload-artifact if needed."
+            - name: Upload ESLint report (optional placeholder)
+              if: failure()
+              run: |
+                  echo "Consider adding eslint --format junit > report.xml and upload-artifact if needed."
 
-  # Future: add build/test jobs here and depend on this one
+    # Future: add build/test jobs here and depend on this one

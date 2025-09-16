@@ -33,11 +33,11 @@ Backend tips (Azure Functions)
 
 - Read and decode `x-ms-client-principal` header when present:
 
-  const header = req.headers['x-ms-client-principal'];
-  if (header) {
-  const raw = Buffer.from(header, 'base64').toString('utf8');
-  const principal = JSON.parse(raw);
-  }
+    const header = req.headers['x-ms-client-principal'];
+    if (header) {
+    const raw = Buffer.from(header, 'base64').toString('utf8');
+    const principal = JSON.parse(raw);
+    }
 
 - For stricter validation (recommended for high-security ops), validate an Authorization: Bearer <token> JWT against the provider's JWKS endpoint.
 
@@ -49,7 +49,7 @@ Quick Azure CLI pointers
 
 - Create a Static Web App (example, replace placeholders):
 
-  az staticwebapp create --name <APP_NAME> --resource-group <RG> --source . --location <REGION> --login-with-github
+    az staticwebapp create --name <APP_NAME> --resource-group <RG> --source . --location <REGION> --login-with-github
 
 (Use the Azure docs to tailor the auth provider settings for external identities.)
 

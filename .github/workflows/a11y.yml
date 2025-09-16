@@ -1,43 +1,43 @@
 name: Accessibility Scan
 
 on:
-  pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/a11y.yml"
-      - "docs/ux/**"
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/a11y.yml"
+    pull_request:
+        paths:
+            - 'frontend/**'
+            - '.github/workflows/a11y.yml'
+            - 'docs/ux/**'
+    push:
+        branches: [main]
+        paths:
+            - 'frontend/**'
+            - '.github/workflows/a11y.yml'
 
 jobs:
-  axe:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    axe:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: 'npm'
 
-      - name: Install workspaces
-        run: npm install --workspaces
+            - name: Install workspaces
+              run: npm install --workspaces
 
-      - name: Build frontend (optional for static assets)
-        run: npm run build -w frontend
+            - name: Build frontend (optional for static assets)
+              run: npm run build -w frontend
 
-      - name: Run accessibility scan (axe)
-        run: npm run a11y
+            - name: Run accessibility scan (axe)
+              run: npm run a11y
 
-      - name: Upload axe report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: axe-report
-          path: frontend/axe-report
-          if-no-files-found: ignore
+            - name: Upload axe report artifact
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: axe-report
+                  path: frontend/axe-report
+                  if-no-files-found: ignore

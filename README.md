@@ -190,12 +190,14 @@ MIT – see `LICENSE`.
 ## 12. Accessibility (Core Tenet)
 
 Accessibility is treated as a first‑class requirement (not a polish phase). Refer to `docs/ux/accessibility-guidelines.md` for:
+
 - WCAG 2.2 AA mapping to game concerns
 - Required skip link, landmarks, focus management
 - Live announcement strategy for world events
 - Definition of Done checklist additions
 
 ### Automated Axe Scan
+
 Run locally:
 
 ```bash

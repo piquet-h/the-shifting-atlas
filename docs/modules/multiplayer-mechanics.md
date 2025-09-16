@@ -6,31 +6,31 @@ Create a living, multiplayer world where collaboration, conflict, and shared sto
 
 ## 🧑‍🤝‍🧑 Multiplayer Mechanics: Syncing player states, cooperative exploration
 
-* Real-time state synchronization
-* Party formation and shared objectives
-* PvP and PvE mechanics
-* Instance management and matchmaking
+- Real-time state synchronization
+- Party formation and shared objectives
+- PvP and PvE mechanics
+- Instance management and matchmaking
 
 ### Real-time state synchronization
 
-* Real-time vs. async updates
-* Shared quest progression and NPC memory
-* Location syncing and party movement logic
+- Real-time vs. async updates
+- Shared quest progression and NPC memory
+- Location syncing and party movement logic
 
 ### Party formation and shared objectives
 
-* Invite/accept/kick flow
-* Shared loot rules and quest objectives
-* Role-based bonuses and synergy effects
+- Invite/accept/kick flow
+- Shared loot rules and quest objectives
+- Role-based bonuses and synergy effects
 
 ### PvP and PvE mechanics
 
-* Combat rules, stat scaling, and faction modifiers
-* Instance logic for dungeons, arenas, and boss fights
-* Reputation impact and griefing mitigation
+- Combat rules, stat scaling, and faction modifiers
+- Instance logic for dungeons, arenas, and boss fights
+- Reputation impact and griefing mitigation
 
 ### Instance management and matchmaking
 
-* Shard logic: local vs. global state
-* Matchmaking protocols and encounter scaling
-* World event triggers and resolution tracking
+- Shard logic: local vs. global state
+- Matchmaking protocols and encounter scaling
+- World event triggers and resolution tracking

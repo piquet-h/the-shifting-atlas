@@ -4,9 +4,9 @@
 
 ### The Shifting Atlas — A Living, Breathing MMO Text Adventure Powered by Generative AI and D&D Mechanics
 
-**Geelong, Australia — [Date]** — Step into a world where every word shapes reality. *The Shifting Atlas* is a groundbreaking **massively multiplayer online role-playing game (MMORPG) text adventure** that fuses the timeless depth of **Dungeons & Dragons** mechanics with the limitless creativity of **generative AI**.
+**Geelong, Australia — [Date]** — Step into a world where every word shapes reality. _The Shifting Atlas_ is a groundbreaking **massively multiplayer online role-playing game (MMORPG) text adventure** that fuses the timeless depth of **Dungeons & Dragons** mechanics with the limitless creativity of **generative AI**.
 
-Inspired by the narrative richness of early *Legend of Zelda* text adventures and the sweeping epics of *Lord of the Rings* and *Dragonlance Chronicles*, *The Shifting Atlas* invites players into a **persistent, ever-evolving world** where history is written by those who dare to explore it.
+Inspired by the narrative richness of early _Legend of Zelda_ text adventures and the sweeping epics of _Lord of the Rings_ and _Dragonlance Chronicles_, _The Shifting Atlas_ invites players into a **persistent, ever-evolving world** where history is written by those who dare to explore it.
 
 Players can **drop in at any time, leave at any time**, and return to find the world changed — shaped by the actions, alliances, and rivalries of its inhabitants.
 
@@ -25,7 +25,7 @@ Players can **drop in at any time, leave at any time**, and return to find the w
 
 ### Core Modules Powering the Experience
 
-- **🧭 Navigation & Traversal**: From semantic exits like *“a narrow path through the mist”* to environmental interactivity, exploration is tactile and strategic.
+- **🧭 Navigation & Traversal**: From semantic exits like _“a narrow path through the mist”_ to environmental interactivity, exploration is tactile and strategic.
 - **🧠 AI Prompt Engineering**: NPCs, quests, and locations are generated with contextual memory and stylistic consistency.
 - **🏗️ World Rules & Lore**: Biome transitions, seasonal cycles, and danger scaling maintain thematic cohesion.
 - **🧑‍🤝‍🧑 Multiplayer Mechanics**: Real-time˚√ state sync, party systems, PvP/PvE balance, and matchmaking.
@@ -40,11 +40,11 @@ Players can **drop in at any time, leave at any time**, and return to find the w
 
 ### For Players and Developers Alike
 
-*The Shifting Atlas* is not just a game — it’s a **platform for collaborative storytelling**. Developers can extend the world with unique quests, dungeons, and items via a robust extension framework, ensuring the game grows organically with its community.
+_The Shifting Atlas_ is not just a game — it’s a **platform for collaborative storytelling**. Developers can extend the world with unique quests, dungeons, and items via a robust extension framework, ensuring the game grows organically with its community.
 
 ---
 
-**Availability**: *The Shifting Atlas* will launch in open beta [insert date], accessible via browser and mobile-friendly clients.
+**Availability**: _The Shifting Atlas_ will launch in open beta [insert date], accessible via browser and mobile-friendly clients.
 
 **Website**: [Insert Game Website]  
 **Press Contact**: [Insert Contact Info]
@@ -53,12 +53,12 @@ Players can **drop in at any time, leave at any time**, and return to find the w
 
 ## PLAYER QUOTES FROM THE WORLD OF THE SHIFTING ATLAS
 
-> *“I joined a caravan to the Eastern Fiefdoms, and by the time I returned, the city I left was under new rule. My guild’s banner now hangs in the council hall.”* — **@LoreSeeker42**
+> _“I joined a caravan to the Eastern Fiefdoms, and by the time I returned, the city I left was under new rule. My guild’s banner now hangs in the council hall.”_ — **@LoreSeeker42**
 
-> *“I thought I was just fetching herbs for an NPC. Three hours later, I was leading a rebellion against a corrupt high priest. This game doesn’t just tell stories — it traps you in them.”* — **Mira ‘The Quiet Dagger’**
+> _“I thought I was just fetching herbs for an NPC. Three hours later, I was leading a rebellion against a corrupt high priest. This game doesn’t just tell stories — it traps you in them.”_ — **Mira ‘The Quiet Dagger’**
 
-> *“The anti-griefing system is genius. I’ve played MMOs for years, and this is the first time I’ve felt safe roleplaying in public spaces.”* — **Guildmaster Thalen**
+> _“The anti-griefing system is genius. I’ve played MMOs for years, and this is the first time I’ve felt safe roleplaying in public spaces.”_ — **Guildmaster Thalen**
 
-> *“I built a dungeon for my friends using the extension tools. Two weeks later, strangers were swapping stories about how they barely survived it. That’s when I knew this world was alive.”* — **DevPlayer_Arin**
+> _“I built a dungeon for my friends using the extension tools. Two weeks later, strangers were swapping stories about how they barely survived it. That’s when I knew this world was alive.”_ — **DevPlayer_Arin**
 
-> *“I froze a river to escape a patrol, only to have it thaw mid-crossing. I lost my boots, my dignity, and half my loot — and I can’t wait to try again.”* — **@FrostbittenRogue**
+> _“I froze a river to escape a patrol, only to have it thaw mid-crossing. I lost my boots, my dignity, and half my loot — and I can’t wait to try again.”_ — **@FrostbittenRogue**

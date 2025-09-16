@@ -5,8 +5,8 @@ version: 1.1.0
 authors: ['@copilot-suggested']
 updated: 2025-09-16
 related:
-  modules: ['navigation-and-traversal', 'player-identity-and-roles']
-  components: ['Homepage', 'Nav', 'DemoForm']
+    modules: ['navigation-and-traversal', 'player-identity-and-roles']
+    components: ['Homepage', 'Nav', 'DemoForm']
 wireframePrototype: react-live
 exportedImage: ../assets/entry-onboarding-flow.png
 ---
@@ -173,16 +173,16 @@ Key checks the backend must perform:
 
 ```jsonc
 {
-  "routes": [{ "route": "/api/*", "allowedRoles": ["authenticated"] }],
-  "auth": {
-    "identityProviders": {
-      "azureActiveDirectory": {
-        "registration": {
-          "openIdIssuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+    "routes": [{ "route": "/api/*", "allowedRoles": ["authenticated"] }],
+    "auth": {
+        "identityProviders": {
+            "azureActiveDirectory": {
+                "registration": {
+                    "openIdIssuer": "https://login.microsoftonline.com/<TENANT_ID>/v2.0",
+                },
+            },
         },
-      },
     },
-  },
 }
 ```
 
@@ -192,9 +192,9 @@ Key checks the backend must perform:
 const principalHeader = req.headers['x-ms-client-principal'] as string | undefined;
 let principal: any | undefined;
 if (principalHeader) {
-  const decoded = Buffer.from(principalHeader, 'base64').toString('utf8');
-  principal = JSON.parse(decoded);
-  // principal.identityProvider, principal.userId, principal.userDetails, principal.userRoles
+    const decoded = Buffer.from(principalHeader, 'base64').toString('utf8');
+    principal = JSON.parse(decoded);
+    // principal.identityProvider, principal.userId, principal.userDetails, principal.userRoles
 }
 ```
 

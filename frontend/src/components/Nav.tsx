@@ -14,29 +14,29 @@ import Logo from './Logo';
  */
 
 export default function Nav(): React.ReactElement {
-  return (
-    <nav className="w-full flex items-center justify-between py-3 px-1" aria-label="Primary">
-      <div className="flex items-center gap-3">
-        <Logo />
-        <Link to="/" className="text-lg font-semibold text-slate-100 tracking-tight">
-          The Shifting Atlas
-        </Link>
-      </div>
-      <div className="flex items-center gap-3 relative">
-        <details className="group relative">
-          <summary className="list-none cursor-pointer select-none text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg">
-            Guest<span className="sr-only"> user menu placeholder</span>
-          </summary>
-          <div className="absolute right-0 top-full mt-2 w-40 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
-            <button className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10">
-              Sign In (TODO)
-            </button>
-            <button className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10">
-              Register (TODO)
-            </button>
-          </div>
-        </details>
-      </div>
-    </nav>
-  );
+    return (
+        <nav className="w-full flex items-center justify-between py-3 px-1" aria-label="Primary">
+            <div className="flex items-center gap-3">
+                <Logo />
+                <Link to="/" className="text-lg font-semibold text-slate-100 tracking-tight">
+                    The Shifting Atlas
+                </Link>
+            </div>
+            <div className="flex items-center gap-3 relative">
+                <details className="group relative">
+                    <summary className="list-none cursor-pointer select-none text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg">
+                        Guest<span className="sr-only"> user menu placeholder</span>
+                    </summary>
+                    <div className="absolute right-0 top-full mt-2 w-40 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
+                        <button className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10">
+                            Sign In (TODO)
+                        </button>
+                        <button className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10">
+                            Register (TODO)
+                        </button>
+                    </div>
+                </details>
+            </div>
+        </nav>
+    );
 }
