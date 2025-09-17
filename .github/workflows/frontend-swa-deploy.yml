@@ -64,9 +64,9 @@ jobs:
 
             - name: Configure SWA AAD app settings
               env:
-                  AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-                  AAD_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-                  AAD_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+                  AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID }}
+                  AAD_TENANT_ID: ${{ secrets.CUSTOMER_TENANT_ID }}
+                  AAD_CLIENT_SECRET: ${{ secrets.CUSTOMER_SECRET }}
               run: |
                   ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
                   if [ -n "$AAD_CLIENT_SECRET" ]; then
