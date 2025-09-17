@@ -16,7 +16,18 @@ import Logo from './Logo';
 
 export default function Nav(): React.ReactElement {
     const { user, loading, signOut, signIn } = useAuth();
-    const label = loading ? '...' : user?.userDetails || 'Guest';
+    // Label shown for unauthenticated users. Replacing generic "Guest" with thematic term "Explorer".
+    const label = loading ? '...' : user?.userDetails || 'Explorer';
+    // Derive initials (simple heuristic): take first two letters of first non-empty word; fallback to first letter of label.
+    const initials = React.useMemo(() => {
+        if (loading) return '';
+        const source = user?.userDetails?.trim() || label;
+        if (!source) return '';
+        const parts = source.split(/\s+/).filter(Boolean);
+        if (parts.length === 0) return '';
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    }, [user?.userDetails, label, loading]);
     return (
         <nav className="w-full flex items-center justify-between py-3 px-1" aria-label="Primary">
             <div className="flex items-center gap-3">
@@ -27,15 +38,22 @@ export default function Nav(): React.ReactElement {
             </div>
             <div className="flex items-center gap-3 relative">
                 <details className="group relative">
-                    <summary className="list-none cursor-pointer select-none text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg">
-                        {label}
+                    <summary className="list-none cursor-pointer select-none text-xs font-medium pl-1 pr-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg transition-colors duration-150 flex items-center gap-2">
+                        <span
+                            aria-hidden="true"
+                            className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-atlas-accent/80 to-atlas-accent text-[10px] font-semibold tracking-wide text-slate-900 shadow-inner ring-1 ring-white/30"
+                        >
+                            {initials || '⛶'}
+                        </span>
+                        <span>{label}</span>
                         <span className="sr-only"> user menu</span>
                     </summary>
                     <div className="absolute right-0 top-full mt-2 w-44 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
                         {user ? (
                             <button
-                                onClick={signOut}
-                                className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10"
+                                // Wrap signOut so it matches MouseEventHandler signature (no params from event)
+                                onClick={() => signOut()}
+                                className="text-left text-xs px-2 py-1 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
                             >
                                 Sign Out
                             </button>
@@ -43,7 +61,7 @@ export default function Nav(): React.ReactElement {
                             <>
                                 <button
                                     onClick={() => signIn('msa', '/')}
-                                    className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10"
+                                    className="text-left text-xs px-2 py-1 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
                                 >
                                     Sign In with Microsoft
                                 </button>

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useVisitState } from '../hooks/useVisitState';
 
 /**
@@ -22,23 +23,18 @@ import { useVisitState } from '../hooks/useVisitState';
 // Logo moved to dedicated component `Logo.tsx` for reuse.
 
 export default function Homepage(): React.ReactElement {
-    const { isNewUser, acknowledge } = useVisitState();
-    const [acknowledged, setAcknowledged] = useState(false);
+    const { isNewUser } = useVisitState(); // still used as a lightweight heuristic for first visit pre‑auth
+    const { isAuthenticated, loading, user, signIn } = useAuth();
 
-    const handlePrimaryCTA = () => {
-        acknowledge();
-        setAcknowledged(true);
-    };
-
-    // Announce mode switch for screen readers (simple polite region pattern)
+    // On initial sign-in success (user appears) announce for screen readers once.
     useEffect(() => {
-        if (acknowledged) {
+        if (!loading && isAuthenticated) {
             const region = document.getElementById('mode-announcement');
             if (region) {
-                region.textContent = 'Welcome explorer. Profile scaffold will appear here soon.';
+                region.textContent = `Signed in as ${user?.userDetails || 'explorer'}`;
             }
         }
-    }, [acknowledged]);
+    }, [loading, isAuthenticated, user?.userDetails]);
 
     return (
         <main
@@ -50,7 +46,16 @@ export default function Homepage(): React.ReactElement {
                 The Shifting Atlas
             </h1>
 
-            {isNewUser ? (
+            {/* Loading state (auth call in-flight) */}
+            {loading && (
+                <div role="status" className="flex flex-col items-center gap-4 py-16">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
+                    <p className="text-sm text-slate-400">Checking your explorer identity...</p>
+                </div>
+            )}
+
+            {/* Unauthenticated (treat as new / marketing hero). We still optionally differentiate first visit for analytics copy tone. */}
+            {!loading && !isAuthenticated ? (
                 <>
                     {/* Hero / Intro */}
                     <section
@@ -69,10 +74,10 @@ export default function Homepage(): React.ReactElement {
                                 </p>
                                 <div className="mt-5 flex flex-col sm:flex-row gap-3">
                                     <button
-                                        onClick={handlePrimaryCTA}
+                                        onClick={() => signIn('msa', '/')}
                                         className="px-5 py-3 rounded-lg font-semibold bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg"
                                     >
-                                        Create Your Explorer
+                                        {isNewUser ? 'Create Your Explorer' : 'Sign In to Continue'}
                                     </button>
                                     <button className="px-5 py-3 rounded-lg border border-white/15 text-slate-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 focus:ring-offset-atlas-bg">
                                         Learn More
@@ -165,7 +170,10 @@ export default function Homepage(): React.ReactElement {
                         </div>
                     </section>
                 </>
-            ) : (
+            ) : null}
+
+            {/* Authenticated (returning journey view) */}
+            {!loading && isAuthenticated ? (
                 <>
                     <section
                         className="bg-white/3 p-4 rounded-xl shadow-lg"
@@ -174,10 +182,10 @@ export default function Homepage(): React.ReactElement {
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                             <div>
                                 <h2 id="begin-journey" className="text-lg font-semibold">
-                                    Continue your journey
+                                    Welcome back, {user?.userDetails?.split(' ')[0] || 'Explorer'}
                                 </h2>
                                 <p className="text-sm text-atlas-muted">
-                                    Pick up where you left off—the map has shifted.
+                                    Your map has shifted while you were away.
                                 </p>
                             </div>
                             <div className="flex gap-2">
@@ -212,7 +220,7 @@ export default function Homepage(): React.ReactElement {
                         </div>
                     </section>
                 </>
-            )}
+            ) : null}
 
             <footer className="mt-auto text-center text-slate-400 text-sm p-3">
                 © The Shifting Atlas — built with love
