@@ -23,7 +23,7 @@
                             "clientSecretSettingName": "AAD_CLIENT_SECRET"
                         },
                         "openIdConnectConfiguration": {
-                            "wellKnownOpenIdConfiguration": "https://theshiftingatlasdev.ciamlogin.com/theshiftingatlasdev.onmicrosoft.com/.well-known/openid-configuration"
+                            "wellKnownOpenIdConfiguration": "https://theshiftingatlasdev.ciamlogin.com/theshiftingatlasdev.onmicrosoft.com/v2.0/.well-known/openid-configuration?p=signupsignin"
                         }
                     },
                     "login": {
