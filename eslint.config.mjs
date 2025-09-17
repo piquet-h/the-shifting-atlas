@@ -52,6 +52,11 @@ export default [
             ...reactHooks.configs.recommended.rules,
             ...jsxA11y.configs.recommended.rules,
             'react/prop-types': 'off',
+            // Using the new JSX transform (tsconfig jsx: react-jsx) so React does not need to be in scope
+            'react/react-in-jsx-scope': 'off',
+            'react/jsx-uses-react': 'off',
+            // Delegate arrow function paren style entirely to Prettier (arrowParens: 'avoid')
+            'arrow-parens': 'off',
             'jsx-a11y/no-autofocus': 'warn',
             'jsx-a11y/anchor-is-valid': ['error', { aspects: ['noHref', 'invalidHref'] }],
             '@typescript-eslint/no-explicit-any': 'warn',

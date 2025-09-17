@@ -15,7 +15,7 @@ import Logo from './Logo';
  */
 
 export default function Nav(): React.ReactElement {
-    const { user, loading, signOut } = useAuth();
+    const { user, loading, signOut, signIn } = useAuth();
     const label = loading ? '...' : user?.userDetails || 'Guest';
     return (
         <nav className="w-full flex items-center justify-between py-3 px-1" aria-label="Primary">
@@ -41,12 +41,12 @@ export default function Nav(): React.ReactElement {
                             </button>
                         ) : (
                             <>
-                                <a
-                                    href="/.auth/login/msa?post_login_redirect_uri=/"
+                                <button
+                                    onClick={() => signIn('msa', '/')}
                                     className="text-left text-xs px-2 py-1 rounded hover:bg-white/10 focus:outline-none focus:bg-white/10"
                                 >
                                     Sign In with Microsoft
-                                </a>
+                                </button>
                                 <button className="text-left text-xs px-2 py-1 rounded opacity-60 cursor-not-allowed bg-white/5 text-slate-400">
                                     Register (Provisioned by provider)
                                 </button>
