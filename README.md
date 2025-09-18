@@ -176,8 +176,9 @@ Local emulator:
 
 Local auth convenience:
 
-- `npm run swa` launches `scripts/swa-auth.sh` which loads `.env` (if present) and starts the emulator. Tenant replacement logic was removed because the issuer is now hard‑coded.
-- Missing `AAD_CLIENT_ID` yields a warning; the app still serves anonymously.
+- Run the whole stack (SWA emulator + frontend dev server + API functions defined in `frontend/api`) from the repo root with: `npm run swa`.
+- Internally this delegates to the frontend workspace's SWA CLI config (see `swa-cli.config.json`). Use `-w frontend` explicitly if you prefer: `npm run swa -w frontend`.
+- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions.
 - For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
 - The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
 
