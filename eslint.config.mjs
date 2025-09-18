@@ -13,6 +13,19 @@ export default [
         // Unified ignore patterns (mirrors legacy .eslintrc and CJS flat variant)
         ignores: ['dist', '**/dist/**', 'node_modules', '**/.azure/**', '**/coverage/**'],
     },
+    {
+        // Tailwind config (CJS style requires module/require globals)
+        files: ['frontend/tailwind.config.js'],
+        languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'script',
+            globals: {
+                module: 'readonly',
+                require: 'readonly',
+            },
+        },
+        rules: {},
+    },
     js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],
@@ -52,6 +65,11 @@ export default [
             ...reactHooks.configs.recommended.rules,
             ...jsxA11y.configs.recommended.rules,
             'react/prop-types': 'off',
+            // Using the new JSX transform (tsconfig jsx: react-jsx) so React does not need to be in scope
+            'react/react-in-jsx-scope': 'off',
+            'react/jsx-uses-react': 'off',
+            // Delegate arrow function paren style entirely to Prettier (arrowParens: 'avoid')
+            'arrow-parens': 'off',
             'jsx-a11y/no-autofocus': 'warn',
             'jsx-a11y/anchor-is-valid': ['error', { aspects: ['noHref', 'invalidHref'] }],
             '@typescript-eslint/no-explicit-any': 'warn',

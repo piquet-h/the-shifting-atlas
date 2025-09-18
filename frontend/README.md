@@ -59,10 +59,8 @@ npm run preview
 - `index.html` – Vite entry
 - `src/main.tsx` – React bootstrap (TypeScript)
 - `src/App.tsx` – Root component + Router outlet
-- `src/components/Homepage.tsx` – Landing UI (renamed from EntryPage)
-- `src/components/Nav.tsx` – Navigation bar
-- `src/pages/About.tsx` – Example informational page
-- `src/pages/DemoForm.tsx` – Example interactive form
+  | `src/components/Homepage.tsx` – Landing UI (auth‑aware hero + personalized return state)
+  | `src/components/Nav.tsx` – Navigation bar (sign in/out menu)
 - `src/services/api.ts` – Minimal API wrapper (health check; extend for player actions)
 - `tailwind.config.js` – Tailwind configuration
 
@@ -78,21 +76,24 @@ Global styles: `src/tailwind.css` (single source). Typography + Forms plugins en
 - Introduce UI components for room traversal and NPC interactions.
 - Implement API error surface + loading skeletons.
 
-## Authentication & Sign Out (MVP Stub)
+## Authentication (MVP Implemented)
 
-This frontend now includes a minimal client-only hook `useAuth` that queries Azure Static Web Apps' built-in endpoint `/.auth/me` to determine whether a user is authenticated. If a user is present the nav menu shows a "Sign Out" action.
+Client-only hook `useAuth` queries `/.auth/me` (Azure Static Web Apps) to derive auth state:
 
-Sign-out behavior:
+States:
 
-1. Clicking "Sign Out" triggers a redirect to `/.auth/logout?post_logout_redirect_uri=/`.
-2. SWA clears the auth session (and upstream provider cookie where applicable) and then returns to the homepage.
-3. The hook re-runs on load and the menu reverts to the anonymous state.
+- Loading: spinner on homepage until identity resolved.
+- Unauthenticated: marketing hero + CTA that calls `signIn('msa')` (redirect to provider).
+- Authenticated: personalized welcome panel; nav menu shows Sign Out.
 
-Notes:
+Sign in / out:
 
-- Sign-in links still display placeholder buttons. When providers are configured you can replace these with direct links like `/.auth/login/github` or a custom login page.
-- For local development without SWA auth configured the hook simply treats the visitor as anonymous (no errors thrown).
-- Future enhancements: global AuthContext, silent refresh, provider selection UI, role-based gating of navigation.
+- Sign in → `/.auth/login/<provider>?post_login_redirect_uri=/` (currently using `msa` provider alias).
+- Sign out → `/.auth/logout?post_logout_redirect_uri=/` (broadcasts refresh to other tabs via localStorage event).
+
+Behavior when auth unavailable locally: hook returns `isAuthenticated=false` without throwing errors.
+
+Planned enhancements: role/claim helpers, ProtectedRoute component, server-side authorization checks in Functions using `x-ms-client-principal`.
 
 ### Azure AD (Entra ID) Integration (Single‑Tenant)
 
@@ -117,3 +118,36 @@ Secret Handling Guidelines:
 ## Notes
 
 Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.
+
+## Progressive Enhancement (Desktop)
+
+Mobile remains the baseline (single column, minimal decoration). Larger screens and capable inputs unlock additional presentation without changing underlying semantics:
+
+Enhancements Added:
+
+- Constrained centered layout (Tailwind `container` + `max-w-7xl`).
+- Sticky, translucent nav bar with backdrop blur and border.
+- Multi-column homepage (12‑column CSS grid) on `lg+` with a right side panel displaying prototype feeds (static placeholders for future world + player activity).
+- Decorative radial background layer behind main content on large screens.
+- Utility hooks (`useMediaQuery`, `usePointerFine`, `usePrefersReducedMotion`) to gate future enhancements (hover tooltips, animations) by capability.
+- Heading size clamp utility `.heading-clamp` (not yet applied broadly; reserved for future hero typography refinements).
+- Reduced footer prominence on large screens (smaller text baseline, subtle color shift).
+
+Philosophy:
+
+1. No critical information is desktop‑only.
+2. Enhancements are additive, never required for navigation.
+3. Visual effects avoid motion when `prefers-reduced-motion: reduce` is present (future animations should read the hook before animating).
+
+Future Opportunities:
+
+- Convert static feed sidebars into live components (websocket or polling → likely Service Bus event fan‑out + Function HTTP endpoint aggregator).
+- Introduce keyboard shortcut hints panel (only when a physical keyboard is detected).
+- Apply per‑section entrance transitions (gated by reduced‑motion preference).
+
+Testing Recommendations:
+
+1. Narrow viewport ≤ 640px: ensure single column with no sidebars.
+2. Expand to ≥ 1024px: verify side panel appears and layout stays centered.
+3. Toggle prefers-reduced-motion in OS and confirm absence of new motion (currently none programmatic).
+4. Inspect accessibility tree to confirm no duplicate landmark roles added by layout wrapper.

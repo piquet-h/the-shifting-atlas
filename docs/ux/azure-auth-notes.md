@@ -56,3 +56,28 @@ Quick Azure CLI pointers
 Notes
 
 - This file is intentionally concise — keep it as a reference for developers implementing the flows in `frontend` and `backend`.
+
+Client Hook Example (excerpt from `useAuth`):
+
+```ts
+async function fetchPrincipal(signal?: AbortSignal) {
+    const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal });
+    if (!res.ok) return null; // anonymous (204/404)
+    const data = await res.json();
+    return data?.clientPrincipal ?? null;
+}
+```
+
+Sign-in redirect pattern:
+
+```
+/.auth/login/<provider>?post_login_redirect_uri=/
+```
+
+Sign-out redirect pattern:
+
+```
+/.auth/logout?post_logout_redirect_uri=/
+```
+
+Where `<provider>` can be `aad`, `github`, etc., depending on configured providers.

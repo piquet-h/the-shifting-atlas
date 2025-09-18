@@ -70,16 +70,16 @@ Notable:
 
 ## 4. Current Implementation Status
 
-| Area                            | Status                  | Notes                                                |
-| ------------------------------- | ----------------------- | ---------------------------------------------------- |
-| Frontend UI                     | Basic shell + routing   | Landing + sample pages (About, DemoForm)             |
-| Frontend API (`frontend/api`)   | Health + action stub    | SWA emulator + build workflow                        |
-| Standalone backend (`backend/`) | Scaffolding only        | Will host queue/world logic later                    |
-| Queue / world logic             | Not implemented         | Planned Service Bus + queue triggers                 |
-| Cosmos DB integration           | Provisioned infra only  | No runtime graph code yet                            |
-| Key Vault integration           | Provisioned (secrets)   | Cosmos key secret seeded; no identity usage yet      |
-| Infrastructure (Bicep)          | Core resources in place | SWA + Cosmos + Key Vault                             |
-| CI/CD                           | Partial                 | SWA + infra workflows present; test pipeline missing |
+| Area                            | Status                     | Notes                                                |
+| ------------------------------- | -------------------------- | ---------------------------------------------------- |
+| Frontend UI                     | Auth-aware shell + routing | Landing homepage (hero + auth states)                |
+| Frontend API (`frontend/api`)   | Health + action stub       | SWA emulator + build workflow                        |
+| Standalone backend (`backend/`) | Scaffolding only           | Will host queue/world logic later                    |
+| Queue / world logic             | Not implemented            | Planned Service Bus + queue triggers                 |
+| Cosmos DB integration           | Provisioned infra only     | No runtime graph code yet                            |
+| Key Vault integration           | Provisioned (secrets)      | Cosmos key secret seeded; no identity usage yet      |
+| Infrastructure (Bicep)          | Core resources in place    | SWA + Cosmos + Key Vault                             |
+| CI/CD                           | Partial                    | SWA + infra workflows present; test pipeline missing |
 
 ## 5. Quick Start (Local Dev)
 
@@ -137,7 +137,7 @@ npm run build
 
 Output: `frontend/dist/` (referenced in `swa-cli.config.json` via `outputLocation`).
 
-### Authentication (Azure AD / Entra ID) – Single‑Tenant Configuration
+### Authentication (Azure AD / Entra ID) – Single‑Tenant Configuration (MVP Implemented)
 
 The Static Web App uses Azure AD (Entra ID) Easy Auth and is currently locked to a single tenant:
 
@@ -176,9 +176,11 @@ Local emulator:
 
 Local auth convenience:
 
-- `npm run swa` launches `scripts/swa-auth.sh` which loads `.env` (if present) and starts the emulator. Tenant replacement logic was removed because the issuer is now hard‑coded.
-- Missing `AAD_CLIENT_ID` yields a warning; the app still serves anonymously.
+- Run the whole stack (SWA emulator + frontend dev server + API functions defined in `frontend/api`) from the repo root with: `npm run swa`.
+- Internally this delegates to the frontend workspace's SWA CLI config (see `swa-cli.config.json`). Use `-w frontend` explicitly if you prefer: `npm run swa -w frontend`.
+- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions.
 - For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
+- The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
 
 Next steps (future hardening):
 
@@ -218,6 +220,7 @@ Current gaps:
 - No Application Insights telemetry.
 - Minimal test coverage (none checked in yet).
 - No managed identity consumption in Functions (uses key secret placeholder only).
+- Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
 
 ## 10. Contributing Guidelines
 

@@ -35,5 +35,11 @@
     "prettier.configPath": "./prettier.config.cjs",
     "prettier.semi": false,
     "prettier.tabWidth": 4,
-    "prettier.trailingComma": "none"
+    "prettier.trailingComma": "none",
+    "tailwindCSS.configFile": "frontend/tailwind.config.js",
+    "tailwindCSS.emmetCompletions": true,
+    "editor.quickSuggestions": { "strings": true },
+    "css.validate": false,
+    "scss.validate": false,
+    "less.validate": false
 }

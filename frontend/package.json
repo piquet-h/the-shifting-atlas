@@ -9,7 +9,7 @@
         "preview": "vite preview",
         "start": "vite",
         "swa:install": "npm install -D @azure/static-web-apps-cli",
-        "swa": "npx swa start dev --run 'npm run dev'",
+        "swa": "npx swa start --config ../swa-cli.config.json --env dev",
         "typecheck": "tsc --noEmit",
         "lint": "eslint --ext .ts,.tsx src",
         "a11y:serve": "vite --port 5173",

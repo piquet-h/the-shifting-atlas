@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Homepage from './components/Homepage';
 import LiveAnnouncer from './components/LiveAnnouncer';
 import Nav from './components/Nav';
+import ResponsiveLayout from './components/ResponsiveLayout';
 // Removed About & DemoForm pages (cleaned unused demo routes)
 
 function ScrollAndFocus(): null {
@@ -25,13 +26,18 @@ export default function App(): React.ReactElement {
             >
                 Skip to main content
             </a>
-            <div className="app-root min-h-screen flex flex-col" aria-label="Application Shell">
+            <div
+                className="app-root min-h-screen flex flex-col lg:gap-4"
+                aria-label="Application Shell"
+            >
                 <Nav />
                 <LiveAnnouncer />
-                <Routes>
-                    <Route path="/" element={<Homepage />} />
-                    {/* Demo and About routes removed during cleanup */}
-                </Routes>
+                <ResponsiveLayout>
+                    <Routes>
+                        <Route path="/" element={<Homepage />} />
+                        {/* Demo and About routes removed during cleanup */}
+                    </Routes>
+                </ResponsiveLayout>
             </div>
             <ScrollAndFocus />
         </BrowserRouter>
