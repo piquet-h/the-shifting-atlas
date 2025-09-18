@@ -29,7 +29,10 @@ export default function Nav(): React.ReactElement {
         return (parts[0][0] + parts[1][0]).toUpperCase();
     }, [user?.userDetails, label, loading]);
     return (
-        <nav className="w-full flex items-center justify-between py-3 px-1" aria-label="Primary">
+        <nav
+            className="w-full flex items-center justify-between py-3 px-1 lg:py-4 lg:px-4 sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-atlas-bg/75 bg-atlas-bg/95 border-b border-white/5"
+            aria-label="Primary"
+        >
             <div className="flex items-center gap-3">
                 <Logo />
                 <Link to="/" className="text-lg font-semibold text-slate-100 tracking-tight">

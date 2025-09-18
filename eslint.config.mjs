@@ -13,6 +13,19 @@ export default [
         // Unified ignore patterns (mirrors legacy .eslintrc and CJS flat variant)
         ignores: ['dist', '**/dist/**', 'node_modules', '**/.azure/**', '**/coverage/**'],
     },
+    {
+        // Tailwind config (CJS style requires module/require globals)
+        files: ['frontend/tailwind.config.js'],
+        languageOptions: {
+            ecmaVersion: 'latest',
+            sourceType: 'script',
+            globals: {
+                module: 'readonly',
+                require: 'readonly',
+            },
+        },
+        rules: {},
+    },
     js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],

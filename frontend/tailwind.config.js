@@ -1,7 +1,20 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
+
+export default {
     content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
     theme: {
+        container: {
+            center: true,
+            padding: {
+                DEFAULT: '1rem',
+                sm: '1.25rem',
+                lg: '2rem',
+                xl: '2.5rem',
+                '2xl': '3rem',
+            },
+        },
         extend: {
             colors: {
                 atlas: {
@@ -13,9 +26,16 @@ module.exports = {
                     glass: 'rgba(255,255,255,0.04)',
                 },
             },
+            screens: {
+                // Add a widescreen breakpoint for expansive desktop layouts
+                '3xl': '1920px',
+            },
+            boxShadow: {
+                inset: 'inset 0 1px 0 0 rgba(255,255,255,0.06)',
+            },
         },
     },
-    plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
+    plugins: [typography, forms],
     corePlugins: {
         preflight: true,
     },

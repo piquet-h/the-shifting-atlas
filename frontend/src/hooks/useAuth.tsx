@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     useEffect(() => {
         function onStorage(ev: StorageEvent) {
             if (ev.key === LS_BROADCAST_KEY) {
-                setNonce(n => n + 1);
+                setNonce((n) => n + 1);
             }
         }
         window.addEventListener('storage', onStorage);
@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         }
     }, []);
 
-    const refresh = useCallback(() => setNonce(n => n + 1), []);
+    const refresh = useCallback(() => setNonce((n) => n + 1), []);
 
     const signIn = useCallback((provider = 'msa', redirectPath = '/') => {
         const url = `/.auth/login/${encodeURIComponent(provider)}?post_login_redirect_uri=${encodeURIComponent(

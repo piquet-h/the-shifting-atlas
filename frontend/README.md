@@ -118,3 +118,36 @@ Secret Handling Guidelines:
 ## Notes
 
 Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.
+
+## Progressive Enhancement (Desktop)
+
+Mobile remains the baseline (single column, minimal decoration). Larger screens and capable inputs unlock additional presentation without changing underlying semantics:
+
+Enhancements Added:
+
+- Constrained centered layout (Tailwind `container` + `max-w-7xl`).
+- Sticky, translucent nav bar with backdrop blur and border.
+- Multi-column homepage (12‑column CSS grid) on `lg+` with a right side panel displaying prototype feeds (static placeholders for future world + player activity).
+- Decorative radial background layer behind main content on large screens.
+- Utility hooks (`useMediaQuery`, `usePointerFine`, `usePrefersReducedMotion`) to gate future enhancements (hover tooltips, animations) by capability.
+- Heading size clamp utility `.heading-clamp` (not yet applied broadly; reserved for future hero typography refinements).
+- Reduced footer prominence on large screens (smaller text baseline, subtle color shift).
+
+Philosophy:
+
+1. No critical information is desktop‑only.
+2. Enhancements are additive, never required for navigation.
+3. Visual effects avoid motion when `prefers-reduced-motion: reduce` is present (future animations should read the hook before animating).
+
+Future Opportunities:
+
+- Convert static feed sidebars into live components (websocket or polling → likely Service Bus event fan‑out + Function HTTP endpoint aggregator).
+- Introduce keyboard shortcut hints panel (only when a physical keyboard is detected).
+- Apply per‑section entrance transitions (gated by reduced‑motion preference).
+
+Testing Recommendations:
+
+1. Narrow viewport ≤ 640px: ensure single column with no sidebars.
+2. Expand to ≥ 1024px: verify side panel appears and layout stays centered.
+3. Toggle prefers-reduced-motion in OS and confirm absence of new motion (currently none programmatic).
+4. Inspect accessibility tree to confirm no duplicate landmark roles added by layout wrapper.
