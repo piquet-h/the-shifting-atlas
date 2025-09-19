@@ -13,13 +13,13 @@ export interface PingResponse {
 }
 
 export async function fetchPing(): Promise<PingResponse> {
-    const perf: { now: () => number } | undefined =
+    const performance: { now: () => number } | undefined =
         typeof window !== 'undefined' && window.performance ? window.performance : undefined;
-    const start = perf ? perf.now() : Date.now();
+    const start = performance ? performance.now() : Date.now();
     try {
         const res = await fetch(`${BASE}/ping`);
         const status = res.status;
-        const end = perf ? perf.now() : Date.now();
+        const end = performance ? performance.now() : Date.now();
         const latencyMs = end - start;
 
         let text: string | undefined;
@@ -56,7 +56,7 @@ export async function fetchPing(): Promise<PingResponse> {
         return {
             ok: false,
             status: 0,
-            latencyMs: (perf ? perf.now() : Date.now()) - start,
+            latencyMs: (performance ? performance.now() : Date.now()) - start,
             error: err instanceof Error ? err.message : 'Unknown error',
         };
     }
