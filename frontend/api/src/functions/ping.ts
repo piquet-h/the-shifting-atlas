@@ -1,14 +1,51 @@
-import { app } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+
+interface PingPayload {
+    ok: true;
+    status: number;
+    service: string;
+    timestamp: string;
+    requestId?: string;
+    latencyMs?: number;
+    echo?: string;
+    version?: string;
+}
+
+async function readEcho(req: HttpRequest): Promise<string | undefined> {
+    try {
+        const body = await req.text();
+        return body?.trim() || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+async function pingHandler(req: HttpRequest, ctx: InvocationContext): Promise<HttpResponseInit> {
+    const started = Date.now();
+    const echo = req.query.get('name') || (await readEcho(req));
+    const payload: PingPayload = {
+        ok: true,
+        status: 200,
+        service: 'swa-api',
+        timestamp: new Date().toISOString(),
+        requestId: ctx.invocationId,
+        latencyMs: Date.now() - started,
+        echo: echo || undefined,
+        version: process.env.APP_VERSION || undefined,
+    };
+    return {
+        status: 200,
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+        },
+        jsonBody: payload,
+    };
+}
 
 app.http('Ping', {
     route: 'ping',
-    methods: ['GET'],
+    methods: ['GET', 'POST'],
     authLevel: 'anonymous',
-    handler: async (_req, ctx) => {
-        const now = new Date().toISOString();
-        ctx.debug('Healthcheck Ping,', { now });
-        return {
-            status: 200,
-        };
-    },
+    handler: pingHandler,
 });
