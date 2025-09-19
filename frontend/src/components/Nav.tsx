@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { usePing } from '../hooks/usePing';
 import Logo from './Logo';
 
 /**
@@ -16,6 +17,12 @@ import Logo from './Logo';
 
 export default function Nav(): React.ReactElement {
     const { user, loading, signOut, signIn } = useAuth();
+    const { data: ping, loading: pingLoading } = usePing({ intervalMs: 45000 });
+    const statusLabel = React.useMemo(() => {
+        if (pingLoading) return 'Checking service status';
+        if (ping?.ok) return 'Online';
+        return 'Offline';
+    }, [pingLoading, ping?.ok]);
     // Label shown for unauthenticated users. Replacing generic "Guest" with thematic term "Explorer".
     const label = loading ? '...' : user?.userDetails || 'Explorer';
     // Derive initials (simple heuristic): take first two letters of first non-empty word; fallback to first letter of label.
@@ -40,6 +47,16 @@ export default function Nav(): React.ReactElement {
                 </Link>
             </div>
             <div className="flex items-center gap-3 relative">
+                <span
+                    aria-label={statusLabel}
+                    className={`h-2.5 w-2.5 rounded-full shadow ring-1 ring-black/40 transition-colors duration-300 ${
+                        pingLoading
+                            ? 'bg-amber-400 animate-pulse'
+                            : ping?.ok
+                              ? 'bg-emerald-400'
+                              : 'bg-rose-500'
+                    }`}
+                />
                 <details className="group relative">
                     <summary className="list-none cursor-pointer select-none text-xs font-medium pl-1 pr-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg transition-colors duration-150 flex items-center gap-2">
                         <span
