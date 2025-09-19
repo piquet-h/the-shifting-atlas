@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useVisitState } from '../hooks/useVisitState';
+import CommandInterface from './CommandInterface';
 
 /**
  * Homepage
@@ -178,6 +179,13 @@ export default function Homepage(): React.ReactElement {
                                 </p>
                             </div>
                         </section>
+                        {/* MVP Command Interface (guest can try commands before auth) */}
+                        <section aria-labelledby="command-interface-title" className="mt-4">
+                            <h2 id="command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
+                                Try a Command
+                            </h2>
+                            <CommandInterface />
+                        </section>
                     </div>
                     {/* Desktop side panel (progressive enhancement) */}
                     <aside className="hidden lg:flex lg:col-span-4 xl:col-span-3">
@@ -261,6 +269,12 @@ export default function Homepage(): React.ReactElement {
                                     3 hidden passages found overnight.
                                 </p>
                             </div>
+                        </section>
+                        <section aria-labelledby="auth-command-interface-title" className="mt-2">
+                            <h2 id="auth-command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
+                                Command Interface
+                            </h2>
+                            <CommandInterface playerGuid={user?.userId} />
                         </section>
                     </div>
                     <aside className="hidden lg:flex lg:col-span-4 xl:col-span-3">

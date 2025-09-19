@@ -6,7 +6,7 @@ authors: ['@system', '@contributors']
 updated: 2025-09-15
 related:
     modules: ['navigation', 'player-identity', 'quest-dialogue', 'world-rules']
-    components: ['App', 'Nav', 'Homepage', 'DemoForm']
+    components: ['App', 'Nav', 'Homepage', 'CommandInput']
 ---
 
 # Accessibility Guidelines (Core Tenet)
