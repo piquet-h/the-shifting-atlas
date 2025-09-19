@@ -2,6 +2,7 @@
     "name": "the-shifting-atlas-root",
     "private": true,
     "workspaces": [
+        "shared",
         "frontend",
         "frontend/api",
         "backend"
@@ -9,11 +10,11 @@
     "scripts": {
         "install:all": "npm install --workspaces",
         "dev": "npm run dev --prefix frontend",
-        "swa": "swa start dev",
+        "swa": "npm run build -w shared && swa start dev",
         "swa:build": "swa build dev",
         "swa:deploy": "swa deploy dev",
-        "build": "npm run build -w frontend && npm run build -w frontend/api && npm run build -w backend",
-        "typecheck": "npm run typecheck -w frontend && npm run typecheck -w frontend/api --if-present && npm run typecheck -w backend --if-present",
+        "build": "npm run build -w shared && npm run build -w frontend && npm run build -w frontend/api && npm run build -w backend",
+        "typecheck": "npm run typecheck -w shared && npm run typecheck -w frontend && npm run typecheck -w frontend/api --if-present && npm run typecheck -w backend --if-present",
         "a11y": "npm run a11y -w frontend",
         "lint": "eslint 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
         "lint:fix": "npm run lint -- --fix",

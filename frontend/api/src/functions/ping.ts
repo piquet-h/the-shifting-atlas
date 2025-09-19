@@ -1,3 +1,4 @@
+import { SERVICE_SWA_API } from '@atlas/shared';
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 
 interface PingPayload {
@@ -26,7 +27,7 @@ async function pingHandler(req: HttpRequest, ctx: InvocationContext): Promise<Ht
     const payload: PingPayload = {
         ok: true,
         status: 200,
-        service: 'swa-api',
+        service: SERVICE_SWA_API,
         timestamp: new Date().toISOString(),
         requestId: ctx.invocationId,
         latencyMs: Date.now() - started,

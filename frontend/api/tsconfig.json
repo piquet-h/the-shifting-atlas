@@ -2,7 +2,13 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "./dist",
-        "rootDir": "src"
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "types": ["node"],
+        "paths": {
+            "@atlas/shared": ["node_modules/@atlas/shared/dist/index.d.ts"],
+            "@atlas/shared/*": ["node_modules/@atlas/shared/dist/*"]
+        }
     },
     "include": ["src/**/*.ts"]
 }

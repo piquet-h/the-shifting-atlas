@@ -15,7 +15,8 @@
         "node": ">=20.0.0"
     },
     "dependencies": {
-        "@azure/functions": "^4.8.0"
+        "@azure/functions": "^4.8.0",
+        "@atlas/shared": "file:../shared"
     },
     "devDependencies": {
         "eslint": "^9.35.0",

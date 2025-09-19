@@ -1,5 +1,5 @@
+import { SERVICE_BACKEND } from '@atlas/shared';
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { SERVICE_BACKEND } from '../shared/serviceConstants.js';
 
 // Structured Ping Response Contract
 // Mirrors frontend expectations (see frontend services/ping.ts) and can be extended.
