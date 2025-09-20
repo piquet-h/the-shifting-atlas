@@ -9,5 +9,6 @@ module.exports = {
     trailingComma: 'all',
     semi: true,
     bracketSpacing: true,
-    arrowParens: 'avoid',
+    // Enforce parentheses around single arrow function params for consistency
+    arrowParens: 'always',
 };

@@ -25,7 +25,7 @@ export default function CommandInterface({
             const id = crypto.randomUUID();
             const ts = Date.now();
             const record: CommandRecord = { id, command: raw, ts };
-            setHistory(h => [...h, record]);
+            setHistory((h) => [...h, record]);
 
             if (!raw) return;
             if (raw === 'clear') {
@@ -62,8 +62,8 @@ export default function CommandInterface({
                 error = err instanceof Error ? err.message : 'Unknown error';
             } finally {
                 setBusy(false);
-                setHistory(h =>
-                    h.map(rec => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)),
+                setHistory((h) =>
+                    h.map((rec) => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)),
                 );
             }
         },

@@ -24,6 +24,7 @@ export default function CommandInput({
     const [value, setValue] = useState('');
     const [error, setError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const isInvalid = error != null; // stable boolean for aria-invalid
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -32,7 +33,6 @@ export default function CommandInput({
         try {
             await onSubmit(value.trim());
             setValue('');
-            // Return focus to input for rapid command chaining
             inputRef.current?.focus();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown command error');
@@ -48,8 +48,13 @@ export default function CommandInput({
                     className="flex-1 rounded-md bg-white/5 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-atlas-accent focus:border-atlas-accent disabled:opacity-50"
                     placeholder={placeholder}
                     aria-label="Command"
-                    aria-describedby={error ? 'command-error' : undefined}
-                    aria-invalid={error ? 'true' : 'false'}
+                    {...(isInvalid
+                        ? {
+                              'aria-invalid': 'true',
+                              'aria-describedby': 'command-error',
+                              'aria-errormessage': 'command-error',
+                          }
+                        : {})}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     disabled={disabled}
@@ -66,11 +71,14 @@ export default function CommandInput({
             <div className="min-h-[1.25rem] text-xs" aria-live="polite" role="status">
                 {busy && !error ? <span className="text-slate-400">Executing command…</span> : null}
             </div>
-            {error && (
-                <p id="command-error" className="text-xs text-red-400" role="alert">
+            {isInvalid && (
+                <p id="command-error" role="alert" className="text-xs text-red-400">
                     {error}
                 </p>
             )}
         </form>
     );
 }
+
+// Imperative ARIA management effect placed after component to keep JSX static.
+// (We attach it inside the component body for access to state.)

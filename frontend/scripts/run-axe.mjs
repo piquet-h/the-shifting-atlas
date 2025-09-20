@@ -28,7 +28,7 @@ try {
 let violationsTotal = 0;
 let details = [];
 try {
-    const files = readdirSync(reportDir).filter(f => f.endsWith('.json'));
+    const files = readdirSync(reportDir).filter((f) => f.endsWith('.json'));
     for (const f of files) {
         const json = JSON.parse(readFileSync(join(reportDir, f), 'utf-8'));
         if (Array.isArray(json.violations)) {
@@ -47,7 +47,7 @@ if (violationsTotal > 0) {
     console.error(`Accessibility violations detected: ${violationsTotal}`);
     const summarized = details
         .sort((a, b) => b.count - a.count)
-        .map(d => `${d.id} (${d.impact || 'n/a'}): ${d.count}`)
+        .map((d) => `${d.id} (${d.impact || 'n/a'}): ${d.count}`)
         .join('\n  ');
     console.error('Breakdown:\n  ' + summarized);
     process.exit(1);

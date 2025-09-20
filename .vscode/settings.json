@@ -24,18 +24,13 @@
     "azureFunctions.preDeployTask": "npm prune (functions)",
     "azurite.location": "/Volumes/External/azurite_db",
     "problems.autoReveal": false,
-    // Prettier project-wide config now lives in .prettierrc.json.
-    // Remove workspace overrides that conflicted with repository standard.
-    // Keep only editor integration essentials below (can add others if needed):
+    // Prettier central config: prettier.config.cjs (arrowParens: 'always').
+    // Remove local overrides to prevent save-time flip-flopping.
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "prettier.printWidth": 160,
     "prettier.requireConfig": true,
+    "prettier.configPath": "./prettier.config.cjs",
     "ipynb.experimental.serialization": false,
     "ipynb.pasteImagesAsAttachments.enabled": false,
-    "prettier.configPath": "./prettier.config.cjs",
-    "prettier.semi": false,
-    "prettier.tabWidth": 4,
-    "prettier.trailingComma": "none",
     "tailwindCSS.configFile": "frontend/tailwind.config.js",
     "tailwindCSS.emmetCompletions": true,
     "editor.quickSuggestions": { "strings": true },
