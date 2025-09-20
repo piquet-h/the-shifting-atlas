@@ -24,6 +24,6 @@
         "test": "node --test dist/**/*.js"
     },
     "devDependencies": {
-        "typescript": "^5.6.2"
+        "typescript": "^5.9.2"
     }
 }

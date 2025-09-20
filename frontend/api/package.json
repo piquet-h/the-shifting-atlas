@@ -6,8 +6,8 @@
     "main": "dist/**/*.js",
     "scripts": {
         "prebuild": "rimraf dist",
-        "build": "tsc",
-        "typecheck": "tsc --noEmit",
+        "build": "tsc -b",
+        "typecheck": "tsc -b --noEmit",
         "start": "npm run build && func start",
         "test": "node --test dist"
     },
