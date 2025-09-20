@@ -9,7 +9,8 @@
         "build": "tsc -b",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "start": "npm run build && func start",
-        "test": "node --test dist"
+        "test": "node --test dist",
+        "a11y": "echo 'No UI surface for API workspace; skipping a11y scan.'"
     },
     "engines": {
         "node": "20.x",

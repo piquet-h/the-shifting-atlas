@@ -6,18 +6,26 @@ import Nav from './components/Nav';
 import ResponsiveLayout from './components/ResponsiveLayout';
 // Removed About & DemoForm pages (cleaned unused demo routes)
 
-function ScrollAndFocus(): null {
+/**
+ * RouteFocusManager
+ * Moves focus to the page <h1> (or the main landmark if missing) after navigation.
+ * NOTE: The main landmark now lives in App (instead of each page) so individual pages
+ * should NOT render their own <main>. This ensures axe "region" rule satisfaction by
+ * containing all routed content within landmarks.
+ */
+function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
     const location = useLocation();
-    const mainRef = useRef<HTMLElement | null>(null);
     useEffect(() => {
-        // On route change focus the first h1 for screen reader context
-        const heading = mainRef.current?.querySelector('h1') as HTMLHeadingElement | null;
-        if (heading) heading.focus();
-    }, [location]);
+        // Attempt to focus first heading for better SR context
+        const heading = mainRef.current?.querySelector('h1');
+        if (heading instanceof HTMLElement) heading.focus();
+        else if (mainRef.current) mainRef.current.focus();
+    }, [location, mainRef]);
     return null;
 }
 
 export default function App(): React.ReactElement {
+    const mainRef = useRef<HTMLElement | null>(null);
     return (
         <BrowserRouter>
             <a
@@ -26,20 +34,26 @@ export default function App(): React.ReactElement {
             >
                 Skip to main content
             </a>
-            <div
-                className="app-root min-h-screen flex flex-col lg:gap-4"
-                aria-label="Application Shell"
-            >
+            <div className="app-root min-h-screen flex flex-col lg:gap-4">
                 <Nav />
-                <LiveAnnouncer />
-                <ResponsiveLayout>
-                    <Routes>
-                        <Route path="/" element={<Homepage />} />
-                        {/* Demo and About routes removed during cleanup */}
-                    </Routes>
-                </ResponsiveLayout>
+                {/* Single global main landmark wraps all routed page content */}
+                <main
+                    id="main"
+                    ref={mainRef}
+                    tabIndex={-1}
+                    className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg"
+                    aria-label="Main content"
+                >
+                    <LiveAnnouncer />
+                    <ResponsiveLayout>
+                        <Routes>
+                            <Route path="/" element={<Homepage />} />
+                            {/* Future routes go here */}
+                        </Routes>
+                    </ResponsiveLayout>
+                </main>
             </div>
-            <ScrollAndFocus />
+            <RouteFocusManager mainRef={mainRef} />
         </BrowserRouter>
     );
 }

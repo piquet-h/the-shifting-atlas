@@ -25,7 +25,7 @@ export default function CommandInterface({
             const id = crypto.randomUUID();
             const ts = Date.now();
             const record: CommandRecord = { id, command: raw, ts };
-            setHistory((h) => [...h, record]);
+            setHistory(h => [...h, record]);
 
             if (!raw) return;
             if (raw === 'clear') {
@@ -62,8 +62,8 @@ export default function CommandInterface({
                 error = err instanceof Error ? err.message : 'Unknown error';
             } finally {
                 setBusy(false);
-                setHistory((h) =>
-                    h.map((rec) => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)),
+                setHistory(h =>
+                    h.map(rec => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)),
                 );
             }
         },
@@ -74,8 +74,10 @@ export default function CommandInterface({
         <div className={className}>
             <CommandOutput items={history} className="mb-4" />
             <CommandInput onSubmit={runCommand} busy={busy} />
-            <p className="mt-2 text-[10px] text-slate-500">
-                Type <code>ping</code> to test latency, <code>clear</code> to reset.
+            <p className="mt-2 text-[11px] text-slate-300">
+                Type <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code> to
+                test latency,{' '}
+                <code className="px-1 rounded bg-slate-700/70 text-slate-100">clear</code> to reset.
             </p>
         </div>
     );

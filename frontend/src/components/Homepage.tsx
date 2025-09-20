@@ -38,8 +38,8 @@ export default function Homepage(): React.ReactElement {
     }, [loading, isAuthenticated, user?.userDetails]);
 
     return (
-        <main
-            id="main"
+        // NOTE: The <main> landmark is now provided by App.tsx. This component only renders content.
+        <div
             className="min-h-screen flex flex-col gap-6 py-6 lg:py-8 text-slate-100"
             aria-labelledby="page-title"
         >
@@ -93,7 +93,12 @@ export default function Homepage(): React.ReactElement {
                                         aria-live="polite"
                                     />
                                 </div>
-                                <aside className="grid grid-cols-3 gap-4 text-center text-xs font-medium pt-2 sm:pt-0">
+                                {/* Metrics: previously an <aside>; not a complementary landmark so we use a div */}
+                                <div
+                                    className="grid grid-cols-3 gap-4 text-center text-xs font-medium pt-2 sm:pt-0"
+                                    role="group"
+                                    aria-label="World metrics preview"
+                                >
                                     {/* Placeholder world metrics (static for now) */}
                                     <div className="flex flex-col rounded-lg bg-white/5 px-3 py-2">
                                         <span className="text-base font-semibold text-white">
@@ -113,7 +118,7 @@ export default function Homepage(): React.ReactElement {
                                         </span>
                                         <span className="text-slate-400">Factions</span>
                                     </div>
-                                </aside>
+                                </div>
                             </div>
                         </section>
 
@@ -215,7 +220,7 @@ export default function Homepage(): React.ReactElement {
                                     <span className="mt-0.5 h-2 w-2 rounded-full bg-sky-400" />
                                     Hidden passage rumor spreading.
                                 </li>
-                                <li className="text-[10px] uppercase tracking-wide text-slate-500 pt-2">
+                                <li className="text-xs uppercase tracking-wide text-slate-300 pt-2">
                                     Feed static prototype
                                 </li>
                             </ul>
@@ -307,7 +312,7 @@ export default function Homepage(): React.ReactElement {
                                     <span className="mt-0.5 h-2 w-2 rounded-full bg-fuchsia-400" />
                                     Trade offer pending review.
                                 </li>
-                                <li className="text-[10px] uppercase tracking-wide text-slate-500 pt-2">
+                                <li className="text-xs uppercase tracking-wide text-slate-300 pt-2">
                                     Feed static prototype
                                 </li>
                             </ul>
@@ -315,10 +320,9 @@ export default function Homepage(): React.ReactElement {
                     </aside>
                 </div>
             ) : null}
-
-            <footer className="mt-auto text-center text-slate-500 text-xs lg:text-sm p-3 lg:pt-8">
+            <footer className="mt-auto text-center text-slate-400 text-xs lg:text-sm p-3 lg:pt-8">
                 © The Shifting Atlas — built with love
             </footer>
-        </main>
+        </div>
     );
 }

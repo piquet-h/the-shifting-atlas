@@ -54,9 +54,9 @@ export default function CommandOutput({
                 className="h-56 overflow-auto rounded-md bg-white/5 border border-white/10 p-3 text-xs font-mono space-y-2"
             >
                 {visible.length === 0 && (
-                    <p className="text-slate-500 italic">No commands issued yet.</p>
+                    <p className="text-slate-300 italic">No commands issued yet.</p>
                 )}
-                {visible.map((rec) => (
+                {visible.map(rec => (
                     <div key={rec.id} className="group">
                         <div className="flex items-start gap-2">
                             <span className="text-atlas-accent select-none">$</span>

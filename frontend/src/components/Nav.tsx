@@ -47,8 +47,9 @@ export default function Nav(): React.ReactElement {
                 </Link>
             </div>
             <div className="flex items-center gap-3 relative">
+                {/* Status indicator: decorative dot (aria-hidden) + SR-only textual status */}
                 <span
-                    aria-label={statusLabel}
+                    aria-hidden="true"
                     className={`h-2.5 w-2.5 rounded-full shadow ring-1 ring-black/40 transition-colors duration-300 ${
                         pingLoading
                             ? 'bg-amber-400 animate-pulse'
@@ -57,6 +58,9 @@ export default function Nav(): React.ReactElement {
                               : 'bg-rose-500'
                     }`}
                 />
+                <span className="sr-only" role="status">
+                    Service status: {statusLabel}
+                </span>
                 <details className="group relative">
                     <summary className="list-none cursor-pointer select-none text-xs font-medium pl-1 pr-3 py-1.5 rounded-md bg-white/5 text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg transition-colors duration-150 flex items-center gap-2">
                         <span

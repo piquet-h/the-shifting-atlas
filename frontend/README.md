@@ -119,6 +119,52 @@ Secret Handling Guidelines:
 
 Remain intentionally lean; world rules will live in Functions + queued processors. Keep components presentation‑focused.
 
+## Accessibility (A11y)
+
+Landmarks:
+
+- Single global `<main id="main">` defined in `App.tsx`; routed pages (e.g. `Homepage`) must NOT introduce additional `<main>` elements.
+- `<nav>` (primary navigation) sits above main; footer content is inside the main landmark to guarantee all meaningful content is enclosed by landmarks (axe "region" rule).
+- Decorative wrappers (e.g. `.app-root`) are left un‑labeled to avoid creating anonymous landmarks.
+
+Focus Management:
+
+- `RouteFocusManager` moves focus to the first `<h1>` (or `main` if none) after route changes for screen reader context.
+- Skip link (`Skip to main content`) becomes visible on focus and targets `#main`.
+
+Live Regions:
+
+- `LiveAnnouncer` lives inside `<main>` so announcements are within landmark scope.
+- Command output uses a polite live region to announce results or failures.
+
+Color & Contrast:
+
+- Reduced use of low‑contrast `text-slate-500` on dark surfaces; replaced with `text-slate-300/400` where needed.
+- Inline `<code>` tokens styled with a darker background and lighter foreground for ≥ 4.5:1 ratio.
+
+ARIA Usage:
+
+- Avoid redundant `aria-label` when native semantics suffice (removed wrapper label that triggered region warning).
+- Status dot in nav is `aria-hidden` with a sibling `role="status"` textual element for SR clarity.
+
+Automation:
+
+- `npm run a11y` launches a Vite server then executes a custom wrapper (`scripts/run-axe.mjs`) around `@axe-core/cli`.
+- Wrapper normalizes a phantom secondary URL scan issue and fails the build ONLY when real violations exist (parses JSON reports under `frontend/axe-report`).
+
+Guidelines for New Components:
+
+1. Place core page content _inside_ the existing `<main>` via composition—do not add new top-level landmarks.
+2. Prefer semantic elements (`section`, `ul`, `button`) over divs + ARIA.
+3. Only add `aria-live` for dynamically inserted messaging not otherwise announced (errors, async results).
+4. Validate with `npm run a11y` before merging; keep violations at 0 for MVP scope.
+
+Future Enhancements:
+
+- Add keyboard trap tests for any future modal/dialog patterns.
+- Provide reduced‑motion alternatives for forthcoming animations.
+- Introduce end‑to‑end tests that assert presence & order of landmarks.
+
 ## Progressive Enhancement (Desktop)
 
 Mobile remains the baseline (single column, minimal decoration). Larger screens and capable inputs unlock additional presentation without changing underlying semantics:
