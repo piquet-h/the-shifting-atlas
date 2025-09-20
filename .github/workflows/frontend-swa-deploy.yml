@@ -37,29 +37,8 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Set up Node ${{ env.NODE_VERSION }}
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ env.NODE_VERSION }}
-                  cache: 'npm'
-                  cache-dependency-path: |
-                      package-lock.json
-                      backend/package.json
-                      frontend/package.json
-                      frontend/api/package.json
-                      shared/package.json
-
-            - name: Enable Corepack (npm@10)
-              run: corepack enable
-
-            - name: Install dependencies (workspace root)
-              run: npm ci --workspaces
-
-            - name: Build shared library
-              run: npm run build -w shared
-
-            - name: Typecheck frontend
-              run: npm run typecheck -w frontend
+            - name: Setup workspace (composite)
+              uses: ./.github/actions/node-workspace-setup
 
             - name: Build frontend
               run: npm run build -w frontend
@@ -111,26 +90,8 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Set up Node ${{ env.NODE_VERSION }}
-              uses: actions/setup-node@v4
-              with:
-                  node-version: ${{ env.NODE_VERSION }}
-                  cache: 'npm'
-                  cache-dependency-path: |
-                      package-lock.json
-                      backend/package.json
-                      frontend/package.json
-                      frontend/api/package.json
-                      shared/package.json
-
-            - name: Enable Corepack (npm@10)
-              run: corepack enable
-
-            - name: Install dependencies
-              run: npm ci --workspaces
-
-            - name: Build shared library
-              run: npm run build -w shared
+            - name: Setup workspace (composite)
+              uses: ./.github/actions/node-workspace-setup
 
             - name: Build frontend
               run: npm run build -w frontend

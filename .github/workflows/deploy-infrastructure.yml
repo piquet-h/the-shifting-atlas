@@ -12,6 +12,10 @@ permissions:
     contents: read
     id-token: write
 
+concurrency:
+    group: infra-${{ github.ref }}
+    cancel-in-progress: false
+
 env:
     BICEP_FILE: infrastructure/main.bicep
 
@@ -41,17 +45,29 @@ jobs:
               run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus2
               # Region fixed to West US 2 (westus2) per project decision; adjust here if future multi-region strategy is adopted.
 
-            - name: What-if (validate)
+            - name: Validate template syntax
               run: |
                   az deployment group validate \
                     --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
                     --template-file $BICEP_FILE
 
+            - name: What-if (Full JSON)
+              run: |
+                  az deployment group what-if \
+                    --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
+                    --template-file $BICEP_FILE \
+                    --result-format FullJson > whatif.json || echo '{}' > whatif.json
+            - name: Upload what-if artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: infra-whatif
+                  path: whatif.json
+                  if-no-files-found: error
+
     deploy:
         name: Deploy
         needs: validate
         runs-on: ubuntu-latest
-
         steps:
             - name: Checkout
               uses: actions/checkout@v4
