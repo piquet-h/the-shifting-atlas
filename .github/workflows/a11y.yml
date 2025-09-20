@@ -24,9 +24,18 @@ jobs:
               with:
                   node-version: 20
                   cache: 'npm'
+                  cache-dependency-path: |
+                      package-lock.json
+                      backend/package.json
+                      frontend/package.json
+                      frontend/api/package.json
+                      shared/package.json
 
-            - name: Install workspaces
-              run: npm install --workspaces
+            - name: Enable Corepack (npm@10)
+              run: corepack enable
+
+            - name: Install workspaces (ci)
+              run: npm ci --workspaces
 
             - name: Build frontend (optional for static assets)
               run: npm run build -w frontend

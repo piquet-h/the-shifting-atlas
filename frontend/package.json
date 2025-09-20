@@ -16,6 +16,10 @@
         "a11y:scan": "axe http://localhost:5173 --exit 1 --dir ./axe-report --save",
         "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan"
     },
+    "engines": {
+        "node": "20.x",
+        "npm": ">=10.0.0"
+    },
     "dependencies": {
         "react": "^18.2.0",
         "react-dom": "^18.2.0",

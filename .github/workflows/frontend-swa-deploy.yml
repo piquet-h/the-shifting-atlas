@@ -42,9 +42,18 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
+                  cache-dependency-path: |
+                      package-lock.json
+                      backend/package.json
+                      frontend/package.json
+                      frontend/api/package.json
+                      shared/package.json
+
+            - name: Enable Corepack (npm@10)
+              run: corepack enable
 
             - name: Install dependencies (workspace root)
-              run: npm install --workspaces
+              run: npm ci --workspaces
 
             - name: Typecheck frontend
               run: npm run typecheck -w frontend
@@ -104,9 +113,18 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'npm'
+                  cache-dependency-path: |
+                      package-lock.json
+                      backend/package.json
+                      frontend/package.json
+                      frontend/api/package.json
+                      shared/package.json
+
+            - name: Enable Corepack (npm@10)
+              run: corepack enable
 
             - name: Install dependencies
-              run: npm install --workspaces
+              run: npm ci --workspaces
 
             - name: Build frontend
               run: npm run build -w frontend

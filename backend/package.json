@@ -12,7 +12,8 @@
         "start": "npm run build && func start"
     },
     "engines": {
-        "node": ">=20.0.0"
+        "node": "20.x",
+        "npm": ">=10.0.0"
     },
     "dependencies": {
         "@azure/functions": "^4.8.0",
