@@ -4,11 +4,10 @@
 module.exports = {
     useTabs: false,
     tabWidth: 4,
-    printWidth: 100,
+    printWidth: 140,
     singleQuote: true,
-    trailingComma: 'all',
-    semi: true,
-    bracketSpacing: true,
-    // Enforce parentheses around single arrow function params for consistency
-    arrowParens: 'always',
-};
+    trailingComma: 'none',
+    semi: false,
+    bracketSpacing: false,
+    arrowParens: 'always'
+}

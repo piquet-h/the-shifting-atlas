@@ -1,8 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { usePing } from '../hooks/usePing';
-import Logo from './Logo';
+import React from 'react'
+import {Link} from 'react-router-dom'
+import {useAuth} from '../hooks/useAuth'
+import {usePing} from '../hooks/usePing'
+import Logo from './Logo'
 
 /**
  * Nav
@@ -16,25 +16,25 @@ import Logo from './Logo';
  */
 
 export default function Nav(): React.ReactElement {
-    const { user, loading, signOut, signIn } = useAuth();
-    const { data: ping, loading: pingLoading } = usePing({ intervalMs: 45000 });
+    const {user, loading, signOut, signIn} = useAuth()
+    const {data: ping, loading: pingLoading} = usePing({intervalMs: 45000})
     const statusLabel = React.useMemo(() => {
-        if (pingLoading) return 'Checking service status';
-        if (ping?.ok) return 'Online';
-        return 'Offline';
-    }, [pingLoading, ping?.ok]);
+        if (pingLoading) return 'Checking service status'
+        if (ping?.ok) return 'Online'
+        return 'Offline'
+    }, [pingLoading, ping?.ok])
     // Label shown for unauthenticated users. Replacing generic "Guest" with thematic term "Explorer".
-    const label = loading ? '...' : user?.userDetails || 'Explorer';
+    const label = loading ? '...' : user?.userDetails || 'Explorer'
     // Derive initials (simple heuristic): take first two letters of first non-empty word; fallback to first letter of label.
     const initials = React.useMemo(() => {
-        if (loading) return '';
-        const source = user?.userDetails?.trim() || label;
-        if (!source) return '';
-        const parts = source.split(/\s+/).filter(Boolean);
-        if (parts.length === 0) return '';
-        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-    }, [user?.userDetails, label, loading]);
+        if (loading) return ''
+        const source = user?.userDetails?.trim() || label
+        if (!source) return ''
+        const parts = source.split(/\s+/).filter(Boolean)
+        if (parts.length === 0) return ''
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+        return (parts[0][0] + parts[1][0]).toUpperCase()
+    }, [user?.userDetails, label, loading])
     return (
         <nav
             className="w-full flex items-center justify-between py-3 px-1 lg:py-4 lg:px-4 sticky top-0 z-40 backdrop-blur supports-[backdrop-filter]:bg-atlas-bg/75 bg-atlas-bg/95 border-b border-white/5"
@@ -51,11 +51,7 @@ export default function Nav(): React.ReactElement {
                 <span
                     aria-hidden="true"
                     className={`h-2.5 w-2.5 rounded-full shadow ring-1 ring-black/40 transition-colors duration-300 ${
-                        pingLoading
-                            ? 'bg-amber-400 animate-pulse'
-                            : ping?.ok
-                              ? 'bg-emerald-400'
-                              : 'bg-rose-500'
+                        pingLoading ? 'bg-amber-400 animate-pulse' : ping?.ok ? 'bg-emerald-400' : 'bg-rose-500'
                     }`}
                 />
                 <span className="sr-only" role="status">
@@ -98,5 +94,5 @@ export default function Nav(): React.ReactElement {
                 </details>
             </div>
         </nav>
-    );
+    )
 }

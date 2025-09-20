@@ -195,8 +195,8 @@ Player Vertex (initial fields only):
     "type": "Player",
     "createdUtc": "2025-09-19T00:00:00Z",
     "guest": true,
-    "auth": { "providers": [] },
-    "progress": { "firstCommandUtc": null },
+    "auth": {"providers": []},
+    "progress": {"firstCommandUtc": null}
 }
 ```
 
@@ -288,17 +288,17 @@ Key checks the backend must perform:
 
 ```jsonc
 {
-    "routes": [{ "route": "/api/*", "allowedRoles": ["authenticated"] }],
+    "routes": [{"route": "/api/*", "allowedRoles": ["authenticated"]}],
     "auth": {
         "identityProviders": {
             "azureActiveDirectory": {
                 "registration": {
                     // Single-tenant locked (see repo README for tenant id rationale)
-                    "openIdIssuer": "https://login.microsoftonline.com/fecae6e9-696f-46e4-b1c8-5b471b499a24/v2.0",
-                },
-            },
-        },
-    },
+                    "openIdIssuer": "https://login.microsoftonline.com/fecae6e9-696f-46e4-b1c8-5b471b499a24/v2.0"
+                }
+            }
+        }
+    }
 }
 ```
 
@@ -307,11 +307,11 @@ Key checks the backend must perform:
 #### Azure Function (decode principal) – TypeScript snippet
 
 ```ts
-const principalHeader = req.headers['x-ms-client-principal'] as string | undefined;
-let principal: any | undefined;
+const principalHeader = req.headers['x-ms-client-principal'] as string | undefined
+let principal: any | undefined
 if (principalHeader) {
-    const decoded = Buffer.from(principalHeader, 'base64').toString('utf8');
-    principal = JSON.parse(decoded);
+    const decoded = Buffer.from(principalHeader, 'base64').toString('utf8')
+    principal = JSON.parse(decoded)
     // principal.identityProvider, principal.userId, principal.userDetails, principal.userRoles
 }
 ```

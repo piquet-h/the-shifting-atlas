@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
-import Homepage from './components/Homepage';
-import LiveAnnouncer from './components/LiveAnnouncer';
-import Nav from './components/Nav';
-import ResponsiveLayout from './components/ResponsiveLayout';
+import React, {useEffect, useRef} from 'react'
+import {BrowserRouter, Route, Routes, useLocation} from 'react-router-dom'
+import Homepage from './components/Homepage'
+import LiveAnnouncer from './components/LiveAnnouncer'
+import Nav from './components/Nav'
+import ResponsiveLayout from './components/ResponsiveLayout'
 // Removed About & DemoForm pages (cleaned unused demo routes)
 
 /**
@@ -13,19 +13,19 @@ import ResponsiveLayout from './components/ResponsiveLayout';
  * should NOT render their own <main>. This ensures axe "region" rule satisfaction by
  * containing all routed content within landmarks.
  */
-function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
-    const location = useLocation();
+function RouteFocusManager({mainRef}: {mainRef: React.RefObject<HTMLElement | null>}): null {
+    const location = useLocation()
     useEffect(() => {
         // Attempt to focus first heading for better SR context
-        const heading = mainRef.current?.querySelector('h1');
-        if (heading instanceof HTMLElement) heading.focus();
-        else if (mainRef.current) mainRef.current.focus();
-    }, [location, mainRef]);
-    return null;
+        const heading = mainRef.current?.querySelector('h1')
+        if (heading instanceof HTMLElement) heading.focus()
+        else if (mainRef.current) mainRef.current.focus()
+    }, [location, mainRef])
+    return null
 }
 
 export default function App(): React.ReactElement {
-    const mainRef = useRef<HTMLElement | null>(null);
+    const mainRef = useRef<HTMLElement | null>(null)
     return (
         <BrowserRouter>
             <a
@@ -55,5 +55,5 @@ export default function App(): React.ReactElement {
             </div>
             <RouteFocusManager mainRef={mainRef} />
         </BrowserRouter>
-    );
+    )
 }

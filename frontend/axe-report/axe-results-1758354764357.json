@@ -63,16 +63,7 @@
             {
                 "id": "aria-command-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA button, link and menuitem has an accessible name",
                 "help": "ARIA commands must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-command-name?application=webdriverjs",
@@ -90,16 +81,7 @@
             {
                 "id": "aria-input-field-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT5.c", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA input field has an accessible name",
                 "help": "ARIA input fields must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-input-field-name?application=webdriverjs",
@@ -153,16 +135,7 @@
             {
                 "id": "aria-toggle-field-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT5.c", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA toggle field has an accessible name",
                 "help": "ARIA toggle fields must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-toggle-field-name?application=webdriverjs",
@@ -189,14 +162,7 @@
             {
                 "id": "avoid-inline-spacing",
                 "impact": null,
-                "tags": [
-                    "cat.structure",
-                    "wcag21aa",
-                    "wcag1412",
-                    "EN-301-549",
-                    "EN-9.1.4.12",
-                    "ACT"
-                ],
+                "tags": ["cat.structure", "wcag21aa", "wcag1412", "EN-301-549", "EN-9.1.4.12", "ACT"],
                 "description": "Ensure that text spacing set through style attributes can be adjusted with custom stylesheets",
                 "help": "Inline text spacing must be adjustable with custom stylesheets",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/avoid-inline-spacing?application=webdriverjs",
@@ -251,15 +217,7 @@
             {
                 "id": "frame-focusable-content",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag211",
-                    "TTv5",
-                    "TT4.a",
-                    "EN-301-549",
-                    "EN-9.2.1.1"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag211", "TTv5", "TT4.a", "EN-301-549", "EN-9.2.1.1"],
                 "description": "Ensure <frame> and <iframe> elements with focusable content do not have tabindex=-1",
                 "help": "Frames with focusable content must not have tabindex=-1",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/frame-focusable-content?application=webdriverjs",
@@ -277,15 +235,7 @@
             {
                 "id": "frame-title-unique",
                 "impact": null,
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT12.d",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag412", "TTv5", "TT12.d", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure <iframe> and <frame> elements contain a unique title attribute",
                 "help": "Frames must have a unique title attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/frame-title-unique?application=webdriverjs",
@@ -430,15 +380,7 @@
             {
                 "id": "link-in-text-block",
                 "impact": null,
-                "tags": [
-                    "cat.color",
-                    "wcag2a",
-                    "wcag141",
-                    "TTv5",
-                    "TT13.a",
-                    "EN-301-549",
-                    "EN-9.1.4.1"
-                ],
+                "tags": ["cat.color", "wcag2a", "wcag141", "TTv5", "TT13.a", "EN-301-549", "EN-9.1.4.1"],
                 "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color",
                 "help": "Links must be distinguishable without relying on color",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/link-in-text-block?application=webdriverjs",
@@ -447,15 +389,7 @@
             {
                 "id": "marquee",
                 "impact": null,
-                "tags": [
-                    "cat.parsing",
-                    "wcag2a",
-                    "wcag222",
-                    "TTv5",
-                    "TT2.b",
-                    "EN-301-549",
-                    "EN-9.2.2.2"
-                ],
+                "tags": ["cat.parsing", "wcag2a", "wcag222", "TTv5", "TT2.b", "EN-301-549", "EN-9.2.2.2"],
                 "description": "Ensure <marquee> elements are not used",
                 "help": "<marquee> elements are deprecated and must not be used",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/marquee?application=webdriverjs",
@@ -464,15 +398,7 @@
             {
                 "id": "meta-refresh",
                 "impact": null,
-                "tags": [
-                    "cat.time-and-media",
-                    "wcag2a",
-                    "wcag221",
-                    "TTv5",
-                    "TT8.a",
-                    "EN-301-549",
-                    "EN-9.2.2.1"
-                ],
+                "tags": ["cat.time-and-media", "wcag2a", "wcag221", "TTv5", "TT8.a", "EN-301-549", "EN-9.2.2.1"],
                 "description": "Ensure <meta http-equiv=\"refresh\"> is not used for delayed refresh",
                 "help": "Delayed refresh under 20 hours must not be used",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/meta-refresh?application=webdriverjs",
@@ -481,15 +407,7 @@
             {
                 "id": "object-alt",
                 "impact": null,
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag111",
-                    "section508",
-                    "section508.22.a",
-                    "EN-301-549",
-                    "EN-9.1.1.1"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag111", "section508", "section508.22.a", "EN-301-549", "EN-9.1.1.1"],
                 "description": "Ensure <object> elements have alternative text",
                 "help": "<object> elements must have alternative text",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/object-alt?application=webdriverjs",
@@ -536,17 +454,7 @@
             {
                 "id": "scrollable-region-focusable",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag211",
-                    "wcag213",
-                    "TTv5",
-                    "TT4.a",
-                    "EN-301-549",
-                    "EN-9.2.1.1",
-                    "EN-9.2.1.3"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag211", "wcag213", "TTv5", "TT4.a", "EN-301-549", "EN-9.2.1.1", "EN-9.2.1.3"],
                 "description": "Ensure elements that have scrollable content are accessible by keyboard",
                 "help": "Scrollable region must have keyboard access",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable?application=webdriverjs",
@@ -632,17 +540,7 @@
             {
                 "id": "td-headers-attr",
                 "impact": null,
-                "tags": [
-                    "cat.tables",
-                    "wcag2a",
-                    "wcag131",
-                    "section508",
-                    "section508.22.g",
-                    "TTv5",
-                    "TT14.b",
-                    "EN-301-549",
-                    "EN-9.1.3.1"
-                ],
+                "tags": ["cat.tables", "wcag2a", "wcag131", "section508", "section508.22.g", "TTv5", "TT14.b", "EN-301-549", "EN-9.1.3.1"],
                 "description": "Ensure that each cell in a table that uses the headers attribute refers only to other cells in that table",
                 "help": "Table cells that use the headers attribute must only refer to cells in the same table",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/td-headers-attr?application=webdriverjs",
@@ -651,17 +549,7 @@
             {
                 "id": "th-has-data-cells",
                 "impact": null,
-                "tags": [
-                    "cat.tables",
-                    "wcag2a",
-                    "wcag131",
-                    "section508",
-                    "section508.22.g",
-                    "TTv5",
-                    "TT14.b",
-                    "EN-301-549",
-                    "EN-9.1.3.1"
-                ],
+                "tags": ["cat.tables", "wcag2a", "wcag131", "section508", "section508.22.g", "TTv5", "TT14.b", "EN-301-549", "EN-9.1.3.1"],
                 "description": "Ensure that <th> elements and elements with role=columnheader/rowheader have data cells they describe",
                 "help": "Table headers in a data table must refer to data cells",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/th-has-data-cells?application=webdriverjs",
@@ -670,16 +558,7 @@
             {
                 "id": "valid-lang",
                 "impact": null,
-                "tags": [
-                    "cat.language",
-                    "wcag2aa",
-                    "wcag312",
-                    "TTv5",
-                    "TT11.b",
-                    "EN-301-549",
-                    "EN-9.3.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2aa", "wcag312", "TTv5", "TT11.b", "EN-301-549", "EN-9.3.1.2", "ACT"],
                 "description": "Ensure lang attributes have valid values",
                 "help": "lang attribute must have a valid value",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/valid-lang?application=webdriverjs",
@@ -707,16 +586,7 @@
             {
                 "id": "no-autoplay-audio",
                 "impact": null,
-                "tags": [
-                    "cat.time-and-media",
-                    "wcag2a",
-                    "wcag142",
-                    "TTv5",
-                    "TT2.a",
-                    "EN-301-549",
-                    "EN-9.1.4.2",
-                    "ACT"
-                ],
+                "tags": ["cat.time-and-media", "wcag2a", "wcag142", "TTv5", "TT2.a", "EN-301-549", "EN-9.1.4.2", "ACT"],
                 "description": "Ensure <video> or <audio> elements do not autoplay audio for more than 3 seconds without a control mechanism to stop or mute the audio",
                 "help": "<video> or <audio> elements must not play automatically",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/no-autoplay-audio?application=webdriverjs",
@@ -1575,15 +1445,7 @@
             {
                 "id": "aria-hidden-body",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag131",
-                    "wcag412",
-                    "EN-301-549",
-                    "EN-9.1.3.1",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag131", "wcag412", "EN-301-549", "EN-9.1.3.1", "EN-9.4.1.2"],
                 "description": "Ensure aria-hidden=\"true\" is not present on the document body.",
                 "help": "aria-hidden=\"true\" must not be present on the document body",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-hidden-body?application=webdriverjs",
@@ -1609,15 +1471,7 @@
             {
                 "id": "aria-hidden-focus",
                 "impact": null,
-                "tags": [
-                    "cat.name-role-value",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.name-role-value", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure aria-hidden elements are not focusable nor contain focusable elements",
                 "help": "ARIA hidden element must not be focusable or contain focusable elements",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-hidden-focus?application=webdriverjs",
@@ -1740,9 +1594,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">1.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(1) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(1) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"]
                     },
                     {
                         "any": [],
@@ -1772,9 +1624,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">2.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(2) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(2) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"]
                     },
                     {
                         "any": [],
@@ -1804,9 +1654,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">3.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(3) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(3) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"]
                     }
                 ]
             },
@@ -3180,17 +3028,7 @@
             {
                 "id": "bypass",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag241",
-                    "section508",
-                    "section508.22.o",
-                    "TTv5",
-                    "TT9.a",
-                    "EN-301-549",
-                    "EN-9.2.4.1"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag241", "section508", "section508.22.o", "TTv5", "TT9.a", "EN-301-549", "EN-9.2.4.1"],
                 "description": "Ensure each page has at least one mechanism for a user to bypass navigation and jump straight to the content",
                 "help": "Page must have means to bypass repeated blocks",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/bypass?application=webdriverjs",
@@ -3276,16 +3114,7 @@
             {
                 "id": "color-contrast",
                 "impact": "serious",
-                "tags": [
-                    "cat.color",
-                    "wcag2aa",
-                    "wcag143",
-                    "TTv5",
-                    "TT13.c",
-                    "EN-301-549",
-                    "EN-9.1.4.3",
-                    "ACT"
-                ],
+                "tags": ["cat.color", "wcag2aa", "wcag143", "TTv5", "TT13.c", "EN-301-549", "EN-9.1.4.3", "ACT"],
                 "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
                 "help": "Elements must meet minimum color contrast ratio thresholds",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=webdriverjs",
@@ -3564,9 +3393,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">You begin at the Fringe. Each room you explore anchors the map for others until it drifts again.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(1) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(1) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -3589,9 +3416,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">Collect curios and lore fragments—trade asynchronously even while players are offline.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(2) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(2) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -3614,9 +3439,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">Trigger world events that reroute passages, unlock factions, and reshape traversal.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(3) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(3) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -3922,16 +3745,7 @@
             {
                 "id": "document-title",
                 "impact": null,
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag242",
-                    "TTv5",
-                    "TT12.a",
-                    "EN-301-549",
-                    "EN-9.2.4.2",
-                    "ACT"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag242", "TTv5", "TT12.a", "EN-301-549", "EN-9.2.4.2", "ACT"],
                 "description": "Ensure each HTML document contains a non-empty <title> element",
                 "help": "Documents must have <title> element to aid in navigation",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/document-title?application=webdriverjs",
@@ -4217,15 +4031,7 @@
             {
                 "id": "form-field-multiple-labels",
                 "impact": null,
-                "tags": [
-                    "cat.forms",
-                    "wcag2a",
-                    "wcag332",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.3.3.2"
-                ],
+                "tags": ["cat.forms", "wcag2a", "wcag332", "TTv5", "TT5.c", "EN-301-549", "EN-9.3.3.2"],
                 "description": "Ensure form field does not have multiple label elements",
                 "help": "Form field must not have multiple label elements",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/form-field-multiple-labels?application=webdriverjs",
@@ -4484,16 +4290,7 @@
             {
                 "id": "html-has-lang",
                 "impact": null,
-                "tags": [
-                    "cat.language",
-                    "wcag2a",
-                    "wcag311",
-                    "TTv5",
-                    "TT11.a",
-                    "EN-301-549",
-                    "EN-9.3.1.1",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2a", "wcag311", "TTv5", "TT11.a", "EN-301-549", "EN-9.3.1.1", "ACT"],
                 "description": "Ensure every HTML document has a lang attribute",
                 "help": "<html> element must have a lang attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/html-has-lang?application=webdriverjs",
@@ -4519,16 +4316,7 @@
             {
                 "id": "html-lang-valid",
                 "impact": null,
-                "tags": [
-                    "cat.language",
-                    "wcag2a",
-                    "wcag311",
-                    "TTv5",
-                    "TT11.a",
-                    "EN-301-549",
-                    "EN-9.3.1.1",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2a", "wcag311", "TTv5", "TT11.a", "EN-301-549", "EN-9.3.1.1", "ACT"],
                 "description": "Ensure the lang attribute of the <html> element has a valid value",
                 "help": "<html> element must have a valid value for the lang attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/html-lang-valid?application=webdriverjs",
@@ -5086,14 +4874,7 @@
             {
                 "id": "meta-viewport",
                 "impact": null,
-                "tags": [
-                    "cat.sensory-and-visual-cues",
-                    "wcag2aa",
-                    "wcag144",
-                    "EN-301-549",
-                    "EN-9.1.4.4",
-                    "ACT"
-                ],
+                "tags": ["cat.sensory-and-visual-cues", "wcag2aa", "wcag144", "EN-301-549", "EN-9.1.4.4", "ACT"],
                 "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
                 "help": "Zooming and scaling must not be disabled",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/meta-viewport?application=webdriverjs",
@@ -5119,15 +4900,7 @@
             {
                 "id": "nested-interactive",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
                 "help": "Interactive controls must not be nested",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/nested-interactive?application=webdriverjs",
@@ -6063,9 +5836,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">You begin at the Fringe. Each room you explore anchors the map for others until it drifts again.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(1) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(1) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -6119,9 +5890,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">Collect curios and lore fragments—trade asynchronously even while players are offline.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(2) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(2) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -6175,9 +5944,7 @@
                         "none": [],
                         "impact": null,
                         "html": "<p class=\"text-xs text-slate-300 leading-relaxed\">Trigger world events that reroute passages, unlock factions, and reshape traversal.</p>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(3) > .leading-relaxed.text-slate-300"
-                        ]
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(3) > .leading-relaxed.text-slate-300"]
                     },
                     {
                         "any": [
@@ -6764,16 +6531,7 @@
             {
                 "id": "color-contrast",
                 "impact": "serious",
-                "tags": [
-                    "cat.color",
-                    "wcag2aa",
-                    "wcag143",
-                    "TTv5",
-                    "TT13.c",
-                    "EN-301-549",
-                    "EN-9.1.4.3",
-                    "ACT"
-                ],
+                "tags": ["cat.color", "wcag2aa", "wcag143", "TTv5", "TT13.c", "EN-301-549", "EN-9.1.4.3", "ACT"],
                 "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
                 "help": "Elements must meet minimum color contrast ratio thresholds",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=webdriverjs",
@@ -6887,9 +6645,7 @@
                         "none": [],
                         "impact": "serious",
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">1.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(1) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ],
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(1) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"],
                         "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
                     },
                     {
@@ -6945,9 +6701,7 @@
                         "none": [],
                         "impact": "serious",
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">2.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(2) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ],
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(2) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"],
                         "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
                     },
                     {
@@ -7003,9 +6757,7 @@
                         "none": [],
                         "impact": "serious",
                         "html": "<span class=\"text-atlas-accent mr-1\" aria-hidden=\"true\">3.</span>",
-                        "target": [
-                            ".p-4.rounded-xl.bg-white\\/4:nth-child(3) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"
-                        ],
+                        "target": [".p-4.rounded-xl.bg-white\\/4:nth-child(3) > h3 > .mr-1.text-atlas-accent[aria-hidden=\"true\"]"],
                         "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
                     }
                 ]
@@ -7095,16 +6847,7 @@
             {
                 "id": "aria-command-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA button, link and menuitem has an accessible name",
                 "help": "ARIA commands must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-command-name?application=webdriverjs",
@@ -7140,15 +6883,7 @@
             {
                 "id": "aria-hidden-focus",
                 "impact": null,
-                "tags": [
-                    "cat.name-role-value",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.name-role-value", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure aria-hidden elements are not focusable nor contain focusable elements",
                 "help": "ARIA hidden element must not be focusable or contain focusable elements",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-hidden-focus?application=webdriverjs",
@@ -7157,16 +6892,7 @@
             {
                 "id": "aria-input-field-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT5.c", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA input field has an accessible name",
                 "help": "ARIA input fields must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-input-field-name?application=webdriverjs",
@@ -7247,16 +6973,7 @@
             {
                 "id": "aria-toggle-field-name",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.4.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag412", "TTv5", "TT5.c", "EN-301-549", "EN-9.4.1.2", "ACT"],
                 "description": "Ensure every ARIA toggle field has an accessible name",
                 "help": "ARIA toggle fields must have an accessible name",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-toggle-field-name?application=webdriverjs",
@@ -7310,14 +7027,7 @@
             {
                 "id": "avoid-inline-spacing",
                 "impact": null,
-                "tags": [
-                    "cat.structure",
-                    "wcag21aa",
-                    "wcag1412",
-                    "EN-301-549",
-                    "EN-9.1.4.12",
-                    "ACT"
-                ],
+                "tags": ["cat.structure", "wcag21aa", "wcag1412", "EN-301-549", "EN-9.1.4.12", "ACT"],
                 "description": "Ensure that text spacing set through style attributes can be adjusted with custom stylesheets",
                 "help": "Inline text spacing must be adjustable with custom stylesheets",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/avoid-inline-spacing?application=webdriverjs",
@@ -7365,17 +7075,7 @@
             {
                 "id": "bypass",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag241",
-                    "section508",
-                    "section508.22.o",
-                    "TTv5",
-                    "TT9.a",
-                    "EN-301-549",
-                    "EN-9.2.4.1"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag241", "section508", "section508.22.o", "TTv5", "TT9.a", "EN-301-549", "EN-9.2.4.1"],
                 "description": "Ensure each page has at least one mechanism for a user to bypass navigation and jump straight to the content",
                 "help": "Page must have means to bypass repeated blocks",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/bypass?application=webdriverjs",
@@ -7420,15 +7120,7 @@
             {
                 "id": "form-field-multiple-labels",
                 "impact": null,
-                "tags": [
-                    "cat.forms",
-                    "wcag2a",
-                    "wcag332",
-                    "TTv5",
-                    "TT5.c",
-                    "EN-301-549",
-                    "EN-9.3.3.2"
-                ],
+                "tags": ["cat.forms", "wcag2a", "wcag332", "TTv5", "TT5.c", "EN-301-549", "EN-9.3.3.2"],
                 "description": "Ensure form field does not have multiple label elements",
                 "help": "Form field must not have multiple label elements",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/form-field-multiple-labels?application=webdriverjs",
@@ -7437,15 +7129,7 @@
             {
                 "id": "frame-focusable-content",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag211",
-                    "TTv5",
-                    "TT4.a",
-                    "EN-301-549",
-                    "EN-9.2.1.1"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag211", "TTv5", "TT4.a", "EN-301-549", "EN-9.2.1.1"],
                 "description": "Ensure <frame> and <iframe> elements with focusable content do not have tabindex=-1",
                 "help": "Frames with focusable content must not have tabindex=-1",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/frame-focusable-content?application=webdriverjs",
@@ -7463,15 +7147,7 @@
             {
                 "id": "frame-title-unique",
                 "impact": null,
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT12.d",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag412", "TTv5", "TT12.d", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure <iframe> and <frame> elements contain a unique title attribute",
                 "help": "Frames must have a unique title attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/frame-title-unique?application=webdriverjs",
@@ -7499,16 +7175,7 @@
             {
                 "id": "html-lang-valid",
                 "impact": null,
-                "tags": [
-                    "cat.language",
-                    "wcag2a",
-                    "wcag311",
-                    "TTv5",
-                    "TT11.a",
-                    "EN-301-549",
-                    "EN-9.3.1.1",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2a", "wcag311", "TTv5", "TT11.a", "EN-301-549", "EN-9.3.1.1", "ACT"],
                 "description": "Ensure the lang attribute of the <html> element has a valid value",
                 "help": "<html> element must have a valid value for the lang attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/html-lang-valid?application=webdriverjs",
@@ -7699,15 +7366,7 @@
             {
                 "id": "link-in-text-block",
                 "impact": null,
-                "tags": [
-                    "cat.color",
-                    "wcag2a",
-                    "wcag141",
-                    "TTv5",
-                    "TT13.a",
-                    "EN-301-549",
-                    "EN-9.1.4.1"
-                ],
+                "tags": ["cat.color", "wcag2a", "wcag141", "TTv5", "TT13.a", "EN-301-549", "EN-9.1.4.1"],
                 "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color",
                 "help": "Links must be distinguishable without relying on color",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/link-in-text-block?application=webdriverjs",
@@ -7756,15 +7415,7 @@
             {
                 "id": "marquee",
                 "impact": null,
-                "tags": [
-                    "cat.parsing",
-                    "wcag2a",
-                    "wcag222",
-                    "TTv5",
-                    "TT2.b",
-                    "EN-301-549",
-                    "EN-9.2.2.2"
-                ],
+                "tags": ["cat.parsing", "wcag2a", "wcag222", "TTv5", "TT2.b", "EN-301-549", "EN-9.2.2.2"],
                 "description": "Ensure <marquee> elements are not used",
                 "help": "<marquee> elements are deprecated and must not be used",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/marquee?application=webdriverjs",
@@ -7773,15 +7424,7 @@
             {
                 "id": "meta-refresh",
                 "impact": null,
-                "tags": [
-                    "cat.time-and-media",
-                    "wcag2a",
-                    "wcag221",
-                    "TTv5",
-                    "TT8.a",
-                    "EN-301-549",
-                    "EN-9.2.2.1"
-                ],
+                "tags": ["cat.time-and-media", "wcag2a", "wcag221", "TTv5", "TT8.a", "EN-301-549", "EN-9.2.2.1"],
                 "description": "Ensure <meta http-equiv=\"refresh\"> is not used for delayed refresh",
                 "help": "Delayed refresh under 20 hours must not be used",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/meta-refresh?application=webdriverjs",
@@ -7799,14 +7442,7 @@
             {
                 "id": "meta-viewport",
                 "impact": null,
-                "tags": [
-                    "cat.sensory-and-visual-cues",
-                    "wcag2aa",
-                    "wcag144",
-                    "EN-301-549",
-                    "EN-9.1.4.4",
-                    "ACT"
-                ],
+                "tags": ["cat.sensory-and-visual-cues", "wcag2aa", "wcag144", "EN-301-549", "EN-9.1.4.4", "ACT"],
                 "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming",
                 "help": "Zooming and scaling must not be disabled",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/meta-viewport?application=webdriverjs",
@@ -7815,15 +7451,7 @@
             {
                 "id": "nested-interactive",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag412",
-                    "TTv5",
-                    "TT6.a",
-                    "EN-301-549",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag412", "TTv5", "TT6.a", "EN-301-549", "EN-9.4.1.2"],
                 "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies",
                 "help": "Interactive controls must not be nested",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/nested-interactive?application=webdriverjs",
@@ -7832,15 +7460,7 @@
             {
                 "id": "object-alt",
                 "impact": null,
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag111",
-                    "section508",
-                    "section508.22.a",
-                    "EN-301-549",
-                    "EN-9.1.1.1"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag111", "section508", "section508.22.a", "EN-301-549", "EN-9.1.1.1"],
                 "description": "Ensure <object> elements have alternative text",
                 "help": "<object> elements must have alternative text",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/object-alt?application=webdriverjs",
@@ -7887,17 +7507,7 @@
             {
                 "id": "scrollable-region-focusable",
                 "impact": null,
-                "tags": [
-                    "cat.keyboard",
-                    "wcag2a",
-                    "wcag211",
-                    "wcag213",
-                    "TTv5",
-                    "TT4.a",
-                    "EN-301-549",
-                    "EN-9.2.1.1",
-                    "EN-9.2.1.3"
-                ],
+                "tags": ["cat.keyboard", "wcag2a", "wcag211", "wcag213", "TTv5", "TT4.a", "EN-301-549", "EN-9.2.1.1", "EN-9.2.1.3"],
                 "description": "Ensure elements that have scrollable content are accessible by keyboard",
                 "help": "Scrollable region must have keyboard access",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/scrollable-region-focusable?application=webdriverjs",
@@ -8011,17 +7621,7 @@
             {
                 "id": "td-headers-attr",
                 "impact": null,
-                "tags": [
-                    "cat.tables",
-                    "wcag2a",
-                    "wcag131",
-                    "section508",
-                    "section508.22.g",
-                    "TTv5",
-                    "TT14.b",
-                    "EN-301-549",
-                    "EN-9.1.3.1"
-                ],
+                "tags": ["cat.tables", "wcag2a", "wcag131", "section508", "section508.22.g", "TTv5", "TT14.b", "EN-301-549", "EN-9.1.3.1"],
                 "description": "Ensure that each cell in a table that uses the headers attribute refers only to other cells in that table",
                 "help": "Table cells that use the headers attribute must only refer to cells in the same table",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/td-headers-attr?application=webdriverjs",
@@ -8030,17 +7630,7 @@
             {
                 "id": "th-has-data-cells",
                 "impact": null,
-                "tags": [
-                    "cat.tables",
-                    "wcag2a",
-                    "wcag131",
-                    "section508",
-                    "section508.22.g",
-                    "TTv5",
-                    "TT14.b",
-                    "EN-301-549",
-                    "EN-9.1.3.1"
-                ],
+                "tags": ["cat.tables", "wcag2a", "wcag131", "section508", "section508.22.g", "TTv5", "TT14.b", "EN-301-549", "EN-9.1.3.1"],
                 "description": "Ensure that <th> elements and elements with role=columnheader/rowheader have data cells they describe",
                 "help": "Table headers in a data table must refer to data cells",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/th-has-data-cells?application=webdriverjs",
@@ -8049,16 +7639,7 @@
             {
                 "id": "valid-lang",
                 "impact": null,
-                "tags": [
-                    "cat.language",
-                    "wcag2aa",
-                    "wcag312",
-                    "TTv5",
-                    "TT11.b",
-                    "EN-301-549",
-                    "EN-9.3.1.2",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2aa", "wcag312", "TTv5", "TT11.b", "EN-301-549", "EN-9.3.1.2", "ACT"],
                 "description": "Ensure lang attributes have valid values",
                 "help": "lang attribute must have a valid value",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/valid-lang?application=webdriverjs",
@@ -8086,16 +7667,7 @@
             {
                 "id": "no-autoplay-audio",
                 "impact": null,
-                "tags": [
-                    "cat.time-and-media",
-                    "wcag2a",
-                    "wcag142",
-                    "TTv5",
-                    "TT2.a",
-                    "EN-301-549",
-                    "EN-9.1.4.2",
-                    "ACT"
-                ],
+                "tags": ["cat.time-and-media", "wcag2a", "wcag142", "TTv5", "TT2.a", "EN-301-549", "EN-9.1.4.2", "ACT"],
                 "description": "Ensure <video> or <audio> elements do not autoplay audio for more than 3 seconds without a control mechanism to stop or mute the audio",
                 "help": "<video> or <audio> elements must not play automatically",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/no-autoplay-audio?application=webdriverjs",
@@ -8106,15 +7678,7 @@
             {
                 "id": "aria-hidden-body",
                 "impact": null,
-                "tags": [
-                    "cat.aria",
-                    "wcag2a",
-                    "wcag131",
-                    "wcag412",
-                    "EN-301-549",
-                    "EN-9.1.3.1",
-                    "EN-9.4.1.2"
-                ],
+                "tags": ["cat.aria", "wcag2a", "wcag131", "wcag412", "EN-301-549", "EN-9.1.3.1", "EN-9.4.1.2"],
                 "description": "Ensure aria-hidden=\"true\" is not present on the document body.",
                 "help": "aria-hidden=\"true\" must not be present on the document body",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/aria-hidden-body?application=webdriverjs",
@@ -8140,16 +7704,7 @@
             {
                 "id": "color-contrast",
                 "impact": null,
-                "tags": [
-                    "cat.color",
-                    "wcag2aa",
-                    "wcag143",
-                    "TTv5",
-                    "TT13.c",
-                    "EN-301-549",
-                    "EN-9.1.4.3",
-                    "ACT"
-                ],
+                "tags": ["cat.color", "wcag2aa", "wcag143", "TTv5", "TT13.c", "EN-301-549", "EN-9.1.4.3", "ACT"],
                 "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
                 "help": "Elements must meet minimum color contrast ratio thresholds",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast?application=webdriverjs",
@@ -8275,16 +7830,7 @@
             {
                 "id": "document-title",
                 "impact": "serious",
-                "tags": [
-                    "cat.text-alternatives",
-                    "wcag2a",
-                    "wcag242",
-                    "TTv5",
-                    "TT12.a",
-                    "EN-301-549",
-                    "EN-9.2.4.2",
-                    "ACT"
-                ],
+                "tags": ["cat.text-alternatives", "wcag2a", "wcag242", "TTv5", "TT12.a", "EN-301-549", "EN-9.2.4.2", "ACT"],
                 "description": "Ensure each HTML document contains a non-empty <title> element",
                 "help": "Documents must have <title> element to aid in navigation",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/document-title?application=webdriverjs",
@@ -8311,16 +7857,7 @@
             {
                 "id": "html-has-lang",
                 "impact": "serious",
-                "tags": [
-                    "cat.language",
-                    "wcag2a",
-                    "wcag311",
-                    "TTv5",
-                    "TT11.a",
-                    "EN-301-549",
-                    "EN-9.3.1.1",
-                    "ACT"
-                ],
+                "tags": ["cat.language", "wcag2a", "wcag311", "TTv5", "TT11.a", "EN-301-549", "EN-9.3.1.1", "ACT"],
                 "description": "Ensure every HTML document has a lang attribute",
                 "help": "<html> element must have a lang attribute",
                 "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/html-has-lang?application=webdriverjs",

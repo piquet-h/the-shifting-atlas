@@ -9,7 +9,7 @@
         "source.fixAll.eslint": "always",
         "source.organizeImports": "always"
     },
-    "eslint.rules.customizations": [{ "rule": "jsx-a11y/*", "severity": "error" }],
+    "eslint.rules.customizations": [{"rule": "jsx-a11y/*", "severity": "error"}],
     "tailwindCSS.includeLanguages": {
         "javascript": "javascript",
         "html": "html",
@@ -33,7 +33,7 @@
     "ipynb.pasteImagesAsAttachments.enabled": false,
     "tailwindCSS.configFile": "frontend/tailwind.config.js",
     "tailwindCSS.emmetCompletions": true,
-    "editor.quickSuggestions": { "strings": true },
+    "editor.quickSuggestions": {"strings": true},
     "css.validate": false,
     "scss.validate": false,
     "less.validate": false,

@@ -22,17 +22,17 @@ Edit TypeScript in `src/`. Build outputs to `dist/`. Re‑run `npm run build` (o
 ## Handler Pattern
 
 ```ts
-import { app } from '@azure/functions';
+import {app} from '@azure/functions'
 app.http('Example', {
     route: 'website/example',
     methods: ['POST'],
     authLevel: 'anonymous',
     handler: async (req, ctx) => {
-        const data = await req.json();
-        ctx.log('Payload', data);
-        return { status: 201, jsonBody: { received: true } };
-    },
-});
+        const data = await req.json()
+        ctx.log('Payload', data)
+        return {status: 201, jsonBody: {received: true}}
+    }
+})
 ```
 
 ## Notes

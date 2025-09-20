@@ -1,5 +1,5 @@
-import React from 'react';
-import { useMediaQuery } from '../hooks/useMediaQueries';
+import React from 'react'
+import {useMediaQuery} from '../hooks/useMediaQueries'
 
 /**
  * ResponsiveLayout
@@ -9,15 +9,11 @@ import { useMediaQuery } from '../hooks/useMediaQueries';
  *  - Provides padding tiers separate from internal component spacing
  *  - No-op styling for small screens to keep initial payload lean
  */
-export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
-    const isLarge = useMediaQuery('(min-width: 1024px)');
+export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({children}) => {
+    const isLarge = useMediaQuery('(min-width: 1024px)')
     return (
         <div
-            className={[
-                'flex-1 w-full mx-auto transition-colors duration-300',
-                'container max-w-7xl',
-                isLarge ? 'relative' : '',
-            ].join(' ')}
+            className={['flex-1 w-full mx-auto transition-colors duration-300', 'container max-w-7xl', isLarge ? 'relative' : ''].join(' ')}
         >
             {isLarge && (
                 <div
@@ -27,7 +23,7 @@ export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({ children }
             )}
             {children}
         </div>
-    );
-};
+    )
+}
 
-export default ResponsiveLayout;
+export default ResponsiveLayout

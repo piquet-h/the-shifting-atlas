@@ -11,7 +11,7 @@
         // Cache TypeScript incremental build info
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "references": [{ "path": "../shared" }],
+    "references": [{"path": "../shared"}],
     "include": ["src", "../shared/src"],
     "exclude": ["node_modules", "dist"]
 }

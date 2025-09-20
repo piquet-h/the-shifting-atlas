@@ -1,10 +1,10 @@
-import React, { FormEvent, useRef, useState } from 'react';
+import React, {FormEvent, useRef, useState} from 'react'
 
 export interface CommandInputProps {
-    disabled?: boolean;
-    busy?: boolean;
-    placeholder?: string;
-    onSubmit: (command: string) => Promise<void> | void;
+    disabled?: boolean
+    busy?: boolean
+    placeholder?: string
+    onSubmit: (command: string) => Promise<void> | void
 }
 
 /**
@@ -19,23 +19,23 @@ export default function CommandInput({
     disabled,
     busy,
     placeholder = 'Enter a command (e.g., ping)',
-    onSubmit,
+    onSubmit
 }: CommandInputProps): React.ReactElement {
-    const [value, setValue] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const inputRef = useRef<HTMLInputElement | null>(null);
-    const isInvalid = error != null; // stable boolean for aria-invalid
+    const [value, setValue] = useState('')
+    const [error, setError] = useState<string | null>(null)
+    const inputRef = useRef<HTMLInputElement | null>(null)
+    const isInvalid = error != null // stable boolean for aria-invalid
 
     async function handleSubmit(e: FormEvent) {
-        e.preventDefault();
-        if (!value.trim() || busy) return;
-        setError(null);
+        e.preventDefault()
+        if (!value.trim() || busy) return
+        setError(null)
         try {
-            await onSubmit(value.trim());
-            setValue('');
-            inputRef.current?.focus();
+            await onSubmit(value.trim())
+            setValue('')
+            inputRef.current?.focus()
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Unknown command error');
+            setError(err instanceof Error ? err.message : 'Unknown command error')
         }
     }
 
@@ -52,7 +52,7 @@ export default function CommandInput({
                         ? {
                               'aria-invalid': 'true',
                               'aria-describedby': 'command-error',
-                              'aria-errormessage': 'command-error',
+                              'aria-errormessage': 'command-error'
                           }
                         : {})}
                     value={value}
@@ -77,7 +77,7 @@ export default function CommandInput({
                 </p>
             )}
         </form>
-    );
+    )
 }
 
 // Imperative ARIA management effect placed after component to keep JSX static.

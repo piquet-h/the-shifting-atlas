@@ -61,10 +61,10 @@ Client Hook Example (excerpt from `useAuth`):
 
 ```ts
 async function fetchPrincipal(signal?: AbortSignal) {
-    const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal });
-    if (!res.ok) return null; // anonymous (204/404)
-    const data = await res.json();
-    return data?.clientPrincipal ?? null;
+    const res = await fetch('/.auth/me', {headers: {'x-swa-auth': 'true'}, signal})
+    if (!res.ok) return null // anonymous (204/404)
+    const data = await res.json()
+    return data?.clientPrincipal ?? null
 }
 ```
 
