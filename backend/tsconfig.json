@@ -7,7 +7,9 @@
         "strict": true,
         "sourceMap": true,
         "noEmitOnError": true,
-        "composite": true
+        "composite": true,
+        // Cache TypeScript incremental build info
+        "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
     "references": [{ "path": "../shared" }],
     "include": ["src", "../shared/src"],

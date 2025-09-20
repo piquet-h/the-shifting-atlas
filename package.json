@@ -21,7 +21,7 @@
         "build": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run build",
         "build:ts": "tsc -b tsconfig.refs.json",
         "typecheck": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run typecheck --if-present",
-        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist && rimraf **/*.tsbuildinfo && rimraf coverage",
+        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist && rimraf **/.cache && rimraf **/*.tsbuildinfo && rimraf coverage",
         "verify:graph": "tsc -b --dry tsconfig.refs.json",
         "test": "npm run build:ts && npm run test -w shared --if-present && npm run test -w backend --if-present && npm run test -w frontend/api --if-present",
         "coverage": "npm run build:ts && c8 --reporter=text --reporter=lcov npm run test -w shared --if-present && c8 report",

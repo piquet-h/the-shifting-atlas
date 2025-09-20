@@ -5,5 +5,8 @@ coverage/
 *.tsbuildinfo
 .DS_Store
 
+# TypeScript incremental build cache directories
+**/.cache/
+
 # Ignore any Functions local settings (front or backend) universally
 **/local.settings.json

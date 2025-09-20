@@ -10,7 +10,9 @@
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "lib": ["ESNext", "DOM"],
-        "types": ["vite/client", "node"]
+        "types": ["vite/client", "node"],
+        // Cache file for incremental build metadata
+        "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
     "include": ["src"],
     "exclude": ["dist", "node_modules"]
