@@ -7,7 +7,7 @@
     "scripts": {
         "prebuild": "rimraf dist",
         "build": "tsc -b",
-        "typecheck": "tsc -b --noEmit",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
         "start": "npm run build && func start",
         "test": "node --test dist"
     },
