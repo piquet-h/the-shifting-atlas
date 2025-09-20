@@ -234,6 +234,7 @@ Current gaps:
 - ES Modules everywhere (`"type": "module"`).
 - Async/await for all I/O.
 - Avoid premature framework additions; keep dependencies lean.
+- Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing.
 
 ## 11. License
 

@@ -19,7 +19,7 @@ export function usePing(opts: UsePingOptions = {}): UsePingState {
     const [state, setState] = React.useState<UsePingState>({ loading: true });
 
     const run = React.useCallback(async () => {
-        setState(s => ({ ...s, loading: true }));
+        setState((s) => ({ ...s, loading: true }));
         const res = await fetchPing();
         if (!res.ok) {
             setState({

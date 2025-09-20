@@ -55,6 +55,9 @@ jobs:
             - name: Install dependencies (workspace root)
               run: npm ci --workspaces
 
+            - name: Build shared library
+              run: npm run build -w shared
+
             - name: Typecheck frontend
               run: npm run typecheck -w frontend
 
@@ -125,6 +128,9 @@ jobs:
 
             - name: Install dependencies
               run: npm ci --workspaces
+
+            - name: Build shared library
+              run: npm run build -w shared
 
             - name: Build frontend
               run: npm run build -w frontend

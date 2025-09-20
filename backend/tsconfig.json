@@ -6,8 +6,10 @@
         "moduleResolution": "node",
         "strict": true,
         "sourceMap": true,
-        "noEmitOnError": true
+        "noEmitOnError": true,
+        "composite": true
     },
+    "references": [{ "path": "../shared" }],
     "include": ["src", "../shared/src"],
     "exclude": ["node_modules", "dist"]
 }

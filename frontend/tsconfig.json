@@ -3,7 +3,10 @@
     "compilerOptions": {
         "jsx": "react-jsx",
         "allowJs": false,
-        "noEmit": true,
+        "composite": true,
+        "emitDeclarationOnly": true,
+        "declaration": true,
+        "declarationDir": "dist/types",
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "lib": ["ESNext", "DOM"],

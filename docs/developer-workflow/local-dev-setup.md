@@ -78,6 +78,14 @@ Build production frontend bundle:
 npm run build -w frontend
 ```
 
+## Code Style
+
+Code formatting (indentation, quotes, commas, semicolons) is fully automated:
+
+- Run `npm run format` before committing to apply Prettier.
+- CI will fail if formatting drifts—no need to memorize specific style rules.
+- Configure your editor for “Format on Save” with Prettier + EditorConfig enabled.
+
 ## Common Troubleshooting
 
 | Symptom                                        | Fix                                                                        |

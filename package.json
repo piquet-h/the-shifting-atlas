@@ -18,8 +18,13 @@
         "swa": "npm run build -w shared && swa start dev",
         "swa:build": "swa build dev",
         "swa:deploy": "swa deploy dev",
-        "build": "npm -w shared -w frontend -w frontend/api -w backend run build",
-        "typecheck": "npm -w shared -w frontend -w frontend/api -w backend run typecheck --if-present",
+        "build": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run build",
+        "build:ts": "tsc -b tsconfig.refs.json",
+        "typecheck": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run typecheck --if-present",
+        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist && rimraf **/*.tsbuildinfo && rimraf coverage",
+        "verify:graph": "tsc -b --dry tsconfig.refs.json",
+        "test": "npm run build:ts && npm run test -w shared --if-present && npm run test -w backend --if-present && npm run test -w frontend/api --if-present",
+        "coverage": "npm run build:ts && c8 --reporter=text --reporter=lcov npm run test -w shared --if-present && c8 report",
         "a11y": "npm run a11y -w frontend",
         "lint": "eslint 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
         "lint:fix": "npm run lint -- --fix",
@@ -35,6 +40,8 @@
         "eslint-plugin-prettier": "^5.2.1",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
-        "prettier": "^3.3.3"
+        "prettier": "^3.3.3",
+        "c8": "^10.1.2",
+        "rimraf": "^5.0.5"
     }
 }

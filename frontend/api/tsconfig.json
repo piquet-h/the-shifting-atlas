@@ -5,10 +5,8 @@
         "module": "ESNext",
         "moduleResolution": "node",
         "types": ["node"],
-        "paths": {
-            "@atlas/shared": ["node_modules/@atlas/shared/dist/index.d.ts"],
-            "@atlas/shared/*": ["node_modules/@atlas/shared/dist/*"]
-        }
+        "composite": true
     },
+    "references": [{ "path": "../../shared" }],
     "include": ["src/**/*.ts"]
 }

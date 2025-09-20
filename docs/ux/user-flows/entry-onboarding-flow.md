@@ -11,7 +11,7 @@ wireframePrototype: react-live
 exportedImage: ../assets/entry-onboarding-flow.png
 ---
 
- # Homepage Onboarding Flow
+# Homepage Onboarding Flow
 
 ## Overview
 
@@ -23,12 +23,12 @@ This document focuses on: frictionless first command, reversible guest decisions
 
 ## Personas (Lightweight)
 
-| Persona | Short Description | Primary Need in First 60s | Risk if Unmet |
-| ------- | ----------------- | -------------------------- | ------------- |
-| Curious Visitor | Arrives from a link / social mention | See something reactive quickly | Bounce before issue first command |
-| Systems Explorer | Reads docs, wants to poke mechanics | Transparent command feedback | Perceives black box -> churn |
-| Returning Guest | Has prior guest GUID locally | Resume seamlessly | Frustration / duplicate profile |
-| Authenticated Player | Previously linked external identity | Persist progress & identity | Perceived data loss |
+| Persona              | Short Description                    | Primary Need in First 60s      | Risk if Unmet                     |
+| -------------------- | ------------------------------------ | ------------------------------ | --------------------------------- |
+| Curious Visitor      | Arrives from a link / social mention | See something reactive quickly | Bounce before issue first command |
+| Systems Explorer     | Reads docs, wants to poke mechanics  | Transparent command feedback   | Perceives black box -> churn      |
+| Returning Guest      | Has prior guest GUID locally         | Resume seamlessly              | Frustration / duplicate profile   |
+| Authenticated Player | Previously linked external identity  | Persist progress & identity    | Perceived data loss               |
 
 Assumption: Mobile (~40%) + Desktop (~60%) split; must remain single‑input friendly (keyboard OR touch) without mandatory multi‑modal interactions.
 
@@ -55,7 +55,7 @@ Player navigates to site root `/` without a valid session / auth cookie OR with 
 
 ## Actors
 
-| Actor                | Role / Responsibility                                      |
+| Actor                | Role / Responsibility                                       |
 | -------------------- | ----------------------------------------------------------- |
 | Player (Guest)       | Unauthenticated visitor; may become authenticated           |
 | Authenticated Player | Returning user with external identity session               |
@@ -88,15 +88,15 @@ Player navigates to site root `/` without a valid session / auth cookie OR with 
 
 ## UX State Map
 
-| State Key | Description | Entry Condition | Exit Condition | Visible Elements | Notes |
-| --------- | ----------- | --------------- | -------------- | ---------------- | ----- |
-| loading-shell | App JS/CSS load & initial render skeleton | Document ready | React hydration complete | Logo, progress indicator | Avoid large LCP images |
-| checking-session | Validate existing GUID or auth | App hydrated | Session decision (guest/auth) | Subtle inline loader near command area |  < 500ms target |
-| ready-guest | Guest command interface active | Session check done (guest) | Auth upgrade or navigate away | Command input, guest CTA to upgrade | Show low-friction upgrade CTA |
-| ready-auth | Authenticated interface active | Auth session validated | Sign out | Command input, profile summary | Display name/avatar stub optional |
-| upgrading-auth | Linking guest GUID to auth | User initiates auth | Receive callback or failure | Spinner overlay, cancel (optional) | Timeout fallback 10s |
-| error-transient | Recoverable error (network) | Failed request w/ retryable code | Retry success or user abort | Inline alert, retry button | Distinct from fatal |
-| error-fatal | Non-recoverable (script/init) | Critical JS failure | Page reload | Error panel, reload CTA | Capture telemetry immediately |
+| State Key        | Description                               | Entry Condition                  | Exit Condition                | Visible Elements                       | Notes                             |
+| ---------------- | ----------------------------------------- | -------------------------------- | ----------------------------- | -------------------------------------- | --------------------------------- |
+| loading-shell    | App JS/CSS load & initial render skeleton | Document ready                   | React hydration complete      | Logo, progress indicator               | Avoid large LCP images            |
+| checking-session | Validate existing GUID or auth            | App hydrated                     | Session decision (guest/auth) | Subtle inline loader near command area | < 500ms target                    |
+| ready-guest      | Guest command interface active            | Session check done (guest)       | Auth upgrade or navigate away | Command input, guest CTA to upgrade    | Show low-friction upgrade CTA     |
+| ready-auth       | Authenticated interface active            | Auth session validated           | Sign out                      | Command input, profile summary         | Display name/avatar stub optional |
+| upgrading-auth   | Linking guest GUID to auth                | User initiates auth              | Receive callback or failure   | Spinner overlay, cancel (optional)     | Timeout fallback 10s              |
+| error-transient  | Recoverable error (network)               | Failed request w/ retryable code | Retry success or user abort   | Inline alert, retry button             | Distinct from fatal               |
+| error-fatal      | Non-recoverable (script/init)             | Critical JS failure              | Page reload                   | Error panel, reload CTA                | Capture telemetry immediately     |
 
 ## Primary Flow (Guest First Use)
 
@@ -117,15 +117,15 @@ flowchart TD
 
 ## Alternate / Failure Paths
 
-| Path | Scenario                       | System Response        | Recovery / UX Copy                        | Telemetry Event |
-| ---- | ------------------------------ | ---------------------- | ----------------------------------------- | --------------- |
+| Path | Scenario                       | System Response        | Recovery / UX Copy                        | Telemetry Event         |
+| ---- | ------------------------------ | ---------------------- | ----------------------------------------- | ----------------------- |
 | AF1  | Network failure on bootstrap   | Non-blocking retry UI  | Retry button; suggest checking connection | Onboarding.NetworkError |
-| AF2  | Ping function 5xx              | Error toast            | User retries; degrade to canned response  | Command.Error.5xx |
+| AF2  | Ping function 5xx              | Error toast            | User retries; degrade to canned response  | Command.Error.5xx       |
 | AF3  | GUID creation conflict (rare)  | Regenerate & log       | Silent fallback; telemetry event emitted  | Onboarding.GuidConflict |
-| AF4  | Auth provider redirect failure | Display auth error box | Offer guest path + retry auth             | Auth.RedirectFailure |
-| AF5  | Profile sync validation error  | Modal with details     | Retry sync / keep guest until resolved    | Auth.ProfileSyncError |
-| AF6  | Session decode malformed       | Force new guest GUID   | Inform user session expired, continue     | Session.DecodeError |
-| AF7  | Command timeout (>5s)          | Inline timeout notice  | Offer retry; keep input contents          | Command.Timeout |
+| AF4  | Auth provider redirect failure | Display auth error box | Offer guest path + retry auth             | Auth.RedirectFailure    |
+| AF5  | Profile sync validation error  | Modal with details     | Retry sync / keep guest until resolved    | Auth.ProfileSyncError   |
+| AF6  | Session decode malformed       | Force new guest GUID   | Inform user session expired, continue     | Session.DecodeError     |
+| AF7  | Command timeout (>5s)          | Inline timeout notice  | Offer retry; keep input contents          | Command.Timeout         |
 
 ## Sequence (System Perspective – Guest)
 
@@ -145,26 +145,26 @@ sequenceDiagram
 
 ## Data Touchpoints
 
-| Entity           | Operation                              | Notes                                       |
-| ---------------- | -------------------------------------- | ------------------------------------------- |
-| Players (vertex) | Create if missing                      | Minimal stub until profile completion       |
-| Events           | (future) enqueue onboarding completion | Not implemented yet                         |
-| Sessions (in-mem)| N/A (derived)                          | Derived from GUID + optional auth principal |
+| Entity            | Operation                              | Notes                                       |
+| ----------------- | -------------------------------------- | ------------------------------------------- |
+| Players (vertex)  | Create if missing                      | Minimal stub until profile completion       |
+| Events            | (future) enqueue onboarding completion | Not implemented yet                         |
+| Sessions (in-mem) | N/A (derived)                          | Derived from GUID + optional auth principal |
 
 ## Metrics & Telemetry
 
-| Event                          | Type    | Dimensions (min set)                                 | Notes                                     |
-| ------------------------------ | ------- | ---------------------------------------------------- | ----------------------------------------- |
-| Onboarding.Start               | counter | clientTs, uaHash, buildId                            | Fire before network call                  |
-| Onboarding.GuestGuidCreated    | counter | creationMode (lazy|eager), buildId                   | Distinguish path                          |
-| Onboarding.FirstCommandSuccess | timer   | latencyMs, buildId, networkRTTbucket                 | Use high‑res timer                        |
-| Auth.UpgradeInitiated          | counter | guestGuidPresent (bool), providerHint                | ProviderHint from button context          |
-| Auth.UpgradeSuccess            | counter | provider, linkStrategy (merge|new), hadGuestProgress | Ensure merge vs new identity analysis     |
-| Onboarding.NetworkError        | counter | phase (bootstrap|ping), errorClass                   | Derived from AF1                          |
-| Command.Error.5xx              | counter | functionName, statusCode                             | Derived from AF2                          |
-| Command.Timeout                | counter | functionName, timeoutMs                              | AF7                                       |
-| Auth.ProfileSyncError          | counter | validationIssue                                      | AF5                                       |
-| Session.DecodeError            | counter | tokenVersion, decodePhase                            | AF6                                       |
+| Event                          | Type    | Dimensions (min set)                  | Notes                            |
+| ------------------------------ | ------- | ------------------------------------- | -------------------------------- | ------------------------------------- |
+| Onboarding.Start               | counter | clientTs, uaHash, buildId             | Fire before network call         |
+| Onboarding.GuestGuidCreated    | counter | creationMode (lazy                    | eager), buildId                  | Distinguish path                      |
+| Onboarding.FirstCommandSuccess | timer   | latencyMs, buildId, networkRTTbucket  | Use high‑res timer               |
+| Auth.UpgradeInitiated          | counter | guestGuidPresent (bool), providerHint | ProviderHint from button context |
+| Auth.UpgradeSuccess            | counter | provider, linkStrategy (merge         | new), hadGuestProgress           | Ensure merge vs new identity analysis |
+| Onboarding.NetworkError        | counter | phase (bootstrap                      | ping), errorClass                | Derived from AF1                      |
+| Command.Error.5xx              | counter | functionName, statusCode              | Derived from AF2                 |
+| Command.Timeout                | counter | functionName, timeoutMs               | AF7                              |
+| Auth.ProfileSyncError          | counter | validationIssue                       | AF5                              |
+| Session.DecodeError            | counter | tokenVersion, decodePhase             | AF6                              |
 
 Schema Stability Principle: avoid renaming events post instrumentation; prefer additive fields.
 
@@ -176,12 +176,12 @@ Privacy: No PII beyond hashed user agent and stable GUID (guest) or provider opa
 
 ## API Contract (Current & Planned)
 
-| Endpoint                      | Method | Auth Required | Purpose                        | Request Body (min)               | Response (shape)                                 |
-| ----------------------------- | ------ | ------------- | ------------------------------ | -------------------------------- | ----------------------------------------------- |
-| /api/player/bootstrap         | GET    | No            | Return (or allocate) guest GUID | n/a                              | { playerGuid: string, created?: boolean }        |
-| /api/ping                     | POST   | No            | Test round‑trip & latency       | { guid: string, message: string }| { message: string, latency?: number }            |
-| /api/player/sync-profile      | POST   | Yes (principal)| Link auth identity to player   | { externalClaimsHash?: string } | { playerGuid: string, merged: boolean }          |
-| /api/player/telemetry (future)| POST   | No (signed?)   | Client event funnel (batched)  | { events: Event[] }              | { accepted: number }                             |
+| Endpoint                       | Method | Auth Required   | Purpose                         | Request Body (min)                | Response (shape)                          |
+| ------------------------------ | ------ | --------------- | ------------------------------- | --------------------------------- | ----------------------------------------- |
+| /api/player/bootstrap          | GET    | No              | Return (or allocate) guest GUID | n/a                               | { playerGuid: string, created?: boolean } |
+| /api/ping                      | POST   | No              | Test round‑trip & latency       | { guid: string, message: string } | { message: string, latency?: number }     |
+| /api/player/sync-profile       | POST   | Yes (principal) | Link auth identity to player    | { externalClaimsHash?: string }   | { playerGuid: string, merged: boolean }   |
+| /api/player/telemetry (future) | POST   | No (signed?)    | Client event funnel (batched)   | { events: Event[] }               | { accepted: number }                      |
 
 Error Envelope (pattern): { error: { code: string, message: string, retryable: boolean } }
 
@@ -196,7 +196,7 @@ Player Vertex (initial fields only):
     "createdUtc": "2025-09-19T00:00:00Z",
     "guest": true,
     "auth": { "providers": [] },
-    "progress": { "firstCommandUtc": null }
+    "progress": { "firstCommandUtc": null },
 }
 ```
 
@@ -217,13 +217,13 @@ On auth merge append provider descriptor:
 
 ## Risks & Mitigations
 
-| Risk | Impact | Likelihood | Mitigation |
-| ---- | ------ | ---------- | ---------- |
-| GUID duplication edge | Data merge issues | Very Low | Server-side GUID generation + conflict retry |
-| Latency spikes | Delayed first value | Medium | Minimal payload, CDN assets, measure p50/p95 |
-| Auth redirect loop | User abandonment | Low | Detect consecutive failures; offer guest fallback |
-| Silent telemetry drop | Lost insights | Medium | Batch with retry & console warn on fail |
-| Accessibility regressions | Exclusion of users | Medium | Add automated axe-core scan in CI |
+| Risk                      | Impact              | Likelihood | Mitigation                                        |
+| ------------------------- | ------------------- | ---------- | ------------------------------------------------- |
+| GUID duplication edge     | Data merge issues   | Very Low   | Server-side GUID generation + conflict retry      |
+| Latency spikes            | Delayed first value | Medium     | Minimal payload, CDN assets, measure p50/p95      |
+| Auth redirect loop        | User abandonment    | Low        | Detect consecutive failures; offer guest fallback |
+| Silent telemetry drop     | Lost insights       | Medium     | Batch with retry & console warn on fail           |
+| Accessibility regressions | Exclusion of users  | Medium     | Add automated axe-core scan in CI                 |
 
 ## Future Enhancements (Not in 1.2.0)
 
@@ -242,12 +242,12 @@ On auth merge append provider descriptor:
 
 ## Iteration Log
 
-| Date       | Ver   | Change                               | Rationale                        | Impact |
-| ---------- | ----- | ------------------------------------ | -------------------------------- | ------ |
-| 2025-09-15 | 1.0.0 | Initial draft                        | Establish baseline onboarding    | None   |
-| 2025-09-16 | 1.1.0 | Added auth flow & refined structure  | Clarity + guest/auth upgrade     | Low    |
+| Date       | Ver   | Change                                                                                           | Rationale                                              | Impact |
+| ---------- | ----- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | ------ |
+| 2025-09-15 | 1.0.0 | Initial draft                                                                                    | Establish baseline onboarding                          | None   |
+| 2025-09-16 | 1.1.0 | Added auth flow & refined structure                                                              | Clarity + guest/auth upgrade                           | Low    |
 | 2025-09-19 | 1.2.0 | Streamlined doc; added personas, UX states, API contract, telemetry schema, accessibility, risks | Comprehensive coverage & readiness for instrumentation | Medium |
-| 2025-09-19 | 1.2.2 | Replaced DemoForm with CommandInterface (CommandInput + CommandOutput) | Reflect architecture & component responsibilities | Low |
+| 2025-09-19 | 1.2.2 | Replaced DemoForm with CommandInterface (CommandInput + CommandOutput)                           | Reflect architecture & component responsibilities      | Low    |
 
 ## Signup / Login Flow (Azure External Identities)
 

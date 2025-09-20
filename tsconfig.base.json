@@ -12,7 +12,7 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmitOnError": true,
-        "types": [],
+        "types": ["node"],
         "baseUrl": ".",
         "paths": {
             "@atlas/shared": ["shared/src/index.ts"],

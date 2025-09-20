@@ -21,7 +21,10 @@ async function readEcho(req: HttpRequest): Promise<string | undefined> {
     }
 }
 
-async function pingHandler(req: HttpRequest, ctx: InvocationContext): Promise<HttpResponseInit> {
+export async function pingHandler(
+    req: HttpRequest,
+    ctx: InvocationContext,
+): Promise<HttpResponseInit> {
     const started = Date.now();
     const echo = req.query.get('name') || (await readEcho(req));
     const payload: PingPayload = {

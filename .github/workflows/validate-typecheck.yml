@@ -55,6 +55,9 @@ jobs:
             - name: Install workspaces (ci)
               run: npm ci --workspaces
 
+            - name: Build shared library
+              run: npm run build -w shared
+
             - name: Typecheck all packages
               run: npm run typecheck
 

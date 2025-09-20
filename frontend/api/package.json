@@ -8,7 +8,8 @@
         "prebuild": "rimraf dist",
         "build": "tsc",
         "typecheck": "tsc --noEmit",
-        "start": "npm run build && func start"
+        "start": "npm run build && func start",
+        "test": "node --test dist"
     },
     "engines": {
         "node": "20.x",

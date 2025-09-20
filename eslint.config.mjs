@@ -36,6 +36,17 @@ export default [
             '@typescript-eslint/no-explicit-any': 'warn',
             // Indentation enforced by Prettier (tabWidth 4)
             'prettier/prettier': 'error',
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        {
+                            group: ['**/dist/**'],
+                            message: 'Import from source modules, not compiled dist output.',
+                        },
+                    ],
+                },
+            ],
         },
     },
     {
@@ -51,6 +62,9 @@ export default [
                 HTMLElement: 'readonly',
                 HTMLHeadingElement: 'readonly',
                 HTMLDivElement: 'readonly',
+                HTMLInputElement: 'readonly',
+                crypto: 'readonly',
+                performance: 'readonly',
             },
         },
         plugins: {

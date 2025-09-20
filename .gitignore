@@ -1,6 +1,8 @@
 node_modules/
 .env
-dist
+dist/
+coverage/
+*.tsbuildinfo
 .DS_Store
 
 # Ignore any Functions local settings (front or backend) universally

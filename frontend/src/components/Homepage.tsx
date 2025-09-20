@@ -181,7 +181,10 @@ export default function Homepage(): React.ReactElement {
                         </section>
                         {/* MVP Command Interface (guest can try commands before auth) */}
                         <section aria-labelledby="command-interface-title" className="mt-4">
-                            <h2 id="command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
+                            <h2
+                                id="command-interface-title"
+                                className="text-sm font-semibold tracking-wide mb-3"
+                            >
                                 Try a Command
                             </h2>
                             <CommandInterface />
@@ -271,7 +274,10 @@ export default function Homepage(): React.ReactElement {
                             </div>
                         </section>
                         <section aria-labelledby="auth-command-interface-title" className="mt-2">
-                            <h2 id="auth-command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
+                            <h2
+                                id="auth-command-interface-title"
+                                className="text-sm font-semibold tracking-wide mb-3"
+                            >
                                 Command Interface
                             </h2>
                             <CommandInterface playerGuid={user?.userId} />
