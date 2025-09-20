@@ -33,9 +33,9 @@ runs:
           shell: bash
           run: corepack enable
 
-        - name: Install dependencies (workspaces)
+        - name: Install dependencies (workspaces + root)
           shell: bash
-          run: npm ci --workspaces
+          run: npm ci --workspaces --include-workspace-root
 
         - name: Build shared library
           if: ${{ inputs.build-shared == 'true' }}

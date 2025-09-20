@@ -26,7 +26,8 @@
         "test": "npm run build:ts && npm run test -w shared --if-present && npm run test -w backend --if-present && npm run test -w frontend/api --if-present",
         "coverage": "npm run build:ts && c8 --reporter=text --reporter=lcov npm run test -w shared --if-present && c8 report",
         "a11y": "npm run a11y -w frontend",
-        "lint": "eslint 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
+        "prelint": "node -e \"['@typescript-eslint/eslint-plugin','@typescript-eslint/parser'].forEach(m=>{try{require.resolve(m);console.log('found',m)}catch(e){console.error('MISSING',m);process.exitCode=1}})\"",
+        "lint": "npm run prelint && eslint 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
         "lint:fix": "npm run lint -- --fix",
         "format": "prettier . --write",
         "format:check": "prettier . --check"

@@ -50,6 +50,8 @@ jobs:
               uses: actions/checkout@v4
             - name: Setup & Install
               uses: ./.github/actions/node-workspace-setup
+            - name: Prelint dependency sanity
+              run: npm run prelint
             - name: Lint
               run: npm run lint
             - name: Typecheck
