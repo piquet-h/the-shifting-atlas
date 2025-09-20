@@ -2,7 +2,9 @@
  * Azure Functions Backend Entry Point (TypeScript)
  * Registers initial HTTP functions. Extend using additional files or folders and update package.json main glob if needed.
  */
-import { app, InvocationContext, HttpRequest, HttpResponseInit } from '@azure/functions';
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
+// Initialize telemetry (side-effect import)
+import './shared/telemetry.js';
 
 app.http('BackendHealth', {
     route: 'backend/health',

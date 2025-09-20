@@ -18,6 +18,7 @@
     },
     "dependencies": {
         "@azure/functions": "^4.8.0",
-        "@atlas/shared": "file:../shared"
+        "@atlas/shared": "file:../shared",
+        "applicationinsights": "^2.9.5"
     }
 }

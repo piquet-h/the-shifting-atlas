@@ -217,7 +217,6 @@ Current gaps:
 
 - No Service Bus or queue processors.
 - No runtime Cosmos DB integration code (graph client, schema bootstrap).
-- No Application Insights telemetry.
 - Minimal test coverage (none checked in yet).
 - No managed identity consumption in Functions (uses key secret placeholder only).
 - Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
@@ -261,6 +260,25 @@ npm run a11y  # runs vite dev server then axe scan of http://localhost:5173
 GitHub Actions workflow `.github/workflows/a11y.yml` executes on PRs touching frontend code. Reports are saved as an artifact (`axe-report`). The command currently fails build on any violation (`--exit 1`). Adjust strategy later for severity filtering.
 
 PRs introducing UI or interaction changes must note: keyboard path validated, no new a11y lint violations, focus order predictable, and contrast checked. Regressions block merge.
+
+### Telemetry (Application Insights)
+
+Infrastructure now provisions an Application Insights resource and exposes its connection string as a deployment output.
+
+Backend (Functions): Automatic collection (requests, dependencies, exceptions, traces) is enabled when the environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING` is present. The Static Web App's integrated Functions runtime receives this via app settings (set in Bicep). Local development: populate `backend/local.settings.json` with the connection string to enable telemetry; leave blank to disable.
+
+Frontend (React SPA): The web SDK initializes if `VITE_APPINSIGHTS_CONNECTION_STRING` is defined (e.g. in Static Web App configuration or a local `.env.local`). It auto-tracks page views, route changes, fetch/XHR, and JavaScript errors. No connection string = graceful no‑op.
+
+Local example `.env.local` (frontend):
+
+```bash
+VITE_APPINSIGHTS_CONNECTION_STRING="InstrumentationKey=...;IngestionEndpoint=...;LiveEndpoint=..."
+```
+
+Custom events (backend): import `trackEvent` from `backend/src/shared/telemetry.ts`.
+Custom events (frontend): import `{ trackEvent }` from `src/services/telemetry.ts`.
+
+Sampling and PII: default 100% sampling; IP masking / personally identifying data not manually collected. Adjust later via SDK config (e.g. `setAutoCollectConsole(false)` or processor filters) before production scale.
 
 ---
 

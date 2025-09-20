@@ -6,6 +6,7 @@ param location string = resourceGroup().location
 param staticWebAppName string = 'web-${uniqueString(resourceGroup().id)}'
 param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
+param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
 @description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
 @allowed([
   'Free'
@@ -70,7 +71,21 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
       COSMOS_ENDPOINT: cosmos.properties.documentEndpoint
       KEYVAULT_NAME: keyVault.name
       COSMOS_KEY_SECRET_NAME: 'cosmos-primary-key'
+      // Application Insights connection string surfaced to the integrated Functions API
+      APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
     }
+  }
+}
+
+// Application Insights component for telemetry (Functions + frontend JS SDK)
+// Using connection string (preferred over instrumentation key) for flexibility.
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    // Disable IP masking changes or sampling in template; can be tuned later.
   }
 }
 
@@ -114,3 +129,5 @@ output cosmosEndpoint string = cosmos.properties.documentEndpoint
 output staticWebAppName string = staticSite.name
 output keyVaultName string = keyVault.name
 output cosmosPrimaryKeySecretName string = cosmosPrimaryKeySecret.name
+output appInsightsName string = appInsights.name
+output appInsightsConnectionString string = appInsights.properties.ConnectionString

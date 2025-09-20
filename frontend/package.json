@@ -12,7 +12,8 @@
         "lint": "eslint --ext .ts,.tsx src",
         "a11y:serve": "vite --port 5173",
         "a11y:scan": "node ./scripts/run-axe.mjs",
-        "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan"
+        "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan",
+        "test": "echo 'No frontend tests yet'"
     },
     "engines": {
         "node": "20.x",
@@ -22,7 +23,8 @@
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-router-dom": "^6.14.0",
-        "@atlas/shared": "file:../shared"
+        "@atlas/shared": "file:../shared",
+        "@microsoft/applicationinsights-web": "^3.2.1"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.4",
