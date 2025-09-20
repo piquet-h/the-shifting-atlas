@@ -1,26 +1,6 @@
 ---
 description: Custom mode for creating and deploying Azure Static Web Apps
-tools:
-    [
-        'changes',
-        'edit',
-        'extensions',
-        'fetch',
-        'findTestFiles',
-        'githubRepo',
-        'new',
-        'openSimpleBrowser',
-        'problems',
-        'runCommands',
-        'runNotebooks',
-        'runTasks',
-        'search',
-        'testFailure',
-        'todos',
-        'usages',
-        'vscodeAPI',
-        'bestpractices',
-    ]
+tools: ['runCommands', 'runTasks', 'edit', 'search', 'new', 'extensions', 'usages', 'vscodeAPI', 'think', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'fetch', 'githubRepo', 'todos', 'Microsoft Docs', 'Bicep (EXPERIMENTAL)']
 ---
 
 # Azure Static Web Apps Assistant
