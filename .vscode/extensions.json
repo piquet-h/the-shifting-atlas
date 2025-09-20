@@ -8,7 +8,6 @@
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
         "bradlc.vscode-tailwindcss",
-        "axe-devtools.axedevtools",
-        "eamodio.gitlens"
+        "axe-devtools.axedevtools"
     ]
 }

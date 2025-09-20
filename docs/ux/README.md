@@ -48,7 +48,7 @@ authors: ["@your-handle"]
 updated: 2025-09-15
 related:
   modules: ["navigation", "player-identity"]
-  components: ["Homepage", "Nav", "DemoForm"]
+  components: ["Homepage", "Nav", "CommandInput"]
 wireframePrototype: react-live # indicates layout expressed directly in React components
 exportedImage: ../assets/entry-onboarding-flow.png        # optional static reference (PNG/SVG) if needed
 ---

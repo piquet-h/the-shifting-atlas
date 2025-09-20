@@ -1,65 +1,102 @@
 ---
 title: Homepage Onboarding Flow
 status: draft
-version: 1.1.0
+version: 1.2.2
 authors: ['@copilot-suggested']
-updated: 2025-09-16
+updated: 2025-09-19
 related:
     modules: ['navigation-and-traversal', 'player-identity-and-roles']
-    components: ['Homepage', 'Nav', 'DemoForm']
+    components: ['Homepage', 'Nav', 'CommandInput', 'CommandOutput', 'CommandInterface']
 wireframePrototype: react-live
 exportedImage: ../assets/entry-onboarding-flow.png
 ---
 
-# Homepage Onboarding Flow
+ # Homepage Onboarding Flow
 
 ## Overview
 
-Defines how a first‑time or returning (unauthenticated) player reaches a usable command interface and (optionally) upgrades to an authenticated profile. A temporary guest identity (GUID) is created only when needed; it can later be merged with an external identity.
+Defines how a first‑time or returning (unauthenticated) player reaches a usable command interface and (optionally) upgrades to an authenticated profile. A temporary guest identity (GUID) is created lazily (only when a server interaction requires persistence) and can later be merged with an external identity.
+
+This document focuses on: frictionless first command, reversible guest decisions, and a secure / lossless upgrade path. It excludes long‑term personalization or deep social systems.
+
+---
+
+## Personas (Lightweight)
+
+| Persona | Short Description | Primary Need in First 60s | Risk if Unmet |
+| ------- | ----------------- | -------------------------- | ------------- |
+| Curious Visitor | Arrives from a link / social mention | See something reactive quickly | Bounce before issue first command |
+| Systems Explorer | Reads docs, wants to poke mechanics | Transparent command feedback | Perceives black box -> churn |
+| Returning Guest | Has prior guest GUID locally | Resume seamlessly | Frustration / duplicate profile |
+| Authenticated Player | Previously linked external identity | Persist progress & identity | Perceived data loss |
+
+Assumption: Mobile (~40%) + Desktop (~60%) split; must remain single‑input friendly (keyboard OR touch) without mandatory multi‑modal interactions.
+
+---
 
 ### Goals
 
-- Fast time‑to‑first‑command (< 10s on average connection)
-- Minimize friction before value (guest path always available)
-- Seamless upgrade from guest to authenticated account
+- Fast time‑to‑first‑command (< 10s typical; stretch < 5s on broadband)
+- Minimize friction before value (guest path always available, never blocked by auth)
+- Seamless upgrade from guest to authenticated account (no data divergence)
+- Provide clear system feedback (loading, error, success states) with accessible patterns
+- Ensure telemetry needed for cohort analysis is emitted with stable keys
 
-### Non‑Goals (out of scope in this doc)
+### Non‑Goals (Out of Scope)
 
 - Full player profile customization
 - Social / friends graph
-- Account recovery flows
+- Account recovery / password reset flows
+- Deep tutorial scripting (will reference separate tutorial doc later)
 
 ## Trigger
 
-Player navigates to site root `/` without a valid session / auth cookie.
+Player navigates to site root `/` without a valid session / auth cookie OR with an expired / invalidated session.
 
 ## Actors
 
-| Actor                | Role                                                     |
-| -------------------- | -------------------------------------------------------- |
-| Player (Guest)       | Unauthenticated visitor; may become Authenticated Player |
-| Authenticated Player | User returning with external identity session            |
-| Static Web App (SWA) | Delivers SPA & handles built‑in auth redirects           |
-| Azure Functions API  | Processes bootstrap, ping, profile sync                  |
-| Cosmos DB            | Stores Player vertex                                     |
+| Actor                | Role / Responsibility                                      |
+| -------------------- | ----------------------------------------------------------- |
+| Player (Guest)       | Unauthenticated visitor; may become authenticated           |
+| Authenticated Player | Returning user with external identity session               |
+| Static Web App (SWA) | Delivers SPA & handles built‑in auth redirects              |
+| Azure Functions API  | Processes bootstrap, ping, profile sync, telemetry capture  |
+| Cosmos DB            | Stores Player vertex and minimal session linkage            |
+| Service Bus (future) | Will process queued onboarding / analytics events (planned) |
 
 ## Preconditions
 
-- Application build loads successfully.
-- Network reachable for at least one initial request (offline flow not covered here).
+- Application build loads successfully (no blocking JS errors)
+- Network reachable for at least one bootstrap OR command request (offline deferred)
+- Feature flags (if any) for onboarding resolved prior to first command input enable
 
 ## Postconditions (Happy Path)
 
-- Player receives a GUID (guest) OR reuses existing playerGuid (returning).
-- Player can submit a command and receive a response.
-- (If authenticated) Player profile synchronized with external identity.
+- Player receives a GUID (guest) OR reuses existing playerGuid (returning)
+- Player can submit a command and receive a response
+- (If authenticated) Player profile synchronized with external identity
+- Telemetry events for Onboarding.Start and Onboarding.FirstCommandSuccess emitted
 
 ## Success Criteria
 
-- Command interface visible with navigation.
-- Guest GUID created only when a command is attempted (lazy creation) or earlier if UI requires it.
-- First command round‑trip completes (< 1s p50 in local dev; production target TBD).
-- Auth upgrade preserves progress (guest GUID linked not discarded).
+- Command interface visible with navigation (no blocking spinners post 2s)
+- Guest GUID created only when a command is attempted OR when a stateful feature (like save) is touched
+- First command round‑trip completes (< 1s p50 local; < 1.5s p50 prod target TBD)
+- Auth upgrade preserves progress (guest GUID linked, not discarded)
+- Accessibility: initial interactive control reachable via keyboard (tab index 0/first)
+- No console errors at INFO level or higher after happy path run
+
+## UX State Map
+
+| State Key | Description | Entry Condition | Exit Condition | Visible Elements | Notes |
+| --------- | ----------- | --------------- | -------------- | ---------------- | ----- |
+| loading-shell | App JS/CSS load & initial render skeleton | Document ready | React hydration complete | Logo, progress indicator | Avoid large LCP images |
+| checking-session | Validate existing GUID or auth | App hydrated | Session decision (guest/auth) | Subtle inline loader near command area |  < 500ms target |
+| ready-guest | Guest command interface active | Session check done (guest) | Auth upgrade or navigate away | Command input, guest CTA to upgrade | Show low-friction upgrade CTA |
+| ready-auth | Authenticated interface active | Auth session validated | Sign out | Command input, profile summary | Display name/avatar stub optional |
+| upgrading-auth | Linking guest GUID to auth | User initiates auth | Receive callback or failure | Spinner overlay, cancel (optional) | Timeout fallback 10s |
+| error-transient | Recoverable error (network) | Failed request w/ retryable code | Retry success or user abort | Inline alert, retry button | Distinct from fatal |
+| error-fatal | Non-recoverable (script/init) | Critical JS failure | Page reload | Error panel, reload CTA | Capture telemetry immediately |
 
 ## Primary Flow (Guest First Use)
 
@@ -70,8 +107,8 @@ flowchart TD
   C -- No --> N[Request New Player Identity]
   N --> R[Store GUID locally]
   C -- Yes --> R
-  R --> F[Display DemoForm]
-  F --> A[Player Submits Command]
+        R --> F[Render Command Interface]
+    F --> A[Player Submits Command]
   A --> H[HTTP Function /api/ping]
   H --> RESP[Response JSON]
   RESP --> UI[Render Result]
@@ -80,13 +117,15 @@ flowchart TD
 
 ## Alternate / Failure Paths
 
-| Path | Scenario                       | System Response        | Recovery / UX Copy                        |
-| ---- | ------------------------------ | ---------------------- | ----------------------------------------- |
-| AF1  | Network failure on bootstrap   | Non-blocking retry UI  | Retry button; suggest checking connection |
-| AF2  | Ping function 5xx              | Error toast            | User retries; degrade to canned response  |
-| AF3  | GUID creation conflict (rare)  | Regenerate & log       | Silent fallback; telemetry event emitted  |
-| AF4  | Auth provider redirect failure | Display auth error box | Offer guest path + retry auth             |
-| AF5  | Profile sync validation error  | Modal with details     | Retry sync / keep guest until resolved    |
+| Path | Scenario                       | System Response        | Recovery / UX Copy                        | Telemetry Event |
+| ---- | ------------------------------ | ---------------------- | ----------------------------------------- | --------------- |
+| AF1  | Network failure on bootstrap   | Non-blocking retry UI  | Retry button; suggest checking connection | Onboarding.NetworkError |
+| AF2  | Ping function 5xx              | Error toast            | User retries; degrade to canned response  | Command.Error.5xx |
+| AF3  | GUID creation conflict (rare)  | Regenerate & log       | Silent fallback; telemetry event emitted  | Onboarding.GuidConflict |
+| AF4  | Auth provider redirect failure | Display auth error box | Offer guest path + retry auth             | Auth.RedirectFailure |
+| AF5  | Profile sync validation error  | Modal with details     | Retry sync / keep guest until resolved    | Auth.ProfileSyncError |
+| AF6  | Session decode malformed       | Force new guest GUID   | Inform user session expired, continue     | Session.DecodeError |
+| AF7  | Command timeout (>5s)          | Inline timeout notice  | Offer retry; keep input contents          | Command.Timeout |
 
 ## Sequence (System Perspective – Guest)
 
@@ -106,33 +145,109 @@ sequenceDiagram
 
 ## Data Touchpoints
 
-| Entity           | Operation                              | Notes                                 |
-| ---------------- | -------------------------------------- | ------------------------------------- |
-| Players (vertex) | Create if missing                      | Minimal stub until profile completion |
-| Events           | (future) enqueue onboarding completion | Not implemented yet                   |
+| Entity           | Operation                              | Notes                                       |
+| ---------------- | -------------------------------------- | ------------------------------------------- |
+| Players (vertex) | Create if missing                      | Minimal stub until profile completion       |
+| Events           | (future) enqueue onboarding completion | Not implemented yet                         |
+| Sessions (in-mem)| N/A (derived)                          | Derived from GUID + optional auth principal |
 
-## Metrics & Telemetry (Planned)
+## Metrics & Telemetry
 
-| Event                          | When                           | Notes                              |
-| ------------------------------ | ------------------------------ | ---------------------------------- |
-| Onboarding.Start               | App load before bootstrap call | Include user agent hash            |
-| Onboarding.GuestGuidCreated    | GUID allocated                 | Distinguish lazy vs eager creation |
-| Onboarding.FirstCommandSuccess | First successful ping          | Record latency buckets             |
-| Auth.UpgradeInitiated          | User clicks Sign up / Log in   | Capture current guestGuid          |
-| Auth.UpgradeSuccess            | Profile linked                 | Include provider & link strategy   |
+| Event                          | Type    | Dimensions (min set)                                 | Notes                                     |
+| ------------------------------ | ------- | ---------------------------------------------------- | ----------------------------------------- |
+| Onboarding.Start               | counter | clientTs, uaHash, buildId                            | Fire before network call                  |
+| Onboarding.GuestGuidCreated    | counter | creationMode (lazy|eager), buildId                   | Distinguish path                          |
+| Onboarding.FirstCommandSuccess | timer   | latencyMs, buildId, networkRTTbucket                 | Use high‑res timer                        |
+| Auth.UpgradeInitiated          | counter | guestGuidPresent (bool), providerHint                | ProviderHint from button context          |
+| Auth.UpgradeSuccess            | counter | provider, linkStrategy (merge|new), hadGuestProgress | Ensure merge vs new identity analysis     |
+| Onboarding.NetworkError        | counter | phase (bootstrap|ping), errorClass                   | Derived from AF1                          |
+| Command.Error.5xx              | counter | functionName, statusCode                             | Derived from AF2                          |
+| Command.Timeout                | counter | functionName, timeoutMs                              | AF7                                       |
+| Auth.ProfileSyncError          | counter | validationIssue                                      | AF5                                       |
+| Session.DecodeError            | counter | tokenVersion, decodePhase                            | AF6                                       |
+
+Schema Stability Principle: avoid renaming events post instrumentation; prefer additive fields.
+
+Retention: At least 30 days raw events; aggregated metrics longer.
+
+Privacy: No PII beyond hashed user agent and stable GUID (guest) or provider opaque IDs.
+
+> Component Note: Interaction surface is now a composed `CommandInterface` which embeds `CommandInput` (entry) and `CommandOutput` (history + live announcements). Deprecated `DemoForm` removed.
+
+## API Contract (Current & Planned)
+
+| Endpoint                      | Method | Auth Required | Purpose                        | Request Body (min)               | Response (shape)                                 |
+| ----------------------------- | ------ | ------------- | ------------------------------ | -------------------------------- | ----------------------------------------------- |
+| /api/player/bootstrap         | GET    | No            | Return (or allocate) guest GUID | n/a                              | { playerGuid: string, created?: boolean }        |
+| /api/ping                     | POST   | No            | Test round‑trip & latency       | { guid: string, message: string }| { message: string, latency?: number }            |
+| /api/player/sync-profile      | POST   | Yes (principal)| Link auth identity to player   | { externalClaimsHash?: string } | { playerGuid: string, merged: boolean }          |
+| /api/player/telemetry (future)| POST   | No (signed?)   | Client event funnel (batched)  | { events: Event[] }              | { accepted: number }                             |
+
+Error Envelope (pattern): { error: { code: string, message: string, retryable: boolean } }
+
+## Data Model (Simplified)
+
+Player Vertex (initial fields only):
+
+```jsonc
+{
+    "id": "<playerGuid>",
+    "type": "Player",
+    "createdUtc": "2025-09-19T00:00:00Z",
+    "guest": true,
+    "auth": { "providers": [] },
+    "progress": { "firstCommandUtc": null }
+}
+```
+
+On auth merge append provider descriptor:
+
+```jsonc
+"auth": { "providers": [ { "provider": "aad", "externalId": "<oid>" } ] },
+"guest": false
+```
+
+## Accessibility Considerations
+
+- All actionable onboarding controls have discernible text (ARIA labels where icon‑only)
+- Color contrast for status / error messages meets WCAG AA (contrast >= 4.5:1)
+- Loading state not solely color; includes role="status" aria-live="polite"
+- Command input auto-focused only if it doesn’t steal focus from assistive tech (respect user preference / reduce motion settings for animations)
+- Provide skip link to jump directly to command interface for keyboard users
+
+## Risks & Mitigations
+
+| Risk | Impact | Likelihood | Mitigation |
+| ---- | ------ | ---------- | ---------- |
+| GUID duplication edge | Data merge issues | Very Low | Server-side GUID generation + conflict retry |
+| Latency spikes | Delayed first value | Medium | Minimal payload, CDN assets, measure p50/p95 |
+| Auth redirect loop | User abandonment | Low | Detect consecutive failures; offer guest fallback |
+| Silent telemetry drop | Lost insights | Medium | Batch with retry & console warn on fail |
+| Accessibility regressions | Exclusion of users | Medium | Add automated axe-core scan in CI |
+
+## Future Enhancements (Not in 1.2.0)
+
+- Guided progressive tutorial overlay after 2nd successful command
+- Lightweight offline cache enabling command queueing
+- Multi-tab coordination for single active session focus
+- Event-driven onboarding completion badge (Service Bus + Events collection)
 
 ## Open Questions (Pending)
 
 - Persist tutorial edge immediately or after first successful command?
 - Should advanced commands require auth or just rate-limit guests?
 - Do we surface a minimal privacy notice pre-auth or post-auth only?
+- Where to surface latency insight (inline vs dev-only console)?
+- Do we unify telemetry ingestion via separate function or piggyback existing endpoints?
 
 ## Iteration Log
 
-| Date       | Ver   | Change                              | Rationale                     | Impact |
-| ---------- | ----- | ----------------------------------- | ----------------------------- | ------ |
-| 2025-09-15 | 1.0.0 | Initial draft                       | Establish baseline onboarding | None   |
-| 2025-09-16 | 1.1.0 | Added auth flow & refined structure | Clarity + guest/auth upgrade  | Low    |
+| Date       | Ver   | Change                               | Rationale                        | Impact |
+| ---------- | ----- | ------------------------------------ | -------------------------------- | ------ |
+| 2025-09-15 | 1.0.0 | Initial draft                        | Establish baseline onboarding    | None   |
+| 2025-09-16 | 1.1.0 | Added auth flow & refined structure  | Clarity + guest/auth upgrade     | Low    |
+| 2025-09-19 | 1.2.0 | Streamlined doc; added personas, UX states, API contract, telemetry schema, accessibility, risks | Comprehensive coverage & readiness for instrumentation | Medium |
+| 2025-09-19 | 1.2.2 | Replaced DemoForm with CommandInterface (CommandInput + CommandOutput) | Reflect architecture & component responsibilities | Low |
 
 ## Signup / Login Flow (Azure External Identities)
 
