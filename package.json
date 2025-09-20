@@ -1,6 +1,7 @@
 {
     "name": "the-shifting-atlas-root",
     "private": true,
+    "type": "module",
     "packageManager": "npm@10.9.0",
     "engines": {
         "node": "20.x",
@@ -13,28 +14,30 @@
         "backend"
     ],
     "scripts": {
-        "install:all": "npm install --workspaces",
-        "dev": "npm run dev --prefix frontend",
-        "swa": "npm run build -w shared && swa start dev",
+        "dev": "npm run dev -w frontend",
+        "swa:dev": "npm run build -w shared && swa start dev",
         "swa:build": "swa build dev",
         "swa:deploy": "swa deploy dev",
-        "build": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run build",
-        "build:ts": "tsc -b tsconfig.refs.json",
-        "typecheck": "npm -w shared run build && npm -w frontend -w frontend/api -w backend run typecheck --if-present",
-        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist && rimraf **/.cache && rimraf **/*.tsbuildinfo && rimraf coverage",
+        "build": "tsc -b tsconfig.refs.json",
         "verify:graph": "tsc -b --dry tsconfig.refs.json",
-        "test": "npm run build:ts && npm run test -w shared --if-present && npm run test -w backend --if-present && npm run test -w frontend/api --if-present",
-        "coverage": "npm run build:ts && c8 --reporter=text --reporter=lcov npm run test -w shared --if-present && c8 report",
+        "typecheck": "tsc -b --noEmit tsconfig.refs.json",
+        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist **/.cache **/*.tsbuildinfo coverage",
+        "pretest": "npm run build",
+        "test": "npm run test -w shared --if-present && npm run test -w backend --if-present && npm run test -w frontend/api --if-present",
+        "coverage": "c8 --reporter=text --reporter=lcov npm run test",
         "a11y": "npm run a11y -w frontend",
         "prelint": "node -e \"['@typescript-eslint/eslint-plugin','@typescript-eslint/parser'].forEach(m=>{try{require.resolve(m);console.log('found',m)}catch(e){console.error('MISSING',m);process.exitCode=1}})\"",
         "lint": "npm run prelint && eslint 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
         "lint:fix": "npm run lint -- --fix",
+        "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
         "format": "prettier . --write",
         "format:check": "prettier . --check"
     },
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^8.44.0",
-        "@typescript-eslint/parser": "^8.43.0",
+        "@typescript-eslint/parser": "^8.44.0",
+        "@azure/static-web-apps-cli": "^2.0.6",
+        "typescript": "^5.9.2",
         "eslint": "^9.35.0",
         "eslint-config-prettier": "^9.1.0",
         "eslint-plugin-jsx-a11y": "^6.9.0",
@@ -43,6 +46,6 @@
         "eslint-plugin-react-hooks": "^5.2.0",
         "prettier": "^3.3.3",
         "c8": "^10.1.2",
-        "rimraf": "^5.0.5"
+        "rimraf": "^6.0.1"
     }
 }

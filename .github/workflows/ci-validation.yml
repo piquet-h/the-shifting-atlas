@@ -1,4 +1,4 @@
-name: CI
+name: Monorepo Validation
 
 on:
     pull_request:
@@ -12,67 +12,57 @@ permissions:
     pull-requests: read
 
 concurrency:
-    group: ci-${{ github.ref }}
+    group: validation-${{ github.ref }}
     cancel-in-progress: true
 
+env:
+    NODE_VERSION: '20'
+
 jobs:
-    changes:
-        name: Detect Changed Areas
+    setup-matrix:
+        name: Determine Changed Areas
         runs-on: ubuntu-latest
-        outputs:
-            frontend_changed: ${{ steps.changed.outputs.frontend }}
-            a11y_changed: ${{ steps.changed.outputs.a11y }}
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Paths filter
-              id: changed
+            - uses: actions/checkout@v4
+            - id: changed
               uses: dorny/paths-filter@v3
               with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
                   filters: |
-                      frontend:
-                        - 'frontend/**'
-                        - 'frontend/api/**'
                       a11y:
                         - 'frontend/**'
                         - 'docs/ux/**'
-                      backend:
-                        - 'backend/**'
-                      shared:
-                        - 'shared/**'
 
     lint-typecheck:
         name: Lint & Typecheck
         runs-on: ubuntu-latest
-        timeout-minutes: 12
+        needs: setup-matrix
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Setup & Install
+            - uses: actions/checkout@v4
+            - name: Node workspace setup
               uses: ./.github/actions/node-workspace-setup
-            - name: Prelint dependency sanity
-              run: npm run prelint
             - name: Lint
               run: npm run lint
-            - name: Typecheck
+            - name: Typecheck (composite)
               run: npm run typecheck
-            - name: (Optional) Upload ESLint report placeholder
-              if: failure()
-              run: echo "Add ESLint report upload here if desired."
+            - name: Lint summary
+              if: always()
+              run: echo 'Lint & Typecheck complete' >> $GITHUB_STEP_SUMMARY
 
     tests:
         name: Unit Tests
         runs-on: ubuntu-latest
         needs: lint-typecheck
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Setup & Install
+            - uses: actions/checkout@v4
+            - name: Node workspace setup
               uses: ./.github/actions/node-workspace-setup
-            - name: Build (composite refs)
+            - name: Build (composite)
               run: npm run build
             - name: Run tests
-              run: npm test --workspaces --if-present
+              run: npm test
+            - name: Coverage Report (text)
+              run: npm run coverage || echo 'Coverage step failed (non-blocking).'
             - name: Upload coverage artifact
               if: always()
               uses: actions/upload-artifact@v4
@@ -83,17 +73,16 @@ jobs:
 
     accessibility:
         name: Accessibility (axe)
-        needs: [lint-typecheck, changes]
-        if: ${{ needs.changes.outputs.a11y_changed == 'true' && github.event_name == 'pull_request' }}
         runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        needs: [lint-typecheck]
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Setup & Install
+            - uses: actions/checkout@v4
+            - name: Node workspace setup
               uses: ./.github/actions/node-workspace-setup
-            - name: Build frontend
+            - name: Build frontend (for production scan context)
               run: npm run build -w frontend
-            - name: Axe scan
+            - name: Axe scan (dev server)
               run: npm run a11y
             - name: Upload axe report
               if: always()
@@ -102,3 +91,15 @@ jobs:
                   name: axe-report
                   path: frontend/axe-report
                   if-no-files-found: ignore
+
+    summary:
+        name: Summary
+        runs-on: ubuntu-latest
+        needs: [lint-typecheck, tests, accessibility]
+        steps:
+            - name: Output Summary
+              run: |
+                  echo '## Monorepo Validation Summary' >> $GITHUB_STEP_SUMMARY
+                  echo '* Lint & Typecheck: ${{ needs.lint-typecheck.result }}' >> $GITHUB_STEP_SUMMARY
+                  echo '* Tests: ${{ needs.tests.result }}' >> $GITHUB_STEP_SUMMARY
+                  echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY

@@ -5,11 +5,13 @@
     "type": "module",
     "main": "dist/**/*.js",
     "scripts": {
-        "prebuild": "rimraf dist",
+        "clean": "rimraf dist",
         "build": "tsc -b",
+        "watch": "tsc -b --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit -p tsconfig.json",
-        "start": "npm run build && func start",
         "test": "node --test dist",
+        "dev": "npm run clean && tsc -b --watch --preserveWatchOutput & func start",
+        "start": "npm run build && func start",
         "a11y": "echo 'No UI surface for API workspace; skipping a11y scan.'"
     },
     "engines": {
@@ -19,10 +21,5 @@
     "dependencies": {
         "@azure/functions": "^4.8.0",
         "@atlas/shared": "file:../../shared"
-    },
-    "devDependencies": {
-        "eslint": "^9.35.0",
-        "typescript": "^5.9.2",
-        "rimraf": "^6.0.1"
     }
 }

@@ -7,8 +7,6 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "start": "vite",
-        "swa:install": "npm install -D @azure/static-web-apps-cli",
         "swa": "npx swa start --config ../swa-cli.config.json --env dev",
         "typecheck": "tsc --noEmit",
         "lint": "eslint --ext .ts,.tsx src",
@@ -27,7 +25,6 @@
         "@atlas/shared": "file:../shared"
     },
     "devDependencies": {
-        "@azure/static-web-apps-cli": "^2.0.6",
         "@tailwindcss/forms": "^0.5.4",
         "@tailwindcss/typography": "^0.5.9",
         "@types/react": "^19.1.13",
@@ -35,7 +32,6 @@
         "autoprefixer": "^10.4.0",
         "postcss": "^8.4.0",
         "tailwindcss": "^3.4.0",
-        "typescript": "^5.9.2",
         "vite": "^7.1.5",
         "@axe-core/cli": "^4.9.0",
         "start-server-and-test": "^2.0.8"

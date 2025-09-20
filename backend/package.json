@@ -6,9 +6,10 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "tsc",
+        "watch": "tsc --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit",
         "test": "node --test dist",
-        "lint": "eslint . || true",
+        "dev": "tsc -w --preserveWatchOutput & func start",
         "start": "npm run build && func start"
     },
     "engines": {
@@ -18,9 +19,5 @@
     "dependencies": {
         "@azure/functions": "^4.8.0",
         "@atlas/shared": "file:../shared"
-    },
-    "devDependencies": {
-        "eslint": "^9.35.0",
-        "typescript": "^5.9.2"
     }
 }
