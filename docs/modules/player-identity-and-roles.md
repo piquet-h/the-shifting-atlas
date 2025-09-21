@@ -1,5 +1,7 @@
 ## 🎭 Player Identity & Roles
 
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No authentication, player GUID issuance, reputation, alignment, or role mechanics exist yet. This document outlines long-term aspirations; first identity milestone will simply allocate a GUID per session.
+
 ### **Vision**
 
 To give every player a **persistent, evolving identity** in the world — one that is mechanically meaningful, narratively rich, and socially visible. Identity is not just cosmetic; it shapes **how the world reacts**, what opportunities emerge, and how other players perceive and interact with them.

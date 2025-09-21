@@ -31,7 +31,7 @@ Example preface:
 
 ## Local Development Aids
 
-- Use `npm run swa` for realistic local environment (auth emulation + API proxy). This ensures Copilot context related to full-stack integration remains accurate.
+- Use `npm run swa:dev` for realistic local environment (auth emulation + API proxy). This ensures Copilot context related to full-stack integration remains accurate.
 - For backend-only iterations, run the backend workspace separately then adapt prompts based on real logs.
 
 ## Style & Conventions

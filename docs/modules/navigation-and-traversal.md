@@ -1,5 +1,7 @@
 # Design Document: Navigation and Location Generation System
 
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No traversal, location generation, or graph persistence code exists yet. This document is an architectural outline only. Initial implementation will start with two hardcoded rooms and a `look`/`move` command before any procedural or AI-driven expansion.
+
 > Related: [World Rules & Lore](world-rules-and-lore.md) · [AI Prompt Engineering](ai-prompt-engineering.md) · [Multiplayer Mechanics](multiplayer-mechanics.md) · [Extension Framework](extension-framework.md)
 
 ## Summary

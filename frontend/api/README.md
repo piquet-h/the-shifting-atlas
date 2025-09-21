@@ -4,10 +4,12 @@ Co‑located Functions backing the Static Web App frontend. Currently exposes a 
 
 ## Functions
 
-| Name                       | Source File                       | Route                     | Methods  | Description                             |
-| -------------------------- | --------------------------------- | ------------------------- | -------- | --------------------------------------- |
-| `WebsiteHealthCheck`       | `src/websiteHealthCheck.ts`       | `/website/health`         | GET      | Returns service status JSON.            |
-| `WebsiteHttpPlayerActions` | `src/websiteHttpPlayerActions.ts` | `/website/player/actions` | GET/POST | Placeholder for player action dispatch. |
+| Name                       | Source File                        | Route                     | Methods  | Description                                                                         |
+| -------------------------- | ---------------------------------- | ------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `playerBootstrap`          | `src/functions/playerBootstrap.ts` | `/player/bootstrap`       | GET      | Allocates or confirms a guest player GUID (idempotent with `x-player-guid` header). |
+| `playerLink`               | `src/functions/playerLink.ts`      | `/player/link`            | POST     | Links an existing guest GUID to an authenticated principal (sets `guest=false`).    |
+| `WebsiteHealthCheck`       | `src/websiteHealthCheck.ts`        | `/website/health`         | GET      | Returns service status JSON.                                                        |
+| `WebsiteHttpPlayerActions` | `src/websiteHttpPlayerActions.ts`  | `/website/player/actions` | GET/POST | Placeholder for player action dispatch.                                             |
 
 ## Development
 
@@ -41,3 +43,20 @@ app.http('Example', {
 - Input helpers: `req.query.get('param')`, `await req.json()`.
 - Keep this layer thin; move heavier simulation logic to the future dedicated backend.
 - Add new endpoints with `app.http("Name", { route, methods, handler })` in a new file under `src/`.
+
+### Guest -> Auth Upgrade (Sign In Trigger)
+
+Flow summary:
+
+1. Client obtains/stores a guest GUID via `GET /api/player/bootstrap` (see `usePlayerGuid`).
+2. User initiates sign in (Azure Static Web Apps auth) via `/.auth/login/...`.
+3. After authentication the React app detects `isAuthenticated` and calls `POST /api/player/link` with `{ playerGuid }`.
+4. The `playerLink` function marks the in-memory record `guest=false` and stores an `externalId` (simulated header `x-external-id`). Repeat calls are idempotent and return `alreadyLinked=true`.
+5. A localStorage flag `tsa.playerGuidLinked` prevents duplicate link attempts on future renders.
+
+Telemetry events emitted (MVP placeholders):
+
+- `Onboarding.GuestGuidCreated` on initial bootstrap
+- `Auth.UpgradeSuccess` when a guest is successfully linked
+
+Future: replace in-memory store with Cosmos DB graph persistence and derive `externalId` from SWA provided principal claims.

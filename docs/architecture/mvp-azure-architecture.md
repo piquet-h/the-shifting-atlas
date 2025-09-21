@@ -1,5 +1,7 @@
 # MVP Azure Architecture
 
+> Status Accuracy (2025-09-21): Only the frontend shell and a basic `ping` HTTP Function (in both the SWA managed API and an experimental separate `backend/` Functions app) are implemented. No Cosmos DB, movement, room persistence, verbs beyond ping, or AI integration exist yet. This document now reflects that truth so it does not mislead contributors.
+
 ## 🎯 Goals
 
 - **Get to playtesting quickly** with a persistent, navigable world.
@@ -20,7 +22,7 @@
    |         \---> [Managed API (Azure Functions in SWA)]
    |                   |
    |                   v
-   |             [Azure Cosmos DB (Gremlin API)]
+   |             [Azure Cosmos DB (Gremlin API and SQL API)]
    |                   |
    |                   v
    |             [Persistent World Graph: Rooms, Exits, NPCs, Items, Player State]
@@ -46,62 +48,53 @@ Integrated with Managed API for backend calls.
 2. Managed API
    Service: Azure Functions hosted inside Static Web Apps (Consumption Plan).
 
-Purpose:
+Purpose (Target State):
 
-Handle player commands (move, look, take, talk).
+- Handle player commands (move, look, take, talk).
+- Query/update world state in Cosmos DB.
+- Call AI endpoints for dynamic descriptions or NPC dialogue.
 
-Query/update world state in Cosmos DB.
+Current Reality:
 
-Call AI endpoints for dynamic descriptions or NPC dialogue.
+- Only a `Ping` endpoint exists.
+- No auth validation logic yet; all functions are anonymous.
+- An experimental second Functions app exists in `backend/` but is not yet differentiated by workload (will later host queue triggers / async world logic).
 
-Benefits:
+Authentication (Planned – Not Implemented):
 
-Single deployment pipeline for frontend + backend.
-
-Automatic authentication/authorization integration with SWA.
-
-Authentication guidance:
-
-- For user authentication and identity management we recommend Microsoft Entra External Identities (consumer & guest scenarios). Entra integrates with Azure Static Web Apps (SWA) and Azure Functions via OIDC/OAuth2 and can provide social federation (Microsoft, Google, Apple, etc.).
-- Store minimal profile claims in Entra and map the stable external id (e.g., `sub` claim) to a player GUID stored in Cosmos DB. Validate ID tokens in your Managed API and enforce role/claim checks server-side.
-
-No separate Functions App needed for MVP.
+- Use Microsoft Entra External Identities; map `sub` claim to internal Player GUID.
+- Enforce server-side role/claim checks inside Functions.
 
 3. Persistence Layer
-   Service: Azure Cosmos DB (Gremlin API)
+   Service:
+    - Azure Cosmos DB (Gremlin API) for Navigation and Traversal
+    - Azure Cosmos DB (SQL API) for Profile based entities (Like users and guilds)
 
-Purpose:
+Purpose (Planned):
 
-Store rooms, exits, NPCs, items, and player state as a graph.
+- Store rooms, exits, NPCs, items, and player state as a graph or JSON Entity.
+- Enable semantic navigation and relationship queries. Enable XP and attribute updates
 
-Enable semantic navigation and relationship queries.
+Current Reality:
 
-Notes:
-
-Free tier: 400 RU/s + 5GB storage.
-
-Graph model fits your semantic exits + procedural expansion.
+- No runtime code initializes Gremlin client or writes data yet.
+- Next concrete step: introduce a minimal `Room` vertex upsert in a new `/api/room` Function.
 
 4. AI Integration
-   Service: Azure OpenAI Service (Pay‑as‑you‑go, low usage)
+   Service: Azure OpenAI Service (Future Optional)
 
-Purpose:
+Status: Not implemented. All descriptions and dialogue will be static stubs until core traversal + persistence exist. This keeps early costs at zero.
 
-Generate room descriptions, NPC dialogue, quest text.
+🏗 MVP Core Pillars (Planned → To Be Built)
 
-Notes:
+| Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                            |
+| ------------------------- | -------------------------- | ------------------- | ------------------------------------------ |
+| World State & Persistence | Continuity & emergent play | Not Implemented     | Single `Room` vertex & fetch endpoint      |
+| Navigation & Traversal    | Exploration loop           | Not Implemented     | Hardcoded 2-room adjacency in memory       |
+| Basic Interaction Loop    | Player agency test         | Not Implemented     | `look` command returning room description  |
+| Session Context           | Consistent responses       | Not Implemented     | Temporary player GUID issuance (in-memory) |
+| Minimal Content Seed      | Flow validation            | Not Implemented     | Handcrafted starter room + neighbor        |
 
-Keep AI calls optional in MVP — fallback to static content for cost control.
-
-🏗 MVP Core Pillars
-These are the non‑negotiables to start meaningful playtesting.
-
-Pillar Why It’s Essential MVP Implementation
-World State & Persistence Without persistence, you can’t test continuity, player agency, or emergent storytelling. Minimal persistent datastore (Cosmos DB Gremlin API) storing rooms, exits, and player state.
-Navigation & Traversal Movement is the backbone of exploration and pacing. Semantic exits + deterministic coordinates. AI‑generated room descriptions can be layered later.
-Basic Interaction Loop Players need something to do beyond moving. Simple verbs: look, move, take, use, talk. Even placeholder NPCs or objects are fine.
-Session Context Ensures AI/NPCs respond consistently. Lightweight context manager that pulls relevant world + player state into each interaction.
-Minimal Content Seed You need enough world to test flow, not depth. Hand‑crafted starter zone (5–10 rooms) with 1–2 NPCs and 2–3 interactable objects.
 📜 Suggested Build Order
 Skeleton World Model
 
@@ -145,20 +138,17 @@ Cosmos DB pre‑seeded with starter zone (5–10 rooms, 1–2 NPCs).
 
 AI Keys stored in Azure App Settings (or Key Vault if added later).
 
-📦 MVP Feature Checklist
-[x] Persistent world graph in Cosmos DB.
+📦 MVP Feature Checklist (Truthful Status)
 
-[x] Player movement between rooms.
-
-[x] Basic interaction verbs (look, move, take, talk).
-
-[x] Minimal content seed for testing.
-
-[x] Managed API for backend logic.
-
-[ ] Optional AI‑generated descriptions/NPC dialogue.
-
-[ ] Logging of player actions for feedback.
+| Feature                               | Status          | Notes                                            |
+| ------------------------------------- | --------------- | ------------------------------------------------ |
+| Persistent world graph (Cosmos)       | Not Implemented | No Gremlin client yet                            |
+| Player movement between rooms         | Not Implemented | Requires traversal model                         |
+| Basic interaction verbs               | Not Implemented | Only `ping` exists                               |
+| Minimal content seed                  | Not Implemented | No room data                                     |
+| Managed API baseline                  | Implemented     | Ping only                                        |
+| Optional AI descriptions/NPC dialogue | Not Implemented | Deferred                                         |
+| Action logging / telemetry events     | Partial         | App Insights bootstrap present, no custom events |
 
 💰 Cost Control Tips
 Use free tiers for Static Web Apps and Cosmos DB.
@@ -169,11 +159,11 @@ Limit AI calls during MVP; use static content for most rooms.
 
 Monitor with Azure Cost Management.
 
-📈 Next Steps After MVP
-Add Economy & Extension Framework modules.
+📈 Immediate Next Implementation Steps (Pre-MVP)
 
-Implement multi‑agent orchestration for NPCs.
+1. Add `/api/room` (GET) returning a stub room (hardcoded JSON). Later: persist via Cosmos.
+2. Extend frontend command interface: support `look` → calls `/api/room`.
+3. Add minimal telemetry event for each command.
+4. Introduce in-memory adjacency + `move <direction>` stub returning second room.
 
-Expand procedural generation for new zones.
-
-Introduce modding API via API Management (if needed for external devs).
+Later (Post-Core Loop): economy, multi-agent NPC orchestration, procedural expansion, extension/modding API.

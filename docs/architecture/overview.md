@@ -1,5 +1,7 @@
 # Architecture Overview
 
+> Status Accuracy (2025-09-21): Only a frontend shell and basic `ping` HTTP Functions exist. Cosmos DB is not yet accessed by code; no queues, no movement/room persistence, no AI integration, and only baseline Application Insights bootstrap (no custom events). This overview reflects intended direction—not current implementation depth.
+
 This overview provides a concise narrative bridge between the high‑level vision (persistent, event‑driven text world) and the concrete MVP implementation described in `mvp-azure-architecture.md`.
 
 ## Purpose
@@ -18,28 +20,34 @@ This overview provides a concise narrative bridge between the high‑level visio
 
 ## Current Slice (MVP Stage)
 
-Implemented resources:
+Implemented resources (infrastructure / repos):
 
-- Azure Static Web Apps (frontend + co‑located Functions)
-- Cosmos DB (Gremlin API) – provisioned, not yet actively queried in runtime code
-- Key Vault – holds Cosmos key secret (path to identity/RBAC later)
+- Azure Static Web Apps (frontend + co‑located Functions) – active
+- Experimental separate `backend/` Functions app – exists, not yet differentiated
+- Cosmos DB (Gremlin API) – provisioned only (no client usage)
+- Key Vault – secret storage only (no managed identity yet)
 
 In code today:
 
-- React + Vite frontend shell
-- Health & placeholder player action Functions (`frontend/api`)
+- React + Vite frontend shell with command interface (ping only)
+- SWA managed API `Ping` function
+- Separate backend Functions app with `ping`/health endpoints (experimental)
+- Telemetry bootstrap (App Insights) without custom domain events
 
 Not yet implemented (planned):
 
 - Service Bus queue + queue‑triggered world/NPC processors
 - Runtime Gremlin client & schema bootstrap
-- Application Insights telemetry and distributed traces
+- Runtime SQL Api client & schema bootstrap
+- Custom telemetry events (only base collection exists)
 - Managed identity graph access (replace key‑based secret)
+- Movement / traversal logic & world persistence
+- AI prompt integration & dynamic content
 
 ## Evolution Path
 
-Phase 1 (Now): Co‑located Functions for all HTTP endpoints.
-Phase 2: Introduce Service Bus + queue processors in a separate `backend/` Functions app.
+Phase 1 (Now): Co‑located Functions for all HTTP endpoints (ping only) + exploratory separate Functions app.
+Phase 2: Introduce Service Bus + queue processors in the dedicated `backend/` Functions app.
 Phase 3: Add telemetry (App Insights), identity‑based graph access, and initial NPC behavioral scripts.
 Phase 4: Expand domain modules (economy, factions, dialogue tree interpreter) and optional AI-assisted content.
 

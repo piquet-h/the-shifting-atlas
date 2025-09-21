@@ -34,11 +34,13 @@ Auth emulation / local testing:
 - The SWA emulator can emulate authentication flows for development. For realistic end-to-end tests with Microsoft Entra External Identities, configure a test Entra application and use the emulator's auth features to simulate sign-in. When running functions locally, validate tokens against the test tenant's OIDC metadata or use short-lived developer tokens for integration tests.
 - The frontend `useAuth` hook simply fetches `/.auth/me`; in the emulator if no auth context is configured it resolves to anonymous without errors. To test transitions, manually trigger provider login via `/.auth/login/aad` in the browser.
 
-Test an API route:
+Test an API route (implemented `ping`):
 
 ```bash
-curl http://localhost:4280/api/website/health
+curl http://localhost:4280/api/ping
 ```
+
+If you start the experimental separate backend Functions app and expose its routes through a local proxy, you may also have a `backend/health` endpoint (not required for normal SWA development).
 
 Verbose mode:
 

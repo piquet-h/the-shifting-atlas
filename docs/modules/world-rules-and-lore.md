@@ -1,5 +1,7 @@
 # Design Document: Worlds and Lore
 
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No biome system, lore codex, faction logic, or AI-driven narrative adaptation exists yet. This file is aspirational; early implementation will focus on a single static starter room description.
+
 ## Vision
 
 Similar to the early Legend of Zelda series of text adventures, this game will leverage the Dungeons & Dragons game mechanics and combine it with a free form generative AI based open world adventure, allowing players to drop into the game at any point and leave at any time.

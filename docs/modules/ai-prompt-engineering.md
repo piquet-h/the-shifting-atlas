@@ -1,5 +1,7 @@
 # **Design Document: AI Prompt Engineering**
 
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No Azure OpenAI integration, prompt construction utilities, or parsing logic exist in the codebase yet. First AI usage will be postponed until core traversal + persistence are functional.
+
 > Related: [Navigation & Traversal](navigation-and-traversal.md) · [Quest & Dialogue Trees](quest-and-dialogue-trees.md) · [Extension Framework](extension-framework.md) · [World Rules & Lore](world-rules-and-lore.md)
 
 ## **Vision**
