@@ -48,7 +48,7 @@ export default function App(): React.ReactElement {
                     <ResponsiveLayout>
                         <Routes>
                             <Route path="/" element={<Homepage />} />
-                            {/* Future routes go here */}
+                            {/* Future routes go here. */}
                         </Routes>
                     </ResponsiveLayout>
                 </main>
