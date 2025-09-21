@@ -1,77 +1,49 @@
-# Backend (Azure Functions – scaffolding)
+# Backend (Azure Functions – future async world services)
 
-This workspace is reserved for the future separated Functions app (world events, queue processors, richer HTTP endpoints). Today it contains:
+This project is an intentionally thin placeholder. Only trivial health/echo handlers exist in `src/index.ts`. Player onboarding & traversal currently live in the co‑located Static Web Apps API under `frontend/api/`.
 
-- Minimal example handlers (`BackendHealth`, `BackendPing`) in `src/index.ts`.
-- A provisional onboarding endpoint `playerBootstrap` (`GET /api/player/bootstrap`) that allocates or confirms a guest `playerGuid` (in‑memory store for PR1; will be replaced by Cosmos graph persistence). See `src/functions/playerBootstrap.ts`.
+Why keep this now?
 
-Why keep it now?
+- Establishes the separation point for when queue‑triggered world simulation and heavier domain logic outgrow the SWA managed API.
+- Lets infra (deploy, IaC, observability) evolve without a disruptive split later.
 
-- Enforces separation point once queue + world logic move out of `frontend/api`.
-- Lets CI / infra evolve without a large refactor later.
-
-Planned structure (aligned with domain docs):
+Planned structure (activated once first queue/world feature lands):
 
 ```
 backend/
-  HttpPlayerActions/   # HTTP player commands (move, look, interact)
+  HttpPlayerActions/   # Direct HTTP verbs that truly need isolation
   QueueWorldLogic/     # Queue-triggered world / NPC / economy events
-  shared/              # Reusable helpers (Gremlin client, validation, constants)
+  shared/              # Gremlin client, validation, constants
 ```
 
-## Scripts (package.json)
+## When To Add Code Here
 
-Scripts:
+Add a function ONLY if it:
 
-- `npm run build` – compile TS (`src` -> `dist`)
-- `npm start` – build then run Functions host
+1. Requires a trigger type not supported in SWA (e.g. Service Bus Queue / Timer), or
+2. Performs work whose cold start / execution profile should not impact player‑facing latency, or
+3. Needs independent deployment cadence.
 
-## Local Development
+Otherwise keep HTTP endpoints inside `frontend/api` to minimize cognitive & deployment overhead during MVP.
 
-When actual logic is added:
+## Minimal Dev Loop
 
-1. `npm install`
-2. `npm run start` (build + Functions host)
-
-During early phase prefer the SWA co‑located API in `frontend/api` for simple endpoints. Only add code here when a concern clearly doesn’t belong in the website API (e.g., long‑running queue processing).
-
-Adding a temporary HTTP function (for experimentation): extend `src/index.ts` or add a new file under `src/functions/` with an `app.http(...)` registration. Delete or migrate experimental handlers promptly.
-
-### Onboarding Bootstrap (MVP Notes)
-
-`GET /api/player/bootstrap`
-
-Response:
-
-```jsonc
-{"playerGuid": "<guid>", "created": true}
+```
+npm install
+npm start   # builds then starts the Functions host
 ```
 
-- Client may send header `x-player-guid: <guid>` to attempt idempotent reuse.
-- If header value unknown, a new in-memory record is created (treated as created=true).
-- Emits telemetry event `Onboarding.GuestGuidCreated` (Application Insights) when a new GUID is allocated.
-- This is a **temporary** implementation; persistence will move to Cosmos DB (Gremlin) in a follow-up PR.
+No additional docs for examples—refer to `src/index.ts` or copy patterns from the SWA API. Avoid adding provisional onboarding examples here (they were removed to prevent drift).
 
-## Environment & Settings
+## Roadmap Snapshot (High Level)
 
-`local.settings.json` is intentionally sparse. Expected future additions:
-
-- Cosmos (prefer managed identity over keys once runtime integration exists)
-- Service Bus connection / namespace
-- Feature flags (enable experimental modules)
-
-Identity (future): Microsoft Entra External Identities for player auth. Plan: validate ID tokens in HTTP Functions (claims-based authorization), then issue gameplay session tokens if needed.
-
-## Roadmap
-
-Status / roadmap snapshot:
-
-- DONE: Basic health + echo
-- NEXT: Player command handler → enqueue event (once queue infra added)
-- Queue world processor (NPC patrols / environmental shifts)
-- Cosmos graph helpers (`shared/graph.ts`)
-- Tests (Node `--test`) for graph + movement logic
+| Area                 | Status  | First Addition in This App |
+| -------------------- | ------- | -------------------------- |
+| Queue world events   | Pending | NPC tick / movement queue  |
+| Cosmos integration   | Pending | Graph write helper module  |
+| Telemetry enrichment | Pending | Custom world event events  |
+| Auth propagation     | Pending | Principal claim validation |
 
 ## Notes
 
-Until logic lands here, infrastructure deploys an essentially empty artifact (low cost footprint).
+Until one of the above lands this package deploys an almost empty artifact (negligible cost / risk). Keeping the scaffold explicit avoids surprise architectural shifts later.

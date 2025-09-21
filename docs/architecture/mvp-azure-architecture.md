@@ -1,6 +1,6 @@
 # MVP Azure Architecture
 
-> Status Accuracy (2025-09-21): Only the frontend shell and a basic `ping` HTTP Function (in both the SWA managed API and an experimental separate `backend/` Functions app) are implemented. No Cosmos DB, movement, room persistence, verbs beyond ping, or AI integration exist yet. This document now reflects that truth so it does not mislead contributors.
+> Status Accuracy (2025-09-21): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early room + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
 
 ## 🎯 Goals
 
@@ -54,11 +54,7 @@ Purpose (Target State):
 - Query/update world state in Cosmos DB.
 - Call AI endpoints for dynamic descriptions or NPC dialogue.
 
-Current Reality:
-
-- Only a `Ping` endpoint exists.
-- No auth validation logic yet; all functions are anonymous.
-- An experimental second Functions app exists in `backend/` but is not yet differentiated by workload (will later host queue triggers / async world logic).
+Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, room get/move) in the SWA managed API; experimental second Functions app with only health/ping placeholders.
 
 Authentication (Planned – Not Implemented):
 
@@ -90,7 +86,7 @@ Status: Not implemented. All descriptions and dialogue will be static stubs unti
 | Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                            |
 | ------------------------- | -------------------------- | ------------------- | ------------------------------------------ |
 | World State & Persistence | Continuity & emergent play | Not Implemented     | Single `Room` vertex & fetch endpoint      |
-| Navigation & Traversal    | Exploration loop           | Not Implemented     | Hardcoded 2-room adjacency in memory       |
+| Navigation & Traversal    | Exploration loop           | Partial (in-memory) | Hardcoded 2-room adjacency in memory       |
 | Basic Interaction Loop    | Player agency test         | Not Implemented     | `look` command returning room description  |
 | Session Context           | Consistent responses       | Not Implemented     | Temporary player GUID issuance (in-memory) |
 | Minimal Content Seed      | Flow validation            | Not Implemented     | Handcrafted starter room + neighbor        |
@@ -161,9 +157,9 @@ Monitor with Azure Cost Management.
 
 📈 Immediate Next Implementation Steps (Pre-MVP)
 
-1. Add `/api/room` (GET) returning a stub room (hardcoded JSON). Later: persist via Cosmos.
-2. Extend frontend command interface: support `look` → calls `/api/room`.
-3. Add minimal telemetry event for each command.
-4. Introduce in-memory adjacency + `move <direction>` stub returning second room.
+1. Persist minimal Room schema (Cosmos) and adapt `/api/room` to read/write.
+2. Extend frontend command interface: `look` uses persisted fetch.
+3. Emit telemetry event per command (room.get, room.move already stubbed—expand for errors).
+4. Replace in-memory adjacency with persisted exits; add simple write/upsert admin script.
 
 Later (Post-Core Loop): economy, multi-agent NPC orchestration, procedural expansion, extension/modding API.

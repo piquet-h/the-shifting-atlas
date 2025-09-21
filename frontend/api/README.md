@@ -1,15 +1,16 @@
 # Website API (Azure Functions, TypeScript)
 
-Co‑located Functions backing the Static Web App frontend. Currently exposes a health endpoint + placeholder player action dispatcher.
+Co‑located Functions backing the Static Web App frontend. Currently provides onboarding (guest GUID), basic room retrieval & movement stubs, and diagnostics (ping).
 
 ## Functions
 
-| Name                       | Source File                        | Route                     | Methods  | Description                                                                         |
-| -------------------------- | ---------------------------------- | ------------------------- | -------- | ----------------------------------------------------------------------------------- |
-| `playerBootstrap`          | `src/functions/playerBootstrap.ts` | `/player/bootstrap`       | GET      | Allocates or confirms a guest player GUID (idempotent with `x-player-guid` header). |
-| `playerLink`               | `src/functions/playerLink.ts`      | `/player/link`            | POST     | Links an existing guest GUID to an authenticated principal (sets `guest=false`).    |
-| `WebsiteHealthCheck`       | `src/websiteHealthCheck.ts`        | `/website/health`         | GET      | Returns service status JSON.                                                        |
-| `WebsiteHttpPlayerActions` | `src/websiteHttpPlayerActions.ts`  | `/website/player/actions` | GET/POST | Placeholder for player action dispatch.                                             |
+| Name              | Source File                        | Route               | Methods    | Description                                                                 |
+| ----------------- | ---------------------------------- | ------------------- | ---------- | --------------------------------------------------------------------------- |
+| `Ping`            | `src/functions/ping.ts`            | `/ping`             | GET / POST | Latency + echo diagnostic (client can supply ?name= or body).               |
+| `playerBootstrap` | `src/functions/playerBootstrap.ts` | `/player/bootstrap` | GET        | Allocates or confirms a guest player GUID (idempotent via `x-player-guid`). |
+| `playerLink`      | `src/functions/playerLink.ts`      | `/player/link`      | POST       | Links a guest GUID to simulated external identity.                          |
+| `RoomGet`         | `src/functions/room.ts`            | `/room`             | GET        | Returns a room (defaults to starter).                                       |
+| `RoomMove`        | `src/functions/room.ts`            | `/room/move`        | GET        | Moves along an exit (?from= & ?dir=) – in‑memory stub.                      |
 
 ## Development
 
@@ -57,8 +58,8 @@ app.http('Example', {
 
 - Use `jsonBody` for JSON responses.
 - Input helpers: `req.query.get('param')`, `await req.json()`.
-- Keep this layer thin; move heavier simulation logic to the future dedicated backend.
-- Add new endpoints with `app.http("Name", { route, methods, handler })` in a new file under `src/`.
+- Keep this layer thin; move heavier simulation logic to the future dedicated backend when queue triggers / longer processing emerge.
+- Add new endpoints with `app.http("Name", { route, methods, handler })` in a new file under `src/functions/`.
 
 ### Guest -> Auth Upgrade (Sign In Trigger)
 

@@ -1,3 +1,19 @@
+/**
+ * Room & Movement Handlers (MVP Stub)
+ * ------------------------------------------------------
+ * Current State: Uses an in-memory `roomStore` (see domain/roomStore.ts) with two starter rooms
+ * and basic directional exits. Telemetry events (`room.get`, `room.move`) capture minimal fields.
+ *
+ * Migration Plan (Persistence):
+ *  1. Introduce a repository interface (getRoom(id), move(fromId, direction)) in shared package.
+ *  2. Provide memory + Cosmos Gremlin implementations; select via env `PERSISTENCE_MODE`.
+ *  3. Replace direct `roomStore` access here with repository calls.
+ *  4. Extend telemetry dimensions (persistenceMode, fromRoom, toRoom, direction, outcome).
+ *  5. Add optimistic concurrency (room.version) once multi-writer scenarios emerge.
+ *
+ * Rationale: Keeping this stub lean accelerates traversal loop validation while isolating
+ * persistence concerns behind a soon-to-arrive interface—reducing refactor surface.
+ */
 import {STARTER_ROOM_ID, trackEvent} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
 import {roomStore} from '../domain/roomStore.js'

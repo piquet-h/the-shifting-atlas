@@ -20,19 +20,7 @@ This overview provides a concise narrative bridge between the high‑level visio
 
 ## Current Slice (MVP Stage)
 
-Implemented resources (infrastructure / repos):
-
-- Azure Static Web Apps (frontend + co‑located Functions) – active
-- Experimental separate `backend/` Functions app – exists, not yet differentiated
-- Cosmos DB (Gremlin API) – provisioned only (no client usage)
-- Key Vault – secret storage only (no managed identity yet)
-
-In code today:
-
-- React + Vite frontend shell with command interface (ping only)
-- SWA managed API `Ping` function
-- Separate backend Functions app with `ping`/health endpoints (experimental)
-- Telemetry bootstrap (App Insights) without custom domain events
+Implemented (thin slice – see repo for exact handlers, kept terse to avoid drift): Static Web App (frontend + managed API), experimental empty `backend/` Functions app, provisioned (unused) Cosmos + Key Vault. Only health/ping + preliminary onboarding & room stubs exist; inspect code for precise shape.
 
 Not yet implemented (planned):
 
@@ -46,7 +34,7 @@ Not yet implemented (planned):
 
 ## Evolution Path
 
-Phase 1 (Now): Co‑located Functions for all HTTP endpoints (ping only) + exploratory separate Functions app.
+Phase 1 (Now): Co‑located Functions for HTTP endpoints (ping, onboarding bootstrap, room + movement stubs) + exploratory separate Functions app.
 Phase 2: Introduce Service Bus + queue processors in the dedicated `backend/` Functions app.
 Phase 3: Add telemetry (App Insights), identity‑based graph access, and initial NPC behavioral scripts.
 Phase 4: Expand domain modules (economy, factions, dialogue tree interpreter) and optional AI-assisted content.
