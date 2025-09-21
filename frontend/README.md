@@ -26,7 +26,7 @@ Co‑located Azure Functions in `api/` expose routes like `/website/health` (ava
 
 ## Styling
 
-Tailwind + basic palette (`tailwind.config.js`).
+Tailwind + basic palette (`tailwind.config.ts`).
 
 ## Adding New Components
 
@@ -62,7 +62,7 @@ npm run preview
   | `src/components/Homepage.tsx` – Landing UI (auth‑aware hero + personalized return state)
   | `src/components/Nav.tsx` – Navigation bar (sign in/out menu)
 - `src/services/api.ts` – Minimal API wrapper (health check; extend for player actions)
-- `tailwind.config.js` – Tailwind configuration
+- `tailwind.config.ts` – Tailwind configuration (typed)
 
 ## Co-Located API (`api/`)
 

@@ -1,36 +1,23 @@
 // Flat ESLint config (ESLint v9+) unified for frontend + backend
 // Using ESM (.mjs) so we can use import syntax.
-import js from '@eslint/js'
-import tsPlugin from '@typescript-eslint/eslint-plugin'
-import tsParser from '@typescript-eslint/parser'
-import jsxA11y from 'eslint-plugin-jsx-a11y'
-import prettierPlugin from 'eslint-plugin-prettier'
-import reactPlugin from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
+import js from '@eslint/js';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import prettierPlugin from 'eslint-plugin-prettier';
+import reactPlugin from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
     {
         // Unified ignore patterns (mirrors legacy .eslintrc and CJS flat variant)
-        ignores: ['dist', '**/dist/**', 'node_modules', '**/.azure/**', '**/coverage/**']
-    },
-    {
-        // Tailwind config (CJS style requires module/require globals)
-        files: ['frontend/tailwind.config.js'],
-        languageOptions: {
-            ecmaVersion: 'latest',
-            sourceType: 'script',
-            globals: {
-                module: 'readonly',
-                require: 'readonly'
-            }
-        },
-        rules: {}
+        ignores: ['dist', '**/dist/**', 'node_modules', '**/.azure/**', '**/coverage/**'],
     },
     js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],
-        languageOptions: {parser: tsParser, ecmaVersion: 'latest', sourceType: 'module'},
-        plugins: {'@typescript-eslint': tsPlugin, prettier: prettierPlugin},
+        languageOptions: { parser: tsParser, ecmaVersion: 'latest', sourceType: 'module' },
+        plugins: { '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
@@ -41,12 +28,12 @@ export default [
                     patterns: [
                         {
                             group: ['**/dist/**'],
-                            message: 'Import from source modules, not compiled dist output.'
-                        }
-                    ]
-                }
-            ]
-        }
+                            message: 'Import from source modules, not compiled dist output.',
+                        },
+                    ],
+                },
+            ],
+        },
     },
     {
         files: ['frontend/src/**/*.{ts,tsx}'],
@@ -63,14 +50,14 @@ export default [
                 HTMLDivElement: 'readonly',
                 HTMLInputElement: 'readonly',
                 crypto: 'readonly',
-                performance: 'readonly'
-            }
+                performance: 'readonly',
+            },
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
             react: reactPlugin,
             'react-hooks': reactHooks,
-            'jsx-a11y': jsxA11y
+            'jsx-a11y': jsxA11y,
         },
         rules: {
             ...tsPlugin.configs.recommended.rules,
@@ -82,10 +69,10 @@ export default [
             'react/jsx-uses-react': 'off',
             'arrow-parens': ['error', 'always'],
             'jsx-a11y/no-autofocus': 'warn',
-            'jsx-a11y/anchor-is-valid': ['error', {aspects: ['noHref', 'invalidHref']}],
-            '@typescript-eslint/no-explicit-any': 'warn'
+            'jsx-a11y/anchor-is-valid': ['error', { aspects: ['noHref', 'invalidHref'] }],
+            '@typescript-eslint/no-explicit-any': 'warn',
         },
-        settings: {react: {version: 'detect'}}
+        settings: { react: { version: 'detect' } },
     },
     {
         // Frontend public API Azure Functions (node env but may share some TS conventions)
@@ -94,13 +81,13 @@ export default [
             parser: tsParser,
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: {process: 'readonly'}
+            globals: { process: 'readonly' },
         },
-        plugins: {'@typescript-eslint': tsPlugin},
+        plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn'
-        }
+            '@typescript-eslint/no-explicit-any': 'warn',
+        },
     },
     {
         // Backend Azure Functions (no React)
@@ -109,12 +96,12 @@ export default [
             parser: tsParser,
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: {process: 'readonly'}
+            globals: { process: 'readonly' },
         },
-        plugins: {'@typescript-eslint': tsPlugin},
+        plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn'
-        }
-    }
-]
+            '@typescript-eslint/no-explicit-any': 'warn',
+        },
+    },
+];
