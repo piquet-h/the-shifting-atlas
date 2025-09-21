@@ -9,6 +9,5 @@
         "composite": true,
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "include": ["src"],
-    "exclude": ["dist", "node_modules"]
+    "include": ["src"]
 }

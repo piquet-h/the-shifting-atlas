@@ -6,9 +6,8 @@
         "moduleResolution": "node",
         "types": ["node"],
         "composite": true,
-        // Cache incremental build info separate from main frontend
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "references": [{"path": "../../shared"}],
+    "references": [{ "path": "../../shared" }],
     "include": ["src/**/*.ts"]
 }

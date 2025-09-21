@@ -9,7 +9,7 @@
         "source.fixAll.eslint": "always",
         "source.organizeImports": "always"
     },
-    "eslint.rules.customizations": [{ "rule": "jsx-a11y/*", "severity": "error" }],
+    "eslint.rules.customizations": [{"rule": "jsx-a11y/*", "severity": "error"}],
     "tailwindCSS.includeLanguages": {
         "javascript": "javascript",
         "html": "html",
@@ -24,16 +24,11 @@
     "azureFunctions.preDeployTask": "npm prune (functions)",
     "azurite.location": "/Volumes/External/azurite_db",
     "problems.autoReveal": false,
-    // Prettier central config: prettier.config.cjs (arrowParens: 'always').
-    // Remove local overrides to prevent save-time flip-flopping.
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "prettier.requireConfig": true,
-    "prettier.configPath": "./prettier.config.cjs",
-    "ipynb.experimental.serialization": false,
-    "ipynb.pasteImagesAsAttachments.enabled": false,
-    "tailwindCSS.configFile": "frontend/tailwind.config.ts",
+    "prettier.configPath": "./.prettierrc",
     "tailwindCSS.emmetCompletions": true,
-    "editor.quickSuggestions": { "strings": true },
+    "editor.quickSuggestions": {"strings": true},
     "css.validate": false,
     "scss.validate": false,
     "less.validate": false,
