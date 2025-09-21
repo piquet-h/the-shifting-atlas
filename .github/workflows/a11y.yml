@@ -1,4 +1,10 @@
 name: Accessibility Scan
+# Explicit least-privilege permissions:
+# - contents: read -> required for actions/checkout to read repository content
+# - actions: write -> required for uploading artifacts (axe reports) and enabling cache features used by setup-node
+permissions:
+    contents: read
+    actions: write
 
 on:
     pull_request:
