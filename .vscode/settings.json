@@ -9,7 +9,6 @@
         "source.fixAll.eslint": "always",
         "source.organizeImports": "always"
     },
-    "eslint.rules.customizations": [{"rule": "jsx-a11y/*", "severity": "error"}],
     "tailwindCSS.includeLanguages": {
         "javascript": "javascript",
         "html": "html",

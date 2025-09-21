@@ -22,7 +22,7 @@
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "node --test dist/**/*.js"
+        "test": "node --test --import=tsx test/*.test.ts"
     },
     "devDependencies": {
         "typescript": "^5.9.2"

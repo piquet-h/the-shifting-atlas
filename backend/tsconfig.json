@@ -8,9 +8,8 @@
         "sourceMap": true,
         "noEmitOnError": true,
         "composite": true,
-        // Cache TypeScript incremental build info
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "references": [{ "path": "../shared" }],
-    "include": ["src", "../shared/src"]
+    "references": [{"path": "../shared"}],
+    "include": ["src"]
 }
