@@ -73,9 +73,11 @@ jobs:
                   swa deploy \
                     --app-name "${{ vars.SWA_NAME }}" \
                     --env production \
-                    --app-location frontend \
-                    --output-location dist \
+                    --app-location frontend/dist \
+                    --skip-app-build true \
+                    --output-location '' \
                     --api-location frontend/api/dist \
+                    --skip-api-build true \
                     --verbose
 
     preview:
@@ -127,9 +129,11 @@ jobs:
                   swa deploy \
                     --app-name "${{ vars.SWA_NAME }}" \
                     --env "$ENV_NAME" \
-                    --app-location frontend \
-                    --output-location dist \
+                    --app-location frontend/dist \
+                    --skip-app-build true \
+                    --output-location '' \
                     --api-location frontend/api/dist \
+                    --skip-api-build true \
                     --verbose
 
     preview-cleanup:
