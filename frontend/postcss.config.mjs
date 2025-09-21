@@ -1,8 +1,11 @@
-// ESM PostCSS configuration. Vite will prefer this when resolving.
+// PostCSS configuration (ESM)
 // Tailwind first to generate utilities, then Autoprefixer for vendor prefixes.
-export default {
-    plugins: {
-        tailwindcss: {},
-        autoprefixer: {},
-    },
+import autoprefixer from 'autoprefixer';
+import tailwindcss from 'tailwindcss';
+
+/** @type {import('postcss-load-config').Config} */
+const config = {
+    plugins: [tailwindcss(), autoprefixer()],
 };
+
+export default config;

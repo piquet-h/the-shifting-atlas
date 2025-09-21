@@ -151,6 +151,15 @@ Automation:
 
 - `npm run a11y` launches a Vite server then executes a custom wrapper (`scripts/run-axe.mjs`) around `@axe-core/cli`.
 - Wrapper normalizes a phantom secondary URL scan issue and fails the build ONLY when real violations exist (parses JSON reports under `frontend/axe-report`).
+- Multi‑page scanning supported via environment variables:
+    - `A11Y_BASE` (default `http://localhost:5173`)
+    - `A11Y_PATHS` comma‑separated paths (e.g. `"/,/about,/commands"`). If omitted defaults to `/`.
+    - Phantom numeric hosts (e.g. `http://0`) are ignored automatically.
+- Axe report directory is now created proactively to avoid ENOENT flakes when Chrome/WebDriver aborts early.
+
+PostCSS & Tailwind:
+
+- PostCSS config (`postcss.config.mjs`) uses explicit plugin instances (`tailwindcss()`, `autoprefixer()`).
 
 Guidelines for New Components:
 
