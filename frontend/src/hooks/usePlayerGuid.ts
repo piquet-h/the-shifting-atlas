@@ -1,12 +1,13 @@
-/* global localStorage console */
+/* global localStorage */
 import {useCallback, useEffect, useState} from 'react'
+import {trackEvent} from '../services/telemetry'
 
 /**
  * usePlayerGuid
  * Responsible for obtaining and persisting a stable player GUID for guest users.
  * MVP (PR1):
  *  - Stores guid in localStorage under key `tsa.playerGuid`.
- *  - Calls GET /api/player/bootstrap (implemented in backend) to allocate or confirm a GUID.
+ *  - Calls GET /api/player (alias to bootstrap) to allocate or confirm a GUID.
  *  - Emits simple console telemetry placeholders (future: dedicated telemetry endpoint).
  */
 export interface PlayerGuidState {
@@ -51,9 +52,8 @@ export function usePlayerGuid(): PlayerGuidState {
             const existing = readLocal()
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
-                // Telemetry placeholder
-                console.debug('[telemetry] Onboarding.Start')
-                const res = await fetch('/api/player/bootstrap', {
+                trackEvent('Onboarding.Start')
+                const res = await fetch('/api/player', {
                     method: 'GET',
                     headers: existing ? {'x-player-guid': existing} : undefined
                 })
@@ -65,11 +65,7 @@ export function usePlayerGuid(): PlayerGuidState {
                 setPlayerGuid(data.playerGuid)
                 setCreated(data.created)
                 if (data.playerGuid !== existing) writeLocal(data.playerGuid)
-                if (data.created) {
-                    console.debug('[telemetry] Onboarding.GuestGuidCreated', {
-                        playerGuid: data.playerGuid
-                    })
-                }
+                if (data.created) trackEvent('Onboarding.GuestGuidCreated', {playerGuid: data.playerGuid})
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {
