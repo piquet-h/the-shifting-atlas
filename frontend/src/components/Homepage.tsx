@@ -1,5 +1,6 @@
 import React, {useEffect} from 'react'
 import {useAuth} from '../hooks/useAuth'
+import {useLinkGuestOnAuth} from '../hooks/useLinkGuestOnAuth'
 import {usePlayerGuid} from '../hooks/usePlayerGuid'
 import {useVisitState} from '../hooks/useVisitState'
 import CommandInterface from './CommandInterface'
@@ -28,6 +29,7 @@ export default function Homepage(): React.ReactElement {
     const {isNewUser} = useVisitState() // still used as a lightweight heuristic for first visit pre‑auth
     const {playerGuid, loading: guidLoading} = usePlayerGuid()
     const {isAuthenticated, loading, user, signIn} = useAuth()
+    const {linking, linked, error: linkError} = useLinkGuestOnAuth()
 
     // On initial sign-in success (user appears) announce for screen readers once.
     useEffect(() => {
@@ -47,10 +49,12 @@ export default function Homepage(): React.ReactElement {
             </h1>
 
             {/* Loading state (auth call in-flight) */}
-            {(loading || guidLoading) && (
+            {(loading || guidLoading || linking) && (
                 <div role="status" className="flex flex-col items-center gap-4 py-16">
                     <div className="h-10 w-10 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
-                    <p className="text-sm text-slate-400">Preparing your explorer session...</p>
+                    <p className="text-sm text-slate-400">
+                        {linking ? 'Linking your explorer profile...' : 'Preparing your explorer session...'}
+                    </p>
                 </div>
             )}
 
@@ -203,7 +207,13 @@ export default function Homepage(): React.ReactElement {
                                     <h2 id="begin-journey" className="text-lg font-semibold">
                                         Welcome back, {user?.userDetails?.split(' ')[0] || 'Explorer'}
                                     </h2>
-                                    <p className="text-sm text-atlas-muted">Your map has shifted while you were away.</p>
+                                    <p className="text-sm text-atlas-muted">
+                                        {linkError
+                                            ? 'We will retry linking shortly.'
+                                            : linked
+                                              ? 'Your guest progress is now linked.'
+                                              : 'Your map has shifted while you were away.'}
+                                    </p>
                                 </div>
                                 <div className="flex gap-2">
                                     <button className="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900">

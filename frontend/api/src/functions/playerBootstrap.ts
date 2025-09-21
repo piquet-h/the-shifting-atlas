@@ -1,4 +1,4 @@
-import {trackEvent} from '@atlas/shared/src/telemetry.js'
+import {trackEvent} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
 import crypto from 'crypto'
 

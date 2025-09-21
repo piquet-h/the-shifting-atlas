@@ -23,9 +23,7 @@ export default function Nav(): React.ReactElement {
         if (ping?.ok) return 'Online'
         return 'Offline'
     }, [pingLoading, ping?.ok])
-    // Label shown for unauthenticated users. Replacing generic "Guest" with thematic term "Explorer".
     const label = loading ? '...' : user?.userDetails || 'Explorer'
-    // Derive initials (simple heuristic): take first two letters of first non-empty word; fallback to first letter of label.
     const initials = React.useMemo(() => {
         if (loading) return ''
         const source = user?.userDetails?.trim() || label
@@ -47,7 +45,6 @@ export default function Nav(): React.ReactElement {
                 </Link>
             </div>
             <div className="flex items-center gap-3 relative">
-                {/* Status indicator: decorative dot (aria-hidden) + SR-only textual status */}
                 <span
                     aria-hidden="true"
                     className={`h-2.5 w-2.5 rounded-full shadow ring-1 ring-black/40 transition-colors duration-300 ${
@@ -71,7 +68,6 @@ export default function Nav(): React.ReactElement {
                     <div className="absolute right-0 top-full mt-2 w-44 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
                         {user ? (
                             <button
-                                // Wrap signOut so it matches MouseEventHandler signature (no params from event)
                                 onClick={() => signOut()}
                                 className="text-left text-xs px-2 py-1 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
                             >
@@ -84,9 +80,6 @@ export default function Nav(): React.ReactElement {
                                     className="text-left text-xs px-2 py-1 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
                                 >
                                     Sign In with Microsoft
-                                </button>
-                                <button className="text-left text-xs px-2 py-1 rounded opacity-60 cursor-not-allowed bg-white/5 text-slate-400">
-                                    Register (Provisioned by provider)
                                 </button>
                             </>
                         )}

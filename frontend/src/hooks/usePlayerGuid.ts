@@ -1,5 +1,5 @@
 /* global localStorage console */
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 
 /**
  * usePlayerGuid
@@ -24,7 +24,7 @@ export function usePlayerGuid(): PlayerGuidState {
     const [created, setCreated] = useState<boolean | null>(null)
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
-    const nonceRef = useRef(0)
+    const [nonce, setNonce] = useState(0)
 
     const readLocal = useCallback(() => {
         try {
@@ -80,11 +80,10 @@ export function usePlayerGuid(): PlayerGuidState {
         return () => {
             aborted = true
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [nonceRef.current])
+    }, [nonce, readLocal, writeLocal])
 
     const refresh = useCallback(() => {
-        nonceRef.current++
+        setNonce((n) => n + 1)
     }, [])
 
     return {playerGuid, loading, created, error, refresh}
