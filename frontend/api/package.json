@@ -3,10 +3,9 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "main": "dist/**/*.js",
     "scripts": {
-        "clean": "rimraf dist",
-        "build": "tsc -b",
+        "clean": "rimraf dist .cache",
+        "build": "npm run clean && (cd ../.. && tsc -b --force tsconfig.refs.json)",
         "watch": "tsc -b --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "test": "node --test --import=tsx test/*.test.ts",

@@ -43,8 +43,8 @@ jobs:
             - name: Build frontend
               run: npm run build -w frontend
 
-            - name: Build API (co-located Functions)
-              run: npm run build -w frontend/api
+            - name: Typecheck API (optional)
+              run: npm run typecheck -w frontend/api
 
             - name: Azure login (OIDC)
               uses: azure/login@v2
@@ -75,7 +75,7 @@ jobs:
                     --env production \
                     --app-location frontend/dist \
                     --output-location '' \
-                    --api-location frontend/api/dist \
+                    --api-location frontend/api \
                     --verbose
 
     preview:
@@ -96,8 +96,8 @@ jobs:
             - name: Build frontend
               run: npm run build -w frontend
 
-            - name: Build API
-              run: npm run build -w frontend/api
+            - name: Typecheck API
+              run: npm run typecheck -w frontend/api
 
             - name: Azure login (OIDC)
               uses: azure/login@v2
@@ -129,7 +129,7 @@ jobs:
                     --env "$ENV_NAME" \
                     --app-location frontend/dist \
                     --output-location '' \
-                    --api-location frontend/api/dist \
+                    --api-location frontend/api \
                     --verbose
 
     preview-cleanup:

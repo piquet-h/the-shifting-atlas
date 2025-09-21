@@ -1,0 +1,7 @@
+# Files to exclude when uploading / deploying Azure Functions
+local.settings.json
+**/*.ts
+.cache/
+node_modules/
+README.md
+scripts/postbuild.mjs

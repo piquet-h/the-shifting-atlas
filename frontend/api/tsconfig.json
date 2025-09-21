@@ -2,9 +2,12 @@
     "extends": "../../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "./dist",
+        "rootDir": "src",
         "module": "ESNext",
         "moduleResolution": "node",
         "types": ["node"],
+        "declaration": true,
+        "declarationMap": true,
         "composite": true,
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },

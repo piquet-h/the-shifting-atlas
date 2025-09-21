@@ -21,6 +21,22 @@ npm start   # builds then launches Azure Functions host
 
 Edit TypeScript in `src/`. Build outputs to `dist/`. Re‑run `npm run build` (or add a watch script) after adding function files. Prefer running via the SWA emulator from the repo root (`npm run swa`) for integrated local testing.
 
+### Source‑Based Deployment (Preferred)
+
+The Static Web Apps configuration now points `apiLocation` directly at `frontend/api`, so Azure builds the Functions project from source. Advantages:
+
+| Benefit                | Details                                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Simpler pipeline       | No pre-build bundling or manual copy of `host.json` required.                                                              |
+| Clearer debugging      | Source maps and original TS layout available during investigation.                                                         |
+| Consistent graph build | Monorepo reference build (`tsconfig.refs.json`) still works locally, but SWA/Oryx can compile the API independently in CI. |
+
+Operational notes:
+
+1. Local dev via SWA CLI: `npm run swa:dev` at repo root (serves frontend + sources API).
+2. CI deploy: Ensure you do NOT override `api_location` to `frontend/api/dist`; keep it as `frontend/api`.
+3. To slim deployment size later, consider adding a bundling/esbuild step; keep it optional behind a script (e.g. `npm run bundle:api`).
+
 ## Handler Pattern
 
 ```ts
