@@ -5,14 +5,14 @@
     "type": "module",
     "scripts": {
         "clean": "node ../../scripts/clean.mjs --here",
-        "build": "npm run clean && (cd ../.. && tsc -b --force tsconfig.refs.json) && npm run sync:static",
+        "build": "npm run clean && tsc -p tsconfig.json && npm run sync:static",
         "watch": "tsc -b --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "test": "node --test --import=tsx test/*.test.ts",
         "dev": "npm run clean && tsc -b --watch --preserveWatchOutput & func start",
         "start": "npm run build && func start",
         "sync:static": "node scripts/sync-static.mjs",
-        "postbuild": "npm run sync:static",
+        "postbuild": "",
         "a11y": "echo 'No UI surface for API workspace; skipping a11y scan.'"
     },
     "engines": {

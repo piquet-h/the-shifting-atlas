@@ -20,6 +20,7 @@
         "swa:deploy": "swa deploy dev",
         "build": "tsc -b tsconfig.refs.json && npm run sync:static -w frontend/api && npm run build -w frontend",
         "build:fast": "tsc -b tsconfig.refs.json",
+        "verify:deployable": "node scripts/verify-deployable.mjs",
         "verify:graph": "tsc -b --dry tsconfig.refs.json",
         "typecheck": "tsc -b tsconfig.refs.json",
         "typecheck:noEmit": "echo 'Direct --noEmit with project references is unsupported; running full build instead' && tsc -b tsconfig.refs.json",

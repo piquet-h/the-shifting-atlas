@@ -82,8 +82,6 @@ jobs:
                     --app-location frontend/dist \
                     --output-location '' \
                     --api-location frontend/api/dist \
-                    --api-language node \
-                    --api-version 20 \
                     --verbose
 
     preview:
@@ -113,9 +111,11 @@ jobs:
             - name: Build frontend (Vite last to ensure config)
               run: npm run build -w frontend
 
-            - name: Ensure SWA config in dist
+            - name: Verify SWA config present
               run: |
-                  cp frontend/public/staticwebapp.config.json frontend/dist/staticwebapp.config.json || true
+                  if [ ! -f frontend/dist/staticwebapp.config.json ]; then
+                    echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
+                  echo "Verified staticwebapp.config.json present in dist."
 
             - name: Azure login (OIDC)
               uses: azure/login@v2
