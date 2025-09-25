@@ -159,7 +159,7 @@ Monitor with Azure Cost Management.
 
 1. Persist minimal Room schema (Cosmos) and adapt `/api/room` to read/write.
 2. Extend frontend command interface: `look` uses persisted fetch.
-3. Emit telemetry event per command (room.get, room.move already stubbed—expand for errors).
+3. Emit telemetry event per command (Room.Get, Room.Move already stubbed—expand for errors).
 4. Replace in-memory adjacency with persisted exits; add simple write/upsert admin script.
 
 Later (Post-Core Loop): economy, multi-agent NPC orchestration, procedural expansion, extension/modding API.

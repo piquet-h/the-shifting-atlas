@@ -7,6 +7,7 @@ import jsxA11y from 'eslint-plugin-jsx-a11y'
 import prettierPlugin from 'eslint-plugin-prettier'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
 
 export default [
     {
@@ -17,7 +18,11 @@ export default [
     {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {parser: tsParser, ecmaVersion: 'latest', sourceType: 'module'},
-        plugins: {'@typescript-eslint': tsPlugin, prettier: prettierPlugin},
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+            prettier: prettierPlugin,
+            internal: {rules: {'telemetry-event-name': telemetryEventRule}}
+        },
         rules: {
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
@@ -32,7 +37,8 @@ export default [
                         }
                     ]
                 }
-            ]
+            ],
+            'internal/telemetry-event-name': 'error'
         }
     },
     {

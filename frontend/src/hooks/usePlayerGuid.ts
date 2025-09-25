@@ -52,8 +52,8 @@ export function usePlayerGuid(): PlayerGuidState {
             const existing = readLocal()
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
-                trackEvent('Onboarding.Start')
-                const res = await fetch('/api/player', {
+                trackEvent('Onboarding.GuestGuid.Started')
+                const res = await fetch('/api/player/bootstrap', {
                     method: 'GET',
                     headers: existing ? {'x-player-guid': existing} : undefined
                 })
@@ -65,7 +65,7 @@ export function usePlayerGuid(): PlayerGuidState {
                 setPlayerGuid(data.playerGuid)
                 setCreated(data.created)
                 if (data.playerGuid !== existing) writeLocal(data.playerGuid)
-                if (data.created) trackEvent('Onboarding.GuestGuidCreated', {playerGuid: data.playerGuid})
+                if (data.created) trackEvent('Onboarding.GuestGuid.Created', {playerGuid: data.playerGuid})
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {

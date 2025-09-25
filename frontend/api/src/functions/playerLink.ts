@@ -43,7 +43,7 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
     if (!alreadyLinked) {
         record.externalId = externalId
         record.guest = false
-        trackEvent('Auth.UpgradeSuccess', {linkStrategy: 'merge', hadGuestProgress: true})
+        trackEvent('Auth.Player.Upgraded', {linkStrategy: 'merge', hadGuestProgress: true})
     }
 
     const resBody: LinkResponseBody = {

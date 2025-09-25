@@ -30,7 +30,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             const stored = sessionStorage.getItem('tsa.currentRoomId')
             if (stored) {
                 setCurrentRoomId(stored)
-                trackEvent('room.restore', {roomId: stored})
+                trackEvent('Room.Restored', {roomId: stored})
             }
         } catch {
             /* ignore storage errors */
@@ -120,7 +120,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             } finally {
                 setBusy(false)
                 setHistory((h) => h.map((rec) => (rec.id === id ? {...rec, response, error, latencyMs} : rec)))
-                trackEvent('command.executed', {
+                trackEvent('Command.Executed', {
                     command: raw.split(/\s+/)[0],
                     full: raw,
                     success: !error,

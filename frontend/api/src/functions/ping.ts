@@ -34,7 +34,7 @@ export async function pingHandler(req: HttpRequest, ctx: InvocationContext): Pro
         echo: echo || undefined,
         version: process.env.APP_VERSION || undefined
     }
-    trackEvent('ping.invoked', {echo: echo || null, latencyMs: payload.latencyMs})
+    trackEvent('Ping.Invoked', {echo: echo || null, latencyMs: payload.latencyMs})
     return {
         status: 200,
         headers: {

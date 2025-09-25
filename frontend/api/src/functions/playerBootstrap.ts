@@ -36,7 +36,7 @@ export async function playerBootstrap(request: HttpRequest, context: InvocationC
     }
 
     if (created) {
-        trackEvent('Onboarding.GuestGuidCreated', {phase: 'bootstrap'})
+        trackEvent('Onboarding.GuestGuid.Created', {phase: 'bootstrap'})
     }
 
     const body: BootstrapResponseBody = {playerGuid: guid!, created}

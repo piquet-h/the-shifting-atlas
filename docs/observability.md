@@ -8,19 +8,70 @@ This document defines naming, dimensions, and evolution guidelines for telemetry
 - Capture enough context for debugging without exceeding free tier quotas.
 - Make persistence / mode transitions (in‑memory → Cosmos) visible.
 
-## Event Naming Convention
+## Event Naming Convention (Unified)
 
-Format: `<Domain>.<Action><Qualifier?>`
+No legacy compatibility required; ALL events adopt the same structure immediately.
 
-Examples:
+Pattern: `<Domain>.<Subject?>.<Action>` (segments separated by `.`; each segment in PascalCase)
 
-- `Onboarding.GuestGuidCreated`
-- `Auth.UpgradeSuccess`
-- `ping.invoked` (lowercase retained for legacy; new events SHOULD use PascalCase domain prefix)
-- `Room.Get` (future replacement for `room.get` once repository abstraction lands)
-- `Room.Move`
+Rules:
 
-Legacy lowercase events MAY be refactored to PascalCase once dashboards are minimal (pre-production).
+1. Minimum two segments (`Domain.Action`) – add `Subject` only when it materially disambiguates.
+2. Use PascalCase for every segment; no lowercase or snake_case.
+3. Prefer singular nouns (`Room`, `Player`, `NPC`).
+4. Actions are verbs in Past tense for completed facts (`Created`, `Upgraded`, `Moved`) or Present tense for instantaneous queries (`Get`, `List`). Be consistent within a domain.
+5. Avoid encoding outcome or status in the name; use dimensions (`status`, `reason`).
+6. Do not append "Event" or duplicate context (no `Room.RoomMoved`).
+7. Stick to three segments maximum for MVP unless a truly separate facet is needed (e.g., `Economy.Trade.Executed`).
+
+Approved Domains (initial):
+| Domain | Scope |
+| -------- | ------------------------------------------ |
+| Onboarding | Guest GUID issuance & session bootstrap |
+| Auth | Account / identity upgrades |
+| Room | Room retrieval & traversal |
+| Ping | Diagnostic latency / echo |
+| NPC | (Future) autonomous character ticks |
+| Economy | (Future) trade / currency operations |
+| Dialogue | (Future) branching narrative interactions |
+
+Examples (canonical):
+
+- `Onboarding.GuestGuid.Created`
+- `Onboarding.GuestGuid.Started`
+- `Auth.Player.Upgraded`
+- `Room.Get` (idempotent fetch)
+- `Room.Move` (attempted traversal; success/failure in `status`)
+- `Ping.Invoked`
+
+Reserved Suffixes:
+
+- `Started`, `Completed` for lifecycle flows.
+- `Get`, `List` for read-only operations.
+- `Created`, `Deleted`, `Updated` for CRUD writes.
+- `Move` (domain-specific action – movement attempt).
+
+Anti-Patterns (DO NOT):
+
+- `room.get` (wrong casing)
+- `Room.Get.200` (status baked into name)
+- `OnboardingGuestGuidCreated` (no dots)
+- `AuthUpgradeSuccess` (no segmentation, inconsistent verb form)
+
+Decision Matrix:
+
+- If action mutates: Past tense (`Created`, `Upgraded`).
+- If action queries: Base verb (`Get`, `List`).
+- If action may fail but we always want a single series: Keep one name; differentiate with `status` and optional `reason` dimension.
+
+Event Name Grammar Quick Sheet:
+
+```
+<Domain>[.<Subject>].<Action>
+Domain: PascalCase noun grouping.
+Subject (optional): Specific entity category inside domain.
+Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
+```
 
 ## Standard Dimensions (Keys)
 
@@ -52,6 +103,19 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 - Introduce probabilistic sampling (e.g., 0.5) only if monthly ingestion nears free tier.
 - NEVER sample security/audit events (future auth-critical events).
 
+## Current Event Mapping (Old → New)
+
+| Old                           | New                            | Notes                                  |
+| ----------------------------- | ------------------------------ | -------------------------------------- |
+| `Onboarding.GuestGuidCreated` | `Onboarding.GuestGuid.Created` | Adds Subject segment for clarity       |
+| `Onboarding.Start`            | `Onboarding.GuestGuid.Started` | Clarifies what started                 |
+| `Auth.UpgradeSuccess`         | `Auth.Player.Upgraded`         | Standard Past-tense verb; adds Subject |
+| `ping.invoked`                | `Ping.Invoked`                 | Casing + Domain normalization          |
+| `room.get`                    | `Room.Get`                     | Casing normalized                      |
+| `room.move`                   | `Room.Move`                    | Casing normalized                      |
+
+All old names are to be replaced in a single refactor (no dual emission mandated).
+
 ## Roadmap
 
 | Phase | Additions                                                                      |
@@ -61,10 +125,18 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 | MVP+3 | Economy transactions (`Economy.TradeExecuted`)                                 |
 | MVP+4 | Dialogue interactions (`Dialogue.BranchChosen`)                                |
 
-## Migration Notes
+## Migration Notes (Refactor Plan)
 
-- When replacing `room.get` with `Room.Get`, emit BOTH for one deployment to bridge dashboards.
-- Document deprecations inside this file (append a Deprecated section) with removal date.
+Since backward compatibility is not required:
+
+1. Rename constants inline where passed to `trackEvent`.
+2. Run a global search for each old literal; replace with new form.
+3. Add a temporary type guard (optional) that rejects lowercase names during development (lint rule suggestion below).
+4. Rebuild & smoke-test telemetry emission locally (Application Insights ingestion optional).
+
+Suggested ESLint Custom Rule (future): ensure event names match regex `^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$`.
+
+Deprecated Names: none retained; removal is immediate.
 
 ## Dashboards (Future)
 
@@ -80,4 +152,4 @@ Proposed starter charts:
 - Do we need per-player rate limiting metrics or will Azure front-door metrics suffice?
 - Should movement latency be separated from overall request latency? (If queue handoff introduced.)
 
-_Last updated: 2025-09-21_
+_Last updated: 2025-09-25_
