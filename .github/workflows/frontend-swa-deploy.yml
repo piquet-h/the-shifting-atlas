@@ -40,11 +40,17 @@ jobs:
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
 
-            - name: Build frontend
-              run: npm run build -w frontend
-
-            - name: Build backend
+            - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
+
+            - name: Verify host.json in api dist
+              run: |
+                  if [ ! -f frontend/api/dist/host.json ]; then
+                    echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
+                  echo "Verified host.json present in api dist."
+
+            - name: Build frontend (Vite last to ensure config)
+              run: npm run build -w frontend
 
             - name: Azure login (OIDC)
               uses: azure/login@v2
@@ -95,11 +101,17 @@ jobs:
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
 
-            - name: Build frontend
-              run: npm run build -w frontend
-
-            - name: Build backend
+            - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
+
+            - name: Verify host.json in api dist
+              run: |
+                  if [ ! -f frontend/api/dist/host.json ]; then
+                    echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
+                  echo "Verified host.json present in api dist."
+
+            - name: Build frontend (Vite last to ensure config)
+              run: npm run build -w frontend
 
             - name: Ensure SWA config in dist
               run: |
