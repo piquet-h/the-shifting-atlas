@@ -65,6 +65,20 @@ Phase 4: Expand domain modules (economy, factions, dialogue tree interpreter) an
 - Custom events: player command issued, world event processed, NPC action resolved
 - Sampling strategy to stay within free tier
 
+## Agentic AI & MCP Layer (Preview)
+
+Early AI integration will adopt a **Model Context Protocol (MCP)** tooling layer instead of embedding raw model prompts inside gameplay Functions. Rationale: prevent prompt sprawl, enable least‑privilege access, and keep the deterministic world model authoritative.
+
+Phase 0 (planned) introduces **read‑only MCP servers**:
+
+- `world-query-mcp` – Structured room / player / event fetch (no direct DB exposure to prompts)
+- `prompt-template-mcp` – Versioned prompt template registry (hash + semantic name)
+- `telemetry-mcp` – Standardized AI usage & decision logging
+
+Later phases add controlled proposal endpoints (`world-mutation-mcp`) plus retrieval (`lore-memory-mcp`) and simulation planners. All AI outputs remain **advisory** until validated by deterministic rules (schema, safety, invariants) and only then materialize as domain events.
+
+See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
+
 ## Why This Document Exists
 
 Other documents (like `mvp-azure-architecture.md`) dive into concrete resource diagrams and playtest priorities. This page remains stable as a high‑level reference so links such as "Architecture Overview" do not break as tactical details shift.
@@ -78,4 +92,4 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ---
 
-_Last updated: 2025-09-15_
+_Last updated: 2025-09-25 (added Agentic AI & MCP preview section)_

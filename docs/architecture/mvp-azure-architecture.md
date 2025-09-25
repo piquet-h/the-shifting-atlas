@@ -81,6 +81,25 @@ Current Reality:
 
 Status: Not implemented. All descriptions and dialogue will be static stubs until core traversal + persistence exist. This keeps early costs at zero.
 
+### Agentic AI & MCP (Phase 0–1 Insertion Plan)
+
+Instead of directly embedding model calls inside gameplay Functions, initial AI adoption will surface through **MCP (Model Context Protocol) servers** providing strictly read‑only structured data. This ensures early content experiments do not entangle world mutation logic or require refactors later.
+
+Phase 0 (Foundational):
+
+- `world-query-mcp` (room / player / recent event fetch)
+- `prompt-template-mcp` (versioned templates; hash governance)
+- `telemetry-mcp` (AI usage + decision logging)
+
+Phase 1 (Low-Risk Dynamic Flavor):
+
+- `classification-mcp` (intent + moderation)
+- `lore-memory-mcp` (curated lore retrieval – capped dataset)
+
+Deferral: **No mutation tools** (quest generation, NPC dialogue proposals) until a validation module (schema + safety + invariants) is implemented. All early AI output is treated as advisory flavor (e.g., ambience line) and cached with a context hash to control cost.
+
+Cross-reference: `agentic-ai-and-mcp.md` (full roadmap) and `modules/ai-prompt-engineering.md` (prompt lifecycle).
+
 🏗 MVP Core Pillars (Planned → To Be Built)
 
 | Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                            |

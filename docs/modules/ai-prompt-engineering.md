@@ -12,6 +12,17 @@ This module powers the generative backbone of a persistent, MMO-scale text adven
 
 The AI Prompt Engineering system constructs, conditions, and parses prompts that drive consistent and immersive world generation using Azure OpenAI. It ensures spatial, thematic, and narrative coherence across the game world, and integrates deeply with item systems, traversal logic, quest logic, NPC behavior, developer extensions, and persistent player identity.
 
+### MCP Integration (Tool-First Prompt Strategy)
+
+All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Phase 0–1) tools are read-only (`world-query-mcp`, `lore-memory-mcp`), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature. Prompt assembly therefore:
+
+1. Resolves structured context via tool calls (rooms, exits, tags, lore facts).
+2. Compresses and canonicalizes facts (stable IDs, tag arrays) before inclusion.
+3. References entity IDs instead of injecting large verbatim text blocks to minimize tokens.
+4. Records `toolCallSummary` (list of tool names + counts) for telemetry correlation.
+
+This pattern reduces prompt drift, enforces least privilege, and allows evolving tool implementations without rewriting prompt templates.
+
 ## **AI-First World Genesis & Crystallization**
 
 In this project, AI does not merely decorate pre-authored maps—it originates new Rooms and their exits. Each accepted generation is a **genesis transaction** that becomes part of permanent canonical history. Change thereafter is additive via layered descriptions, not destructive rewrites.
@@ -90,6 +101,36 @@ Generated text becomes either the `baseDescription` (if new Room) or an appended
 
 Merging rules: lower layer keys override only if whitelisted; otherwise aggregated (e.g., tags union, motifs weighted).
 
+#### Prompt Template Registry & Versioning
+
+Templates are retrieved through `prompt-template-mcp` to ensure:
+
+- Immutable versions (semantic name + semver + SHA256 hash)
+- Reproducibility (hash stored alongside each AI decision)
+- Change review (diff old/new template bodies before rollout)
+
+Example template metadata (conceptual):
+
+```
+{
+	"name": "room.genesis.biomeForest",
+	"version": "0.3.1",
+	"hash": "sha256:...",
+	"purpose": "Generate initial forest room",
+	"safetyPolicyVersion": "1.1.0"
+}
+```
+
+### Advisory vs Authoritative Modes
+
+| Mode                     | Usage (Phase)                    | Output Persistence                         |
+| ------------------------ | -------------------------------- | ------------------------------------------ |
+| Advisory                 | Ambience, NPC flavor lines (0–1) | Cached ephemeral layer; can be dropped     |
+| Proposal                 | Quest seed, dialogue branch (2+) | Validated → emits domain event → persisted |
+| Authoritative (Deferred) | Possibly rule expansions (3+)    | Only if validator passes + policy allows   |
+
+All generation begins in advisory or proposal mode—**no direct authoritative writes** to the graph.
+
 ### Similarity & Duplication Control
 
 - Maintain vector embeddings for each Room (offloaded to vector store)
@@ -140,6 +181,7 @@ Canonical event names (defined in `shared/src/telemetryEvents.ts`) use `Domain.[
 - `Prompt.Genesis.Crystallized` (tokens, similarity, safetyVerdict)
 - `Prompt.Layer.Generated` (layerType, roomId)
 - `Prompt.Cost.BudgetThreshold` (percent)
+- `Prompt.Tooling.ContextResolved` (toolCallSummaryHash, toolCount, cached)
 
 Adding a new AI prompt event requires updating the canonical list + test in `shared/test/telemetryEvents.test.ts`.
 
@@ -149,6 +191,16 @@ Adding a new AI prompt event requires updating the canonical list + test in `sha
 - Fuzz tests for malformed AI JSON (injection of trailing prose) → parser resilience
 - Similarity gate unit tests with synthetic embeddings
 - Red-team prompt corpus for safety regressions
+
+### Tool Call Budget & Safeguards
+
+Each AI task enforces:
+
+- `maxToolCalls` (default 6) before forced summarization
+- `maxPromptTokens` & `maxCompletionTokens` per purpose
+- Early termination strategy if validation repeatedly fails (exponential backoff on retries)
+
+Repeated identical advisory generations (same `contextHash`) short-circuit and reuse the prior accepted text to conserve tokens.
 
 ---
 

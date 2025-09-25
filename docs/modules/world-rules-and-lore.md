@@ -59,6 +59,25 @@ Lightweight semantic atoms attached to Rooms, Zones, or Structures to inform AI 
 
 Tags are additive; AI generation uses them as soft constraints. Removal/Addition of tags can trigger description regeneration events.
 
+### Lore Retrieval & Memory Layer (MCP Integration)
+
+Lore-aware generation and dialogue contextualization rely on a _curated_, versioned subset of canonical facts exposed through the **`lore-memory-mcp`** server:
+
+- **Canonical Facts**: Stable, human-vetted entries (factions, artifacts, historical events) – each with an immutable `factId`.
+- **Embeddings Index**: Only curated facts (initial target ≤200) embedded; avoids early noise and cost explosion.
+- **Retrieval Tools**:
+    - `semanticSearchLore(query, k)` → ranked snippets (no raw full-text dumps)
+    - `getCanonicalFact(factId)` → structured JSON (fields only; no prose bloating prompts)
+- **Access Pattern**: AI agents pull exactly the facts they need, then compress references (`factId` + short label) into prompt context; large narrative text is _not_ inlined.
+- **Change Control**: Fact edits create new version records; previous versions remain addressable for audit.
+- **Safety Filtering**: Moderation pass on newly proposed lore additions (future extension) prior to embedding.
+
+Benefits:
+
+- Reduces hallucination by anchoring prompts to normalized entities.
+- Lowers token footprint vs. naive lore dumps.
+- Enables deterministic replay (fact set + template hash reconstructs context).
+
 ### Layered Descriptions (Integration with Navigation Schema)
 
 To maintain authorial control while leveraging generative AI, each Room stores a stable `baseDescription` plus an ordered list of `descLayers` (see `navigation-and-traversal.md`). Layers can represent seasonal shifts, event consequences, AI embellishments, or faction occupation.
