@@ -22,7 +22,7 @@
         "verify:graph": "tsc -b --dry tsconfig.refs.json",
         "typecheck": "tsc -b tsconfig.refs.json",
         "typecheck:noEmit": "echo 'Direct --noEmit with project references is unsupported; running full build instead' && tsc -b tsconfig.refs.json",
-        "clean": "tsc -b --clean tsconfig.refs.json || true && rimraf **/dist **/.cache **/*.tsbuildinfo coverage",
+        "clean": "tsc -b --clean tsconfig.refs.json || true && node scripts/clean.mjs --all",
         "pretest": "npm run build",
         "test": "npm --workspaces --if-present run test",
         "coverage": "c8 --reporter=text --reporter=lcov npm run test",
@@ -47,7 +47,6 @@
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
         "prettier": "^3.3.3",
-        "rimraf": "^6.0.1",
         "tsx": "^4.20.5",
         "typescript": "^5.9.2"
     }

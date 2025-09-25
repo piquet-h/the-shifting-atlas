@@ -20,6 +20,10 @@ npm run build
 npm start   # builds then launches Azure Functions host
 ```
 
+### Cleaning Build Artifacts
+
+The `clean` script uses a small Node one‑liner (built‑in `fs.rmSync`) instead of `rimraf` so CI does not depend on a devDependency being hoisted into this workspace. This avoids the previous GitHub Actions failure (`rimraf: not found`) while remaining cross‑platform for any Node 18+ environment.
+
 Edit TypeScript in `src/`. Build outputs to `dist/`. Re‑run `npm run build` (or add a watch script) after adding function files. Prefer running via the SWA emulator from the repo root (`npm run swa`) for integrated local testing.
 
 ### Source‑Based Deployment (Preferred)

@@ -5,6 +5,7 @@
     "type": "module",
     "main": "dist/index.js",
     "scripts": {
+        "clean": "node ../scripts/clean.mjs --here",
         "build": "tsc",
         "watch": "tsc --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit",

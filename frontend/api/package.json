@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "clean": "rimraf dist .cache",
+        "clean": "node ../../scripts/clean.mjs --here",
         "build": "npm run clean && (cd ../.. && tsc -b --force tsconfig.refs.json)",
         "watch": "tsc -b --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit -p tsconfig.json",
