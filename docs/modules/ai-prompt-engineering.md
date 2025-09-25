@@ -12,6 +12,148 @@ This module powers the generative backbone of a persistent, MMO-scale text adven
 
 The AI Prompt Engineering system constructs, conditions, and parses prompts that drive consistent and immersive world generation using Azure OpenAI. It ensures spatial, thematic, and narrative coherence across the game world, and integrates deeply with item systems, traversal logic, quest logic, NPC behavior, developer extensions, and persistent player identity.
 
+## **AI-First World Genesis & Crystallization**
+
+In this project, AI does not merely decorate pre-authored maps—it originates new Rooms and their exits. Each accepted generation is a **genesis transaction** that becomes part of permanent canonical history. Change thereafter is additive via layered descriptions, not destructive rewrites.
+
+### Lifecycle Stages
+
+1. Intent (exploration trigger / scripted expansion / extension hook)
+2. Context Assembly (nearby room snapshot, biome distribution, active factions, motifs, similarity embeddings)
+3. Prompt Construction (system + developer + dynamic layers)
+4. Model Inference (Azure OpenAI)
+5. Validation Gates (schema, safety, duplication, naming, tag hygiene)
+6. Staging (pending vertex/edges invisible to players)
+7. Crystallization (commit + provenance + telemetry)
+8. Post-Commit augmentation (vantage suggestions, exit summary cache, indexing)
+
+### Structured Response Schema (Target)
+
+```
+{
+	"name": "Gallery of Whispered Echoes",
+	"baseDescription": "Tall ribbed arches...",
+	"biome": "urban_spire",
+	"tags": ["stone","echoing","gallery","subtle_arcane"],
+	"candidateExits": [
+		{"dir": "south", "kind": "cardinal"},
+		{"dir": "up", "kind": "vertical", "narrativeHook": "A spiral of pale steps"}
+	],
+	"sensory": {"sound": "soft echoes", "scent": "old parchment"},
+	"motifs": ["whisper","arch"]
+}
+```
+
+### Validation Gates (Ordered)
+
+| Gate            | Check                                          | Failure Action                              |
+| --------------- | ---------------------------------------------- | ------------------------------------------- |
+| Schema          | Required fields present; types valid           | Reject w/ code SCHEMA_MISSING               |
+| Safety          | Profanity / disallowed themes                  | Reject → re-prompt with stricter system msg |
+| Length          | Description token bounds                       | Truncate or re-summarize                    |
+| Name Uniqueness | Normalized collision                           | Append qualifier OR re-prompt               |
+| Similarity      | Embedding cosine > threshold                   | Reject w/ DUPLICATE_NEARBY                  |
+| Tag Hygiene     | Forbidden combos (e.g. `abyssal` + `festival`) | Remove / re-prompt depending severity       |
+| Exit Sanity     | Duplicate dirs or invalid kind                 | Auto-dedup or reject                        |
+
+### Provenance Capture
+
+Each crystallized Room stores:
+
+```
+provenance: {
+	genSource: 'ai',
+	model: 'gpt-4o-mini',
+	promptHash: 'sha256:...',
+	nearbyRoomIds: ['r1','r2','r3'],
+	similarityScores: { closest: 0.81 },
+	safety: { verdict: 'clean', policyVersion: '1.0.0' },
+	approvedBy: 'auto',
+	createdUtc: '2025-09-25T12:34:00Z'
+}
+```
+
+### Layered Description Integration
+
+Generated text becomes either the `baseDescription` (if new Room) or an appended `descLayer` (if event / environmental / faction change). Base text is never overwritten—subsequent AI adds context layers referencing prior states.
+
+### Prompt Assembly Architecture
+
+| Layer          | Source           | Example Payload                            |
+| -------------- | ---------------- | ------------------------------------------ |
+| System         | Core constraints | Tone, safety boundaries, JSON contract     |
+| Anchor         | Project config   | Style pillars; banned patterns             |
+| Regional       | Biome / zone     | Climate, hazard hints, faction tension     |
+| Local Snapshot | Nearby Rooms     | Names, tags, motifs (compressed)           |
+| Player / Event | Trigger context  | Actor role, event type, motivation         |
+| Extension      | Plugin injection | Extra tags, quest hooks, gating conditions |
+
+Merging rules: lower layer keys override only if whitelisted; otherwise aggregated (e.g., tags union, motifs weighted).
+
+### Similarity & Duplication Control
+
+- Maintain vector embeddings for each Room (offloaded to vector store)
+- Pre-gen: compute embedding of candidate description; compare to k nearest (k=10)
+- If max similarity ≥ threshold (e.g., 0.92) → rejection w/ DUPLICATE_NEARBY
+- Soft variant: allow but inject mandatory differentiator prompt clause
+
+### Cost & Budget Management
+
+- Daily token budget; hard stop at 100% with grace queue
+- Telemetry attributes: `promptTokens`, `completionTokens`, `latencyMs`, `cacheHit`
+- Rolling 7‑day smoothing to detect anomalous spikes
+
+### Moderation Flow (Minimal → Advanced)
+
+| Phase | Mechanism                          | Output Persistence                     |
+| ----- | ---------------------------------- | -------------------------------------- |
+| 1     | Automated policy regex + allowlist | Direct if clean                        |
+| 2     | LLM-based safety classification    | Direct if low-risk                     |
+| 3     | Human spot review (sample %)       | Already persisted; rollback if flagged |
+| 4     | Adaptive sampling (risk-weighted)  | Dynamic sample ratio                   |
+
+### Extension Hooks
+
+- `beforeGenesisPrompt(context)` → mutate assembled prompt (bounded operations only)
+- `afterGenesisResponse(rawJson)` → validate or attach custom tags
+- `beforeCrystallize(roomDraft)` → veto / modify non-core fields
+- `afterCrystallize(room)` → schedule follow-up (quests, NPC spawn)
+
+Security: Hooks operate on sanitized objects; must be pure (no external network) in consumption plan env.
+
+### Failure Handling & Re-Prompt Strategy
+
+| Failure Code     | Strategy                                              |
+| ---------------- | ----------------------------------------------------- |
+| SCHEMA_MISSING   | Add explicit schema reminder + reduce creativity temp |
+| SAFETY_FLAG      | Insert stricter tone & banned list enumerations       |
+| DUPLICATE_NEARBY | Add uniqueness clause referencing overlapping tags    |
+| EXIT_INVALID     | Regenerate exits only (partial repair)                |
+| LENGTH_EXCESS    | Request summary pass with token target                |
+
+### Telemetry Events
+
+Canonical event names (defined in `shared/src/telemetryEvents.ts`) use `Domain.[Subject].Action` PascalCase form and are emitted exclusively via `trackGameEventStrict`:
+
+- `Prompt.Genesis.Issued` (promptTokens, completionTokens?, latencyMs, cacheHit)
+- `Prompt.Genesis.Rejected` (failureCode, retryCount)
+- `Prompt.Genesis.Crystallized` (tokens, similarity, safetyVerdict)
+- `Prompt.Layer.Generated` (layerType, roomId)
+- `Prompt.Cost.BudgetThreshold` (percent)
+
+Adding a new AI prompt event requires updating the canonical list + test in `shared/test/telemetryEvents.test.ts`.
+
+### Testing Strategy (Pre-Code)
+
+- Golden prompt fixtures → deterministic hashed expected structure
+- Fuzz tests for malformed AI JSON (injection of trailing prose) → parser resilience
+- Similarity gate unit tests with synthetic embeddings
+- Red-team prompt corpus for safety regressions
+
+---
+
+_AI-first genesis pipeline section added 2025-09-25 to align with crystallization strategy._
+
 ## **Core Capabilities**
 
 ### Prompt Construction and Conditioning ⚙️

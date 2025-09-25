@@ -14,7 +14,7 @@
  * Rationale: Keeping this stub lean accelerates traversal loop validation while isolating
  * persistence concerns behind a soon-to-arrive interface—reducing refactor surface.
  */
-import {extractPlayerGuid, STARTER_ROOM_ID, trackGameEvent} from '@atlas/shared'
+import {extractPlayerGuid, STARTER_ROOM_ID, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
 import {roomStore} from '../domain/roomStore.js'
 
@@ -23,10 +23,10 @@ export async function getRoomHandler(req: HttpRequest): Promise<HttpResponseInit
     const room = roomStore.get(id)
     const playerGuid = extractPlayerGuid(req.headers)
     if (!room) {
-        trackGameEvent('Room.Get', {id, status: 404}, {playerGuid})
+        trackGameEventStrict('Room.Get', {id, status: 404}, {playerGuid})
         return {status: 404, jsonBody: {error: 'Room not found', id}}
     }
-    trackGameEvent('Room.Get', {id, status: 200}, {playerGuid})
+    trackGameEventStrict('Room.Get', {id, status: 200}, {playerGuid})
     return {status: 200, jsonBody: room}
 }
 
@@ -37,20 +37,20 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const from = roomStore.get(fromId)
     const playerGuid = extractPlayerGuid(req.headers)
     if (!from) {
-        trackGameEvent('Room.Move', {from: fromId, direction: dir || null, status: 404, reason: 'from-missing'}, {playerGuid})
+        trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 404, reason: 'from-missing'}, {playerGuid})
         return {status: 404, jsonBody: {error: 'Current room not found', from: fromId}}
     }
     const exit = from.exits?.find((e) => e.direction === dir)
     if (!exit || !exit.to) {
-        trackGameEvent('Room.Move', {from: fromId, direction: dir || null, status: 400, reason: 'no-exit'}, {playerGuid})
+        trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 400, reason: 'no-exit'}, {playerGuid})
         return {status: 400, jsonBody: {error: 'No such exit', from: fromId, direction: dir}}
     }
     const dest = roomStore.get(exit.to)
     if (!dest) {
-        trackGameEvent('Room.Move', {from: fromId, direction: dir || null, status: 500, reason: 'target-missing'}, {playerGuid})
+        trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 500, reason: 'target-missing'}, {playerGuid})
         return {status: 500, jsonBody: {error: 'Exit target missing', to: exit.to}}
     }
-    trackGameEvent('Room.Move', {from: fromId, to: dest.id, direction: dir || null, status: 200}, {playerGuid})
+    trackGameEventStrict('Room.Move', {from: fromId, to: dest.id, direction: dir || null, status: 200}, {playerGuid})
     return {status: 200, jsonBody: dest}
 }
 

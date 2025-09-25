@@ -69,6 +69,78 @@ The Extension Framework provides a **structured, modular set of APIs and tools**
 
 If you want, I can now **extend this page with a formal API schema** for the Extension Framework — mapping out endpoints, data structures, and integration hooks so it’s immediately developer‑ready for your MMO architecture.
 
+## AI-First Genesis Extension Hooks
+
+Extensions can participate in (but not silently subvert) the AI generation + crystallization pipeline described in `ai-prompt-engineering.md` and referenced by `navigation-and-traversal.md`.
+
+### Hook Surface
+
+| Hook                   | Timing                   | Input                           | Allowed Mutations                              | Purpose                        |
+| ---------------------- | ------------------------ | ------------------------------- | ---------------------------------------------- | ------------------------------ |
+| `beforeGenesisPrompt`  | Pre model call           | { basePrompt, context }         | Add guidance (<= N chars), add soft tags       | Style / motif steering         |
+| `afterGenesisResponse` | Post model raw JSON      | { draft }                       | Remove exits, adjust tags, add advisory flags  | Prune unsafe / redundant exits |
+| `beforeCrystallize`    | Pre commit               | { roomDraft, validationReport } | Block (return veto), modify non-critical props | Enforce custom policies        |
+| `afterCrystallize`     | Post commit              | { room }                        | Schedule follow-ups (quests, NPC seeds)        | Reactive content seeding       |
+| `onLayerProposed`      | New desc layer candidate | { layerDraft }                  | Approve/reject, annotate                       | Curate evolving narrative      |
+
+All hooks execute inside a constrained runtime: synchronous, CPU‑bound only, no outbound arbitrary network (prevent data exfiltration or latency blowouts). Violations disable the extension.
+
+### Policy & Safety Interlock
+
+Extensions cannot:
+
+- Inject raw unmoderated text directly into `descLayers`
+- Override safety rejection outcomes
+- Downgrade provenance fields
+
+They can:
+
+- Tighten constraints (e.g., enforce regional motif continuity)
+- Provide supplemental validation codes
+- Tag rooms with extension-specific semantic markers
+
+### Extension Registration Manifest (Draft)
+
+```
+{
+	"name": "coliseum-expansion-pack",
+	"version": "0.1.0",
+	"hooks": ["beforeGenesisPrompt","afterCrystallize"],
+	"permissions": {
+		"maxPromptAppendChars": 180,
+		"allowRoomTagging": true,
+		"allowExitPrune": true
+	},
+	"safety": { "requiresModeration": true }
+}
+```
+
+### Auditing & Telemetry
+
+Events emitted (canonical list in `shared/src/telemetryEvents.ts`; all via `trackGameEventStrict`):
+
+- `Extension.Hook.Invoked` (hook, extensionName, durationMs, success)
+- `Extension.Hook.Veto` (hook, reasonCode)
+- `Extension.Hook.Mutation` (fieldsChanged)
+
+Extensions with high veto or failure rates are auto‑sandboxed pending review.
+
+### Failure Handling
+
+| Failure Type          | Framework Response                       |
+| --------------------- | ---------------------------------------- |
+| Timeout               | Abort hook; continue without its changes |
+| Exception             | Log & mark extension health degraded     |
+| Unauthorized Mutation | Rollback mutation; flag extension        |
+
+### Collaboration with Other Extensions
+
+Hook order is deterministic: sorted by registered extension name ascending. Conflicts resolved by last-write-wins _except_ safety downgrades (blocked). Future enhancement: dependency graph & priority weights.
+
+---
+
+_AI genesis hook section added 2025-09-25 to enable safe extension participation in world creation._
+
 ---
 
 ### See Also

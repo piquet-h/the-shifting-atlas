@@ -36,4 +36,73 @@ It also supports dynamic world rules and lore systems, including environmental s
 ### World Rules & Lore
 
 - **Biome classification and transitions**  
-  Each biome—forest, desert, tundra, swamp, volcanic, celestial—is defined
+  Each biome—forest, desert, tundra, swamp, volcanic, celestial, abyssal, alpine, aquatic, urban—has:
+    - `ambientTone` (soundscape or mood anchors)
+    - `environmentalTags` (see below)
+    - `movementModifiers` (affect traversal speed / stamina DC)
+    - `encounterBias` (weights for fauna / factions / events)
+    - `hazardProfile` (cold, heat, toxicity, visibility)
+      Transitions attempt continuity unless deliberately abrupt (e.g., magical boundary). Prompt scaffolding includes previous biome + target drift factor.
+
+### Environmental Tags (Shared Taxonomy)
+
+Lightweight semantic atoms attached to Rooms, Zones, or Structures to inform AI prompts and gameplay systems. Examples:
+
+| Category   | Examples                                          | Usage                                        |
+| ---------- | ------------------------------------------------- | -------------------------------------------- |
+| Material   | `stone`, `sand`, `mossy`, `crystal`               | Texture adjectives for description layering. |
+| Atmosphere | `humid`, `arid`, `festive`, `ominous`             | Mood tuning & encounter tables.              |
+| Function   | `market`, `arena`, `shrine`, `library`            | Quest / NPC spawning heuristics.             |
+| Hazard     | `slippery`, `unstable`, `toxic_fumes`             | Skill checks & gating.                       |
+| Acoustic   | `echoing`, `muffled`, `roaring_crowd`             | Sensory layering.                            |
+| Governance | `guild_controlled`, `faction_red`, `neutral_zone` | Faction influence & lawfulness.              |
+
+Tags are additive; AI generation uses them as soft constraints. Removal/Addition of tags can trigger description regeneration events.
+
+### Layered Descriptions (Integration with Navigation Schema)
+
+To maintain authorial control while leveraging generative AI, each Room stores a stable `baseDescription` plus an ordered list of `descLayers` (see `navigation-and-traversal.md`). Layers can represent seasonal shifts, event consequences, AI embellishments, or faction occupation.
+
+Rendering order (example):
+
+1. `baseDescription`
+2. Active `event` layers (recent world changes)
+3. Active `seasonal` layer (if current in-game season matches)
+4. Most recent approved `ai` embellishment
+5. Synthesized exits summary (cached)
+
+Versioning: Each layer carries `createdUtc`, `layer`, optional `expiresUtc`, plus moderation metadata. Expired or invalidated layers are ignored without deletion (historical audit preserved).
+
+### Regeneration Triggers
+
+- **Structural change**: Exit added/removed, gate state toggled → mark `exitsSummaryCache` stale & queue AI summary refresh.
+- **Environmental delta**: Tag set updated (e.g., add `smoldering` after a fire event) → propose new `event` layer.
+- **Faction control shift**: Governance tag replaced → append new faction occupation layer instead of rewriting history.
+- **Time-based decay**: Long-lived `event` layers (e.g., temporary festival) auto-expire producing a cleanup layer describing aftermath.
+- **Player milestone**: Completion of a quest arc may unlock hidden descriptors (adds a gated layer only visible to qualified players—future personalization).
+
+### AI Safety & Moderation Notes
+
+- AI-generated text is staged first; persisted only after automated + optional human checks.
+- Disallowed content filters run before commit (safety gating). Fallback is `baseDescription` + safe subset of prior layers.
+- Prompt hashing (`promptHash`) prevents redundant costly generations when context unchanged.
+
+### Coliseum & Large Structures (Lore Perspective)
+
+Large iconic locations (Coliseum, Great Library, Sky Citadel) project identity through consistent tag clusters (`arena`, `stone`, `roaring_crowd`). The lore system treats them as _cultural anchors_ influencing:
+
+- Regional encounter flavor
+- Faction diplomatic events
+- Seasonal festivals (temporary layers)
+
+When hierarchical `Structure` vertices are introduced, global lore events may target the parent, cascading regeneration to contained Rooms with tailored modifiers.
+
+### Cross-Document Links
+
+- Structural + exit schema: `navigation-and-traversal.md`
+- Prompt assembly: `ai-prompt-engineering.md`
+- Faction dynamics (influences tags): `factions-and-governance.md`
+
+---
+
+_Additions (2025-09-25): Completed biome section, introduced environmental tags, description layering, regeneration triggers, and structure lore alignment._

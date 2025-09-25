@@ -6,6 +6,7 @@
 /* global process */
 import appInsights from 'applicationinsights'
 import {SERVICE_BACKEND, SERVICE_SWA_API} from './serviceConstants.js'
+import {GameEventName, isGameEventName} from './telemetryEvents.js'
 
 // Only initialize once (Functions can hot-reload in watch mode)
 if (!appInsights.defaultClient) {
@@ -61,10 +62,52 @@ function resolvePersistenceMode(explicit?: string | null): string | undefined {
 }
 
 export function trackGameEvent(name: string, properties?: Record<string, unknown>, opts?: GameTelemetryOptions) {
+    // Backward-compatible route (will eventually be deprecated in favor of trackGameEventStrict)
     const finalProps: Record<string, unknown> = {...properties}
-    if (finalProps.service === undefined) {
-        finalProps.service = opts?.serviceOverride || inferService()
+    if (finalProps.service === undefined) finalProps.service = opts?.serviceOverride || inferService()
+    const pm = resolvePersistenceMode(opts?.persistenceMode)
+    if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
+    if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
+    trackEvent(name, finalProps)
+}
+
+// Typed payload map (lightweight – extend as events are actually emitted)
+export interface EventPayloadMap {
+    'Ping.Invoked': {echo?: string | null; latencyMs?: number}
+    'Onboarding.GuestGuid.Created': {phase?: string}
+    'Auth.Player.Upgraded': {linkStrategy?: string; hadGuestProgress?: boolean}
+    'Room.Get': {id: string; status: number}
+    'Room.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
+    'World.Room.Generated': {roomId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
+    'World.Room.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}
+    'World.Layer.Added': {roomId: string; layerType: string}
+    'World.Exit.Created': {fromRoomId: string; toRoomId: string; dir: string; kind: string; genSource?: string}
+    'Prompt.Genesis.Issued': {promptHash: string; model: string; contextSize?: number}
+    'Prompt.Genesis.Rejected': {promptHash: string; failureCode: string}
+    'Prompt.Genesis.Crystallized': {promptHash: string; roomId: string; tokensPrompt?: number; tokensCompletion?: number}
+    'Prompt.Layer.Generated': {roomId: string; layerType: string; promptHash: string}
+    'Prompt.Cost.BudgetThreshold': {percent: number}
+    'Extension.Hook.Invoked': {extensionName: string; hook: string; durationMs: number; success: boolean}
+    'Extension.Hook.Veto': {extensionName: string; hook: string; reasonCode: string}
+    'Extension.Hook.Mutation': {extensionName: string; hook: string; fieldsChanged: string[]}
+    'Multiplayer.LayerDelta.Sent': {roomId: string; layerCount: number; recipients: number}
+    'Multiplayer.RoomSnapshot.HashMismatch': {roomId: string; clientHash: string; serverHash: string}
+    'Multiplayer.Movement.Latency': {roomIdFrom: string; roomIdTo: string; serverMs: number; networkMs?: number}
+    'Telemetry.EventName.Invalid': {requested: string}
+}
+
+export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEventName>(
+    name: E,
+    properties: EventPayloadMap[E],
+    opts?: GameTelemetryOptions
+) {
+    if (!isGameEventName(name)) {
+        // Fall back for forward compatibility; still record but flag
+        trackGameEvent('Telemetry.EventName.Invalid', {requested: name})
+        return
     }
+    const finalProps: Record<string, unknown> = {...(properties as Record<string, unknown>)}
+    if (finalProps.service === undefined) finalProps.service = opts?.serviceOverride || inferService()
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid

@@ -10,6 +10,299 @@ The system powers a persistent, MMO-scale text adventure blending D&D mechanics 
 
 Locations are represented as nodes in a 3D graph, with exits as edges storing directional vectors and rich metadata. The system ensures intuitive, context-aware navigation and dynamic location generation using Azure OpenAI and Cosmos DB.
 
+## Graph Schema (Initial Implementation Target)
+
+This section narrows the aspirational vision into a concrete, minimal-yet-extensible graph model for the first traversal milestone.
+
+### Vertex Types
+
+| Label                        | Purpose                                                            | Notes                                                   |
+| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
+| `Room`                       | A discrete traversable space presented to the player.              | Smallest interaction unit (where LOOK text renders).    |
+| `Structure` (optional later) | Large composite location (e.g., Coliseum) grouping internal rooms. | Enables hierarchical navigation & aggregated analytics. |
+| `Zone` (future)              | Thematic/biome region spanning many rooms.                         | Used for encounter tables & faction influence.          |
+| `Portal` (optional)          | Special traversal anchor (teleport pad, waystone).                 | Distinct semantics from ordinary exits.                 |
+
+Initial implementation uses only `Room`; `Structure` and `Zone` are design placeholders so early decisions don’t block future hierarchy.
+
+### Edge Types
+
+| Label               | Direction           | Purpose                                                                       | Key Properties                                                                           |
+| ------------------- | ------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `EXIT`              | `Room -> Room`      | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelMs`, `state`, `gating`, `genSource`, `version` |
+| `CONTAINS`          | `Structure -> Room` | Hierarchical membership (arena owns inner ring rooms).                        | `role` (e.g., `outer_concourse`, `inner_stage`)                                          |
+| `CONNECTS` (future) | `Zone <-> Zone`     | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                           |
+| `LINKS` (future)    | `Room -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                             |
+| `VANTAGE` (future)  | `Room -> Room`      | One-way descriptive visibility (you can see the arena floor from the stands). | `visibilityTier`, `obstruction`                                                          |
+
+Only `EXIT` is required for the MVP. Others provide a roadmap (do not implement prematurely).
+
+### Core Properties
+
+Room Vertex (`Room`):
+
+- `id` (GUID)
+- `name`
+- `baseDescription` (human-authored stable text)
+- `descLayers` (array of layered description objects; see AI section)
+- `biome` (string)
+- `tags` (string[]; e.g. `"urban"`, `"arena"`, `"stone"`)
+- `vector` (object: `{ x, y, z }`) – optional in earliest slice (can stub `{0,0,0}`)
+- `exitsSummaryCache` (string; regenerated when exits change)
+- `lastGeneratedUtc` (ISO; when AI layer updated)
+- `revision` (int, optimistic concurrency)
+
+Exit Edge (`EXIT`):
+
+- `dir` (enum token – cardinal, vertical, semantic, radial)
+- `name` (player-facing label; e.g. `North Gate`, `Archway`, `Tunnel`)
+- `kind` (`cardinal` | `vertical` | `radial` | `semantic` | `portal`)
+- `distance` (relative units or abstract difficulty metric)
+- `travelMs` (approx movement time; default null initially)
+- `state` (`open` | `closed` | `locked` | `concealed`)
+- `gating` (optional expression: e.g. `requires:item:bronze_key` or `skill:athletics>=12`)
+- `accessibility` (object: `{ mobility: boolean, lowVision: boolean }` future)
+- `genSource` (`manual` | `ai` | `hybrid`)
+- `version` (int)
+- `createdUtc`
+
+### Rationale for a Single `EXIT` Label
+
+Using one edge label with a `dir` + `kind` property avoids edge label explosion (`EXIT_NORTH`, `EXIT_SOUTH`, ...). Query patterns remain simple:
+
+```
+g.V(roomId).outE('EXIT').has('dir','north').inV()
+```
+
+Directional synonyms ("n", "north", "North Gate") are normalized at the command parsing layer, _not_ stored as multiple edges.
+
+## Modeling Complex Multi-Exit Structures (Coliseum Example)
+
+Scenario: A circular outer concourse with multiple numbered gates leading inward to the arena floor, plus service tunnels and vertical stands access.
+
+Approach Options:
+
+1. **Flat Rooms Only (MVP)** – Each concourse segment and the arena floor are `Room` vertices; gates are `EXIT` edges. Pros: simplest now. Cons: analytics across the entire coliseum require grouping logic later.
+2. **Introduce `Structure` Vertex (Later)** – A single `Structure` vertex (`Coliseum`) with `CONTAINS` edges to its internal `Room`s. Enables aggregated metrics (players inside, events broadcast scope) and AI prompts referencing parent context.
+
+MVP Recommendation: Implement the coliseum using only `Room` + `EXIT`, _but_ name/tag rooms with a consistent scheme:
+
+- `Coliseum Concourse NW`
+- `Coliseum Concourse North`
+- `Coliseum Gate 3`
+- `Coliseum Arena Floor`
+
+Add shared tags: `arena`, `coliseum`, `public` so future queries can group them:
+
+```
+g.V().hasLabel('Room').has('tags','arena')
+```
+
+### Internal vs Radial Exits
+
+- **Radial (inward/outward)**: Use `kind: 'radial'` with `dir: 'in'` or `dir: 'out'` (paired edges). Name edges for specificity: `North Gate`, `Gate 3`.
+- **Concourse Circumference**: Cardinal or semantic (e.g., `clockwise`, `counterclockwise`) – store as `kind: 'semantic'`, `dir: 'clockwise'` if adopting rotational movement.
+- **Vertical Access**: Stands/seating tiers use `kind: 'vertical'`, `dir: 'up'` / `dir: 'down'`.
+
+### Vantage & Visibility (Deferred)
+
+To describe seeing the arena from the stands without enabling traversal, add a future `VANTAGE` edge (directional, one-way). The presence of `VANTAGE` allows the LOOK command in the source room to merge sensory fragments from the target.
+
+## Exit Taxonomy & Direction Normalization
+
+| Kind              | Examples                              | Player Input Examples             | Normalization Output (`dir`) |
+| ----------------- | ------------------------------------- | --------------------------------- | ---------------------------- |
+| `cardinal`        | north, south-east                     | `n`, `N`, `north`                 | `north`                      |
+| `vertical`        | up/down ladders                       | `climb up`, `u`                   | `up`                         |
+| `radial`          | inward/outward in circular structures | `in`, `enter arena`, `out`        | `in` / `out`                 |
+| `semantic`        | `archway`, `iron door`, `tunnel`      | `through archway`                 | canonical slug (`archway`)   |
+| `portal` (future) | waystone, shrine                      | `teleport shrine`, `use waystone` | slug of portal               |
+
+Parsing layer resolves synonyms → canonical `dir` + optional target filter (e.g. choose between two `archway` edges by disambiguating with ordinal or additional descriptor).
+
+## AI-Assisted Description & Exit Generation (Layered Model)
+
+We preserve design control & moderation while leveraging generative AI:
+
+`baseDescription` – Hand-authored, safe fallback.
+`descLayers[]` – Array of layered augmentation objects:
+
+```
+{
+    layer: 'ai',            // or 'event', 'seasonal'
+    text: 'Roaring crowds...',
+    model: 'gpt-4o-mini',
+    promptHash: 'sha256:abc123',
+    createdUtc: '2025-09-25T12:34:00Z',
+    moderation: { approved: true, reviewer: 'designerA' }
+}
+```
+
+Render pipeline for LOOK:
+
+1. Start with `baseDescription`.
+2. Append enabled `descLayers` in priority order (e.g., `event` > `ai` > `seasonal`).
+3. Append synthesized exits summary (from `exitsSummaryCache`).
+
+Exit generation uses a two-pass prompt approach:
+
+1. **Structure pass**: Ask model for candidate exits (JSON) with `dir`, `kind`, `narrativeHook`.
+2. **Description pass**: For each accepted exit edge, generate a short phrase for origin-facing description; store in edge property `edgeDesc` (optional, can be deferred until edges are stable).
+
+Regeneration triggers:
+
+- Edge add/remove → mark room `exitsSummaryCache` stale.
+- World event (e.g., `gate_closed`) → append new `event` layer or modify edge `state`.
+- Scheduled freshness job (e.g., weekly) → re-run AI layer _only if_ last change > threshold.
+
+Moderation pipeline (initially manual override): Generated text is NOT persisted into `descLayers` until a flag is set (avoid storing unreviewed hallucinations). Early MVP can skip moderation fields but structure them for forward compatibility.
+
+## Gremlin Query Examples (Illustrative)
+
+Get all exits & target room names for a room:
+
+```
+g.V(roomId).outE('EXIT').as('e').inV().project('dir','name','to')
+    .by(values('dir'))
+    .by(values('name'))
+    .by(values('name'))
+```
+
+Traverse via direction if open:
+
+```
+g.V(roomId).outE('EXIT')
+    .has('dir','north').has('state','open')
+    .inV().limit(1)
+```
+
+List radial inward gates from concourse:
+
+```
+g.V(concourseId).outE('EXIT')
+    .has('kind','radial').has('dir','in')
+    .inV()
+```
+
+Find rooms needing exit summary regeneration (no cache or stale):
+
+```
+g.V().hasLabel('Room')
+    .has('exitsSummaryCache',within('', null))
+```
+
+## Implementation Phases Alignment
+
+| Phase | Scope                                             | Notes                                         |
+| ----- | ------------------------------------------------- | --------------------------------------------- |
+| 1     | Rooms + `EXIT` edges + baseDescription            | Hardcoded seed, no AI, manual creation.       |
+| 2     | Normalization + exit summary cache                | Player-friendly LOOK output.                  |
+| 3     | AI candidate exits (non-persisted until approved) | Store proposals separately (not yet modeled). |
+| 4     | AI description layers + regeneration triggers     | Introduce `descLayers`.                       |
+| 5     | Hierarchical `Structure` + vantage edges          | Complex spatial narration.                    |
+
+## AI-First Crystallization Strategy
+
+> Philosophy: The world is born through AI "genesis transactions" that crystallize into immutable base layers. Subsequent change is additive (event/faction/season layers) — never silent destructive rewrites. Non-determinism is embraced; auditability and provenance guarantee trust.
+
+| Stage | Focus               | AI Role                | Human Gate              | Structural Volatility     | Advancement Signals                      |
+| ----- | ------------------- | ---------------------- | ----------------------- | ------------------------- | ---------------------------------------- |
+| A     | Anchor Rooms        | None (hand-authored)   | Designer                | None                      | Baseline traversal & telemetry online    |
+| B     | AI Genesis          | Full room + exits JSON | Auto unless flagged     | Adds new nodes/edges only | Low duplication & safety pass rate > 95% |
+| C     | Event Layers        | Describe world change  | Sometimes (high-impact) | Non-structural overlays   | Latency & cost within budget             |
+| D     | Perspective/Sensory | Alternate views        | Optional                | Non-structural            | Engagement uplift vs control sample      |
+| E     | Epoch Evolution     | Motif/style shifts     | Manual                  | Limited new branches      | Stable retention & low confusion metrics |
+| F     | Player Co-Creation  | Constrained imprints   | Required                | Micro-layer only          | Moderation turnaround < SLA              |
+
+### Generation (Genesis) Pipeline
+
+1. **Intent** (exploration, scripted expansion, extension hook)
+2. **Context Assembly**: Nearby room snapshot, biome distribution, active faction states, prior motifs, uniqueness embeddings
+3. **Prompt Build** (see `ai-prompt-engineering.md`): includes safety & style constraints
+4. **Model Response** → structured JSON
+5. **Validation Gates**:
+    - Schema completeness
+    - Safety / profanity filter
+    - Name uniqueness / collision check
+    - Embedding similarity threshold (reject if too similar to neighbors)
+    - Tag hygiene (no forbidden combos)
+6. **Staging Vertex**: `status: 'pending'` (not yet visible)
+7. **Crystallize**: Commit to `Room` + `EXIT` edges; set `creationEpoch`; persist `provenance`
+8. **Post-Commit Hooks**: Index embedding, schedule optional vantage proposals, emit telemetry
+
+### Provenance Object
+
+Stored on each generated room (and optionally on exits):
+
+```
+provenance: {
+    genSource: 'ai',
+    model: 'gpt-4o-mini',
+    promptHash: 'sha256:...',
+    contextWindow: { nearby: 8, biome: 'urban_spire' },
+    embeddingHash: 'sha256:...',
+    approvedBy: 'auto' | 'moderator:<id>',
+    createdUtc: '2025-09-25T12:34:00Z'
+}
+```
+
+### Mutation via Layers (No Base Rewrite)
+
+- Structural events add edges / set edge `state`
+- Environmental, faction, catastrophe, seasonal -> new `descLayers` entries
+- Restoration / aftermath -> layer referencing prior state (audit chain preserved)
+
+### Safeguards
+
+| Risk                    | Control                                           |
+| ----------------------- | ------------------------------------------------- |
+| Offensive / unsafe text | Safety filter + moderation staging                |
+| Semantic duplication    | Embedding nearest-neighbor reject                 |
+| Cost runaway            | Token budget & per-epoch caps                     |
+| Player confusion        | Change layers always narrate _why_                |
+| Irreversible bloat      | Rollback log of genesis transactions & edge diffs |
+
+### Minimal Anchor Phase (Stage A)
+
+Even AI-first strategy benefits from 5–8 curated anchor rooms to establish style, biome gradients, and motif seeds feeding early prompts.
+
+### Telemetry (Key Events)
+
+Canonical event names follow the `Domain.[Subject].Action` PascalCase pattern (2–3 segments) and are centrally defined in `shared/src/telemetryEvents.ts`. Do not introduce ad‑hoc names here—extend the canonical list first if a new event is required.
+
+- `World.Room.Generated` (tokens, latencyMs, safetyResult, similarityScore)
+- `World.Room.Rejected` (failureCode)
+- `World.Layer.Added` (layerType, roomId)
+- `World.Exit.Created` (dir, kind, genSource)
+
+Instrumentation MUST use `trackGameEventStrict` to enforce name validity; legacy helpers should be migrated.
+
+### Advancement Criteria (B → C)
+
+- Sustained similarity rejection < 10%
+- Safety false-positive rate acceptable (< 3%)
+- Median genesis latency within target (< X ms after warm)
+
+Refer to: `ai-prompt-engineering.md` for prompt schemas; `extension-framework.md` for pre/post genesis hooks.
+
+## Open Questions (Tracked)
+
+- Do we move player location as a property (`currentRoomId`) or add `AT` edges? (MVP: property, migration path documented.)
+- Should exit edge contain inverse reference metadata for summary optimization? (Likely unnecessary early; can query reverse.)
+- Do we cache direction synonyms per locale? (Internationalization deferred.)
+
+## Next Actions
+
+1. Implement `Room` + `EXIT` TypeScript interfaces (shared module).
+2. Create `HttpCreateRoom`, `HttpLinkRooms`, `HttpGetRoom` Functions.
+3. Implement direction normalization utility (string → { dir, kind }).
+4. Add seed script for small coliseum slice (outer concourse + arena + 2 gates).
+5. Defer AI integration until baseline traversal & tests pass.
+
+---
+
+_This schema section was added (2025-09-25) to prevent rework before coding the traversal layer._
+
 ## Location Generation
 
 1. **Trigger: Location Creation with Exit Expansion**

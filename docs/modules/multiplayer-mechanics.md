@@ -31,6 +31,64 @@ Create a living, multiplayer world where collaboration, conflict, and shared sto
 
 ### Instance management and matchmaking
 
+## World State Layers & Synchronization
+
+Multiplayer visibility of evolving locations leverages the **immutable base + additive layer** model defined in `navigation-and-traversal.md` and enriched via AI genesis (`ai-prompt-engineering.md`).
+
+### Layer Categories (Read-Only to Clients)
+
+| Layer Type  | Example                                | Sync Characteristics                                            |
+| ----------- | -------------------------------------- | --------------------------------------------------------------- |
+| Base        | Original room genesis description      | Cached aggressively; invalidates only on structural audit fixes |
+| Event       | "A fresh barricade blocks the archway" | Propagated immediately (low TTL caching)                        |
+| Faction     | "Banners of the Azure Sigil hang here" | Region-scope invalidation on faction shift                      |
+| Seasonal    | "Lanterns glow for the Equinox"        | Preloaded via seasonal manifest                                 |
+| Catastrophe | "Ash and embers swirl in the ruin"     | High-priority fan‑out (push)                                    |
+| Aftermath   | "Charred beams now cool in silence"    | Replaces catastrophe layer ordering, not base                   |
+
+### Consistency Model
+
+- **Room Snapshot**: Server composes ordered layers → hash → clients diff apply.
+- **Delta Broadcast**: Only new/removed layer IDs + changed exit states.
+- **Conflict Avoidance**: Player-authored micro-layers (future) require optimistic version; reject on mismatch.
+
+### Traversal Event Flow (Simplified)
+
+1. Player issues move.
+2. Server validates `EXIT` (state=open, gating satisfied).
+3. Movement committed; latency + network timing recorded via `Multiplayer.Movement.Latency`. If traversal reveals or creates an additive layer, emit `World.Layer.Added`.
+4. Party sync: party members receive prioritized delta packet with new room hash and delta layers.
+
+### Latency Targets (Aspirational)
+
+| Operation                               | p50      | p95      |
+| --------------------------------------- | -------- | -------- |
+| Movement round-trip (no genesis)        | < 250ms  | < 500ms  |
+| Movement + on-demand genesis (new room) | < 1200ms | < 1800ms |
+| Layer push fan-out (<= 500 subs)        | < 300ms  | < 650ms  |
+
+### Anti-Griefing Integration
+
+Griefing signals (quest sabotage, harassment patterns) reduce _layer publication privileges_ for player-authored overlays (future feature) without desynchronizing core structural updates.
+
+### Telemetry (Multiplayer Scope)
+
+Canonical events (see `shared/src/telemetryEvents.ts`; all emitted via `trackGameEventStrict`):
+
+- `Multiplayer.LayerDelta.Sent` (layerCount, bytes, recipients)
+- `Multiplayer.RoomSnapshot.HashMismatch` (clientHash, serverHash)
+- `Multiplayer.Movement.Latency` (serverMs, networkMs)
+
+### Open Considerations
+
+- Regional batching of broadcast vs per-room micro-packets.
+- Predictive prefetch of adjacent room layer sets for fast parties.
+- Privacy gates for secret layers (individual vs group discovery state).
+
+---
+
+_Multiplayer layer synchronization section added 2025-09-25 to align with AI-first world crystallization._
+
 - Shard logic: local vs. global state
 - Matchmaking protocols and encounter scaling
 - World event triggers and resolution tracking

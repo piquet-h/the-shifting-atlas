@@ -1,4 +1,4 @@
-import {trackGameEvent} from '@atlas/shared'
+import {trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
 import crypto from 'crypto'
 
@@ -37,7 +37,7 @@ export async function playerBootstrap(request: HttpRequest, context: InvocationC
 
     if (created) {
         const playerGuid = guid
-        trackGameEvent('Onboarding.GuestGuid.Created', {phase: 'bootstrap'}, {playerGuid})
+        trackGameEventStrict('Onboarding.GuestGuid.Created', {phase: 'bootstrap'}, {playerGuid})
     }
 
     const body: BootstrapResponseBody = {playerGuid: guid!, created}
