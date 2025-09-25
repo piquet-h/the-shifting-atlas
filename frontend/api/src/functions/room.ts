@@ -14,13 +14,14 @@
  * Rationale: Keeping this stub lean accelerates traversal loop validation while isolating
  * persistence concerns behind a soon-to-arrive interface—reducing refactor surface.
  */
-import {extractPlayerGuid, STARTER_ROOM_ID, trackGameEventStrict} from '@atlas/shared'
+import {extractPlayerGuid, getRoomRepository, STARTER_ROOM_ID, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
-import {roomStore} from '../domain/roomStore.js'
+// Repository abstraction (Week 1) replaces direct in-memory store usage.
+const roomRepo = getRoomRepository()
 
 export async function getRoomHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const id = req.query.get('id') || STARTER_ROOM_ID
-    const room = roomStore.get(id)
+    const room = await roomRepo.get(id)
     const playerGuid = extractPlayerGuid(req.headers)
     if (!room) {
         trackGameEventStrict('Room.Get', {id, status: 404}, {playerGuid})
@@ -34,7 +35,7 @@ export async function getRoomHandler(req: HttpRequest): Promise<HttpResponseInit
 export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const fromId = req.query.get('from') || STARTER_ROOM_ID
     const dir = (req.query.get('dir') || '').toLowerCase()
-    const from = roomStore.get(fromId)
+    const from = await roomRepo.get(fromId)
     const playerGuid = extractPlayerGuid(req.headers)
     if (!from) {
         trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 404, reason: 'from-missing'}, {playerGuid})
@@ -45,13 +46,15 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 400, reason: 'no-exit'}, {playerGuid})
         return {status: 400, jsonBody: {error: 'No such exit', from: fromId, direction: dir}}
     }
-    const dest = roomStore.get(exit.to)
-    if (!dest) {
-        trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: 500, reason: 'target-missing'}, {playerGuid})
-        return {status: 500, jsonBody: {error: 'Exit target missing', to: exit.to}}
+    const result = await roomRepo.move(fromId, dir)
+    if (result.status === 'error') {
+        const reason = result.reason
+        const statusMap: Record<string, number> = {['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500}
+        trackGameEventStrict('Room.Move', {from: fromId, direction: dir || null, status: statusMap[reason] || 500, reason}, {playerGuid})
+        return {status: statusMap[reason] || 500, jsonBody: {error: reason}}
     }
-    trackGameEventStrict('Room.Move', {from: fromId, to: dest.id, direction: dir || null, status: 200}, {playerGuid})
-    return {status: 200, jsonBody: dest}
+    trackGameEventStrict('Room.Move', {from: fromId, to: result.room.id, direction: dir || null, status: 200}, {playerGuid})
+    return {status: 200, jsonBody: result.room}
 }
 
 app.http('RoomGet', {

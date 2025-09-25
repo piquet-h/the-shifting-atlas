@@ -74,10 +74,12 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
 // Typed payload map (lightweight – extend as events are actually emitted)
 export interface EventPayloadMap {
     'Ping.Invoked': {echo?: string | null; latencyMs?: number}
+    'Onboarding.GuestGuid.Started': Record<string, never>
     'Onboarding.GuestGuid.Created': {phase?: string}
     'Auth.Player.Upgraded': {linkStrategy?: string; hadGuestProgress?: boolean}
     'Room.Get': {id: string; status: number}
     'Room.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
+    'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; roomId?: string | null}
     'World.Room.Generated': {roomId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
     'World.Room.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}
     'World.Layer.Added': {roomId: string; layerType: string}

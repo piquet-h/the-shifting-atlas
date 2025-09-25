@@ -89,6 +89,36 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 
 Add dimensions sparingly; prefer a single event with multiple dimensions over many granular events that fragment analysis.
 
+## Current Canonical Event Set (Week 1 Post-Refactor)
+
+| Event Name                              | Purpose                                           |
+| --------------------------------------- | ------------------------------------------------- |
+| `Ping.Invoked`                          | Health / latency probe                            |
+| `Onboarding.GuestGuid.Started`          | Begin guest bootstrap attempt                     |
+| `Onboarding.GuestGuid.Created`          | New guest GUID allocated                          |
+| `Auth.Player.Upgraded`                  | Guest upgraded / linked identity                  |
+| `Room.Get`                              | Room fetch (status dimension for 200/404)         |
+| `Room.Move`                             | Movement attempt outcome                          |
+| `Command.Executed`                      | Frontend command lifecycle (ad-hoc CLI)           |
+| `World.Room.Generated`                  | AI genesis accepted (future)                      |
+| `World.Room.Rejected`                   | AI genesis rejected (future)                      |
+| `World.Layer.Added`                     | Description / ambience layer persisted (future)   |
+| `World.Exit.Created`                    | Exit creation (manual or AI)                      |
+| `Prompt.Genesis.Issued`                 | Prompt sent to model (future)                     |
+| `Prompt.Genesis.Rejected`               | Prompt output rejected during validation (future) |
+| `Prompt.Genesis.Crystallized`           | Accepted prompt output stored                     |
+| `Prompt.Layer.Generated`                | Non-structural layer generation event             |
+| `Prompt.Cost.BudgetThreshold`           | Cost budget threshold crossed                     |
+| `Extension.Hook.Invoked`                | Extension hook invocation                         |
+| `Extension.Hook.Veto`                   | Extension prevented operation                     |
+| `Extension.Hook.Mutation`               | Extension mutated draft entity                    |
+| `Multiplayer.LayerDelta.Sent`           | Multiplayer layer diff broadcast (future)         |
+| `Multiplayer.RoomSnapshot.HashMismatch` | Client/server snapshot divergence                 |
+| `Multiplayer.Movement.Latency`          | Movement latency decomposition (future)           |
+| `Telemetry.EventName.Invalid`           | Guard rail emission for invalid names             |
+
+Events marked (future) may not yet emit in runtime; they are reserved to reduce future naming churn.
+
 ## Emission Guidelines
 
 1. Emit on boundary decisions (success vs error) rather than every internal step.

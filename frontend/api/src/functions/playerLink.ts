@@ -1,6 +1,5 @@
-import {trackGameEventStrict} from '@atlas/shared'
+import {getPlayerRepository, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
-import {__players as players} from './playerBootstrap.js'
 
 /**
  * playerLink
@@ -22,6 +21,8 @@ interface LinkResponseBody {
 }
 
 export async function playerLink(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    // Acquire repository per invocation to ensure we see fresh singleton even after test resets
+    const playerRepo = getPlayerRepository()
     let body: LinkRequestBody = {}
     try {
         body = (await request.json()) as LinkRequestBody
@@ -32,7 +33,7 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
     if (!guid) {
         return json(400, {error: 'playerGuid required'})
     }
-    const record = players.get(guid) as PlayerRecordExtended | undefined
+    const record = await playerRepo.get(guid)
     if (!record) {
         return json(404, {error: 'player not found'})
     }
@@ -41,8 +42,7 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
 
     const alreadyLinked = !!record.externalId && record.guest === false
     if (!alreadyLinked) {
-        record.externalId = externalId
-        record.guest = false
+        await playerRepo.linkExternalId(guid, externalId)
         const playerGuid = guid
         trackGameEventStrict('Auth.Player.Upgraded', {linkStrategy: 'merge', hadGuestProgress: true}, {playerGuid})
     }
@@ -72,10 +72,4 @@ app.http('playerLink', {
     handler: playerLink
 })
 
-// Extend runtime record shape (augmentation of bootstrap's PlayerRecord)
-interface PlayerRecordExtended {
-    id: string
-    createdUtc: string
-    guest: boolean
-    externalId?: string
-}
+// PlayerRecord shape defined in shared repository (imported via getPlayerRepository())

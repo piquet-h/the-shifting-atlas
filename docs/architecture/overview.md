@@ -20,17 +20,27 @@ This overview provides a concise narrative bridge between the high‑level visio
 
 ## Current Slice (MVP Stage)
 
-Implemented (thin slice – see repo for exact handlers, kept terse to avoid drift): Static Web App (frontend + managed API), experimental empty `backend/` Functions app, provisioned (unused) Cosmos + Key Vault. Only health/ping + preliminary onboarding & room stubs exist; inspect code for precise shape.
+Implemented (thin slice – see repo for exact handlers):
+
+- Static Web App (frontend + managed API)
+- Experimental separate `backend/` Functions app (health + ping)
+- Repository abstraction (memory adapters) for Rooms & Players
+- In‑memory traversal (2 rooms, movement + fetch handlers)
+- Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
+- Canonical telemetry framework (`trackGameEventStrict`, event name governance)
+- Phase 0 MCP stubs: `world-query` (read-only), `prompt-template` (hashing registry)
+
+Still provisioned but unused: Cosmos DB, Service Bus, Key Vault (no runtime bindings yet).
 
 Not yet implemented (planned):
 
 - Service Bus queue + queue‑triggered world/NPC processors
-- Runtime Gremlin client & schema bootstrap
-- Runtime SQL Api client & schema bootstrap
-- Custom telemetry events (only base collection exists)
+- Runtime Gremlin client & schema bootstrap (Cosmos persistence adapters)
+- Runtime SQL API client (if needed for non-graph entities)
 - Managed identity graph access (replace key‑based secret)
-- Movement / traversal logic & world persistence
-- AI prompt integration & dynamic content
+- Persistent traversal + exit normalization (current memory only)
+- AI prompt integration & dynamic content (advisory then genesis)
+- Telemetry MCP server + cost dashboards
 
 ## Evolution Path
 

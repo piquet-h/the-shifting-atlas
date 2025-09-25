@@ -30,7 +30,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             const stored = sessionStorage.getItem('tsa.currentRoomId')
             if (stored) {
                 setCurrentRoomId(stored)
-                trackGameEventClient('Room.Restored', {roomId: stored})
+                // Restoration telemetry is represented implicitly via subsequent Room.Get; no separate event to avoid drift.
             }
         } catch {
             /* ignore storage errors */
@@ -120,14 +120,13 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             } finally {
                 setBusy(false)
                 setHistory((h) => h.map((rec) => (rec.id === id ? {...rec, response, error, latencyMs} : rec)))
+                // Canonical event (Command.Executed) now part of shared telemetry specification.
                 trackGameEventClient('Command.Executed', {
                     command: raw.split(/\s+/)[0],
-                    full: raw,
                     success: !error,
-                    latencyMs,
+                    latencyMs: latencyMs ?? null,
                     error: error || undefined,
-                    roomId: currentRoomId || null,
-                    playerGuid: effectiveGuid || null
+                    roomId: currentRoomId || null
                 })
             }
         },

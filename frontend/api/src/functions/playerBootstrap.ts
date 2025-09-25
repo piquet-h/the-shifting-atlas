@@ -1,15 +1,5 @@
-import {trackGameEventStrict} from '@atlas/shared'
+import {getPlayerRepository, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
-import crypto from 'crypto'
-
-/** In-memory player registry (MVP / PR1). Replaced by Cosmos in later PR. */
-const players = new Map<string, PlayerRecord>()
-
-interface PlayerRecord {
-    id: string
-    createdUtc: string
-    guest: boolean
-}
 
 interface BootstrapResponseBody {
     playerGuid: string
@@ -20,40 +10,15 @@ interface BootstrapResponseBody {
 const HEADER_PLAYER_GUID = 'x-player-guid'
 
 export async function playerBootstrap(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    // Obtain repository per invocation (avoids stale singleton reference in tests after resets)
+    const playerRepo = getPlayerRepository()
     const existing = request.headers.get(HEADER_PLAYER_GUID) || undefined
-
-    let created = false
-    let guid = existing
-
-    if (guid && !players.has(guid)) {
-        // Treat unknown provided guid as new (avoid 404 complexity in MVP)
-        created = true
-        players.set(guid, makePlayer(guid))
-    } else if (!guid) {
-        guid = crypto.randomUUID()
-        created = true
-        players.set(guid, makePlayer(guid))
-    }
-
-    if (created) {
-        const playerGuid = guid
-        trackGameEventStrict('Onboarding.GuestGuid.Created', {phase: 'bootstrap'}, {playerGuid})
-    }
-
-    const body: BootstrapResponseBody = {playerGuid: guid!, created}
+    trackGameEventStrict('Onboarding.GuestGuid.Started', {})
+    const {record, created} = await playerRepo.getOrCreate(existing)
+    if (created) trackGameEventStrict('Onboarding.GuestGuid.Created', {phase: 'bootstrap'}, {playerGuid: record.id})
+    const body: BootstrapResponseBody = {playerGuid: record.id, created}
     context.log('playerBootstrap', body)
-    return {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store'
-        },
-        jsonBody: body
-    }
-}
-
-function makePlayer(id: string): PlayerRecord {
-    return {id, createdUtc: new Date().toISOString(), guest: true}
+    return {status: 200, headers: {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'}, jsonBody: body}
 }
 
 app.http('playerBootstrap', {
@@ -63,5 +28,4 @@ app.http('playerBootstrap', {
     handler: playerBootstrap
 })
 
-// Export internal map for tests (not part of public API)
-export const __players = players
+// Legacy export removed; repository now encapsulates state.

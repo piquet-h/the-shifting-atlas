@@ -5,11 +5,14 @@ export const GAME_EVENT_NAMES = [
     // Core service / utility
     'Ping.Invoked',
     // Onboarding & Auth
+    'Onboarding.GuestGuid.Started',
     'Onboarding.GuestGuid.Created',
     'Auth.Player.Upgraded',
     // Player traversal + room access (non-genesis)
     'Room.Get',
     'Room.Move',
+    // Command layer (frontend CLI / parser)
+    'Command.Executed',
     'World.Room.Generated',
     'World.Room.Rejected',
     'World.Layer.Added',

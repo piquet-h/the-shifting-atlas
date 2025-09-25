@@ -1,7 +1,8 @@
+import {__resetPlayerRepositoryForTests, getPlayerRepository} from '@atlas/shared'
 import type {HttpRequest, InvocationContext} from '@azure/functions'
 import assert from 'node:assert'
 import {beforeEach, test} from 'node:test'
-import {__players, playerBootstrap} from '../src/functions/playerBootstrap.js'
+import {playerBootstrap} from '../src/functions/playerBootstrap.js'
 import {playerLink} from '../src/functions/playerLink.js'
 
 function makeContext(): InvocationContext {
@@ -22,7 +23,7 @@ function httpRequest(init: {method?: string; headers?: Record<string, string>; b
 }
 
 beforeEach(() => {
-    __players.clear()
+    __resetPlayerRepositoryForTests()
 })
 
 test('link succeeds for existing guest', async () => {
@@ -43,9 +44,11 @@ test('link succeeds for existing guest', async () => {
     assert.equal(linkBody.playerGuid, guid)
     assert.equal(linkBody.linked, true)
     assert.equal(linkBody.alreadyLinked, false)
-    const rec = __players.get(guid) as {guest: boolean; externalId?: string}
-    assert.equal(rec.guest, false)
-    assert.equal(rec.externalId, 'user-123')
+    const repo = getPlayerRepository()
+    const rec = await repo.get(guid)
+    assert.ok(rec)
+    assert.equal(rec!.guest, false)
+    assert.equal(rec!.externalId, 'user-123')
 })
 
 test('idempotent second link', async () => {
@@ -61,8 +64,10 @@ test('idempotent second link', async () => {
     )
     const linkBody = second.jsonBody as {alreadyLinked: boolean}
     assert.equal(linkBody.alreadyLinked, true)
-    const rec = __players.get(guid) as {externalId?: string}
-    assert.equal(rec.externalId, 'user-456', 'externalId should remain first linked id')
+    const repo = getPlayerRepository()
+    const rec = await repo.get(guid)
+    assert.ok(rec)
+    assert.equal(rec!.externalId, 'user-456', 'externalId should remain first linked id')
 })
 
 test('404 for unknown guid', async () => {
