@@ -22,11 +22,8 @@ import CommandInterface from './CommandInterface'
  *  - Ensure CTAs have discernible text & focus styles (Tailwind utilities)
  *  - Removed visual duplicate heading/nav cluster (nav already includes branding). h1 kept as sr-only to avoid repetition.
  */
-
-// Logo moved to dedicated component `Logo.tsx` for reuse.
-
 export default function Homepage(): React.ReactElement {
-    const {isNewUser} = useVisitState() // still used as a lightweight heuristic for first visit pre‑auth
+    const {isNewUser} = useVisitState()
     const {playerGuid, loading: guidLoading} = usePlayerGuid()
     const {isAuthenticated, loading, user, signIn} = useAuth()
     const {linking, linked, error: linkError} = useLinkGuestOnAuth()

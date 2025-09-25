@@ -32,7 +32,8 @@
         "lint:fix": "npm run lint -- --fix",
         "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
         "format": "prettier . --write",
-        "format:check": "prettier . --check"
+        "format:check": "prettier . --check",
+        "analyze:di": "node scripts/di-suitability.mjs"
     },
     "devDependencies": {
         "@azure/static-web-apps-cli": "^2.0.6",

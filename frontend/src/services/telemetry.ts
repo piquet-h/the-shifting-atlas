@@ -3,6 +3,7 @@
  * Initializes client with connection string provided via Vite env (VITE_APPINSIGHTS_CONNECTION_STRING).
  * Gracefully no-ops if not supplied (e.g., local dev without telemetry).
  */
+/* global localStorage */
 import {ApplicationInsights} from '@microsoft/applicationinsights-web'
 
 let appInsights: ApplicationInsights | undefined
@@ -29,6 +30,28 @@ export function initTelemetry() {
 export function trackEvent(name: string, properties?: Record<string, unknown>) {
     if (!appInsights) return
     appInsights.trackEvent({name}, properties as Record<string, unknown> | undefined)
+}
+
+// Higher-level game event wrapper (frontend)
+// Automatically injects service + playerGuid (from localStorage) + optional persistence mode (via env var)
+export function trackGameEventClient(name: string, properties?: Record<string, unknown>) {
+    if (!appInsights) return
+    let playerGuid: string | undefined
+    try {
+        const g = localStorage.getItem('tsa.playerGuid')
+        if (g && /^[0-9a-fA-F-]{8}/.test(g)) playerGuid = g
+    } catch {
+        /* ignore */
+    }
+    const persistenceMode = import.meta.env.VITE_PERSISTENCE_MODE || undefined
+    const service = 'frontend-web'
+    const merged: Record<string, unknown> = {
+        service,
+        ...(persistenceMode ? {persistenceMode} : {}),
+        ...(playerGuid ? {playerGuid} : {}),
+        ...properties
+    }
+    trackEvent(name, merged)
 }
 
 export function trackError(error: Error, properties?: Record<string, unknown>) {

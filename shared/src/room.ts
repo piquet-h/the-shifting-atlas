@@ -1,9 +1,7 @@
-// Shared Room domain type (pre-persistence stub)
-// Minimal shape to unblock early traversal & content loop.
 export interface RoomExit {
-    direction: string // e.g. 'north', 'south'
-    to?: string // target room id (undefined if not yet generated)
-    description?: string // optional flavor text for the exit
+    direction: string
+    to?: string
+    description?: string
 }
 
 export interface Room {

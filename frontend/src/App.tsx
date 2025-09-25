@@ -4,7 +4,6 @@ import Homepage from './components/Homepage'
 import LiveAnnouncer from './components/LiveAnnouncer'
 import Nav from './components/Nav'
 import ResponsiveLayout from './components/ResponsiveLayout'
-// Removed About & DemoForm pages (cleaned unused demo routes)
 
 /**
  * RouteFocusManager
@@ -16,7 +15,6 @@ import ResponsiveLayout from './components/ResponsiveLayout'
 function RouteFocusManager({mainRef}: {mainRef: React.RefObject<HTMLElement | null>}): null {
     const location = useLocation()
     useEffect(() => {
-        // Attempt to focus first heading for better SR context
         const heading = mainRef.current?.querySelector('h1')
         if (heading instanceof HTMLElement) heading.focus()
         else if (mainRef.current) mainRef.current.focus()

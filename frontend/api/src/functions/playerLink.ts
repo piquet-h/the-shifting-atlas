@@ -1,4 +1,4 @@
-import {trackEvent} from '@atlas/shared'
+import {trackGameEvent} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
 import {__players as players} from './playerBootstrap.js'
 
@@ -43,7 +43,8 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
     if (!alreadyLinked) {
         record.externalId = externalId
         record.guest = false
-        trackEvent('Auth.Player.Upgraded', {linkStrategy: 'merge', hadGuestProgress: true})
+        const playerGuid = guid
+        trackGameEvent('Auth.Player.Upgraded', {linkStrategy: 'merge', hadGuestProgress: true}, {playerGuid})
     }
 
     const resBody: LinkResponseBody = {

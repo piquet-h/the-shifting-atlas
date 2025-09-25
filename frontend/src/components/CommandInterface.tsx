@@ -1,7 +1,7 @@
 /* global sessionStorage */
 import React, {useCallback, useEffect, useState} from 'react'
 import {usePlayerGuid} from '../hooks/usePlayerGuid'
-import {trackEvent} from '../services/telemetry'
+import {trackGameEventClient} from '../services/telemetry'
 import CommandInput from './CommandInput'
 import CommandOutput, {CommandRecord} from './CommandOutput'
 
@@ -30,7 +30,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             const stored = sessionStorage.getItem('tsa.currentRoomId')
             if (stored) {
                 setCurrentRoomId(stored)
-                trackEvent('Room.Restored', {roomId: stored})
+                trackGameEventClient('Room.Restored', {roomId: stored})
             }
         } catch {
             /* ignore storage errors */
@@ -120,7 +120,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
             } finally {
                 setBusy(false)
                 setHistory((h) => h.map((rec) => (rec.id === id ? {...rec, response, error, latencyMs} : rec)))
-                trackEvent('Command.Executed', {
+                trackGameEventClient('Command.Executed', {
                     command: raw.split(/\s+/)[0],
                     full: raw,
                     success: !error,
