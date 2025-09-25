@@ -76,6 +76,8 @@ jobs:
                     --app-location frontend/dist \
                     --output-location '' \
                     --api-location frontend/api/dist \
+                    --api-language node \
+                    --api-version 20 \
                     --verbose
 
     preview:
@@ -98,6 +100,10 @@ jobs:
 
             - name: Build backend
               run: npm run build -w frontend/api
+
+            - name: Ensure SWA config in dist
+              run: |
+                  cp frontend/public/staticwebapp.config.json frontend/dist/staticwebapp.config.json || true
 
             - name: Azure login (OIDC)
               uses: azure/login@v2

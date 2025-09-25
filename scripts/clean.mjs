@@ -1,18 +1,10 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/**
- * Monorepo clean utility.
- *
- * Modes:
- *  --here  Cleans only the current working directory (workspace-local).
- *  --all   Cleans every workspace declared in the root package.json.
- * If neither flag is supplied, defaults to --here.
- *
- * What is removed (if present):
- *  - dist, .cache, coverage directories
- *  - *.tsbuildinfo files in the workspace root
- *
- * This replaces ad-hoc rimraf / shell globs so CI does not depend on hoisting.
+/** Monorepo cleaner.
+ * Usage: node scripts/clean.mjs [--here|--all]
+ *  --here (default) cleans current workspace
+ *  --all cleans every workspace from root package.json
+ * Removes: dist, .cache, coverage, *.tsbuildinfo (workspace root).
  */
 import {existsSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync} from 'fs'
 import process from 'node:process'
@@ -45,7 +37,6 @@ function cleanWorkspace(wsPath) {
                 log(`removed ${path.relative(CWD, target)}`)
             }
         })
-        // Remove tsbuildinfo files at workspace root
         readdirSync(abs).forEach((f) => {
             if (f.endsWith('.tsbuildinfo')) {
                 const p = path.join(abs, f)
@@ -88,7 +79,6 @@ if (modeAll) {
         const workspaces = Array.isArray(pkg.workspaces) ? pkg.workspaces : []
         log(`cleaning all workspaces: ${workspaces.join(', ')}`)
         workspaces.forEach((pattern) => {
-            // Simple: pattern is direct folder path (no globs in this repo) -> clean
             const wsPath = path.join(root, pattern)
             if (existsSync(wsPath) && statSync(wsPath).isDirectory()) cleanWorkspace(wsPath)
         })
