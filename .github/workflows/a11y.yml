@@ -43,8 +43,14 @@ jobs:
             - name: Install workspaces (ci)
               run: npm ci --workspaces
 
-            - name: Build frontend (optional for static assets)
-              run: npm run build -w frontend
+            - name: Build shared + frontend (produce types then assets)
+              run: |
+                  npm run build -w shared
+                  npm run build -w frontend
+              # Rationale: shared must emit declaration files before any workspace that (directly or indirectly)
+              # compiles TypeScript against its types. Building shared first avoids TS6305 errors if another
+              # workspace build is introduced here later (e.g., API) or if the frontend tooling ever relies on
+              # the emitted .d.ts instead of source path mapping.
 
             - name: Run accessibility scan (axe)
               run: npm run a11y

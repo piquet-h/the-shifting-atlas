@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "clean": "node ../../scripts/clean.mjs --here",
-        "build": "npm run clean && tsc -p tsconfig.json && npm run sync:static",
+        "build": "npm run clean && tsc -b tsconfig.json && npm run sync:static",
         "watch": "tsc -b --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit -p tsconfig.json",
         "test": "node --test --import=tsx test/*.test.ts",

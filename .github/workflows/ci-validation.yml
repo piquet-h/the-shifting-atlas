@@ -80,8 +80,11 @@ jobs:
             - uses: actions/checkout@v4
             - name: Node workspace setup
               uses: ./.github/actions/node-workspace-setup
-            - name: Build frontend (for production scan context)
-              run: npm run build -w frontend
+            - name: Build shared + frontend (for production scan context)
+              run: |
+                  npm run build -w shared
+                  npm run build -w frontend
+              # Ensures shared declarations exist before any other workspace compiles or tooling inspects types.
             - name: Axe scan (dev server)
               run: npm run a11y
             - name: Upload axe report
