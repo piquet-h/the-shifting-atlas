@@ -14,6 +14,7 @@ export interface IPlayerRepository {
     get(id: string): Promise<PlayerRecord | undefined>
     getOrCreate(id?: string): Promise<{record: PlayerRecord; created: boolean}>
     linkExternalId(id: string, externalId: string): Promise<{updated: boolean; record?: PlayerRecord}>
+    findByExternalId(externalId: string): Promise<PlayerRecord | undefined>
 }
 
 class InMemoryPlayerRepository implements IPlayerRepository {
@@ -40,6 +41,12 @@ class InMemoryPlayerRepository implements IPlayerRepository {
         rec.externalId = externalId
         rec.guest = false
         return {updated: true, record: rec}
+    }
+    async findByExternalId(externalId: string) {
+        for (const p of this.players.values()) {
+            if (p.externalId === externalId) return p
+        }
+        return undefined
     }
     private make(id: string): PlayerRecord {
         return {id, createdUtc: new Date().toISOString(), guest: true}
@@ -75,6 +82,10 @@ export function getPlayerRepository(): IPlayerRepository {
                     async linkExternalId(id: string, externalId: string) {
                         const repo = new CosmosPlayerRepository(await pending)
                         return repo.linkExternalId(id, externalId)
+                    },
+                    async findByExternalId(externalId: string) {
+                        const repo = new CosmosPlayerRepository(await pending)
+                        return repo.findByExternalId(externalId)
                     }
                 }
                 playerRepoSingleton = proxy

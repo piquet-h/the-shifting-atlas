@@ -36,6 +36,15 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         const updated = await this.get(id)
         return {updated: true, record: updated}
     }
+
+    async findByExternalId(externalId: string): Promise<PlayerRecord | undefined> {
+        const rows = await this.client.submit<Record<string, unknown>>(
+            "g.V().hasLabel('player').has('externalId', ext).limit(1).valueMap(true)",
+            {ext: externalId}
+        )
+        if (!rows.length) return undefined
+        return mapVertexToPlayer(rows[0])
+    }
 }
 
 function mapVertexToPlayer(v: Record<string, unknown>): PlayerRecord {
