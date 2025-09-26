@@ -1,3 +1,4 @@
+/* global localStorage */
 import React, {useEffect, useRef, useState} from 'react'
 import {useAuth} from '../hooks/useAuth'
 import {useLinkGuestOnAuth} from '../hooks/useLinkGuestOnAuth'
@@ -30,21 +31,40 @@ export default function Homepage(): React.ReactElement {
 
     // Local toast state for ephemeral welcome notification after auth.
     const [showWelcomeToast, setShowWelcomeToast] = useState(false)
+    const [showLinkToast, setShowLinkToast] = useState(false)
     const toastShownRef = useRef(false)
 
     // On initial sign-in success (user appears) announce for screen readers once.
     useEffect(() => {
         if (!loading && isAuthenticated && !toastShownRef.current) {
-            // Screen reader polite announcement region (existing behavior)
             const region = document.getElementById('mode-announcement')
             if (region) region.textContent = `Signed in as ${user?.userDetails || 'explorer'}`
-            // Trigger toast once per authenticated session mount.
             toastShownRef.current = true
             setShowWelcomeToast(true)
             const timeout = window.setTimeout(() => setShowWelcomeToast(false), 4500)
             return () => window.clearTimeout(timeout)
         }
     }, [loading, isAuthenticated, user?.userDetails])
+
+    // One-time link toast (persists across sessions via localStorage flag)
+    useEffect(() => {
+        if (linked && !linkError && typeof window !== 'undefined') {
+            try {
+                const FLAG_KEY = 'tsa.linkedToastShown'
+                if (!localStorage.getItem(FLAG_KEY)) {
+                    localStorage.setItem(FLAG_KEY, '1')
+                    setShowLinkToast(true)
+                    const t = window.setTimeout(() => setShowLinkToast(false), 5000)
+                    return () => window.clearTimeout(t)
+                }
+            } catch {
+                // ignore storage errors – still show toast once in-memory
+                setShowLinkToast(true)
+                const t = window.setTimeout(() => setShowLinkToast(false), 5000)
+                return () => window.clearTimeout(t)
+            }
+        }
+    }, [linked, linkError])
 
     return (
         // NOTE: The <main> landmark is now provided by App.tsx. This component only renders content.
@@ -214,11 +234,7 @@ export default function Homepage(): React.ReactElement {
                                         Session status
                                     </h2>
                                     <p className="text-sm text-atlas-muted">
-                                        {linkError
-                                            ? 'We will retry linking shortly.'
-                                            : linked
-                                              ? 'Your guest progress is now linked.'
-                                              : 'Your map has shifted while you were away.'}
+                                        {linkError ? 'We will retry linking shortly.' : 'Your map has shifted while you were away.'}
                                     </p>
                                 </div>
                                 {/* Removed action buttons per requirement: Enter World & Change Explorer */}
@@ -277,25 +293,61 @@ export default function Homepage(): React.ReactElement {
                 © The Shifting Atlas — built with love
             </footer>
 
-            {/* Toast viewport (local to page). Could be elevated to global provider later. */}
-            {showWelcomeToast && (
-                <div
-                    role="status"
-                    aria-live="polite"
-                    className="fixed top-4 right-4 z-50 max-w-sm animate-fade-in bg-slate-900/95 backdrop-blur border border-white/10 shadow-xl rounded-lg px-4 py-3 flex items-start gap-3 text-sm"
-                >
-                    <div className="h-2 w-2 mt-1.5 rounded-full bg-atlas-accent" aria-hidden />
-                    <div className="flex-1">
-                        <p className="font-medium text-white">Welcome back</p>
-                        <p className="text-slate-300">{user?.userDetails?.split(' ')[0] || 'Explorer'}, your session is ready.</p>
-                    </div>
-                    <button
-                        onClick={() => setShowWelcomeToast(false)}
-                        className="ml-2 text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-atlas-accent rounded"
-                        aria-label="Dismiss welcome message"
-                    >
-                        ×
-                    </button>
+            {/**
+             * Toast viewport (local to page)
+             * ------------------------------------------------------------------
+             * TODO(toasts): Promote to a global <ToastProvider/> when ANY of these are true:
+             *  1. >2 distinct feature sources need to trigger toasts (e.g. commands, AI gen, inventory, networking errors).
+             *  2. A toast must persist across route/navigation changes.
+             *  3. Need standardized variants (success/info/warn/error) with shared iconography or theming.
+             *  4. Queuing / max-visible / dedupe or priority policies become necessary.
+             *  5. Background channels (websocket/SSE/service worker) emit user-facing notifications.
+             *  6. Accessibility audit requires a single consolidated polite/assertive live region across the app.
+             *  7. Telemetry desires centralized instrumentation (push + dismiss events) for UX metrics.
+             * Keeping it local avoids premature abstraction overhead while only welcome+link toasts exist.
+             */}
+            {(showWelcomeToast || showLinkToast) && (
+                <div className="fixed top-4 right-4 z-50 flex flex-col gap-3 max-w-sm">
+                    {showWelcomeToast && (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="animate-fade-in bg-slate-900/95 backdrop-blur border border-white/10 shadow-xl rounded-lg px-4 py-3 flex items-start gap-3 text-sm"
+                        >
+                            <div className="h-2 w-2 mt-1.5 rounded-full bg-atlas-accent" aria-hidden />
+                            <div className="flex-1">
+                                <p className="font-medium text-white">Welcome back</p>
+                                <p className="text-slate-300">{user?.userDetails?.split(' ')[0] || 'Explorer'}, your session is ready.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowWelcomeToast(false)}
+                                className="ml-2 text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-atlas-accent rounded"
+                                aria-label="Dismiss welcome message"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+                    {showLinkToast && (
+                        <div
+                            role="status"
+                            aria-live="polite"
+                            className="animate-fade-in bg-slate-900/95 backdrop-blur border border-white/10 shadow-xl rounded-lg px-4 py-3 flex items-start gap-3 text-sm"
+                        >
+                            <div className="h-2 w-2 mt-1.5 rounded-full bg-emerald-400" aria-hidden />
+                            <div className="flex-1">
+                                <p className="font-medium text-white">Profile Linked</p>
+                                <p className="text-slate-300">Your guest progress is now linked.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowLinkToast(false)}
+                                className="ml-2 text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+                                aria-label="Dismiss linked message"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
