@@ -27,5 +27,3 @@ app.http('playerBootstrap', {
     authLevel: 'anonymous',
     handler: playerBootstrap
 })
-
-// Legacy export removed; repository now encapsulates state.
