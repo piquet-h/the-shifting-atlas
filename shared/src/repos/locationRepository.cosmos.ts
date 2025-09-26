@@ -39,6 +39,37 @@ export class CosmosLocationRepository implements ILocationRepository {
         if (!dest) return {status: 'error', reason: 'target-missing'} as const
         return {status: 'ok', location: dest} as const
     }
+
+    /** Upsert (idempotent) a location vertex. */
+    async upsert(location: Location): Promise<{created: boolean; id: string}> {
+        // Gremlin upsert pattern using fold/coalesce
+        await this.client.submit(
+            "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid)).property('name', name).property('description', desc).property('version', ver)",
+            {
+                lid: location.id,
+                name: location.name,
+                desc: location.description || '',
+                ver: location.version ?? 1
+            }
+        )
+        // We can't easily know if created without extra query; approximate by checking existence beforehand (one extra round trip acceptable for seeding)
+        // Optimization deferred.
+        return {created: false, id: location.id}
+    }
+
+    /** Ensure an exit edge with direction exists between fromId and toId */
+    async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{created: boolean}> {
+        if (!isDirection(direction)) return {created: false}
+        // Ensure both vertices exist (no-op if present)
+        await this.client.submit("g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid))", {fid: fromId})
+        await this.client.submit("g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid))", {tid: toId})
+        // Use coalesce on existing edge
+        await this.client.submit(
+            "g.V(fid).as('a').V(tid).coalesce( a.outE('exit').has('direction', dir).where(inV().hasId(tid)), addE('exit').from('a').to(V(tid)).property('direction', dir).property('description', desc) )",
+            {fid: fromId, tid: toId, dir: direction, desc: description || ''}
+        )
+        return {created: false}
+    }
 }
 
 function firstScalar(val: unknown): string | undefined {

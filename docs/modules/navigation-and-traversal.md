@@ -201,6 +201,97 @@ g.V().hasLabel('Location')
 | 4     | AI description layers + regeneration triggers     | Introduce `descLayers`.                       |
 | 5     | Hierarchical `Structure` + vantage edges          | Complex spatial narration.                    |
 
+## Direction & Input Normalization Roadmap
+
+> Purpose: Convert messy, player-friendly freeform traversal input into a canonical movement or generation directive without losing semantic richness needed by AI, telemetry, gating, or future spatial reasoning.
+
+### Definition
+
+Normalization = layered reconciliation of player intent ("go north", "enter archway", "through the forge door", "left", typo'd forms, landmarks) into a structured result:
+
+```
+{
+    status: 'ok' | 'ambiguous' | 'unknown' | 'generate',
+    canonical?: { dir: string; kind: 'cardinal'|'vertical'|'radial'|'semantic'|'portal' },
+    candidates?: Array<{ dir: string; kind: string; score: number }>,
+    generationHint?: { dir: string; reason: string; vector?: {x:number,y:number,z:number} },
+    clarification?: string
+}
+```
+
+Only the canonical `dir` is persisted on `EXIT` edges; expression diversity lives in the parsing layer.
+
+### Layered Pipeline
+
+1. Preprocess – lowercase, trim, collapse whitespace, strip trailing punctuation.
+2. Shortcut Expansion – `n`→`north`, `sw`→`southwest`, `u`→`up`, `enter` (alone) → `in`.
+3. Phrase Reduction – remove leading verbs (`go`, `walk`, `head`, `enter`, `step into`).
+4. Semantic / Landmark Resolution – map tokens to exits by:
+    - Exact dir match
+    - Exit `name` / `synonyms`
+    - Landmark alias → direction (e.g. `fountain` → `north` if annotated locally)
+5. Compound Compass Handling – snap unsupported composites (`north-northeast`) to nearest canonical 8‑way (configurable for future 16‑way). No storage of raw composite.
+6. Relative Directions – `left/right/forward/back` transformed using player's `lastHeading`; if absent, request clarification.
+7. Typo Tolerance – fuzzy match (edit distance ≤1) to existing direction or exit name.
+8. Availability & State – confirm an `EXIT` edge exists and `state === open`; return gating info otherwise.
+9. Generation Fallback – if direction valid but no edge: produce `generationHint` (possible AI expansion trigger).
+10. Ambiguity Resolution – if multiple exits score similarly, return ranked candidates for client disambiguation prompt.
+
+### Canonical Direction Set Strategy
+
+Phase 1: 8 compass + `up/down` + `in/out` (radial) – keeps analytics simple.
+
+Phase 2: Add semantic slugs for named exits (`archway`, `tunnel`) with `kind: semantic`.
+
+Phase 3: Relative tokens (`left/right/forward/back`) – maintained purely at parsing layer; never stored on edges.
+
+Phase 4 (optional): High precision bearings – store `bearingDeg` (0–359) while keeping snapped `dir` for compatibility.
+
+### Data Model Touchpoints
+
+Exit Edge (future extension fields):
+
+```
+dir, kind, name?, state, gating?, distance?, travelMs?, synonyms?: string[], landmarkRefs?: string[], bearingDeg?, genSource
+```
+
+Location (future): `landmarkAliases: string[]`, `vector`, `exitsSummaryCache`.
+
+### Seed & Data Hygiene
+
+Validation rule: all `exits[].direction` must map to **current** canonical set. Composite or unknown tokens are rejected during CI.
+
+Sanitization script (planned): parses seed JSON, warns on unknown directions, offers snap suggestions (e.g. `south-southwest` → `southwest`).
+
+### Telemetry Events (Additions)
+
+- `Navigation.Input.Parsed` (rawLen, canonicalDir, latencyMs, ambiguityCount)
+- `Navigation.Input.Ambiguous` (optionsCount)
+- `Navigation.Exit.GenerationRequested` (dir, reason)
+- `Navigation.Exit.GenerationRejected` (reason)
+
+These feed confusion / friction dashboards and drive iterative lexicon tuning.
+
+### Implementation Milestones (Normalization Sub-Phases)
+
+| N-Phase | Goal                           | Deliverables                                                         |
+| ------- | ------------------------------ | -------------------------------------------------------------------- |
+| N1      | Basic lexical normalization    | Utility + tests: shortcut & typo mapping; seed validator.            |
+| N2      | Landmark + semantic exit names | Extend seed with `name` / `synonyms`; landmark alias resolution.     |
+| N3      | Relative directions            | Track `lastHeading` per player; implement `left/right/forward/back`. |
+| N4      | Generation fallback            | Emit generation events when direction has no edge.                   |
+| N5      | Bearing precision (optional)   | Add `bearingDeg` + snapping; analytics for path smoothness.          |
+
+### Open Design Decisions (Normalization)
+
+- Do we persist `bearingDeg` early, or derive later from vector deltas? (Leaning: derive.)
+- Should landmark alias resolution be server-only or hinted by client for UI auto-complete? (Leaning: server authoritative.)
+- Minimum confidence threshold for fuzzy direction correction vs prompting user? (Tune via telemetry.)
+
+### Rationale Recap
+
+Keeping exit storage canonical prevents direction token explosion, simplifies Gremlin queries, and keeps telemetry aggregatable while allowing rich player phrasing and future AI hooks (semantic exits & generation).
+
 ## AI-First Crystallization Strategy
 
 > Philosophy: The world is born through AI "genesis transactions" that crystallize into immutable base layers. Subsequent change is additive (event/faction/season layers) — never silent destructive rewrites. Non-determinism is embraced; auditability and provenance guarantee trust.

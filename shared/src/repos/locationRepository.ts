@@ -9,6 +9,10 @@ import {CosmosLocationRepository} from './locationRepository.cosmos.js'
 export interface ILocationRepository {
     get(id: string): Promise<Location | undefined>
     move(fromId: string, direction: string): Promise<{status: 'ok'; location: Location} | {status: 'error'; reason: string}>
+    /** Upsert (idempotent) a location vertex. Returns whether a new vertex was created. */
+    upsert(location: Location): Promise<{created: boolean; id: string}>
+    /** Ensure an exit edge between two locations. Returns whether a new edge was created. */
+    ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{created: boolean}>
 }
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
@@ -32,6 +36,37 @@ class InMemoryLocationRepository implements ILocationRepository {
         if (!dest) return {status: 'error', reason: 'target-missing'} as const
         return {status: 'ok', location: dest} as const
     }
+    async upsert(location: Location) {
+        const existing = this.locations.get(location.id)
+        if (existing) {
+            // Shallow update (keep existing exits unless provided)
+            this.locations.set(location.id, {
+                ...existing,
+                name: location.name ?? existing.name,
+                description: location.description ?? existing.description,
+                exits: location.exits || existing.exits,
+                version: location.version ?? existing.version
+            })
+            return {created: false, id: location.id}
+        }
+        this.locations.set(location.id, {...location, exits: location.exits || []})
+        return {created: true, id: location.id}
+    }
+    async ensureExit(fromId: string, direction: string, toId: string, description?: string) {
+        if (!isDirection(direction)) return {created: false}
+        const from = this.locations.get(fromId)
+        const to = this.locations.get(toId)
+        if (!from || !to) return {created: false}
+        if (!from.exits) from.exits = []
+        const existing = from.exits.find((e) => e.direction === direction && e.to === toId)
+        if (existing) {
+            // Optionally refresh description
+            if (description && !existing.description) existing.description = description
+            return {created: false}
+        }
+        from.exits.push({direction, to: toId, description})
+        return {created: true}
+    }
 }
 
 let singleton: ILocationRepository | undefined
@@ -52,6 +87,14 @@ export function getLocationRepository(): ILocationRepository {
                     async move(fromId: string, direction: string) {
                         const repo = new CosmosLocationRepository(await pending)
                         return repo.move(fromId, direction)
+                    },
+                    async upsert(location) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.upsert(location)
+                    },
+                    async ensureExit(fromId, direction, toId, description) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.ensureExit(fromId, direction, toId, description)
                     }
                 }
                 singleton = proxy

@@ -9,6 +9,8 @@ export interface Location {
     name: string
     description: string
     exits?: LocationExit[]
+    /** Optional semantic / facet tags (e.g., 'settlement:mosswell', 'shop:smithy'). */
+    tags?: string[]
     version?: number
 }
 
