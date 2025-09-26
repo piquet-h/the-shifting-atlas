@@ -248,7 +248,7 @@
                 "description": "Toward a north cottage near hedgerow."
             },
             {
-                "direction": "south-southwest",
+                "direction": "southwest",
                 "to": "5fbf477a-bbd3-44f0-9034-6d781da8d2e0",
                 "description": "Toward a south cottage by the pens."
             }
@@ -299,7 +299,7 @@
         "name": "SW Cottage South",
         "description": "Weathered planks and a chicken coop; faint cluck of hens.",
         "tags": ["settlement:mosswell", "residential:cottages"],
-        "exits": [{"direction": "north-northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to junction."}],
+        "exits": [{"direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to junction."}],
         "version": 1
     },
     {

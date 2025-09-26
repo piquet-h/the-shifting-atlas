@@ -18,6 +18,7 @@
         "swa:dev": "npm run build -w shared && swa start dev",
         "swa:build": "swa build dev",
         "swa:deploy": "swa deploy dev",
+        "validate:seed": "tsx shared/scripts/validateDirections.ts",
         "build": "tsc -b tsconfig.refs.json && npm run sync:static -w frontend/api && npm run build -w frontend",
         "build:fast": "tsc -b tsconfig.refs.json",
         "seed:world": "npm run build:fast && node scripts/seed-world.mjs",
