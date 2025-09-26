@@ -8,6 +8,9 @@ export const GAME_EVENT_NAMES = [
     'Onboarding.GuestGuid.Started',
     'Onboarding.GuestGuid.Created',
     'Auth.Player.Upgraded',
+    // Player lifecycle
+    'Player.Get',
+    'Player.Created',
     // Player traversal + location access (non-genesis)
     'Location.Get',
     'Location.Move',

@@ -99,6 +99,8 @@ export interface EventPayloadMap {
     'Onboarding.GuestGuid.Started': Record<string, never>
     'Onboarding.GuestGuid.Created': {phase?: string}
     'Auth.Player.Upgraded': {linkStrategy?: string; hadGuestProgress?: boolean}
+    'Player.Get': {playerGuid: string; status: number}
+    'Player.Created': {playerGuid: string; method: string}
     'Location.Get': {id: string; status: number}
     'Location.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
     'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null}
