@@ -61,6 +61,13 @@ jobs:
             - name: Build frontend (Vite last to ensure config)
               run: npm run build -w frontend
 
+            - name: Verify SWA config & artifacts
+              run: |
+                  if [ ! -f frontend/dist/staticwebapp.config.json ]; then
+                    echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
+                  node scripts/verify-deployable.mjs
+                  echo "Verified deployable artifacts."
+
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
@@ -91,6 +98,8 @@ jobs:
                     --app-location frontend/dist \
                     --output-location '' \
                     --api-location frontend/api \
+                    --api-language node \
+                    --api-version 20 \
                     --verbose
 
     preview:
