@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* global process */
 // Verifies deployable artifacts exist for SWA + Functions.
 import {existsSync, statSync} from 'node:fs'
 import {resolve} from 'node:path'
@@ -6,33 +8,46 @@ import {resolve} from 'node:path'
 const checks = [
     {path: 'frontend/dist/index.html', required: true, desc: 'Frontend bundle (index.html)'},
     {path: 'frontend/dist/staticwebapp.config.json', required: true, desc: 'Static Web App config'},
-    {path: 'frontend/api/dist/host.json', required: true, desc: 'Functions host.json'}
+    {path: 'frontend/api/host.json', required: true, desc: 'Functions host.json (api root deployment)'},
+    {path: 'frontend/api/node_modules/@atlas/shared/dist/index.js', required: true, desc: 'Vendored shared package'},
+    {path: 'frontend/api/node_modules/@azure/functions/package.json', required: true, desc: 'Azure Functions runtime dependency'}
 ]
 
 let failed = false
 for (const c of checks) {
     const full = resolve(process.cwd(), c.path)
     if (!existsSync(full)) {
-        console.error(`[verify-deployable] MISSING: ${c.desc} -> ${c.path}`)
+        process.stderr.write(`[verify-deployable] MISSING: ${c.desc} -> ${c.path}\n`)
         failed = true
         continue
     }
     try {
         const s = statSync(full)
         if (!s.isFile()) {
-            console.error(`[verify-deployable] NOT A FILE: ${c.path}`)
+            process.stderr.write(`[verify-deployable] NOT A FILE: ${c.path}\n`)
             failed = true
         } else {
-            console.log(`[verify-deployable] OK: ${c.desc}`)
+            // Extra symlink guard for vendored shared
+            if (c.path.includes('@atlas/shared')) {
+                const dirStat = statSync(resolve(process.cwd(), 'frontend/api/node_modules/@atlas/shared'))
+                if (dirStat.isSymbolicLink()) {
+                    process.stderr.write('[verify-deployable] Vendored shared is still a symlink!\n')
+                    failed = true
+                } else {
+                    process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
+                }
+            } else {
+                process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
+            }
         }
     } catch (e) {
-        console.error(`[verify-deployable] ERROR reading ${c.path}:`, e.message)
+        process.stderr.write(`[verify-deployable] ERROR reading ${c.path}: ${e.message}\n`)
         failed = true
     }
 }
 
 if (failed) {
-    console.error('[verify-deployable] One or more required artifacts are missing.')
+    process.stderr.write('[verify-deployable] One or more required artifacts are missing.\n')
     process.exit(1)
 }
-console.log('[verify-deployable] All required deployment artifacts present.')
+process.stdout.write('[verify-deployable] All required deployment artifacts present.\n')

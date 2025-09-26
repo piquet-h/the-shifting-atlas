@@ -40,6 +40,15 @@ jobs:
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
 
+            - name: Build shared (ensure shared dist for vendoring)
+              run: npm run build -w shared
+
+            - name: Install API production deps locally
+              run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
+
+            - name: Vendor shared into API
+              run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
+
             - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
 
@@ -81,7 +90,7 @@ jobs:
                     --env production \
                     --app-location frontend/dist \
                     --output-location '' \
-                    --api-location frontend/api/dist \
+                    --api-location frontend/api \
                     --verbose
 
     preview:
@@ -98,6 +107,15 @@ jobs:
 
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
+
+            - name: Build shared (ensure shared dist for vendoring)
+              run: npm run build -w shared
+
+            - name: Install API production deps locally
+              run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
+
+            - name: Vendor shared into API
+              run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
 
             - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
@@ -147,7 +165,7 @@ jobs:
                     --env "$ENV_NAME" \
                     --app-location frontend/dist \
                     --output-location '' \
-                    --api-location frontend/api/dist \
+                    --api-location frontend/api \
                     --verbose
 
     preview-cleanup:
