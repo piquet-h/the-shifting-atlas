@@ -12,7 +12,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 - **Backend:** Azure Functions (Consumption Plan) – stateless, event‑driven logic.
 - **API Gateway:** Azure API Management (Consumption Tier) – routing, throttling, versioning.
 - **Messaging:** Azure Service Bus (Basic Tier, free quota) – queues for async world events.
-- **Data Layer:** Azure Cosmos DB (Gremlin API, Free Tier) – graph storage for rooms, NPCs, players, and events.
+- **Data Layer:** Azure Cosmos DB (Gremlin API, Free Tier) – graph storage for locations, NPCs, players, and events.
 - **Monitoring:** Application Insights (Free quota) – telemetry and diagnostics.
 
 ---
@@ -35,7 +35,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 - Function names reflect their role and trigger type (e.g., `HttpMovePlayer`, `QueueProcessNPCStep`).
 - Keep Functions **single‑purpose** and **stateless**.
 - Cosmos DB collections:
-    - `Rooms` – room nodes with semantic exits.
+    - `Locations` – location nodes with semantic exits.
     - `NPCs` – non‑player characters and their state.
     - `Players` – player profiles, inventory, progress.
     - `Events` – queued world events.
@@ -46,7 +46,7 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 
 ## 🌍 Persistent World Rules
 
-- **Rooms** persist to Cosmos DB with semantic exits (`north`, `south`, `up`, `down`, etc.).
+- **Locations** persist to Cosmos DB with semantic exits (`north`, `south`, `up`, `down`, etc.).
 - **NPC state changes** are processed via Service Bus queue triggers.
 - **Player actions** are handled via HTTP‑triggered Functions and may enqueue follow‑up events.
 - World updates are **event‑driven**; no polling loops.

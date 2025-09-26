@@ -21,7 +21,7 @@ Rules:
 3. Prefer singular nouns (`Location`, `Player`, `NPC`).
 4. Actions are verbs in Past tense for completed facts (`Created`, `Upgraded`, `Moved`) or Present tense for instantaneous queries (`Get`, `List`). Be consistent within a domain.
 5. Avoid encoding outcome or status in the name; use dimensions (`status`, `reason`).
-6. Do not append "Event" or duplicate context (no `Room.RoomMoved`).
+6. Do not append "Event" or duplicate context (no `Location.LocationMoved`).
 7. Stick to three segments maximum for MVP unless a truly separate facet is needed (e.g., `Economy.Trade.Executed`).
 
 Approved Domains (initial):
@@ -116,19 +116,6 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 | `Multiplayer.LocationSnapshot.HashMismatch` | Client/server snapshot divergence                 |
 | `Multiplayer.Movement.Latency`              | Movement latency decomposition (future)           |
 | `Telemetry.EventName.Invalid`               | Guard rail emission for invalid names             |
-
-### Location Terminology Migration Note (Sept 2025)
-
-Legacy documentation previously illustrated movement dimensions using human‑readable room slugs like `starter-room` and `antechamber`. The system now uses generic Location terminology and all identifiers are opaque UUIDv4 values to guarantee stability and eliminate naming collisions as the world graph grows. The starter pair map as follows (old constants renamed):
-
-| Legacy Slug    | UUID                                   | Constant (if exported)                             |
-| -------------- | -------------------------------------- | -------------------------------------------------- |
-| `starter-room` | `a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21` | (was `STARTER_ROOM_ID`, now `STARTER_LOCATION_ID`) |
-| `antechamber`  | `f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53` | (was `SECOND_ROOM_ID`, now `SECOND_LOCATION_ID`)   |
-
-Additional early slugs (e.g., `north-gate`, `tavern-common-room`, `south-road`, etc.) have likewise been replaced; see `shared/src/data/villageLocations.json` for the authoritative current set. Telemetry SHOULD NOT rely on legacy slugs; dashboards should treat location ids as opaque strings.
-
-Events marked (future) may not yet emit in runtime; they are reserved to reduce future naming churn.
 
 ## Emission Guidelines
 

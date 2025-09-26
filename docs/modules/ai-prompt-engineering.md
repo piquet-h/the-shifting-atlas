@@ -16,7 +16,7 @@ The AI Prompt Engineering system constructs, conditions, and parses prompts that
 
 All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Phase 0–1) tools are read-only (`world-query-mcp`, `lore-memory-mcp`), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature. Prompt assembly therefore:
 
-1. Resolves structured context via tool calls (rooms, exits, tags, lore facts).
+1. Resolves structured context via tool calls (locations, exits, tags, lore facts).
 2. Compresses and canonicalizes facts (stable IDs, tag arrays) before inclusion.
 3. References entity IDs instead of injecting large verbatim text blocks to minimize tokens.
 4. Records `toolCallSummary` (list of tool names + counts) for telemetry correlation.
@@ -25,12 +25,12 @@ This pattern reduces prompt drift, enforces least privilege, and allows evolving
 
 ## **AI-First World Genesis & Crystallization**
 
-In this project, AI does not merely decorate pre-authored maps—it originates new Rooms and their exits. Each accepted generation is a **genesis transaction** that becomes part of permanent canonical history. Change thereafter is additive via layered descriptions, not destructive rewrites.
+In this project, AI does not merely decorate pre-authored maps—it originates new Locations and their exits. Each accepted generation is a **genesis transaction** that becomes part of permanent canonical history. Change thereafter is additive via layered descriptions, not destructive rewrites.
 
 ### Lifecycle Stages
 
 1. Intent (exploration trigger / scripted expansion / extension hook)
-2. Context Assembly (nearby room snapshot, biome distribution, active factions, motifs, similarity embeddings)
+2. Context Assembly (nearby location snapshot, biome distribution, active factions, motifs, similarity embeddings)
 3. Prompt Construction (system + developer + dynamic layers)
 4. Model Inference (Azure OpenAI)
 5. Validation Gates (schema, safety, duplication, naming, tag hygiene)
@@ -69,14 +69,14 @@ In this project, AI does not merely decorate pre-authored maps—it originates n
 
 ### Provenance Capture
 
-Each crystallized Room stores:
+Each crystallized Location stores:
 
 ```
 provenance: {
 	genSource: 'ai',
 	model: 'gpt-4o-mini',
 	promptHash: 'sha256:...',
-	nearbyRoomIds: ['r1','r2','r3'],
+	nearbyLocationIds: ['l1','l2','l3'],
 	similarityScores: { closest: 0.81 },
 	safety: { verdict: 'clean', policyVersion: '1.0.0' },
 	approvedBy: 'auto',
@@ -86,7 +86,7 @@ provenance: {
 
 ### Layered Description Integration
 
-Generated text becomes either the `baseDescription` (if new Room) or an appended `descLayer` (if event / environmental / faction change). Base text is never overwritten—subsequent AI adds context layers referencing prior states.
+Generated text becomes either the `baseDescription` (if new Location) or an appended `descLayer` (if event / environmental / faction change). Base text is never overwritten—subsequent AI adds context layers referencing prior states.
 
 ### Prompt Assembly Architecture
 
@@ -95,7 +95,7 @@ Generated text becomes either the `baseDescription` (if new Room) or an appended
 | System         | Core constraints | Tone, safety boundaries, JSON contract     |
 | Anchor         | Project config   | Style pillars; banned patterns             |
 | Regional       | Biome / zone     | Climate, hazard hints, faction tension     |
-| Local Snapshot | Nearby Rooms     | Names, tags, motifs (compressed)           |
+| Local Snapshot | Nearby Locations | Names, tags, motifs (compressed)           |
 | Player / Event | Trigger context  | Actor role, event type, motivation         |
 | Extension      | Plugin injection | Extra tags, quest hooks, gating conditions |
 
@@ -113,10 +113,10 @@ Example template metadata (conceptual):
 
 ```
 {
-	"name": "room.genesis.biomeForest",
+	"name": "location.genesis.biomeForest",
 	"version": "0.3.1",
 	"hash": "sha256:...",
-	"purpose": "Generate initial forest room",
+	"purpose": "Generate initial forest location",
 	"safetyPolicyVersion": "1.1.0"
 }
 ```
@@ -133,7 +133,7 @@ All generation begins in advisory or proposal mode—**no direct authoritative w
 
 ### Similarity & Duplication Control
 
-- Maintain vector embeddings for each Room (offloaded to vector store)
+- Maintain vector embeddings for each Location (offloaded to vector store)
 - Pre-gen: compute embedding of candidate description; compare to k nearest (k=10)
 - If max similarity ≥ threshold (e.g., 0.92) → rejection w/ DUPLICATE_NEARBY
 - Soft variant: allow but inject mandatory differentiator prompt clause
@@ -158,7 +158,7 @@ All generation begins in advisory or proposal mode—**no direct authoritative w
 - `beforeGenesisPrompt(context)` → mutate assembled prompt (bounded operations only)
 - `afterGenesisResponse(rawJson)` → validate or attach custom tags
 - `beforeCrystallize(roomDraft)` → veto / modify non-core fields
-- `afterCrystallize(room)` → schedule follow-up (quests, NPC spawn)
+- `afterCrystallize(location)` → schedule follow-up (quests, NPC spawn)
 
 Security: Hooks operate on sanitized objects; must be pure (no external network) in consumption plan env.
 
@@ -179,7 +179,7 @@ Canonical event names (defined in `shared/src/telemetryEvents.ts`) use `Domain.[
 - `Prompt.Genesis.Issued` (promptTokens, completionTokens?, latencyMs, cacheHit)
 - `Prompt.Genesis.Rejected` (failureCode, retryCount)
 - `Prompt.Genesis.Crystallized` (tokens, similarity, safetyVerdict)
-- `Prompt.Layer.Generated` (layerType, roomId)
+- `Prompt.Layer.Generated` (layerType, locationId)
 - `Prompt.Cost.BudgetThreshold` (percent)
 - `Prompt.Tooling.ContextResolved` (toolCallSummaryHash, toolCount, cached)
 

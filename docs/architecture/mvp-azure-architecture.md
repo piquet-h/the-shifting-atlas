@@ -1,6 +1,6 @@
 # MVP Azure Architecture
 
-> Status Accuracy (2025-09-21): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early room + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
+> Status Accuracy (2025-09-21): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early location + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
 
 ## 🎯 Goals
 
@@ -25,7 +25,7 @@
    |             [Azure Cosmos DB (Gremlin API and SQL API)]
    |                   |
    |                   v
-   |             [Persistent World Graph: Rooms, Exits, NPCs, Items, Player State]
+   |             [Persistent World Graph: Locations, Exits, NPCs, Items, Player State]
    |
    \---> [Optional: Azure OpenAI Service] (AI-assisted content/NPCs)
 ```
@@ -54,7 +54,7 @@ Purpose (Target State):
 - Query/update world state in Cosmos DB.
 - Call AI endpoints for dynamic descriptions or NPC dialogue.
 
-Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, room get/move) in the SWA managed API; experimental second Functions app with only health/ping placeholders.
+Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, location get/move) in the SWA managed API; experimental second Functions app with only health/ping placeholders.
 
 Authentication (Planned – Not Implemented):
 
@@ -68,13 +68,13 @@ Authentication (Planned – Not Implemented):
 
 Purpose (Planned):
 
-- Store rooms, exits, NPCs, items, and player state as a graph or JSON Entity.
+- Store locations, exits, NPCs, items, and player state as a graph or JSON Entity.
 - Enable semantic navigation and relationship queries. Enable XP and attribute updates
 
 Current Reality:
 
 - No runtime code initializes Gremlin client or writes data yet.
-- Next concrete step: introduce a minimal `Room` vertex upsert in a new `/api/room` Function.
+- Next concrete step: introduce a minimal `Location` vertex upsert in a new `/api/location` Function.
 
 4. AI Integration
    Service: Azure OpenAI Service (Future Optional)
@@ -87,7 +87,7 @@ Instead of directly embedding model calls inside gameplay Functions, initial AI 
 
 Phase 0 (Foundational):
 
-- `world-query-mcp` (room / player / recent event fetch)
+- `world-query-mcp` (location / player / recent event fetch)
 - `prompt-template-mcp` (versioned templates; hash governance)
 - `telemetry-mcp` (AI usage + decision logging)
 
@@ -102,18 +102,18 @@ Cross-reference: `agentic-ai-and-mcp.md` (full roadmap) and `modules/ai-prompt-e
 
 🏗 MVP Core Pillars (Planned → To Be Built)
 
-| Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                            |
-| ------------------------- | -------------------------- | ------------------- | ------------------------------------------ |
-| World State & Persistence | Continuity & emergent play | Not Implemented     | Single `Room` vertex & fetch endpoint      |
-| Navigation & Traversal    | Exploration loop           | Partial (in-memory) | Hardcoded 2-room adjacency in memory       |
-| Basic Interaction Loop    | Player agency test         | Not Implemented     | `look` command returning room description  |
-| Session Context           | Consistent responses       | Not Implemented     | Temporary player GUID issuance (in-memory) |
-| Minimal Content Seed      | Flow validation            | Not Implemented     | Handcrafted starter room + neighbor        |
+| Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                               |
+| ------------------------- | -------------------------- | ------------------- | --------------------------------------------- |
+| World State & Persistence | Continuity & emergent play | Not Implemented     | Single `Location` vertex & fetch endpoint     |
+| Navigation & Traversal    | Exploration loop           | Partial (in-memory) | Hardcoded 2-location adjacency in memory      |
+| Basic Interaction Loop    | Player agency test         | Not Implemented     | `look` command returning location description |
+| Session Context           | Consistent responses       | Not Implemented     | Temporary player GUID issuance (in-memory)    |
+| Minimal Content Seed      | Flow validation            | Not Implemented     | Handcrafted starter location + neighbor       |
 
 📜 Suggested Build Order
 Skeleton World Model
 
-Define your room schema (ID, description, exits, tags).
+Define your location schema (ID, description, exits, tags).
 
 Implement persistent storage + retrieval.
 
@@ -149,7 +149,7 @@ Code Push → GitHub Actions → Deploy frontend + Managed API to Static Web App
 
 Managed API functions connect directly to Cosmos DB and optional AI services.
 
-Cosmos DB pre‑seeded with starter zone (5–10 rooms, 1–2 NPCs).
+Cosmos DB pre‑seeded with starter zone (5–10 locations, 1–2 NPCs).
 
 AI Keys stored in Azure App Settings (or Key Vault if added later).
 
@@ -158,9 +158,9 @@ AI Keys stored in Azure App Settings (or Key Vault if added later).
 | Feature                               | Status          | Notes                                            |
 | ------------------------------------- | --------------- | ------------------------------------------------ |
 | Persistent world graph (Cosmos)       | Not Implemented | No Gremlin client yet                            |
-| Player movement between rooms         | Not Implemented | Requires traversal model                         |
+| Player movement between locations     | Not Implemented | Requires traversal model                         |
 | Basic interaction verbs               | Not Implemented | Only `ping` exists                               |
-| Minimal content seed                  | Not Implemented | No room data                                     |
+| Minimal content seed                  | Not Implemented | No location data                                 |
 | Managed API baseline                  | Implemented     | Ping only                                        |
 | Optional AI descriptions/NPC dialogue | Not Implemented | Deferred                                         |
 | Action logging / telemetry events     | Partial         | App Insights bootstrap present, no custom events |
@@ -170,15 +170,15 @@ Use free tiers for Static Web Apps and Cosmos DB.
 
 Keep Managed API on Consumption Plan — pay only per execution.
 
-Limit AI calls during MVP; use static content for most rooms.
+Limit AI calls during MVP; use static content for most locations.
 
 Monitor with Azure Cost Management.
 
 📈 Immediate Next Implementation Steps (Pre-MVP)
 
-1. Persist minimal Room schema (Cosmos) and adapt `/api/room` to read/write.
+1. Persist minimal Location schema (Cosmos) and adapt `/api/location` to read/write.
 2. Extend frontend command interface: `look` uses persisted fetch.
-3. Emit telemetry event per command (Room.Get, Room.Move already stubbed—expand for errors).
+3. Emit telemetry event per command (Location.Get, Location.Move already stubbed—expand for errors).
 4. Replace in-memory adjacency with persisted exits; add simple write/upsert admin script.
 
 Later (Post-Core Loop): economy, multi-agent NPC orchestration, procedural expansion, extension/modding API.

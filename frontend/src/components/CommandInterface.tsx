@@ -22,16 +22,13 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
     const effectiveGuid = overrideGuid ?? playerGuid
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
-    const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(undefined)
+    const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
 
-    // Persist current room id across reloads within a browser tab (session-scoped persistence)
+    // Persist current location id across reloads within a browser tab (session-scoped persistence)
     useEffect(() => {
         try {
-            const stored = sessionStorage.getItem('tsa.currentRoomId')
-            if (stored) {
-                setCurrentRoomId(stored)
-                // Restoration telemetry is represented implicitly via subsequent Room.Get; no separate event to avoid drift.
-            }
+            const stored = sessionStorage.getItem('tsa.currentLocationId')
+            if (stored) setCurrentLocationId(stored)
         } catch {
             /* ignore storage errors */
         }
@@ -39,12 +36,12 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
 
     useEffect(() => {
         try {
-            if (currentRoomId) sessionStorage.setItem('tsa.currentRoomId', currentRoomId)
-            else sessionStorage.removeItem('tsa.currentRoomId')
+            if (currentLocationId) sessionStorage.setItem('tsa.currentLocationId', currentLocationId)
+            else sessionStorage.removeItem('tsa.currentLocationId')
         } catch {
             /* ignore */
         }
-    }, [currentRoomId])
+    }, [currentLocationId])
 
     const runCommand = useCallback(
         async (raw: string) => {
@@ -83,14 +80,14 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     if (!res.ok) error = json?.error || `HTTP ${res.status}`
                     else response = json?.message || 'pong'
                 } else if (lower === 'look') {
-                    const res = await fetch(`/api/room${currentRoomId ? `?id=${encodeURIComponent(currentRoomId)}` : ''}`, {
+                    const res = await fetch(`/api/location${currentLocationId ? `?id=${encodeURIComponent(currentLocationId)}` : ''}`, {
                         headers: effectiveGuid ? {'x-player-guid': effectiveGuid} : undefined
                     })
                     const json = await res.json()
                     latencyMs = Math.round(performance.now() - start)
                     if (!res.ok) error = json?.error || `HTTP ${res.status}`
                     else {
-                        setCurrentRoomId(json.id)
+                        setCurrentLocationId(json.id)
                         const exits: string | undefined = Array.isArray(json.exits)
                             ? (json.exits as {direction: string}[]).map((e) => e.direction).join(', ')
                             : undefined
@@ -98,15 +95,15 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     }
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
-                    const fromParam = currentRoomId ? `&from=${encodeURIComponent(currentRoomId)}` : ''
-                    const res = await fetch(`/api/room/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
+                    const fromParam = currentLocationId ? `&from=${encodeURIComponent(currentLocationId)}` : ''
+                    const res = await fetch(`/api/location/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
                         headers: effectiveGuid ? {'x-player-guid': effectiveGuid} : undefined
                     })
                     const json = await res.json()
                     latencyMs = Math.round(performance.now() - start)
                     if (!res.ok) error = json?.error || `Cannot move ${dir}`
                     else {
-                        setCurrentRoomId(json.id)
+                        setCurrentLocationId(json.id)
                         const exits: string | undefined = Array.isArray(json.exits)
                             ? (json.exits as {direction: string}[]).map((e) => e.direction).join(', ')
                             : undefined
@@ -126,11 +123,11 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     success: !error,
                     latencyMs: latencyMs ?? null,
                     error: error || undefined,
-                    roomId: currentRoomId || null
+                    locationId: currentLocationId || null
                 })
             }
         },
-        [effectiveGuid, currentRoomId]
+        [effectiveGuid, currentLocationId]
     )
 
     return (

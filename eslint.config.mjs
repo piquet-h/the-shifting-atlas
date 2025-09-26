@@ -8,6 +8,7 @@ import prettierPlugin from 'eslint-plugin-prettier'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
+import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
 
 export default [
@@ -22,7 +23,13 @@ export default [
         plugins: {
             '@typescript-eslint': tsPlugin,
             prettier: prettierPlugin,
-            internal: {rules: {'telemetry-event-name': telemetryEventRule, 'no-direct-track-event': noDirectTrackEventRule}}
+            internal: {
+                rules: {
+                    'telemetry-event-name': telemetryEventRule,
+                    'no-direct-track-event': noDirectTrackEventRule,
+                    'no-room-telemetry': noRoomTelemetryRule
+                }
+            }
         },
         rules: {
             ...tsPlugin.configs.recommended.rules,
@@ -40,7 +47,8 @@ export default [
                 }
             ],
             'internal/telemetry-event-name': 'error',
-            'internal/no-direct-track-event': 'error'
+            'internal/no-direct-track-event': 'error',
+            'internal/no-room-telemetry': 'error'
         }
     },
     {

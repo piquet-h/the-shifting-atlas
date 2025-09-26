@@ -16,30 +16,30 @@ This section narrows the aspirational vision into a concrete, minimal-yet-extens
 
 ### Vertex Types
 
-| Label                        | Purpose                                                            | Notes                                                   |
-| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------- |
-| `Room`                       | A discrete traversable space presented to the player.              | Smallest interaction unit (where LOOK text renders).    |
-| `Structure` (optional later) | Large composite location (e.g., Coliseum) grouping internal rooms. | Enables hierarchical navigation & aggregated analytics. |
-| `Zone` (future)              | Thematic/biome region spanning many rooms.                         | Used for encounter tables & faction influence.          |
-| `Portal` (optional)          | Special traversal anchor (teleport pad, waystone).                 | Distinct semantics from ordinary exits.                 |
+| Label                        | Purpose                                                                | Notes                                                   |
+| ---------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `Location`                   | A discrete traversable space presented to the player.                  | Smallest interaction unit (where LOOK text renders).    |
+| `Structure` (optional later) | Large composite location (e.g., Coliseum) grouping internal locations. | Enables hierarchical navigation & aggregated analytics. |
+| `Zone` (future)              | Thematic/biome region spanning many locations.                         | Used for encounter tables & faction influence.          |
+| `Portal` (optional)          | Special traversal anchor (teleport pad, waystone).                     | Distinct semantics from ordinary exits.                 |
 
-Initial implementation uses only `Room`; `Structure` and `Zone` are design placeholders so early decisions don’t block future hierarchy.
+Initial implementation uses only `Location`; `Structure` and `Zone` are design placeholders so early decisions don’t block future hierarchy.
 
 ### Edge Types
 
-| Label               | Direction           | Purpose                                                                       | Key Properties                                                                           |
-| ------------------- | ------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `EXIT`              | `Room -> Room`      | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelMs`, `state`, `gating`, `genSource`, `version` |
-| `CONTAINS`          | `Structure -> Room` | Hierarchical membership (arena owns inner ring rooms).                        | `role` (e.g., `outer_concourse`, `inner_stage`)                                          |
-| `CONNECTS` (future) | `Zone <-> Zone`     | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                           |
-| `LINKS` (future)    | `Room -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                             |
-| `VANTAGE` (future)  | `Room -> Room`      | One-way descriptive visibility (you can see the arena floor from the stands). | `visibilityTier`, `obstruction`                                                          |
+| Label               | Direction               | Purpose                                                                       | Key Properties                                                                           |
+| ------------------- | ----------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `EXIT`              | `Location -> Location`  | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelMs`, `state`, `gating`, `genSource`, `version` |
+| `CONTAINS`          | `Structure -> Location` | Hierarchical membership (arena owns inner ring locations).                    | `role` (e.g., `outer_concourse`, `inner_stage`)                                          |
+| `CONNECTS` (future) | `Zone <-> Zone`         | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                           |
+| `LINKS` (future)    | `Location -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                             |
+| `VANTAGE` (future)  | `Location -> Location`  | One-way descriptive visibility (you can see the arena floor from the stands). | `visibilityTier`, `obstruction`                                                          |
 
 Only `EXIT` is required for the MVP. Others provide a roadmap (do not implement prematurely).
 
 ### Core Properties
 
-Room Vertex (`Room`):
+Location Vertex (`Location`):
 
 - `id` (GUID)
 - `name`
@@ -82,10 +82,10 @@ Scenario: A circular outer concourse with multiple numbered gates leading inward
 
 Approach Options:
 
-1. **Flat Rooms Only (MVP)** – Each concourse segment and the arena floor are `Room` vertices; gates are `EXIT` edges. Pros: simplest now. Cons: analytics across the entire coliseum require grouping logic later.
-2. **Introduce `Structure` Vertex (Later)** – A single `Structure` vertex (`Coliseum`) with `CONTAINS` edges to its internal `Room`s. Enables aggregated metrics (players inside, events broadcast scope) and AI prompts referencing parent context.
+1. **Flat Locations Only (MVP)** – Each concourse segment and the arena floor are `Location` vertices; gates are `EXIT` edges. Pros: simplest now. Cons: analytics across the entire coliseum require grouping logic later.
+2. **Introduce `Structure` Vertex (Later)** – A single `Structure` vertex (`Coliseum`) with `CONTAINS` edges to its internal `Location`s. Enables aggregated metrics (players inside, events broadcast scope) and AI prompts referencing parent context.
 
-MVP Recommendation: Implement the coliseum using only `Room` + `EXIT`, _but_ name/tag rooms with a consistent scheme:
+MVP Recommendation: Implement the coliseum using only `Location` + `EXIT`, _but_ name/tag locations with a consistent scheme:
 
 - `Coliseum Concourse NW`
 - `Coliseum Concourse North`
@@ -95,7 +95,7 @@ MVP Recommendation: Implement the coliseum using only `Room` + `EXIT`, _but_ nam
 Add shared tags: `arena`, `coliseum`, `public` so future queries can group them:
 
 ```
-g.V().hasLabel('Room').has('tags','arena')
+g.V().hasLabel('Location').has('tags','arena')
 ```
 
 ### Internal vs Radial Exits
@@ -106,7 +106,7 @@ g.V().hasLabel('Room').has('tags','arena')
 
 ### Vantage & Visibility (Deferred)
 
-To describe seeing the arena from the stands without enabling traversal, add a future `VANTAGE` edge (directional, one-way). The presence of `VANTAGE` allows the LOOK command in the source room to merge sensory fragments from the target.
+To describe seeing the arena from the stands without enabling traversal, add a future `VANTAGE` edge (directional, one-way). The presence of `VANTAGE` allows the LOOK command in the source location to merge sensory fragments from the target.
 
 ## Exit Taxonomy & Direction Normalization
 
@@ -151,7 +151,7 @@ Exit generation uses a two-pass prompt approach:
 
 Regeneration triggers:
 
-- Edge add/remove → mark room `exitsSummaryCache` stale.
+- Edge add/remove → mark location `exitsSummaryCache` stale.
 - World event (e.g., `gate_closed`) → append new `event` layer or modify edge `state`.
 - Scheduled freshness job (e.g., weekly) → re-run AI layer _only if_ last change > threshold.
 
@@ -159,7 +159,7 @@ Moderation pipeline (initially manual override): Generated text is NOT persisted
 
 ## Gremlin Query Examples (Illustrative)
 
-Get all exits & target room names for a room:
+Get all exits & target location names for a location:
 
 ```
 g.V(roomId).outE('EXIT').as('e').inV().project('dir','name','to')
@@ -184,10 +184,10 @@ g.V(concourseId).outE('EXIT')
     .inV()
 ```
 
-Find rooms needing exit summary regeneration (no cache or stale):
+Find locations needing exit summary regeneration (no cache or stale):
 
 ```
-g.V().hasLabel('Room')
+g.V().hasLabel('Location')
     .has('exitsSummaryCache',within('', null))
 ```
 
@@ -195,7 +195,7 @@ g.V().hasLabel('Room')
 
 | Phase | Scope                                             | Notes                                         |
 | ----- | ------------------------------------------------- | --------------------------------------------- |
-| 1     | Rooms + `EXIT` edges + baseDescription            | Hardcoded seed, no AI, manual creation.       |
+| 1     | Locations + `EXIT` edges + baseDescription        | Hardcoded seed, no AI, manual creation.       |
 | 2     | Normalization + exit summary cache                | Player-friendly LOOK output.                  |
 | 3     | AI candidate exits (non-persisted until approved) | Store proposals separately (not yet modeled). |
 | 4     | AI description layers + regeneration triggers     | Introduce `descLayers`.                       |
@@ -205,19 +205,19 @@ g.V().hasLabel('Room')
 
 > Philosophy: The world is born through AI "genesis transactions" that crystallize into immutable base layers. Subsequent change is additive (event/faction/season layers) — never silent destructive rewrites. Non-determinism is embraced; auditability and provenance guarantee trust.
 
-| Stage | Focus               | AI Role                | Human Gate              | Structural Volatility     | Advancement Signals                      |
-| ----- | ------------------- | ---------------------- | ----------------------- | ------------------------- | ---------------------------------------- |
-| A     | Anchor Rooms        | None (hand-authored)   | Designer                | None                      | Baseline traversal & telemetry online    |
-| B     | AI Genesis          | Full room + exits JSON | Auto unless flagged     | Adds new nodes/edges only | Low duplication & safety pass rate > 95% |
-| C     | Event Layers        | Describe world change  | Sometimes (high-impact) | Non-structural overlays   | Latency & cost within budget             |
-| D     | Perspective/Sensory | Alternate views        | Optional                | Non-structural            | Engagement uplift vs control sample      |
-| E     | Epoch Evolution     | Motif/style shifts     | Manual                  | Limited new branches      | Stable retention & low confusion metrics |
-| F     | Player Co-Creation  | Constrained imprints   | Required                | Micro-layer only          | Moderation turnaround < SLA              |
+| Stage | Focus               | AI Role                    | Human Gate              | Structural Volatility     | Advancement Signals                      |
+| ----- | ------------------- | -------------------------- | ----------------------- | ------------------------- | ---------------------------------------- |
+| A     | Anchor Locations    | None (hand-authored)       | Designer                | None                      | Baseline traversal & telemetry online    |
+| B     | AI Genesis          | Full location + exits JSON | Auto unless flagged     | Adds new nodes/edges only | Low duplication & safety pass rate > 95% |
+| C     | Event Layers        | Describe world change      | Sometimes (high-impact) | Non-structural overlays   | Latency & cost within budget             |
+| D     | Perspective/Sensory | Alternate views            | Optional                | Non-structural            | Engagement uplift vs control sample      |
+| E     | Epoch Evolution     | Motif/style shifts         | Manual                  | Limited new branches      | Stable retention & low confusion metrics |
+| F     | Player Co-Creation  | Constrained imprints       | Required                | Micro-layer only          | Moderation turnaround < SLA              |
 
 ### Generation (Genesis) Pipeline
 
 1. **Intent** (exploration, scripted expansion, extension hook)
-2. **Context Assembly**: Nearby room snapshot, biome distribution, active faction states, prior motifs, uniqueness embeddings
+2. **Context Assembly**: Nearby location snapshot, biome distribution, active faction states, prior motifs, uniqueness embeddings
 3. **Prompt Build** (see `ai-prompt-engineering.md`): includes safety & style constraints
 4. **Model Response** → structured JSON
 5. **Validation Gates**:
@@ -227,12 +227,12 @@ g.V().hasLabel('Room')
     - Embedding similarity threshold (reject if too similar to neighbors)
     - Tag hygiene (no forbidden combos)
 6. **Staging Vertex**: `status: 'pending'` (not yet visible)
-7. **Crystallize**: Commit to `Room` + `EXIT` edges; set `creationEpoch`; persist `provenance`
+7. **Crystallize**: Commit to `Location` + `EXIT` edges; set `creationEpoch`; persist `provenance`
 8. **Post-Commit Hooks**: Index embedding, schedule optional vantage proposals, emit telemetry
 
 ### Provenance Object
 
-Stored on each generated room (and optionally on exits):
+Stored on each generated location (and optionally on exits):
 
 ```
 provenance: {
@@ -264,14 +264,14 @@ provenance: {
 
 ### Minimal Anchor Phase (Stage A)
 
-Even AI-first strategy benefits from 5–8 curated anchor rooms to establish style, biome gradients, and motif seeds feeding early prompts.
+Even AI-first strategy benefits from 5–8 curated anchor locations to establish style, biome gradients, and motif seeds feeding early prompts.
 
 ### Telemetry (Key Events)
 
 Canonical event names follow the `Domain.[Subject].Action` PascalCase pattern (2–3 segments) and are centrally defined in `shared/src/telemetryEvents.ts`. Do not introduce ad‑hoc names here—extend the canonical list first if a new event is required.
 
-- `World.Room.Generated` (tokens, latencyMs, safetyResult, similarityScore)
-- `World.Room.Rejected` (failureCode)
+- `World.Location.Generated` (tokens, latencyMs, safetyResult, similarityScore)
+- `World.Location.Rejected` (failureCode)
 - `World.Layer.Added` (layerType, roomId)
 - `World.Exit.Created` (dir, kind, genSource)
 
@@ -293,7 +293,7 @@ Refer to: `ai-prompt-engineering.md` for prompt schemas; `extension-framework.md
 
 ## Next Actions
 
-1. Implement `Room` + `EXIT` TypeScript interfaces (shared module).
+1. Implement `Location` + `EXIT` TypeScript interfaces (shared module).
 2. Create `HttpCreateRoom`, `HttpLinkRooms`, `HttpGetRoom` Functions.
 3. Implement direction normalization utility (string → { dir, kind }).
 4. Add seed script for small coliseum slice (outer concourse + arena + 2 gates).
@@ -307,8 +307,8 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 
 1. **Trigger: Location Creation with Exit Expansion**
     - When a new location is created, the system immediately generates all connected locations for each exit vector.
-    - This proactive generation enables batch creation of multiple rooms in advance.
-    - If an exit leads to an existing location node, the system tailors the new room's description to match the destination's biome, mood, and spatial context.
+    - This proactive generation enables batch creation of multiple locations in advance.
+    - If an exit leads to an existing location node, the system tailors the new location's description to match the destination's biome, mood, and spatial context.
 
 2. **Contextual Prompt Construction**
     - A prompt is built for Azure OpenAI, including details like current location, vector hint, nearby locations, and generation rules (e.g., biome continuity, max distance, unique names).
@@ -398,7 +398,7 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 
 Once basic location generation and traversal are complete, the system can support pre-generated quest paths. These are sequences of interconnected locations generated in advance to support narrative arcs, puzzles, or multi-step objectives.
 
-- **Batch Generation**: Multiple rooms and connections are created in a single pass.
+- **Batch Generation**: Multiple locations and connections are created in a single pass.
 - **Narrative Continuity**: Prompts are tailored to maintain thematic and biome consistency across the path.
 - **Quest Metadata**: Locations and edges are tagged with quest identifiers, objectives, and progression flags.
 - **Multiplayer Support**: Paths can be shared or branched based on player decisions.
