@@ -1,4 +1,7 @@
 import crypto from 'crypto'
+import {createGremlinClient} from '../gremlin/gremlinClient.js'
+import {loadPersistenceConfig, resolvePersistenceMode} from '../persistenceConfig.js'
+import {CosmosPlayerRepository} from './playerRepository.cosmos.js'
 
 export interface PlayerRecord {
     id: string
@@ -45,7 +48,43 @@ class InMemoryPlayerRepository implements IPlayerRepository {
 
 let playerRepoSingleton: IPlayerRepository | undefined
 export function getPlayerRepository(): IPlayerRepository {
-    if (!playerRepoSingleton) playerRepoSingleton = new InMemoryPlayerRepository()
+    if (playerRepoSingleton) return playerRepoSingleton
+    const mode = resolvePersistenceMode()
+    if (mode === 'cosmos') {
+        // Lazy dynamic client creation; swallow errors to fall back to memory (telemetry can record misconfig later)
+        try {
+            const cfg = loadPersistenceConfig()
+            if (cfg.mode === 'cosmos' && cfg.cosmos) {
+                // createGremlinClient is async; but repository factory is sync. Provide a proxy that waits on first call.
+                const pending = createGremlinClient(cfg.cosmos)
+                const proxy: IPlayerRepository = {
+                    async get(id: string) {
+                        const client = await pending
+                        const rows = await client.submit<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", {
+                            playerId: id
+                        })
+                        if (!rows.length) return undefined
+                        const v = rows[0]
+                        const idVal = (v as Record<string, unknown>).id || (v as Record<string, unknown>)['id']
+                        return {id: String(idVal), createdUtc: new Date().toISOString(), guest: true}
+                    },
+                    async getOrCreate(id?: string) {
+                        const repo = new CosmosPlayerRepository(await pending)
+                        return repo.getOrCreate(id)
+                    },
+                    async linkExternalId(id: string, externalId: string) {
+                        const repo = new CosmosPlayerRepository(await pending)
+                        return repo.linkExternalId(id, externalId)
+                    }
+                }
+                playerRepoSingleton = proxy
+                return playerRepoSingleton
+            }
+        } catch {
+            // ignore and fall back
+        }
+    }
+    playerRepoSingleton = new InMemoryPlayerRepository()
     return playerRepoSingleton
 }
 

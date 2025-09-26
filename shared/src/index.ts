@@ -1,4 +1,6 @@
 export * from './domainModels.js'
+export * from './gremlin/gremlinClient.js'
+export * from './persistenceConfig.js'
 export * from './prompts/templates.js'
 export * from './repos/playerRepository.js'
 export * from './repos/roomRepository.js'

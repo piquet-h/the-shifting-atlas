@@ -1,4 +1,4 @@
-import {SERVICE_BACKEND} from '@atlas/shared'
+import {CORRELATION_HEADER, extractCorrelationId, SERVICE_BACKEND, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
 
 interface PingPayload {
@@ -14,7 +14,11 @@ interface PingPayload {
 
 export async function ping(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const started = Date.now()
+    const correlationId = extractCorrelationId(request.headers)
     const echo = request.query.get('name') || (await safeReadBodyText(request))
+    const latencyMs = Date.now() - started
+    // Emit telemetry (room-independent service liveness check) – tolerant if AI not configured.
+    trackGameEventStrict('Ping.Invoked', {echo: echo || null, latencyMs}, {correlationId})
 
     const payload: PingPayload = {
         ok: true,
@@ -22,7 +26,7 @@ export async function ping(request: HttpRequest, context: InvocationContext): Pr
         service: SERVICE_BACKEND,
         timestamp: new Date().toISOString(),
         requestId: context.invocationId,
-        latencyMs: Date.now() - started,
+        latencyMs,
         echo: echo || undefined,
         version: process.env.APP_VERSION || undefined
     }
@@ -31,7 +35,8 @@ export async function ping(request: HttpRequest, context: InvocationContext): Pr
         status: 200,
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store'
+            'Cache-Control': 'no-store',
+            [CORRELATION_HEADER]: correlationId
         },
         jsonBody: payload
     }

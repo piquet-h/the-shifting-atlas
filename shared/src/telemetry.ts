@@ -5,6 +5,7 @@
  */
 /* global process */
 import appInsights from 'applicationinsights'
+import {randomUUID} from 'node:crypto'
 import {SERVICE_BACKEND, SERVICE_SWA_API} from './serviceConstants.js'
 import {GameEventName, isGameEventName} from './telemetryEvents.js'
 
@@ -26,7 +27,26 @@ if (!appInsights.defaultClient) {
     }
 }
 
-export const telemetryClient = appInsights.defaultClient
+// Always expose a telemetryClient object so test environments (without a connection string)
+// can still monkey patch trackEvent / trackException. If Application Insights did not
+// create a default client (edge cases in certain bundlers), provide a no-op stub.
+interface AppInsightsClient {
+    trackEvent(args: {name: string; properties?: Record<string, unknown>}): void
+    trackException(args: {exception: Error; properties?: Record<string, unknown>}): void
+}
+
+const aiClient = (appInsights as unknown as {defaultClient?: AppInsightsClient}).defaultClient
+
+export const telemetryClient: AppInsightsClient =
+    aiClient ||
+    ({
+        trackEvent() {
+            /* noop */
+        },
+        trackException() {
+            /* noop */
+        }
+    } as AppInsightsClient)
 
 // Low-level passthrough (retain for legacy direct calls)
 export function trackEvent(name: string, properties?: Record<string, unknown>) {
@@ -43,6 +63,7 @@ export interface GameTelemetryOptions {
     playerGuid?: string | null
     persistenceMode?: string | null
     serviceOverride?: string
+    correlationId?: string | null
 }
 
 function inferService(): string {
@@ -68,6 +89,7 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
+    if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId
     trackEvent(name, finalProps)
 }
 
@@ -113,6 +135,7 @@ export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEvent
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
+    if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId
     trackEvent(name, finalProps)
 }
 
@@ -124,6 +147,27 @@ export function extractPlayerGuid(headers: {get(name: string): string | null | u
     } catch {
         return undefined
     }
+}
+
+// Correlation ID utilities ---------------------------------------------------
+// We accept any client-provided correlation header (x-correlation-id) falling back to
+// a server-generated UUID (crypto.randomUUID in runtime) if none is supplied. We do not
+// validate UUID format strictly to allow chaining external systems that use different
+// correlation token formats, but we cap length to mitigate abuse.
+
+export const CORRELATION_HEADER = 'x-correlation-id'
+
+export function extractCorrelationId(headers: {get(name: string): string | null | undefined} | undefined, generate?: () => string): string {
+    try {
+        const raw = headers?.get(CORRELATION_HEADER) || undefined
+        if (raw) {
+            return raw.length > 120 ? raw.slice(0, 120) : raw
+        }
+    } catch {
+        /* ignore */
+    }
+    if (typeof randomUUID === 'function') return randomUUID()
+    return (generate || (() => Math.random().toString(36).slice(2)))()
 }
 
 // Frontend wrapper can import SERVICE_FRONTEND_WEB and call trackGameEvent with serviceOverride + player GUID.
