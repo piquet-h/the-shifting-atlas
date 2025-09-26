@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react'
+import React, {useEffect, useRef, useState} from 'react'
 import {useAuth} from '../hooks/useAuth'
 import {useLinkGuestOnAuth} from '../hooks/useLinkGuestOnAuth'
 import {usePlayerGuid} from '../hooks/usePlayerGuid'
@@ -28,13 +28,21 @@ export default function Homepage(): React.ReactElement {
     const {isAuthenticated, loading, user, signIn} = useAuth()
     const {linking, linked, error: linkError} = useLinkGuestOnAuth()
 
+    // Local toast state for ephemeral welcome notification after auth.
+    const [showWelcomeToast, setShowWelcomeToast] = useState(false)
+    const toastShownRef = useRef(false)
+
     // On initial sign-in success (user appears) announce for screen readers once.
     useEffect(() => {
-        if (!loading && isAuthenticated) {
+        if (!loading && isAuthenticated && !toastShownRef.current) {
+            // Screen reader polite announcement region (existing behavior)
             const region = document.getElementById('mode-announcement')
-            if (region) {
-                region.textContent = `Signed in as ${user?.userDetails || 'explorer'}`
-            }
+            if (region) region.textContent = `Signed in as ${user?.userDetails || 'explorer'}`
+            // Trigger toast once per authenticated session mount.
+            toastShownRef.current = true
+            setShowWelcomeToast(true)
+            const timeout = window.setTimeout(() => setShowWelcomeToast(false), 4500)
+            return () => window.clearTimeout(timeout)
         }
     }, [loading, isAuthenticated, user?.userDetails])
 
@@ -201,8 +209,9 @@ export default function Homepage(): React.ReactElement {
                         <section className="bg-white/3 p-4 rounded-xl shadow-lg" aria-labelledby="begin-journey">
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                                 <div>
-                                    <h2 id="begin-journey" className="text-lg font-semibold">
-                                        Welcome back, {user?.userDetails?.split(' ')[0] || 'Explorer'}
+                                    {/* Heading now visually hidden; welcome handled by toast */}
+                                    <h2 id="begin-journey" className="sr-only">
+                                        Session status
                                     </h2>
                                     <p className="text-sm text-atlas-muted">
                                         {linkError
@@ -212,12 +221,7 @@ export default function Homepage(): React.ReactElement {
                                               : 'Your map has shifted while you were away.'}
                                     </p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button className="px-4 py-2 rounded-lg font-semibold bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900">
-                                        Enter World
-                                    </button>
-                                    <button className="px-4 py-2 rounded-lg border border-white/10 text-slate-300">Change Explorer</button>
-                                </div>
+                                {/* Removed action buttons per requirement: Enter World & Change Explorer */}
                             </div>
                         </section>
 
@@ -272,6 +276,28 @@ export default function Homepage(): React.ReactElement {
             <footer className="mt-auto text-center text-slate-400 text-xs lg:text-sm p-3 lg:pt-8">
                 © The Shifting Atlas — built with love
             </footer>
+
+            {/* Toast viewport (local to page). Could be elevated to global provider later. */}
+            {showWelcomeToast && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed top-4 right-4 z-50 max-w-sm animate-fade-in bg-slate-900/95 backdrop-blur border border-white/10 shadow-xl rounded-lg px-4 py-3 flex items-start gap-3 text-sm"
+                >
+                    <div className="h-2 w-2 mt-1.5 rounded-full bg-atlas-accent" aria-hidden />
+                    <div className="flex-1">
+                        <p className="font-medium text-white">Welcome back</p>
+                        <p className="text-slate-300">{user?.userDetails?.split(' ')[0] || 'Explorer'}, your session is ready.</p>
+                    </div>
+                    <button
+                        onClick={() => setShowWelcomeToast(false)}
+                        className="ml-2 text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-atlas-accent rounded"
+                        aria-label="Dismiss welcome message"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
