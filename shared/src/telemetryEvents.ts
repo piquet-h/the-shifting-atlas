@@ -8,13 +8,13 @@ export const GAME_EVENT_NAMES = [
     'Onboarding.GuestGuid.Started',
     'Onboarding.GuestGuid.Created',
     'Auth.Player.Upgraded',
-    // Player traversal + room access (non-genesis)
-    'Room.Get',
-    'Room.Move',
+    // Player traversal + location access (non-genesis)
+    'Location.Get',
+    'Location.Move',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
-    'World.Room.Generated',
-    'World.Room.Rejected',
+    'World.Location.Generated',
+    'World.Location.Rejected',
     'World.Layer.Added',
     'World.Exit.Created',
     'Prompt.Genesis.Issued',
@@ -26,7 +26,7 @@ export const GAME_EVENT_NAMES = [
     'Extension.Hook.Veto',
     'Extension.Hook.Mutation',
     'Multiplayer.LayerDelta.Sent',
-    'Multiplayer.RoomSnapshot.HashMismatch',
+    'Multiplayer.LocationSnapshot.HashMismatch',
     'Multiplayer.Movement.Latency',
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid'

@@ -75,13 +75,13 @@ Extensions can participate in (but not silently subvert) the AI generation + cry
 
 ### Hook Surface
 
-| Hook                   | Timing                   | Input                           | Allowed Mutations                              | Purpose                        |
-| ---------------------- | ------------------------ | ------------------------------- | ---------------------------------------------- | ------------------------------ |
-| `beforeGenesisPrompt`  | Pre model call           | { basePrompt, context }         | Add guidance (<= N chars), add soft tags       | Style / motif steering         |
-| `afterGenesisResponse` | Post model raw JSON      | { draft }                       | Remove exits, adjust tags, add advisory flags  | Prune unsafe / redundant exits |
-| `beforeCrystallize`    | Pre commit               | { roomDraft, validationReport } | Block (return veto), modify non-critical props | Enforce custom policies        |
-| `afterCrystallize`     | Post commit              | { room }                        | Schedule follow-ups (quests, NPC seeds)        | Reactive content seeding       |
-| `onLayerProposed`      | New desc layer candidate | { layerDraft }                  | Approve/reject, annotate                       | Curate evolving narrative      |
+| Hook                   | Timing                   | Input                               | Allowed Mutations                              | Purpose                        |
+| ---------------------- | ------------------------ | ----------------------------------- | ---------------------------------------------- | ------------------------------ |
+| `beforeGenesisPrompt`  | Pre model call           | { basePrompt, context }             | Add guidance (<= N chars), add soft tags       | Style / motif steering         |
+| `afterGenesisResponse` | Post model raw JSON      | { draft }                           | Remove exits, adjust tags, add advisory flags  | Prune unsafe / redundant exits |
+| `beforeCrystallize`    | Pre commit               | { locationDraft, validationReport } | Block (return veto), modify non-critical props | Enforce custom policies        |
+| `afterCrystallize`     | Post commit              | { location }                        | Schedule follow-ups (quests, NPC seeds)        | Reactive content seeding       |
+| `onLayerProposed`      | New desc layer candidate | { layerDraft }                      | Approve/reject, annotate                       | Curate evolving narrative      |
 
 All hooks execute inside a constrained runtime: synchronous, CPU‑bound only, no outbound arbitrary network (prevent data exfiltration or latency blowouts). Violations disable the extension.
 
@@ -97,7 +97,7 @@ They can:
 
 - Tighten constraints (e.g., enforce regional motif continuity)
 - Provide supplemental validation codes
-- Tag rooms with extension-specific semantic markers
+- Tag locations with extension-specific semantic markers
 
 ### Extension Registration Manifest (Draft)
 
@@ -108,7 +108,7 @@ They can:
 	"hooks": ["beforeGenesisPrompt","afterCrystallize"],
 	"permissions": {
 		"maxPromptAppendChars": 180,
-		"allowRoomTagging": true,
+		"allowLocationTagging": true,
 		"allowExitPrune": true
 	},
 	"safety": { "requiresModeration": true }

@@ -39,7 +39,7 @@ Multiplayer visibility of evolving locations leverages the **immutable base + ad
 
 | Layer Type  | Example                                | Sync Characteristics                                            |
 | ----------- | -------------------------------------- | --------------------------------------------------------------- |
-| Base        | Original room genesis description      | Cached aggressively; invalidates only on structural audit fixes |
+| Base        | Original location genesis description  | Cached aggressively; invalidates only on structural audit fixes |
 | Event       | "A fresh barricade blocks the archway" | Propagated immediately (low TTL caching)                        |
 | Faction     | "Banners of the Azure Sigil hang here" | Region-scope invalidation on faction shift                      |
 | Seasonal    | "Lanterns glow for the Equinox"        | Preloaded via seasonal manifest                                 |
@@ -48,7 +48,7 @@ Multiplayer visibility of evolving locations leverages the **immutable base + ad
 
 ### Consistency Model
 
-- **Room Snapshot**: Server composes ordered layers → hash → clients diff apply.
+- **Location Snapshot**: Server composes ordered layers → hash → clients diff apply.
 - **Delta Broadcast**: Only new/removed layer IDs + changed exit states.
 - **Conflict Avoidance**: Player-authored micro-layers (future) require optimistic version; reject on mismatch.
 
@@ -57,15 +57,15 @@ Multiplayer visibility of evolving locations leverages the **immutable base + ad
 1. Player issues move.
 2. Server validates `EXIT` (state=open, gating satisfied).
 3. Movement committed; latency + network timing recorded via `Multiplayer.Movement.Latency`. If traversal reveals or creates an additive layer, emit `World.Layer.Added`.
-4. Party sync: party members receive prioritized delta packet with new room hash and delta layers.
+4. Party sync: party members receive prioritized delta packet with new location hash and delta layers.
 
 ### Latency Targets (Aspirational)
 
-| Operation                               | p50      | p95      |
-| --------------------------------------- | -------- | -------- |
-| Movement round-trip (no genesis)        | < 250ms  | < 500ms  |
-| Movement + on-demand genesis (new room) | < 1200ms | < 1800ms |
-| Layer push fan-out (<= 500 subs)        | < 300ms  | < 650ms  |
+| Operation                                   | p50      | p95      |
+| ------------------------------------------- | -------- | -------- |
+| Movement round-trip (no genesis)            | < 250ms  | < 500ms  |
+| Movement + on-demand genesis (new location) | < 1200ms | < 1800ms |
+| Layer push fan-out (<= 500 subs)            | < 300ms  | < 650ms  |
 
 ### Anti-Griefing Integration
 
@@ -76,13 +76,13 @@ Griefing signals (quest sabotage, harassment patterns) reduce _layer publication
 Canonical events (see `shared/src/telemetryEvents.ts`; all emitted via `trackGameEventStrict`):
 
 - `Multiplayer.LayerDelta.Sent` (layerCount, bytes, recipients)
-- `Multiplayer.RoomSnapshot.HashMismatch` (clientHash, serverHash)
+- `Multiplayer.LocationSnapshot.HashMismatch` (clientHash, serverHash)
 - `Multiplayer.Movement.Latency` (serverMs, networkMs)
 
 ### Open Considerations
 
-- Regional batching of broadcast vs per-room micro-packets.
-- Predictive prefetch of adjacent room layer sets for fast parties.
+- Regional batching of broadcast vs per-location micro-packets.
+- Predictive prefetch of adjacent location layer sets for fast parties.
 - Privacy gates for secret layers (individual vs group discovery state).
 
 ---

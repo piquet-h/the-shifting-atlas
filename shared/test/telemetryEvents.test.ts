@@ -12,5 +12,5 @@ for (const name of GAME_EVENT_NAMES) {
 
 // Negative check
 test('unrecognized event name', () => {
-    assert.equal(isGameEventName('world.room.generated' as any), false)
+    assert.equal(isGameEventName('world.location.generated'), false)
 })

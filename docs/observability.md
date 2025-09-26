@@ -18,7 +18,7 @@ Rules:
 
 1. Minimum two segments (`Domain.Action`) – add `Subject` only when it materially disambiguates.
 2. Use PascalCase for every segment; no lowercase or snake_case.
-3. Prefer singular nouns (`Room`, `Player`, `NPC`).
+3. Prefer singular nouns (`Location`, `Player`, `NPC`).
 4. Actions are verbs in Past tense for completed facts (`Created`, `Upgraded`, `Moved`) or Present tense for instantaneous queries (`Get`, `List`). Be consistent within a domain.
 5. Avoid encoding outcome or status in the name; use dimensions (`status`, `reason`).
 6. Do not append "Event" or duplicate context (no `Room.RoomMoved`).
@@ -29,7 +29,7 @@ Approved Domains (initial):
 | -------- | ------------------------------------------ |
 | Onboarding | Guest GUID issuance & session bootstrap |
 | Auth | Account / identity upgrades |
-| Room | Room retrieval & traversal |
+| Location | Location retrieval & traversal |
 | Ping | Diagnostic latency / echo |
 | NPC | (Future) autonomous character ticks |
 | Economy | (Future) trade / currency operations |
@@ -40,8 +40,8 @@ Examples (canonical):
 - `Onboarding.GuestGuid.Created`
 - `Onboarding.GuestGuid.Started`
 - `Auth.Player.Upgraded`
-- `Room.Get` (idempotent fetch)
-- `Room.Move` (attempted traversal; success/failure in `status`)
+- `Location.Get` (idempotent fetch)
+- `Location.Move` (attempted traversal; success/failure in `status`)
 - `Ping.Invoked`
 
 Reserved Suffixes:
@@ -80,8 +80,8 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 | `service`         | Emitting logical service (`backend-functions`, `swa-api`) | `swa-api` |
 | `requestId`       | Correlates to function invocation id                      | `abc123`  |
 | `playerGuid`      | Player identity (guest or linked)                         | `9d2f...` |
-| `fromRoom`        | Origin room id for movement                               | (UUID)    |
-| `toRoom`          | Destination room id                                       | (UUID)    |
+| `fromLocation`    | Origin location id for movement                           | (UUID)    |
+| `toLocation`      | Destination location id                                   | (UUID)    |
 | `direction`       | Movement direction keyword                                | `north`   |
 | `status`          | Numeric or enum outcome (200, 404, `no-exit`)             | `200`     |
 | `persistenceMode` | Storage backend (`memory`, `cosmos`)                      | `memory`  |
@@ -91,42 +91,42 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 
 ## Current Canonical Event Set (Week 1 Post-Refactor)
 
-| Event Name                              | Purpose                                           |
-| --------------------------------------- | ------------------------------------------------- |
-| `Ping.Invoked`                          | Health / latency probe                            |
-| `Onboarding.GuestGuid.Started`          | Begin guest bootstrap attempt                     |
-| `Onboarding.GuestGuid.Created`          | New guest GUID allocated                          |
-| `Auth.Player.Upgraded`                  | Guest upgraded / linked identity                  |
-| `Room.Get`                              | Room fetch (status dimension for 200/404)         |
-| `Room.Move`                             | Movement attempt outcome                          |
-| `Command.Executed`                      | Frontend command lifecycle (ad-hoc CLI)           |
-| `World.Room.Generated`                  | AI genesis accepted (future)                      |
-| `World.Room.Rejected`                   | AI genesis rejected (future)                      |
-| `World.Layer.Added`                     | Description / ambience layer persisted (future)   |
-| `World.Exit.Created`                    | Exit creation (manual or AI)                      |
-| `Prompt.Genesis.Issued`                 | Prompt sent to model (future)                     |
-| `Prompt.Genesis.Rejected`               | Prompt output rejected during validation (future) |
-| `Prompt.Genesis.Crystallized`           | Accepted prompt output stored                     |
-| `Prompt.Layer.Generated`                | Non-structural layer generation event             |
-| `Prompt.Cost.BudgetThreshold`           | Cost budget threshold crossed                     |
-| `Extension.Hook.Invoked`                | Extension hook invocation                         |
-| `Extension.Hook.Veto`                   | Extension prevented operation                     |
-| `Extension.Hook.Mutation`               | Extension mutated draft entity                    |
-| `Multiplayer.LayerDelta.Sent`           | Multiplayer layer diff broadcast (future)         |
-| `Multiplayer.RoomSnapshot.HashMismatch` | Client/server snapshot divergence                 |
-| `Multiplayer.Movement.Latency`          | Movement latency decomposition (future)           |
-| `Telemetry.EventName.Invalid`           | Guard rail emission for invalid names             |
+| Event Name                                  | Purpose                                           |
+| ------------------------------------------- | ------------------------------------------------- |
+| `Ping.Invoked`                              | Health / latency probe                            |
+| `Onboarding.GuestGuid.Started`              | Begin guest bootstrap attempt                     |
+| `Onboarding.GuestGuid.Created`              | New guest GUID allocated                          |
+| `Auth.Player.Upgraded`                      | Guest upgraded / linked identity                  |
+| `Location.Get`                              | Location fetch (status dimension for 200/404)     |
+| `Location.Move`                             | Movement attempt outcome                          |
+| `Command.Executed`                          | Frontend command lifecycle (ad-hoc CLI)           |
+| `World.Location.Generated`                  | AI genesis accepted (future)                      |
+| `World.Location.Rejected`                   | AI genesis rejected (future)                      |
+| `World.Layer.Added`                         | Description / ambience layer persisted (future)   |
+| `World.Exit.Created`                        | Exit creation (manual or AI)                      |
+| `Prompt.Genesis.Issued`                     | Prompt sent to model (future)                     |
+| `Prompt.Genesis.Rejected`                   | Prompt output rejected during validation (future) |
+| `Prompt.Genesis.Crystallized`               | Accepted prompt output stored                     |
+| `Prompt.Layer.Generated`                    | Non-structural layer generation event             |
+| `Prompt.Cost.BudgetThreshold`               | Cost budget threshold crossed                     |
+| `Extension.Hook.Invoked`                    | Extension hook invocation                         |
+| `Extension.Hook.Veto`                       | Extension prevented operation                     |
+| `Extension.Hook.Mutation`                   | Extension mutated draft entity                    |
+| `Multiplayer.LayerDelta.Sent`               | Multiplayer layer diff broadcast (future)         |
+| `Multiplayer.LocationSnapshot.HashMismatch` | Client/server snapshot divergence                 |
+| `Multiplayer.Movement.Latency`              | Movement latency decomposition (future)           |
+| `Telemetry.EventName.Invalid`               | Guard rail emission for invalid names             |
 
-### Room ID Migration Note (Sept 2025)
+### Location Terminology Migration Note (Sept 2025)
 
-Legacy documentation previously illustrated movement dimensions using human‑readable room slugs like `starter-room` and `antechamber`. All room identifiers are now opaque UUIDv4 values to guarantee stability and eliminate naming collisions as the world graph grows. The starter pair map as follows:
+Legacy documentation previously illustrated movement dimensions using human‑readable room slugs like `starter-room` and `antechamber`. The system now uses generic Location terminology and all identifiers are opaque UUIDv4 values to guarantee stability and eliminate naming collisions as the world graph grows. The starter pair map as follows (old constants renamed):
 
-| Legacy Slug    | UUID                                   | Constant (if exported) |
-| -------------- | -------------------------------------- | ---------------------- |
-| `starter-room` | `a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21` | `STARTER_ROOM_ID`      |
-| `antechamber`  | `f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53` | `SECOND_ROOM_ID`       |
+| Legacy Slug    | UUID                                   | Constant (if exported)                             |
+| -------------- | -------------------------------------- | -------------------------------------------------- |
+| `starter-room` | `a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21` | (was `STARTER_ROOM_ID`, now `STARTER_LOCATION_ID`) |
+| `antechamber`  | `f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53` | (was `SECOND_ROOM_ID`, now `SECOND_LOCATION_ID`)   |
 
-Additional early slugs (e.g., `north-gate`, `tavern-common-room`, `south-road`, etc.) have likewise been replaced; see `shared/src/data/villageRooms.json` for the authoritative current set. Telemetry SHOULD NOT rely on legacy slugs; dashboards should treat room ids as opaque strings.
+Additional early slugs (e.g., `north-gate`, `tavern-common-room`, `south-road`, etc.) have likewise been replaced; see `shared/src/data/villageLocations.json` for the authoritative current set. Telemetry SHOULD NOT rely on legacy slugs; dashboards should treat location ids as opaque strings.
 
 Events marked (future) may not yet emit in runtime; they are reserved to reduce future naming churn.
 
@@ -135,7 +135,7 @@ Events marked (future) may not yet emit in runtime; they are reserved to reduce 
 1. Emit on boundary decisions (success vs error) rather than every internal step.
 2. Include `persistenceMode` once repository abstraction exists.
 3. Reserve high-cardinality values (raw descriptions, large GUID sets) for logs—not custom events.
-4. Use consistent casing; avoid introducing both `fromRoom` and `from_room`.
+4. Use consistent casing; avoid introducing both `fromLocation` and `from_location`.
 5. Failures should share the same event name with a differentiating `status` or `reason` dimension.
 
 ## Sampling & Quotas
@@ -152,19 +152,19 @@ Events marked (future) may not yet emit in runtime; they are reserved to reduce 
 | `Onboarding.Start`            | `Onboarding.GuestGuid.Started` | Clarifies what started                 |
 | `Auth.UpgradeSuccess`         | `Auth.Player.Upgraded`         | Standard Past-tense verb; adds Subject |
 | `ping.invoked`                | `Ping.Invoked`                 | Casing + Domain normalization          |
-| `room.get`                    | `Room.Get`                     | Casing normalized                      |
-| `room.move`                   | `Room.Move`                    | Casing normalized                      |
+| `room.get`                    | `Location.Get`                 | Terminology + casing normalized        |
+| `room.move`                   | `Location.Move`                | Terminology + casing normalized        |
 
 All old names are to be replaced in a single refactor (no dual emission mandated).
 
 ## Roadmap
 
-| Phase | Additions                                                                      |
-| ----- | ------------------------------------------------------------------------------ |
-| MVP+1 | Repository-backed Room events (`Room.Get`, `Room.Move`) with `persistenceMode` |
-| MVP+2 | NPC tick events (`NPC.TickStart`, `NPC.TickResult`)                            |
-| MVP+3 | Economy transactions (`Economy.TradeExecuted`)                                 |
-| MVP+4 | Dialogue interactions (`Dialogue.BranchChosen`)                                |
+| Phase | Additions                                                                                  |
+| ----- | ------------------------------------------------------------------------------------------ |
+| MVP+1 | Repository-backed Location events (`Location.Get`, `Location.Move`) with `persistenceMode` |
+| MVP+2 | NPC tick events (`NPC.TickStart`, `NPC.TickResult`)                                        |
+| MVP+3 | Economy transactions (`Economy.TradeExecuted`)                                             |
+| MVP+4 | Dialogue interactions (`Dialogue.BranchChosen`)                                            |
 
 ## Migration Notes (Refactor Plan)
 
@@ -184,8 +184,8 @@ Deprecated Names: none retained; removal is immediate.
 Proposed starter charts:
 
 - Requests by status over time (split by event name)
-- Movement success rate (filter `Room.Move` where `status=200` vs others)
-- Top rooms by visits (`Room.Get` count grouped by `roomId`)
+- Movement success rate (filter `Location.Move` where `status=200` vs others)
+- Top locations by visits (`Location.Get` count grouped by `locationId`)
 - Onboarding conversion (GuestGuidCreated → UpgradeSuccess funnel)
 
 ## Open Questions (Track Before Expanding)

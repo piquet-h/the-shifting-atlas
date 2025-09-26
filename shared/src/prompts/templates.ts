@@ -10,10 +10,10 @@ export interface PromptTemplateMeta {
 
 const templates: Omit<PromptTemplateMeta, 'hash'>[] = [
     {
-        name: 'ambience.room.v1',
+        name: 'ambience.location.v1',
         version: '0.1.0',
-        purpose: 'Generate a short ambient sensory line for a room (no spoilers, <= 120 chars).',
-        body: `You are an ambience generator. Given a room name and existing description, output a single flavorful sensory line (sound, air, subtle motion). No monsters, no exits, no player references. Plain text only.`
+        purpose: 'Generate a short ambient sensory line for a location (no spoilers, <= 120 chars).',
+        body: `You are an ambience generator. Given a location name and existing description, output a single flavorful sensory line (sound, air, subtle motion). No monsters, no exits, no player references. Plain text only.`
     }
 ]
 

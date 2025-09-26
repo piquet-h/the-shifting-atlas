@@ -17,13 +17,13 @@ test('trackGameEventStrict includes correlationId when provided', () => {
     }
 
     const corr = 'corr-test-123'
-    trackGameEventStrict('Room.Get', {id: 'room-1', status: 200}, {correlationId: corr})
+    trackGameEventStrict('Location.Get', {id: 'location-1', status: 200}, {correlationId: corr})
 
     // restore
     if (telemetryClient && original) telemetryClient.trackEvent = original
 
     assert.ok(events.length >= 1, 'No events captured')
-    const evt = events.find((e) => e.name === 'Room.Get')
-    assert.ok(evt, 'Room.Get event not captured')
+    const evt = events.find((e) => e.name === 'Location.Get')
+    assert.ok(evt, 'Location.Get event not captured')
     assert.equal(evt?.properties?.correlationId, corr, 'Correlation ID not propagated')
 })

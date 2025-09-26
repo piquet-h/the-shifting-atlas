@@ -1,6 +1,6 @@
 # Design Document: Worlds and Lore
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No biome system, lore codex, faction logic, or AI-driven narrative adaptation exists yet. This file is aspirational; early implementation will focus on a single static starter room description.
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No biome system, lore codex, faction logic, or AI-driven narrative adaptation exists yet. This file is aspirational; early implementation will focus on a single static starter location description.
 
 ## Vision
 
@@ -46,7 +46,7 @@ It also supports dynamic world rules and lore systems, including environmental s
 
 ### Environmental Tags (Shared Taxonomy)
 
-Lightweight semantic atoms attached to Rooms, Zones, or Structures to inform AI prompts and gameplay systems. Examples:
+Lightweight semantic atoms attached to Locations, Zones, or Structures to inform AI prompts and gameplay systems. Examples:
 
 | Category   | Examples                                          | Usage                                        |
 | ---------- | ------------------------------------------------- | -------------------------------------------- |
@@ -80,7 +80,7 @@ Benefits:
 
 ### Layered Descriptions (Integration with Navigation Schema)
 
-To maintain authorial control while leveraging generative AI, each Room stores a stable `baseDescription` plus an ordered list of `descLayers` (see `navigation-and-traversal.md`). Layers can represent seasonal shifts, event consequences, AI embellishments, or faction occupation.
+To maintain authorial control while leveraging generative AI, each Location stores a stable `baseDescription` plus an ordered list of `descLayers` (see `navigation-and-traversal.md`). Layers can represent seasonal shifts, event consequences, AI embellishments, or faction occupation.
 
 Rendering order (example):
 
@@ -114,7 +114,7 @@ Large iconic locations (Coliseum, Great Library, Sky Citadel) project identity t
 - Faction diplomatic events
 - Seasonal festivals (temporary layers)
 
-When hierarchical `Structure` vertices are introduced, global lore events may target the parent, cascading regeneration to contained Rooms with tailored modifiers.
+When hierarchical `Structure` vertices are introduced, global lore events may target the parent, cascading regeneration to contained Locations with tailored modifiers.
 
 ### Cross-Document Links
 

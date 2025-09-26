@@ -1,6 +1,6 @@
 # Design document: Quest & Dialogue Trees
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No quest state machine, dialogue engine, or NPC memory exists in the code. This spec is a forward-looking design; initial milestone will introduce a single hardcoded dialogue response once room persistence is working.
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No quest state machine, dialogue engine, or NPC memory exists in the code. This spec is a forward-looking design; initial milestone will introduce a single hardcoded dialogue response once location persistence is working.
 
 ## 🎯 Vision:
 

@@ -99,24 +99,24 @@ export interface EventPayloadMap {
     'Onboarding.GuestGuid.Started': Record<string, never>
     'Onboarding.GuestGuid.Created': {phase?: string}
     'Auth.Player.Upgraded': {linkStrategy?: string; hadGuestProgress?: boolean}
-    'Room.Get': {id: string; status: number}
-    'Room.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
-    'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; roomId?: string | null}
-    'World.Room.Generated': {roomId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
-    'World.Room.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}
-    'World.Layer.Added': {roomId: string; layerType: string}
-    'World.Exit.Created': {fromRoomId: string; toRoomId: string; dir: string; kind: string; genSource?: string}
+    'Location.Get': {id: string; status: number}
+    'Location.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
+    'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null}
+    'World.Location.Generated': {locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
+    'World.Location.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}
+    'World.Layer.Added': {locationId: string; layerType: string}
+    'World.Exit.Created': {fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string}
     'Prompt.Genesis.Issued': {promptHash: string; model: string; contextSize?: number}
     'Prompt.Genesis.Rejected': {promptHash: string; failureCode: string}
-    'Prompt.Genesis.Crystallized': {promptHash: string; roomId: string; tokensPrompt?: number; tokensCompletion?: number}
-    'Prompt.Layer.Generated': {roomId: string; layerType: string; promptHash: string}
+    'Prompt.Genesis.Crystallized': {promptHash: string; locationId: string; tokensPrompt?: number; tokensCompletion?: number}
+    'Prompt.Layer.Generated': {locationId: string; layerType: string; promptHash: string}
     'Prompt.Cost.BudgetThreshold': {percent: number}
     'Extension.Hook.Invoked': {extensionName: string; hook: string; durationMs: number; success: boolean}
     'Extension.Hook.Veto': {extensionName: string; hook: string; reasonCode: string}
     'Extension.Hook.Mutation': {extensionName: string; hook: string; fieldsChanged: string[]}
-    'Multiplayer.LayerDelta.Sent': {roomId: string; layerCount: number; recipients: number}
-    'Multiplayer.RoomSnapshot.HashMismatch': {roomId: string; clientHash: string; serverHash: string}
-    'Multiplayer.Movement.Latency': {roomIdFrom: string; roomIdTo: string; serverMs: number; networkMs?: number}
+    'Multiplayer.LayerDelta.Sent': {locationId: string; layerCount: number; recipients: number}
+    'Multiplayer.LocationSnapshot.HashMismatch': {locationId: string; clientHash: string; serverHash: string}
+    'Multiplayer.Movement.Latency': {locationIdFrom: string; locationIdTo: string; serverMs: number; networkMs?: number}
     'Telemetry.EventName.Invalid': {requested: string}
 }
 

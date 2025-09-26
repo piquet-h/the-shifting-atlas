@@ -1,21 +1,19 @@
 import {isDirection} from '../domainModels.js'
 import {GremlinClient} from '../gremlin/gremlinClient.js'
-import {Room} from '../room.js'
-import {IRoomRepository} from './roomRepository.js'
+import {Location} from '../location.js'
+import {ILocationRepository} from './locationRepository.js'
 
-/** Cosmos (Gremlin) implementation of IRoomRepository.
- * NOTE: Uses two simple queries per call for clarity; can be optimized later.
- */
-export class CosmosRoomRepository implements IRoomRepository {
+/** Cosmos (Gremlin) implementation of ILocationRepository. */
+export class CosmosLocationRepository implements ILocationRepository {
     constructor(private client: GremlinClient) {}
 
-    async get(id: string): Promise<Room | undefined> {
-        const vertices = await this.client.submit<Record<string, unknown>>('g.V(roomId).valueMap(true)', {roomId: id})
+    async get(id: string): Promise<Location | undefined> {
+        const vertices = await this.client.submit<Record<string, unknown>>('g.V(locationId).valueMap(true)', {locationId: id})
         if (!vertices || vertices.length === 0) return undefined
         const v = vertices[0]
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
-            "g.V(roomId).outE('exit').project('direction','to','description').by(values('direction')).by(inV().id()).by(values('description'))",
-            {roomId: id}
+            "g.V(locationId).outE('exit').project('direction','to','description').by(values('direction')).by(inV().id()).by(values('description'))",
+            {locationId: id}
         )
         const exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
             direction: String(e.direction as string),
@@ -24,7 +22,7 @@ export class CosmosRoomRepository implements IRoomRepository {
         }))
         return {
             id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Room',
+            name: firstScalar(v.name) || 'Unknown Location',
             description: firstScalar(v.description) || '',
             exits,
             version: typeof v.version === 'number' ? v.version : undefined
@@ -39,7 +37,7 @@ export class CosmosRoomRepository implements IRoomRepository {
         if (!exit || !exit.to) return {status: 'error', reason: 'no-exit'} as const
         const dest = await this.get(exit.to)
         if (!dest) return {status: 'error', reason: 'target-missing'} as const
-        return {status: 'ok', room: dest} as const
+        return {status: 'ok', location: dest} as const
     }
 }
 
