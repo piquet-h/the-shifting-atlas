@@ -9,5 +9,5 @@
         "composite": true,
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "include": ["src"]
+    "include": ["src", "src/**/*.ts", "src/**/*.json"]
 }

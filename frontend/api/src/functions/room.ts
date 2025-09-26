@@ -1,18 +1,19 @@
 /**
- * Room & Movement Handlers (MVP Stub)
+ * Room & Movement Handlers (In-Memory Repository Backing)
  * ------------------------------------------------------
- * Current State: Uses an in-memory `roomStore` (see domain/roomStore.ts) with two starter rooms
- * and basic directional exits. Telemetry events (`Room.Get`, `Room.Move`) capture minimal fields.
+ * Current State: Uses the shared `IRoomRepository` in-memory implementation
+ * seeded from `shared/src/data/villageRooms.json` (a plain JSON world seed).
+ * Telemetry events (`Room.Get`, `Room.Move`) capture minimal fields.
  *
- * Migration Plan (Persistence):
- *  1. Introduce a repository interface (getRoom(id), move(fromId, direction)) in shared package.
- *  2. Provide memory + Cosmos Gremlin implementations; select via env `PERSISTENCE_MODE`.
- *  3. Replace direct `roomStore` access here with repository calls.
- *  4. Extend telemetry dimensions (persistenceMode, fromRoom, toRoom, direction, outcome).
- *  5. Add optimistic concurrency (room.version) once multi-writer scenarios emerge.
+ * Persistence Roadmap:
+ *  1. Add `CosmosRoomRepository` (Gremlin) implementing IRoomRepository.
+ *  2. Select implementation via env: `PERSISTENCE_MODE=cosmos|memory`.
+ *  3. Introduce migration/seed script that ingests the JSON seed if graph empty.
+ *  4. Expand telemetry dimensions (persistenceMode, fromRoom, toRoom, direction, outcome).
+ *  5. Add optimistic concurrency (room.version) with conditional updates.
  *
- * Rationale: Keeping this stub lean accelerates traversal loop validation while isolating
- * persistence concerns behind a soon-to-arrive interface—reducing refactor surface.
+ * Rationale: Centralizing seed data as JSON enables tooling (map diffing,
+ * AI-driven generation, visualization) without code edits.
  */
 import {extractPlayerGuid, getRoomRepository, STARTER_ROOM_ID, trackGameEventStrict} from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
@@ -31,7 +32,9 @@ export async function getRoomHandler(req: HttpRequest): Promise<HttpResponseInit
     return {status: 200, jsonBody: room}
 }
 
-// Basic movement stub: expects direction in query (?dir=north) and current room (?from=starter-room)
+// Basic movement stub: expects direction in query (?dir=north) and current room (?from=<roomId>). If
+// omitted, defaults to STARTER_ROOM_ID (UUID). Legacy docs may still reference the old
+// human-readable 'starter-room' id; that has been replaced with a UUID.
 export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const fromId = req.query.get('from') || STARTER_ROOM_ID
     const dir = (req.query.get('dir') || '').toLowerCase()

@@ -75,17 +75,17 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 
 ## Standard Dimensions (Keys)
 
-| Key               | Purpose                                                   | Example        |
-| ----------------- | --------------------------------------------------------- | -------------- |
-| `service`         | Emitting logical service (`backend-functions`, `swa-api`) | `swa-api`      |
-| `requestId`       | Correlates to function invocation id                      | `abc123`       |
-| `playerGuid`      | Player identity (guest or linked)                         | `9d2f...`      |
-| `fromRoom`        | Origin room id for movement                               | `starter-room` |
-| `toRoom`          | Destination room id                                       | `antechamber`  |
-| `direction`       | Movement direction keyword                                | `north`        |
-| `status`          | Numeric or enum outcome (200, 404, `no-exit`)             | `200`          |
-| `persistenceMode` | Storage backend (`memory`, `cosmos`)                      | `memory`       |
-| `latencyMs`       | Basic measured duration                                   | `17`           |
+| Key               | Purpose                                                   | Example   |
+| ----------------- | --------------------------------------------------------- | --------- |
+| `service`         | Emitting logical service (`backend-functions`, `swa-api`) | `swa-api` |
+| `requestId`       | Correlates to function invocation id                      | `abc123`  |
+| `playerGuid`      | Player identity (guest or linked)                         | `9d2f...` |
+| `fromRoom`        | Origin room id for movement                               | (UUID)    |
+| `toRoom`          | Destination room id                                       | (UUID)    |
+| `direction`       | Movement direction keyword                                | `north`   |
+| `status`          | Numeric or enum outcome (200, 404, `no-exit`)             | `200`     |
+| `persistenceMode` | Storage backend (`memory`, `cosmos`)                      | `memory`  |
+| `latencyMs`       | Basic measured duration                                   | `17`      |
 
 Add dimensions sparingly; prefer a single event with multiple dimensions over many granular events that fragment analysis.
 
@@ -116,6 +116,17 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 | `Multiplayer.RoomSnapshot.HashMismatch` | Client/server snapshot divergence                 |
 | `Multiplayer.Movement.Latency`          | Movement latency decomposition (future)           |
 | `Telemetry.EventName.Invalid`           | Guard rail emission for invalid names             |
+
+### Room ID Migration Note (Sept 2025)
+
+Legacy documentation previously illustrated movement dimensions using human‑readable room slugs like `starter-room` and `antechamber`. All room identifiers are now opaque UUIDv4 values to guarantee stability and eliminate naming collisions as the world graph grows. The starter pair map as follows:
+
+| Legacy Slug    | UUID                                   | Constant (if exported) |
+| -------------- | -------------------------------------- | ---------------------- |
+| `starter-room` | `a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21` | `STARTER_ROOM_ID`      |
+| `antechamber`  | `f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53` | `SECOND_ROOM_ID`       |
+
+Additional early slugs (e.g., `north-gate`, `tavern-common-room`, `south-road`, etc.) have likewise been replaced; see `shared/src/data/villageRooms.json` for the authoritative current set. Telemetry SHOULD NOT rely on legacy slugs; dashboards should treat room ids as opaque strings.
 
 Events marked (future) may not yet emit in runtime; they are reserved to reduce future naming churn.
 

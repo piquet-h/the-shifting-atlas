@@ -1,4 +1,5 @@
-import {Room, SECOND_ROOM_ID, STARTER_ROOM_ID} from '../room.js'
+import villageRoomsData from '../data/villageRooms.json' assert {type: 'json'}
+import {Room} from '../room.js'
 
 // Repository contract isolates persistence (memory, cosmos, etc.) from handlers & AI tools.
 export interface IRoomRepository {
@@ -6,38 +7,13 @@ export interface IRoomRepository {
     move(fromId: string, direction: string): Promise<{status: 'ok'; room: Room} | {status: 'error'; reason: string}>
 }
 
-// In-memory implementation (Week 1). Mirrors prior roomStore logic.
+// In-memory implementation seeded from plain JSON (villageRooms.json). Swap with
+// a Cosmos/Gremlin implementation in future without changing handler code.
 class InMemoryRoomRepository implements IRoomRepository {
     private rooms: Map<string, Room>
     constructor() {
-        this.rooms = new Map([
-            [
-                STARTER_ROOM_ID,
-                {
-                    id: STARTER_ROOM_ID,
-                    name: 'Dusty Atrium',
-                    description: 'A quiet stone atrium lit by a soft, sourceless glow. Faint motes drift in the still air.',
-                    exits: [
-                        {
-                            direction: 'north',
-                            to: SECOND_ROOM_ID,
-                            description: 'A narrow archway chiseled into darker stone.'
-                        }
-                    ],
-                    version: 1
-                }
-            ],
-            [
-                SECOND_ROOM_ID,
-                {
-                    id: SECOND_ROOM_ID,
-                    name: 'Antechamber',
-                    description: 'A low-ceilinged chamber with damp stone and a faint metallic echo. The atrium lies back to the south.',
-                    exits: [{direction: 'south', to: STARTER_ROOM_ID, description: 'The archway back to the atrium.'}],
-                    version: 1
-                }
-            ]
-        ])
+        const villageRooms = villageRoomsData as Room[]
+        this.rooms = new Map(villageRooms.map((r) => [r.id, r]))
     }
     async get(id: string): Promise<Room | undefined> {
         return this.rooms.get(id)

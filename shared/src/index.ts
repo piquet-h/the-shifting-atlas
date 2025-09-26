@@ -1,3 +1,4 @@
+export * from './domainModels.js'
 export * from './prompts/templates.js'
 export * from './repos/playerRepository.js'
 export * from './repos/roomRepository.js'
