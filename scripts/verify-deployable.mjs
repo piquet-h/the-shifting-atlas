@@ -10,7 +10,8 @@ const checks = [
     {path: 'frontend/dist/staticwebapp.config.json', required: true, desc: 'Static Web App config'},
     {path: 'frontend/api/host.json', required: true, desc: 'Functions host.json (api root deployment)'},
     {path: 'frontend/api/node_modules/@atlas/shared/dist/index.js', required: true, desc: 'Vendored shared package'},
-    {path: 'frontend/api/node_modules/@azure/functions/package.json', required: true, desc: 'Azure Functions runtime dependency'}
+    {path: 'frontend/api/node_modules/@azure/functions/package.json', required: true, desc: 'Azure Functions runtime dependency'},
+    {path: 'frontend/api/node_modules/applicationinsights/package.json', required: true, desc: 'App Insights SDK dependency'}
 ]
 
 let failed = false
