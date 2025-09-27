@@ -1,6 +1,7 @@
 import {isDirection} from '../domainModels.js'
 import {GremlinClient} from '../gremlin/gremlinClient.js'
 import {Location} from '../location.js'
+import {trackGameEventStrict} from '../telemetry.js'
 import {ILocationRepository} from './locationRepository.js'
 
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
@@ -25,6 +26,7 @@ export class CosmosLocationRepository implements ILocationRepository {
             name: firstScalar(v.name) || 'Unknown Location',
             description: firstScalar(v.description) || '',
             exits,
+            tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
             version: typeof v.version === 'number' ? v.version : undefined
         }
     }
@@ -42,19 +44,58 @@ export class CosmosLocationRepository implements ILocationRepository {
 
     /** Upsert (idempotent) a location vertex. */
     async upsert(location: Location): Promise<{created: boolean; id: string}> {
-        // Gremlin upsert pattern using fold/coalesce
-        await this.client.submit(
-            "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid)).property('name', name).property('description', desc).property('version', ver)",
-            {
-                lid: location.id,
-                name: location.name,
-                desc: location.description || '',
-                ver: location.version ?? 1
+        const startTime = Date.now()
+        let success = false
+        let created = false
+        let reason: string | undefined
+        
+        try {
+            // First, check if the location exists to determine if this is create vs update
+            const existingVertices = await this.client.submit<Record<string, unknown>>(
+                'g.V(lid).valueMap(true)', 
+                {lid: location.id}
+            )
+            const exists = existingVertices && existingVertices.length > 0
+            created = !exists
+            
+            let newVersion = location.version ?? 1
+            if (exists) {
+                // If updating, increment version from existing
+                const existing = existingVertices[0]
+                const currentVersion = typeof existing.version === 'number' ? existing.version : 0
+                newVersion = currentVersion + 1
             }
-        )
-        // We can't easily know if created without extra query; approximate by checking existence beforehand (one extra round trip acceptable for seeding)
-        // Optimization deferred.
-        return {created: false, id: location.id}
+            
+            // Perform the upsert with the calculated version
+            await this.client.submit(
+                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid))" + 
+                ".property('name', name).property('description', desc).property('version', ver)" +
+                (location.tags ? ".property('tags', tags)" : ""),
+                {
+                    lid: location.id,
+                    name: location.name,
+                    desc: location.description || '',
+                    ver: newVersion,
+                    tags: location.tags || []
+                }
+            )
+            
+            success = true
+            return {created, id: location.id}
+        } catch (error) {
+            success = false
+            reason = error instanceof Error ? error.message : 'Unknown error'
+            throw error
+        } finally {
+            const latencyMs = Date.now() - startTime
+            trackGameEventStrict('World.Location.Upsert', {
+                locationId: location.id,
+                latencyMs,
+                success,
+                created: success ? created : undefined,
+                reason: success ? undefined : reason
+            })
+        }
     }
 
     /** Ensure an exit edge with direction exists between fromId and toId */
