@@ -8,7 +8,7 @@ name: Implementation Order Sync
 permissions:
     contents: write
     issues: write
-    repository-projects: write # Classic projects; Projects v2 still require a PAT with project scope
+    repository-projects: write # Classic projects; Projects v2 still require PAT (classic) for user projects
 
 on:
     workflow_dispatch:
@@ -23,6 +23,11 @@ on:
             - 'scripts/sync-implementation-order.mjs'
             - '.github/workflows/impl-order-sync.yml'
             - '.github/copilot-instructions.md'
+    pull_request:
+        paths:
+            - 'roadmap/implementation-order.json'
+            - 'scripts/sync-implementation-order.mjs'
+            - '.github/workflows/impl-order-sync.yml'
 
 jobs:
     sync:
@@ -47,20 +52,42 @@ jobs:
                     echo "Using PROJECTS_TOKEN secret (expected to have 'project' scope for Projects v2)."
                   else
                     echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                    echo "Falling back to default GITHUB_TOKEN (will NOT have Projects v2 write; only docs/labels will update)."
+                    echo "Falling back to default GITHUB_TOKEN (no user Project v2 write)."
                   fi
 
-            - name: Run sync (validate on push, chosen mode otherwise)
+            - name: Run sync (auto-fix drift on push/main)
+              id: run-sync
               env:
                   GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
-                  # Set to 'false' once project connectivity confirmed; leave true to avoid failing early during setup.
-                  ALLOW_MISSING_PROJECT: 'true'
+                  ALLOW_MISSING_PROJECT: 'false'
               run: |
-                  MODE=${{ github.event_name == 'push' && 'validate' || github.event.inputs.mode }}
-                  echo "Running in mode: $MODE"
-                  node scripts/sync-implementation-order.mjs $MODE
+                  set -e
+                  if [ "${{ github.event_name }}" = "push" ]; then
+                    echo "Validate mode (auto-fix if needed)"
+                    if node scripts/sync-implementation-order.mjs validate; then
+                      echo "APPLY_PERFORMED=false" >> $GITHUB_ENV
+                    else
+                      echo "Drift detected; applying fix..."
+                      node scripts/sync-implementation-order.mjs apply
+                      echo "APPLY_PERFORMED=true" >> $GITHUB_ENV
+                    fi
+                  elif [ "${{ github.event_name }}" = "pull_request" ]; then
+                    echo "Pull request context: validate only"
+                    node scripts/sync-implementation-order.mjs validate
+                    echo "APPLY_PERFORMED=false" >> $GITHUB_ENV
+                  else
+                    MODE="${{ github.event.inputs.mode }}"
+                    echo "Manual dispatch mode: $MODE"
+                    node scripts/sync-implementation-order.mjs "$MODE"
+                    if [ "$MODE" = "apply" ] || [ "$MODE" = "resequence" ]; then
+                      echo "APPLY_PERFORMED=true" >> $GITHUB_ENV
+                    else
+                      echo "APPLY_PERFORMED=false" >> $GITHUB_ENV
+                    fi
+                  fi
+
             - name: Ensure required type labels exist
-              if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+              if: ${{ github.event_name != 'pull_request' }}
               env:
                   GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
               run: |
@@ -71,15 +98,15 @@ jobs:
                     echo "Label sync script missing, skipping.";
                   fi
 
-            - name: Commit regenerated docs (apply / resequence only)
-              if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["apply","resequence"]'), github.event.inputs.mode)
+            - name: Commit regenerated docs (when apply performed)
+              if: env.APPLY_PERFORMED == 'true'
               env:
                   GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
               run: |
                   if git diff --quiet docs/roadmap.md roadmap/implementation-order.json; then
                     echo "No doc changes to commit."; exit 0; fi
-                  git config user.name 'github-actions[bot]'
-                  git config user.email 'github-actions[bot]@users.noreply.github.com'
-                  git add docs/roadmap.md roadmap/implementation-order.json
-                  git commit -m 'chore(roadmap): sync implementation order'
-                  git push
+                    git config user.name 'github-actions[bot]'
+                    git config user.email 'github-actions[bot]@users.noreply.github.com'
+                    git add docs/roadmap.md roadmap/implementation-order.json
+                    git commit -m 'chore(roadmap): sync implementation order'
+                    git push
