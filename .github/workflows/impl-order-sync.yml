@@ -37,6 +37,18 @@ jobs:
                   echo "Running in mode: $MODE"
                   node scripts/sync-implementation-order.mjs $MODE
 
+            - name: Ensure required type labels exist
+              if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  if [ -f scripts/sync-labels.mjs ]; then
+                    echo "Syncing labels...";
+                    node scripts/sync-labels.mjs;
+                  else
+                    echo "Label sync script missing, skipping.";
+                  fi
+
             - name: Commit regenerated docs (apply / resequence only)
               if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["apply","resequence"]'), github.event.inputs.mode)
               env:

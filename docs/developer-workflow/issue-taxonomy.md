@@ -67,7 +67,7 @@ Module documents may still reference internal sub-phase codes (e.g., traversal n
 ## Migration Checklist
 
 1. Delete deprecated labels (`area:*`, `type:*`, `phase:*`, `status:*`, `priority:*`).
-2. Ensure bare type labels (`feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`) exist.
+2. Ensure bare type labels (`feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`) exist (run `npm run sync:labels`).
 3. Bulk remove all `priority:*` labels from issues.
 4. Add/Populate Project field "Implementation Order" with initial sequence (e.g. order existing foundation work 1..N).
 5. Assign milestones only to actively planned work (avoid parking lot milestones).

@@ -191,3 +191,28 @@ Usage Guidance (Copilot heuristics):
 If the script runs without a token, it will currently exit early—ensure `GITHUB_TOKEN` or `GH_TOKEN` is exported for status-aware operations.
 
 ---
+
+### 🏷 Type Label Bootstrapping
+
+All required type labels should exist: `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`.
+
+Bootstrap / reconcile (idempotent):
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run sync:labels
+```
+
+Behavior:
+
+- Creates any missing labels with canonical colors & descriptions.
+- Updates description/color if drifted (does not delete extra labels).
+- Safe to run in CI or locally. Exits non‑zero on API failure.
+
+CI Integration:
+
+- The `Implementation Order Sync` workflow (`.github/workflows/impl-order-sync.yml`) now invokes the label sync step on push & manual dispatch, guaranteeing required type labels remain present without manual intervention.
+- Missing labels are auto-created; description/color drift is corrected. No destructive actions are performed.
+
+Copilot Heuristic: When suggesting label additions for a new issue, ensure exactly one `scope:` label AND one of the above type labels; never suggest legacy `priority:*` or `phase-*` labels.
+
+---
