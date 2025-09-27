@@ -7,6 +7,7 @@ set -euo pipefail
 PROJECT_ID="3"                               # Correct project number
 FIELD_ID="PVTF_lAHOANLlqs4BEJKizg13FDI"      # Project field ID for "Implementation order"
 VALUE_KIND="number"                          # "number" or "text"
+AUTO_ASSIGN_MISSING=1                        # 1 = assign next order to any open issue not explicitly listed
 
 # Ordered pairs: <issueNumber> <implementationOrder>
 read -r -d '' ORDERS <<'EOF'
@@ -31,8 +32,8 @@ need jq
 if [[ ! -f project_snapshot.json ]]; then
   cat >&2 <<EOM
 Missing project_snapshot.json
-Generate one first, e.g.:
-  gh api graphql -f query='query($login:String!,$proj:Int!){\n  user(login:$login){\n    projectV2(number:$proj){ id items(first:200){ nodes{ id fieldValues(first:50){nodes{__typename}} content{... on Issue { id number title }}} } }\n  }\n  repository(owner:$login,name:"the-shifting-atlas"){ issues(first:200){ nodes{ id number title } } }\n}' -f login="$(gh api user -q .login)" -F proj=4 > project_snapshot.json
+Generate one first, e.g. (GitHub API max page size is 100):
+  gh api graphql -f query='query($login:String!,$proj:Int!){\n  user(login:$login){\n    projectV2(number:$proj){ id items(first:100){ nodes{ id fieldValues(first:50){nodes{__typename}} content{... on Issue { id number title }}} } }\n  }\n  repository(owner:$login,name:"the-shifting-atlas"){ issues(first:100){ nodes{ id number title } } }\n}' -f login="$(gh api user -q .login)" -F proj=3 > project_snapshot.json
 EOM
   exit 1
 fi
@@ -70,6 +71,21 @@ set_field() {
   fi
 }
 
+echo "Preparing implementation order mapping..."
+current_max=$(echo "$ORDERS" | awk 'NF==2 {print $2}' | sort -n | tail -1)
+[[ -z "$current_max" ]] && current_max=0
+if [[ $AUTO_ASSIGN_MISSING -eq 1 ]]; then
+  mapped_numbers=$(echo "$ORDERS" | awk 'NF==2 {print $1}')
+  all_issue_numbers=$(jq -r '.data.repository.issues.nodes[].number' project_snapshot.json | sort -n)
+  while read -r inum; do
+    [[ -z "$inum" ]] && continue
+    echo "$mapped_numbers" | grep -q "^$inum$" && continue
+    current_max=$((current_max+1))
+    ORDERS=$(printf '%s\n%s %s' "$ORDERS" "$inum" "$current_max")
+  done <<< "$all_issue_numbers"
+fi
+echo "Final mapping (issue -> order):"
+echo "$ORDERS" | column -t || echo "$ORDERS"
 echo "Applying Implementation order field values..."
 while read -r issue_num order; do
   [[ -z "$issue_num" || "$issue_num" == \#* ]] && continue

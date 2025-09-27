@@ -37,7 +37,11 @@
         "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
         "format": "prettier . --write",
         "format:check": "prettier . --check",
-        "analyze:di": "node scripts/di-suitability.mjs"
+        "analyze:di": "node scripts/di-suitability.mjs",
+        "sync:impl-order:validate": "node scripts/sync-implementation-order.mjs validate",
+        "sync:impl-order:apply": "node scripts/sync-implementation-order.mjs apply",
+        "sync:impl-order:resequence": "node scripts/sync-implementation-order.mjs resequence",
+        "sync:impl-order:next": "node scripts/sync-implementation-order.mjs next"
     },
     "devDependencies": {
         "@azure/static-web-apps-cli": "^2.0.6",

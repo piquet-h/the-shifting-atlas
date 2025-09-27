@@ -134,3 +134,60 @@ Milestone: M3 AI Read
 > Keep the taxonomy **boringly stable**—change only with a documented rationale (add an ADR if adding a new Scope or Stage).
 
 ---
+
+## 🔢 Implementation Order Source of Truth
+
+The canonical sequencing of issues lives in `roadmap/implementation-order.json` (JSON, human‑editable) and is mirrored to:
+
+- GitHub Project 3 field: "Implementation order" (numeric)
+- Generated doc: `docs/roadmap.md` (table for quick scanning & Copilot ingestion)
+
+Sync mechanics:
+
+1. Edit `roadmap/implementation-order.json` (reorder or insert new issue entries; keep unique order integers).
+2. Run `npm run sync:impl-order:apply` locally OR trigger the GitHub Action workflow (manual dispatch) to apply.
+3. Script updates Project field values and regenerates `docs/roadmap.md` with labels/milestones populated.
+
+Validation:
+
+- CI (validate mode) fails if project ordering drifts from JSON.
+- Use `npm run sync:impl-order:validate` before pushing large reorder changes.
+
+Guidelines:
+
+- Prefer appending new issues at the end; resequence only when narrative clarity materially improves (use the `resequence` mode).
+- Keep orders contiguous (1..N) after intentional resequence; gaps complicate automation heuristics.
+- Closed issues remain in historical order; optionally remove them in a batch clean‑up after milestone completion.
+
+> Copilot: When asked "what's next" or to derive a plan, prioritize lower numeric Implementation order values first, then break ties by Milestone proximity (earlier milestone) and Scope (core/world/traversal preference for foundation stabilization).
+
+---
+
+### 🔄 Status Awareness & "Next" Mode
+
+The sync script now ingests the Project "Status" single‑select field (expected values: `Todo`, `In progress`, `Done`). The generated `docs/roadmap.md` includes a Status column plus a "Next Up" section (top active non-`Done` items ordered by Implementation order).
+
+Commands:
+
+```bash
+# Validate ordering (no mutations)
+npm run sync:impl-order:validate
+
+# Apply ordering + regenerate docs (requires GITHUB_TOKEN with project read/write)
+npm run sync:impl-order:apply
+
+# Produce JSON list of upcoming work (excludes Done; accepts optional limit)
+npm run sync:impl-order:next            # default limit 3
+node scripts/sync-implementation-order.mjs next 5   # custom limit example
+```
+
+Usage Guidance (Copilot heuristics):
+
+1. Treat items with Status `In progress` as active anchors—avoid suggesting parallel starts unless explicitly requested.
+2. Prefer earliest Implementation order among `Todo` when proposing next steps.
+3. Skip `Done` entirely for planning output; they remain in the table for historical sequence context.
+4. If all earliest items are `Done`, advance until a non-`Done` is found.
+
+If the script runs without a token, it will currently exit early—ensure `GITHUB_TOKEN` or `GH_TOKEN` is exported for status-aware operations.
+
+---

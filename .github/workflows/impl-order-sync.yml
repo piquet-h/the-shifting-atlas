@@ -1,0 +1,51 @@
+name: Implementation Order Sync
+
+on:
+    workflow_dispatch:
+        inputs:
+            mode:
+                description: 'Operation mode (validate|apply|resequence)'
+                required: false
+                default: 'apply'
+    push:
+        paths:
+            - 'roadmap/implementation-order.json'
+            - 'scripts/sync-implementation-order.mjs'
+            - '.github/workflows/impl-order-sync.yml'
+            - '.github/copilot-instructions.md'
+
+jobs:
+    sync:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Install minimal deps
+              run: npm ci --omit=dev || true
+
+            - name: Run sync (validate on push to PR, chosen mode otherwise)
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  MODE=${{ github.event_name == 'push' && 'validate' || github.event.inputs.mode }}
+                  echo "Running in mode: $MODE"
+                  node scripts/sync-implementation-order.mjs $MODE
+
+            - name: Commit regenerated docs (apply / resequence only)
+              if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["apply","resequence"]'), github.event.inputs.mode)
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  if git diff --quiet docs/roadmap.md roadmap/implementation-order.json; then
+                    echo "No doc changes to commit."; exit 0; fi
+                  git config user.name 'github-actions[bot]'
+                  git config user.email 'github-actions[bot]@users.noreply.github.com'
+                  git add docs/roadmap.md roadmap/implementation-order.json
+                  git commit -m 'chore(roadmap): sync implementation order'
+                  git push
