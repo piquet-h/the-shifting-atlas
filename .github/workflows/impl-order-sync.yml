@@ -1,5 +1,15 @@
 name: Implementation Order Sync
 
+# Explicit permissions required:
+# - repository-projects: write   -> needed to update GitHub Projects (Projects v2) fields via GraphQL in sync script
+# - issues: write                -> label reconciliation / creation
+# - contents: write              -> committing regenerated docs & JSON ordering file
+# Keep the list tight (principle of least privilege).
+permissions:
+    contents: write
+    issues: write
+    repository-projects: write
+
 on:
     workflow_dispatch:
         inputs:
