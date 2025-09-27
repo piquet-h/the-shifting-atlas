@@ -70,3 +70,64 @@ These instructions give GitHub Copilot the always‑on context it needs to gener
 - Treat Copilot as a **tactical generator** – architecture and integration decisions remain human‑led.
 
 ---
+
+## 🗂 Issue Taxonomy (Simplified)
+
+We intentionally reduced label / phase sprawl to keep planning lightweight and automation friendly. Only use the axes below for GitHub issue labels; anything else (old `area:*`, `phase-*`, `milestone`, extended priority ranges, module‑specific phase codes) should be removed.
+
+### Axes
+
+| Axis              | Label Prefix                      | Allowed Values (create exactly these)                                                           | Purpose                                                     |
+| ----------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Scope             | `scope:`                          | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High‑level functional grouping (≤9 keeps boards scannable). |
+| Type              | (none)                            | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`                          | Work nature & WIP policy.                                   |
+| Priority          | `priority:`                       | `P0`, `P1`, `P2` (only)                                                                         | Urgency: P0 (now), P1 (next), P2 (later/backlog).           |
+| Stage (Milestone) | GitHub Milestone names (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Narrative delivery progression.                             |
+
+Guidelines:
+
+- Do NOT combine more than 1 value per axis on an issue (e.g., only one `scope:` label).
+- Avoid resurrecting removed axes (e.g., `phase:` or `area:`). Module‑level sub‑phases (like normalization N1..N5) stay in docs, not labels.
+- If an issue spans multiple scopes, pick the dominant or split the issue.
+
+### Mapping (Legacy → New)
+
+| Legacy Term / Label Example | New Representation                                          |
+| --------------------------- | ----------------------------------------------------------- |
+| `phase-0` / "Phase 0"       | Milestone `M3 AI Read`                                      |
+| `phase-1`                   | `M4 AI Enrich`                                              |
+| `phase-2` proposals         | `M5 Systems` (or future M6 if added)                        |
+| `area:telemetry`            | `scope:observability`                                       |
+| `area:persistence`          | `scope:world` (graph state)                                 |
+| `priority:P3..P4`           | Re-evaluate: collapse into P2 or split into separate issues |
+
+### Examples
+
+```
+Title: Implement Cosmos Gremlin Location Upsert
+Labels: scope:world, feature, priority:P0
+Milestone: M0 Foundation
+```
+
+```
+Title: MCP Read‑Only Servers (world-query, prompt-template, telemetry)
+Labels: scope:mcp, feature, priority:P1
+Milestone: M3 AI Read
+```
+
+### Migration Checklist
+
+1. Delete deprecated labels: anything starting with `area:`, `type:`, `phase:`, `status:` (use projects for status).
+2. Create the new `scope:` and type labels; color consistently (e.g., scopes cool palette, types warm palette).
+3. Bulk edit existing open issues: map old labels using the table above.
+4. Set milestones only for actively planned increments (avoid assigning to far-future placeholders).
+5. Close or merge overlapping P2 items after consolidation pass.
+
+### Automation Hooks (Future)
+
+- Enforce taxonomy via a lightweight action that comments if an issue lacks exactly 1 `scope:` and 1 type label or uses disallowed labels.
+- Derive changelog sections grouped by `scope:` then ordered by milestone.
+
+> Keep the taxonomy **boringly stable**—change only with a documented rationale (add an ADR if adding a new Scope or Stage).
+
+---

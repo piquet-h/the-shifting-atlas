@@ -28,19 +28,21 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 | Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                      |
 | Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                           |
 
-## Phase Roadmap (High-Level)
+## AI & MCP Stages (High-Level)
 
-| Phase | Focus                   | Key MCP Servers                               | Exit Criteria                                        |
-| ----- | ----------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| 0     | Foundations (Read-Only) | `world-query`, `prompt-template`, `telemetry` | Tools return stable JSON; telemetry dashboard live   |
-| 1     | Flavor & Dialogue Seed  | +`classification`, `lore-memory`              | Safe ambience & NPC one-liners in playtest           |
-| 2     | Structured Proposals    | +`world-mutation` (proposal endpoints)        | Validator rejects unsafe / incoherent >90% precision |
-| 3     | Narrative Planning      | +`simulation-planner`                         | Multi-step quest seed generation gated & logged      |
-| 4     | Systemic Advisory       | +`economy-analytics`, expansions              | Cost / token budgets stable < target threshold       |
+The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
+
+| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                         | Exit Criteria                                        |
+| ----------------- | ----------------------- | --------------------------------------------------- | ---------------------------------------------------- |
+| M3 AI Read        | Foundations (Read-Only) | `world-query`, `prompt-template`, `telemetry`       | Stable JSON contracts; initial telemetry dashboard   |
+| M4 AI Enrich      | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                    | Safe ambience & NPC one-liners in playtest           |
+| M5 Systems        | Structured Proposals    | +`world-mutation` (proposal endpoints)              | Validator rejects unsafe / incoherent >90% precision |
+| M6 Planning (tbd) | Narrative Planning      | +`simulation-planner`                               | Multi-step quest seed generation gated & logged      |
+| M7 Advisory (tbd) | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools | Cost & token budgets within defined thresholds       |
 
 ## Initial MCP Server Inventory (Detail)
 
-### world-query-mcp (Phase 0)
+### world-query-mcp (Stage M3 – Read Only)
 
 Read-only world access.
 
@@ -50,7 +52,7 @@ Tools (draft):
 - `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
 - `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
 
-### prompt-template-mcp (Phase 0)
+### prompt-template-mcp (Stage M3 – Read Only)
 
 Central registry & versioning for reusable prompt templates.
 
@@ -58,28 +60,28 @@ Central registry & versioning for reusable prompt templates.
 - `listTemplates(prefix?)`
 - `registerVersion(name, version, checksum, body)` (restricted / dev only)
 
-### telemetry-mcp (Phase 0)
+### telemetry-mcp (Stage M3 – Read Only)
 
 Structured logging to App Insights / custom table.
 
 - `recordAIUsage(purpose, model, tokensIn, tokensOut, latencyMs, toolCalls)`
 - `logDecision(purpose, decisionType, hashRef, outcome)`
 
-### classification-mcp (Phase 1)
+### classification-mcp (Stage M4 – Enrichment)
 
 Safety & routing support.
 
 - `classifyIntent(utterance)` → { intent, confidence }
 - `moderateContent(text)` → { flagged, categories[] }
 
-### lore-memory-mcp (Phase 1)
+### lore-memory-mcp (Stage M4 – Enrichment)
 
 Vector / semantic retrieval over curated lore, quests, factions.
 
 - `semanticSearchLore(query, k)` → [{ id, score, snippet }]
 - `getCanonicalFact(entityId)` → { id, type, fields }
 
-### world-mutation-mcp (Phase 2)
+### world-mutation-mcp (Stage M5 – Proposals)
 
 Proposal endpoints (never direct writes):
 
@@ -87,14 +89,14 @@ Proposal endpoints (never direct writes):
 - `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
 - `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
 
-### simulation-planner-mcp (Phase 3)
+### simulation-planner-mcp (Stage M6 – Planning)
 
 Higher-order narrative & faction simulation.
 
 - `simulateFactionTick(factionId, horizonSteps)`
 - `generateEventArc(seed, constraints)`
 
-### economy-analytics-mcp (Phase 4)
+### economy-analytics-mcp (Stage M7 – Advisory)
 
 Advisory economic insights.
 
@@ -157,7 +159,7 @@ Dashboards: Cost per purpose, rejection rate trend, latency percentiles, dialogu
 
 ## Multi-Agent (Future Pattern)
 
-Committee Example (Phase 3+):
+Committee Example (Stage M6+):
 
 1. PlannerAgent (tools: world-query, lore-memory) drafts quest arc.
 2. CanonicalityAgent (tools: world-query) verifies entity & exit references.
@@ -185,9 +187,9 @@ Committee Example (Phase 3+):
 | Prompt drift                          | Versioned template registry + regression fixtures                  |
 | Safety regression                     | Centralize moderation in classification-mcp; monitor flagged ratio |
 
-## Immediate Implementation Checklist (Phase 0)
+## Immediate Implementation Checklist (Stage M3 Read)
 
-1. Define TypeScript interfaces for phase-0 tools (`world-query`, `prompt-template`, `telemetry`).
+1. Define TypeScript interfaces for Stage M3 tools (`world-query`, `prompt-template`, `telemetry`).
 2. Stub Azure Functions exposing these as HTTP endpoints (even if returning static mock data initially).
 3. Add prompt template registry (filesystem + SHA256 hashing) with `getTemplate` and `listTemplates`.
 4. Instrument telemetry events for each (simulated) AI invocation.
@@ -196,7 +198,7 @@ Committee Example (Phase 3+):
 ## Cross-References
 
 - `overview.md` – High-level architecture; this doc elaborates the AI layer.
-- `mvp-azure-architecture.md` – Incorporates Phase 0 insertion points.
+- `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
 - `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
 - `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 

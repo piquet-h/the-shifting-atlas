@@ -81,17 +81,17 @@ Current Reality:
 
 Status: Not implemented. All descriptions and dialogue will be static stubs until core traversal + persistence exist. This keeps early costs at zero.
 
-### Agentic AI & MCP (Phase 0–1 Insertion Plan)
+### Agentic AI & MCP (Stages M3–M4 Insertion Plan)
 
 Instead of directly embedding model calls inside gameplay Functions, initial AI adoption will surface through **MCP (Model Context Protocol) servers** providing strictly read‑only structured data. This ensures early content experiments do not entangle world mutation logic or require refactors later.
 
-Phase 0 (Foundational):
+Stage M3 (Read-Only AI):
 
 - `world-query-mcp` (location / player / recent event fetch)
 - `prompt-template-mcp` (versioned templates; hash governance)
 - `telemetry-mcp` (AI usage + decision logging)
 
-Phase 1 (Low-Risk Dynamic Flavor):
+Stage M4 (Enrichment – Low-Risk Flavor):
 
 - `classification-mcp` (intent + moderation)
 - `lore-memory-mcp` (curated lore retrieval – capped dataset)

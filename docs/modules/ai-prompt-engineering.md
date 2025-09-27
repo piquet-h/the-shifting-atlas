@@ -14,7 +14,7 @@ The AI Prompt Engineering system constructs, conditions, and parses prompts that
 
 ### MCP Integration (Tool-First Prompt Strategy)
 
-All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Phase 0–1) tools are read-only (`world-query-mcp`, `lore-memory-mcp`), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature. Prompt assembly therefore:
+All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Stages M3–M4) tools are read-only (`world-query-mcp`, `lore-memory-mcp`), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature (Stage M5+). Prompt assembly therefore:
 
 1. Resolves structured context via tool calls (locations, exits, tags, lore facts).
 2. Compresses and canonicalizes facts (stable IDs, tag arrays) before inclusion.

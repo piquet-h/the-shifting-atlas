@@ -159,7 +159,7 @@ Quarterly: prune triggers no longer relevant; recalibrate thresholds as usage sc
 
 ---
 
-## Quick Start Priorities (Next 1–2 Milestones)
+## Quick Start Priorities (Next Stage or Two)
 
 Immediate candidates likely to cross earliest:
 

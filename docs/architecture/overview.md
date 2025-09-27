@@ -28,7 +28,7 @@ Implemented (thin slice – see repo for exact handlers):
 - In‑memory traversal (2 rooms, movement + fetch handlers)
 - Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
 - Canonical telemetry framework (`trackGameEventStrict`, event name governance)
-- Phase 0 MCP stubs: `world-query` (read-only), `prompt-template` (hashing registry)
+- Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry)
 
 Still provisioned but unused: Cosmos DB, Service Bus, Key Vault (no runtime bindings yet).
 
@@ -44,10 +44,14 @@ Not yet implemented (planned):
 
 ## Evolution Path
 
-Phase 1 (Now): Co‑located Functions for HTTP endpoints (ping, onboarding bootstrap, room + movement stubs) + exploratory separate Functions app.
-Phase 2: Introduce Service Bus + queue processors in the dedicated `backend/` Functions app.
-Phase 3: Add telemetry (App Insights), identity‑based graph access, and initial NPC behavioral scripts.
-Phase 4: Expand domain modules (economy, factions, dialogue tree interpreter) and optional AI-assisted content.
+Stage Roadmap (Milestones):
+
+1. M0 Foundation – Basic HTTP endpoints (`ping`, onboarding), skeleton world model.
+2. M1 Traversal – Persistent locations, exits, movement loop.
+3. M2 Observability – Telemetry events, correlation IDs, RU + latency capture.
+4. M3 AI Read – Read‑only MCP servers (`world-query`, `prompt-template`, `telemetry`).
+5. M4 AI Enrich – Classification + curated lore retrieval.
+6. M5 Systems – Proposal endpoints, faction/economy/quest scaffolds.
 
 ## Separation of Concerns (Future State)
 
@@ -79,7 +83,7 @@ Phase 4: Expand domain modules (economy, factions, dialogue tree interpreter) an
 
 Early AI integration will adopt a **Model Context Protocol (MCP)** tooling layer instead of embedding raw model prompts inside gameplay Functions. Rationale: prevent prompt sprawl, enable least‑privilege access, and keep the deterministic world model authoritative.
 
-Phase 0 (planned) introduces **read‑only MCP servers**:
+Stage M3 (planned) introduces **read‑only MCP servers**:
 
 - `world-query-mcp` – Structured room / player / event fetch (no direct DB exposure to prompts)
 - `prompt-template-mcp` – Versioned prompt template registry (hash + semantic name)

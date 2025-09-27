@@ -20,6 +20,7 @@ Experimental persistent‑world (MMO‑style) text adventure prototype on an Azu
 8. Documentation Map
 9. Known Gaps & Technical Debt
 10. Contributing Guidelines
+    10.1 Issue Taxonomy (Simplified)
 11. License
 12. Accessibility (Core Tenet)
 
@@ -227,6 +228,24 @@ Current gaps:
 2. Keep functions stateless; configuration via env only.
 3. Small focused PRs (single domain concern).
 4. Update docs/README when adding a new concept.
+
+### 10.1 Issue Taxonomy (Simplified)
+
+Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist:
+
+- `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
+- Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
+- `priority:` one of `P0|P1|P2`
+- Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems`
+
+Rules:
+
+- Exactly one of each labeled axis (`scope:`, Type, `priority:`).
+- No `area:*`, `phase-*`, `status:*`, or `priority:P3+` labels—remove if encountered.
+- Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
+
+Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` respectively. Remove deprecated labels during triage.
+Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
 
 ### Coding Conventions (Early)
 

@@ -237,15 +237,15 @@ Only the canonical `dir` is persisted on `EXIT` edges; expression diversity live
 9. Generation Fallback – if direction valid but no edge: produce `generationHint` (possible AI expansion trigger).
 10. Ambiguity Resolution – if multiple exits score similarly, return ranked candidates for client disambiguation prompt.
 
-### Canonical Direction Set Strategy
+### Canonical Direction Set Strategy (Internal Stages – NOT Issue Labels)
 
-Phase 1: 8 compass + `up/down` + `in/out` (radial) – keeps analytics simple.
+Dir Stage 1: 8 compass + `up/down` + `in/out` (radial) – keeps analytics simple.
 
-Phase 2: Add semantic slugs for named exits (`archway`, `tunnel`) with `kind: semantic`.
+Dir Stage 2: Add semantic slugs for named exits (`archway`, `tunnel`) with `kind: semantic`.
 
-Phase 3: Relative tokens (`left/right/forward/back`) – maintained purely at parsing layer; never stored on edges.
+Dir Stage 3: Relative tokens (`left/right/forward/back`) – maintained purely at parsing layer; never stored on edges.
 
-Phase 4 (optional): High precision bearings – store `bearingDeg` (0–359) while keeping snapped `dir` for compatibility.
+Dir Stage 4 (optional): High precision bearings – store `bearingDeg` (0–359) while keeping snapped `dir` for compatibility.
 
 ### Data Model Touchpoints
 
