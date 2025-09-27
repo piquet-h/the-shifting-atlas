@@ -8,7 +8,7 @@ name: Implementation Order Sync
 permissions:
     contents: write
     issues: write
-    repository-projects: write
+    projects: write
 
 on:
     workflow_dispatch:

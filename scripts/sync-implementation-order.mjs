@@ -77,8 +77,9 @@ async function ghGraphQL(query, variables) {
 async function fetchProjectItems() {
     // Try user then org (unless type constrained)
     const attempts = []
+    // Try user (personal project) first, then organization. GitHub GraphQL uses 'organization', not 'org'.
     if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'user') attempts.push('user')
-    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org') attempts.push('org')
+    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org' || PROJECT_OWNER_TYPE === 'organization') attempts.push('organization')
 
     for (const kind of attempts) {
         let hasNext = true
@@ -86,9 +87,10 @@ async function fetchProjectItems() {
         const nodes = []
         let projectId = null
         while (hasNext) {
+            const queryOwnerField = kind // 'user' or 'organization'
             const data = await ghGraphQL(
                 `query($owner:String!,$number:Int!,$after:String){
-                    ${kind}(login:$owner){
+                    ${queryOwnerField}(login:$owner){
                         projectV2(number:$number){
                             id title
                             items(first:100, after:$after){
@@ -109,9 +111,9 @@ async function fetchProjectItems() {
                     }
                 }`,
                 {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-            ).catch(() => {
-                // If NOT_FOUND error, break early to try next kind
-                return {[kind]: null}
+            ).catch((err) => {
+                // If NOT_FOUND or field error, allow loop to try next attempt.
+                return {[queryOwnerField]: null, _error: err}
             })
             const project = data?.[kind]?.projectV2
             if (!project) break
