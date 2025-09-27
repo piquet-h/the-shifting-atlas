@@ -40,5 +40,12 @@
     "github.copilot.chat.languageContext.typescript.enabled": true,
     "github.copilot.chat.notebook.enhancedNextEditSuggestions.enabled": false,
     "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [],
-    "github.copilot.chat.codesearch.enabled": true
+    "github.copilot.chat.codesearch.enabled": true,
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            // Workspace-scoped path to commit message guidance so AI suggestions use the repo's conventions.
+            // Referenced from user-level setting previously; moved here for portability.
+            "file": ".github/copilot-commit-message-instructions.md"
+        }
+    ]
 }
