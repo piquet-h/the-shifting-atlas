@@ -150,24 +150,34 @@ Full historical version: `./copilot-instructions.full.md` | Quick reference: `./
 
 ## 16. Agent Commit Policy
 
-Default mode: STAGE ONLY.
+Default mode: PROPOSE ONLY.
 
-The agent may edit files and run tests, then stage changes (git add) but must NOT create a commit or push unless one of the explicit approval signals is present in the most recent user message:
+The agent may read & edit files, run tests/lint, and present unified diffs; it must NOT automatically stage (git add), commit, or push unless approval signals appear in the latest user message.
 
-- Phrase contains: `commit now` OR `apply and commit` OR `open PR`.
-- Or user requests a "PR" / "pull request" (then create feature branch + open PR, not direct commit to `main`).
+Approval signals (any of):
 
-Rules:
+- Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
+- User asks for a PR / pull request explicitly.
 
-1. Documentation & refactors: stage only; wait for approval.
-2. Failing build or tests caused by prior agent change: the agent may commit a minimal fix (after stating intent) if user is inactive.
-3. Security / license / clearly broken hotfix: stage and request confirmation unless user already flagged urgency.
-4. Never force‑push; do not amend user commits.
-5. If there are staged changes pending >1 user interaction without approval, remind user succinctly.
+Behavior by default (no approval present):
 
-Branch Strategy on PR request:
-`feat/<short-topic>` or `docs/<short-topic>`; open PR with summary + checklist referencing updated sections.
+1. Generate patch (apply in workspace so tests can run) but leave files UNSTAGED.
+2. Run tests / typecheck to validate.
+3. Report: changed files list + rationale. No git add.
 
-Audit Trail: Include in PR body (or pending message before commit) a short justification list of modified files.
+Escalation exceptions (still require explicit confirmation unless user inactive >1 interaction):
 
-If ambiguous: ask for clarification instead of committing.
+- Hotfix: security/license violation or broken main build introduced by previous agent edit.
+- Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
+
+Prohibited without approval: staging, committing, force-pushing, branch deletion.
+
+On PR request:
+
+1. Create branch `feat/<topic>` or `docs/<topic>`.
+2. Stage & commit changes with conventional message.
+3. Open PR including: summary, file list, any new policies, test results snippet.
+
+If ambiguous instruction: ask for clarification before staging.
+
+Reminder heuristic: If same unapproved edits persist for >1 user response, include a gentle note offering `stage now` or modification.
