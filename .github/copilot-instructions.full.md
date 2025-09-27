@@ -222,3 +222,29 @@ CI Integration:
 Copilot Heuristic: When suggesting label additions for a new issue, ensure exactly one `scope:` label AND one of the above type labels; never suggest legacy `priority:*` or `phase-*` labels.
 
 ---
+
+## Agent Commit Policy (Mirrors Compact Guide)
+
+Default mode: STAGE ONLY.
+
+The agent may edit files and run tests, then stage changes (git add) but must NOT create a commit or push unless one of the explicit approval signals is present in the most recent user message:
+
+- Phrase contains: `commit now` OR `apply and commit` OR `open PR`.
+- Or user requests a "PR" / "pull request" (then create feature branch + open PR, not direct commit to `main`).
+
+Rules:
+
+1. Documentation & refactors: stage only; wait for approval.
+2. Failing build or tests caused by prior agent change: the agent may commit a minimal fix (after stating intent) if user is inactive.
+3. Security / license / clearly broken hotfix: stage and request confirmation unless user already flagged urgency.
+4. Never force‑push; do not amend user commits.
+5. If there are staged changes pending >1 user interaction without approval, remind user succinctly.
+
+Branch Strategy on PR request:
+`feat/<short-topic>` or `docs/<short-topic>`; open PR with summary + checklist referencing updated sections.
+
+Audit Trail: Include in PR body (or pending message before commit) a short justification list of modified files.
+
+If ambiguous: ask for clarification instead of committing.
+
+---
