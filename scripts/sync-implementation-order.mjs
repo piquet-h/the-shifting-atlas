@@ -75,19 +75,19 @@ async function ghGraphQL(query, variables) {
 }
 
 async function fetchProjectItems() {
-        // Try user then org (unless type constrained)
-        const attempts = []
-        if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'user') attempts.push('user')
-        if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org') attempts.push('org')
+    // Try user then org (unless type constrained)
+    const attempts = []
+    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'user') attempts.push('user')
+    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org') attempts.push('org')
 
-        for (const kind of attempts) {
-                let hasNext = true
-                let after = null
-                const nodes = []
-                let projectId = null
-                while (hasNext) {
-                        const data = await ghGraphQL(
-                                `query($owner:String!,$number:Int!,$after:String){
+    for (const kind of attempts) {
+        let hasNext = true
+        let after = null
+        const nodes = []
+        let projectId = null
+        while (hasNext) {
+            const data = await ghGraphQL(
+                `query($owner:String!,$number:Int!,$after:String){
                     ${kind}(login:$owner){
                         projectV2(number:$number){
                             id title
@@ -108,24 +108,24 @@ async function fetchProjectItems() {
                         }
                     }
                 }`,
-                                {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-                        ).catch(() => {
-                                // If NOT_FOUND error, break early to try next kind
-                                return { [kind]: null }
-                        })
-                        const project = data?.[kind]?.projectV2
-                        if (!project) break
-                        projectId = project.id
-                        const page = project.items
-                        nodes.push(...page.nodes)
-                        hasNext = page.pageInfo.hasNextPage
-                        after = page.pageInfo.endCursor
-                }
-                if (projectId) {
-                        return {projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind}
-                }
+                {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
+            ).catch(() => {
+                // If NOT_FOUND error, break early to try next kind
+                return {[kind]: null}
+            })
+            const project = data?.[kind]?.projectV2
+            if (!project) break
+            projectId = project.id
+            const page = project.items
+            nodes.push(...page.nodes)
+            hasNext = page.pageInfo.hasNextPage
+            after = page.pageInfo.endCursor
         }
-        return {projectId: null, nodes: [], ownerType: null}
+        if (projectId) {
+            return {projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind}
+        }
+    }
+    return {projectId: null, nodes: [], ownerType: null}
 }
 
 function extractFieldId(nodes) {
@@ -189,7 +189,7 @@ async function regenerateDocs(json, projectItems) {
         let issue
         try {
             issue = await fetchIssue(item.issue)
-    } catch {
+        } catch {
             issue = {title: item.title || '(title unavailable)', milestone: null, labels: {nodes: []}}
         }
         const labels = issue.labels.nodes.map((l) => l.name)
@@ -198,7 +198,9 @@ async function regenerateDocs(json, projectItems) {
         const milestone = issue.milestone?.title || ''
         const projectItem = projectItems?.find?.((p) => p.content.number === item.issue)
         const status = projectItem ? extractStatus(projectItem.fieldValues) : ''
-        lines.push(`| ${item.order} | #${item.issue} | ${issue.title.replace(/\|/g, '\\|')} | ${milestone} | ${scope} | ${type} | ${status} |`)
+        lines.push(
+            `| ${item.order} | #${item.issue} | ${issue.title.replace(/\|/g, '\\|')} | ${milestone} | ${scope} | ${type} | ${status} |`
+        )
     }
     lines.push('')
     // Next Up section (skip Done)
@@ -231,7 +233,8 @@ async function main() {
     const json = readJson(ROADMAP_JSON)
     const {projectId, nodes: projectNodes, ownerType} = await fetchProjectItems()
     if (!projectId) {
-        const msg = `ProjectV2 not found for owner='${PROJECT_OWNER}' number=${PROJECT_NUMBER} (tried user/org).` +
+        const msg =
+            `ProjectV2 not found for owner='${PROJECT_OWNER}' number=${PROJECT_NUMBER} (tried user/org).` +
             (allowMissingProject ? ' Continuing without project integration.' : ' Set ALLOW_MISSING_PROJECT=true to skip.')
         if (allowMissingProject) {
             console.warn(msg)
@@ -242,7 +245,7 @@ async function main() {
     } else {
         console.log(`Project located (type=${ownerType}) id=${projectId}`)
     }
-    const fieldId = projectId ? (extractFieldId(projectNodes) || json.fieldId || json.fieldID || null) : null
+    const fieldId = projectId ? extractFieldId(projectNodes) || json.fieldId || json.fieldID || null : null
     if (projectId && !fieldId) {
         console.error('Could not determine field id for Implementation order in project. Ensure the number field exists.')
         process.exit(3)
