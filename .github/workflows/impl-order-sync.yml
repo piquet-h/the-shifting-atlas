@@ -42,9 +42,9 @@ jobs:
             - name: Run sync (validate on push to PR, chosen mode otherwise)
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Allow workflow to succeed even if the configured ProjectV2 (number) is not present yet.
-          # Remove or set to 'false' once the project is created.
-          ALLOW_MISSING_PROJECT: 'true'
+                  # Allow workflow to succeed even if the configured ProjectV2 (number) is not present yet.
+                  # Remove or set to 'false' once the project is created.
+                  ALLOW_MISSING_PROJECT: 'true'
               run: |
                   MODE=${{ github.event_name == 'push' && 'validate' || github.event.inputs.mode }}
                   echo "Running in mode: $MODE"
