@@ -77,12 +77,12 @@ We intentionally reduced label / phase sprawl to keep planning lightweight and a
 
 ### Axes
 
-| Axis              | Label Prefix                      | Allowed Values (create exactly these)                                                           | Purpose                                                     |
-| ----------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Scope             | `scope:`                          | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High‑level functional grouping (≤9 keeps boards scannable). |
-| Type              | (none)                            | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`                          | Work nature & WIP policy.                                   |
-| Priority          | `priority:`                       | `P0`, `P1`, `P2` (only)                                                                         | Urgency: P0 (now), P1 (next), P2 (later/backlog).           |
-| Stage (Milestone) | GitHub Milestone names (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Narrative delivery progression.                             |
+| Axis                 | Label Prefix                      | Allowed Values (create exactly these)                                                           | Purpose                                                     |
+| -------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Scope                | `scope:`                          | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High‑level functional grouping (≤9 keeps boards scannable). |
+| Type                 | (none)                            | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`                          | Work nature & WIP policy.                                   |
+| Stage (Milestone)    | GitHub Milestone names (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Narrative delivery progression.                             |
+| Implementation Order | Project Field (no label)          | Positive integers (1,2,3,...)                                                                   | Explicit execution sequence (lower = earlier).              |
 
 Guidelines:
 
@@ -105,28 +105,31 @@ Guidelines:
 
 ```
 Title: Implement Cosmos Gremlin Location Upsert
-Labels: scope:world, feature, priority:P0
+Labels: scope:world, feature
+Implementation Order: 1
 Milestone: M0 Foundation
 ```
 
 ```
 Title: MCP Read‑Only Servers (world-query, prompt-template, telemetry)
-Labels: scope:mcp, feature, priority:P1
+Labels: scope:mcp, feature
+Implementation Order: 7
 Milestone: M3 AI Read
 ```
 
 ### Migration Checklist
 
-1. Delete deprecated labels: anything starting with `area:`, `type:`, `phase:`, `status:` (use projects for status).
-2. Create the new `scope:` and type labels; color consistently (e.g., scopes cool palette, types warm palette).
-3. Bulk edit existing open issues: map old labels using the table above.
-4. Set milestones only for actively planned increments (avoid assigning to far-future placeholders).
-5. Close or merge overlapping P2 items after consolidation pass.
+1. Delete deprecated labels: anything starting with `area:`, `type:`, `phase:`, `status:`, and all `priority:*` labels.
+2. Ensure `scope:` and type labels exist; color consistently (scopes cool palette, types warm palette).
+3. Remove `priority:*` labels from all issues.
+4. Populate Project field "Implementation Order" with initial sequence numbers (1..N for current foundation work).
+5. Set milestones only for actively planned increments (avoid far-future placeholders).
+6. Merge or close overlapping items after consolidation pass.
 
 ### Automation Hooks (Future)
 
-- Enforce taxonomy via a lightweight action that comments if an issue lacks exactly 1 `scope:` and 1 type label or uses disallowed labels.
-- Derive changelog sections grouped by `scope:` then ordered by milestone.
+- Enforce taxonomy via a lightweight action that comments if an issue lacks exactly 1 `scope:` and 1 type label or is missing Implementation Order (for non-drafts).
+- Derive changelog sections ordered by milestone then Implementation Order then `scope:`.
 
 > Keep the taxonomy **boringly stable**—change only with a documented rationale (add an ADR if adding a new Scope or Stage).
 

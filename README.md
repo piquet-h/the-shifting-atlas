@@ -235,17 +235,18 @@ Project planning uses a deliberately **minimal label + milestone scheme** (see `
 
 - `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
 - Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
-- `priority:` one of `P0|P1|P2`
 - Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems`
+- Implementation Order (Project field, numeric): positive integers (1 = earliest planned execution)
 
 Rules:
 
-- Exactly one of each labeled axis (`scope:`, Type, `priority:`).
-- No `area:*`, `phase-*`, `status:*`, or `priority:P3+` labels—remove if encountered.
+- Exactly one of each labeled axis (`scope:`, Type). No `priority:` labels (replaced by Implementation Order field in Project).
+- No `area:*`, `phase-*`, `status:*`, or `priority:*` labels—remove if encountered.
 - Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
 
 Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` respectively. Remove deprecated labels during triage.
 Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
+Migration (2025-09-27 final): Removed `priority:` axis; replaced with Project numeric field "Implementation Order" (lower number = earlier). Existing `priority:P0` items seeded 1..N.
 
 ### Coding Conventions (Early)
 

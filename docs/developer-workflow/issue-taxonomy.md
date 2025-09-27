@@ -6,53 +6,59 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 
 ## Axes
 
-| Axis     | Label Prefix         | Allowed Values                                                                                  | Purpose                              |
-| -------- | -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Scope    | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High-level functional grouping (≤9). |
-| Type     | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`                          | Nature of work & WIP policy.         |
-| Priority | `priority:`          | `P0`, `P1`, `P2`                                                                                | Urgency: Now / Next / Later.         |
-| Stage    | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Delivery sequence narrative.         |
+| Axis       | Label Prefix             | Allowed Values                                                                                  | Purpose                              |
+| ---------- | ------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Scope      | `scope:`                 | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High-level functional grouping (≤9). |
+| Type       | (none)                   | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`                          | Nature of work & WIP policy.         |
+| Stage      | Milestone (no label)     | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Delivery sequence narrative.         |
+| Impl Order | Project Field (no label) | Positive integers (1,2,3,...) assigned in Project                                               | Explicit execution sequence.         |
 
 Guidelines:
 
 - Exactly one `scope:` and one `type` label per issue.
-- One `priority:` per issue; re-evaluate after each release.
+- Implementation Order is managed as a numeric Project custom field (NOT a label). Lower number = earlier execution; gaps allowed for later insertion.
 - Stages are GitHub Milestones, not labels.
-- No `phase:` / `area:` / `status:` labels; use Projects for status tracking.
+- No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
 
 ## Legacy Mapping
 
-| Legacy                | New                                     |
-| --------------------- | --------------------------------------- |
-| `phase-0` / "Phase 0" | Milestone `M3 AI Read`                  |
-| `phase-1`             | `M4 AI Enrich`                          |
-| `phase-2` proposals   | `M5 Systems` (or future `M6` if needed) |
-| `area:telemetry`      | `scope:observability`                   |
-| `area:persistence`    | `scope:world`                           |
-| `priority:P3`, `P4`   | Collapse into `P2` or split issue       |
+| Legacy                | New                                        |
+| --------------------- | ------------------------------------------ |
+| `phase-0` / "Phase 0" | Milestone `M3 AI Read`                     |
+| `phase-1`             | `M4 AI Enrich`                             |
+| `phase-2` proposals   | `M5 Systems` (or future `M6` if needed)    |
+| `area:telemetry`      | `scope:observability`                      |
+| `area:persistence`    | `scope:world`                              |
+| `priority:P3`, `P4`   | (Removed) – use Implementation Order field |
 
 ## Examples
 
 ```text
 Title: Implement Cosmos Gremlin Location Upsert
-Labels: scope:world, feature, priority:P0
+Labels: scope:world, feature
+Implementation Order: 1
 Milestone: M0 Foundation
 ```
 
 ```text
 Title: MCP Read-Only Servers (world-query, prompt-template, telemetry)
-Labels: scope:mcp, feature, priority:P1
+Labels: scope:mcp, feature
+Implementation Order: 7
 Milestone: M3 AI Read
 ```
 
 ```text
 Title: Direction Normalization Utility (N1)
-Labels: scope:traversal, feature, priority:P0
+Labels: scope:traversal, feature
+Implementation Order: 3
 Milestone: M1 Traversal
 Internal Sub-Phase: N1 (do NOT label) – basic lexical normalization.
 ```
 
-Historical Note: All labels previously prefixed with `kind:` (e.g. `kind:feature`, `kind:test`) were renamed on 2025-09-27 to bare forms (`feature`, `test`).
+Historical Notes:
+
+- 2025-09-27: All labels previously prefixed with `kind:` (e.g. `kind:feature`, `kind:test`) were renamed to bare forms (`feature`, `test`).
+- 2025-09-27 (later): Removed `priority:` axis; replaced with Project numeric field "Implementation Order" (lower=earlier). Existing `priority:P0` items assigned initial contiguous order seeds.
 
 ## Internal Sub-Phases
 
@@ -60,16 +66,17 @@ Module documents may still reference internal sub-phase codes (e.g., traversal n
 
 ## Migration Checklist
 
-1. Delete deprecated labels (`area:*`, `type:*`, `phase:*`, `status:*`, high-number priorities).
-2. Create the new bare type labels (`feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`).
-3. Bulk edit open issues, applying mapping table above.
-4. Assign milestones only to actively planned work (avoid parking lot milestones).
-5. Merge or close duplicate long-tail P2 items; prefer fewer, clearer tickets.
+1. Delete deprecated labels (`area:*`, `type:*`, `phase:*`, `status:*`, `priority:*`).
+2. Ensure bare type labels (`feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`) exist.
+3. Bulk remove all `priority:*` labels from issues.
+4. Add/Populate Project field "Implementation Order" with initial sequence (e.g. order existing foundation work 1..N).
+5. Assign milestones only to actively planned work (avoid parking lot milestones).
+6. Merge or close duplicate long-tail items; prefer fewer, clearer tickets.
 
 ## Automation (Future)
 
-- Lightweight Action validation: exactly one `scope:` + one type + one `priority:`.
-- Changelog grouping: order by Milestone then by `scope:`.
+- Lightweight Action validation: exactly one `scope:` + one type label present; Implementation Order field defined (non-empty) for non-draft issues.
+- Changelog grouping: order by Milestone then by Implementation Order then by `scope:`.
 
 ## Rationale
 
