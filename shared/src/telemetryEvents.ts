@@ -18,6 +18,7 @@ export const GAME_EVENT_NAMES = [
     'Command.Executed',
     'World.Location.Generated',
     'World.Location.Rejected',
+    'World.Location.Upsert',
     'World.Layer.Added',
     'World.Exit.Created',
     'Prompt.Genesis.Issued',
