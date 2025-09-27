@@ -8,7 +8,7 @@ name: Implementation Order Sync
 permissions:
     contents: write
     issues: write
-    projects: write
+    repository-projects: write # Classic projects; Projects v2 still require a PAT with project scope
 
 on:
     workflow_dispatch:
@@ -39,21 +39,30 @@ jobs:
             - name: Install minimal deps
               run: npm ci --omit=dev || true
 
-            - name: Run sync (validate on push to PR, chosen mode otherwise)
+            - name: Select token (PROJECTS_TOKEN overrides GITHUB_TOKEN)
+              id: select-token
+              run: |
+                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+                    echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+                    echo "Using PROJECTS_TOKEN secret (expected to have 'project' scope for Projects v2)."
+                  else
+                    echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+                    echo "Falling back to default GITHUB_TOKEN (will NOT have Projects v2 write; only docs/labels will update)."
+                  fi
+
+            - name: Run sync (validate on push, chosen mode otherwise)
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  # Allow workflow to succeed even if the configured ProjectV2 (number) is not present yet.
-                  # Remove or set to 'false' once the project is created.
+                  GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+                  # Set to 'false' once project connectivity confirmed; leave true to avoid failing early during setup.
                   ALLOW_MISSING_PROJECT: 'true'
               run: |
                   MODE=${{ github.event_name == 'push' && 'validate' || github.event.inputs.mode }}
                   echo "Running in mode: $MODE"
                   node scripts/sync-implementation-order.mjs $MODE
-
             - name: Ensure required type labels exist
               if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
               run: |
                   if [ -f scripts/sync-labels.mjs ]; then
                     echo "Syncing labels...";
@@ -65,7 +74,7 @@ jobs:
             - name: Commit regenerated docs (apply / resequence only)
               if: github.event_name == 'workflow_dispatch' && contains(fromJSON('["apply","resequence"]'), github.event.inputs.mode)
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
               run: |
                   if git diff --quiet docs/roadmap.md roadmap/implementation-order.json; then
                     echo "No doc changes to commit."; exit 0; fi
