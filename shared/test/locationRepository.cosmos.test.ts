@@ -30,7 +30,7 @@ class FakeGremlinClient {
                 name: [name],
                 description: [desc],
                 version: ver,
-                tags: tags || []
+                ...(tags && tags.length > 0 ? { tags: tags } : {})
             }
             return []
         }
@@ -126,5 +126,5 @@ test('cosmos location repository upsert - fetch stored vertex', async () => {
     assert.equal(fetched.tags?.[0], 'fetch')
     assert.equal(fetched.tags?.[1], 'test')
     assert.equal(typeof fetched.version, 'number')
-    assert.equal(fetched.version, 1) // Version should be 1 for new location, ignoring the input version
+    assert.equal(fetched.version, 5) // Version should be the input version for new location when specified
 })

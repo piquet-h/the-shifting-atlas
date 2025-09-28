@@ -58,26 +58,33 @@ export class CosmosLocationRepository implements ILocationRepository {
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
             
-            let newVersion = location.version ?? 1
+            let newVersion = 1 // Default version for new locations
             if (exists) {
                 // If updating, increment version from existing
                 const existing = existingVertices[0]
                 const currentVersion = typeof existing.version === 'number' ? existing.version : 0
                 newVersion = currentVersion + 1
+            } else if (location.version !== undefined) {
+                // For new locations, use provided version if specified
+                newVersion = location.version
             }
             
             // Perform the upsert with the calculated version
+            const bindings: Record<string, unknown> = {
+                lid: location.id,
+                name: location.name,
+                desc: location.description || '',
+                ver: newVersion
+            }
+            if (location.tags) {
+                bindings.tags = location.tags
+            }
+            
             await this.client.submit(
                 "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid))" + 
                 ".property('name', name).property('description', desc).property('version', ver)" +
                 (location.tags ? ".property('tags', tags)" : ""),
-                {
-                    lid: location.id,
-                    name: location.name,
-                    desc: location.description || '',
-                    ver: newVersion,
-                    ...(location.tags ? { tags: location.tags } : {})
-                }
+                bindings
             )
             
             success = true
