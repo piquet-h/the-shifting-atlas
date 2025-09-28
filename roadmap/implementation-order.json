@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-09-27T11:23:59.505Z",
+  "generated": "2025-09-28T09:40:42.113Z",
   "items": [
     {
       "issue": 4,
@@ -62,6 +62,26 @@
       "issue": 11,
       "order": 12,
       "title": "Gremlin RU & Latency Telemetry Wrapper"
+    },
+    {
+      "issue": 22,
+      "order": 13,
+      "title": "Automate implementation order assignment for new issues using Copilot"
+    },
+    {
+      "issue": 26,
+      "order": 14,
+      "title": "✨ Set up Copilot instructions"
+    },
+    {
+      "issue": 21,
+      "order": 15,
+      "title": "Remove text in logged in header"
+    },
+    {
+      "issue": 24,
+      "order": 16,
+      "title": "\"Create your explorer\" fails"
     }
   ]
 }
