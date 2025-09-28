@@ -1,0 +1,22 @@
+# EditorConfig: enforce consistent whitespace to match existing Prettier settings
+# This reduces secondary whitespace-only diffs after saving.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+# Prettier already enforces 4-space indentation (tabWidth=4, useTabs=false)
+indent_style = space
+indent_size = 4
+
+[*.md]
+# Allow intentional double-space at line end for Markdown line breaks
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab
+
+# You can add language-specific overrides later if a tool insists on 2-space YAML.

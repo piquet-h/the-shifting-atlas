@@ -6,20 +6,20 @@ name: Frontend Static Web App Deploy
 # 3. Path filters narrow PR runs to frontend + shared changes (avoid noise on docs / infra only edits)
 # 4. Manual workflow_dispatch retained for ad‑hoc redeploys
 on:
-  workflow_run:
-    workflows: ['CI']
-    types: [completed]
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, closed]
-    paths:
-      - 'frontend/**'
-      - 'shared/**'
-  workflow_dispatch:
-    inputs:
-      reason:
-        description: 'Manual redeploy reason'
-        required: false
+    workflow_run:
+        workflows: ['CI']
+        types: [completed]
+    pull_request:
+        branches: [main]
+        types: [opened, synchronize, reopened, closed]
+        paths:
+            - 'frontend/**'
+            - 'shared/**'
+    workflow_dispatch:
+        inputs:
+            reason:
+                description: 'Manual redeploy reason'
+                required: false
 
 permissions:
     id-token: write # OIDC for azure/login
@@ -27,13 +27,13 @@ permissions:
     actions: read # required to download artifacts from CI workflow_run
 
 concurrency:
-  # Separate concurrency buckets so a long-running production deploy (workflow_run) is not
-  # cancelled by an incoming PR synchronize (pull_request) event and vice‑versa.
-  # Falls back to run_id to ensure uniqueness if contextual IDs missing.
-  group: >-
-    swa-frontend-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id ||
-    (github.event_name == 'pull_request' && github.event.pull_request.number) || github.run_id }}
-  cancel-in-progress: true
+    # Separate concurrency buckets so a long-running production deploy (workflow_run) is not
+    # cancelled by an incoming PR synchronize (pull_request) event and vice‑versa.
+    # Falls back to run_id to ensure uniqueness if contextual IDs missing.
+    group: >-
+        swa-frontend-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id ||
+        (github.event_name == 'pull_request' && github.event.pull_request.number) || github.run_id }}
+    cancel-in-progress: true
 
 env:
     NODE_VERSION: '20'

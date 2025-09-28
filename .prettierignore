@@ -1,2 +1,4 @@
 # Ignore chatmode metadata formatting to prevent array auto-reformat & trailing comma insertion
 .github/chatmodes/Azure_Static_Web_App.chatmode.md
+
+# (Re-enabled) previously ignored workflow after YAML fix

@@ -17,9 +17,10 @@ When a new issue is created or significantly updated (labels, milestones), GitHu
 ### Automatic Triggers
 
 The automation runs on these GitHub events:
+
 - `issues.opened` - New issues are automatically assigned implementation order
 - `issues.labeled` - Label changes may affect priority
-- `issues.unlabeled` - Label removal may affect priority  
+- `issues.unlabeled` - Label removal may affect priority
 - `issues.milestoned` - Milestone assignment affects priority
 - `issues.demilestoned` - Milestone removal affects priority
 
@@ -28,6 +29,7 @@ The automation runs on these GitHub events:
 The system calculates a priority score based on:
 
 **Scope Labels** (primary factor):
+
 - `scope:core` - Highest priority (foundation work)
 - `scope:world` - High priority (core game mechanics)
 - `scope:traversal` - Medium-high priority
@@ -39,8 +41,9 @@ The system calculates a priority score based on:
 - `scope:devx` - Lowest priority
 
 **Roadmap Path Dependencies** (NEW - major factor):
+
 - **Navigation Phase 1**: Core traversal foundation (locations, exits, graph) - Highest weight
-- **World Foundation**: World rules, lore, biomes, player identity - Very high weight  
+- **World Foundation**: World rules, lore, biomes, player identity - Very high weight
 - **Navigation Phase 2**: Normalization, direction handling, caching - High weight
 - **AI Stages M3-M4**: MCP read-only tools integration - Medium-high weight
 - **AI Stage M5+**: MCP mutation tools, advanced AI - Medium weight
@@ -50,6 +53,7 @@ The system calculates a priority score based on:
 The system analyzes issue content against the implementation phases documented in `docs/modules/` to determine which roadmap path the issue supports. This ensures issues are prioritized based on the logical delivery sequence for MVP and beyond.
 
 **Type Labels**:
+
 - `feature` - Standard feature work
 - `infra` - Infrastructure changes
 - `enhancement` - Improvements to existing features
@@ -59,6 +63,7 @@ The system analyzes issue content against the implementation phases documented i
 - `docs` - Documentation updates (lowest priority)
 
 **Milestones**:
+
 - `M0` - Foundation (highest priority)
 - `M1` - Core Systems
 - `M2` - World Building
@@ -67,11 +72,13 @@ The system analyzes issue content against the implementation phases documented i
 - `M5` - Systems Polish (lowest priority)
 
 **Content Keywords**:
+
 - High priority: "foundation", "bootstrap", "persistence", "core", "essential", "database", "security"
 - Medium priority: "command", "api", "utility", "feature", "enhancement"
 - Low priority: "documentation", "polish", "cleanup", "maintenance"
 
 **Dependencies**:
+
 - Issues that block others get higher priority
 - Issues blocked by others get slightly lower priority
 
@@ -80,7 +87,7 @@ The system analyzes issue content against the implementation phases documented i
 Based on the priority score, the system:
 
 - **High scores (200+)**: Insert near beginning, requires resequencing
-- **Medium scores (100-199)**: Insert in middle, may require resequencing  
+- **Medium scores (100-199)**: Insert in middle, may require resequencing
 - **Low scores (<100)**: Append at end, no resequencing needed
 
 For existing issues, the system skips updates if the current position is within ±2 positions of the recommended position.
@@ -116,23 +123,30 @@ All automated changes are tracked via:
 ## Edge Cases
 
 ### Insufficient Issue Detail
+
 If an issue lacks sufficient information for analysis:
+
 - It's assigned low priority and appended to the end
 - A comment explains the assignment and requests more detail
 
 ### Multiple Simultaneous Issues
+
 The concurrency control prevents race conditions, but issues may be processed sequentially rather than simultaneously.
 
 ### Manual vs Automatic Conflicts
+
 The system detects and respects recent manual changes to prevent conflicts.
 
 ### Closed Issues
+
 Closed issues are ignored unless explicitly forced via workflow dispatch.
 
 ## Monitoring and Troubleshooting
 
 ### Workflow Logs
+
 Check the "Auto Assign Implementation Order" workflow for detailed logs of:
+
 - Issue analysis results
 - Priority calculations
 - Assignment decisions
@@ -141,22 +155,26 @@ Check the "Auto Assign Implementation Order" workflow for detailed logs of:
 ### Common Issues
 
 **Issue not assigned order**:
+
 - Check if issue is closed
 - Verify labels are correctly formatted (`scope:core` not `core`)
 - Look for workflow errors in Actions tab
 
 **Wrong priority assigned**:
+
 - Review the analysis rationale in workflow logs
 - Consider if labels/milestone need adjustment
 - Manual override if needed
 
 **Race condition errors**:
+
 - Retry the workflow dispatch manually
 - Check for concurrent workflow runs
 
 ### Testing
 
 Run the test suite to validate functionality:
+
 ```bash
 node scripts/test-impl-order-automation.mjs
 ```
@@ -164,19 +182,25 @@ node scripts/test-impl-order-automation.mjs
 ## Configuration
 
 ### Workflow Settings
+
 Edit `.github/workflows/auto-assign-impl-order.yml` to:
+
 - Adjust timeout values
 - Modify trigger conditions
 - Change comment thresholds
 
 ### Priority Weights
+
 Modify `scripts/analyze-issue-priority.mjs` to:
+
 - Adjust priority score calculations
 - Add new scope/type categories
 - Change keyword classifications
 
 ### Assignment Logic
+
 Update `scripts/apply-impl-order-assignment.mjs` to:
+
 - Change insertion point algorithms
 - Modify resequencing thresholds
 - Adjust validation rules
@@ -193,6 +217,7 @@ The automation works alongside existing implementation order management:
 ## Future Enhancements
 
 Planned improvements include:
+
 - Machine learning for priority prediction
 - Integration with dependency tracking
 - Automated milestone assignment

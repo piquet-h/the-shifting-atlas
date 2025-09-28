@@ -339,10 +339,12 @@ if (principalHeader) {
 ### Current Implementation (as of v1.2.3)
 
 The Homepage component displays two different CTAs based on user state:
+
 - **"Create Your Explorer"** for first-time visitors (`isNewUser = true`)
 - **"Sign In to Continue"** for returning visitors (`isNewUser = false`)
 
 Both buttons currently trigger the same authentication flow (`signIn('msa', '/')`), but with an important difference:
+
 - **"Create Your Explorer"** calls `acknowledge()` from `useVisitState` before authentication, marking the user as having visited
 - **"Sign In to Continue"** proceeds directly to authentication
 
@@ -368,6 +370,7 @@ onClick={() => {
 **Vision**: The "Create Your Explorer" button will eventually expand beyond simple authentication to provide a rich character creation experience similar to D&D character builders.
 
 **Planned Features** (not yet implemented):
+
 - Character class selection (Cartographer, Wanderer, Scout, etc.)
 - Starting attributes and skills
 - Background story prompts
@@ -376,13 +379,15 @@ onClick={() => {
 - Faction affiliation choices
 
 **Technical Considerations**:
+
 - Character creation flow will remain optional - users can still choose a "Quick Start" path
 - New user state management will expand beyond simple localStorage flag to include creation progress
 - Character data will be stored as part of the Player vertex in Cosmos DB
 - The current authentication flow will be preserved as the final step after character customization
 
 **UX Flow** (planned):
-1. User clicks "Create Your Explorer" 
+
+1. User clicks "Create Your Explorer"
 2. Character creation wizard opens (multi-step modal or dedicated pages)
 3. User customizes their explorer (class, attributes, background)
 4. User completes or skips creation wizard

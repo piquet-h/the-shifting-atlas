@@ -193,7 +193,7 @@ function extractStatus(fieldValues) {
 
 // Escapes both backslash and pipe characters for markdown table cells
 function escapeMarkdownTableCell(str) {
-    return String(str).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+    return String(str).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')
 }
 
 async function regenerateDocs(json, projectItems) {

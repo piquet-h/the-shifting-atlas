@@ -48,16 +48,13 @@ export class CosmosLocationRepository implements ILocationRepository {
         let success = false
         let created = false
         let reason: string | undefined
-        
+
         try {
             // First, check if the location exists to determine if this is create vs update
-            const existingVertices = await this.client.submit<Record<string, unknown>>(
-                'g.V(lid).valueMap(true)', 
-                {lid: location.id}
-            )
+            const existingVertices = await this.client.submit<Record<string, unknown>>('g.V(lid).valueMap(true)', {lid: location.id})
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
-            
+
             let newVersion = 1 // Default version for new locations
             if (exists) {
                 // If updating, increment version from existing
@@ -68,7 +65,7 @@ export class CosmosLocationRepository implements ILocationRepository {
                 // For new locations, use provided version if specified
                 newVersion = location.version
             }
-            
+
             // Perform the upsert with the calculated version
             const bindings: Record<string, unknown> = {
                 lid: location.id,
@@ -79,14 +76,14 @@ export class CosmosLocationRepository implements ILocationRepository {
             if (location.tags) {
                 bindings.tags = location.tags
             }
-            
+
             await this.client.submit(
-                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid))" + 
-                ".property('name', name).property('description', desc).property('version', ver)" +
-                (location.tags ? ".property('tags', tags)" : ""),
+                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid))" +
+                    ".property('name', name).property('description', desc).property('version', ver)" +
+                    (location.tags ? ".property('tags', tags)" : ''),
                 bindings
             )
-            
+
             success = true
             return {created, id: location.id}
         } catch (error) {

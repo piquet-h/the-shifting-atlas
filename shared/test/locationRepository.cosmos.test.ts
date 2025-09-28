@@ -9,7 +9,7 @@ class FakeGremlinClient {
     constructor(private data: {locations: VertexMap; exits: Record<string, ExitArray>}) {}
     async submit<T>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
         if (query.startsWith('g.V') && query.includes('valueMap(true)')) {
-            const id = bindings?.locationId || bindings?.lid as string
+            const id = bindings?.locationId || (bindings?.lid as string)
             const r = this.data.locations[id]
             return r ? [r as T] : []
         }
@@ -24,13 +24,13 @@ class FakeGremlinClient {
             const desc = bindings?.desc as string
             const ver = bindings?.ver as number
             const tags = bindings?.tags as string[] | undefined
-            
+
             this.data.locations[id] = {
                 id: id,
                 name: [name],
                 description: [desc],
                 version: ver,
-                ...(tags && tags.length > 0 ? { tags: tags } : {})
+                ...(tags && tags.length > 0 ? {tags: tags} : {})
             }
             return []
         }
@@ -57,18 +57,18 @@ test('cosmos location repository get + move', async () => {
 test('cosmos location repository upsert - create new location', async () => {
     const fake = new FakeGremlinClient({locations: {}, exits: {}})
     const repo = new CosmosLocationRepository(fake as unknown as {submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]>})
-    
+
     const newLocation = {
         id: 'test-123',
         name: 'Test Location',
         description: 'A test location for unit tests',
         tags: ['test', 'unit-test']
     }
-    
+
     const result = await repo.upsert(newLocation)
     assert.equal(result.created, true)
     assert.equal(result.id, 'test-123')
-    
+
     // Verify it was stored correctly
     const retrieved = await repo.get('test-123')
     assert.ok(retrieved)
@@ -81,18 +81,18 @@ test('cosmos location repository upsert - update existing location (revision inc
     const existingLocation = {id: 'existing-123', name: ['Existing'], description: ['Original description'], version: 2}
     const fake = new FakeGremlinClient({locations: {'existing-123': existingLocation}, exits: {}})
     const repo = new CosmosLocationRepository(fake as unknown as {submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]>})
-    
+
     const updatedLocation = {
         id: 'existing-123',
         name: 'Updated Location',
         description: 'Updated description',
         tags: ['updated']
     }
-    
+
     const result = await repo.upsert(updatedLocation)
     assert.equal(result.created, false)
     assert.equal(result.id, 'existing-123')
-    
+
     // Verify the version was incremented
     const retrieved = await repo.get('existing-123')
     assert.ok(retrieved)
@@ -104,7 +104,7 @@ test('cosmos location repository upsert - update existing location (revision inc
 test('cosmos location repository upsert - fetch stored vertex', async () => {
     const fake = new FakeGremlinClient({locations: {}, exits: {}})
     const repo = new CosmosLocationRepository(fake as unknown as {submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]>})
-    
+
     const location = {
         id: 'fetch-test',
         name: 'Fetchable Location',
@@ -112,10 +112,10 @@ test('cosmos location repository upsert - fetch stored vertex', async () => {
         tags: ['fetch', 'test'],
         version: 5
     }
-    
+
     await repo.upsert(location)
     const fetched = await repo.get('fetch-test')
-    
+
     // Verify stable shape and all properties
     assert.ok(fetched)
     assert.equal(fetched.id, 'fetch-test')
