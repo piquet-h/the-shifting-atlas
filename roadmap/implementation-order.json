@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-09-28T09:36:54.398Z",
+  "generated": "2025-09-28T09:40:42.113Z",
   "items": [
     {
       "issue": 4,
@@ -69,19 +69,20 @@
       "title": "Automate implementation order assignment for new issues using Copilot"
     },
     {
-      "issue": 21,
+
+      "issue": 26,
       "order": 14,
+      "title": "✨ Set up Copilot instructions"
+    },
+    {
+      "issue": 21,
+      "order": 15,
       "title": "Remove text in logged in header"
     },
     {
       "issue": 24,
-      "order": 15,
-      "title": "\"Create your explorer\" fails"
-    },
-    {
-      "issue": 26,
       "order": 16,
-      "title": "✨ Set up Copilot instructions"
+      "title": "\"Create your explorer\" fails"
     }
   ]
 }

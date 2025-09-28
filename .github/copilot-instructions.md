@@ -75,6 +75,8 @@ Ordering: `roadmap/implementation-order.json` → sync script updates Project + 
 Status field: `Todo|In progress|Done`.
 Never use legacy `area:*`, `phase-*`, `priority:*`.
 
+**Automated Assignment**: New issues automatically receive implementation order based on Copilot analysis of labels, milestones, and content. See `docs/developer-workflow/implementation-order-automation.md` for details.
+
 ---
 
 ## 8. Implementation Order Commands
