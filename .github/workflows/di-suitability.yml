@@ -33,7 +33,9 @@ jobs:
               run: |
                   node scripts/di-suitability.mjs > di-report.txt
                   sed -n '/DI_ANALYSIS_JSON_START/,/DI_ANALYSIS_JSON_END/p' di-report.txt | sed '1d;$d' > di-summary.json
-                  echo "summary=$(cat di-summary.json | tr '\n' ' ' | sed 's/"/\\"/g')" >> $GITHUB_OUTPUT
+                  echo "summary<<EOF" >> $GITHUB_OUTPUT
+                  cat di-summary.json >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
             - name: Upload full report artifact
               uses: actions/upload-artifact@v4
               with:
@@ -45,7 +47,8 @@ jobs:
               uses: actions/github-script@v7
               with:
                   script: |
-                      const summary = JSON.parse(process.env.SUMMARY_JSON || core.getInput('summary'));
+                      const summaryRaw = process.env.SUMMARY_JSON || core.getInput('summary');
+                      const summary = JSON.parse(summaryRaw);
                       const title = 'DI Suitability Report';
                       const recommendation = summary.recommendation === 'REVIEW_SUGGESTED' ? 'Review Suggested' : 'No Action';
                       const body = `### Automated DI Suitability Report\n\n` +
