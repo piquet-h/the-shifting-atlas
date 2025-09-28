@@ -1,0 +1,155 @@
+name: Auto Update Issue Status on PR Events
+
+# Automatically updates issue status based on PR lifecycle:
+# - When PR is opened → referenced issues set to "In progress" 
+# - When PR is merged → referenced issues set to "Done"
+# - When PR is closed without merge → referenced issues set to "Todo"
+
+on:
+  pull_request:
+    types: [opened, closed, converted_to_draft, ready_for_review]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  repository-projects: write
+
+jobs:
+  update-issue-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install minimal deps
+        run: npm ci --omit=dev || npm install --only=production || true
+
+      - name: Extract referenced issues from PR
+        id: extract-issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+          PR_STATE="${{ github.event.pull_request.state }}"
+          PR_MERGED="${{ github.event.pull_request.merged }}"
+          PR_DRAFT="${{ github.event.pull_request.draft }}"
+          
+          echo "Analyzing PR #$PR_NUMBER for referenced issues..."
+          echo "Title: $PR_TITLE"
+          
+          # Extract issue references (supports #123, fixes #123, closes #123, resolves #123, etc.)
+          ISSUE_REFS=""
+          
+          # Check title and body for issue references
+          ALL_TEXT="$PR_TITLE $PR_BODY"
+          
+          # Pattern to match various issue reference formats
+          REFS=$(echo "$ALL_TEXT" | grep -oE '(fix|fixes|close|closes|resolve|resolves|refs?|references?)\s*#[0-9]+|#[0-9]+' | grep -oE '#[0-9]+' | sed 's/#//' | sort -u | tr '\n' ' ')
+          
+          echo "Found issue references: $REFS"
+          echo "issue_numbers=$REFS" >> $GITHUB_OUTPUT
+          echo "pr_state=$PR_STATE" >> $GITHUB_OUTPUT  
+          echo "pr_merged=$PR_MERGED" >> $GITHUB_OUTPUT
+          echo "pr_draft=$PR_DRAFT" >> $GITHUB_OUTPUT
+
+      - name: Determine target status
+        id: determine-status
+        run: |
+          PR_STATE="${{ steps.extract-issues.outputs.pr_state }}"
+          PR_MERGED="${{ steps.extract-issues.outputs.pr_merged }}"
+          PR_DRAFT="${{ steps.extract-issues.outputs.pr_draft }}"
+          ACTION="${{ github.event.action }}"
+          
+          echo "PR State: $PR_STATE, Merged: $PR_MERGED, Draft: $PR_DRAFT, Action: $ACTION"
+          
+          if [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+            echo "status=Done" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} was merged" >> $GITHUB_OUTPUT
+          elif [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "false" ]; then
+            echo "status=Todo" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} was closed without merging" >> $GITHUB_OUTPUT
+          elif [ "$ACTION" = "opened" ] || [ "$ACTION" = "ready_for_review" ]; then
+            if [ "$PR_DRAFT" = "false" ]; then
+              echo "status=In progress" >> $GITHUB_OUTPUT
+              echo "reason=PR #${{ github.event.pull_request.number }} is ready for review" >> $GITHUB_OUTPUT
+            else
+              echo "status=In progress" >> $GITHUB_OUTPUT  
+              echo "reason=PR #${{ github.event.pull_request.number }} opened as draft" >> $GITHUB_OUTPUT
+            fi
+          elif [ "$ACTION" = "converted_to_draft" ]; then
+            echo "status=In progress" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} converted to draft" >> $GITHUB_OUTPUT
+          else
+            echo "status=" >> $GITHUB_OUTPUT
+            echo "reason=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Select token for project access
+        id: select-token  
+        run: |
+          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+            echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update status for referenced issues
+        if: steps.extract-issues.outputs.issue_numbers != '' && steps.determine-status.outputs.status != ''
+        env:
+          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+        run: |
+          ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
+          NEW_STATUS="${{ steps.determine-status.outputs.status }}"
+          REASON="${{ steps.determine-status.outputs.reason }}"
+          
+          echo "Updating status to '$NEW_STATUS' for issues: $ISSUE_NUMBERS"
+          echo "Reason: $REASON"
+          
+          # Update each referenced issue
+          for issue_num in $ISSUE_NUMBERS; do
+            echo "Updating issue #$issue_num..."
+            if node scripts/update-issue-status.mjs --issue-number "$issue_num" --status "$NEW_STATUS"; then
+              echo "✅ Successfully updated issue #$issue_num to '$NEW_STATUS'"
+            else
+              echo "⚠️ Failed to update issue #$issue_num status (might not exist in project)"
+            fi
+          done
+
+      - name: Comment on issues (for significant status changes)
+        if: steps.extract-issues.outputs.issue_numbers != '' && (steps.determine-status.outputs.status == 'Done' || steps.determine-status.outputs.status == 'Todo')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
+          NEW_STATUS="${{ steps.determine-status.outputs.status }}"
+          REASON="${{ steps.determine-status.outputs.reason }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          
+          # Comment on each issue for significant status changes (Done/Todo)
+          for issue_num in $ISSUE_NUMBERS; do
+            echo "Adding comment to issue #$issue_num..."
+            
+            if [ "$NEW_STATUS" = "Done" ]; then
+              EMOJI="✅"
+              MESSAGE="This issue has been completed!"
+            else
+              EMOJI="↩️" 
+              MESSAGE="Work on this issue has been paused."
+            fi
+            
+            gh issue comment "$issue_num" --body "$EMOJI **Status Update**
+
+Status changed to: **$NEW_STATUS**  
+$REASON
+
+See PR #$PR_NUMBER for details." || echo "Failed to comment on issue #$issue_num"
+          done

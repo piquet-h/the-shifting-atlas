@@ -167,6 +167,59 @@ function extractFieldId(nodes) {
     return null
 }
 
+function extractStatusFieldId(nodes) {
+    for (const n of nodes) {
+        for (const fv of n.fieldValues.nodes) {
+            if (fv.field?.name === 'Status') {
+                return fv.field.id // first occurrence
+            }
+        }
+    }
+    return null
+}
+
+function findStatusOptionId(projectFields, statusValue) {
+    const statusField = projectFields.find(field => field.name === 'Status' && field.options)
+    if (!statusField) return null
+    
+    const option = statusField.options.find(opt => opt.name === statusValue)
+    return option?.id || null
+}
+
+async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields) {
+    try {
+        // Find the project item for this issue
+        const projectItem = projectItems.find(item => item.content?.number === issueNumber)
+        if (!projectItem) {
+            console.log(`Issue #${issueNumber} not found in project items`)
+            return false
+        }
+
+        // Get status field ID  
+        const statusFieldId = extractStatusFieldId([projectItem]) || 
+                             projectFields.find(f => f.name === 'Status')?.id
+        if (!statusFieldId) {
+            console.log(`Status field not found in project`)
+            return false
+        }
+
+        // Get status option ID
+        const statusOptionId = findStatusOptionId(projectFields, newStatus)
+        if (!statusOptionId) {
+            console.log(`Status option "${newStatus}" not found`)
+            return false
+        }
+
+        // Update the status
+        await updateSingleSelectField(projectId, projectItem.id, statusFieldId, statusOptionId)
+        console.log(`Updated issue #${issueNumber} status to "${newStatus}"`)
+        return true
+    } catch (error) {
+        console.error(`Failed to update status for issue #${issueNumber}:`, error)
+        return false
+    }
+}
+
 async function updateNumberField(projectId, itemId, fieldId, number) {
     await ghGraphQL(
         `mutation($p:ID!,$i:ID!,$f:ID!,$v:Float!){
@@ -174,6 +227,37 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
   }`,
         {p: projectId, i: itemId, f: fieldId, v: number}
     )
+}
+
+async function updateSingleSelectField(projectId, itemId, fieldId, optionId) {
+    await ghGraphQL(
+        `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
+    updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){ projectV2Item { id } }
+  }`,
+        {p: projectId, i: itemId, f: fieldId, v: optionId}
+    )
+}
+
+async function fetchProjectFields(projectId) {
+    const data = await ghGraphQL(
+        `query($projectId:ID!){
+    node(id:$projectId){ 
+      ... on ProjectV2 { 
+        fields(first:20){
+          nodes{
+            ... on ProjectV2FieldCommon { id name }
+            ... on ProjectV2SingleSelectField { 
+              id name 
+              options { id name }
+            }
+          }
+        }
+      }
+    }
+  }`,
+        {projectId}
+    )
+    return data.node.fields.nodes
 }
 
 function hashOrdering(items) {

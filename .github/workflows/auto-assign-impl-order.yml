@@ -161,6 +161,19 @@ jobs:
           # Apply changes to project and regenerate documentation
           node scripts/sync-implementation-order.mjs apply
 
+      - name: Update issue status to In Progress
+        if: steps.copilot-analysis.outputs.action != 'skip'
+        env:
+          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+        run: |
+          ISSUE_NUM="${{ steps.issue-details.outputs.issue_number }}"
+          echo "Setting issue #$ISSUE_NUM status to 'In progress' (Copilot working on it)"
+          
+          # Update status using our utility script
+          node scripts/update-issue-status.mjs --issue-number "$ISSUE_NUM" --status "In progress" || {
+            echo "Warning: Failed to update issue status to 'In progress'. Continuing..."
+          }
+
       - name: Commit changes
         if: steps.copilot-analysis.outputs.action != 'skip'
         env:
