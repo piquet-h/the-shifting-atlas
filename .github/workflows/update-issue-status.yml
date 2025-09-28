@@ -15,9 +15,9 @@ on:
         required: true
         type: choice
         options:
-        - 'Todo'
-        - 'In progress'
-        - 'Done'
+          - 'Todo'
+          - 'In progress'
+          - 'Done'
         default: 'In progress'
       reason:
         description: 'Reason for status change'
@@ -97,9 +97,5 @@ jobs:
           NEW_STATUS="${{ inputs.status }}"
           REASON="${{ inputs.reason || 'Status update' }}"
           
-          gh issue comment "$ISSUE_NUM" --body "🔄 **Status Update**
-
-Status changed to: **$NEW_STATUS**
-Reason: $REASON
-
-_Updated automatically via workflow_"
+          # Post multiline comment without YAML indentation side-effects
+          gh issue comment "$ISSUE_NUM" --body "$(printf '🔄 **Status Update**\n\nStatus changed to: **%s**\nReason: %s\n\n_Updated automatically via workflow_\n' "$NEW_STATUS" "$REASON")"
