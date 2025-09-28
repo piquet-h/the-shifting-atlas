@@ -61,6 +61,7 @@ Avoid noisy high‑cardinality ad‑hoc logs.
 
 Store prompts under `shared/src/prompts/`.
 Reference doc filenames instead of pasting lore blocks.
+World content generation: see `.github/instructions/world/.instructions.md`.
 
 ---
 
