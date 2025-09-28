@@ -38,6 +38,17 @@ The system calculates a priority score based on:
 - `scope:observability` - Lower priority
 - `scope:devx` - Lowest priority
 
+**Roadmap Path Dependencies** (NEW - major factor):
+- **Navigation Phase 1**: Core traversal foundation (locations, exits, graph) - Highest weight
+- **World Foundation**: World rules, lore, biomes, player identity - Very high weight  
+- **Navigation Phase 2**: Normalization, direction handling, caching - High weight
+- **AI Stages M3-M4**: MCP read-only tools integration - Medium-high weight
+- **AI Stage M5+**: MCP mutation tools, advanced AI - Medium weight
+- **Navigation Phase 3**: AI-driven exit generation - Medium weight
+- **Infrastructure**: Telemetry, observability, testing, DevX - Lower weight
+
+The system analyzes issue content against the implementation phases documented in `docs/modules/` to determine which roadmap path the issue supports. This ensures issues are prioritized based on the logical delivery sequence for MVP and beyond.
+
 **Type Labels**:
 - `feature` - Standard feature work
 - `infra` - Infrastructure changes

@@ -20,6 +20,7 @@ import path from 'node:path'
 import { parseArgs } from 'node:util'
 
 const ROADMAP_JSON = path.join(process.cwd(), 'roadmap/implementation-order.json')
+const MODULES_DIR = path.join(process.cwd(), 'docs/modules')
 
 // Priority weights for different aspects
 const WEIGHTS = {
@@ -69,6 +70,52 @@ const PRIORITY_KEYWORDS = {
     ]
 }
 
+// Roadmap path dependencies extracted from docs/modules
+const ROADMAP_PATH_DEPENDENCIES = {
+    // Navigation & Traversal phases (navigation-and-traversal.md)
+    NAVIGATION_PHASE_1: {
+        keywords: ['location', 'exit', 'edge', 'baseDescription', 'graph', 'vertex', 'traversal'],
+        weight: 200,  // Foundation phase
+        description: 'Core traversal foundation - locations and exits'
+    },
+    NAVIGATION_PHASE_2: {
+        keywords: ['normalization', 'direction', 'exit summary', 'cache', 'look'],
+        weight: 150,  // Depends on Phase 1
+        description: 'Player-friendly navigation - normalization and caching'
+    },
+    NAVIGATION_PHASE_3: {
+        keywords: ['ai candidate', 'generation', 'proposal'],
+        weight: 100,  // Depends on Phase 2
+        description: 'AI-driven exit generation'
+    },
+    
+    // AI Prompt Engineering stages (ai-prompt-engineering.md)  
+    AI_STAGE_M3_M4: {
+        keywords: ['mcp', 'world-query', 'lore-memory', 'read-only', 'tool'],
+        weight: 120,
+        description: 'MCP read-only tools integration'
+    },
+    AI_STAGE_M5_PLUS: {
+        keywords: ['world-mutation', 'validator', 'authoritative', 'prompt assembly'],
+        weight: 80,  // Depends on M3-M4
+        description: 'MCP mutation tools - advanced AI integration'
+    },
+    
+    // World & Player foundation
+    WORLD_FOUNDATION: {
+        keywords: ['world rules', 'lore', 'biome', 'faction', 'identity', 'player bootstrap'],
+        weight: 180,
+        description: 'World foundation and player identity systems'
+    },
+    
+    // Infrastructure and DevX
+    INFRASTRUCTURE: {
+        keywords: ['telemetry', 'observability', 'test', 'integration', 'ci', 'deployment'],
+        weight: 90,
+        description: 'Infrastructure and developer experience'
+    }
+}
+
 function readJson(file) {
     try {
         return JSON.parse(fs.readFileSync(file, 'utf8'))
@@ -78,6 +125,51 @@ function readJson(file) {
         }
         throw err
     }
+}
+
+function analyzeRoadmapPathDependencies(issue) {
+    const content = `${issue.title} ${issue.description}`.toLowerCase()
+    let pathScore = 0
+    let pathFactors = []
+    let bestMatch = null
+    let bestMatchScore = 0
+    
+    // Check for roadmap path alignment - find the best match
+    for (const [pathKey, pathInfo] of Object.entries(ROADMAP_PATH_DEPENDENCIES)) {
+        let matchCount = 0
+        for (const keyword of pathInfo.keywords) {
+            if (content.includes(keyword)) {
+                matchCount++
+            }
+        }
+        
+        // Calculate match score as percentage of keywords matched
+        const matchScore = matchCount / pathInfo.keywords.length
+        if (matchScore > bestMatchScore && matchCount > 0) {
+            bestMatchScore = matchScore
+            bestMatch = pathInfo
+        }
+    }
+    
+    // Apply the best matching path's weight
+    if (bestMatch) {
+        pathScore = bestMatch.weight * bestMatchScore  // Scale by match quality
+        pathFactors.push(`Roadmap path (${bestMatch.description}): +${Math.round(pathScore)}`)
+    }
+    
+    // If no specific path matched, check if it aligns with any known foundational work
+    if (pathScore === 0) {
+        const foundationalKeywords = ['foundation', 'bootstrap', 'core', 'basic', 'essential', 'prerequisite']
+        for (const keyword of foundationalKeywords) {
+            if (content.includes(keyword)) {
+                pathScore += 50  // Generic foundational work bonus
+                pathFactors.push(`Foundational work detected: +50`)
+                break
+            }
+        }
+    }
+    
+    return { pathScore: Math.round(pathScore), pathFactors }
 }
 
 function calculatePriorityScore(issue, existingOrdering) {
@@ -118,6 +210,11 @@ function calculatePriorityScore(issue, existingOrdering) {
             factors.push(`Milestone ${milestone}: +${weight}`)
         }
     }
+    
+    // Roadmap path dependencies analysis (NEW - main enhancement)
+    const { pathScore, pathFactors } = analyzeRoadmapPathDependencies(issue)
+    score += pathScore
+    factors.push(...pathFactors)
     
     // Content analysis for priority keywords
     const content = `${issue.title} ${issue.description}`.toLowerCase()
@@ -231,9 +328,15 @@ function generateRationale(issue, analysis, insertion, hasExistingOrder) {
     
     rationale.push(`\n**Priority Score:** ${analysis.score}`)
     
+    // Check if roadmap path factors contributed significantly
+    const pathFactors = analysis.factors.filter(f => f.includes('Roadmap path'))
+    if (pathFactors.length > 0) {
+        rationale.push(`\n**Roadmap Path Analysis:** This issue aligns with documented implementation phases in docs/modules, influencing its priority.`)
+    }
+    
     if (analysis.factors.length > 0) {
         rationale.push(`\n**Factors contributing to priority:**`)
-        for (const factor of analysis.factors.slice(0, 5)) { // Limit to top 5 factors
+        for (const factor of analysis.factors.slice(0, 7)) { // Increased limit to show path factors
             rationale.push(`- ${factor}`)
         }
     }

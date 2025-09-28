@@ -195,27 +195,60 @@ test('Apply assignment - low priority append', async (t) => {
     }
 })
 
-test('Skip action when issue position is reasonable', async (t) => {
+test('Priority analysis with roadmap path dependencies', async (t) => {
     setupTest()
     
     const descFile = path.join(TEST_DIR, 'desc.txt')
-    fs.writeFileSync(descFile, 'Basic enhancement work')
+    fs.writeFileSync(descFile, 'Implement core location vertex and exit edge persistence using Gremlin API')
     
     const output = execSync([
         'node', 'scripts/analyze-issue-priority.mjs',
-        '--issue-number', '999',
-        '--title', '"Basic Enhancement"',
+        '--issue-number', '997',
+        '--title', '"Navigation Foundation Work"',
         '--description-file', descFile,
-        '--labels', 'scope:systems,enhancement',
-        '--milestone', '""',
-        '--has-existing-order', 'true',
-        '--existing-order', '8',
+        '--labels', 'scope:core,feature',
+        '--milestone', 'M0',
+        '--has-existing-order', 'false',
+        '--existing-order', '0',
         '--force-resequence', 'false'
     ].join(' '), { encoding: 'utf8', shell: true })
     
     const result = JSON.parse(output)
     
-    // With score 75, recommended position 9, existing position 8, difference is only 1 - should skip
+    assert.strictEqual(result.issueNumber, 997)
+    assert.strictEqual(result.confidence, 'high')
+    assert.strictEqual(result.action, 'assign')
+    assert(result.priorityScore > 300, 'Should have high priority due to roadmap path')
+    
+    // Check that roadmap path analysis was included
+    const pathFactors = result.factors.filter(f => f.includes('Roadmap path'))
+    assert(pathFactors.length > 0, 'Should include roadmap path factors')
+    assert(result.rationale.includes('Roadmap Path Analysis'), 'Should mention roadmap path in rationale')
+    
+    cleanupTest()
+})
+
+test('Skip action when issue position is reasonable', async (t) => {
+    setupTest()
+    
+    const descFile = path.join(TEST_DIR, 'desc.txt')
+    fs.writeFileSync(descFile, 'Minor style improvement work')  // Low priority content
+    
+    const output = execSync([
+        'node', 'scripts/analyze-issue-priority.mjs',
+        '--issue-number', '999',
+        '--title', '"Style Enhancement"',
+        '--description-file', descFile,
+        '--labels', 'scope:devx,enhancement',  // Low priority labels
+        '--milestone', '""',
+        '--has-existing-order', 'true',
+        '--existing-order', '12',  // Close to where it would naturally go (position 13)
+        '--force-resequence', 'false'
+    ].join(' '), { encoding: 'utf8', shell: true })
+    
+    const result = JSON.parse(output)
+    
+    // With existing position 12 vs recommended 13, difference is only 1 - should skip
     assert.strictEqual(result.action, 'skip', 'Should skip when existing position is reasonable')
     
     cleanupTest()
