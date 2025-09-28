@@ -1,10 +1,9 @@
 name: Frontend Static Web App Deploy
 
 on:
-    push:
-        branches: [main]
-        paths:
-            - 'frontend/**'
+    workflow_run:
+        workflows: ['CI']
+        types: [completed]
     pull_request:
         branches: [main]
         paths:
@@ -29,52 +28,35 @@ env:
     # AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME
 
 jobs:
-    build-and-deploy:
-        name: Build & Deploy (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    deploy-production:
+        name: Deploy Production (main via CI artifacts)
+        if: >-
+            ${{ github.event_name == 'workflow_run' &&
+                github.event.workflow_run.conclusion == 'success' &&
+                github.event.workflow_run.head_branch == 'main' }}
         runs-on: ubuntu-latest
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-
-            - name: Setup workspace (composite)
-              uses: ./.github/actions/node-workspace-setup
-
-            - name: Build shared (ensure shared dist for vendoring)
-              run: npm run build -w shared
-
-            - name: Install API production deps locally
-              run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
-
-            - name: Vendor shared into API
-              run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
-
-            - name: Build backend (tsc + static sync)
-              run: npm run build -w frontend/api
-
-            - name: Verify host.json in api dist
-              run: |
-                  if [ ! -f frontend/api/dist/host.json ]; then
-                    echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
-                  echo "Verified host.json present in api dist."
-
-            - name: Build frontend (Vite last to ensure config)
-              run: npm run build -w frontend
-
-            - name: Verify SWA config & artifacts
-              run: |
-                  if [ ! -f frontend/dist/staticwebapp.config.json ]; then
-                    echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
-                  node scripts/verify-deployable.mjs
-                  echo "Verified deployable artifacts."
-
+            - name: Download shared dist
+              uses: actions/download-artifact@v4
+              with:
+                  name: shared-dist
+                  path: shared/dist
+            - name: Download api dist
+              uses: actions/download-artifact@v4
+              with:
+                  name: api-dist
+                  path: frontend/api/dist
+            - name: Download frontend dist
+              uses: actions/download-artifact@v4
+              with:
+                  name: frontend-dist
+                  path: frontend/dist
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
                   client-id: ${{ secrets.AZURE_CLIENT_ID }}
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
             - name: Configure SWA AAD app settings
               env:
                   AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID }}
@@ -86,12 +68,13 @@ jobs:
                     ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
                   fi
                   az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
-
-            - name: Upload to Static Web App (production)
-              # Using az cli since we rely on OIDC; this avoids needing the deployment token.
+            - name: Verify deployable artifacts
+              run: |
+                  test -f frontend/dist/staticwebapp.config.json || { echo 'Missing staticwebapp.config.json'; exit 1; }
+                  test -f frontend/api/dist/host.json || { echo 'Missing host.json in api dist'; exit 1; }
+            - name: Deploy (production)
               run: |
                   npm install -g @azure/static-web-apps-cli@2
-                  # Build output already produced: frontend/dist ; functions in frontend/api
                   swa deploy \
                     --app-name "${{ vars.SWA_NAME }}" \
                     --env production \
@@ -103,7 +86,7 @@ jobs:
                     --verbose
 
     preview:
-        name: Preview Environment (PR)
+        name: Preview Environment (PR direct build)
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         permissions:
@@ -113,44 +96,34 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
-
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
-
             - name: Build shared (ensure shared dist for vendoring)
               run: npm run build -w shared
-
             - name: Install API production deps locally
               run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
-
             - name: Vendor shared into API
               run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
-
             - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
-
             - name: Verify host.json in api dist
               run: |
                   if [ ! -f frontend/api/dist/host.json ]; then
                     echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
                   echo "Verified host.json present in api dist."
-
             - name: Build frontend (Vite last to ensure config)
               run: npm run build -w frontend
-
             - name: Verify SWA config present
               run: |
                   if [ ! -f frontend/dist/staticwebapp.config.json ]; then
                     echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
                   echo "Verified staticwebapp.config.json present in dist."
-
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
                   client-id: ${{ secrets.AZURE_CLIENT_ID }}
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
             - name: Configure SWA AAD app settings
               env:
                   AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -162,11 +135,9 @@ jobs:
                     ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
                   fi
                   az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
-
             - name: Deploy Preview (OIDC only)
               run: |
                   npm install -g @azure/static-web-apps-cli@2
-                  # Use PR number to create deterministic preview environment name.
                   ENV_NAME="pr${{ github.event.number }}"
                   echo "Deploying preview environment: $ENV_NAME"
                   swa deploy \
@@ -191,12 +162,9 @@ jobs:
                   client-id: ${{ secrets.AZURE_CLIENT_ID }}
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
             - name: Delete preview environment
               run: |
                   npm install -g @azure/static-web-apps-cli@2
                   ENV_NAME="pr${{ github.event.number }}"
                   echo "Attempting to delete preview environment $ENV_NAME (best-effort)."
-                  # CLI currently lacks a direct delete subcommand; using REST API as fallback if needed.
-                  # Placeholder for future deletion logic if supported.
                   echo "(No-op) Ensure stale preview $ENV_NAME is cleaned up manually if the service doesn't auto-expire it."
