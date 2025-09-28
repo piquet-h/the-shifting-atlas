@@ -67,6 +67,7 @@ jobs:
                   path: shared/dist
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
             - name: Download api dist
               uses: actions/download-artifact@v4
               with:
@@ -74,6 +75,7 @@ jobs:
                   path: frontend/api/dist
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
             - name: Download frontend dist
               uses: actions/download-artifact@v4
               with:
@@ -81,6 +83,7 @@ jobs:
                   path: frontend/dist
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
