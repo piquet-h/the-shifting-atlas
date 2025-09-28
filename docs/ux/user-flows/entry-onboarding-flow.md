@@ -248,6 +248,7 @@ On auth merge append provider descriptor:
 | 2025-09-16 | 1.1.0 | Added auth flow & refined structure                                                              | Clarity + guest/auth upgrade                           | Low    |
 | 2025-09-19 | 1.2.0 | Streamlined doc; added personas, UX states, API contract, telemetry schema, accessibility, risks | Comprehensive coverage & readiness for instrumentation | Medium |
 | 2025-09-19 | 1.2.2 | Replaced DemoForm with CommandInterface (CommandInput + CommandOutput)                           | Reflect architecture & component responsibilities      | Low    |
+| 2025-09-28 | 1.2.3 | Fixed "Create Your Explorer" button + added future character creation documentation              | Resolve button state bug & document expansion plans    | Low    |
 
 ## Signup / Login Flow (Azure External Identities)
 
@@ -332,3 +333,60 @@ if (principalHeader) {
 | Performance      | First command round-trip p50 < 1s (local dev baseline).                                 |
 | Resilience       | Failure paths AF1–AF5 produce clear, actionable UI feedback.                            |
 | Telemetry        | All planned events fire with required dimensions.                                       |
+
+## Explorer Creation vs Sign In Flow
+
+### Current Implementation (as of v1.2.3)
+
+The Homepage component displays two different CTAs based on user state:
+- **"Create Your Explorer"** for first-time visitors (`isNewUser = true`)
+- **"Sign In to Continue"** for returning visitors (`isNewUser = false`)
+
+Both buttons currently trigger the same authentication flow (`signIn('msa', '/')`), but with an important difference:
+- **"Create Your Explorer"** calls `acknowledge()` from `useVisitState` before authentication, marking the user as having visited
+- **"Sign In to Continue"** proceeds directly to authentication
+
+This ensures that after a user clicks "Create Your Explorer", subsequent visits will show the "Sign In to Continue" button instead.
+
+### Bug Fix (resolved)
+
+**Issue**: The "Create Your Explorer" button was not calling `acknowledge()`, causing it to appear on every visit even for returning users.
+
+**Solution**: Modified the `onClick` handler to call `acknowledge()` when `isNewUser` is true:
+
+```tsx
+onClick={() => {
+    if (isNewUser) {
+        acknowledge()
+    }
+    signIn('msa', '/')
+}}
+```
+
+### Future Enhancement: D&D Style Character Creation
+
+**Vision**: The "Create Your Explorer" button will eventually expand beyond simple authentication to provide a rich character creation experience similar to D&D character builders.
+
+**Planned Features** (not yet implemented):
+- Character class selection (Cartographer, Wanderer, Scout, etc.)
+- Starting attributes and skills
+- Background story prompts
+- Starting location preference
+- Equipment/inventory customization
+- Faction affiliation choices
+
+**Technical Considerations**:
+- Character creation flow will remain optional - users can still choose a "Quick Start" path
+- New user state management will expand beyond simple localStorage flag to include creation progress
+- Character data will be stored as part of the Player vertex in Cosmos DB
+- The current authentication flow will be preserved as the final step after character customization
+
+**UX Flow** (planned):
+1. User clicks "Create Your Explorer" 
+2. Character creation wizard opens (multi-step modal or dedicated pages)
+3. User customizes their explorer (class, attributes, background)
+4. User completes or skips creation wizard
+5. Authentication flow begins (`signIn('msa', '/')`)
+6. Character data syncs with authenticated profile
+
+This enhancement will differentiate the "Create Your Explorer" experience from "Sign In to Continue" while maintaining backward compatibility with the current authentication system.
