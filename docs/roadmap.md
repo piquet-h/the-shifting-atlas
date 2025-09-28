@@ -4,7 +4,7 @@ Source of truth: `roadmap/implementation-order.json`
 
 | Order | Issue | Title | Milestone | Scope | Type | Status |
 | ----- | ----- | ----- | --------- | ----- | ---- | ------ |
-| 1 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Todo |
+| 1 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
 | 2 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Todo |
 | 3 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | Todo |
 | 4 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
@@ -16,15 +16,19 @@ Source of truth: `roadmap/implementation-order.json`
 | 10 | #14 | Integration Test Harness (Traversal + Persistence) |  | scope:devx | test |  |
 | 11 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 12 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
+| 13 | #22 | Automate implementation order assignment for new issues using Copilot |  |  | enhancement | In progress |
+| 14 | #21 | Remove text in logged in header |  |  | enhancement | Todo |
+| 15 | #24 | "Create your explorer" fails |  |  | bug | Done |
+| 16 | #26 | ✨ Set up Copilot instructions |  |  | enhancement | Todo |
 
 ## Next Up
 
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
-| 1 | #4 | Todo | Implement Cosmos Gremlin Location Persistence |
 | 2 | #7 | Todo | Player Bootstrap & Persistence |
 | 3 | #5 | Todo | Introduce EXIT Edge Model & Link Rooms |
 | 4 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 5 | #9 | Todo | LOOK Command (HttpLook) |
+| 6 | #8 | Todo | Exits Summary Cache Generation Utility |
 
-Last sync: 2025-09-27T11:24:02.415Z
+Last sync: 2025-09-28T09:36:58.141Z
