@@ -82,17 +82,21 @@ test('Priority analysis - low priority documentation', async (t) => {
     const descFile = path.join(TEST_DIR, 'desc.txt')
     fs.writeFileSync(descFile, 'Polish documentation and fix typos')
     
-    const output = execSync([
-        'node', 'scripts/analyze-issue-priority.mjs',
-        '--issue-number', '998',
-        '--title', '"Documentation Polish"',
-        '--description-file', descFile,
-        '--labels', 'scope:devx,docs',
-        '--milestone', '""',
-        '--has-existing-order', 'false',
-        '--existing-order', '0',
-        '--force-resequence', 'false'
-    ].join(' '), { encoding: 'utf8', shell: true })
+    const output = execFileSync(
+        'node',
+        [
+            'scripts/analyze-issue-priority.mjs',
+            '--issue-number', '998',
+            '--title', '"Documentation Polish"',
+            '--description-file', descFile,
+            '--labels', 'scope:devx,docs',
+            '--milestone', '""',
+            '--has-existing-order', 'false',
+            '--existing-order', '0',
+            '--force-resequence', 'false'
+        ],
+        { encoding: 'utf8' }
+    )
     
     const result = JSON.parse(output)
     
