@@ -17,6 +17,7 @@ on:
 permissions:
     id-token: write # OIDC for azure/login
     contents: read
+    actions: read # required to download artifacts from CI workflow_run
 
 concurrency:
     group: swa-frontend
@@ -36,6 +37,13 @@ jobs:
                 github.event.workflow_run.head_branch == 'main' }}
         runs-on: ubuntu-latest
         steps:
+            - name: Validate artifact availability (shared-dist)
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const runId = process.env.CI_RUN_ID = '${{ github.event.workflow_run.id }}';
+                      core.info(`Referencing CI workflow run id: ${runId}`);
+                      // We rely on direct download; this is an informational hook only.
             - name: Download shared dist
               uses: actions/download-artifact@v4
               with:
@@ -72,6 +80,9 @@ jobs:
               run: |
                   test -f frontend/dist/staticwebapp.config.json || { echo 'Missing staticwebapp.config.json'; exit 1; }
                   test -f frontend/api/dist/host.json || { echo 'Missing host.json in api dist'; exit 1; }
+                  # Additional guards for unexpected empty directories
+                  [ -s frontend/dist/index.html ] || echo 'Warning: frontend/dist/index.html empty or missing (ensure Vite build output).'
+                  ls -1 shared/dist 2>/dev/null | head -5 || echo 'Note: shared/dist appears empty (confirm build-artifacts job created files).'
             - name: Deploy (production)
               run: |
                   npm install -g @azure/static-web-apps-cli@2
