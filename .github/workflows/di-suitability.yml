@@ -53,8 +53,15 @@ jobs:
                   script: |
                       const summaryRaw = process.env.SUMMARY_JSON || core.getInput('summary');
                       const summary = JSON.parse(summaryRaw);
+                      
+                      // Only create/update issues when DI is recommended
+                      if (summary.recommendation !== 'REVIEW_SUGGESTED') {
+                        console.log(`DI recommendation is "${summary.recommendation}" - no issue needed`);
+                        return;
+                      }
+                      
                       const title = 'DI Suitability Report';
-                      const recommendation = summary.recommendation === 'REVIEW_SUGGESTED' ? 'Review Suggested' : 'No Action';
+                      const recommendation = 'Review Suggested';
                       const body = `### Automated DI Suitability Report\n\n` +
                         `Scanned At: ${summary.scannedAt}\n\n` +
                         `| Metric | Value |\n|--------|-------|\n` +
