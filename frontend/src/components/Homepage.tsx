@@ -24,7 +24,7 @@ import CommandInterface from './CommandInterface'
  *  - Removed visual duplicate heading/nav cluster (nav already includes branding). h1 kept as sr-only to avoid repetition.
  */
 export default function Homepage(): React.ReactElement {
-    const {isNewUser} = useVisitState()
+    const {isNewUser, acknowledge} = useVisitState()
     const {playerGuid, loading: guidLoading} = usePlayerGuid()
     const {isAuthenticated, loading, user, signIn} = useAuth()
     const {linking, linked, error: linkError} = useLinkGuestOnAuth()
@@ -103,7 +103,12 @@ export default function Homepage(): React.ReactElement {
                                     </p>
                                     <div className="mt-5 flex flex-col sm:flex-row gap-3">
                                         <button
-                                            onClick={() => signIn('msa', '/')}
+                                            onClick={() => {
+                                                if (isNewUser) {
+                                                    acknowledge()
+                                                }
+                                                signIn('msa', '/')
+                                            }}
                                             className="px-5 py-3 rounded-lg font-semibold bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg"
                                         >
                                             {isNewUser ? 'Create Your Explorer' : 'Sign In to Continue'}
