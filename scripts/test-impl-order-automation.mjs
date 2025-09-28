@@ -10,7 +10,7 @@ import { test } from 'node:test'
 import assert from 'node:assert'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execSync } from 'node:child_process'
+import { execSync, execFileSync } from 'node:child_process'
 
 const TEST_DIR = path.join(process.cwd(), 'tmp', 'impl-order-tests')
 const TEST_JSON = path.join(TEST_DIR, 'implementation-order.json')
@@ -49,17 +49,21 @@ test('Priority analysis - high priority core feature', async (t) => {
     const descFile = path.join(TEST_DIR, 'desc.txt')
     fs.writeFileSync(descFile, 'Foundation persistence layer for core database operations')
     
-    const output = execSync([
-        'node', 'scripts/analyze-issue-priority.mjs',
-        '--issue-number', '999',
-        '--title', '"Core Database Foundation"',
-        '--description-file', descFile,
-        '--labels', 'scope:core,feature',
-        '--milestone', 'M0',
-        '--has-existing-order', 'false',
-        '--existing-order', '0',
-        '--force-resequence', 'false'
-    ].join(' '), { encoding: 'utf8', shell: true })
+    const output = execFileSync(
+        'node',
+        [
+            'scripts/analyze-issue-priority.mjs',
+            '--issue-number', '999',
+            '--title', 'Core Database Foundation',
+            '--description-file', descFile,
+            '--labels', 'scope:core,feature',
+            '--milestone', 'M0',
+            '--has-existing-order', 'false',
+            '--existing-order', '0',
+            '--force-resequence', 'false'
+        ],
+        { encoding: 'utf8' }
+    )
     
     const result = JSON.parse(output)
     
