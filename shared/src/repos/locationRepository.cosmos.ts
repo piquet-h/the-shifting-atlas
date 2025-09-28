@@ -76,7 +76,7 @@ export class CosmosLocationRepository implements ILocationRepository {
                     name: location.name,
                     desc: location.description || '',
                     ver: newVersion,
-                    tags: location.tags || []
+                    ...(location.tags ? { tags: location.tags } : {})
                 }
             )
             
