@@ -167,12 +167,18 @@ jobs:
           GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
         run: |
           ISSUE_NUM="${{ steps.issue-details.outputs.issue_number }}"
-          echo "Setting issue #$ISSUE_NUM status to 'In progress' (Copilot working on it)"
+          echo "🤖 Copilot is working on issue #$ISSUE_NUM - setting status to 'In progress'"
           
           # Update status using our utility script
-          node scripts/update-issue-status.mjs --issue-number "$ISSUE_NUM" --status "In progress" || {
-            echo "Warning: Failed to update issue status to 'In progress'. Continuing..."
-          }
+          if node scripts/update-issue-status.mjs --issue-number "$ISSUE_NUM" --status "In progress"; then
+            echo "✅ Successfully updated issue #$ISSUE_NUM to 'In progress'"
+          else
+            echo "⚠️ Warning: Failed to update issue status to 'In progress'. This may be due to:"
+            echo "   - Issue not being added to the project board yet"
+            echo "   - Project configuration issues"
+            echo "   - Token permission limitations"
+            echo "Continuing workflow execution..."
+          fi
 
       - name: Commit changes
         if: steps.copilot-analysis.outputs.action != 'skip'

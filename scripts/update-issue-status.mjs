@@ -197,41 +197,59 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
         // Find the project item for this issue
         const projectItem = projectItems.find(item => item.content?.number === issueNumber)
         if (!projectItem) {
-            console.log(`Issue #${issueNumber} not found in project items`)
+            console.log(`❌ Issue #${issueNumber} not found in project items`)
+            console.log('   Hint: Make sure the issue is added to the GitHub Project Board')
             return false
         }
 
         // Get current status
         const currentStatus = extractStatus(projectItem.fieldValues)
         if (currentStatus === newStatus) {
-            console.log(`Issue #${issueNumber} already has status "${newStatus}"`)
+            console.log(`ℹ️  Issue #${issueNumber} already has status "${newStatus}"`)
             return true
         }
 
         // Get status field ID  
         const statusField = projectFields.find(f => f.name === 'Status')
         if (!statusField) {
-            console.log(`Status field not found in project`)
+            console.log(`❌ Status field not found in project`)
+            console.log('   Hint: Ensure your project has a field named "Status"')
+            return false
+        }
+
+        // Validate status value against available options
+        const statusFieldWithOptions = projectFields.find(f => f.name === 'Status' && f.options)
+        if (!statusFieldWithOptions || !statusFieldWithOptions.options.length) {
+            console.log(`❌ Status field has no options configured`)
+            console.log('   Hint: Configure status options in your project settings')
             return false
         }
 
         // Get status option ID
         const statusOptionId = findStatusOptionId(projectFields, newStatus)
         if (!statusOptionId) {
-            console.log(`Status option "${newStatus}" not found. Available options:`)
-            const statusFieldWithOptions = projectFields.find(f => f.name === 'Status' && f.options)
-            if (statusFieldWithOptions) {
-                statusFieldWithOptions.options.forEach(opt => console.log(`  - "${opt.name}"`))
-            }
+            console.log(`❌ Status option "${newStatus}" not found. Available options:`)
+            statusFieldWithOptions.options.forEach(opt => console.log(`   - "${opt.name}"`))
+            console.log('   Hint: Status values are case-sensitive')
             return false
         }
 
         // Update the status
+        console.log(`🔄 Updating issue #${issueNumber} status from "${currentStatus}" to "${newStatus}"...`)
         await updateSingleSelectField(projectId, projectItem.id, statusField.id, statusOptionId)
-        console.log(`Updated issue #${issueNumber} status from "${currentStatus}" to "${newStatus}"`)
+        console.log(`✅ Successfully updated issue #${issueNumber} status to "${newStatus}"`)
         return true
     } catch (error) {
-        console.error(`Failed to update status for issue #${issueNumber}:`, error)
+        console.error(`❌ Failed to update status for issue #${issueNumber}:`)
+        
+        if (error.message.includes('GraphQL')) {
+            console.error('   This might be a permissions issue. Ensure your token has repository-projects:write permission.')
+        } else if (error.message.includes('fetch')) {
+            console.error('   Network error. Check your internet connection.')
+        } else {
+            console.error(`   ${error.message}`)
+        }
+        
         return false
     }
 }
@@ -272,22 +290,56 @@ Environment variables:
         process.exit(1)
     }
 
-    console.log(`Updating issue #${issueNumber} to status "${newStatus}"...`)
+    console.log(`🔍 Updating issue #${issueNumber} to status "${newStatus}"...`)
 
-    // Fetch project data
-    const {projectId, nodes: projectItems} = await fetchProjectItems()
-    if (!projectId) {
-        console.error('Could not find project')
+    try {
+        // Fetch project data
+        console.log('📊 Fetching project data...')
+        const {projectId, nodes: projectItems} = await fetchProjectItems()
+        if (!projectId) {
+            console.error('❌ Could not find project')
+            console.error('   Check PROJECT_OWNER, PROJECT_NUMBER, and PROJECT_OWNER_TYPE environment variables')
+            console.error('   Ensure your token has access to the project')
+            process.exit(1)
+        }
+        console.log(`✅ Found project (ID: ${projectId.substring(0, 12)}...)`)
+
+        // Fetch project fields to get status options
+        console.log('🏷️  Fetching project fields...')
+        const projectFields = await fetchProjectFields(projectId)
+        console.log(`✅ Found ${projectFields.length} project fields`)
+
+        // Update the issue status
+        const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields)
+        
+        if (success) {
+            console.log('🎉 Status update completed successfully!')
+        } else {
+            console.log('❌ Status update failed')
+        }
+        
+        process.exit(success ? 0 : 1)
+    } catch (error) {
+        console.error('💥 Unexpected error during status update:')
+        
+        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+            console.error('   Authentication failed. Check your GITHUB_TOKEN.')
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+            console.error('   Permission denied. Ensure your token has repository-projects:write access.')
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+            console.error('   Resource not found. Check project number and ownership.')
+        } else {
+            console.error(`   ${error.message}`)
+        }
+        
+        console.error('\n🔧 Troubleshooting tips:')
+        console.error('   1. Verify GITHUB_TOKEN is set and has correct permissions')
+        console.error('   2. Check PROJECT_OWNER and PROJECT_NUMBER environment variables')
+        console.error('   3. Ensure the issue exists and is added to the project board')
+        console.error('   4. Confirm project has a "Status" field with the desired options')
+        
         process.exit(1)
     }
-
-    // Fetch project fields to get status options
-    const projectFields = await fetchProjectFields(projectId)
-
-    // Update the issue status
-    const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields)
-    
-    process.exit(success ? 0 : 1)
 }
 
 main().catch((err) => {

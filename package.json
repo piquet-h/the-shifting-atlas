@@ -43,7 +43,8 @@
         "sync:impl-order:resequence": "node scripts/sync-implementation-order.mjs resequence",
         "sync:impl-order:next": "node scripts/sync-implementation-order.mjs next",
         "sync:labels": "node scripts/sync-labels.mjs",
-        "update:issue-status": "node scripts/update-issue-status.mjs"
+        "update:issue-status": "node scripts/update-issue-status.mjs",
+        "test:issue-status": "node scripts/test-update-issue-status.mjs"
     },
     "devDependencies": {
         "@azure/static-web-apps-cli": "^2.0.6",
