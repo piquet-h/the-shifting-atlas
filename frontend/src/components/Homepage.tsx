@@ -231,19 +231,11 @@ export default function Homepage(): React.ReactElement {
             {!loading && !guidLoading && isAuthenticated ? (
                 <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
                     <div className="flex flex-col gap-6 lg:col-span-8 xl:col-span-9">
-                        <section className="bg-white/3 p-4 rounded-xl shadow-lg" aria-labelledby="begin-journey">
-                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                                <div>
-                                    {/* Heading now visually hidden; welcome handled by toast */}
-                                    <h2 id="begin-journey" className="sr-only">
-                                        Session status
-                                    </h2>
-                                    <p className="text-sm text-atlas-muted">
-                                        {linkError ? 'We will retry linking shortly.' : 'Your map has shifted while you were away.'}
-                                    </p>
-                                </div>
-                                {/* Removed action buttons per requirement: Enter World & Change Explorer */}
-                            </div>
+                        <section aria-labelledby="auth-command-interface-title" className="mt-4">
+                            <h2 id="auth-command-interface-title" className="text-lg font-semibold tracking-wide mb-4">
+                                Command Interface
+                            </h2>
+                            <CommandInterface playerGuid={playerGuid || user?.userId} />
                         </section>
 
                         <section className="grid gap-3 sm:grid-cols-3" aria-label="Game pillars">
@@ -259,12 +251,6 @@ export default function Homepage(): React.ReactElement {
                                 <h3 className="font-semibold">New discoveries</h3>
                                 <p className="text-sm text-slate-400">3 hidden passages found overnight.</p>
                             </div>
-                        </section>
-                        <section aria-labelledby="auth-command-interface-title" className="mt-2">
-                            <h2 id="auth-command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
-                                Command Interface
-                            </h2>
-                            <CommandInterface playerGuid={playerGuid || user?.userId} />
                         </section>
                     </div>
                     <aside className="hidden lg:flex lg:col-span-4 xl:col-span-3">
