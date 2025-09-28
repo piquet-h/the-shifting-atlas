@@ -1,20 +1,14 @@
 name: Frontend Static Web App Deploy
 
-# Streamlined triggers:
-# 1. Production deploy only fires from successful CI completion (workflow_run)
-# 2. PR preview build/deploy limited to PR lifecycle events we care about (opened, synchronize, reopened, closed)
-# 3. Path filters narrow PR runs to frontend + shared changes (avoid noise on docs / infra only edits)
-# 4. Manual workflow_dispatch retained for ad‑hoc redeploys
 on:
-    workflow_run:
-        workflows: ['CI']
-        types: [completed]
-    pull_request:
+    push:
         branches: [main]
-        types: [opened, synchronize, reopened, closed]
         paths:
             - 'frontend/**'
-            - 'shared/**'
+    pull_request:
+        branches: [main]
+        paths:
+            - 'frontend/**'
     workflow_dispatch:
         inputs:
             reason:
@@ -24,15 +18,9 @@ on:
 permissions:
     id-token: write # OIDC for azure/login
     contents: read
-    actions: read # required to download artifacts from CI workflow_run
 
 concurrency:
-    # Separate concurrency buckets so a long-running production deploy (workflow_run) is not
-    # cancelled by an incoming PR synchronize (pull_request) event and vice‑versa.
-    # Falls back to run_id to ensure uniqueness if contextual IDs missing.
-    group: >-
-        swa-frontend-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id ||
-        (github.event_name == 'pull_request' && github.event.pull_request.number) || github.run_id }}
+    group: swa-frontend
     cancel-in-progress: true
 
 env:
@@ -41,117 +29,52 @@ env:
     # AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME
 
 jobs:
-    deploy-production:
-        name: Deploy Production (main via CI artifacts)
-        if: >-
-            ${{ github.event_name == 'workflow_run' &&
-                github.event.workflow_run.conclusion == 'success' &&
-                github.event.workflow_run.head_branch == 'main' }}
+    build-and-deploy:
+        name: Build & Deploy (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
-        env:
-            CI_RUN_ID: ${{ github.event.workflow_run.id }}
         steps:
-            - name: Short propagation delay
-              run: sleep 5
-            - name: Validate artifact availability (shared-dist)
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const runId = process.env.CI_RUN_ID = '${{ github.event.workflow_run.id }}';
-                      core.info(`Referencing CI workflow run id: ${runId}`);
-                      // We rely on direct download; this is an informational hook only.
-            - name: List CI artifacts (debug)
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const runId = process.env.CI_RUN_ID;
-                      const { data } = await github.rest.actions.listWorkflowRunArtifacts({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        run_id: runId
-                      });
-                      core.info(`Found ${data.total_count} artifacts for run ${runId}`);
-                      for (const a of data.artifacts) {
-                        core.info(`- ${a.name} (${a.size_in_bytes} bytes, expired=${a.expired})`);
-                      }
-            - name: Download shared dist (attempt 1)
-              id: dl_shared_1
-              continue-on-error: true
-              uses: actions/download-artifact@v4
-              with:
-                  name: shared-dist
-                  path: shared/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Download shared dist (retry)
-              if: steps.dl_shared_1.outcome == 'failure'
-              id: dl_shared_2
-              uses: actions/download-artifact@v4
-              with:
-                  name: shared-dist
-                  path: shared/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Verify shared dist
-              run: |
-                  if [ ! -d shared/dist ] || [ -z "$(ls -A shared/dist 2>/dev/null)" ]; then
-                    echo 'shared/dist not downloaded after retries'; exit 1; fi
-            - name: Download api dist (attempt 1)
-              id: dl_api_1
-              continue-on-error: true
-              uses: actions/download-artifact@v4
-              with:
-                  name: api-dist
-                  path: frontend/api/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Download api dist (retry)
-              if: steps.dl_api_1.outcome == 'failure'
-              id: dl_api_2
-              uses: actions/download-artifact@v4
-              with:
-                  name: api-dist
-                  path: frontend/api/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Verify api dist
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup workspace (composite)
+              uses: ./.github/actions/node-workspace-setup
+
+            - name: Build shared (ensure shared dist for vendoring)
+              run: npm run build -w shared
+
+            - name: Install API production deps locally
+              run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
+
+            - name: Vendor shared into API
+              run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
+
+            - name: Build backend (tsc + static sync)
+              run: npm run build -w frontend/api
+
+            - name: Verify host.json in api dist
               run: |
                   if [ ! -f frontend/api/dist/host.json ]; then
-                    echo 'api-dist not downloaded after retries (host.json missing)'; exit 1; fi
-            - name: Download frontend dist (attempt 1)
-              id: dl_frontend_1
-              continue-on-error: true
-              uses: actions/download-artifact@v4
-              with:
-                  name: frontend-dist
-                  path: frontend/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Download frontend dist (retry)
-              if: steps.dl_frontend_1.outcome == 'failure'
-              id: dl_frontend_2
-              uses: actions/download-artifact@v4
-              with:
-                  name: frontend-dist
-                  path: frontend/dist
-                  run-id: ${{ env.CI_RUN_ID }}
-                  repository: ${{ github.repository }}
-                  github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Verify frontend dist
+                    echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
+                  echo "Verified host.json present in api dist."
+
+            - name: Build frontend (Vite last to ensure config)
+              run: npm run build -w frontend
+
+            - name: Verify SWA config & artifacts
               run: |
                   if [ ! -f frontend/dist/staticwebapp.config.json ]; then
-                    echo 'frontend-dist not downloaded after retries (staticwebapp.config.json missing)'; exit 1; fi
+                    echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
+                  node scripts/verify-deployable.mjs
+                  echo "Verified deployable artifacts."
+
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
                   client-id: ${{ secrets.AZURE_CLIENT_ID }}
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
             - name: Configure SWA AAD app settings
               env:
                   AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID }}
@@ -163,16 +86,12 @@ jobs:
                     ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
                   fi
                   az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
-            - name: Verify deployable artifacts
-              run: |
-                  test -f frontend/dist/staticwebapp.config.json || { echo 'Missing staticwebapp.config.json'; exit 1; }
-                  test -f frontend/api/dist/host.json || { echo 'Missing host.json in api dist'; exit 1; }
-                  # Additional guards for unexpected empty directories
-                  [ -s frontend/dist/index.html ] || echo 'Warning: frontend/dist/index.html empty or missing (ensure Vite build output).'
-                  ls -1 shared/dist 2>/dev/null | head -5 || echo 'Note: shared/dist appears empty (confirm build-artifacts job created files).'
-            - name: Deploy (production)
+
+            - name: Upload to Static Web App (production)
+              # Using az cli since we rely on OIDC; this avoids needing the deployment token.
               run: |
                   npm install -g @azure/static-web-apps-cli@2
+                  # Build output already produced: frontend/dist ; functions in frontend/api
                   swa deploy \
                     --app-name "${{ vars.SWA_NAME }}" \
                     --env production \
@@ -184,7 +103,7 @@ jobs:
                     --verbose
 
     preview:
-        name: Preview Environment (PR direct build)
+        name: Preview Environment (PR)
         if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         permissions:
@@ -194,34 +113,44 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+
             - name: Setup workspace (composite)
               uses: ./.github/actions/node-workspace-setup
+
             - name: Build shared (ensure shared dist for vendoring)
               run: npm run build -w shared
+
             - name: Install API production deps locally
               run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
+
             - name: Vendor shared into API
               run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
+
             - name: Build backend (tsc + static sync)
               run: npm run build -w frontend/api
+
             - name: Verify host.json in api dist
               run: |
                   if [ ! -f frontend/api/dist/host.json ]; then
                     echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
                   echo "Verified host.json present in api dist."
+
             - name: Build frontend (Vite last to ensure config)
               run: npm run build -w frontend
+
             - name: Verify SWA config present
               run: |
                   if [ ! -f frontend/dist/staticwebapp.config.json ]; then
                     echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
                   echo "Verified staticwebapp.config.json present in dist."
+
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
                   client-id: ${{ secrets.AZURE_CLIENT_ID }}
                   tenant-id: ${{ secrets.AZURE_TENANT_ID }}
                   subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
             - name: Configure SWA AAD app settings
               env:
                   AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -233,9 +162,11 @@ jobs:
                     ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
                   fi
                   az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
+
             - name: Deploy Preview (OIDC only)
               run: |
                   npm install -g @azure/static-web-apps-cli@2
+                  # Use PR number to create deterministic preview environment name.
                   ENV_NAME="pr${{ github.event.number }}"
                   echo "Deploying preview environment: $ENV_NAME"
                   swa deploy \
@@ -265,4 +196,6 @@ jobs:
                   npm install -g @azure/static-web-apps-cli@2
                   ENV_NAME="pr${{ github.event.number }}"
                   echo "Attempting to delete preview environment $ENV_NAME (best-effort)."
+                  # CLI currently lacks a direct delete subcommand; using REST API as fallback if needed.
+                  # Placeholder for future deletion logic if supported.
                   echo "(No-op) Ensure stale preview $ENV_NAME is cleaned up manually if the service doesn't auto-expire it."
