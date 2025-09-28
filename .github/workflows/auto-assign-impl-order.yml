@@ -1,205 +1,166 @@
 name: Auto Assign Implementation Order
 
-# Automatically assign implementation order to new issues using Copilot analysis
-# Triggers on issue creation and significant updates (label/milestone changes)
-
 on:
-  issues:
-    types: [opened, labeled, unlabeled, milestoned, demilestoned]
-  workflow_dispatch:
-    inputs:
-      issue_number:
-        description: 'Issue number to analyze and assign order'
-        required: true
-        type: string
-      force_resequence:
-        description: 'Force resequencing of existing issues'
-        required: false
-        type: boolean
-        default: false
+    issues:
+        types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
+    workflow_dispatch:
+        inputs:
+            issue_number:
+                description: Specific issue number to analyze
+                required: false
+                type: string
+            force_resequence:
+                description: Force resequence even if current position seems acceptable
+                required: false
+                type: boolean
 
 permissions:
-  contents: write
-  issues: write
-  repository-projects: write
+    contents: write
+    issues: write
 
-# Prevent concurrent runs to avoid race conditions
 concurrency:
-  group: auto-impl-order-${{ github.repository }}
-  cancel-in-progress: false
+    group: auto-impl-order-${{ github.repository }}
+    cancel-in-progress: false
 
 jobs:
-  auto-assign-order:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+    assign:
+        name: Analyze & Assign Implementation Order
+        runs-on: ubuntu-latest
+        timeout-minutes: 8
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
 
-      - name: Install minimal deps
-        run: npm ci --omit=dev || npm install --only=production || true
+            - name: Install Dependencies
+              run: npm ci
 
-      - name: Get issue details
-        id: issue-details
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ISSUE_NUMBER="${{ github.event.inputs.issue_number }}"
-          else
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
-          fi
-          
-          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          
-          # Get issue details via GitHub API
-          gh api "repos/${{ github.repository }}/issues/$ISSUE_NUMBER" > issue_details.json
-          
-          # Extract key information
-          TITLE=$(jq -r '.title' issue_details.json)
-          DESCRIPTION=$(jq -r '.body // ""' issue_details.json)
-          STATE=$(jq -r '.state' issue_details.json)
-          LABELS=$(jq -r '[.labels[].name] | join(",")' issue_details.json)
-          MILESTONE=$(jq -r '.milestone.title // ""' issue_details.json)
-          
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
-          echo "state=$STATE" >> $GITHUB_OUTPUT
-          echo "labels=$LABELS" >> $GITHUB_OUTPUT
-          echo "milestone=$MILESTONE" >> $GITHUB_OUTPUT
-          
-          # Store description in file to avoid shell quoting issues
-          echo "$DESCRIPTION" > issue_description.txt
+            - name: Resolve Issue Number
+              id: issue
+              run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.issue_number }}" ]; then
+                    echo "number=${{ github.event.inputs.issue_number }}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+                  fi
 
-      - name: Check if issue already has implementation order
-        id: check-existing
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ISSUE_NUM="${{ steps.issue-details.outputs.issue_number }}"
-          
-          # Check if issue is already in implementation-order.json
-          if grep -q "\"issue\": $ISSUE_NUM," roadmap/implementation-order.json; then
-            echo "has_order=true" >> $GITHUB_OUTPUT
-            EXISTING_ORDER=$(jq -r ".items[] | select(.issue == $ISSUE_NUM) | .order" roadmap/implementation-order.json)
-            echo "existing_order=$EXISTING_ORDER" >> $GITHUB_OUTPUT
-          else
-            echo "has_order=false" >> $GITHUB_OUTPUT
-            echo "existing_order=0" >> $GITHUB_OUTPUT
-          fi
+            - name: Fetch Issue Details
+              id: fetch
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  gh api repos/${{ github.repository }}/issues/${{ steps.issue.outputs.number }} > issue.json
+                  jq -r '.body // ""' issue.json > issue_body.txt
+                  echo "state=$(jq -r .state issue.json)" >> "$GITHUB_OUTPUT"
+                  echo "title=$(jq -r .title issue.json)" >> "$GITHUB_OUTPUT"
+                  echo "labels=$(jq -r '[.labels[].name] | join(",")' issue.json)" >> "$GITHUB_OUTPUT"
+                  echo "milestone=$(jq -r '.milestone.title // ""' issue.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Skip if issue is closed and not forcing
-        if: steps.issue-details.outputs.state == 'closed' && github.event.inputs.force_resequence != 'true'
-        run: |
-          echo "Issue is closed, skipping implementation order assignment"
-          exit 0
+            - name: Skip Closed Issues
+              if: steps.fetch.outputs.state == 'closed'
+              run: echo "Issue closed; skipping workflow." && exit 0
 
-      - name: Analyze issue with Copilot
-        id: copilot-analysis
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          node scripts/analyze-issue-priority.mjs \
-            --issue-number "${{ steps.issue-details.outputs.issue_number }}" \
-            --title "${{ steps.issue-details.outputs.title }}" \
-            --description-file issue_description.txt \
-            --labels "${{ steps.issue-details.outputs.labels }}" \
-            --milestone "${{ steps.issue-details.outputs.milestone }}" \
-            --has-existing-order "${{ steps.check-existing.outputs.has_order }}" \
-            --existing-order "${{ steps.check-existing.outputs.existing_order }}" \
-            --force-resequence "${{ github.event.inputs.force_resequence || 'false' }}" \
-            > analysis_result.json
-          
-          # Extract analysis results
-          RECOMMENDED_ORDER=$(jq -r '.recommendedOrder' analysis_result.json)
-          REQUIRES_RESEQUENCE=$(jq -r '.requiresResequence' analysis_result.json)
-          CONFIDENCE=$(jq -r '.confidence' analysis_result.json)
-          RATIONALE=$(jq -r '.rationale' analysis_result.json)
-          ACTION=$(jq -r '.action' analysis_result.json)
-          
-          echo "recommended_order=$RECOMMENDED_ORDER" >> $GITHUB_OUTPUT
-          echo "requires_resequence=$REQUIRES_RESEQUENCE" >> $GITHUB_OUTPUT
-          echo "confidence=$CONFIDENCE" >> $GITHUB_OUTPUT
-          echo "action=$ACTION" >> $GITHUB_OUTPUT
-          
-          # Store rationale in file for comment
-          echo "$RATIONALE" > rationale.txt
+            - name: Detect Existing Order
+              id: existing
+              run: |
+                  set -euo pipefail
+                  issue=${{ steps.issue.outputs.number }}
+                  if [ -f roadmap/implementation-order.json ] && grep -q "\"issue\": ${issue}," roadmap/implementation-order.json; then
+                    echo "has=true" >> "$GITHUB_OUTPUT"
+                    current=$(jq -r ".items[] | select(.issue == ${issue}) | .order" roadmap/implementation-order.json)
+                    echo "order=${current}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "has=false" >> "$GITHUB_OUTPUT"
+                    echo "order=0" >> "$GITHUB_OUTPUT"
+                  fi
 
-      - name: Apply implementation order changes
-        if: steps.copilot-analysis.outputs.action != 'skip'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          node scripts/apply-impl-order-assignment.mjs \
-            --issue-number "${{ steps.issue-details.outputs.issue_number }}" \
-            --title "${{ steps.issue-details.outputs.title }}" \
-            --recommended-order "${{ steps.copilot-analysis.outputs.recommended_order }}" \
-            --requires-resequence "${{ steps.copilot-analysis.outputs.requires_resequence }}" \
-            --action "${{ steps.copilot-analysis.outputs.action }}"
+            - name: Analyze Issue Priority
+              id: analysis
+              run: |
+                  set -euo pipefail
+                  FORCE=${{ github.event.inputs.force_resequence || 'false' }}
+                  node scripts/analyze-issue-priority.mjs \
+                    --issue-number "${{ steps.issue.outputs.number }}" \
+                    --title "${{ steps.fetch.outputs.title }}" \
+                    --description-file issue_body.txt \
+                    --labels "${{ steps.fetch.outputs.labels }}" \
+                    --milestone "${{ steps.fetch.outputs.milestone }}" \
+                    --has-existing-order "${{ steps.existing.outputs.has }}" \
+                    --existing-order "${{ steps.existing.outputs.order }}" \
+                    --force-resequence "${FORCE}" > analysis.json
+                  echo "recommended=$(jq -r .recommendedOrder analysis.json)" >> "$GITHUB_OUTPUT"
+                  echo "resequence=$(jq -r .requiresResequence analysis.json)" >> "$GITHUB_OUTPUT"
+                  echo "confidence=$(jq -r .confidence analysis.json)" >> "$GITHUB_OUTPUT"
+                  echo "action=$(jq -r .action analysis.json)" >> "$GITHUB_OUTPUT"
+                  jq -r .rationale analysis.json > rationale.txt
+                  echo "Priority score: $(jq -r .priorityScore analysis.json)"
 
-      - name: Select token for sync
-        id: select-token
-        run: |
-          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-            echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-          fi
+            - name: Apply Ordering
+              if: steps.analysis.outputs.action != 'skip'
+              run: |
+                  node scripts/apply-impl-order-assignment.mjs \
+                    --issue-number "${{ steps.issue.outputs.number }}" \
+                    --title "${{ steps.fetch.outputs.title }}" \
+                    --recommended-order "${{ steps.analysis.outputs.recommended }}" \
+                    --requires-resequence "${{ steps.analysis.outputs.resequence }}" \
+                    --action "${{ steps.analysis.outputs.action }}"
 
-      - name: Sync with project and regenerate docs
-        if: steps.copilot-analysis.outputs.action != 'skip'
-        env:
-          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
-          ALLOW_MISSING_PROJECT: 'true'
-        run: |
-          # Apply changes to project and regenerate documentation
-          node scripts/sync-implementation-order.mjs apply
+            - name: Select Token
+              id: token
+              run: |
+                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+                    echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+                  fi
 
-      - name: Commit changes
-        if: steps.copilot-analysis.outputs.action != 'skip'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then
-            echo "No changes to commit"
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git add roadmap/implementation-order.json docs/roadmap.md
-            git commit -m "chore: auto-assign implementation order to issue #${{ steps.issue-details.outputs.issue_number }}"
-            git push
-          fi
+            - name: Sync & Regenerate Docs
+              if: steps.analysis.outputs.action != 'skip'
+              env:
+                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+                  ALLOW_MISSING_PROJECT: 'true'
+              run: node scripts/sync-implementation-order.mjs apply || echo "Sync degraded"
 
-      - name: Comment on issue
-        if: steps.copilot-analysis.outputs.action != 'skip' && steps.copilot-analysis.outputs.confidence != 'high'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          CONFIDENCE="${{ steps.copilot-analysis.outputs.confidence }}"
-          RECOMMENDED_ORDER="${{ steps.copilot-analysis.outputs.recommended_order }}"
-          
-          # Only comment if confidence is not high, to avoid noise
-          if [ "$CONFIDENCE" != "high" ]; then
-            RATIONALE=$(cat rationale.txt)
-            
-            gh issue comment "${{ steps.issue-details.outputs.issue_number }}" --body "🤖 **Implementation Order Auto-Assignment**
+            - name: Commit & Push Changes
+              if: steps.analysis.outputs.action != 'skip'
+              run: |
+                  set -euo pipefail
+                  if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then
+                    echo "No file changes to commit"
+                    exit 0
+                  fi
+                  git config user.name 'github-actions[bot]'
+                  git config user.email 'github-actions[bot]@users.noreply.github.com'
+                  git add roadmap/implementation-order.json docs/roadmap.md
+                  git commit -m "chore: impl-order: existing=${{ steps.existing.outputs.has }} -> ${{ steps.analysis.outputs.recommended }} (#${{ steps.issue.outputs.number }})"
+                  git push
 
-**Assigned Order:** $RECOMMENDED_ORDER
-**Confidence:** $CONFIDENCE
+            - name: Comment (Non-High Confidence)
+              if: steps.analysis.outputs.action != 'skip' && steps.analysis.outputs.confidence != 'high'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cat > comment.md <<'EOF'
+                  **Implementation Order Auto-Assignment**
 
-**Analysis:**
-$RATIONALE
+                  Action: ${{ steps.analysis.outputs.action }}
+                  Recommended Order: `${{ steps.analysis.outputs.recommended }}`
+                  Confidence: `${{ steps.analysis.outputs.confidence }}`
 
-This assignment was made automatically. If you believe the priority should be different, maintainers can manually adjust the order in \`roadmap/implementation-order.json\`."
-          fi
+                  Rationale:
 
-      - name: Clean up temporary files
-        if: always()
-        run: |
-          rm -f issue_details.json issue_description.txt analysis_result.json rationale.txt || true
+                  $(cat rationale.txt)
+
+                  If this looks off, adjust `roadmap/implementation-order.json` manually and re-run the workflow.
+                  EOF
+                  gh issue comment ${{ steps.issue.outputs.number }} --body-file comment.md || echo "Comment failed"
+
+            - name: Cleanup
+              if: always()
+              run: rm -f issue.json issue_body.txt analysis.json rationale.txt comment.md || true
