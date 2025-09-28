@@ -7,7 +7,8 @@ on:
         inputs:
             issue_number:
                 description: Specific issue number to analyze
-                required: false
+                # Manual dispatch requires explicit issue number.
+                required: true
                 type: string
             force_resequence:
                 description: Force resequence even if current position seems acceptable
@@ -43,9 +44,20 @@ jobs:
             - name: Resolve Issue Number
               id: issue
               run: |
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.issue_number }}" ]; then
+                  # Resolve issue number based on trigger type.
+                  # For manual dispatch, the input is now required (enforced above); still guard just in case.
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                    if [ -z "${{ github.event.inputs.issue_number }}" ]; then
+                      echo "::error::Manual dispatch requires 'issue_number' input." >&2
+                      exit 1
+                    fi
                     echo "number=${{ github.event.inputs.issue_number }}" >> "$GITHUB_OUTPUT"
                   else
+                    # Issue-triggered events should always have github.event.issue.number
+                    if [ -z "${{ github.event.issue.number }}" ]; then
+                      echo "::error::Could not resolve issue number from event payload." >&2
+                      exit 1
+                    fi
                     echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
                   fi
 
@@ -55,6 +67,10 @@ jobs:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   set -euo pipefail
+                  if [ -z "${{ steps.issue.outputs.number }}" ]; then
+                    echo "::error::Issue number not set; aborting fetch." >&2
+                    exit 1
+                  fi
                   gh api repos/${{ github.repository }}/issues/${{ steps.issue.outputs.number }} > issue.json
                   jq -r '.body // ""' issue.json > issue_body.txt
                   echo "state=$(jq -r .state issue.json)" >> "$GITHUB_OUTPUT"
