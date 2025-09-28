@@ -36,6 +36,8 @@ jobs:
                 github.event.workflow_run.conclusion == 'success' &&
                 github.event.workflow_run.head_branch == 'main' }}
         runs-on: ubuntu-latest
+        env:
+            CI_RUN_ID: ${{ github.event.workflow_run.id }}
         steps:
             - name: Validate artifact availability (shared-dist)
               uses: actions/github-script@v7
@@ -44,21 +46,41 @@ jobs:
                       const runId = process.env.CI_RUN_ID = '${{ github.event.workflow_run.id }}';
                       core.info(`Referencing CI workflow run id: ${runId}`);
                       // We rely on direct download; this is an informational hook only.
+            - name: List CI artifacts (debug)
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      const runId = process.env.CI_RUN_ID;
+                      const { data } = await github.rest.actions.listWorkflowRunArtifacts({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        run_id: runId
+                      });
+                      core.info(`Found ${data.total_count} artifacts for run ${runId}`);
+                      for (const a of data.artifacts) {
+                        core.info(`- ${a.name} (${a.size_in_bytes} bytes, expired=${a.expired})`);
+                      }
             - name: Download shared dist
               uses: actions/download-artifact@v4
               with:
                   name: shared-dist
                   path: shared/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
             - name: Download api dist
               uses: actions/download-artifact@v4
               with:
                   name: api-dist
                   path: frontend/api/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
             - name: Download frontend dist
               uses: actions/download-artifact@v4
               with:
                   name: frontend-dist
                   path: frontend/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
