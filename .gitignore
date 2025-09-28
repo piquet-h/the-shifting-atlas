@@ -11,3 +11,10 @@ coverage/
 # Ignore any Functions local settings (front or backend) universally
 **/local.settings.json
 frontend/axe-report/
+# Temporary files from implementation order automation
+tmp/
+*.backup.*
+issue_details.json
+issue_description.txt
+analysis_result.json
+rationale.txt
