@@ -39,6 +39,8 @@ jobs:
         env:
             CI_RUN_ID: ${{ github.event.workflow_run.id }}
         steps:
+            - name: Short propagation delay
+              run: sleep 5
             - name: Validate artifact availability (shared-dist)
               uses: actions/github-script@v7
               with:
@@ -60,7 +62,9 @@ jobs:
                       for (const a of data.artifacts) {
                         core.info(`- ${a.name} (${a.size_in_bytes} bytes, expired=${a.expired})`);
                       }
-            - name: Download shared dist
+            - name: Download shared dist (attempt 1)
+              id: dl_shared_1
+              continue-on-error: true
               uses: actions/download-artifact@v4
               with:
                   name: shared-dist
@@ -68,7 +72,23 @@ jobs:
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Download api dist
+            - name: Download shared dist (retry)
+              if: steps.dl_shared_1.outcome == 'failure'
+              id: dl_shared_2
+              uses: actions/download-artifact@v4
+              with:
+                  name: shared-dist
+                  path: shared/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Verify shared dist
+              run: |
+                  if [ ! -d shared/dist ] || [ -z "$(ls -A shared/dist 2>/dev/null)" ]; then
+                    echo 'shared/dist not downloaded after retries'; exit 1; fi
+            - name: Download api dist (attempt 1)
+              id: dl_api_1
+              continue-on-error: true
               uses: actions/download-artifact@v4
               with:
                   name: api-dist
@@ -76,7 +96,23 @@ jobs:
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Download frontend dist
+            - name: Download api dist (retry)
+              if: steps.dl_api_1.outcome == 'failure'
+              id: dl_api_2
+              uses: actions/download-artifact@v4
+              with:
+                  name: api-dist
+                  path: frontend/api/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Verify api dist
+              run: |
+                  if [ ! -f frontend/api/dist/host.json ]; then
+                    echo 'api-dist not downloaded after retries (host.json missing)'; exit 1; fi
+            - name: Download frontend dist (attempt 1)
+              id: dl_frontend_1
+              continue-on-error: true
               uses: actions/download-artifact@v4
               with:
                   name: frontend-dist
@@ -84,6 +120,20 @@ jobs:
                   run-id: ${{ env.CI_RUN_ID }}
                   repository: ${{ github.repository }}
                   github-token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Download frontend dist (retry)
+              if: steps.dl_frontend_1.outcome == 'failure'
+              id: dl_frontend_2
+              uses: actions/download-artifact@v4
+              with:
+                  name: frontend-dist
+                  path: frontend/dist
+                  run-id: ${{ env.CI_RUN_ID }}
+                  repository: ${{ github.repository }}
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Verify frontend dist
+              run: |
+                  if [ ! -f frontend/dist/staticwebapp.config.json ]; then
+                    echo 'frontend-dist not downloaded after retries (staticwebapp.config.json missing)'; exit 1; fi
             - name: Azure login (OIDC)
               uses: azure/login@v2
               with:
