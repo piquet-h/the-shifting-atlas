@@ -191,6 +191,11 @@ function extractStatus(fieldValues) {
     return ''
 }
 
+// Escapes both backslash and pipe characters for markdown table cells
+function escapeMarkdownTableCell(str) {
+    return String(str).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
 async function regenerateDocs(json, projectItems) {
     const lines = []
     lines.push('# Roadmap Implementation Order')
@@ -227,7 +232,7 @@ async function regenerateDocs(json, projectItems) {
         const projectItem = projectItems?.find?.((p) => p.content.number === item.issue)
         const status = projectItem ? extractStatus(projectItem.fieldValues) : ''
         lines.push(
-            `| ${item.order} | #${item.issue} | ${issue.title.replace(/\|/g, '\\|')} | ${milestone} | ${scope} | ${type} | ${status} |`
+            `| ${item.order} | #${item.issue} | ${escapeMarkdownTableCell(issue.title)} | ${milestone} | ${scope} | ${type} | ${status} |`
         )
     }
     lines.push('')
@@ -248,7 +253,7 @@ async function regenerateDocs(json, projectItems) {
         lines.push('| Order | Issue | Status | Title |')
         lines.push('| ----- | ----- | ------ | ----- |')
         for (const a of actionable) {
-            lines.push(`| ${a.order} | #${a.issue} | ${a.status} | ${a.title.replace(/\|/g, '\\|')} |`)
+            lines.push(`| ${a.order} | #${a.issue} | ${a.status} | ${escapeMarkdownTableCell(a.title)} |`)
         }
         lines.push('')
     }
