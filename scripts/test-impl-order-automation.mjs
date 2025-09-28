@@ -205,17 +205,21 @@ test('Priority analysis with roadmap path dependencies', async (t) => {
     const descFile = path.join(TEST_DIR, 'desc.txt')
     fs.writeFileSync(descFile, 'Implement core location vertex and exit edge persistence using Gremlin API')
     
-    const output = execSync([
-        'node', 'scripts/analyze-issue-priority.mjs',
-        '--issue-number', '997',
-        '--title', '"Navigation Foundation Work"',
-        '--description-file', descFile,
-        '--labels', 'scope:core,feature',
-        '--milestone', 'M0',
-        '--has-existing-order', 'false',
-        '--existing-order', '0',
-        '--force-resequence', 'false'
-    ].join(' '), { encoding: 'utf8', shell: true })
+    const output = execFileSync(
+        'node',
+        [
+            'scripts/analyze-issue-priority.mjs',
+            '--issue-number', '997',
+            '--title', 'Navigation Foundation Work',
+            '--description-file', descFile,
+            '--labels', 'scope:core,feature',
+            '--milestone', 'M0',
+            '--has-existing-order', 'false',
+            '--existing-order', '0',
+            '--force-resequence', 'false'
+        ],
+        { encoding: 'utf8' }
+    )
     
     const result = JSON.parse(output)
     
@@ -238,17 +242,21 @@ test('Skip action when issue position is reasonable', async (t) => {
     const descFile = path.join(TEST_DIR, 'desc.txt')
     fs.writeFileSync(descFile, 'Minor style improvement work')  // Low priority content
     
-    const output = execSync([
-        'node', 'scripts/analyze-issue-priority.mjs',
-        '--issue-number', '999',
-        '--title', '"Style Enhancement"',
-        '--description-file', descFile,
-        '--labels', 'scope:devx,enhancement',  // Low priority labels
-        '--milestone', '""',
-        '--has-existing-order', 'true',
-        '--existing-order', '12',  // Close to where it would naturally go (position 13)
-        '--force-resequence', 'false'
-    ].join(' '), { encoding: 'utf8', shell: true })
+    const output = execFileSync(
+        'node',
+        [
+            'scripts/analyze-issue-priority.mjs',
+            '--issue-number', '999',
+            '--title', 'Style Enhancement',
+            '--description-file', descFile,
+            '--labels', 'scope:devx,enhancement',
+            '--milestone', '',
+            '--has-existing-order', 'true',
+            '--existing-order', '12',
+            '--force-resequence', 'false'
+        ],
+        { encoding: 'utf8' }
+    )
     
     const result = JSON.parse(output)
     
