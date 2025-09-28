@@ -1,5 +1,6 @@
 {
     "name": "the-shifting-atlas-website-api",
+    "main": "dist/{index.js,functions/*.js}",
     "version": "0.1.0",
     "private": true,
     "type": "module",
