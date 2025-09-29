@@ -32,6 +32,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 26 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
 | 27 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
 | 28 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
+| 29 | #17 | DI Suitability Report |  | scope:devx | docs |  |
 
 ## Next Up
 
@@ -43,4 +44,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 5 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-09-28T11:52:16.772Z
+Last sync: 2025-09-29T21:29:09.398Z

@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-09-28T11:52:11.302Z",
+  "generated": "2025-09-29T21:29:01.710Z",
   "items": [
     {
       "issue": 34,
@@ -142,6 +142,11 @@
       "issue": 42,
       "order": 28,
       "title": "Security Baseline: Rate Limiting & Input Validation"
+    },
+    {
+      "issue": 17,
+      "order": 29,
+      "title": "DI Suitability Report"
     }
   ]
 }
