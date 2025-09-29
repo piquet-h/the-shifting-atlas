@@ -477,6 +477,103 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
     - Griefers experience reduced narrative rewards, diminished skill check success rates, and lower encounter quality over time.
     - These mechanics are designed to preserve enjoyment for cooperative players while discouraging repeated disruptive behavior.
 
+## Long-Distance Travel Architecture (Journey Model)
+
+> Scope: Concise architectural slice for multi-hop / overland movement. Complements (not replaces) existing real-time single-hop traversal. Event‑driven; no polling loops.
+
+### Goals
+
+- Allow a player to request travel to a distant target (location ID, landmark alias, semantic phrase) without manually issuing each intermediate `move`.
+- Preserve world consistency & interruption points (encounters, gating, generation fallbacks) while keeping Functions stateless per invocation.
+- Re‑use the existing `Location` + `EXIT` graph; do not introduce a parallel pathing mesh.
+
+### Journey Vertex (Conceptual)
+
+```
+Journey {
+    id, playerId,
+    status: 'in_progress' | 'completed' | 'interrupted' | 'waiting_generation' | 'unreachable' | 'stalled',
+    origin: string,
+    target: { kind: 'location' | 'landmark' | 'semantic'; ref: string; resolvedLocationId?: string; confidence?: number },
+    legs: [ { seq, from, to, edgeId?, estMs, mode: 'walk' | 'fast_travel' | 'conveyance', genStatus?: 'none'|'pending'|'provisional'|'final' } ],
+    totalEstMs, startedUtc, etaUtc?, completedUtc?,
+    meta?: { strategy: string; cache: 'hit' | 'miss'; version: string }
+}
+```
+
+Persisted only when multi-hop; a plain single move stays lightweight.
+
+### Lifecycle (Events / Queue Messages)
+
+1. Request (HTTP) – validate target & origin, attempt path resolution (see below). If no route & generation disallowed → status `unreachable`.
+2. Persist Journey (status `in_progress`) & emit TravelStarted event.
+3. Enqueue first leg message with visibility delay = leg.estMs (or a shorter tick slice if fine‑grained interruption required).
+4. Leg Processor (Queue): on visibility
+     - Update player location (or mark in‑transit if using transient state)
+     - Emit LegComplete event
+     - If next leg needs generation (gap) → emit GenerationRequested, set journey status `waiting_generation`; otherwise enqueue next leg.
+5. Completion: all legs done → status `completed`, emit TravelCompleted.
+6. Interruption (encounter / cancellation) → status `interrupted`; resumption re‑enqueues remaining leg(s).
+
+No timers or loops live inside a Function host—progress is entirely message‑driven.
+
+### Path Resolution Strategies (Progressive)
+
+| Stage | Strategy | Notes |
+| ----- | -------- | ----- |
+| 1 | BFS (unweighted) | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
+| 2 | Weighted (travelMs / distance) | Client-side Dijkstra/A* after pulling bounded neighborhood. |
+| 3 | Landmark overlay / hub contraction | Precompute hub <-> hub macro paths; expand only near endpoints. |
+| 4 | Generation fallback integration | Missing edge triggers controlled expansion (ties to N4). |
+
+Route cache (key: origin+target+graphVersionHash) reduces repeat compute; cache invalidated on topology change.
+
+### Generation Fallback
+
+If path search halts at a frontier and expansion is allowed: emit a GenerationRequested (normalization phase N4) and pause (`waiting_generation`). When new EXIT crystallizes, resume with re‑attempted path from the frontier.
+
+### Telemetry (Names Centralized)
+
+Add (via shared telemetry registry – do NOT inline literal strings here; list is descriptive):
+
+- Navigation.Travel.Requested (targetKind, distanceApprox, inputLen)
+- Navigation.Travel.PathResolved (legs, strategy, cacheHit, gapsGenerated)
+- Navigation.Travel.LegComplete (seq, estMs, actualMs, mode)
+- Navigation.Travel.GenerationFallback (reason)
+- Navigation.Travel.Completed (totalActualMs, interruptions)
+- Navigation.Travel.Interrupted (cause)
+
+Key derived metrics: route cache hit %, fallback rate per 100 journeys, avg leg variance (actual vs est), interruption density per biome.
+
+### Fast Travel (Macro Edges)
+
+Fast travel reuses the Journey flow with a single leg whose `mode = 'fast_travel'`. Macro edges are only created after:
+
+- Player has traversed underlying path end‑to‑end at least once.
+- Risk envelope below threshold & gating satisfied.
+- (Optional) Faction standing or discovery milestone.
+
+### Failure / Edge Cases
+
+| Case | Outcome |
+| ---- | ------- |
+| Target == origin | Return completed journey (no legs). |
+| No path & gen disabled | status `unreachable`. |
+| Generation fails repeatedly | status `stalled`; surface remediation hint. |
+| Duplicate concurrent travel | Return existing active journey (idempotency). |
+| Topology change mid‑journey | Revalidate remaining path on next leg start; reroute or pause. |
+
+### Incremental Delivery Slice
+
+1. Multi-hop BFS planner (no generation, no encounters) + Journey persistence + start/leg/complete events.
+2. Route cache + telemetry instrumentation.
+3. Generation fallback integration (after N4 live).
+4. Fast travel macro edges.
+5. Encounter / interruption injection layer.
+
+The above keeps early implementation small while leaving clear extension seams.
+
+
 ## Extension Points and Developer API
 
 - Developers can inject regions, traversal puzzles, and item/quest content.
