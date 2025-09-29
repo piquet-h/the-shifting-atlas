@@ -11,7 +11,6 @@ import {
     extractPlayerGuid,
     getLocationRepository,
     getPlayerHeadingStore,
-    isDirection,
     normalizeDirection,
     STARTER_LOCATION_ID,
     trackGameEventStrict
@@ -39,20 +38,16 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const rawDir = req.query.get('dir') || ''
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
-    
+
     // Get player's last heading for relative direction resolution
     const lastHeading = playerGuid ? headingStore.getLastHeading(playerGuid) : undefined
-    
+
     // Normalize direction input (handles both canonical and relative directions)
     const normalizationResult = normalizeDirection(rawDir, lastHeading)
-    
+
     if (normalizationResult.status === 'ambiguous') {
         // Track ambiguous input for telemetry
-        trackGameEventStrict(
-            'Navigation.Input.Ambiguous',
-            {from: fromId, input: rawDir, reason: 'no-heading'},
-            {playerGuid, correlationId}
-        )
+        trackGameEventStrict('Navigation.Input.Ambiguous', {from: fromId, input: rawDir, reason: 'no-heading'}, {playerGuid, correlationId})
         return {
             status: 400,
             headers: {[CORRELATION_HEADER]: correlationId},
@@ -63,7 +58,7 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
             }
         }
     }
-    
+
     if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
         trackGameEventStrict(
             'Location.Move',
@@ -80,10 +75,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
             }
         }
     }
-    
+
     // Use the normalized canonical direction
     const dir = normalizationResult.canonical
-    
+
     const from = await locationRepo.get(fromId)
     if (!from) {
         trackGameEventStrict(
@@ -95,11 +90,7 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     }
     const exit = from.exits?.find((e) => e.direction === dir)
     if (!exit || !exit.to) {
-        trackGameEventStrict(
-            'Location.Move',
-            {from: fromId, direction: dir, status: 400, reason: 'no-exit'},
-            {playerGuid, correlationId}
-        )
+        trackGameEventStrict('Location.Move', {from: fromId, direction: dir, status: 400, reason: 'no-exit'}, {playerGuid, correlationId})
         return {
             status: 400,
             headers: {[CORRELATION_HEADER]: correlationId},
@@ -117,12 +108,12 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         )
         return {status: statusMap[reason] || 500, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: reason}}
     }
-    
+
     // Update player's heading on successful move
     if (playerGuid) {
         headingStore.setLastHeading(playerGuid, dir)
     }
-    
+
     trackGameEventStrict(
         'Location.Move',
         {from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined},

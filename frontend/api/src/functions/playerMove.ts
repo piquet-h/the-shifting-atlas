@@ -5,7 +5,6 @@ import {
     extractPlayerGuid,
     getLocationRepository,
     getPlayerHeadingStore,
-    isDirection,
     normalizeDirection,
     ok,
     STARTER_LOCATION_ID,
@@ -25,13 +24,13 @@ app.http('PlayerMove', {
         const playerGuid = extractPlayerGuid(req.headers)
         const fromId = req.query.get('from') || STARTER_LOCATION_ID
         const rawDir = req.query.get('dir') || ''
-        
+
         // Get player's last heading for relative direction resolution
         const lastHeading = playerGuid ? headingStore.getLastHeading(playerGuid) : undefined
-        
+
         // Normalize direction input (handles both canonical and relative directions)
         const normalizationResult = normalizeDirection(rawDir, lastHeading)
-        
+
         if (normalizationResult.status === 'ambiguous') {
             // Track ambiguous input for telemetry
             trackGameEventStrict(
@@ -45,7 +44,7 @@ app.http('PlayerMove', {
                 jsonBody: err('AmbiguousDirection', normalizationResult.clarification || 'Ambiguous direction', correlationId)
             }
         }
-        
+
         if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
             trackGameEventStrict(
                 'Location.Move',
@@ -58,10 +57,10 @@ app.http('PlayerMove', {
                 jsonBody: err('InvalidDirection', normalizationResult.clarification || 'Invalid or missing direction', correlationId)
             }
         }
-        
+
         // Use the normalized canonical direction
         const dir = normalizationResult.canonical
-        
+
         const from = await repo.get(fromId)
         if (!from) {
             trackGameEventStrict(
@@ -103,15 +102,21 @@ app.http('PlayerMove', {
                 jsonBody: err('MoveFailed', reason, correlationId)
             }
         }
-        
+
         // Update player's heading on successful move
         if (playerGuid) {
             headingStore.setLastHeading(playerGuid, dir)
         }
-        
+
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined},
+            {
+                from: fromId,
+                to: result.location.id,
+                direction: dir,
+                status: 200,
+                rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined
+            },
             {playerGuid, correlationId}
         )
         return {
