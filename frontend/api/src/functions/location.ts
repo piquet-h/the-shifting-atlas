@@ -10,13 +10,16 @@ import {
     extractCorrelationId,
     extractPlayerGuid,
     getLocationRepository,
+    getPlayerHeadingStore,
     isDirection,
+    normalizeDirection,
     STARTER_LOCATION_ID,
     trackGameEventStrict
 } from '@atlas/shared'
 import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
 
 const locationRepo = getLocationRepository()
+const headingStore = getPlayerHeadingStore()
 
 export async function getLocationHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const id = req.query.get('id') || STARTER_LOCATION_ID
@@ -33,22 +36,59 @@ export async function getLocationHandler(req: HttpRequest): Promise<HttpResponse
 
 export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const fromId = req.query.get('from') || STARTER_LOCATION_ID
-    const dir = (req.query.get('dir') || '').toLowerCase()
+    const rawDir = req.query.get('dir') || ''
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
-    if (dir && !isDirection(dir)) {
+    
+    // Get player's last heading for relative direction resolution
+    const lastHeading = playerGuid ? headingStore.getLastHeading(playerGuid) : undefined
+    
+    // Normalize direction input (handles both canonical and relative directions)
+    const normalizationResult = normalizeDirection(rawDir, lastHeading)
+    
+    if (normalizationResult.status === 'ambiguous') {
+        // Track ambiguous input for telemetry
         trackGameEventStrict(
-            'Location.Move',
-            {from: fromId, direction: dir, status: 400, reason: 'invalid-direction'},
+            'Navigation.Input.Ambiguous',
+            {from: fromId, input: rawDir, reason: 'no-heading'},
             {playerGuid, correlationId}
         )
-        return {status: 400, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: 'Invalid direction', direction: dir}}
+        return {
+            status: 400,
+            headers: {[CORRELATION_HEADER]: correlationId},
+            jsonBody: {
+                error: 'Ambiguous direction',
+                input: rawDir,
+                clarification: normalizationResult.clarification
+            }
+        }
     }
+    
+    if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
+        trackGameEventStrict(
+            'Location.Move',
+            {from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction'},
+            {playerGuid, correlationId}
+        )
+        return {
+            status: 400,
+            headers: {[CORRELATION_HEADER]: correlationId},
+            jsonBody: {
+                error: 'Invalid direction',
+                input: rawDir,
+                clarification: normalizationResult.clarification
+            }
+        }
+    }
+    
+    // Use the normalized canonical direction
+    const dir = normalizationResult.canonical
+    
     const from = await locationRepo.get(fromId)
     if (!from) {
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: dir || null, status: 404, reason: 'from-missing'},
+            {from: fromId, direction: dir, status: 404, reason: 'from-missing'},
             {playerGuid, correlationId}
         )
         return {status: 404, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: 'Current location not found', from: fromId}}
@@ -57,7 +97,7 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     if (!exit || !exit.to) {
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: dir || null, status: 400, reason: 'no-exit'},
+            {from: fromId, direction: dir, status: 400, reason: 'no-exit'},
             {playerGuid, correlationId}
         )
         return {
@@ -72,14 +112,20 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         const statusMap: Record<string, number> = {['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500}
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: dir || null, status: statusMap[reason] || 500, reason},
+            {from: fromId, direction: dir, status: statusMap[reason] || 500, reason},
             {playerGuid, correlationId}
         )
         return {status: statusMap[reason] || 500, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: reason}}
     }
+    
+    // Update player's heading on successful move
+    if (playerGuid) {
+        headingStore.setLastHeading(playerGuid, dir)
+    }
+    
     trackGameEventStrict(
         'Location.Move',
-        {from: fromId, to: result.location.id, direction: dir || null, status: 200},
+        {from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined},
         {playerGuid, correlationId}
     )
     return {status: 200, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: result.location}
