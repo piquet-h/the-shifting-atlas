@@ -5,7 +5,7 @@ Source of truth: `roadmap/implementation-order.json`
 | Order | Issue | Title | Milestone | Scope | Type | Status |
 | ----- | ----- | ----- | --------- | ----- | ---- | ------ |
 | 1 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
-| 2 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Todo |
+| 2 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | In progress |
 | 3 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | type:infra |  |
 | 4 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | Todo |
 | 5 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
@@ -30,25 +30,26 @@ Source of truth: `roadmap/implementation-order.json`
 | 24 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
 | 25 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
 | 26 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
-| 27 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
-| 28 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
-| 29 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
-| 30 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
-| 31 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
-| 32 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
-| 33 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
-| 34 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
-| 35 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
-| 36 | #17 | DI Suitability Report |  | scope:devx | docs |  |
+| 27 | #52 | Learn more page |  |  | enhancement | Todo |
+| 28 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
+| 29 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
+| 30 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
+| 31 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
+| 32 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
+| 33 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
+| 34 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
+| 35 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
+| 36 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
+| 37 | #17 | DI Suitability Report |  | scope:devx | docs |  |
 
 ## Next Up
 
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
-| 2 | #7 | Todo | Player Bootstrap & Persistence |
+| 2 | #7 | In progress | Player Bootstrap & Persistence |
 | 3 | #49 |  | Managed Identity & Key Vault Secret Management Baseline |
 | 4 | #5 | Todo | Introduce EXIT Edge Model & Link Rooms |
 | 5 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-09-30T03:34:27.211Z
+Last sync: 2025-09-30T10:16:25.001Z
