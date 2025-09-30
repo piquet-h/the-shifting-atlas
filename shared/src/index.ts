@@ -1,4 +1,6 @@
 export * from './auth/playerAuth.js'
+export * from './direction/directionNormalizer.js'
+export * from './direction/playerHeadingStore.js'
 export * from './domainModels.js'
 export * from './gremlin/gremlinClient.js'
 export * from './location.js'

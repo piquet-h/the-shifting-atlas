@@ -14,6 +14,8 @@ export const GAME_EVENT_NAMES = [
     // Player traversal + location access (non-genesis)
     'Location.Get',
     'Location.Move',
+    // Navigation & direction normalization
+    'Navigation.Input.Ambiguous',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
     'World.Location.Generated',
