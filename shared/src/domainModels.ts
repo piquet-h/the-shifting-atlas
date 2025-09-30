@@ -90,6 +90,8 @@ export interface PlayerState {
     name: string
     /** Current location (mirrors (player)-[:in]->(location) edge). */
     currentLocationId: string
+    /** Last successful movement direction for relative direction resolution. */
+    lastHeading?: Direction
     /** Owned / carried item IDs (if using list based inventory). */
     inventoryItemIds?: string[]
     /** Arbitrary numeric / textual attributes (HP, stamina, etc.). */

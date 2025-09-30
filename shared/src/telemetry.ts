@@ -102,7 +102,8 @@ export interface EventPayloadMap {
     'Player.Get': {playerGuid: string; status: number}
     'Player.Created': {playerGuid: string; method: string}
     'Location.Get': {id: string; status: number}
-    'Location.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string}
+    'Location.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string; rawInput?: string}
+    'Navigation.Input.Ambiguous': {from: string; input: string; reason: string}
     'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null}
     'World.Location.Generated': {locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
     'World.Location.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}

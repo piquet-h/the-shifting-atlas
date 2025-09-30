@@ -31,6 +31,9 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                  # Need full history for safe rebase when concurrent automation commits occur
+                  fetch-depth: 0
 
             - name: Setup Node
               uses: actions/setup-node@v4
@@ -151,11 +154,38 @@ jobs:
                     echo "No file changes to commit"
                     exit 0
                   fi
+
                   git config user.name 'github-actions[bot]'
                   git config user.email 'github-actions[bot]@users.noreply.github.com'
                   git add roadmap/implementation-order.json docs/roadmap.md
-                  git commit -m "chore: impl-order: existing=${{ steps.existing.outputs.has }} -> ${{ steps.analysis.outputs.recommended }} (#${{ steps.issue.outputs.number }})"
-                  git push
+                  git commit -m "chore: impl-order: existing=${{ steps.existing.outputs.has }} -> ${{ steps.analysis.outputs.recommended }} (#${{ steps.issue.outputs.number }})" || echo "Nothing to commit after add (race)"
+
+                  # Retry push with rebase to handle concurrent workflow runs updating main.
+                  success=0
+                  for attempt in 1 2 3; do
+                    echo "Attempt ${attempt}: syncing with latest origin/main before push"
+                    # Always fetch first (already full history due to fetch-depth:0)
+                    git fetch origin main
+                    # Rebase; if it fails (conflict), fall back to an auto-merge (keeping both changes) and continue.
+                    if ! git rebase origin/main; then
+                      echo "Rebase failed (likely conflict). Attempting merge fast-forward or regular merge." >&2
+                      git rebase --abort || true
+                      git merge --no-edit origin/main || true
+                    fi
+                    if git push; then
+                      echo "Push succeeded on attempt ${attempt}."
+                      success=1
+                      break
+                    else
+                      echo "Push failed on attempt ${attempt}. Will retry after backoff." >&2
+                      sleep $((attempt * 2))
+                    fi
+                  done
+
+                  if [ "$success" -ne 1 ]; then
+                    echo "::warning::Failed to push after 3 attempts (likely high contention). Consider re-running the workflow." >&2
+                    # Do not fail the workflow; the ordering change can be retried safely.
+                  fi
 
             - name: Comment (Non-High Confidence)
               if: steps.analysis.outputs.action != 'skip' && steps.analysis.outputs.confidence != 'high'
