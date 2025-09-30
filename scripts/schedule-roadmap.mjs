@@ -98,8 +98,9 @@ async function ghGraphQL(query, variables, options = {}) {
 // (legacy fetchProjectItems removed in favor of unified query implementation below)
 
 async function fetchProjectFields(projectId) {
+    // Removed explicit ProjectV2DateField fragment for forward compatibility; FieldCommon yields id/name.
     const data = await ghGraphQL(
-        `query($projectId:ID!){node(id:$projectId){... on ProjectV2 { fields(first:50){nodes{ ... on ProjectV2FieldCommon { id name } ... on ProjectV2DateField { id name } ... on ProjectV2SingleSelectField { id name options { id name } } }}}}}`,
+        `query($projectId:ID!){node(id:$projectId){... on ProjectV2 { fields(first:50){nodes{ ... on ProjectV2FieldCommon { id name } ... on ProjectV2SingleSelectField { id name options { id name } } }}}}}`,
         {projectId}
     )
     return data.node.fields.nodes
