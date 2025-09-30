@@ -44,15 +44,16 @@ Iterate ordered issues (ascending `order`):
 
 ### Environment Variables
 
-| Name                    | Default       | Description                                                |
-| ----------------------- | ------------- | ---------------------------------------------------------- |
-| `PROJECT_OWNER`         | repo owner    | Project owner login                                        |
-| `PROJECT_NUMBER`        | 3             | Project number                                             |
-| `PROJECT_OWNER_TYPE`    | auto          | Force `user` or `org` detection path                       |
-| `START_FIELD_NAME`      | `Start date`  | Project date field (start)                                 |
-| `TARGET_FIELD_NAME`     | `Target date` | Project date field (finish)                                |
-| `DEFAULT_DURATION_DAYS` | 2             | Fallback duration                                          |
-| `RESEAT_EXISTING`       | false         | Shift existing dated items forward to remove gaps/overlaps |
+| Name                      | Default       | Description                                                |
+| ------------------------- | ------------- | ---------------------------------------------------------- |
+| `PROJECT_OWNER`           | repo owner    | Project owner login                                        |
+| `PROJECT_NUMBER`          | 3             | Project number                                             |
+| `PROJECT_OWNER_TYPE`      | auto          | Force `user` or `org` detection path                       |
+| `START_FIELD_NAME`        | `Start date`  | Project date field (start)                                 |
+| `TARGET_FIELD_NAME`       | `Target date` | Project date field (finish)                                |
+| `DEFAULT_DURATION_DAYS`   | 2             | Fallback duration                                          |
+| `RESEAT_EXISTING`         | false         | Shift existing dated items forward to remove gaps/overlaps |
+| `AUTO_CREATE_DATE_FIELDS` | false         | If true, auto-creates missing Start/Target date fields     |
 
 ### Script Usage
 
@@ -96,6 +97,7 @@ Permissions used:
 | All durations default to 2        | Insufficient closed historical samples                 | As issues close, medians will refine                                          |
 | Overlapping dates persist         | `RESEAT_EXISTING` not enabled                          | Set env `RESEAT_EXISTING=true` for one run                                    |
 | GraphQL NOT_FOUND on Organization | Running older script version against a user-owned repo | Updated script auto-tries user → org → viewer and suppresses benign NOT_FOUND |
+| Missing required date fields      | Project lacks `Start date` / `Target date`             | Create fields manually or set `AUTO_CREATE_DATE_FIELDS=true`                  |
 
 ### Rationale
 
