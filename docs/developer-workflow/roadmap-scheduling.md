@@ -10,18 +10,18 @@ Daily GitHub Action (`.github/workflows/roadmap-scheduler.yml`) assigns / mainta
 
 ### Inputs
 
-| Source                                       | Purpose                                                                            |
-| -------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `roadmap/implementation-order.json`          | Ordered sequence of issue numbers                                                  |
-| Project fields (`Start date`, `Target date`) | Scheduling outputs (date fields)                                                   |
-| Issue metadata (labels, state)               | Determine scope (`scope:*`) & type (first non-scope label) + Done/Closed filtering |
-| Historical closed issues                     | Derive median durations per (scope,type) & fallbacks                               |
+| Source                              | Purpose                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `roadmap/implementation-order.json` | Ordered sequence of issue numbers                                                  |
+| Project fields (`Start`, `Finish`)  | Scheduling outputs (date fields)                                                   |
+| Issue metadata (labels, state)      | Determine scope (`scope:*`) & type (first non-scope label) + Done/Closed filtering |
+| Historical closed issues            | Derive median durations per (scope,type) & fallbacks                               |
 
 ### Duration Heuristic
 
 1. Gather closed issues present in the project.
 2. Duration sample priority:
-    1. If issue has both `Start date` & `Target date` values: inclusive days between.
+    1. If issue has both `Start` & `Finish` values: inclusive days between.
     2. Else: `closedAt - createdAt` (>=1 day).
 3. Group durations:
     - Exact key: `scope|type` (e.g. `scope:core|feature`)
@@ -38,22 +38,19 @@ Iterate ordered issues (ascending `order`):
     - Keep them unless `RESEAT_EXISTING=true` and their start is earlier than the current cursor (prevents overlap after upstream duration shrink).
 3. If missing (one or both):
     - Duration = median(scope|type) || median(scope) || global median || `DEFAULT_DURATION_DAYS` (2).
-    - `Start date` = cursor date (initial cursor = today, UTC, midnight)
-    - `Target date` = start + duration - 1 day (inclusive range)
+    - `Start` = cursor date (initial cursor = today, UTC, midnight)
+    - `Finish` = start + duration - 1 day (inclusive range)
 4. Advance cursor to (target + 1 day).
 
 ### Environment Variables
 
-| Name                      | Default       | Description                                                |
-| ------------------------- | ------------- | ---------------------------------------------------------- |
-| `PROJECT_OWNER`           | repo owner    | Project owner login                                        |
-| `PROJECT_NUMBER`          | 3             | Project number                                             |
-| `PROJECT_OWNER_TYPE`      | auto          | Force `user` or `org` detection path                       |
-| `START_FIELD_NAME`        | `Start date`  | Project date field (start)                                 |
-| `TARGET_FIELD_NAME`       | `Target date` | Project date field (finish)                                |
-| `DEFAULT_DURATION_DAYS`   | 2             | Fallback duration                                          |
-| `RESEAT_EXISTING`         | false         | Shift existing dated items forward to remove gaps/overlaps |
-| `AUTO_CREATE_DATE_FIELDS` | false         | If true, auto-creates missing Start/Target date fields     |
+| Name                    | Default    | Description                                                |
+| ----------------------- | ---------- | ---------------------------------------------------------- |
+| `PROJECT_OWNER`         | repo owner | Project owner login                                        |
+| `PROJECT_NUMBER`        | 3          | Project number                                             |
+| `PROJECT_OWNER_TYPE`    | auto       | Force `user` or `org` detection path                       |
+| `DEFAULT_DURATION_DAYS` | 2          | Fallback duration                                          |
+| `RESEAT_EXISTING`       | false      | Shift existing dated items forward to remove gaps/overlaps |
 
 ### Script Usage
 
@@ -93,11 +90,11 @@ Permissions used:
 
 | Symptom                           | Cause                                                  | Fix                                                                           |
 | --------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| "Missing required date fields"    | Project lacks `Start date` / `Target date`             | Add both Date fields to project                                               |
+| "Missing required date fields"    | Project lacks `Start` / `Finish`                       | Add both Date fields to project                                               |
 | All durations default to 2        | Insufficient closed historical samples                 | As issues close, medians will refine                                          |
 | Overlapping dates persist         | `RESEAT_EXISTING` not enabled                          | Set env `RESEAT_EXISTING=true` for one run                                    |
 | GraphQL NOT_FOUND on Organization | Running older script version against a user-owned repo | Updated script auto-tries user → org → viewer and suppresses benign NOT_FOUND |
-| Missing required date fields      | Project lacks `Start date` / `Target date`             | Create fields manually or set `AUTO_CREATE_DATE_FIELDS=true`                  |
+| Missing required date fields      | Project lacks `Start` / `Finish`                       | Create fields manually                                                        |
 
 ### Rationale
 

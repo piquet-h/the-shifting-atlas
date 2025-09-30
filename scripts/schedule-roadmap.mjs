@@ -31,8 +31,8 @@
  *   PROJECT_OWNER              – defaults to repo owner (user or org)
  *   PROJECT_NUMBER             – defaults 3
  *   PROJECT_OWNER_TYPE         – '', 'user', 'org' (auto-detect order like sync script if unset)
- *   START_FIELD_NAME           – default 'Start date'
- *   TARGET_FIELD_NAME          – default 'Target date'
+ *   (Fixed) start field name   – 'Start'
+ *   (Fixed) finish field name  – 'Finish'
  *   DEFAULT_DURATION_DAYS      – default 2
  *   RESEAT_EXISTING=true       – if true, will shift existing scheduled items forward to remove gaps
  *                                 (while preserving individual durations). Default false.
@@ -60,11 +60,11 @@ if (!token) {
 const PROJECT_OWNER = process.env.PROJECT_OWNER || REPO_OWNER
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
 const PROJECT_OWNER_TYPE = process.env.PROJECT_OWNER_TYPE || ''
-const START_FIELD_NAME = process.env.START_FIELD_NAME || 'Start date'
-const TARGET_FIELD_NAME = process.env.TARGET_FIELD_NAME || 'Target date'
+// Field names fixed (simplified per current project convention)
+const START_FIELD_NAME = 'Start'
+const TARGET_FIELD_NAME = 'Finish'
 const DEFAULT_DURATION_DAYS = Number(process.env.DEFAULT_DURATION_DAYS || 2)
 const RESEAT_EXISTING = /^(1|true|yes)$/i.test(process.env.RESEAT_EXISTING || '')
-const AUTO_CREATE_DATE_FIELDS = /^(1|true|yes)$/i.test(process.env.AUTO_CREATE_DATE_FIELDS || '')
 const mode = process.argv[2] || 'dry-run'
 
 function readJson(file) {
@@ -105,20 +105,6 @@ async function fetchProjectFields(projectId) {
         {projectId}
     )
     return data.node.fields.nodes
-}
-
-async function createDateField(projectId, name) {
-    // Best-effort creation; if GitHub schema changes, surface error and continue.
-    try {
-        const data = await ghGraphQL(
-            `mutation($projectId:ID!,$name:String!){createProjectV2Field(input:{projectId:$projectId,dataType:DATE,name:$name}){projectV2Field{ id name }}}`,
-            {projectId, name}
-        )
-        return data.createProjectV2Field?.projectV2Field || null
-    } catch (e) {
-        console.error(`Failed to auto-create date field '${name}':`, e.message || e)
-        return null
-    }
 }
 
 async function updateDateField(projectId, itemId, fieldId, date) {
@@ -279,29 +265,14 @@ async function main() {
         process.exit(1)
     }
     console.log(`Project located type=${ownerType} id=${projectId}`)
-    let fields = await fetchProjectFields(projectId)
-    let startField = fields.find((f) => f.name === START_FIELD_NAME)
-    let targetField = fields.find((f) => f.name === TARGET_FIELD_NAME)
+    const fields = await fetchProjectFields(projectId)
+    const startField = fields.find((f) => f.name === START_FIELD_NAME)
+    const targetField = fields.find((f) => f.name === TARGET_FIELD_NAME)
     if (!startField || !targetField) {
         console.error(
-            `Missing required date fields '${START_FIELD_NAME}' and/or '${TARGET_FIELD_NAME}'. Existing fields: ${fields.map((f) => f.name).join(', ') || '(none)'}.`
+            `Missing required project date fields. Expected: '${START_FIELD_NAME}' and '${TARGET_FIELD_NAME}'. Found: ${fields.map((f) => f.name).join(', ') || '(none)'}`
         )
-        if (AUTO_CREATE_DATE_FIELDS) {
-            console.log('AUTO_CREATE_DATE_FIELDS enabled; attempting to create missing date fields...')
-            if (!startField) startField = await createDateField(projectId, START_FIELD_NAME)
-            if (!targetField) targetField = await createDateField(projectId, TARGET_FIELD_NAME)
-            if (startField && targetField) {
-                console.log('Date fields created successfully.')
-            } else {
-                console.error('Auto-creation incomplete; aborting.')
-                process.exit(3)
-            }
-        } else {
-            console.error('Set AUTO_CREATE_DATE_FIELDS=true to auto-create them, or add manually then re-run.')
-            process.exit(3)
-        }
-        // Refresh field list (not strictly needed if both objects exist)
-        fields = await fetchProjectFields(projectId)
+        process.exit(3)
     }
 
     const hist = buildHistoricalDurations(projectItems, START_FIELD_NAME, TARGET_FIELD_NAME)
