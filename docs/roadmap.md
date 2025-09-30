@@ -41,6 +41,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 35 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
 | 36 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
 | 37 | #17 | DI Suitability Report |  | scope:devx | docs |  |
+| 38 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
 
 ## Next Up
 
@@ -52,4 +53,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 5 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-09-30T10:16:25.001Z
+Last sync: 2025-09-30T10:17:55.816Z
