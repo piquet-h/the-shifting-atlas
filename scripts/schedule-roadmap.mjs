@@ -280,7 +280,13 @@ async function main() {
         const dur = Math.max(1, Math.round(chooseDuration(medians, scope, type, DEFAULT_DURATION_DAYS)))
         const start = new Date(cursorDate)
         const target = addDays(start, dur - 1)
-        changes.push({issue: issue.number, itemId: item.id, start: iso(start), target: iso(target), reason: existingStart || existingEnd ? 'partial-fill' : 'new'})
+        changes.push({
+            issue: issue.number,
+            itemId: item.id,
+            start: iso(start),
+            target: iso(target),
+            reason: existingStart || existingEnd ? 'partial-fill' : 'new'
+        })
         cursorDate = addDays(target, 1)
     }
 
