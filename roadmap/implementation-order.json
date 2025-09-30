@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-09-30T02:55:23.371Z",
+  "generated": "2025-09-30T03:07:48.212Z",
   "items": [
     {
       "issue": 34,
@@ -54,123 +54,128 @@
       "title": "Direction Normalization Utility (Stage 1)"
     },
     {
-      "issue": 12,
+      "issue": 49,
       "order": 11,
+      "title": "Managed Identity & Key Vault Secret Management Baseline"
+    },
+    {
+      "issue": 12,
+      "order": 12,
       "title": "Seed Script: Anchor Locations & Exits"
     },
     {
       "issue": 15,
-      "order": 12,
+      "order": 13,
       "title": "Smoke Test Script (Movement Loop)"
     },
     {
       "issue": 14,
-      "order": 13,
+      "order": 14,
       "title": "Integration Test Harness (Traversal + Persistence)"
     },
     {
       "issue": 10,
-      "order": 14,
+      "order": 15,
       "title": "Telemetry Event Registry Expansion"
     },
     {
       "issue": 11,
-      "order": 15,
+      "order": 16,
       "title": "Gremlin RU & Latency Telemetry Wrapper"
     },
     {
       "issue": 22,
-      "order": 16,
+      "order": 17,
       "title": "Automate implementation order assignment for new issues using Copilot"
     },
     {
       "issue": 26,
-      "order": 17,
+      "order": 18,
       "title": "✨ Set up Copilot instructions"
     },
     {
       "issue": 21,
-      "order": 18,
+      "order": 19,
       "title": "Remove text in logged in header"
     },
     {
       "issue": 24,
-      "order": 19,
+      "order": 20,
       "title": "\"Create your explorer\" fails"
     },
     {
       "issue": 28,
-      "order": 20,
+      "order": 21,
       "title": "Frontend Managed API not deploying properly"
     },
     {
       "issue": 30,
-      "order": 21,
+      "order": 22,
       "title": "Ensure correct Issue board status in Projects"
     },
     {
       "issue": 33,
-      "order": 22,
+      "order": 23,
       "title": "Landmark & Semantic Direction Normalization (N2)"
     },
     {
       "issue": 35,
-      "order": 23,
+      "order": 24,
       "title": "Exit Generation Fallback & Event Emission (N4)"
     },
     {
       "issue": 36,
-      "order": 24,
+      "order": 25,
       "title": "Biome & Environmental Tag Registry Scaffold"
     },
     {
       "issue": 37,
-      "order": 25,
+      "order": 26,
       "title": "Prompt Template Registry & Versioned Metadata"
     },
     {
       "issue": 38,
-      "order": 26,
+      "order": 27,
       "title": "MCP Read-Only Servers: world-query & lore-memory"
     },
     {
       "issue": 39,
-      "order": 27,
+      "order": 28,
       "title": "AI Structured Response Validator & Schema Gate"
     },
     {
       "issue": 41,
-      "order": 28,
+      "order": 29,
       "title": "Application Insights Correlation & OpenTelemetry Wiring"
     },
     {
       "issue": 42,
-      "order": 29,
+      "order": 30,
       "title": "Security Baseline: Rate Limiting & Input Validation"
     },
     {
       "issue": 17,
-      "order": 30,
+      "order": 31,
       "title": "DI Suitability Report"
     },
     {
       "issue": 45,
-      "order": 31,
+      "order": 32,
       "title": "World Event Queue Processor Skeleton"
     },
     {
       "issue": 46,
-      "order": 32,
+      "order": 33,
       "title": "Telemetry MCP Server (Read-Only)"
     },
     {
       "issue": 47,
-      "order": 33,
+      "order": 34,
       "title": "AI Moderation Pipeline Phase 1"
     },
     {
       "issue": 48,
-      "order": 34,
+      "order": 35,
       "title": "Exit Proposal Staging Store"
     }
   ]
