@@ -35,12 +35,31 @@ Iterate ordered issues (ascending `order`):
 
 1. Skip if project status is `Done` or issue state is `CLOSED`.
 2. If both dates already present:
-    - Keep them unless `RESEAT_EXISTING=true` and their start is earlier than the current cursor (prevents overlap after upstream duration shrink).
+    - If status is `In progress`: **Rebaseline** — set `Start = today` (UTC midnight) and `Finish = Start + originalDuration - 1`. This always reflects the remaining future window, even if original start was in the past or (erroneously) in the future. If the item is overdue (today > original `Finish`), the window is shifted forward preserving duration (`reason: rebaseline-overdue`).
+    - Else keep them unless `RESEAT_EXISTING=true` and their start is earlier than the current cursor (prevents overlap after upstream duration shrink) in which case shift forward preserving duration (`reason: reseat`).
 3. If missing (one or both):
     - Duration = median(scope|type) || median(scope) || global median || `DEFAULT_DURATION_DAYS` (2).
     - `Start` = cursor date (initial cursor = today, UTC, midnight)
     - `Finish` = start + duration - 1 day (inclusive range)
-4. Advance cursor to (target + 1 day).
+4. Advance cursor to (finish + 1 day).
+
+### Rebaseline Behavior
+
+The roadmap favors a forward-looking view over historical preservation:
+
+- When an item is marked `In progress`, its planned window is re-centered to start today, maintaining the originally scheduled duration length.
+- Historical slippage (difference between original and rebaselined dates) is not stored; only the new future window remains visible.
+- Overdue items (current date past original Finish) are pushed forward intact so subsequent items cascade naturally.
+
+Reasons emitted in dry-run/apply logs:
+
+| Reason               | Meaning                                                        |
+| -------------------- | -------------------------------------------------------------- |
+| `rebaseline`         | In progress item shifted to today preserving duration          |
+| `rebaseline-overdue` | In progress item whose original Finish was before today        |
+| `reseat`             | Start shifted forward to remove overlap (RESEAT_EXISTING=true) |
+| `new`                | Newly scheduled (no dates)                                     |
+| `partial-fill`       | Had one date; filled the other                                 |
 
 ### Environment Variables
 
@@ -83,8 +102,9 @@ Permissions used:
 ### Safety & Idempotency
 
 - Dry-run default avoids accidental mutation.
-- Deterministic given same historical set & ordering.
-- No deletion of existing dates unless reseating requires forward shift (never moves items earlier automatically).
+- Deterministic given same historical set & ordering (apart from daily rebaseline of `In progress`).
+- Rebaseline may move an item earlier (if it was mistakenly planned to start in the future yet marked In progress) or later (if already underway). This intentional mutation reflects current reality; history is not retained.
+- Other existing dates are only shifted forward when reseating removes overlaps.
 
 ### Common Issues
 

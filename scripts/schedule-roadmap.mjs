@@ -289,8 +289,10 @@ async function main() {
 
     const projectMap = new Map(projectItems.map((pi) => [pi.content.number, pi]))
     const ordered = [...roadmap.items].sort((a, b) => a.order - b.order)
-    let cursorDate = new Date()
-    cursorDate.setUTCHours(0, 0, 0, 0)
+    // Today (UTC midnight) used for initial cursor AND rebaseline anchor for in-progress items.
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+    let cursorDate = new Date(today)
     const changes = []
     for (const entry of ordered) {
         const item = projectMap.get(entry.issue)
@@ -304,7 +306,20 @@ async function main() {
         if (existingStart && existingEnd) {
             const sDate = new Date(existingStart + 'T00:00:00Z')
             const eDate = new Date(existingEnd + 'T00:00:00Z')
-            if (RESEAT_EXISTING && sDate < cursorDate) {
+            const inProgress = /in progress/i.test(status)
+            if (inProgress) {
+                // Rebaseline: move Start to today (even if that is earlier or later than original) and preserve duration.
+                // If today is past original Finish (overdue), we still preserve original duration length starting today.
+                const originalDuration = Math.max(1, wholeDayDiff(sDate, eDate))
+                const newStart = new Date(today)
+                const newEnd = addDays(newStart, originalDuration - 1)
+                const reason = today > eDate ? 'rebaseline-overdue' : 'rebaseline'
+                // Only record a change if dates actually differ to avoid noise.
+                if (iso(newStart) !== iso(sDate) || iso(newEnd) !== iso(eDate)) {
+                    changes.push({issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason})
+                }
+                cursorDate = addDays(newEnd, 1)
+            } else if (RESEAT_EXISTING && sDate < cursorDate) {
                 const dur = Math.max(1, wholeDayDiff(sDate, eDate))
                 const newStart = new Date(cursorDate)
                 const newEnd = addDays(newStart, dur - 1)
