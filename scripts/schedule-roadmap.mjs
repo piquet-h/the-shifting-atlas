@@ -70,7 +70,14 @@ function readJson(file) {
     return JSON.parse(fs.readFileSync(file, 'utf8'))
 }
 
-async function ghGraphQL(query, variables) {
+/**
+ * Execute a GraphQL query, throwing unless all returned errors are explicitly suppressed.
+ * @param {string} query
+ * @param {object} variables
+ * @param {object} [options]
+ * @param {Array<string>} [options.suppressPaths] - error paths to suppress (exact first element match)
+ */
+async function ghGraphQL(query, variables, options = {}) {
     const resp = await fetch('https://api.github.com/graphql', {
         method: 'POST',
         headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json'},
@@ -78,8 +85,12 @@ async function ghGraphQL(query, variables) {
     })
     const json = await resp.json()
     if (json.errors) {
-        console.error('GraphQL errors:', JSON.stringify(json.errors, null, 2))
-        throw new Error('GraphQL query failed')
+        const suppress = new Set(options.suppressPaths || [])
+        const nonSuppressed = json.errors.filter((e) => !suppress.has(e.path?.[0]))
+        if (nonSuppressed.length) {
+            console.error('GraphQL errors:', JSON.stringify(json.errors, null, 2))
+            throw new Error('GraphQL query failed')
+        }
     }
     return json.data
 }
@@ -175,42 +186,65 @@ function buildHistoricalDurations(projectItems, startFieldName, targetFieldName)
     return {byKey, byScope, all}
 }
 
-// Replacement implementation: unified query to avoid dynamic template parsing issues.
+// Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
 async function fetchProjectItems() {
-    let hasNext = true
-    let after = null
-    const nodes = []
+    const ownerPreference = PROJECT_OWNER_TYPE.toLowerCase()
+    const attemptOrder =
+        ownerPreference === 'org'
+            ? ['org', 'user', 'viewer']
+            : ownerPreference === 'user'
+              ? ['user', 'org', 'viewer']
+              : ['user', 'org', 'viewer']
+
     let projectId = null
     let ownerType = null
-    while (hasNext) {
-        const data = await ghGraphQL(
-            `query($owner:String!,$number:Int!,$after:String){
-        user(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){
-          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
-        organization(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){
-          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
-        viewer { projectV2(number:$number){ id title items(first:100, after:$after){
-          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
-      }`,
-            {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-        )
-        const candidates = [
-            {kind: 'user', node: data.user?.projectV2},
-            {kind: 'organization', node: data.organization?.projectV2},
-            {kind: 'viewer', node: data.viewer?.projectV2}
-        ]
-        const found = candidates.find((c) => c.node)
-        if (!found) break
-        if (!projectId) {
-            projectId = found.node.id
-            ownerType = found.kind
+    const allNodes = []
+
+    for (const kind of attemptOrder) {
+        let hasNext = true
+        let after = null
+        while (hasNext) {
+            let query = ''
+            if (kind === 'user') {
+                query = `query($owner:String!,$number:Int!,$after:String){
+                  user(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
+                }`
+            } else if (kind === 'org') {
+                query = `query($owner:String!,$number:Int!,$after:String){
+                  organization(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
+                }`
+            } else {
+                query = `query($number:Int!,$after:String){
+                  viewer { projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } }
+                }`
+            }
+            let data
+            try {
+                data = await ghGraphQL(
+                    query,
+                    kind === 'viewer' ? {number: PROJECT_NUMBER, after} : {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after},
+                    {
+                        suppressPaths: kind === 'org' ? ['organization'] : kind === 'user' ? ['user'] : []
+                    }
+                )
+            } catch {
+                // Non-suppressed errors: break out and try next kind.
+                break
+            }
+            const container = kind === 'user' ? data.user : kind === 'org' ? data.organization : data.viewer
+            if (!container || !container.projectV2) break
+            if (!projectId) {
+                projectId = container.projectV2.id
+                ownerType = kind
+            }
+            const page = container.projectV2.items
+            allNodes.push(...page.nodes.filter((n) => n.content && n.content.number))
+            hasNext = page.pageInfo.hasNextPage
+            after = page.pageInfo.endCursor
         }
-        const page = found.node.items
-        nodes.push(...page.nodes.filter((n) => n.content && n.content.number))
-        hasNext = page.pageInfo.hasNextPage
-        after = page.pageInfo.endCursor
+        if (projectId) break
     }
-    return {projectId, nodes, ownerType}
+    return {projectId, nodes: allNodes, ownerType}
 }
 
 function chooseDuration(medians, scope, type, fallback) {

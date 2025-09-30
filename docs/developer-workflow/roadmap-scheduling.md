@@ -90,11 +90,12 @@ Permissions used:
 
 ### Common Issues
 
-| Symptom                        | Cause                                      | Fix                                        |
-| ------------------------------ | ------------------------------------------ | ------------------------------------------ |
-| "Missing required date fields" | Project lacks `Start date` / `Target date` | Add both Date fields to project            |
-| All durations default to 2     | Insufficient closed historical samples     | As issues close, medians will refine       |
-| Overlapping dates persist      | `RESEAT_EXISTING` not enabled              | Set env `RESEAT_EXISTING=true` for one run |
+| Symptom                           | Cause                                                  | Fix                                                                           |
+| --------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| "Missing required date fields"    | Project lacks `Start date` / `Target date`             | Add both Date fields to project                                               |
+| All durations default to 2        | Insufficient closed historical samples                 | As issues close, medians will refine                                          |
+| Overlapping dates persist         | `RESEAT_EXISTING` not enabled                          | Set env `RESEAT_EXISTING=true` for one run                                    |
+| GraphQL NOT_FOUND on Organization | Running older script version against a user-owned repo | Updated script auto-tries user → org → viewer and suppresses benign NOT_FOUND |
 
 ### Rationale
 
