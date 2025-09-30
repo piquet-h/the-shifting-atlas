@@ -84,40 +84,7 @@ async function ghGraphQL(query, variables) {
     return json.data
 }
 
-async function fetchProjectItems() {
-    const attempts = []
-    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'user') attempts.push('user')
-    if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org' || PROJECT_OWNER_TYPE === 'organization') attempts.push('organization')
-    if (!PROJECT_OWNER_TYPE) attempts.push('viewer')
-    for (const kind of attempts) {
-        let hasNext = true
-        let after = null
-        const nodes = []
-        let projectId = null
-        while (hasNext) {
-            let data
-            if (kind === 'viewer') {
-                data = await ghGraphQL(
-                    `query($number:Int!,$after:String){viewer{projectV2(number:$number){id title items(first:100,after:$after){nodes{id content{... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){nodes{ ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } pageInfo{hasNextPage endCursor}}}}}`,
-                    {number: PROJECT_NUMBER, after}
-                ).catch((e) => ({viewer: null, _error: e}))
-            } else {
-                data = await ghGraphQL(
-                    `query($owner:String!,$number:Int!,$after:String){${kind}(login:$owner){projectV2(number:$number){id title items(first:100,after:$after){nodes{id content{... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){nodes{ ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } pageInfo{hasNextPage endCursor}}}}}`,
-                    {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-                ).catch((e) => ({[kind]: null, _error: e}))
-            }
-            const project = data?.[kind]?.projectV2
-            if (!project) break
-            projectId = project.id
-            nodes.push(...project.items.nodes.filter((n) => n.content && n.content.number))
-            hasNext = project.items.pageInfo.hasNextPage
-            after = project.items.pageInfo.endCursor
-        }
-        if (projectId) return {projectId, nodes, ownerType: kind}
-    }
-    return {projectId: null, nodes: [], ownerType: null}
-}
+// (legacy fetchProjectItems removed in favor of unified query implementation below)
 
 async function fetchProjectFields(projectId) {
     const data = await ghGraphQL(
@@ -196,6 +163,7 @@ function buildHistoricalDurations(projectItems, startFieldName, targetFieldName)
     const byKey = new Map()
     const byScope = new Map()
     const all = []
+    // Populate grouped collections
     for (const s of samples) {
         const key = `${s.scope}|${s.type}`
         if (!byKey.has(key)) byKey.set(key, [])
@@ -205,6 +173,44 @@ function buildHistoricalDurations(projectItems, startFieldName, targetFieldName)
         all.push(s.duration)
     }
     return {byKey, byScope, all}
+}
+
+// Replacement implementation: unified query to avoid dynamic template parsing issues.
+async function fetchProjectItems() {
+    let hasNext = true
+    let after = null
+    const nodes = []
+    let projectId = null
+    let ownerType = null
+    while (hasNext) {
+        const data = await ghGraphQL(
+            `query($owner:String!,$number:Int!,$after:String){
+        user(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){
+          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
+        organization(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){
+          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
+        viewer { projectV2(number:$number){ id title items(first:100, after:$after){
+          nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
+      }`,
+            {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
+        )
+        const candidates = [
+            {kind: 'user', node: data.user?.projectV2},
+            {kind: 'organization', node: data.organization?.projectV2},
+            {kind: 'viewer', node: data.viewer?.projectV2}
+        ]
+        const found = candidates.find((c) => c.node)
+        if (!found) break
+        if (!projectId) {
+            projectId = found.node.id
+            ownerType = found.kind
+        }
+        const page = found.node.items
+        nodes.push(...page.nodes.filter((n) => n.content && n.content.number))
+        hasNext = page.pageInfo.hasNextPage
+        after = page.pageInfo.endCursor
+    }
+    return {projectId, nodes, ownerType}
 }
 
 function chooseDuration(medians, scope, type, fallback) {
@@ -243,13 +249,8 @@ async function main() {
         global: medians.global
     })
 
-    // Build map of project item by issue number for quick lookup
     const projectMap = new Map(projectItems.map((pi) => [pi.content.number, pi]))
-
-    // Sort roadmap items by order
     const ordered = [...roadmap.items].sort((a, b) => a.order - b.order)
-
-    // Chain scheduling
     let cursorDate = new Date()
     cursorDate.setUTCHours(0, 0, 0, 0)
     const changes = []
@@ -263,7 +264,6 @@ async function main() {
         const existingEnd = extractFieldValue(item, TARGET_FIELD_NAME)
         const {scope, type} = classifyIssue(issue)
         if (existingStart && existingEnd) {
-            // preserve unless reseating forward required
             const sDate = new Date(existingStart + 'T00:00:00Z')
             const eDate = new Date(existingEnd + 'T00:00:00Z')
             if (RESEAT_EXISTING && sDate < cursorDate) {
@@ -273,22 +273,14 @@ async function main() {
                 changes.push({issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason: 'reseat'})
                 cursorDate = addDays(newEnd, 1)
             } else {
-                // advance cursor past existing end
                 cursorDate = addDays(eDate, 1)
             }
             continue
         }
-        // Need to schedule
         const dur = Math.max(1, Math.round(chooseDuration(medians, scope, type, DEFAULT_DURATION_DAYS)))
         const start = new Date(cursorDate)
         const target = addDays(start, dur - 1)
-        changes.push({
-            issue: issue.number,
-            itemId: item.id,
-            start: iso(start),
-            target: iso(target),
-            reason: existingStart || existingEnd ? 'partial-fill' : 'new'
-        })
+        changes.push({issue: issue.number, itemId: item.id, start: iso(start), target: iso(target), reason: existingStart || existingEnd ? 'partial-fill' : 'new'})
         cursorDate = addDays(target, 1)
     }
 
