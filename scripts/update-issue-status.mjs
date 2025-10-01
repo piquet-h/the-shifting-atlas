@@ -10,11 +10,17 @@
  * Usage:
  *   node scripts/update-issue-status.mjs --issue-number 123 --status "In progress"
  *   node scripts/update-issue-status.mjs --issue-number 456 --status "Done"
+ *   node scripts/update-issue-status.mjs --issue-number 789 --print-status-only
+ *   node scripts/update-issue-status.mjs --issue-number 321 --status "Todo" --auto-add
  * 
  * Status options (case-sensitive):
  *   - Todo
  *   - In progress  
  *   - Done
+ *
+ * Additional flags:
+ *   --print-status-only   Print the current status for the issue (no mutation)
+ *   --auto-add            If the issue is not yet in the project, attempt to add it first
  * 
  * Environment variables:
  *   GITHUB_TOKEN          - required for GitHub API access
@@ -35,6 +41,8 @@ import {fileURLToPath} from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const REPO_OWNER = 'piquet-h'
+// Derive repo name from root folder (fallback literal if path changes)
+const REPO_NAME = path.basename(ROOT) || 'the-shifting-atlas'
 const PROJECT_OWNER = process.env.PROJECT_OWNER || REPO_OWNER
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
 const PROJECT_OWNER_TYPE = process.env.PROJECT_OWNER_TYPE || ''
@@ -175,6 +183,30 @@ async function updateSingleSelectField(projectId, itemId, fieldId, optionId) {
     )
 }
 
+async function fetchIssueNodeId(issueNumber) {
+    // Fetch issue node ID via GraphQL
+    const data = await ghGraphQL(
+        `query($owner:String!,$repo:String!,$number:Int!){
+            repository(owner:$owner,name:$repo){
+                issue(number:$number){ id number title }
+            }
+        }`,
+        {owner: REPO_OWNER, repo: REPO_NAME, number: issueNumber}
+    )
+    return data?.repository?.issue?.id || null
+}
+
+async function addIssueToProject(projectId, issueNodeId) {
+    if (!issueNodeId) return null
+    const data = await ghGraphQL(
+        `mutation($projectId:ID!,$contentId:ID!){
+            addProjectV2ItemById(input:{projectId:$projectId,contentId:$contentId}){ item { id } }
+        }`,
+        {projectId, contentId: issueNodeId}
+    )
+    return data?.addProjectV2ItemById?.item?.id || null
+}
+
 function extractStatus(fieldValues) {
     for (const fv of fieldValues.nodes) {
         if (fv.field?.name === 'Status') {
@@ -192,18 +224,42 @@ function findStatusOptionId(projectFields, statusValue) {
     return option?.id || null
 }
 
-async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields) {
+async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields, {autoAdd = false, printOnly = false} = {}) {
     try {
         // Find the project item for this issue
-        const projectItem = projectItems.find(item => item.content?.number === issueNumber)
+        let projectItem = projectItems.find(item => item.content?.number === issueNumber)
         if (!projectItem) {
-            console.log(`❌ Issue #${issueNumber} not found in project items`)
-            console.log('   Hint: Make sure the issue is added to the GitHub Project Board')
-            return false
+            console.log(`ℹ️ Issue #${issueNumber} not currently in project items.`)
+            if (autoAdd) {
+                console.log('🔄 Attempting to add issue to project (auto-add enabled)...')
+                const issueNodeId = await fetchIssueNodeId(issueNumber)
+                if (!issueNodeId) {
+                    console.log('❌ Could not resolve issue node ID (issue may not exist)')
+                    return false
+                }
+                const newItemId = await addIssueToProject(projectId, issueNodeId)
+                if (newItemId) {
+                    console.log(`✅ Added issue #${issueNumber} to project (item id: ${newItemId.substring(0, 12)}...)`)
+                    // Refetch project items to include the new one (minimal incremental fetch for simplicity)
+                    const refreshed = await fetchProjectItems()
+                    projectItems = refreshed.nodes
+                    projectItem = projectItems.find(item => item.content?.number === issueNumber)
+                } else {
+                    console.log('❌ Failed to add issue to project')
+                    return false
+                }
+            } else {
+                console.log('   Hint: Add the issue to the Project Board or use --auto-add')
+                return false
+            }
         }
 
         // Get current status
         const currentStatus = extractStatus(projectItem.fieldValues)
+        if (printOnly) {
+            console.log(`📌 Current status for issue #${issueNumber}: "${currentStatus || '(unset)'}"`)
+            return true
+        }
         if (currentStatus === newStatus) {
             console.log(`ℹ️  Issue #${issueNumber} already has status "${newStatus}"`)
             return true
@@ -260,17 +316,24 @@ async function main() {
         options: {
             'issue-number': {type: 'string'},
             'status': {type: 'string'},
+            'print-status-only': {type: 'boolean'},
+            'auto-add': {type: 'boolean'},
             'help': {type: 'boolean', short: 'h'}
         }
     })
 
-    if (values.help || !values['issue-number'] || !values.status) {
+    if (values.help || !values['issue-number'] || (!values.status && !values['print-status-only'])) {
         console.log(`
 Usage: node scripts/update-issue-status.mjs --issue-number <number> --status <status>
+
+Read-only:
+  node scripts/update-issue-status.mjs --issue-number <number> --print-status-only
 
 Options:
   --issue-number <number>   Issue number to update
   --status <status>         New status value (e.g. "Todo", "In progress", "Done")
+  --print-status-only       Show current status only (no mutation)
+  --auto-add                Add the issue to the project if missing (when changing status)
   --help, -h                Show this help
 
 Environment variables:
@@ -284,13 +347,19 @@ Environment variables:
 
     const issueNumber = parseInt(values['issue-number'], 10)
     const newStatus = values.status
+    const printOnly = Boolean(values['print-status-only'])
+    const autoAdd = Boolean(values['auto-add'])
 
     if (isNaN(issueNumber) || issueNumber <= 0) {
         console.error('Invalid issue number')
         process.exit(1)
     }
 
-    console.log(`🔍 Updating issue #${issueNumber} to status "${newStatus}"...`)
+    if (printOnly) {
+        console.log(`🔍 Fetching current project status for issue #${issueNumber}...`)
+    } else {
+        console.log(`🔍 Updating issue #${issueNumber} to status "${newStatus}"...`)
+    }
 
     try {
         // Fetch project data
@@ -310,10 +379,14 @@ Environment variables:
         console.log(`✅ Found ${projectFields.length} project fields`)
 
         // Update the issue status
-        const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields)
+        const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields, {autoAdd, printOnly})
         
         if (success) {
-            console.log('🎉 Status update completed successfully!')
+            if (printOnly) {
+                console.log('🎉 Status fetch completed successfully!')
+            } else {
+                console.log('🎉 Status update completed successfully!')
+            }
         } else {
             console.log('❌ Status update failed')
         }
