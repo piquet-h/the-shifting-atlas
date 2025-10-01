@@ -25,14 +25,10 @@ app.http('PlayerMove', {
         const fromId = req.query.get('from') || STARTER_LOCATION_ID
         const rawDir = req.query.get('dir') || ''
 
-        // Get player's last heading for relative direction resolution
         const lastHeading = playerGuid ? headingStore.getLastHeading(playerGuid) : undefined
-
-        // Normalize direction input (handles both canonical and relative directions)
         const normalizationResult = normalizeDirection(rawDir, lastHeading)
 
         if (normalizationResult.status === 'ambiguous') {
-            // Track ambiguous input for telemetry
             trackGameEventStrict(
                 'Navigation.Input.Ambiguous',
                 { from: fromId, input: rawDir, reason: 'no-heading' },
@@ -58,7 +54,6 @@ app.http('PlayerMove', {
             }
         }
 
-        // Use the normalized canonical direction
         const dir = normalizationResult.canonical
 
         const from = await repo.get(fromId)
@@ -103,7 +98,6 @@ app.http('PlayerMove', {
             }
         }
 
-        // Update player's heading on successful move
         if (playerGuid) {
             headingStore.setLastHeading(playerGuid, dir)
         }

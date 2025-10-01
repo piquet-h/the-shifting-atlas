@@ -39,14 +39,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
 
-    // Get player's last heading for relative direction resolution
     const lastHeading = playerGuid ? headingStore.getLastHeading(playerGuid) : undefined
-
-    // Normalize direction input (handles both canonical and relative directions)
     const normalizationResult = normalizeDirection(rawDir, lastHeading)
 
     if (normalizationResult.status === 'ambiguous') {
-        // Track ambiguous input for telemetry
         trackGameEventStrict(
             'Navigation.Input.Ambiguous',
             { from: fromId, input: rawDir, reason: 'no-heading' },
@@ -80,7 +76,6 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         }
     }
 
-    // Use the normalized canonical direction
     const dir = normalizationResult.canonical
 
     const from = await locationRepo.get(fromId)
@@ -121,7 +116,6 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         return { status: statusMap[reason] || 500, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: { error: reason } }
     }
 
-    // Update player's heading on successful move
     if (playerGuid) {
         headingStore.setLastHeading(playerGuid, dir)
     }

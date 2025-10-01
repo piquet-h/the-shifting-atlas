@@ -52,12 +52,10 @@ export function resolveRelativeDirection(relativeDir: RelativeDirection, lastHea
 export function normalizeDirection(input: string, lastHeading?: Direction): DirectionNormalizationResult {
     const trimmed = input.toLowerCase().trim()
 
-    // Handle canonical directions directly
     if (isDirection(trimmed)) {
         return { status: 'ok', canonical: trimmed }
     }
 
-    // Handle relative directions
     if (isRelativeDirection(trimmed)) {
         if (!lastHeading) {
             return {
@@ -77,7 +75,6 @@ export function normalizeDirection(input: string, lastHeading?: Direction): Dire
         }
     }
 
-    // Unknown input
     return {
         status: 'unknown',
         clarification: `"${input}" is not a recognized direction. Try: north, south, east, west, up, down, in, out, or relative directions like left, right, forward, back.`
