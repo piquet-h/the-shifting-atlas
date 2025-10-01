@@ -6,11 +6,11 @@
  * Tests key functionality without full GitHub integration
  */
 
-import {test} from 'node:test'
 import assert from 'node:assert'
+import { execFileSync, execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import {execSync, execFileSync} from 'node:child_process'
+import { test } from 'node:test'
 
 const TEST_DIR = path.join(process.cwd(), 'tmp', 'impl-order-tests')
 const TEST_JSON = path.join(TEST_DIR, 'implementation-order.json')
@@ -277,41 +277,61 @@ test('Priority analysis with roadmap path dependencies', async (t) => {
 })
 
 test('Skip action when issue position is reasonable', async (t) => {
-    setupTest()
+    // Create isolated test roadmap with 12 items so low priority issue would append at 13.
+    if (fs.existsSync(TEST_DIR)) {
+        fs.rmSync(TEST_DIR, {recursive: true})
+    }
+    fs.mkdirSync(TEST_DIR, {recursive: true})
+
+    const items = []
+    for (let i = 1; i <= 12; i++) {
+        items.push({issue: i, order: i, title: `Issue ${i}`})
+    }
+    const roadmapDir = path.join(TEST_DIR, 'roadmap')
+    fs.mkdirSync(roadmapDir, {recursive: true})
+    fs.writeFileSync(
+        path.join(roadmapDir, 'implementation-order.json'),
+        JSON.stringify({project: 3, fieldId: 'PVTF_test', generated: new Date().toISOString(), items}, null, 2)
+    )
 
     const descFile = path.join(TEST_DIR, 'desc.txt')
     fs.writeFileSync(descFile, 'Minor style improvement work') // Low priority content
 
-    const output = execFileSync(
-        'node',
-        [
-            'scripts/analyze-issue-priority.mjs',
-            '--issue-number',
-            '999',
-            '--title',
-            'Style Enhancement',
-            '--description-file',
-            descFile,
-            '--labels',
-            'scope:devx,enhancement',
-            '--milestone',
-            '',
-            '--has-existing-order',
-            'true',
-            '--existing-order',
-            '12',
-            '--force-resequence',
-            'false'
-        ],
-        {encoding: 'utf8'}
-    )
+    const originalCwd = process.cwd()
+    process.chdir(TEST_DIR)
+    try {
+        const output = execFileSync(
+            'node',
+            [
+                path.join(originalCwd, 'scripts/analyze-issue-priority.mjs'),
+                '--issue-number',
+                '999',
+                '--title',
+                'Style Enhancement',
+                '--description-file',
+                descFile,
+                '--labels',
+                'scope:devx,enhancement',
+                '--milestone',
+                '',
+                '--has-existing-order',
+                'true',
+                '--existing-order',
+                '12',
+                '--force-resequence',
+                'false'
+            ],
+            {encoding: 'utf8'}
+        )
 
-    const result = JSON.parse(output)
-
-    // With existing position 12 vs recommended 13, difference is only 1 - should skip
-    assert.strictEqual(result.action, 'skip', 'Should skip when existing position is reasonable')
-
-    cleanupTest()
+        const result = JSON.parse(output)
+        // Existing position 12 vs recommended append position 13 -> difference 1 => should skip
+        assert.strictEqual(result.recommendedOrder, 13, 'Expected recommended order 13 for append')
+        assert.strictEqual(result.action, 'skip', 'Should skip when existing position is within threshold (±2)')
+    } finally {
+        process.chdir(originalCwd)
+        cleanupTest()
+    }
 })
 
 console.log('Running implementation order automation tests...')
