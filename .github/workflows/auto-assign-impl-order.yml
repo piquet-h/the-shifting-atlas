@@ -192,19 +192,23 @@ jobs:
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  cat > comment.md <<'EOF'
-                  **Implementation Order Auto-Assignment**
-
-                  Action: ${{ steps.analysis.outputs.action }}
-                  Recommended Order: `${{ steps.analysis.outputs.recommended }}`
-                  Confidence: `${{ steps.analysis.outputs.confidence }}`
-
-                  Rationale:
-
-                  $(cat rationale.txt)
-
-                  If this looks off, adjust `roadmap/implementation-order.json` manually and re-run the workflow.
-                  EOF
+                  set -euo pipefail
+                  # Build comment file without relying on shell command substitution inside a quoted heredoc
+                  # to avoid literal '$(cat rationale.txt)' showing up in the issue.
+                  {
+                    echo "**Implementation Order Auto-Assignment**" > comment.md
+                    echo "" >> comment.md
+                    echo "Action: ${{ steps.analysis.outputs.action }}" >> comment.md
+                    echo "Recommended Order: \`${{ steps.analysis.outputs.recommended }}\`" >> comment.md
+                    echo "Confidence: \`${{ steps.analysis.outputs.confidence }}\`" >> comment.md
+                    echo "" >> comment.md
+                    echo "Rationale:" >> comment.md
+                    echo "" >> comment.md
+                    # Append rationale content verbatim.
+                    cat rationale.txt >> comment.md || echo "(rationale missing)" >> comment.md
+                    echo "" >> comment.md
+                    echo 'If this looks off, adjust `roadmap/implementation-order.json` manually and re-run the workflow.' >> comment.md
+                  } || echo "Comment assembly failed"
                   gh issue comment ${{ steps.issue.outputs.number }} --body-file comment.md || echo "Comment failed"
 
             - name: Cleanup
