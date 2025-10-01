@@ -1,7 +1,7 @@
 import React from 'react'
-import {Link} from 'react-router-dom'
-import {useAuth} from '../hooks/useAuth'
-import {usePing} from '../hooks/usePing'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { usePing } from '../hooks/usePing'
 import Logo from './Logo'
 
 /**
@@ -16,8 +16,8 @@ import Logo from './Logo'
  */
 
 export default function Nav(): React.ReactElement {
-    const {user, loading, signOut, signIn} = useAuth()
-    const {data: ping, loading: pingLoading} = usePing({intervalMs: 45000})
+    const { user, loading, signOut, signIn } = useAuth()
+    const { data: ping, loading: pingLoading } = usePing({ intervalMs: 45000 })
     const statusLabel = React.useMemo(() => {
         if (pingLoading) return 'Checking service status'
         if (ping?.ok) return 'Online'

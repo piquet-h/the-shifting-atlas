@@ -67,7 +67,7 @@ async function main() {
         console.error('Unable to infer owner/repo. Configure origin remote or add repository field in package.json.')
         process.exit(3)
     }
-    const {owner, name} = repo
+    const { owner, name } = repo
 
     const existing = await listLabels(owner, name, token)
     const existingMap = new Map(existing.map((l) => [l.name.toLowerCase(), l]))
@@ -78,7 +78,7 @@ async function main() {
         const found = existingMap.get(req.name.toLowerCase())
         if (!found) create.push(req)
         else if ((found.description || '') !== req.description || found.color.toLowerCase() !== req.color.toLowerCase())
-            update.push({...req})
+            update.push({ ...req })
     }
 
     if (create.length === 0 && update.length === 0) {
@@ -89,7 +89,7 @@ async function main() {
     for (const c of create) {
         await githubRequest(token, `https://api.github.com/repos/${owner}/${name}/labels`, {
             method: 'POST',
-            body: JSON.stringify({name: c.name, color: c.color, description: c.description})
+            body: JSON.stringify({ name: c.name, color: c.color, description: c.description })
         })
         console.log(`Created label: ${c.name}`)
     }
@@ -98,7 +98,7 @@ async function main() {
         // PATCH /repos/{owner}/{repo}/labels/{name}
         await githubRequest(token, `https://api.github.com/repos/${owner}/${name}/labels/${encodeURIComponent(u.name)}`, {
             method: 'PATCH',
-            body: JSON.stringify({name: u.name, color: u.color, description: u.description})
+            body: JSON.stringify({ name: u.name, color: u.color, description: u.description })
         })
         console.log(`Updated label: ${u.name}`)
     }
@@ -126,7 +126,7 @@ async function githubRequest(token, url, init = {}) {
         },
         init.headers || {}
     )
-    const resp = await fetch(url, {...init, headers})
+    const resp = await fetch(url, { ...init, headers })
     if (!resp.ok) {
         const text = await resp.text()
         throw new Error(`GitHub request failed ${resp.status} ${resp.statusText}: ${text}`)
@@ -145,10 +145,10 @@ async function inferRepo() {
         if (pkg.repository) {
             if (typeof pkg.repository === 'string') {
                 const m = pkg.repository.match(/([\w-]+)\/([\w.-]+)(?:\.git)?$/)
-                if (m) return {owner: m[1], name: m[2].replace(/\.git$/, '')}
+                if (m) return { owner: m[1], name: m[2].replace(/\.git$/, '') }
             } else if (pkg.repository.url) {
                 const m = pkg.repository.url.match(/([\w-]+)\/([\w.-]+)(?:\.git)?$/)
-                if (m) return {owner: m[1], name: m[2].replace(/\.git$/, '')}
+                if (m) return { owner: m[1], name: m[2].replace(/\.git$/, '') }
             }
         }
     } catch {
@@ -157,9 +157,9 @@ async function inferRepo() {
     // Fallback: parse from git remote
     try {
         const cp = await import('node:child_process')
-        const remote = cp.execSync('git remote get-url origin', {encoding: 'utf8'}).trim()
+        const remote = cp.execSync('git remote get-url origin', { encoding: 'utf8' }).trim()
         const m = remote.match(/[:/]([\w-]+)\/([\w.-]+)(?:\.git)?$/)
-        if (m) return {owner: m[1], name: m[2].replace(/\.git$/, '')}
+        if (m) return { owner: m[1], name: m[2].replace(/\.git$/, '') }
     } catch {
         // ignore – remote parsing best-effort
     }

@@ -1,6 +1,6 @@
 /* global AbortController AbortSignal StorageEvent localStorage */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, {createContext, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 /**
  * Azure Static Web Apps Auth (client-side only)
@@ -40,13 +40,13 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 const LS_BROADCAST_KEY = 'tsa.auth.refresh'
 
 async function fetchPrincipal(signal?: AbortSignal): Promise<ClientPrincipal | null> {
-    const res = await fetch('/.auth/me', {headers: {'x-swa-auth': 'true'}, signal})
+    const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal })
     if (!res.ok) return null // 404/204 -> anonymous
     const data = await res.json()
     return (data?.clientPrincipal as ClientPrincipal) ?? null
 }
 
-export const AuthProvider: React.FC<React.PropsWithChildren> = ({children}) => {
+export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const [user, setUser] = useState<ClientPrincipal | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)

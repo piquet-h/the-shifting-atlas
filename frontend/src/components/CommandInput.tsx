@@ -1,4 +1,4 @@
-import React, {FormEvent, useRef, useState} from 'react'
+import React, { FormEvent, useRef, useState } from 'react'
 
 export interface CommandInputProps {
     disabled?: boolean

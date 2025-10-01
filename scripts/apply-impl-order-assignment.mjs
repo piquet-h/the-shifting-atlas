@@ -13,7 +13,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import {parseArgs} from 'node:util'
+import { parseArgs } from 'node:util'
 
 const ROADMAP_JSON = path.join(process.cwd(), 'roadmap/implementation-order.json')
 
@@ -174,13 +174,13 @@ function validateOrdering(ordering) {
 }
 
 async function main() {
-    const {values} = parseArgs({
+    const { values } = parseArgs({
         options: {
-            'issue-number': {type: 'string', short: 'n'},
-            title: {type: 'string', short: 't'},
-            'recommended-order': {type: 'string', short: 'o'},
-            'requires-resequence': {type: 'string', short: 'r'},
-            action: {type: 'string', short: 'a'}
+            'issue-number': { type: 'string', short: 'n' },
+            title: { type: 'string', short: 't' },
+            'recommended-order': { type: 'string', short: 'o' },
+            'requires-resequence': { type: 'string', short: 'r' },
+            action: { type: 'string', short: 'a' }
         }
     })
 

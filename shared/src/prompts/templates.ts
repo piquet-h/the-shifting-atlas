@@ -24,7 +24,7 @@ function computeHash(body: string): string {
 }
 
 export function listTemplates(): PromptTemplateMeta[] {
-    if (!cache) cache = templates.map((t) => ({...t, hash: computeHash(t.body)}))
+    if (!cache) cache = templates.map((t) => ({ ...t, hash: computeHash(t.body) }))
     return cache
 }
 

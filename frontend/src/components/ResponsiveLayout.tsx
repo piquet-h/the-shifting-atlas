@@ -1,5 +1,5 @@
 import React from 'react'
-import {useMediaQuery} from '../hooks/useMediaQueries'
+import { useMediaQuery } from '../hooks/useMediaQueries'
 
 /**
  * ResponsiveLayout
@@ -9,7 +9,7 @@ import {useMediaQuery} from '../hooks/useMediaQueries'
  *  - Provides padding tiers separate from internal component spacing
  *  - No-op styling for small screens to keep initial payload lean
  */
-export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({children}) => {
+export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     const isLarge = useMediaQuery('(min-width: 1024px)')
     return (
         <div

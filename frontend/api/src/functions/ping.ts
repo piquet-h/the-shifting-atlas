@@ -1,5 +1,5 @@
-import {extractPlayerGuid, SERVICE_SWA_API, trackGameEventStrict} from '@atlas/shared'
-import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
+import { extractPlayerGuid, SERVICE_SWA_API, trackGameEventStrict } from '@atlas/shared'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 
 interface PingPayload {
     ok: true
@@ -35,7 +35,7 @@ export async function pingHandler(req: HttpRequest, ctx: InvocationContext): Pro
         version: process.env.APP_VERSION || undefined
     }
     const playerGuid = extractPlayerGuid(req.headers)
-    trackGameEventStrict('Ping.Invoked', {echo: echo || null, latencyMs: payload.latencyMs}, {playerGuid})
+    trackGameEventStrict('Ping.Invoked', { echo: echo || null, latencyMs: payload.latencyMs }, { playerGuid })
     return {
         status: 200,
         headers: {

@@ -17,17 +17,19 @@ The system automatically updates issue status in the Project Board based on work
 A standalone utility for updating issue status in the project board.
 
 **Usage:**
+
 ```bash
 # Update specific issue status
 npm run update:issue-status -- --issue-number 123 --status "In progress"
 
 # Available statuses (case-sensitive):
 # - "Todo"
-# - "In progress" 
+# - "In progress"
 # - "Done"
 ```
 
 **Environment Variables:**
+
 - `GITHUB_TOKEN` - Required for GitHub API access
 - `PROJECT_OWNER` - Project owner (defaults to repo owner)
 - `PROJECT_NUMBER` - Project number (defaults to 3)
@@ -40,11 +42,13 @@ The existing `auto-assign-impl-order.yml` workflow now automatically sets issues
 ### 3. PR-Based Status Updates (`auto-update-issue-status-on-pr.yml`)
 
 Automatically updates status based on PR lifecycle:
+
 - **PR opened/ready for review** → Referenced issues set to "In progress"
 - **PR merged** → Referenced issues set to "Done"
 - **PR closed without merge** → Referenced issues set to "Todo"
 
 The workflow detects issue references in PR titles and descriptions using common patterns:
+
 - `#123`
 - `fixes #123`
 - `closes #123`
@@ -56,18 +60,20 @@ The workflow detects issue references in PR titles and descriptions using common
 A reusable workflow for manual status updates or integration with other workflows.
 
 **Manual Usage:**
+
 1. Go to Actions → Update Issue Status
 2. Enter issue number and desired status
 3. Optionally provide a reason for the change
 
 **Workflow Integration:**
+
 ```yaml
 - name: Set issue in progress
   uses: ./.github/workflows/update-issue-status.yml
   with:
-    issue_number: "123"
-    status: "In progress"
-    reason: "Starting development work"
+      issue_number: '123'
+      status: 'In progress'
+      reason: 'Starting development work'
 ```
 
 ## Status Transitions
@@ -111,20 +117,24 @@ A reusable workflow for manual status updates or integration with other workflow
 ## Troubleshooting
 
 ### Issue Not Found in Project
+
 - Ensure the issue is added to the GitHub Project Board
 - Check PROJECT_NUMBER environment variable matches your project
 
 ### Status Options Not Available
+
 - Verify the project has a "Status" field with options: "Todo", "In progress", "Done"
 - Options are case-sensitive
 
 ### Token Permissions
+
 - `GITHUB_TOKEN` needs `repository-projects: write` permission
 - For user-owned projects, may need `PROJECTS_TOKEN` with project scope
 
 ## Testing
 
 Run the test suite to validate functionality:
+
 ```bash
 node scripts/test-update-issue-status.mjs
 ```

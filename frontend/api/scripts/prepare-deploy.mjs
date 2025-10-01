@@ -7,9 +7,9 @@
  */
 /* eslint-env node */
 /* global process */
-import {cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs'
-import {dirname, resolve} from 'node:path'
-import {fileURLToPath} from 'node:url'
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // Allow invocation from any CWD: derive apiRoot from script location
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -34,14 +34,14 @@ function vendorShared() {
             rmSync(vendored)
         } else {
             // remove existing dir to avoid stale files
-            rmSync(vendored, {recursive: true, force: true})
+            rmSync(vendored, { recursive: true, force: true })
         }
     } catch {
         // ignore missing
     }
-    mkdirSync(vendored, {recursive: true})
+    mkdirSync(vendored, { recursive: true })
     // Copy dist JS only
-    cpSync(sharedDist, resolve(vendored, 'dist'), {recursive: true})
+    cpSync(sharedDist, resolve(vendored, 'dist'), { recursive: true })
     // Minimal package.json for runtime resolution
     const pkgPath = resolve(sharedRoot, 'package.json')
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))

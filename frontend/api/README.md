@@ -4,13 +4,13 @@ Co‑located Functions backing the Static Web App frontend. Currently provides o
 
 ## Functions
 
-| Name              | Source File                        | Route               | Methods    | Description                                                                 |
-| ----------------- | ---------------------------------- | ------------------- | ---------- | --------------------------------------------------------------------------- |
-| `Ping`            | `src/functions/ping.ts`            | `/ping`             | GET / POST | Latency + echo diagnostic (client can supply ?name= or body).               |
-| `playerBootstrap` | `src/functions/playerBootstrap.ts` | `/player/bootstrap` | GET        | Allocates or confirms a guest player GUID (idempotent via `x-player-guid`). |
-| `playerLink`      | `src/functions/playerLink.ts`      | `/player/link`      | POST       | Links a guest GUID to simulated external identity.                          |
-| `RoomGet`         | `src/functions/room.ts`            | `/room`             | GET        | Returns a room (defaults to starter).                                       |
-| `RoomMove`        | `src/functions/room.ts`            | `/room/move`        | GET        | Moves along an exit (?from= & ?dir=) – in‑memory stub.                      |
+| Name              | Source File                        | Route               | Methods    | Description                                                                                                 |
+| ----------------- | ---------------------------------- | ------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `Ping`            | `src/functions/ping.ts`            | `/ping`             | GET / POST | Latency + echo diagnostic (client can supply ?name= or body).                                               |
+| `playerBootstrap` | `src/functions/playerBootstrap.ts` | `/player/bootstrap` | GET        | Allocates or confirms a guest player GUID (idempotent via `x-player-guid`) and returns `currentLocationId`. |
+| `playerLink`      | `src/functions/playerLink.ts`      | `/player/link`      | POST       | Links a guest GUID to simulated external identity.                                                          |
+| `RoomGet`         | `src/functions/room.ts`            | `/room`             | GET        | Returns a room (defaults to starter).                                                                       |
+| `RoomMove`        | `src/functions/room.ts`            | `/room/move`        | GET        | Moves along an exit (?from= & ?dir=) – in‑memory stub.                                                      |
 
 ## Development
 
@@ -45,7 +45,7 @@ Operational notes:
 ## Handler Pattern
 
 ```ts
-import {app} from '@azure/functions'
+import { app } from '@azure/functions'
 app.http('Example', {
     route: 'website/example',
     methods: ['POST'],
@@ -53,7 +53,7 @@ app.http('Example', {
     handler: async (req, ctx) => {
         const data = await req.json()
         ctx.log('Payload', data)
-        return {status: 201, jsonBody: {received: true}}
+        return { status: 201, jsonBody: { received: true } }
     }
 })
 ```

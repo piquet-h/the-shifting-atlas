@@ -195,8 +195,8 @@ Player Vertex (initial fields only):
     "type": "Player",
     "createdUtc": "2025-09-19T00:00:00Z",
     "guest": true,
-    "auth": {"providers": []},
-    "progress": {"firstCommandUtc": null}
+    "auth": { "providers": [] },
+    "progress": { "firstCommandUtc": null }
 }
 ```
 
@@ -289,7 +289,7 @@ Key checks the backend must perform:
 
 ```jsonc
 {
-    "routes": [{"route": "/api/*", "allowedRoles": ["authenticated"]}],
+    "routes": [{ "route": "/api/*", "allowedRoles": ["authenticated"] }],
     "auth": {
         "identityProviders": {
             "azureActiveDirectory": {

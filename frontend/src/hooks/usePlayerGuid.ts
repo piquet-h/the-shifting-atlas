@@ -1,6 +1,6 @@
 /* global localStorage */
-import {useCallback, useEffect, useState} from 'react'
-import {trackGameEventClient} from '../services/telemetry'
+import { useCallback, useEffect, useState } from 'react'
+import { trackGameEventClient } from '../services/telemetry'
 
 /**
  * usePlayerGuid
@@ -55,17 +55,17 @@ export function usePlayerGuid(): PlayerGuidState {
                 trackGameEventClient('Onboarding.GuestGuid.Started')
                 const res = await fetch('/api/player/bootstrap', {
                     method: 'GET',
-                    headers: existing ? {'x-player-guid': existing} : undefined
+                    headers: existing ? { 'x-player-guid': existing } : undefined
                 })
                 if (!res.ok) {
                     throw new Error(`Bootstrap failed: ${res.status}`)
                 }
-                const data = (await res.json()) as {playerGuid: string; created: boolean}
+                const data = (await res.json()) as { playerGuid: string; created: boolean }
                 if (aborted) return
                 setPlayerGuid(data.playerGuid)
                 setCreated(data.created)
                 if (data.playerGuid !== existing) writeLocal(data.playerGuid)
-                if (data.created) trackGameEventClient('Onboarding.GuestGuid.Created', {playerGuid: data.playerGuid})
+                if (data.created) trackGameEventClient('Onboarding.GuestGuid.Created', { playerGuid: data.playerGuid })
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {
@@ -82,7 +82,7 @@ export function usePlayerGuid(): PlayerGuidState {
         setNonce((n) => n + 1)
     }, [])
 
-    return {playerGuid, loading, created, error, refresh}
+    return { playerGuid, loading, created, error, refresh }
 }
 
 export default usePlayerGuid

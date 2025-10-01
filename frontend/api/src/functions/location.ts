@@ -15,7 +15,7 @@ import {
     STARTER_LOCATION_ID,
     trackGameEventStrict
 } from '@atlas/shared'
-import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 
 const locationRepo = getLocationRepository()
 const headingStore = getPlayerHeadingStore()
@@ -26,11 +26,11 @@ export async function getLocationHandler(req: HttpRequest): Promise<HttpResponse
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
     if (!location) {
-        trackGameEventStrict('Location.Get', {id, status: 404}, {playerGuid, correlationId})
-        return {status: 404, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: 'Location not found', id}}
+        trackGameEventStrict('Location.Get', { id, status: 404 }, { playerGuid, correlationId })
+        return { status: 404, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: { error: 'Location not found', id } }
     }
-    trackGameEventStrict('Location.Get', {id, status: 200}, {playerGuid, correlationId})
-    return {status: 200, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: location}
+    trackGameEventStrict('Location.Get', { id, status: 200 }, { playerGuid, correlationId })
+    return { status: 200, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: location }
 }
 
 export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
@@ -47,10 +47,14 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
 
     if (normalizationResult.status === 'ambiguous') {
         // Track ambiguous input for telemetry
-        trackGameEventStrict('Navigation.Input.Ambiguous', {from: fromId, input: rawDir, reason: 'no-heading'}, {playerGuid, correlationId})
+        trackGameEventStrict(
+            'Navigation.Input.Ambiguous',
+            { from: fromId, input: rawDir, reason: 'no-heading' },
+            { playerGuid, correlationId }
+        )
         return {
             status: 400,
-            headers: {[CORRELATION_HEADER]: correlationId},
+            headers: { [CORRELATION_HEADER]: correlationId },
             jsonBody: {
                 error: 'Ambiguous direction',
                 input: rawDir,
@@ -62,12 +66,12 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction'},
-            {playerGuid, correlationId}
+            { from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction' },
+            { playerGuid, correlationId }
         )
         return {
             status: 400,
-            headers: {[CORRELATION_HEADER]: correlationId},
+            headers: { [CORRELATION_HEADER]: correlationId },
             jsonBody: {
                 error: 'Invalid direction',
                 input: rawDir,
@@ -83,30 +87,38 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     if (!from) {
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: dir, status: 404, reason: 'from-missing'},
-            {playerGuid, correlationId}
+            { from: fromId, direction: dir, status: 404, reason: 'from-missing' },
+            { playerGuid, correlationId }
         )
-        return {status: 404, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: 'Current location not found', from: fromId}}
+        return {
+            status: 404,
+            headers: { [CORRELATION_HEADER]: correlationId },
+            jsonBody: { error: 'Current location not found', from: fromId }
+        }
     }
     const exit = from.exits?.find((e) => e.direction === dir)
     if (!exit || !exit.to) {
-        trackGameEventStrict('Location.Move', {from: fromId, direction: dir, status: 400, reason: 'no-exit'}, {playerGuid, correlationId})
+        trackGameEventStrict(
+            'Location.Move',
+            { from: fromId, direction: dir, status: 400, reason: 'no-exit' },
+            { playerGuid, correlationId }
+        )
         return {
             status: 400,
-            headers: {[CORRELATION_HEADER]: correlationId},
-            jsonBody: {error: 'No such exit', from: fromId, direction: dir}
+            headers: { [CORRELATION_HEADER]: correlationId },
+            jsonBody: { error: 'No such exit', from: fromId, direction: dir }
         }
     }
     const result = await locationRepo.move(fromId, dir)
     if (result.status === 'error') {
         const reason = result.reason
-        const statusMap: Record<string, number> = {['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500}
+        const statusMap: Record<string, number> = { ['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500 }
         trackGameEventStrict(
             'Location.Move',
-            {from: fromId, direction: dir, status: statusMap[reason] || 500, reason},
-            {playerGuid, correlationId}
+            { from: fromId, direction: dir, status: statusMap[reason] || 500, reason },
+            { playerGuid, correlationId }
         )
-        return {status: statusMap[reason] || 500, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: {error: reason}}
+        return { status: statusMap[reason] || 500, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: { error: reason } }
     }
 
     // Update player's heading on successful move
@@ -116,11 +128,11 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
 
     trackGameEventStrict(
         'Location.Move',
-        {from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined},
-        {playerGuid, correlationId}
+        { from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined },
+        { playerGuid, correlationId }
     )
-    return {status: 200, headers: {[CORRELATION_HEADER]: correlationId}, jsonBody: result.location}
+    return { status: 200, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: result.location }
 }
 
-app.http('LocationGet', {route: 'location', methods: ['GET'], authLevel: 'anonymous', handler: getLocationHandler})
-app.http('LocationMove', {route: 'location/move', methods: ['GET'], authLevel: 'anonymous', handler: moveHandler})
+app.http('LocationGet', { route: 'location', methods: ['GET'], authLevel: 'anonymous', handler: getLocationHandler })
+app.http('LocationMove', { route: 'location/move', methods: ['GET'], authLevel: 'anonymous', handler: moveHandler })

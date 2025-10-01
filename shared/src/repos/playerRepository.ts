@@ -1,19 +1,27 @@
 import crypto from 'crypto'
-import {createGremlinClient} from '../gremlin/gremlinClient.js'
-import {loadPersistenceConfig, resolvePersistenceMode} from '../persistenceConfig.js'
-import {CosmosPlayerRepository} from './playerRepository.cosmos.js'
+import { createGremlinClient } from '../gremlin/gremlinClient.js'
+import { STARTER_LOCATION_ID } from '../location.js'
+import { loadPersistenceConfig, resolvePersistenceMode } from '../persistenceConfig.js'
+import { CosmosPlayerRepository } from './playerRepository.cosmos.js'
 
 export interface PlayerRecord {
     id: string
     createdUtc: string
+    /** ISO timestamp updated whenever mutable fields change. */
+    updatedUtc?: string
     guest: boolean
+    /** Optional federated / external identity mapping (e.g., Entra sub). */
     externalId?: string
+    /** Bootstrap-assigned or user chosen display name (temporary). */
+    name?: string
+    /** Player's current location anchor (mirrors planned (player)-[:in]->(location) edge). */
+    currentLocationId?: string
 }
 
 export interface IPlayerRepository {
     get(id: string): Promise<PlayerRecord | undefined>
-    getOrCreate(id?: string): Promise<{record: PlayerRecord; created: boolean}>
-    linkExternalId(id: string, externalId: string): Promise<{updated: boolean; record?: PlayerRecord}>
+    getOrCreate(id?: string): Promise<{ record: PlayerRecord; created: boolean }>
+    linkExternalId(id: string, externalId: string): Promise<{ updated: boolean; record?: PlayerRecord }>
     findByExternalId(externalId: string): Promise<PlayerRecord | undefined>
 }
 
@@ -33,14 +41,20 @@ class InMemoryPlayerRepository implements IPlayerRepository {
             created = true
             this.players.set(guid, this.make(guid))
         }
-        return {record: this.players.get(guid!)!, created}
+        const rec = this.players.get(guid!)!
+        // Backfill any missing anchor fields (e.g., after interface extension) lazily.
+        if (!rec.currentLocationId) {
+            rec.currentLocationId = resolveStartLocationId()
+            rec.updatedUtc = new Date().toISOString()
+        }
+        return { record: rec, created }
     }
     async linkExternalId(id: string, externalId: string) {
         const rec = this.players.get(id)
-        if (!rec) return {updated: false}
+        if (!rec) return { updated: false }
         rec.externalId = externalId
         rec.guest = false
-        return {updated: true, record: rec}
+        return { updated: true, record: rec }
     }
     async findByExternalId(externalId: string) {
         for (const p of this.players.values()) {
@@ -49,7 +63,12 @@ class InMemoryPlayerRepository implements IPlayerRepository {
         return undefined
     }
     private make(id: string): PlayerRecord {
-        return {id, createdUtc: new Date().toISOString(), guest: true}
+        return {
+            id,
+            createdUtc: new Date().toISOString(),
+            guest: true,
+            currentLocationId: resolveStartLocationId()
+        }
     }
 }
 
@@ -73,7 +92,7 @@ export function getPlayerRepository(): IPlayerRepository {
                         if (!rows.length) return undefined
                         const v = rows[0]
                         const idVal = (v as Record<string, unknown>).id || (v as Record<string, unknown>)['id']
-                        return {id: String(idVal), createdUtc: new Date().toISOString(), guest: true}
+                        return { id: String(idVal), createdUtc: new Date().toISOString(), guest: true }
                     },
                     async getOrCreate(id?: string) {
                         const repo = new CosmosPlayerRepository(await pending)
@@ -101,4 +120,9 @@ export function getPlayerRepository(): IPlayerRepository {
 
 export function __resetPlayerRepositoryForTests() {
     playerRepoSingleton = undefined
+}
+
+// Resolve starting location id (env override primarily for tests / future seeding scenarios)
+function resolveStartLocationId(): string {
+    return process.env.START_LOCATION_ID || STARTER_LOCATION_ID
 }

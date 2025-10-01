@@ -1,6 +1,6 @@
 import assert from 'node:assert'
-import {describe, test} from 'node:test'
-import {SERVICE_BACKEND, SERVICE_FRONTEND_WEB, SERVICE_SWA_API, serviceLabel} from '../src/serviceConstants.js'
+import { describe, test } from 'node:test'
+import { SERVICE_BACKEND, SERVICE_FRONTEND_WEB, SERVICE_SWA_API, serviceLabel } from '../src/serviceConstants.js'
 
 describe('serviceConstants', () => {
     test('constant values', () => {

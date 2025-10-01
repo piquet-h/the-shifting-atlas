@@ -23,7 +23,7 @@ export default {
                         const name = first.value
                         const parts = name.split('.')
                         if (parts.length < 2 || parts.length > 3 || !parts.every((p) => SEGMENT.test(p))) {
-                            context.report({node: first, messageId: 'invalid', data: {name}})
+                            context.report({ node: first, messageId: 'invalid', data: { name } })
                         }
                     }
                 }

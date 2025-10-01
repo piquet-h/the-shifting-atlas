@@ -3,34 +3,34 @@
 /* global fetch, process, console */
 /**
  * Update Issue Status in GitHub Project
- * 
+ *
  * Updates the status of an issue in the GitHub Project Board.
  * Useful for automating status transitions when Copilot starts/finishes work.
- * 
+ *
  * Usage:
  *   node scripts/update-issue-status.mjs --issue-number 123 --status "In progress"
  *   node scripts/update-issue-status.mjs --issue-number 456 --status "Done"
- * 
+ *
  * Status options (case-sensitive):
  *   - Todo
- *   - In progress  
+ *   - In progress
  *   - Done
- * 
+ *
  * Environment variables:
  *   GITHUB_TOKEN          - required for GitHub API access
- *   PROJECT_OWNER         - project owner (defaults to repo owner)  
+ *   PROJECT_OWNER         - project owner (defaults to repo owner)
  *   PROJECT_NUMBER        - project number (defaults to 3)
  *   PROJECT_OWNER_TYPE    - 'user' | 'org' (auto-detect if unset)
  */
 
-import {parseArgs} from 'node:util'
+import { parseArgs } from 'node:util'
 
 // Import the functions we need from the main sync script
 // Note: This is a bit of duplication, but keeps the logic centralized
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -53,7 +53,7 @@ async function ghGraphQL(query, variables) {
             'Content-Type': 'application/json',
             Accept: 'application/vnd.github+json'
         },
-        body: JSON.stringify({query, variables})
+        body: JSON.stringify({ query, variables })
     })
     const json = await resp.json()
     if (json.errors) {
@@ -100,8 +100,8 @@ async function fetchProjectItems() {
                             }
                         }
                     }`,
-                    {number: PROJECT_NUMBER, after}
-                ).catch((err) => ({viewer: null, _error: err}))
+                    { number: PROJECT_NUMBER, after }
+                ).catch((err) => ({ viewer: null, _error: err }))
             } else {
                 const queryOwnerField = kind
                 data = await ghGraphQL(
@@ -126,8 +126,8 @@ async function fetchProjectItems() {
                             }
                         }
                     }`,
-                    {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-                ).catch((err) => ({[queryOwnerField]: null, _error: err}))
+                    { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
+                ).catch((err) => ({ [queryOwnerField]: null, _error: err }))
             }
             const project = data?.[kind]?.projectV2
             if (!project) break
@@ -138,10 +138,10 @@ async function fetchProjectItems() {
             after = page.pageInfo.endCursor
         }
         if (projectId) {
-            return {projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind}
+            return { projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind }
         }
     }
-    return {projectId: null, nodes: [], ownerType: null}
+    return { projectId: null, nodes: [], ownerType: null }
 }
 
 async function fetchProjectFields(projectId) {
@@ -161,7 +161,7 @@ async function fetchProjectFields(projectId) {
       }
     }
   }`,
-        {projectId}
+        { projectId }
     )
     return data.node.fields.nodes
 }
@@ -171,7 +171,7 @@ async function updateSingleSelectField(projectId, itemId, fieldId, optionId) {
         `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
     updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){ projectV2Item { id } }
   }`,
-        {p: projectId, i: itemId, f: fieldId, v: optionId}
+        { p: projectId, i: itemId, f: fieldId, v: optionId }
     )
 }
 
@@ -185,17 +185,17 @@ function extractStatus(fieldValues) {
 }
 
 function findStatusOptionId(projectFields, statusValue) {
-    const statusField = projectFields.find(field => field.name === 'Status' && field.options)
+    const statusField = projectFields.find((field) => field.name === 'Status' && field.options)
     if (!statusField) return null
-    
-    const option = statusField.options.find(opt => opt.name === statusValue)
+
+    const option = statusField.options.find((opt) => opt.name === statusValue)
     return option?.id || null
 }
 
 async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields) {
     try {
         // Find the project item for this issue
-        const projectItem = projectItems.find(item => item.content?.number === issueNumber)
+        const projectItem = projectItems.find((item) => item.content?.number === issueNumber)
         if (!projectItem) {
             console.log(`❌ Issue #${issueNumber} not found in project items`)
             console.log('   Hint: Make sure the issue is added to the GitHub Project Board')
@@ -209,8 +209,8 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
             return true
         }
 
-        // Get status field ID  
-        const statusField = projectFields.find(f => f.name === 'Status')
+        // Get status field ID
+        const statusField = projectFields.find((f) => f.name === 'Status')
         if (!statusField) {
             console.log(`❌ Status field not found in project`)
             console.log('   Hint: Ensure your project has a field named "Status"')
@@ -218,7 +218,7 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
         }
 
         // Validate status value against available options
-        const statusFieldWithOptions = projectFields.find(f => f.name === 'Status' && f.options)
+        const statusFieldWithOptions = projectFields.find((f) => f.name === 'Status' && f.options)
         if (!statusFieldWithOptions || !statusFieldWithOptions.options.length) {
             console.log(`❌ Status field has no options configured`)
             console.log('   Hint: Configure status options in your project settings')
@@ -229,7 +229,7 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
         const statusOptionId = findStatusOptionId(projectFields, newStatus)
         if (!statusOptionId) {
             console.log(`❌ Status option "${newStatus}" not found. Available options:`)
-            statusFieldWithOptions.options.forEach(opt => console.log(`   - "${opt.name}"`))
+            statusFieldWithOptions.options.forEach((opt) => console.log(`   - "${opt.name}"`))
             console.log('   Hint: Status values are case-sensitive')
             return false
         }
@@ -241,7 +241,7 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
         return true
     } catch (error) {
         console.error(`❌ Failed to update status for issue #${issueNumber}:`)
-        
+
         if (error.message.includes('GraphQL')) {
             console.error('   This might be a permissions issue. Ensure your token has repository-projects:write permission.')
         } else if (error.message.includes('fetch')) {
@@ -249,18 +249,18 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
         } else {
             console.error(`   ${error.message}`)
         }
-        
+
         return false
     }
 }
 
 async function main() {
-    const {values} = parseArgs({
+    const { values } = parseArgs({
         args: process.argv.slice(2),
         options: {
-            'issue-number': {type: 'string'},
-            'status': {type: 'string'},
-            'help': {type: 'boolean', short: 'h'}
+            'issue-number': { type: 'string' },
+            status: { type: 'string' },
+            help: { type: 'boolean', short: 'h' }
         }
     })
 
@@ -295,7 +295,7 @@ Environment variables:
     try {
         // Fetch project data
         console.log('📊 Fetching project data...')
-        const {projectId, nodes: projectItems} = await fetchProjectItems()
+        const { projectId, nodes: projectItems } = await fetchProjectItems()
         if (!projectId) {
             console.error('❌ Could not find project')
             console.error('   Check PROJECT_OWNER, PROJECT_NUMBER, and PROJECT_OWNER_TYPE environment variables')
@@ -311,17 +311,17 @@ Environment variables:
 
         // Update the issue status
         const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields)
-        
+
         if (success) {
             console.log('🎉 Status update completed successfully!')
         } else {
             console.log('❌ Status update failed')
         }
-        
+
         process.exit(success ? 0 : 1)
     } catch (error) {
         console.error('💥 Unexpected error during status update:')
-        
+
         if (error.message.includes('401') || error.message.includes('Unauthorized')) {
             console.error('   Authentication failed. Check your GITHUB_TOKEN.')
         } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
@@ -331,13 +331,13 @@ Environment variables:
         } else {
             console.error(`   ${error.message}`)
         }
-        
+
         console.error('\n🔧 Troubleshooting tips:')
         console.error('   1. Verify GITHUB_TOKEN is set and has correct permissions')
         console.error('   2. Check PROJECT_OWNER and PROJECT_NUMBER environment variables')
         console.error('   3. Ensure the issue exists and is added to the project board')
         console.error('   4. Confirm project has a "Status" field with the desired options')
-        
+
         process.exit(1)
     }
 }

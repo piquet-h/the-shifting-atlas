@@ -28,7 +28,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -64,7 +64,7 @@ async function ghGraphQL(query, variables) {
             'Content-Type': 'application/json',
             Accept: 'application/vnd.github+json'
         },
-        body: JSON.stringify({query, variables})
+        body: JSON.stringify({ query, variables })
     })
     const json = await resp.json()
     if (json.errors) {
@@ -112,8 +112,8 @@ async function fetchProjectItems() {
                             }
                         }
                     }`,
-                    {number: PROJECT_NUMBER, after}
-                ).catch((err) => ({viewer: null, _error: err}))
+                    { number: PROJECT_NUMBER, after }
+                ).catch((err) => ({ viewer: null, _error: err }))
             } else {
                 const queryOwnerField = kind // 'user' or 'organization'
                 data = await ghGraphQL(
@@ -138,8 +138,8 @@ async function fetchProjectItems() {
                             }
                         }
                     }`,
-                    {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after}
-                ).catch((err) => ({[queryOwnerField]: null, _error: err}))
+                    { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
+                ).catch((err) => ({ [queryOwnerField]: null, _error: err }))
             }
             const project = data?.[kind]?.projectV2
             if (!project) break
@@ -150,10 +150,10 @@ async function fetchProjectItems() {
             after = page.pageInfo.endCursor
         }
         if (projectId) {
-            return {projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind}
+            return { projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind }
         }
     }
-    return {projectId: null, nodes: [], ownerType: null}
+    return { projectId: null, nodes: [], ownerType: null }
 }
 
 function extractFieldId(nodes) {
@@ -179,25 +179,24 @@ function extractStatusFieldId(nodes) {
 }
 
 function findStatusOptionId(projectFields, statusValue) {
-    const statusField = projectFields.find(field => field.name === 'Status' && field.options)
+    const statusField = projectFields.find((field) => field.name === 'Status' && field.options)
     if (!statusField) return null
-    
-    const option = statusField.options.find(opt => opt.name === statusValue)
+
+    const option = statusField.options.find((opt) => opt.name === statusValue)
     return option?.id || null
 }
 
 async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields) {
     try {
         // Find the project item for this issue
-        const projectItem = projectItems.find(item => item.content?.number === issueNumber)
+        const projectItem = projectItems.find((item) => item.content?.number === issueNumber)
         if (!projectItem) {
             console.log(`Issue #${issueNumber} not found in project items`)
             return false
         }
 
-        // Get status field ID  
-        const statusFieldId = extractStatusFieldId([projectItem]) || 
-                             projectFields.find(f => f.name === 'Status')?.id
+        // Get status field ID
+        const statusFieldId = extractStatusFieldId([projectItem]) || projectFields.find((f) => f.name === 'Status')?.id
         if (!statusFieldId) {
             console.log(`Status field not found in project`)
             return false
@@ -225,7 +224,7 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
         `mutation($p:ID!,$i:ID!,$f:ID!,$v:Float!){
     updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{number:$v}}){ projectV2Item { id } }
   }`,
-        {p: projectId, i: itemId, f: fieldId, v: number}
+        { p: projectId, i: itemId, f: fieldId, v: number }
     )
 }
 
@@ -234,7 +233,7 @@ async function updateSingleSelectField(projectId, itemId, fieldId, optionId) {
         `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
     updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){ projectV2Item { id } }
   }`,
-        {p: projectId, i: itemId, f: fieldId, v: optionId}
+        { p: projectId, i: itemId, f: fieldId, v: optionId }
     )
 }
 
@@ -255,14 +254,14 @@ async function fetchProjectFields(projectId) {
       }
     }
   }`,
-        {projectId}
+        { projectId }
     )
     return data.node.fields.nodes
 }
 
 function hashOrdering(items) {
     const h = crypto.createHash('sha256')
-    h.update(JSON.stringify(items.map((i) => ({issue: i.issue, order: i.order}))))
+    h.update(JSON.stringify(items.map((i) => ({ issue: i.issue, order: i.order }))))
     return h.digest('hex').slice(0, 12)
 }
 
@@ -296,7 +295,7 @@ async function regenerateDocs(json, projectItems) {
             `query($owner:String!,$repo:String!,$num:Int!){
       repository(owner:$owner,name:$repo){ issue(number:$num){ number title milestone{ title } labels(first:20){ nodes{ name } } } }
     }`,
-            {owner: REPO_OWNER, repo: 'the-shifting-atlas', num}
+            { owner: REPO_OWNER, repo: 'the-shifting-atlas', num }
         )
         const issue = data.repository.issue
         issueMetaCache.set(num, issue)
@@ -307,7 +306,7 @@ async function regenerateDocs(json, projectItems) {
         try {
             issue = await fetchIssue(item.issue)
         } catch {
-            issue = {title: item.title || '(title unavailable)', milestone: null, labels: {nodes: []}}
+            issue = { title: item.title || '(title unavailable)', milestone: null, labels: { nodes: [] } }
         }
         const labels = issue.labels.nodes.map((l) => l.name)
         const scope = labels.find((l) => l.startsWith('scope:')) || ''
@@ -326,7 +325,7 @@ async function regenerateDocs(json, projectItems) {
         .map((it) => ({
             order: it.order,
             issue: it.issue,
-            status: extractStatus(projectItems.find((p) => p.content.number === it.issue)?.fieldValues || {nodes: []}),
+            status: extractStatus(projectItems.find((p) => p.content.number === it.issue)?.fieldValues || { nodes: [] }),
             title: it.title
         }))
         .filter((x) => x.status !== 'Done')
@@ -348,7 +347,7 @@ async function regenerateDocs(json, projectItems) {
 
 async function main() {
     const json = readJson(ROADMAP_JSON)
-    const {projectId, nodes: projectNodes, ownerType} = await fetchProjectItems()
+    const { projectId, nodes: projectNodes, ownerType } = await fetchProjectItems()
     if (!projectId) {
         const msg =
             `ProjectV2 not found for owner='${PROJECT_OWNER}' number=${PROJECT_NUMBER} (tried user/org).` +
@@ -392,7 +391,7 @@ async function main() {
             if (!fileMap.has(num)) {
                 maxOrder += 1
                 fileMap.set(num, maxOrder)
-                json.items.push({issue: num, order: maxOrder, title: n.content.title})
+                json.items.push({ issue: num, order: maxOrder, title: n.content.title })
             }
         }
     }
@@ -417,7 +416,7 @@ async function main() {
                 }
             }
             if (String(current) !== String(desired)) {
-                diffs.push({num, from: current, to: desired, itemId: n.id})
+                diffs.push({ num, from: current, to: desired, itemId: n.id })
             }
         }
     }

@@ -170,16 +170,16 @@ export interface ApiSuccessEnvelope<T> {
 }
 export interface ApiErrorEnvelope {
     success: false
-    error: {code: string; message: string}
+    error: { code: string; message: string }
     correlationId?: string
 }
 export type ApiEnvelope<T> = ApiSuccessEnvelope<T> | ApiErrorEnvelope
 
 /** Convenience constructors (no runtime dependency needed elsewhere). */
-export const ok = <T>(data: T, correlationId?: string): ApiSuccessEnvelope<T> => ({success: true, data, correlationId})
+export const ok = <T>(data: T, correlationId?: string): ApiSuccessEnvelope<T> => ({ success: true, data, correlationId })
 export const err = (code: string, message: string, correlationId?: string): ApiErrorEnvelope => ({
     success: false,
-    error: {code, message},
+    error: { code, message },
     correlationId
 })
 

@@ -11,6 +11,6 @@
         "composite": true,
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "references": [{"path": "../../shared"}],
+    "references": [{ "path": "../../shared" }],
     "include": ["src/**/*.ts"]
 }

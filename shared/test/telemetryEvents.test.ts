@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import {GAME_EVENT_NAMES, TELEMETRY_NAME_REGEX, isGameEventName} from '../src/telemetryEvents.js'
+import { GAME_EVENT_NAMES, TELEMETRY_NAME_REGEX, isGameEventName } from '../src/telemetryEvents.js'
 
 // Ensure every declared event name matches the enforced pattern
 for (const name of GAME_EVENT_NAMES) {

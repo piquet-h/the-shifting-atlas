@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * useVisitState
@@ -37,5 +37,5 @@ export function useVisitState(): VisitState {
         setIsNewUser(false)
     }, [])
 
-    return {isNewUser, acknowledge}
+    return { isNewUser, acknowledge }
 }

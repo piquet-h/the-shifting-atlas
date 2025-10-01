@@ -8,10 +8,10 @@
  *
  * This is Phase N0 hygiene (pre‑normalization) from the navigation roadmap.
  */
-import {readFileSync} from 'node:fs'
-import {dirname, resolve} from 'node:path'
-import {fileURLToPath} from 'node:url'
-import {DIRECTIONS, isDirection} from '../src/domainModels.js'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { DIRECTIONS, isDirection } from '../src/domainModels.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -22,7 +22,7 @@ const seedPath = resolve(__dirname, '../src/data/villageLocations.json')
 interface SeedLocation {
     id: string
     name: string
-    exits?: {direction: string; to: string}[]
+    exits?: { direction: string; to: string }[]
 }
 
 function loadSeed(): SeedLocation[] {
@@ -39,13 +39,13 @@ function loadSeed(): SeedLocation[] {
 
 function validate() {
     const seed = loadSeed()
-    const invalid: {locationId: string; locationName: string; direction: string}[] = []
+    const invalid: { locationId: string; locationName: string; direction: string }[] = []
 
     for (const loc of seed) {
         if (!loc.exits) continue
         for (const ex of loc.exits) {
             if (!isDirection(ex.direction)) {
-                invalid.push({locationId: loc.id, locationName: loc.name, direction: ex.direction})
+                invalid.push({ locationId: loc.id, locationName: loc.name, direction: ex.direction })
             }
         }
     }

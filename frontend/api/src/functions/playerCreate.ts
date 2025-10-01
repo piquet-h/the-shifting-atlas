@@ -6,7 +6,7 @@ import {
     ok,
     trackGameEventStrict
 } from '@atlas/shared'
-import {app, HttpRequest, HttpResponseInit} from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 
 app.http('PlayerCreate', {
     route: 'player/create',
@@ -17,9 +17,9 @@ app.http('PlayerCreate', {
         const repo = getPlayerRepository()
         const result = await ensurePlayerForRequest(req.headers, repo)
         if (result.created) {
-            trackGameEventStrict('Player.Created', {playerGuid: result.playerGuid, method: result.source}, {correlationId})
+            trackGameEventStrict('Player.Created', { playerGuid: result.playerGuid, method: result.source }, { correlationId })
         }
-        trackGameEventStrict('Player.Get', {playerGuid: result.playerGuid, status: 200}, {correlationId})
+        trackGameEventStrict('Player.Get', { playerGuid: result.playerGuid, status: 200 }, { correlationId })
         const body = ok(
             {
                 id: result.playerGuid,

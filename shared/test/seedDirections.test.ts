@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
-import {readFileSync} from 'node:fs'
-import {dirname, resolve} from 'node:path'
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import test from 'node:test'
-import {fileURLToPath} from 'node:url'
-import {DIRECTIONS, isDirection} from '../src/domainModels.js'
+import { fileURLToPath } from 'node:url'
+import { DIRECTIONS, isDirection } from '../src/domainModels.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -11,7 +11,7 @@ const __dirname = dirname(__filename)
 interface SeedLocation {
     id: string
     name: string
-    exits?: {direction: string; to: string}[]
+    exits?: { direction: string; to: string }[]
 }
 
 function loadSeed(): SeedLocation[] {
@@ -20,11 +20,11 @@ function loadSeed(): SeedLocation[] {
 }
 
 function collectInvalidDirections(seed: SeedLocation[]) {
-    const invalid: {loc: string; dir: string}[] = []
+    const invalid: { loc: string; dir: string }[] = []
     for (const loc of seed) {
         if (!loc.exits) continue
         for (const ex of loc.exits) {
-            if (!isDirection(ex.direction)) invalid.push({loc: loc.name, dir: ex.direction})
+            if (!isDirection(ex.direction)) invalid.push({ loc: loc.name, dir: ex.direction })
         }
     }
     return invalid

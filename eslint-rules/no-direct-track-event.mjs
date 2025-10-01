@@ -2,7 +2,7 @@
 export default {
     meta: {
         type: 'problem',
-        docs: {description: 'Disallow direct trackEvent calls outside central telemetry modules.'},
+        docs: { description: 'Disallow direct trackEvent calls outside central telemetry modules.' },
         schema: [],
         messages: {
             forbidden: 'Use trackGameEvent/trackGameEventClient instead of direct trackEvent outside telemetry modules.'
@@ -15,7 +15,7 @@ export default {
             CallExpression(node) {
                 if (allowed) return
                 if (node.callee.type === 'Identifier' && node.callee.name === 'trackEvent') {
-                    context.report({node, messageId: 'forbidden'})
+                    context.report({ node, messageId: 'forbidden' })
                 }
             }
         }

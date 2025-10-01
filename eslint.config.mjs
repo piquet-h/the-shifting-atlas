@@ -19,7 +19,7 @@ export default [
     js.configs.recommended,
     {
         files: ['**/*.ts', '**/*.tsx'],
-        languageOptions: {parser: tsParser, ecmaVersion: 'latest', sourceType: 'module'},
+        languageOptions: { parser: tsParser, ecmaVersion: 'latest', sourceType: 'module' },
         plugins: {
             '@typescript-eslint': tsPlugin,
             prettier: prettierPlugin,
@@ -35,6 +35,8 @@ export default [
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
+            // Keep brace spacing consistent with Prettier setting bracketSpacing:true (spaced style)
+            'object-curly-spacing': ['error', 'always'],
             'no-restricted-imports': [
                 'error',
                 {
@@ -85,10 +87,10 @@ export default [
             'react/jsx-uses-react': 'off',
             'arrow-parens': ['error', 'always'],
             'jsx-a11y/no-autofocus': 'warn',
-            'jsx-a11y/anchor-is-valid': ['error', {aspects: ['noHref', 'invalidHref']}],
+            'jsx-a11y/anchor-is-valid': ['error', { aspects: ['noHref', 'invalidHref'] }],
             '@typescript-eslint/no-explicit-any': 'warn'
         },
-        settings: {react: {version: 'detect'}}
+        settings: { react: { version: 'detect' } }
     },
     {
         // Frontend public API Azure Functions (node env but may share some TS conventions)
@@ -97,9 +99,9 @@ export default [
             parser: tsParser,
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: {process: 'readonly'}
+            globals: { process: 'readonly' }
         },
-        plugins: {'@typescript-eslint': tsPlugin},
+        plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn'
@@ -112,9 +114,9 @@ export default [
             parser: tsParser,
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: {process: 'readonly'}
+            globals: { process: 'readonly' }
         },
-        plugins: {'@typescript-eslint': tsPlugin},
+        plugins: { '@typescript-eslint': tsPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn'

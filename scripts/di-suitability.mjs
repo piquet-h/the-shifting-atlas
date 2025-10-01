@@ -35,7 +35,7 @@ function collectFiles(dir) {
     const stack = [absDir]
     while (stack.length) {
         const current = stack.pop()
-        const entries = fs.readdirSync(current, {withFileTypes: true})
+        const entries = fs.readdirSync(current, { withFileTypes: true })
         for (const e of entries) {
             const p = path.join(current, e.name)
             if (e.isDirectory()) {
@@ -135,7 +135,7 @@ const recommendDI = riskSignals >= 2 // require at least two signals for robustn
 
 const summary = {
     scannedAt: new Date().toISOString(),
-    thresholds: {IMPORT_THRESHOLD, PARAM_THRESHOLD, CONTEXT_THRESHOLD},
+    thresholds: { IMPORT_THRESHOLD, PARAM_THRESHOLD, CONTEXT_THRESHOLD },
     signals: {
         totalFiles: metrics.totalFiles,
         highImportFiles: metrics.highImportFiles,

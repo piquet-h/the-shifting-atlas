@@ -1,7 +1,7 @@
 /* global localStorage */
-import {useEffect, useState} from 'react'
-import {useAuth} from './useAuth'
-import {usePlayerGuid} from './usePlayerGuid'
+import { useEffect, useState } from 'react'
+import { useAuth } from './useAuth'
+import { usePlayerGuid } from './usePlayerGuid'
 
 /**
  * useLinkGuestOnAuth
@@ -10,8 +10,8 @@ import {usePlayerGuid} from './usePlayerGuid'
  * Idempotent: stores localStorage flag to avoid duplicate POSTs.
  */
 export function useLinkGuestOnAuth() {
-    const {isAuthenticated} = useAuth()
-    const {playerGuid} = usePlayerGuid()
+    const { isAuthenticated } = useAuth()
+    const { playerGuid } = usePlayerGuid()
     const [linking, setLinking] = useState(false)
     const [linked, setLinked] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -30,8 +30,8 @@ export function useLinkGuestOnAuth() {
             try {
                 const res = await fetch('/api/player/link', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({playerGuid})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerGuid })
                 })
                 if (!res.ok) throw new Error(`Link failed: ${res.status}`)
                 const data = await res.json()
@@ -52,7 +52,7 @@ export function useLinkGuestOnAuth() {
         }
     }, [isAuthenticated, playerGuid])
 
-    return {linking, linked, error}
+    return { linking, linked, error }
 }
 
 export default useLinkGuestOnAuth

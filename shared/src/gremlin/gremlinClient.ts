@@ -22,13 +22,13 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
             gmod as {
                 driver: {
                     DriverRemoteConnection: new (url: string, opts: any) => any
-                    auth: {PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => any}
+                    auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => any }
                 }
             }
         ).driver.DriverRemoteConnection
-        const Graph = (gmod as {structure: {Graph: new () => any}}).structure.Graph
+        const Graph = (gmod as { structure: { Graph: new () => any } }).structure.Graph
         const authenticator = new (
-            gmod as {driver: {auth: {PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => any}}}
+            gmod as { driver: { auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => any } } }
         ).driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, config.key)
         const connection = new DriverRemoteConnection(`${config.endpoint}`, {
             authenticator,
@@ -40,7 +40,7 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
                 // Use connection underlying client (driver internal API). If gremlin changes, refactor accordingly.
                 const internalConn: unknown = connection
                 const raw = await (
-                    internalConn as {_client: {submit: (q: string, b?: Record<string, unknown>) => Promise<{_items: T[]}>}}
+                    internalConn as { _client: { submit: (q: string, b?: Record<string, unknown>) => Promise<{ _items: T[] }> } }
                 )._client.submit(query, bindings)
                 return raw._items
             }

@@ -27,7 +27,7 @@
     "prettier.requireConfig": true,
     "prettier.configPath": "./.prettierrc",
     "tailwindCSS.emmetCompletions": true,
-    "editor.quickSuggestions": {"strings": true},
+    "editor.quickSuggestions": { "strings": true },
     "css.validate": false,
     "scss.validate": false,
     "less.validate": false,

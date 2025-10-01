@@ -27,9 +27,9 @@ export function loadPersistenceConfig(): PersistenceConfig {
         const key = process.env.COSMOS_GREMLIN_KEY
         if (!endpoint || !database || !graph) {
             // Fall back to memory if misconfigured (safer than throwing inside Function cold start)
-            return {mode: 'memory'}
+            return { mode: 'memory' }
         }
-        return {mode, cosmos: {endpoint, database, graph, key}}
+        return { mode, cosmos: { endpoint, database, graph, key } }
     }
-    return {mode: 'memory'}
+    return { mode: 'memory' }
 }

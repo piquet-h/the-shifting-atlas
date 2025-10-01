@@ -1,4 +1,4 @@
-import {Direction, isDirection} from '../domainModels.js'
+import { Direction, isDirection } from '../domainModels.js'
 
 /** Relative direction tokens that require lastHeading for resolution */
 export type RelativeDirection = 'left' | 'right' | 'forward' | 'back'
@@ -26,10 +26,7 @@ export function isRelativeDirection(value: string): value is RelativeDirection {
  * - Left turns counter-clockwise (90° left)
  * - Right turns clockwise (90° right)
  */
-export function resolveRelativeDirection(
-    relativeDir: RelativeDirection, 
-    lastHeading: Direction
-): Direction | undefined {
+export function resolveRelativeDirection(relativeDir: RelativeDirection, lastHeading: Direction): Direction | undefined {
     const directionMap: Record<Direction, Record<RelativeDirection, Direction>> = {
         north: { forward: 'north', back: 'south', left: 'west', right: 'east' },
         south: { forward: 'south', back: 'north', left: 'east', right: 'west' },
@@ -52,17 +49,14 @@ export function resolveRelativeDirection(
  * Normalize direction input using optional lastHeading context.
  * Handles both canonical directions and relative directions.
  */
-export function normalizeDirection(
-    input: string,
-    lastHeading?: Direction
-): DirectionNormalizationResult {
+export function normalizeDirection(input: string, lastHeading?: Direction): DirectionNormalizationResult {
     const trimmed = input.toLowerCase().trim()
-    
+
     // Handle canonical directions directly
     if (isDirection(trimmed)) {
         return { status: 'ok', canonical: trimmed }
     }
-    
+
     // Handle relative directions
     if (isRelativeDirection(trimmed)) {
         if (!lastHeading) {
@@ -71,7 +65,7 @@ export function normalizeDirection(
                 clarification: `Relative direction "${trimmed}" requires a previous move to establish heading. Try a specific direction like "north" or "south".`
             }
         }
-        
+
         const resolved = resolveRelativeDirection(trimmed, lastHeading)
         if (resolved) {
             return { status: 'ok', canonical: resolved }
@@ -82,7 +76,7 @@ export function normalizeDirection(
             }
         }
     }
-    
+
     // Unknown input
     return {
         status: 'unknown',

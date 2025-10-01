@@ -2,7 +2,7 @@
  * Azure Functions Backend Entry Point (TypeScript)
  * Registers initial HTTP functions. Extend using additional files or folders and update package.json main glob if needed.
  */
-import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 // Initialize telemetry (side-effect import)
 import '@atlas/shared/src/telemetry.js'
 
@@ -12,7 +12,7 @@ app.http('BackendHealth', {
     authLevel: 'anonymous',
     handler: async (_req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         context.log('Backend health checked')
-        return {jsonBody: {status: 'ok', service: 'backend-core'}}
+        return { jsonBody: { status: 'ok', service: 'backend-core' } }
     }
 })
 
@@ -23,6 +23,6 @@ app.http('BackendPing', {
     handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         const msg = req.query.get('msg') || 'pong'
         context.log('Ping request', msg)
-        return {jsonBody: {reply: msg}}
+        return { jsonBody: { reply: msg } }
     }
 })

@@ -1,4 +1,4 @@
-import {Direction} from '../domainModels.js'
+import { Direction } from '../domainModels.js'
 
 /**
  * Simple in-memory store for player heading state.

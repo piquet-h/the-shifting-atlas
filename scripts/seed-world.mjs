@@ -3,11 +3,11 @@
 // World seeding script: idempotently upserts initial locations and a demo player.
 // Usage: DEMO_PLAYER_ID=<guid> npm run seed:world
 
-import {seedWorld} from '../shared/dist/index.js'
+import { seedWorld } from '../shared/dist/index.js'
 
 async function main() {
     const demoPlayerId = process.env.DEMO_PLAYER_ID
-    const result = await seedWorld({demoPlayerId, log: console.log})
+    const result = await seedWorld({ demoPlayerId, log: console.log })
     console.log('\nWorld seed complete:')
     console.table(result)
 }

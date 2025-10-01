@@ -509,9 +509,9 @@ Persisted only when multi-hop; a plain single move stays lightweight.
 2. Persist Journey (status `in_progress`) & emit TravelStarted event.
 3. Enqueue first leg message with visibility delay = leg.estMs (or a shorter tick slice if fine‑grained interruption required).
 4. Leg Processor (Queue): on visibility
-     - Update player location (or mark in‑transit if using transient state)
-     - Emit LegComplete event
-     - If next leg needs generation (gap) → emit GenerationRequested, set journey status `waiting_generation`; otherwise enqueue next leg.
+    - Update player location (or mark in‑transit if using transient state)
+    - Emit LegComplete event
+    - If next leg needs generation (gap) → emit GenerationRequested, set journey status `waiting_generation`; otherwise enqueue next leg.
 5. Completion: all legs done → status `completed`, emit TravelCompleted.
 6. Interruption (encounter / cancellation) → status `interrupted`; resumption re‑enqueues remaining leg(s).
 
@@ -519,12 +519,12 @@ No timers or loops live inside a Function host—progress is entirely message‑
 
 ### Path Resolution Strategies (Progressive)
 
-| Stage | Strategy | Notes |
-| ----- | -------- | ----- |
-| 1 | BFS (unweighted) | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
-| 2 | Weighted (travelMs / distance) | Client-side Dijkstra/A* after pulling bounded neighborhood. |
-| 3 | Landmark overlay / hub contraction | Precompute hub <-> hub macro paths; expand only near endpoints. |
-| 4 | Generation fallback integration | Missing edge triggers controlled expansion (ties to N4). |
+| Stage | Strategy                           | Notes                                                                 |
+| ----- | ---------------------------------- | --------------------------------------------------------------------- |
+| 1     | BFS (unweighted)                   | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
+| 2     | Weighted (travelMs / distance)     | Client-side Dijkstra/A\* after pulling bounded neighborhood.          |
+| 3     | Landmark overlay / hub contraction | Precompute hub <-> hub macro paths; expand only near endpoints.       |
+| 4     | Generation fallback integration    | Missing edge triggers controlled expansion (ties to N4).              |
 
 Route cache (key: origin+target+graphVersionHash) reduces repeat compute; cache invalidated on topology change.
 
@@ -555,12 +555,12 @@ Fast travel reuses the Journey flow with a single leg whose `mode = 'fast_travel
 
 ### Failure / Edge Cases
 
-| Case | Outcome |
-| ---- | ------- |
-| Target == origin | Return completed journey (no legs). |
-| No path & gen disabled | status `unreachable`. |
-| Generation fails repeatedly | status `stalled`; surface remediation hint. |
-| Duplicate concurrent travel | Return existing active journey (idempotency). |
+| Case                        | Outcome                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| Target == origin            | Return completed journey (no legs).                            |
+| No path & gen disabled      | status `unreachable`.                                          |
+| Generation fails repeatedly | status `stalled`; surface remediation hint.                    |
+| Duplicate concurrent travel | Return existing active journey (idempotency).                  |
 | Topology change mid‑journey | Revalidate remaining path on next leg start; reroute or pause. |
 
 ### Incremental Delivery Slice
@@ -572,7 +572,6 @@ Fast travel reuses the Journey flow with a single leg whose `mode = 'fast_travel
 5. Encounter / interruption injection layer.
 
 The above keeps early implementation small while leaving clear extension seams.
-
 
 ## Extension Points and Developer API
 

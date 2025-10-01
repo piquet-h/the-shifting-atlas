@@ -1,9 +1,9 @@
 /* global sessionStorage */
-import React, {useCallback, useEffect, useState} from 'react'
-import {usePlayerGuid} from '../hooks/usePlayerGuid'
-import {trackGameEventClient} from '../services/telemetry'
+import React, { useCallback, useEffect, useState } from 'react'
+import { usePlayerGuid } from '../hooks/usePlayerGuid'
+import { trackGameEventClient } from '../services/telemetry'
 import CommandInput from './CommandInput'
-import CommandOutput, {CommandRecord} from './CommandOutput'
+import CommandOutput, { CommandRecord } from './CommandOutput'
 
 interface CommandInterfaceProps {
     className?: string
@@ -17,8 +17,8 @@ interface CommandInterfaceProps {
  * MVP Implementation: supports a single built-in `ping` command invoking `/api/ping`.
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
-export default function CommandInterface({className, playerGuid: overrideGuid}: CommandInterfaceProps): React.ReactElement {
-    const {playerGuid, loading: guidLoading} = usePlayerGuid()
+export default function CommandInterface({ className, playerGuid: overrideGuid }: CommandInterfaceProps): React.ReactElement {
+    const { playerGuid, loading: guidLoading } = usePlayerGuid()
     const effectiveGuid = overrideGuid ?? playerGuid
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
@@ -47,7 +47,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
         async (raw: string) => {
             const id = crypto.randomUUID()
             const ts = Date.now()
-            const record: CommandRecord = {id, command: raw, ts}
+            const record: CommandRecord = { id, command: raw, ts }
             setHistory((h) => [...h, record])
 
             if (!raw) return
@@ -66,12 +66,12 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
                 if (lower.startsWith('ping')) {
-                    const payload = {playerGuid: effectiveGuid, message: raw.replace(/^ping\s*/, '') || 'ping'}
+                    const payload = { playerGuid: effectiveGuid, message: raw.replace(/^ping\s*/, '') || 'ping' }
                     const res = await fetch('/api/ping', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(effectiveGuid ? {'x-player-guid': effectiveGuid} : {})
+                            ...(effectiveGuid ? { 'x-player-guid': effectiveGuid } : {})
                         },
                         body: JSON.stringify(payload)
                     })
@@ -81,7 +81,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     else response = json?.message || 'pong'
                 } else if (lower === 'look') {
                     const res = await fetch(`/api/location${currentLocationId ? `?id=${encodeURIComponent(currentLocationId)}` : ''}`, {
-                        headers: effectiveGuid ? {'x-player-guid': effectiveGuid} : undefined
+                        headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
                     })
                     const json = await res.json()
                     latencyMs = Math.round(performance.now() - start)
@@ -89,7 +89,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     else {
                         setCurrentLocationId(json.id)
                         const exits: string | undefined = Array.isArray(json.exits)
-                            ? (json.exits as {direction: string}[]).map((e) => e.direction).join(', ')
+                            ? (json.exits as { direction: string }[]).map((e) => e.direction).join(', ')
                             : undefined
                         response = `${json.name}: ${json.description}${exits ? `\nExits: ${exits}` : ''}`
                     }
@@ -97,7 +97,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     const dir = lower.split(/\s+/)[1]
                     const fromParam = currentLocationId ? `&from=${encodeURIComponent(currentLocationId)}` : ''
                     const res = await fetch(`/api/location/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
-                        headers: effectiveGuid ? {'x-player-guid': effectiveGuid} : undefined
+                        headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
                     })
                     const json = await res.json()
                     latencyMs = Math.round(performance.now() - start)
@@ -105,7 +105,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                     else {
                         setCurrentLocationId(json.id)
                         const exits: string | undefined = Array.isArray(json.exits)
-                            ? (json.exits as {direction: string}[]).map((e) => e.direction).join(', ')
+                            ? (json.exits as { direction: string }[]).map((e) => e.direction).join(', ')
                             : undefined
                         response = `Moved ${dir} -> ${json.name}: ${json.description}${exits ? `\nExits: ${exits}` : ''}`
                     }
@@ -116,7 +116,7 @@ export default function CommandInterface({className, playerGuid: overrideGuid}: 
                 error = err instanceof Error ? err.message : 'Unknown error'
             } finally {
                 setBusy(false)
-                setHistory((h) => h.map((rec) => (rec.id === id ? {...rec, response, error, latencyMs} : rec)))
+                setHistory((h) => h.map((rec) => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)))
                 // Canonical event (Command.Executed) now part of shared telemetry specification.
                 trackGameEventClient('Command.Executed', {
                     command: raw.split(/\s+/)[0],

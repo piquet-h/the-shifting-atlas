@@ -42,7 +42,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -81,8 +81,8 @@ function readJson(file) {
 async function ghGraphQL(query, variables, options = {}) {
     const resp = await fetch('https://api.github.com/graphql', {
         method: 'POST',
-        headers: {Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json'},
-        body: JSON.stringify({query, variables})
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' },
+        body: JSON.stringify({ query, variables })
     })
     const json = await resp.json()
     if (json.errors) {
@@ -102,7 +102,7 @@ async function fetchProjectFields(projectId) {
     // Removed explicit ProjectV2DateField fragment for forward compatibility; FieldCommon yields id/name.
     const data = await ghGraphQL(
         `query($projectId:ID!){node(id:$projectId){... on ProjectV2 { fields(first:50){nodes{ ... on ProjectV2FieldCommon { id name } ... on ProjectV2SingleSelectField { id name options { id name } } }}}}}`,
-        {projectId}
+        { projectId }
     )
     return data.node.fields.nodes
 }
@@ -110,7 +110,7 @@ async function fetchProjectFields(projectId) {
 async function updateDateField(projectId, itemId, fieldId, date) {
     await ghGraphQL(
         `mutation($p:ID!,$i:ID!,$f:ID!,$d:Date!){updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{date:$d}}){projectV2Item{id}}}`,
-        {p: projectId, i: itemId, f: fieldId, d: date}
+        { p: projectId, i: itemId, f: fieldId, d: date }
     )
 }
 
@@ -148,7 +148,7 @@ function classifyIssue(issue) {
     const labels = issue.labels?.nodes?.map((l) => l.name) || []
     const scope = labels.find((l) => l.startsWith('scope:')) || ''
     const type = labels.find((l) => !l.startsWith('scope:')) || ''
-    return {scope, type}
+    return { scope, type }
 }
 
 function buildHistoricalDurations(projectItems, startFieldName, targetFieldName) {
@@ -170,8 +170,8 @@ function buildHistoricalDurations(projectItems, startFieldName, targetFieldName)
             if (!isNaN(s) && !isNaN(e) && e >= s) duration = wholeDayDiff(s, e)
         }
         if (duration == null) continue
-        const {scope, type} = classifyIssue(content)
-        samples.push({scope, type, duration})
+        const { scope, type } = classifyIssue(content)
+        samples.push({ scope, type, duration })
     }
     const byKey = new Map()
     const byScope = new Map()
@@ -185,7 +185,7 @@ function buildHistoricalDurations(projectItems, startFieldName, targetFieldName)
         byScope.get(s.scope).push(s.duration)
         all.push(s.duration)
     }
-    return {byKey, byScope, all}
+    return { byKey, byScope, all }
 }
 
 // Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
@@ -224,7 +224,7 @@ async function fetchProjectItems() {
             try {
                 data = await ghGraphQL(
                     query,
-                    kind === 'viewer' ? {number: PROJECT_NUMBER, after} : {owner: PROJECT_OWNER, number: PROJECT_NUMBER, after},
+                    kind === 'viewer' ? { number: PROJECT_NUMBER, after } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after },
                     {
                         suppressPaths: kind === 'org' ? ['organization'] : kind === 'user' ? ['user'] : []
                     }
@@ -246,7 +246,7 @@ async function fetchProjectItems() {
         }
         if (projectId) break
     }
-    return {projectId, nodes: allNodes, ownerType}
+    return { projectId, nodes: allNodes, ownerType }
 }
 
 function chooseDuration(medians, scope, type, fallback) {
@@ -259,7 +259,7 @@ function chooseDuration(medians, scope, type, fallback) {
 
 async function main() {
     const roadmap = readJson(ROADMAP_JSON)
-    const {projectId, nodes: projectItems, ownerType} = await fetchProjectItems()
+    const { projectId, nodes: projectItems, ownerType } = await fetchProjectItems()
     if (!projectId) {
         console.error('Project not found; cannot schedule.')
         process.exit(1)
@@ -302,7 +302,7 @@ async function main() {
         if (status === 'Done' || issue.state === 'CLOSED') continue
         const existingStart = extractFieldValue(item, START_FIELD_NAME)
         const existingEnd = extractFieldValue(item, TARGET_FIELD_NAME)
-        const {scope, type} = classifyIssue(issue)
+        const { scope, type } = classifyIssue(issue)
         if (existingStart && existingEnd) {
             const sDate = new Date(existingStart + 'T00:00:00Z')
             const eDate = new Date(existingEnd + 'T00:00:00Z')
@@ -316,14 +316,14 @@ async function main() {
                 const reason = today > eDate ? 'rebaseline-overdue' : 'rebaseline'
                 // Only record a change if dates actually differ to avoid noise.
                 if (iso(newStart) !== iso(sDate) || iso(newEnd) !== iso(eDate)) {
-                    changes.push({issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason})
+                    changes.push({ issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason })
                 }
                 cursorDate = addDays(newEnd, 1)
             } else if (RESEAT_EXISTING && sDate < cursorDate) {
                 const dur = Math.max(1, wholeDayDiff(sDate, eDate))
                 const newStart = new Date(cursorDate)
                 const newEnd = addDays(newStart, dur - 1)
-                changes.push({issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason: 'reseat'})
+                changes.push({ issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason: 'reseat' })
                 cursorDate = addDays(newEnd, 1)
             } else {
                 cursorDate = addDays(eDate, 1)

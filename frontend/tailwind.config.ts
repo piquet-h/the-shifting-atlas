@@ -1,6 +1,6 @@
 import forms from '@tailwindcss/forms'
 import typography from '@tailwindcss/typography'
-import type {Config} from 'tailwindcss'
+import type { Config } from 'tailwindcss'
 
 // Converted from tailwind.config.js to TypeScript for typed authoring and IDE support.
 // Keep content globs in sync with component + page locations.

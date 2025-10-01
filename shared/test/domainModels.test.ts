@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import {DIRECTIONS, err, isDirection, isWorldEventStatus, isWorldEventType, ok} from '../src/domainModels.js'
+import { DIRECTIONS, err, isDirection, isWorldEventStatus, isWorldEventType, ok } from '../src/domainModels.js'
 
 for (const d of DIRECTIONS) {
     test(`direction valid: ${d}`, () => {
@@ -23,7 +23,7 @@ test('world event status guard', () => {
 })
 
 test('api envelope helpers', () => {
-    const success = ok({value: 1}, 'corr')
+    const success = ok({ value: 1 }, 'corr')
     assert.equal(success.success, true)
     assert.equal(success.correlationId, 'corr')
     const failure = err('Bad', 'Something broke')

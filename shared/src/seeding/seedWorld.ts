@@ -1,7 +1,7 @@
-import starterLocationsData from '../data/villageLocations.json' with {type: 'json'}
-import {Location} from '../location.js'
-import {__resetLocationRepositoryForTests, getLocationRepository} from '../repos/locationRepository.js'
-import {__resetPlayerRepositoryForTests, getPlayerRepository} from '../repos/playerRepository.js'
+import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
+import { Location } from '../location.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../repos/locationRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../repos/playerRepository.js'
 
 export interface SeedWorldOptions {
     demoPlayerId?: string
@@ -22,7 +22,7 @@ export interface SeedWorldResult {
  * and ensures a demo player record exists for early traversal & UI testing.
  */
 export async function seedWorld(opts: SeedWorldOptions = {}): Promise<SeedWorldResult> {
-    const blueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({...l}))
+    const blueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({ ...l }))
     const log = opts.log || (() => {})
     const locRepo = getLocationRepository()
     const playerRepo = getPlayerRepository()
@@ -43,7 +43,7 @@ export async function seedWorld(opts: SeedWorldOptions = {}): Promise<SeedWorldR
     }
 
     const demoPlayerId = opts.demoPlayerId || '00000000-0000-4000-8000-000000000001'
-    const {record, created} = await playerRepo.getOrCreate(demoPlayerId)
+    const { record, created } = await playerRepo.getOrCreate(demoPlayerId)
     log('seedWorld: demoPlayer', record.id, created ? 'created' : 'existing')
 
     return {

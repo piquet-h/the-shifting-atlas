@@ -1,5 +1,5 @@
-import React, {useEffect, useRef} from 'react'
-import {BrowserRouter, Route, Routes, useLocation} from 'react-router-dom'
+import React, { useEffect, useRef } from 'react'
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import Homepage from './components/Homepage'
 import LiveAnnouncer from './components/LiveAnnouncer'
 import Nav from './components/Nav'
@@ -12,7 +12,7 @@ import ResponsiveLayout from './components/ResponsiveLayout'
  * should NOT render their own <main>. This ensures axe "region" rule satisfaction by
  * containing all routed content within landmarks.
  */
-function RouteFocusManager({mainRef}: {mainRef: React.RefObject<HTMLElement | null>}): null {
+function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
     const location = useLocation()
     useEffect(() => {
         const heading = mainRef.current?.querySelector('h1')

@@ -11,15 +11,15 @@
  *  misinterpreted as a second positional (which previously manifested as a phantom
  *  scan of http://0). No output filtering required now.
  */
-import {execSync} from 'node:child_process'
-import {existsSync, mkdirSync, readdirSync, readFileSync} from 'node:fs'
-import {join} from 'node:path'
+import { execSync } from 'node:child_process'
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 // Directory where @axe-core/cli will emit JSON reports
 const reportDir = join(process.cwd(), 'axe-report')
 // Create proactively so later read phase never fails with ENOENT even if axe bails early
 if (!existsSync(reportDir)) {
-    mkdirSync(reportDir, {recursive: true})
+    mkdirSync(reportDir, { recursive: true })
 }
 
 // Base URL (dev server) and optional list of path segments to scan can be provided via env.
@@ -79,7 +79,7 @@ try {
         if (Array.isArray(json.violations)) {
             for (const v of json.violations) {
                 violationsTotal += v.nodes?.length || 0
-                details.push({id: v.id, impact: v.impact, count: v.nodes?.length || 0})
+                details.push({ id: v.id, impact: v.impact, count: v.nodes?.length || 0 })
             }
         }
     }

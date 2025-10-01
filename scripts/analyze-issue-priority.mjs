@@ -17,7 +17,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import {parseArgs} from 'node:util'
+import { parseArgs } from 'node:util'
 
 const ROADMAP_JSON = path.join(process.cwd(), 'roadmap/implementation-order.json')
 const MODULES_DIR = path.join(process.cwd(), 'docs/modules')
@@ -128,7 +128,7 @@ function readJson(file) {
         return JSON.parse(fs.readFileSync(file, 'utf8'))
     } catch (err) {
         if (err.code === 'ENOENT') {
-            return {project: 3, fieldId: '', generated: new Date().toISOString(), items: []}
+            return { project: 3, fieldId: '', generated: new Date().toISOString(), items: [] }
         }
         throw err
     }
@@ -176,7 +176,7 @@ function analyzeRoadmapPathDependencies(issue) {
         }
     }
 
-    return {pathScore: Math.round(pathScore), pathFactors}
+    return { pathScore: Math.round(pathScore), pathFactors }
 }
 
 function calculatePriorityScore(issue, existingOrdering) {
@@ -219,7 +219,7 @@ function calculatePriorityScore(issue, existingOrdering) {
     }
 
     // Roadmap path dependencies analysis (NEW - main enhancement)
-    const {pathScore, pathFactors} = analyzeRoadmapPathDependencies(issue)
+    const { pathScore, pathFactors } = analyzeRoadmapPathDependencies(issue)
     score += pathScore
     factors.push(...pathFactors)
 
@@ -268,36 +268,36 @@ function calculatePriorityScore(issue, existingOrdering) {
         }
     }
 
-    return {score, factors}
+    return { score, factors }
 }
 
 function determineInsertionPoint(priorityScore, existingOrdering) {
     // If no existing items, insert at position 1
     if (existingOrdering.items.length === 0) {
-        return {position: 1, requiresResequence: false, confidence: 'high'}
+        return { position: 1, requiresResequence: false, confidence: 'high' }
     }
 
     // For very high scores, insert near the beginning
     if (priorityScore >= 200) {
-        return {position: 1, requiresResequence: true, confidence: 'high'}
+        return { position: 1, requiresResequence: true, confidence: 'high' }
     }
 
     // For high scores, insert in first third
     if (priorityScore >= 150) {
         const position = Math.max(1, Math.floor(existingOrdering.items.length * 0.33))
-        return {position, requiresResequence: true, confidence: 'high'}
+        return { position, requiresResequence: true, confidence: 'high' }
     }
 
     // For medium scores, insert in middle third
     if (priorityScore >= 100) {
         const position = Math.floor(existingOrdering.items.length * 0.5)
-        return {position, requiresResequence: position < existingOrdering.items.length, confidence: 'medium'}
+        return { position, requiresResequence: position < existingOrdering.items.length, confidence: 'medium' }
     }
 
     // For lower scores, insert in last third or at end
     if (priorityScore >= 50) {
         const position = Math.floor(existingOrdering.items.length * 0.75)
-        return {position, requiresResequence: position < existingOrdering.items.length, confidence: 'medium'}
+        return { position, requiresResequence: position < existingOrdering.items.length, confidence: 'medium' }
     }
 
     // Low priority - append at end
@@ -351,16 +351,16 @@ function generateRationale(issue, analysis, insertion, hasExistingOrder) {
 }
 
 async function main() {
-    const {values} = parseArgs({
+    const { values } = parseArgs({
         options: {
-            'issue-number': {type: 'string', short: 'n'},
-            title: {type: 'string', short: 't'},
-            'description-file': {type: 'string', short: 'd'},
-            labels: {type: 'string', short: 'l'},
-            milestone: {type: 'string', short: 'm'},
-            'has-existing-order': {type: 'string'},
-            'existing-order': {type: 'string'},
-            'force-resequence': {type: 'string'}
+            'issue-number': { type: 'string', short: 'n' },
+            title: { type: 'string', short: 't' },
+            'description-file': { type: 'string', short: 'd' },
+            labels: { type: 'string', short: 'l' },
+            milestone: { type: 'string', short: 'm' },
+            'has-existing-order': { type: 'string' },
+            'existing-order': { type: 'string' },
+            'force-resequence': { type: 'string' }
         }
     })
 
@@ -380,7 +380,7 @@ async function main() {
     const existingOrdering = readJson(ROADMAP_JSON)
 
     // Calculate priority score
-    const {score, factors} = calculatePriorityScore(issue, existingOrdering)
+    const { score, factors } = calculatePriorityScore(issue, existingOrdering)
 
     // Determine where to insert the issue
     const insertion = determineInsertionPoint(score, existingOrdering)
@@ -408,7 +408,7 @@ async function main() {
         requiresResequence: insertion.requiresResequence,
         confidence: insertion.confidence,
         action: action,
-        rationale: generateRationale(issue, {score, factors}, insertion, issue.hasExistingOrder),
+        rationale: generateRationale(issue, { score, factors }, insertion, issue.hasExistingOrder),
         factors: factors,
         analysis: {
             existingPosition: issue.hasExistingOrder ? issue.existingOrder : null,

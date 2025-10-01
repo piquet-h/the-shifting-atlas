@@ -1,21 +1,21 @@
 {
     "data": {
-        "user": {"projectV2": {"id": "PVT_kwHOANLlqs4BEJKi", "items": {"nodes": []}}},
+        "user": { "projectV2": { "id": "PVT_kwHOANLlqs4BEJKi", "items": { "nodes": [] } } },
         "repository": {
             "issues": {
                 "nodes": [
-                    {"id": "I_kwDOPvMjxM7ONQQx", "number": 4, "title": "Implement Cosmos Gremlin Location Persistence"},
-                    {"id": "I_kwDOPvMjxM7ONQSC", "number": 5, "title": "Introduce EXIT Edge Model & Link Rooms"},
-                    {"id": "I_kwDOPvMjxM7ONQTx", "number": 6, "title": "Movement Command (HttpMovePlayer)"},
-                    {"id": "I_kwDOPvMjxM7ONQVH", "number": 7, "title": "Player Bootstrap & Persistence"},
-                    {"id": "I_kwDOPvMjxM7ONQWN", "number": 8, "title": "Exits Summary Cache Generation Utility"},
-                    {"id": "I_kwDOPvMjxM7ONQXD", "number": 9, "title": "LOOK Command (HttpLook)"},
-                    {"id": "I_kwDOPvMjxM7ONQYK", "number": 10, "title": "Telemetry Event Registry Expansion"},
-                    {"id": "I_kwDOPvMjxM7ONQZn", "number": 11, "title": "Gremlin RU & Latency Telemetry Wrapper"},
-                    {"id": "I_kwDOPvMjxM7ONQbA", "number": 12, "title": "Seed Script: Anchor Locations & Exits"},
-                    {"id": "I_kwDOPvMjxM7ONQcJ", "number": 13, "title": "Direction Normalization Utility (Stage 1)"},
-                    {"id": "I_kwDOPvMjxM7ONQdK", "number": 14, "title": "Integration Test Harness (Traversal + Persistence)"},
-                    {"id": "I_kwDOPvMjxM7ONQel", "number": 15, "title": "Smoke Test Script (Movement Loop)"}
+                    { "id": "I_kwDOPvMjxM7ONQQx", "number": 4, "title": "Implement Cosmos Gremlin Location Persistence" },
+                    { "id": "I_kwDOPvMjxM7ONQSC", "number": 5, "title": "Introduce EXIT Edge Model & Link Rooms" },
+                    { "id": "I_kwDOPvMjxM7ONQTx", "number": 6, "title": "Movement Command (HttpMovePlayer)" },
+                    { "id": "I_kwDOPvMjxM7ONQVH", "number": 7, "title": "Player Bootstrap & Persistence" },
+                    { "id": "I_kwDOPvMjxM7ONQWN", "number": 8, "title": "Exits Summary Cache Generation Utility" },
+                    { "id": "I_kwDOPvMjxM7ONQXD", "number": 9, "title": "LOOK Command (HttpLook)" },
+                    { "id": "I_kwDOPvMjxM7ONQYK", "number": 10, "title": "Telemetry Event Registry Expansion" },
+                    { "id": "I_kwDOPvMjxM7ONQZn", "number": 11, "title": "Gremlin RU & Latency Telemetry Wrapper" },
+                    { "id": "I_kwDOPvMjxM7ONQbA", "number": 12, "title": "Seed Script: Anchor Locations & Exits" },
+                    { "id": "I_kwDOPvMjxM7ONQcJ", "number": 13, "title": "Direction Normalization Utility (Stage 1)" },
+                    { "id": "I_kwDOPvMjxM7ONQdK", "number": 14, "title": "Integration Test Harness (Traversal + Persistence)" },
+                    { "id": "I_kwDOPvMjxM7ONQel", "number": 15, "title": "Smoke Test Script (Movement Loop)" }
                 ]
             }
         }

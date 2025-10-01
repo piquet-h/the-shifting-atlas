@@ -1,5 +1,5 @@
-import {getPlayerRepository, trackGameEventStrict} from '@atlas/shared'
-import {app, HttpRequest, HttpResponseInit, InvocationContext} from '@azure/functions'
+import { getPlayerRepository, trackGameEventStrict } from '@atlas/shared'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 
 /**
  * playerLink
@@ -31,11 +31,11 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
     }
     const guid = body.playerGuid?.trim()
     if (!guid) {
-        return json(400, {error: 'playerGuid required'})
+        return json(400, { error: 'playerGuid required' })
     }
     const record = await playerRepo.get(guid)
     if (!record) {
-        return json(404, {error: 'player not found'})
+        return json(404, { error: 'player not found' })
     }
 
     const externalId = request.headers.get('x-external-id') || `ext-${guid.slice(0, 8)}`
@@ -44,7 +44,7 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
     if (!alreadyLinked) {
         await playerRepo.linkExternalId(guid, externalId)
         const playerGuid = guid
-        trackGameEventStrict('Auth.Player.Upgraded', {linkStrategy: 'merge', hadGuestProgress: true}, {playerGuid})
+        trackGameEventStrict('Auth.Player.Upgraded', { linkStrategy: 'merge', hadGuestProgress: true }, { playerGuid })
     }
 
     const resBody: LinkResponseBody = {
@@ -60,7 +60,7 @@ export async function playerLink(request: HttpRequest, context: InvocationContex
 function json(status: number, jsonBody: unknown): HttpResponseInit {
     return {
         status,
-        headers: {'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store'},
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
         jsonBody
     }
 }

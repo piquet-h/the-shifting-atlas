@@ -5,22 +5,22 @@
  * Tests the core logic without requiring GitHub API access
  */
 
-import {parseArgs} from 'node:util'
+import { parseArgs } from 'node:util'
 
 console.log('🧪 Testing issue status management functionality...\n')
 
 // Test 1: parseArgs functionality
 console.log('1️⃣ Testing command line argument parsing...')
 try {
-    const {values} = parseArgs({
+    const { values } = parseArgs({
         args: ['--issue-number', '123', '--status', 'In progress'],
         options: {
-            'issue-number': {type: 'string'},
-            'status': {type: 'string'},
-            'help': {type: 'boolean', short: 'h'}
+            'issue-number': { type: 'string' },
+            status: { type: 'string' },
+            help: { type: 'boolean', short: 'h' }
         }
     })
-    
+
     if (values['issue-number'] === '123' && values.status === 'In progress') {
         console.log('   ✅ parseArgs parsing works correctly')
     } else {
@@ -47,18 +47,14 @@ const testCases = [
     {
         name: 'Standard status field',
         input: {
-            nodes: [
-                { field: { name: 'Status' }, name: 'Todo' }
-            ]
+            nodes: [{ field: { name: 'Status' }, name: 'Todo' }]
         },
         expected: 'Todo'
     },
     {
         name: 'Status with text value',
         input: {
-            nodes: [
-                { field: { name: 'Status' }, text: 'In progress' }
-            ]
+            nodes: [{ field: { name: 'Status' }, text: 'In progress' }]
         },
         expected: 'In progress'
     },
@@ -75,9 +71,7 @@ const testCases = [
     {
         name: 'No status field',
         input: {
-            nodes: [
-                { field: { name: 'Other field' }, name: 'Value' }
-            ]
+            nodes: [{ field: { name: 'Other field' }, name: 'Value' }]
         },
         expected: ''
     }
@@ -98,10 +92,10 @@ for (const test of testCases) {
 // Test 3: Option ID lookup logic
 console.log('\n3️⃣ Testing status option ID lookup...')
 function mockFindStatusOptionId(projectFields, statusValue) {
-    const statusField = projectFields.find(field => field.name === 'Status' && field.options)
+    const statusField = projectFields.find((field) => field.name === 'Status' && field.options)
     if (!statusField) return null
-    
-    const option = statusField.options.find(opt => opt.name === statusValue)
+
+    const option = statusField.options.find((opt) => opt.name === statusValue)
     return option?.id || null
 }
 

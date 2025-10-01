@@ -5,9 +5,9 @@
  */
 /* global process */
 import appInsights from 'applicationinsights'
-import {randomUUID} from 'node:crypto'
-import {SERVICE_BACKEND, SERVICE_SWA_API} from './serviceConstants.js'
-import {GameEventName, isGameEventName} from './telemetryEvents.js'
+import { randomUUID } from 'node:crypto'
+import { SERVICE_BACKEND, SERVICE_SWA_API } from './serviceConstants.js'
+import { GameEventName, isGameEventName } from './telemetryEvents.js'
 
 // Only initialize once (Functions can hot-reload in watch mode)
 if (!appInsights.defaultClient) {
@@ -31,11 +31,11 @@ if (!appInsights.defaultClient) {
 // can still monkey patch trackEvent / trackException. If Application Insights did not
 // create a default client (edge cases in certain bundlers), provide a no-op stub.
 interface AppInsightsClient {
-    trackEvent(args: {name: string; properties?: Record<string, unknown>}): void
-    trackException(args: {exception: Error; properties?: Record<string, unknown>}): void
+    trackEvent(args: { name: string; properties?: Record<string, unknown> }): void
+    trackException(args: { exception: Error; properties?: Record<string, unknown> }): void
 }
 
-const aiClient = (appInsights as unknown as {defaultClient?: AppInsightsClient}).defaultClient
+const aiClient = (appInsights as unknown as { defaultClient?: AppInsightsClient }).defaultClient
 
 export const telemetryClient: AppInsightsClient =
     aiClient ||
@@ -50,11 +50,11 @@ export const telemetryClient: AppInsightsClient =
 
 // Low-level passthrough (retain for legacy direct calls)
 export function trackEvent(name: string, properties?: Record<string, unknown>) {
-    telemetryClient?.trackEvent({name, properties})
+    telemetryClient?.trackEvent({ name, properties })
 }
 
 export function trackException(error: Error, properties?: Record<string, unknown>) {
-    telemetryClient?.trackException({exception: error, properties})
+    telemetryClient?.trackException({ exception: error, properties })
 }
 
 // Central Game Telemetry Helper: injects service, persistenceMode, and (when provided) playerGuid.
@@ -84,7 +84,7 @@ function resolvePersistenceMode(explicit?: string | null): string | undefined {
 
 export function trackGameEvent(name: string, properties?: Record<string, unknown>, opts?: GameTelemetryOptions) {
     // Backward-compatible route (will eventually be deprecated in favor of trackGameEventStrict)
-    const finalProps: Record<string, unknown> = {...properties}
+    const finalProps: Record<string, unknown> = { ...properties }
     if (finalProps.service === undefined) finalProps.service = opts?.serviceOverride || inferService()
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
@@ -95,33 +95,33 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
 
 // Typed payload map (lightweight – extend as events are actually emitted)
 export interface EventPayloadMap {
-    'Ping.Invoked': {echo?: string | null; latencyMs?: number}
+    'Ping.Invoked': { echo?: string | null; latencyMs?: number }
     'Onboarding.GuestGuid.Started': Record<string, never>
-    'Onboarding.GuestGuid.Created': {phase?: string}
-    'Auth.Player.Upgraded': {linkStrategy?: string; hadGuestProgress?: boolean}
-    'Player.Get': {playerGuid: string; status: number}
-    'Player.Created': {playerGuid: string; method: string}
-    'Location.Get': {id: string; status: number}
-    'Location.Move': {from: string; to?: string; direction?: string | null; status: number; reason?: string; rawInput?: string}
-    'Navigation.Input.Ambiguous': {from: string; input: string; reason: string}
-    'Command.Executed': {command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null}
-    'World.Location.Generated': {locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string}
-    'World.Location.Rejected': {reasonCode: string; promptHash?: string; similarity?: number}
-    'World.Location.Upsert': {locationId: string; ru?: number; latencyMs?: number; success: boolean; created?: boolean; reason?: string}
-    'World.Layer.Added': {locationId: string; layerType: string}
-    'World.Exit.Created': {fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string}
-    'Prompt.Genesis.Issued': {promptHash: string; model: string; contextSize?: number}
-    'Prompt.Genesis.Rejected': {promptHash: string; failureCode: string}
-    'Prompt.Genesis.Crystallized': {promptHash: string; locationId: string; tokensPrompt?: number; tokensCompletion?: number}
-    'Prompt.Layer.Generated': {locationId: string; layerType: string; promptHash: string}
-    'Prompt.Cost.BudgetThreshold': {percent: number}
-    'Extension.Hook.Invoked': {extensionName: string; hook: string; durationMs: number; success: boolean}
-    'Extension.Hook.Veto': {extensionName: string; hook: string; reasonCode: string}
-    'Extension.Hook.Mutation': {extensionName: string; hook: string; fieldsChanged: string[]}
-    'Multiplayer.LayerDelta.Sent': {locationId: string; layerCount: number; recipients: number}
-    'Multiplayer.LocationSnapshot.HashMismatch': {locationId: string; clientHash: string; serverHash: string}
-    'Multiplayer.Movement.Latency': {locationIdFrom: string; locationIdTo: string; serverMs: number; networkMs?: number}
-    'Telemetry.EventName.Invalid': {requested: string}
+    'Onboarding.GuestGuid.Created': { phase?: string }
+    'Auth.Player.Upgraded': { linkStrategy?: string; hadGuestProgress?: boolean }
+    'Player.Get': { playerGuid: string; status: number }
+    'Player.Created': { playerGuid: string; method: string }
+    'Location.Get': { id: string; status: number }
+    'Location.Move': { from: string; to?: string; direction?: string | null; status: number; reason?: string; rawInput?: string }
+    'Navigation.Input.Ambiguous': { from: string; input: string; reason: string }
+    'Command.Executed': { command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null }
+    'World.Location.Generated': { locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string }
+    'World.Location.Rejected': { reasonCode: string; promptHash?: string; similarity?: number }
+    'World.Location.Upsert': { locationId: string; ru?: number; latencyMs?: number; success: boolean; created?: boolean; reason?: string }
+    'World.Layer.Added': { locationId: string; layerType: string }
+    'World.Exit.Created': { fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string }
+    'Prompt.Genesis.Issued': { promptHash: string; model: string; contextSize?: number }
+    'Prompt.Genesis.Rejected': { promptHash: string; failureCode: string }
+    'Prompt.Genesis.Crystallized': { promptHash: string; locationId: string; tokensPrompt?: number; tokensCompletion?: number }
+    'Prompt.Layer.Generated': { locationId: string; layerType: string; promptHash: string }
+    'Prompt.Cost.BudgetThreshold': { percent: number }
+    'Extension.Hook.Invoked': { extensionName: string; hook: string; durationMs: number; success: boolean }
+    'Extension.Hook.Veto': { extensionName: string; hook: string; reasonCode: string }
+    'Extension.Hook.Mutation': { extensionName: string; hook: string; fieldsChanged: string[] }
+    'Multiplayer.LayerDelta.Sent': { locationId: string; layerCount: number; recipients: number }
+    'Multiplayer.LocationSnapshot.HashMismatch': { locationId: string; clientHash: string; serverHash: string }
+    'Multiplayer.Movement.Latency': { locationIdFrom: string; locationIdTo: string; serverMs: number; networkMs?: number }
+    'Telemetry.EventName.Invalid': { requested: string }
 }
 
 export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEventName>(
@@ -131,10 +131,10 @@ export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEvent
 ) {
     if (!isGameEventName(name)) {
         // Fall back for forward compatibility; still record but flag
-        trackGameEvent('Telemetry.EventName.Invalid', {requested: name})
+        trackGameEvent('Telemetry.EventName.Invalid', { requested: name })
         return
     }
-    const finalProps: Record<string, unknown> = {...(properties as Record<string, unknown>)}
+    const finalProps: Record<string, unknown> = { ...(properties as Record<string, unknown>) }
     if (finalProps.service === undefined) finalProps.service = opts?.serviceOverride || inferService()
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
@@ -144,7 +144,7 @@ export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEvent
 }
 
 // Utility to extract player GUID from an Azure Functions HttpRequest-like headers object.
-export function extractPlayerGuid(headers: {get(name: string): string | null | undefined} | undefined): string | undefined {
+export function extractPlayerGuid(headers: { get(name: string): string | null | undefined } | undefined): string | undefined {
     try {
         const guid = headers?.get('x-player-guid') || undefined
         return guid && guid.length >= 8 ? guid : undefined
@@ -161,7 +161,10 @@ export function extractPlayerGuid(headers: {get(name: string): string | null | u
 
 export const CORRELATION_HEADER = 'x-correlation-id'
 
-export function extractCorrelationId(headers: {get(name: string): string | null | undefined} | undefined, generate?: () => string): string {
+export function extractCorrelationId(
+    headers: { get(name: string): string | null | undefined } | undefined,
+    generate?: () => string
+): string {
     try {
         const raw = headers?.get(CORRELATION_HEADER) || undefined
         if (raw) {

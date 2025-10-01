@@ -2,7 +2,7 @@
 export default {
     meta: {
         type: 'problem',
-        docs: {description: 'Disallow Room.* telemetry events and require locationId in Command.Executed payload.'},
+        docs: { description: 'Disallow Room.* telemetry events and require locationId in Command.Executed payload.' },
         schema: [],
         messages: {
             forbiddenName: 'Legacy telemetry name using "Room." detected: {{name}}. Use Location.* instead.',
@@ -23,18 +23,18 @@ export default {
                 if (!nameArg || nameArg.type !== 'Literal' || typeof nameArg.value !== 'string') return
                 const eventName = nameArg.value
                 if (/^Room\./.test(eventName) || /\.Room\./.test(eventName) || /World\.Room\./.test(eventName)) {
-                    context.report({node: nameArg, messageId: 'forbiddenName', data: {name: eventName}})
+                    context.report({ node: nameArg, messageId: 'forbiddenName', data: { name: eventName } })
                 }
                 if (eventName === 'Command.Executed') {
                     if (!payloadArg || payloadArg.type !== 'ObjectExpression') {
-                        context.report({node: node, messageId: 'missingLocationId'})
+                        context.report({ node: node, messageId: 'missingLocationId' })
                         return
                     }
                     const hasLocationId = payloadArg.properties.some(
                         (p) => p.type === 'Property' && !p.computed && p.key.type === 'Identifier' && p.key.name === 'locationId'
                     )
                     if (!hasLocationId) {
-                        context.report({node: payloadArg, messageId: 'missingLocationId'})
+                        context.report({ node: payloadArg, messageId: 'missingLocationId' })
                     }
                 }
             }

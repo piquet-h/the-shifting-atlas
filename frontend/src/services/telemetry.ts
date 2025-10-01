@@ -4,7 +4,7 @@
  * Gracefully no-ops if not supplied (e.g., local dev without telemetry).
  */
 /* global localStorage */
-import {ApplicationInsights} from '@microsoft/applicationinsights-web'
+import { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 let appInsights: ApplicationInsights | undefined
 
@@ -29,7 +29,7 @@ export function initTelemetry() {
 
 export function trackEvent(name: string, properties?: Record<string, unknown>) {
     if (!appInsights) return
-    appInsights.trackEvent({name}, properties as Record<string, unknown> | undefined)
+    appInsights.trackEvent({ name }, properties as Record<string, unknown> | undefined)
 }
 
 // Higher-level game event wrapper (frontend)
@@ -47,15 +47,15 @@ export function trackGameEventClient(name: string, properties?: Record<string, u
     const service = 'frontend-web'
     const merged: Record<string, unknown> = {
         service,
-        ...(persistenceMode ? {persistenceMode} : {}),
-        ...(playerGuid ? {playerGuid} : {}),
+        ...(persistenceMode ? { persistenceMode } : {}),
+        ...(playerGuid ? { playerGuid } : {}),
         ...properties
     }
     trackEvent(name, merged)
 }
 
 export function trackError(error: Error, properties?: Record<string, unknown>) {
-    appInsights?.trackException({error, properties})
+    appInsights?.trackException({ error, properties })
 }
 
 export default appInsights

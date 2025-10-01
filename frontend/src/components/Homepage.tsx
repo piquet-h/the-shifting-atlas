@@ -1,9 +1,9 @@
 /* global localStorage */
-import React, {useEffect, useRef, useState} from 'react'
-import {useAuth} from '../hooks/useAuth'
-import {useLinkGuestOnAuth} from '../hooks/useLinkGuestOnAuth'
-import {usePlayerGuid} from '../hooks/usePlayerGuid'
-import {useVisitState} from '../hooks/useVisitState'
+import React, { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useLinkGuestOnAuth } from '../hooks/useLinkGuestOnAuth'
+import { usePlayerGuid } from '../hooks/usePlayerGuid'
+import { useVisitState } from '../hooks/useVisitState'
 import CommandInterface from './CommandInterface'
 
 /**
@@ -24,10 +24,10 @@ import CommandInterface from './CommandInterface'
  *  - Removed visual duplicate heading/nav cluster (nav already includes branding). h1 kept as sr-only to avoid repetition.
  */
 export default function Homepage(): React.ReactElement {
-    const {isNewUser, acknowledge} = useVisitState()
-    const {playerGuid, loading: guidLoading} = usePlayerGuid()
-    const {isAuthenticated, loading, user, signIn} = useAuth()
-    const {linking, linked, error: linkError} = useLinkGuestOnAuth()
+    const { isNewUser, acknowledge } = useVisitState()
+    const { playerGuid, loading: guidLoading } = usePlayerGuid()
+    const { isAuthenticated, loading, user, signIn } = useAuth()
+    const { linking, linked, error: linkError } = useLinkGuestOnAuth()
 
     // Local toast state for ephemeral welcome notification after auth.
     const [showWelcomeToast, setShowWelcomeToast] = useState(false)

@@ -1,7 +1,7 @@
-import {createRoot} from 'react-dom/client'
+import { createRoot } from 'react-dom/client'
 import App from './App'
-import {AuthProvider} from './hooks/useAuth'
-import {initTelemetry} from './services/telemetry'
+import { AuthProvider } from './hooks/useAuth'
+import { initTelemetry } from './services/telemetry'
 import './tailwind.css'
 
 // Initialize telemetry before rendering (non-blocking)

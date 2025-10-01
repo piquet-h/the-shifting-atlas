@@ -6,10 +6,10 @@
  *  --all cleans every workspace from root package.json
  * Removes: dist, .cache, coverage, *.tsbuildinfo (workspace root).
  */
-import {existsSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync} from 'fs'
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync } from 'fs'
 import process from 'node:process'
 import path from 'path'
-import {fileURLToPath} from 'url'
+import { fileURLToPath } from 'url'
 
 const CWD = process.cwd()
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -33,7 +33,7 @@ function cleanWorkspace(wsPath) {
         DIRS.forEach((d) => {
             const target = path.join(abs, d)
             if (existsSync(target)) {
-                rmSync(target, {recursive: true, force: true})
+                rmSync(target, { recursive: true, force: true })
                 log(`removed ${path.relative(CWD, target)}`)
             }
         })

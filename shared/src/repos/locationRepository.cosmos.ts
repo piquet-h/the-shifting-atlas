@@ -1,20 +1,20 @@
-import {isDirection} from '../domainModels.js'
-import {GremlinClient} from '../gremlin/gremlinClient.js'
-import {Location} from '../location.js'
-import {trackGameEventStrict} from '../telemetry.js'
-import {ILocationRepository} from './locationRepository.js'
+import { isDirection } from '../domainModels.js'
+import { GremlinClient } from '../gremlin/gremlinClient.js'
+import { Location } from '../location.js'
+import { trackGameEventStrict } from '../telemetry.js'
+import { ILocationRepository } from './locationRepository.js'
 
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 export class CosmosLocationRepository implements ILocationRepository {
     constructor(private client: GremlinClient) {}
 
     async get(id: string): Promise<Location | undefined> {
-        const vertices = await this.client.submit<Record<string, unknown>>('g.V(locationId).valueMap(true)', {locationId: id})
+        const vertices = await this.client.submit<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
         if (!vertices || vertices.length === 0) return undefined
         const v = vertices[0]
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
             "g.V(locationId).outE('exit').project('direction','to','description').by(values('direction')).by(inV().id()).by(values('description'))",
-            {locationId: id}
+            { locationId: id }
         )
         const exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
             direction: String(e.direction as string),
@@ -32,18 +32,18 @@ export class CosmosLocationRepository implements ILocationRepository {
     }
 
     async move(fromId: string, direction: string) {
-        if (!isDirection(direction)) return {status: 'error', reason: 'no-exit'} as const
+        if (!isDirection(direction)) return { status: 'error', reason: 'no-exit' } as const
         const from = await this.get(fromId)
-        if (!from) return {status: 'error', reason: 'from-missing'} as const
+        if (!from) return { status: 'error', reason: 'from-missing' } as const
         const exit = from.exits?.find((e) => e.direction === direction)
-        if (!exit || !exit.to) return {status: 'error', reason: 'no-exit'} as const
+        if (!exit || !exit.to) return { status: 'error', reason: 'no-exit' } as const
         const dest = await this.get(exit.to)
-        if (!dest) return {status: 'error', reason: 'target-missing'} as const
-        return {status: 'ok', location: dest} as const
+        if (!dest) return { status: 'error', reason: 'target-missing' } as const
+        return { status: 'ok', location: dest } as const
     }
 
     /** Upsert (idempotent) a location vertex. */
-    async upsert(location: Location): Promise<{created: boolean; id: string}> {
+    async upsert(location: Location): Promise<{ created: boolean; id: string }> {
         const startTime = Date.now()
         let success = false
         let created = false
@@ -51,7 +51,7 @@ export class CosmosLocationRepository implements ILocationRepository {
 
         try {
             // First, check if the location exists to determine if this is create vs update
-            const existingVertices = await this.client.submit<Record<string, unknown>>('g.V(lid).valueMap(true)', {lid: location.id})
+            const existingVertices = await this.client.submit<Record<string, unknown>>('g.V(lid).valueMap(true)', { lid: location.id })
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
 
@@ -85,7 +85,7 @@ export class CosmosLocationRepository implements ILocationRepository {
             )
 
             success = true
-            return {created, id: location.id}
+            return { created, id: location.id }
         } catch (error) {
             success = false
             reason = error instanceof Error ? error.message : 'Unknown error'
@@ -103,17 +103,17 @@ export class CosmosLocationRepository implements ILocationRepository {
     }
 
     /** Ensure an exit edge with direction exists between fromId and toId */
-    async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{created: boolean}> {
-        if (!isDirection(direction)) return {created: false}
+    async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }> {
+        if (!isDirection(direction)) return { created: false }
         // Ensure both vertices exist (no-op if present)
-        await this.client.submit("g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid))", {fid: fromId})
-        await this.client.submit("g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid))", {tid: toId})
+        await this.client.submit("g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid))", { fid: fromId })
+        await this.client.submit("g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid))", { tid: toId })
         // Use coalesce on existing edge
         await this.client.submit(
             "g.V(fid).as('a').V(tid).coalesce( a.outE('exit').has('direction', dir).where(inV().hasId(tid)), addE('exit').from('a').to(V(tid)).property('direction', dir).property('description', desc) )",
-            {fid: fromId, tid: toId, dir: direction, desc: description || ''}
+            { fid: fromId, tid: toId, dir: direction, desc: description || '' }
         )
-        return {created: false}
+        return { created: false }
     }
 }
 

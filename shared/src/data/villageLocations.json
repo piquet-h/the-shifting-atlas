@@ -5,11 +5,11 @@
         "description": "Mosswell’s crossroads: a moss-rimmed fountain splashes at center; forge smoke to the west, bright awnings east, a lantern-signed tavern southeast, and a walled herb garden northwest.",
         "tags": ["settlement:mosswell", "landmark:fountain", "hub"],
         "exits": [
-            {"direction": "north", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Packed lane toward the north road."},
-            {"direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Road dipping toward southern farms."},
-            {"direction": "east", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Canvas stalls of Market Row."},
-            {"direction": "west", "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f", "description": "Hammer clangs at the smithy."},
-            {"direction": "southeast", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Lantern glow of the tavern."},
+            { "direction": "north", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Packed lane toward the north road." },
+            { "direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Road dipping toward southern farms." },
+            { "direction": "east", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Canvas stalls of Market Row." },
+            { "direction": "west", "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f", "description": "Hammer clangs at the smithy." },
+            { "direction": "southeast", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Lantern glow of the tavern." },
             {
                 "direction": "southwest",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
@@ -20,7 +20,7 @@
                 "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
                 "description": "Slate-roof manor overlooks the square."
             },
-            {"direction": "northwest", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Low wall of the herb garden."}
+            { "direction": "northwest", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Low wall of the herb garden." }
         ],
         "version": 2
     },
@@ -30,8 +30,8 @@
         "description": "Slight rise leading north; bustle of the square fades behind while the wooden gate looms ahead.",
         "tags": ["settlement:mosswell", "road"],
         "exits": [
-            {"direction": "south", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square."},
-            {"direction": "north", "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a", "description": "Toward the north gate."},
+            { "direction": "south", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square." },
+            { "direction": "north", "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a", "description": "Toward the north gate." },
             {
                 "direction": "northwest",
                 "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
@@ -46,8 +46,8 @@
         "description": "Rough timber gate flanked by shallow ditches; open country stretches beyond.",
         "tags": ["settlement:mosswell", "infrastructure:gate"],
         "exits": [
-            {"direction": "south", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Back down the lane."},
-            {"direction": "southeast", "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7", "description": "Cut across to the shrine."}
+            { "direction": "south", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Back down the lane." },
+            { "direction": "southeast", "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7", "description": "Cut across to the shrine." }
         ],
         "version": 1
     },
@@ -57,8 +57,8 @@
         "description": "Lichen-crusted standing stones ring a worn altar; the air feels cooler here.",
         "tags": ["settlement:mosswell", "religion:shrine"],
         "exits": [
-            {"direction": "southeast", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Slope back to the road."},
-            {"direction": "south", "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a", "description": "Toward the gate."}
+            { "direction": "southeast", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Slope back to the road." },
+            { "direction": "south", "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a", "description": "Toward the gate." }
         ],
         "version": 1
     },
@@ -68,9 +68,9 @@
         "description": "Low stone wall enclosing cultivated herbs; scent of thyme and lavender hangs thick.",
         "tags": ["settlement:mosswell", "garden", "landmark:herb-garden"],
         "exits": [
-            {"direction": "southeast", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square."},
-            {"direction": "in", "to": "c5e8d2bc-0f42-4a31-93d6-734c347b19e7", "description": "Gate to the herbalist cottage."},
-            {"direction": "north", "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b", "description": "Path toward a small west cottage."}
+            { "direction": "southeast", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square." },
+            { "direction": "in", "to": "c5e8d2bc-0f42-4a31-93d6-734c347b19e7", "description": "Gate to the herbalist cottage." },
+            { "direction": "north", "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b", "description": "Path toward a small west cottage." }
         ],
         "version": 1
     },
@@ -79,7 +79,7 @@
         "name": "Herbalist Cottage",
         "description": "Drying racks and bundled roots; glass vials of pungent tinctures line rough shelves.",
         "tags": ["settlement:mosswell", "shop:apothecary"],
-        "exits": [{"direction": "out", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Out to the herb garden wall."}],
+        "exits": [{ "direction": "out", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Out to the herb garden wall." }],
         "version": 1
     },
     {
@@ -88,8 +88,8 @@
         "description": "Modest timber cottage with a stacked woodpile and narrow smoke trail.",
         "tags": ["settlement:mosswell", "residential:cotttage"],
         "exits": [
-            {"direction": "south", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Down to the herb garden wall."},
-            {"direction": "east", "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d", "description": "Path between the two northern cottages."}
+            { "direction": "south", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Down to the herb garden wall." },
+            { "direction": "east", "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d", "description": "Path between the two northern cottages." }
         ],
         "version": 1
     },
@@ -99,8 +99,8 @@
         "description": "Whitewashed walls and a neat barrel; faint aroma of stewing roots.",
         "tags": ["settlement:mosswell", "residential:cotttage"],
         "exits": [
-            {"direction": "south", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Steps down to the manor overlook."},
-            {"direction": "west", "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b", "description": "Between the northern cottages."}
+            { "direction": "south", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Steps down to the manor overlook." },
+            { "direction": "west", "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b", "description": "Between the northern cottages." }
         ],
         "version": 1
     },
@@ -110,8 +110,8 @@
         "description": "Open-sided forge: wavering heat, ringing anvil, and racks of half-finished tools.",
         "tags": ["settlement:mosswell", "shop:smithy"],
         "exits": [
-            {"direction": "east", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square."},
-            {"direction": "south", "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb", "description": "Toward the carpenter & fletcher."}
+            { "direction": "east", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square." },
+            { "direction": "south", "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb", "description": "Toward the carpenter & fletcher." }
         ],
         "version": 1
     },
@@ -121,8 +121,8 @@
         "description": "Curling wood shavings and bow staves rest beside a resin-scented bench.",
         "tags": ["settlement:mosswell", "shop:fletcher", "shop:carpenter"],
         "exits": [
-            {"direction": "north", "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f", "description": "Back to the forge."},
-            {"direction": "east", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward the southwest path junction."}
+            { "direction": "north", "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f", "description": "Back to the forge." },
+            { "direction": "east", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward the southwest path junction." }
         ],
         "version": 1
     },
@@ -132,9 +132,9 @@
         "description": "Slate-roof manor with a modest balcony and steward’s lectern inside.",
         "tags": ["settlement:mosswell", "civic:manor"],
         "exits": [
-            {"direction": "southwest", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Down to the square."},
-            {"direction": "south", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Steps to market row."},
-            {"direction": "north", "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d", "description": "Up toward an east cottage."}
+            { "direction": "southwest", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Down to the square." },
+            { "direction": "south", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Steps to market row." },
+            { "direction": "north", "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d", "description": "Up toward an east cottage." }
         ],
         "version": 1
     },
@@ -144,11 +144,11 @@
         "description": "Strip of stalls—spices, rough cloth, seed pouches—beneath patched canvas.",
         "tags": ["settlement:mosswell", "market", "commerce"],
         "exits": [
-            {"direction": "west", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to fountain square."},
-            {"direction": "south", "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a", "description": "Toward the general goods store."},
-            {"direction": "north", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Steps up to the manor."},
-            {"direction": "southeast", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor & weaver."},
-            {"direction": "east", "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52", "description": "Lane by a northern east cottage."}
+            { "direction": "west", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to fountain square." },
+            { "direction": "south", "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a", "description": "Toward the general goods store." },
+            { "direction": "north", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Steps up to the manor." },
+            { "direction": "southeast", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor & weaver." },
+            { "direction": "east", "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52", "description": "Lane by a northern east cottage." }
         ],
         "version": 1
     },
@@ -158,8 +158,8 @@
         "description": "Packed shelves—oil, cord, grain sacks, cookware, and travel staples.",
         "tags": ["settlement:mosswell", "shop:general"],
         "exits": [
-            {"direction": "north", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Out to market row."},
-            {"direction": "south", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Alley toward the tailor."}
+            { "direction": "north", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Out to market row." },
+            { "direction": "south", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Alley toward the tailor." }
         ],
         "version": 1
     },
@@ -169,9 +169,9 @@
         "description": "Spindle hum and dyed cloth bolts; measuring cord draped over a stool.",
         "tags": ["settlement:mosswell", "shop:tailor"],
         "exits": [
-            {"direction": "northwest", "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a", "description": "Alley to general goods."},
-            {"direction": "west", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Walk toward tavern."},
-            {"direction": "east", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Lane between east cottages."}
+            { "direction": "northwest", "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a", "description": "Alley to general goods." },
+            { "direction": "west", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Walk toward tavern." },
+            { "direction": "east", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Lane between east cottages." }
         ],
         "version": 1
     },
@@ -181,11 +181,11 @@
         "description": "Broad-beamed common room: stew steam, low songs, swinging lantern sign.",
         "tags": ["settlement:mosswell", "shop:tavern", "hospitality:inn"],
         "exits": [
-            {"direction": "northwest", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square."},
-            {"direction": "west", "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42", "description": "Door to the stables courtyard."},
-            {"direction": "east", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward tailor & weaver."},
-            {"direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Slope toward south road."},
-            {"direction": "up", "to": "f62cb3bc-5521-4c63-9ef4-0cdf7e33a360", "description": "Stairs to guest rooms."}
+            { "direction": "northwest", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back to the square." },
+            { "direction": "west", "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42", "description": "Door to the stables courtyard." },
+            { "direction": "east", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward tailor & weaver." },
+            { "direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Slope toward south road." },
+            { "direction": "up", "to": "f62cb3bc-5521-4c63-9ef4-0cdf7e33a360", "description": "Stairs to guest rooms." }
         ],
         "version": 1
     },
@@ -195,9 +195,9 @@
         "description": "Packed earth yard, hitch posts and feed bins; flecks of hay in angled light.",
         "tags": ["settlement:mosswell", "support:stables"],
         "exits": [
-            {"direction": "east", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Back to the tavern."},
-            {"direction": "north", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Path up to the square."},
-            {"direction": "southwest", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Track toward the granary."}
+            { "direction": "east", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Back to the tavern." },
+            { "direction": "north", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Path up to the square." },
+            { "direction": "southwest", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Track toward the granary." }
         ],
         "version": 1
     },
@@ -207,10 +207,10 @@
         "description": "Rutted lane flanked by low fences; smell of tilled soil and straw.",
         "tags": ["settlement:mosswell", "road"],
         "exits": [
-            {"direction": "north", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back up to the square."},
-            {"direction": "northeast", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Toward the tavern."},
-            {"direction": "south", "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e", "description": "Deeper into southern farms."},
-            {"direction": "southwest", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path to junction and cottages."}
+            { "direction": "north", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Back up to the square." },
+            { "direction": "northeast", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Toward the tavern." },
+            { "direction": "south", "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e", "description": "Deeper into southern farms." },
+            { "direction": "southwest", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path to junction and cottages." }
         ],
         "version": 1
     },
@@ -220,8 +220,8 @@
         "description": "Patchwork of tilled strips and a leaning scarecrow; distant harness clinks.",
         "tags": ["settlement:mosswell", "agriculture:fields"],
         "exits": [
-            {"direction": "north", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Toward the village."},
-            {"direction": "west", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to southwest junction."},
+            { "direction": "north", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Toward the village." },
+            { "direction": "west", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to southwest junction." },
             {
                 "direction": "southwest",
                 "to": "e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3",
@@ -236,12 +236,12 @@
         "description": "Foot-worn junction amid low cottages; distant bleat of goats.",
         "tags": ["settlement:mosswell", "junction"],
         "exits": [
-            {"direction": "northeast", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Up to the square."},
-            {"direction": "east", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Toward the south road."},
-            {"direction": "south", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Track to granary."},
-            {"direction": "west", "to": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f", "description": "Trail to drying shed."},
-            {"direction": "north", "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb", "description": "Path toward carpenter & fletcher."},
-            {"direction": "southwest", "to": "0a6c11dc-2cfd-439b-9b0d-3fd8a882ae2d", "description": "Toward a low west cottage."},
+            { "direction": "northeast", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Up to the square." },
+            { "direction": "east", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Toward the south road." },
+            { "direction": "south", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Track to granary." },
+            { "direction": "west", "to": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f", "description": "Trail to drying shed." },
+            { "direction": "north", "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb", "description": "Path toward carpenter & fletcher." },
+            { "direction": "southwest", "to": "0a6c11dc-2cfd-439b-9b0d-3fd8a882ae2d", "description": "Toward a low west cottage." },
             {
                 "direction": "northwest",
                 "to": "a0d8f2ad-5fd0-4e1e-8b5e-7f8ef9be58ba",
@@ -261,9 +261,9 @@
         "description": "Raised timber structure; dry grain scent and soft creak of slatted walls.",
         "tags": ["settlement:mosswell", "agriculture:granary"],
         "exits": [
-            {"direction": "north", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Back to junction."},
-            {"direction": "northeast", "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42", "description": "Track to stables courtyard."},
-            {"direction": "west", "to": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f", "description": "Toward drying shed."}
+            { "direction": "north", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Back to junction." },
+            { "direction": "northeast", "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42", "description": "Track to stables courtyard." },
+            { "direction": "west", "to": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f", "description": "Toward drying shed." }
         ],
         "version": 1
     },
@@ -273,8 +273,8 @@
         "description": "Open rack shed with hanging herbs and grain sheaves airing in the breeze.",
         "tags": ["settlement:mosswell", "agriculture:processing"],
         "exits": [
-            {"direction": "east", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Back to granary."},
-            {"direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path toward the junction."}
+            { "direction": "east", "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5", "description": "Back to granary." },
+            { "direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path toward the junction." }
         ],
         "version": 1
     },
@@ -283,7 +283,7 @@
         "name": "SW Cottage West",
         "description": "Low cottage with patched thatch and a goat tether post.",
         "tags": ["settlement:mosswell", "residential:cottages"],
-        "exits": [{"direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path back to junction."}],
+        "exits": [{ "direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Path back to junction." }],
         "version": 1
     },
     {
@@ -291,7 +291,7 @@
         "name": "SW Cottage North",
         "description": "Small cottage near a leaning fence; herbs hang drying under eaves.",
         "tags": ["settlement:mosswell", "residential:cottages"],
-        "exits": [{"direction": "southeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward the junction."}],
+        "exits": [{ "direction": "southeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward the junction." }],
         "version": 1
     },
     {
@@ -299,7 +299,7 @@
         "name": "SW Cottage South",
         "description": "Weathered planks and a chicken coop; faint cluck of hens.",
         "tags": ["settlement:mosswell", "residential:cottages"],
-        "exits": [{"direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to junction."}],
+        "exits": [{ "direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Track to junction." }],
         "version": 1
     },
     {
@@ -308,8 +308,8 @@
         "description": "Narrow cottage with a rain barrel and stacked crates.",
         "tags": ["settlement:mosswell", "residential:cottages"],
         "exits": [
-            {"direction": "west", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Lane back to market row."},
-            {"direction": "south", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Narrow gap to middle cottage."}
+            { "direction": "west", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Lane back to market row." },
+            { "direction": "south", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Narrow gap to middle cottage." }
         ],
         "version": 1
     },
@@ -319,9 +319,9 @@
         "description": "Shared wall cottage; laundry line sways overhead.",
         "tags": ["settlement:mosswell", "residential:cottages"],
         "exits": [
-            {"direction": "north", "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52", "description": "Gap to north cottage."},
-            {"direction": "south", "to": "2d85f5ae-cf69-4b80-9b80-3fcd447ddb5e", "description": "Gap to south cottage."},
-            {"direction": "west", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor."}
+            { "direction": "north", "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52", "description": "Gap to north cottage." },
+            { "direction": "south", "to": "2d85f5ae-cf69-4b80-9b80-3fcd447ddb5e", "description": "Gap to south cottage." },
+            { "direction": "west", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor." }
         ],
         "version": 1
     },
@@ -331,8 +331,8 @@
         "description": "Cottage with a small herb box and fading blue shutters.",
         "tags": ["settlement:mosswell", "residential:cottages"],
         "exits": [
-            {"direction": "north", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Gap to middle cottage."},
-            {"direction": "west", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor & weaver."}
+            { "direction": "north", "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c", "description": "Gap to middle cottage." },
+            { "direction": "west", "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9", "description": "Toward the tailor & weaver." }
         ],
         "version": 1
     },
@@ -341,7 +341,7 @@
         "name": "Tavern Guest Rooms",
         "description": "Creaking hallway of bunks and shuttered windows above the lane.",
         "tags": ["settlement:mosswell", "hospitality:rooms"],
-        "exits": [{"direction": "down", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Stairs to common room."}],
+        "exits": [{ "direction": "down", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Stairs to common room." }],
         "version": 1
     },
     {
@@ -349,7 +349,7 @@
         "name": "Manor Office",
         "description": "Quiet study: wax-sealed scrolls, quill stand, narrow window surveying the square.",
         "tags": ["settlement:mosswell", "civic:administration"],
-        "exits": [{"direction": "south", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Down to the overlook."}],
+        "exits": [{ "direction": "south", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Down to the overlook." }],
         "version": 1
     },
     {
@@ -358,8 +358,8 @@
         "description": "Narrow track skirting outside fences; skylarks flit over furrows.",
         "tags": ["settlement:mosswell", "agriculture:path"],
         "exits": [
-            {"direction": "east", "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e", "description": "Toward central south farms."},
-            {"direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward southwest junction."}
+            { "direction": "east", "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e", "description": "Toward central south farms." },
+            { "direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward southwest junction." }
         ],
         "version": 1
     }

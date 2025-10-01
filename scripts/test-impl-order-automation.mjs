@@ -6,11 +6,11 @@
  * Tests key functionality without full GitHub integration
  */
 
-import {test} from 'node:test'
+import { test } from 'node:test'
 import assert from 'node:assert'
 import fs from 'node:fs'
 import path from 'node:path'
-import {execSync, execFileSync} from 'node:child_process'
+import { execSync, execFileSync } from 'node:child_process'
 
 const TEST_DIR = path.join(process.cwd(), 'tmp', 'impl-order-tests')
 const TEST_JSON = path.join(TEST_DIR, 'implementation-order.json')
@@ -18,9 +18,9 @@ const TEST_JSON = path.join(TEST_DIR, 'implementation-order.json')
 // Create test directory and test data
 function setupTest() {
     if (fs.existsSync(TEST_DIR)) {
-        fs.rmSync(TEST_DIR, {recursive: true})
+        fs.rmSync(TEST_DIR, { recursive: true })
     }
-    fs.mkdirSync(TEST_DIR, {recursive: true})
+    fs.mkdirSync(TEST_DIR, { recursive: true })
 
     // Create test implementation order file
     const testData = {
@@ -28,9 +28,9 @@ function setupTest() {
         fieldId: 'PVTF_test',
         generated: '2025-01-01T00:00:00.000Z',
         items: [
-            {issue: 1, order: 1, title: 'First Issue'},
-            {issue: 2, order: 2, title: 'Second Issue'},
-            {issue: 3, order: 3, title: 'Third Issue'}
+            { issue: 1, order: 1, title: 'First Issue' },
+            { issue: 2, order: 2, title: 'Second Issue' },
+            { issue: 3, order: 3, title: 'Third Issue' }
         ]
     }
 
@@ -39,7 +39,7 @@ function setupTest() {
 
 function cleanupTest() {
     if (fs.existsSync(TEST_DIR)) {
-        fs.rmSync(TEST_DIR, {recursive: true})
+        fs.rmSync(TEST_DIR, { recursive: true })
     }
 }
 
@@ -70,7 +70,7 @@ test('Priority analysis - high priority core feature', async (t) => {
             '--force-resequence',
             'false'
         ],
-        {encoding: 'utf8'}
+        { encoding: 'utf8' }
     )
 
     const result = JSON.parse(output)
@@ -111,7 +111,7 @@ test('Priority analysis - low priority documentation', async (t) => {
             '--force-resequence',
             'false'
         ],
-        {encoding: 'utf8'}
+        { encoding: 'utf8' }
     )
 
     const result = JSON.parse(output)
@@ -131,14 +131,14 @@ test('Apply assignment - high priority insertion', async (t) => {
     // Change working directory for the script to find our test file
     const originalCwd = process.cwd()
     const tempScriptDir = path.join(TEST_DIR, 'scripts')
-    fs.mkdirSync(tempScriptDir, {recursive: true})
+    fs.mkdirSync(tempScriptDir, { recursive: true })
 
     // Copy scripts to test location
     fs.copyFileSync('scripts/apply-impl-order-assignment.mjs', path.join(tempScriptDir, 'apply-impl-order-assignment.mjs'))
 
     // Create roadmap directory in test location
     const testRoadmapDir = path.join(TEST_DIR, 'roadmap')
-    fs.mkdirSync(testRoadmapDir, {recursive: true})
+    fs.mkdirSync(testRoadmapDir, { recursive: true })
     fs.copyFileSync(TEST_JSON, path.join(testRoadmapDir, 'implementation-order.json'))
 
     process.chdir(TEST_DIR)
@@ -159,7 +159,7 @@ test('Apply assignment - high priority insertion', async (t) => {
                 '--action',
                 'assign'
             ].join(' '),
-            {encoding: 'utf8', shell: true}
+            { encoding: 'utf8', shell: true }
         )
 
         // Verify the result
@@ -184,14 +184,14 @@ test('Apply assignment - low priority append', async (t) => {
     // Change working directory for the script to find our test file
     const originalCwd = process.cwd()
     const tempScriptDir = path.join(TEST_DIR, 'scripts')
-    fs.mkdirSync(tempScriptDir, {recursive: true})
+    fs.mkdirSync(tempScriptDir, { recursive: true })
 
     // Copy scripts to test location
     fs.copyFileSync('scripts/apply-impl-order-assignment.mjs', path.join(tempScriptDir, 'apply-impl-order-assignment.mjs'))
 
     // Create roadmap directory in test location
     const testRoadmapDir = path.join(TEST_DIR, 'roadmap')
-    fs.mkdirSync(testRoadmapDir, {recursive: true})
+    fs.mkdirSync(testRoadmapDir, { recursive: true })
     fs.copyFileSync(TEST_JSON, path.join(testRoadmapDir, 'implementation-order.json'))
 
     process.chdir(TEST_DIR)
@@ -212,7 +212,7 @@ test('Apply assignment - low priority append', async (t) => {
                 '--action',
                 'assign'
             ].join(' '),
-            {encoding: 'utf8', shell: true}
+            { encoding: 'utf8', shell: true }
         )
 
         // Verify the result
@@ -258,7 +258,7 @@ test('Priority analysis with roadmap path dependencies', async (t) => {
             '--force-resequence',
             'false'
         ],
-        {encoding: 'utf8'}
+        { encoding: 'utf8' }
     )
 
     const result = JSON.parse(output)
@@ -303,7 +303,7 @@ test('Skip action when issue position is reasonable', async (t) => {
             '--force-resequence',
             'false'
         ],
-        {encoding: 'utf8'}
+        { encoding: 'utf8' }
     )
 
     const result = JSON.parse(output)

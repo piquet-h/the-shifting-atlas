@@ -13,7 +13,7 @@ export interface PingResponse {
 }
 
 export async function fetchPing(): Promise<PingResponse> {
-    const performance: {now: () => number} | undefined =
+    const performance: { now: () => number } | undefined =
         typeof window !== 'undefined' && window.performance ? window.performance : undefined
     const start = performance ? performance.now() : Date.now()
     try {
@@ -51,7 +51,7 @@ export async function fetchPing(): Promise<PingResponse> {
             }
         }
 
-        return {ok: true, status, latencyMs, text, json}
+        return { ok: true, status, latencyMs, text, json }
     } catch (err) {
         return {
             ok: false,
@@ -62,4 +62,4 @@ export async function fetchPing(): Promise<PingResponse> {
     }
 }
 
-export default {fetchPing}
+export default { fetchPing }
