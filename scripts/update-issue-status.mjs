@@ -29,14 +29,12 @@
  *   PROJECT_OWNER_TYPE    - 'user' | 'org' (auto-detect if unset)
  */
 
-import {parseArgs} from 'node:util'
+import { parseArgs } from 'node:util'
 
 // Import the functions we need from the main sync script
 // Note: This is a bit of duplication, but keeps the logic centralized
-import crypto from 'node:crypto'
-import fs from 'node:fs'
 import path from 'node:path'
-import {fileURLToPath} from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
