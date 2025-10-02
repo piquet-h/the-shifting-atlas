@@ -1,262 +1,282 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T11:30:46.212Z",
+  "generated": "2025-10-02T11:31:39.521Z",
   "items": [
     {
-      "issue": 74,
+      "issue": 68,
       "order": 1,
+      "title": "M-P4: Layer Validator (Immutability, Contradiction, Length)"
+    },
+    {
+      "issue": 74,
+      "order": 2,
       "title": "ADR-001 Appendix: Cosmos Partition Key Decision"
     },
     {
       "issue": 4,
-      "order": 2,
+      "order": 3,
       "title": "Implement Cosmos Gremlin Location Persistence"
     },
     {
       "issue": 7,
-      "order": 3,
+      "order": 4,
       "title": "Player Bootstrap & Persistence"
     },
     {
       "issue": 49,
-      "order": 4,
+      "order": 5,
       "title": "Managed Identity & Key Vault Secret Management Baseline"
     },
     {
       "issue": 5,
-      "order": 5,
+      "order": 6,
       "title": "Introduce EXIT Edge Model & Link Rooms"
     },
     {
       "issue": 6,
-      "order": 6,
+      "order": 7,
       "title": "Movement Command (HttpMovePlayer)"
     },
     {
       "issue": 9,
-      "order": 7,
+      "order": 8,
       "title": "LOOK Command (HttpLook)"
     },
     {
       "issue": 13,
-      "order": 8,
+      "order": 9,
       "title": "Direction Normalization Utility (Stage 1)"
     },
     {
       "issue": 33,
-      "order": 9,
+      "order": 10,
       "title": "Landmark & Semantic Direction Normalization (N2)"
     },
     {
       "issue": 34,
-      "order": 10,
+      "order": 11,
       "title": "Relative Direction Handling (N3)"
     },
     {
       "issue": 48,
-      "order": 11,
+      "order": 12,
       "title": "Exit Proposal Staging Store"
     },
     {
       "issue": 35,
-      "order": 12,
+      "order": 13,
       "title": "Exit Generation Fallback & Event Emission (N4)"
     },
     {
       "issue": 8,
-      "order": 13,
+      "order": 14,
       "title": "Exits Summary Cache Generation Utility"
     },
     {
       "issue": 12,
-      "order": 14,
+      "order": 15,
       "title": "Seed Script: Anchor Locations & Exits"
     },
     {
       "issue": 15,
-      "order": 15,
+      "order": 16,
       "title": "Smoke Test Script (Movement Loop)"
     },
     {
       "issue": 14,
-      "order": 16,
+      "order": 17,
       "title": "Integration Test Harness (Traversal + Persistence)"
     },
     {
       "issue": 10,
-      "order": 17,
+      "order": 18,
       "title": "Telemetry Event Registry Expansion"
     },
     {
       "issue": 11,
-      "order": 18,
+      "order": 19,
       "title": "Gremlin RU & Latency Telemetry Wrapper"
     },
     {
       "issue": 45,
-      "order": 19,
+      "order": 20,
       "title": "World Event Queue Processor Skeleton"
     },
     {
       "issue": 40,
-      "order": 20,
+      "order": 21,
       "title": "Lore Canonical Fact Store (CRUD + Versioning)"
     },
     {
       "issue": 36,
-      "order": 21,
+      "order": 22,
       "title": "Biome & Environmental Tag Registry Scaffold"
     },
     {
       "issue": 44,
-      "order": 22,
+      "order": 23,
       "title": "Description Layering Engine & Render Pipeline"
     },
     {
       "issue": 63,
-      "order": 23,
+      "order": 24,
       "title": "ADR-001: Mosswell Persistence & Tokenless Description Layering"
     },
     {
       "issue": 66,
-      "order": 24,
+      "order": 25,
       "title": "M-P2A: Structural Event Layer Simulation Script"
     },
     {
       "issue": 71,
-      "order": 25,
+      "order": 26,
       "title": "Gremlin Health Check Function (HttpGremlinHealth)"
     },
     {
       "issue": 64,
-      "order": 26,
+      "order": 27,
       "title": "M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes)"
     },
     {
       "issue": 37,
-      "order": 27,
+      "order": 28,
       "title": "Prompt Template Registry & Versioned Metadata"
     },
     {
       "issue": 38,
-      "order": 28,
+      "order": 29,
       "title": "MCP Read-Only Servers: world-query & lore-memory"
     },
     {
       "issue": 41,
-      "order": 29,
+      "order": 30,
       "title": "Application Insights Correlation & OpenTelemetry Wiring"
     },
     {
       "issue": 50,
-      "order": 30,
+      "order": 31,
       "title": "AI Cost & Token Usage Telemetry + Budget Guardrails"
     },
     {
       "issue": 46,
-      "order": 31,
+      "order": 32,
       "title": "Telemetry MCP Server (Read-Only)"
     },
     {
       "issue": 52,
-      "order": 32,
+      "order": 33,
       "title": "Learn more page"
     },
     {
       "issue": 39,
-      "order": 33,
+      "order": 34,
       "title": "AI Structured Response Validator & Schema Gate"
     },
     {
       "issue": 47,
-      "order": 34,
+      "order": 35,
       "title": "AI Moderation Pipeline Phase 1"
     },
     {
       "issue": 42,
-      "order": 35,
+      "order": 36,
       "title": "Security Baseline: Rate Limiting & Input Validation"
     },
     {
       "issue": 22,
-      "order": 36,
+      "order": 37,
       "title": "Automate implementation order assignment for new issues using Copilot"
     },
     {
       "issue": 26,
-      "order": 37,
+      "order": 38,
       "title": "✨ Set up Copilot instructions"
     },
     {
       "issue": 21,
-      "order": 38,
+      "order": 39,
       "title": "Remove text in logged in header"
     },
     {
       "issue": 24,
-      "order": 39,
+      "order": 40,
       "title": "\"Create your explorer\" fails"
     },
     {
       "issue": 28,
-      "order": 40,
+      "order": 41,
       "title": "Frontend Managed API not deploying properly"
     },
     {
       "issue": 30,
-      "order": 41,
+      "order": 42,
       "title": "Ensure correct Issue board status in Projects"
     },
     {
       "issue": 17,
-      "order": 42,
+      "order": 43,
       "title": "DI Suitability Report"
     },
     {
       "issue": 53,
-      "order": 43,
+      "order": 44,
       "title": "Rooms discovered should be dynamic and renamed"
     },
     {
       "issue": 55,
-      "order": 44,
+      "order": 45,
       "title": "Player Command Intent Schema & Validator (PI-0)"
     },
     {
       "issue": 56,
-      "order": 45,
+      "order": 46,
       "title": "Heuristic Player Command Parser Design (PI-0)"
     },
     {
       "issue": 57,
-      "order": 46,
+      "order": 47,
       "title": "Managed API Player Command Endpoint Contract (PI-2 Prep)"
     },
     {
       "issue": 58,
-      "order": 47,
+      "order": 48,
       "title": "Clarification Loop Interaction Design (PI-2)"
     },
     {
       "issue": 59,
-      "order": 48,
+      "order": 49,
       "title": "Player Command Telemetry & Evaluation Harness (PI-0/PI-1)"
     },
     {
       "issue": 60,
-      "order": 49,
+      "order": 50,
       "title": "Local LLM Intent Extraction Design (PI-1)"
     },
     {
       "issue": 70,
-      "order": 50,
+      "order": 51,
       "title": "ADR-001: Acceptance & Cross-Linking"
     },
     {
       "issue": 72,
-      "order": 51,
+      "order": 52,
       "title": "Persistence Strict Fallback Guard"
+    },
+    {
+      "issue": 69,
+      "order": 53,
+      "title": "M-P5: Description Telemetry & Integrity Hash Job"
+    },
+    {
+      "issue": 67,
+      "order": 54,
+      "title": "M-P3: Ambient Snippet Registry & Deterministic Selection"
+    },
+    {
+      "issue": 65,
+      "order": 55,
+      "title": "M-P2: Description Composer Minimal (Base + Structural Layers)"
     }
   ]
 }
