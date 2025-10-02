@@ -42,6 +42,12 @@ Source of truth: `roadmap/implementation-order.json`
 | 36    | #30   | Ensure correct Issue board status in Projects                         |           | scope:devx          | enhancement  | Done        |
 | 37    | #17   | DI Suitability Report                                                 |           | scope:devx          | docs         |             |
 | 38    | #53   | Rooms discovered should be dynamic and renamed                        |           |                     |              | Todo        |
+| 39    | #55   | Player Command Intent Schema & Validator (PI-0)                       |           |                     |              |             |
+| 40    | #56   | Heuristic Player Command Parser Design (PI-0)                         |           |                     |              |             |
+| 41    | #57   | Managed API Player Command Endpoint Contract (PI-2 Prep)              |           |                     |              |             |
+| 42    | #58   | Clarification Loop Interaction Design (PI-2)                          |           |                     |              |             |
+| 43    | #59   | Player Command Telemetry & Evaluation Harness (PI-0/PI-1)             |           |                     |              |             |
+| 44    | #60   | Local LLM Intent Extraction Design (PI-1)                              |           |                     |              |             |
 
 ## Next Up
 
@@ -53,4 +59,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 5     | #6    | Todo        | Movement Command (HttpMovePlayer)                       |
 | 6     | #9    | Todo        | LOOK Command (HttpLook)                                 |
 
-Last sync: 2025-09-30T10:17:55.816Z
+Last sync: 2025-10-02T00:00:00.000Z

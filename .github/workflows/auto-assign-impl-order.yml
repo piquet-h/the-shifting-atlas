@@ -3,6 +3,11 @@ name: Auto Assign Implementation Order
 on:
     issues:
         types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
+    pull_request:
+        paths:
+            - 'docs/**/*.md'
+            - '.github/copilot-instructions.md'
+            - 'shared/src/telemetryEvents.ts'
     workflow_dispatch:
         inputs:
             issue_number:
@@ -25,6 +30,7 @@ concurrency:
 
 jobs:
     assign:
+        if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
         name: Analyze & Assign Implementation Order
         runs-on: ubuntu-latest
         timeout-minutes: 8
@@ -214,3 +220,86 @@ jobs:
             - name: Cleanup
               if: always()
               run: rm -f issue.json issue_body.txt analysis.json rationale.txt comment.md || true
+
+    doc-drift:
+        if: github.event_name == 'pull_request'
+        name: Detect Reprioritisation Signals (Docs)
+        runs-on: ubuntu-latest
+        timeout-minutes: 6
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+            - name: Analyze Doc Drift
+              id: drift
+              run: |
+                  node scripts/analyze-doc-drift.mjs --base origin/${{ github.base_ref }} --head HEAD > drift.json
+                  echo "action=$(jq -r .recommendedAction drift.json)" >> $GITHUB_OUTPUT
+                  echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
+            - name: Auto Resequence (Heuristic)
+              id: reseq
+              if: steps.drift.outputs.action == 'resequence' && !contains(github.event.pull_request.labels.*.name, 'reprioritisation-suppress')
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  node scripts/auto-resequence-from-drift.mjs --drift drift.json --threshold 3
+                  if [ -f resequence-delta.json ]; then
+                    echo "changed=true" >> $GITHUB_OUTPUT
+                  fi
+                  # Regenerate roadmap docs if ordering changed
+                  if [ -f resequence-delta.md ]; then
+                    node scripts/sync-implementation-order.mjs apply || echo "Sync script failed (non-fatal)"
+                    git config user.name 'github-actions[bot]'
+                    git config user.email 'github-actions[bot]@users.noreply.github.com'
+                    git add roadmap/implementation-order.json docs/roadmap.md || true
+                    if git diff --cached --quiet; then
+                      echo "No staged changes after add."
+                    else
+                      # Build multi-line commit message including delta summary (first 30 lines)
+                      head -n 30 resequence-delta.md > commit-msg.txt
+                      printf "\nTokens (top):\n" >> commit-msg.txt
+                      jq -r '.tokens[0:10] | map("- \(.t): \(.w)") | .[]' resequence-delta.json 2>/dev/null >> commit-msg.txt || true
+                      git commit -m "chore: auto-resequence (doc drift heuristic)" -F commit-msg.txt || echo "Commit failed"
+                      for attempt in 1 2 3; do
+                        git fetch origin $GITHUB_HEAD_REF || true
+                        if git push; then echo "Push succeeded"; break; else echo "Push failed attempt $attempt"; sleep $((attempt*2)); fi
+                      done
+                    fi
+                  else
+                    echo "No implementation-order change detected; skipping commit."
+            - name: Comment on PR
+              if: steps.drift.outputs.action != 'none'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  node scripts/format-drift-comment.mjs drift.json > comment.md
+                  if [ -f resequence-delta.md ]; then
+                    printf "\n---\n\n%s\n" "$(cat resequence-delta.md)" >> comment.md
+                  fi
+                  if [ "${{ steps.reseq.outputs.changed }}" = "true" ]; then
+                    echo "(Auto resequence applied)" >> comment.md
+                  fi
+                  gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+            - name: Open Reprioritisation Proposal Issue
+              if: steps.drift.outputs.action == 'resequence' && steps.reseq.outputs.changed != 'true'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }} ${GITHUB_HEAD_REF}" || title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }}"
+                  {
+                    echo "Automated detection suggests resequencing (score: $(jq -r .scoreTotal drift.json))."
+                    echo
+                    echo "Automated script did not apply changes (likely below threshold or unchanged ordering)."
+                    echo
+                    echo "Raw JSON:"
+                    echo
+                    echo '```'
+                    cat drift.json
+                    echo '```'
+                  } > issue_body.md
+                  gh issue create --title "$title" --body-file issue_body.md --label scope:devx --label enhancement || echo "Issue creation skipped"

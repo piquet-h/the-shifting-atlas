@@ -18,3 +18,8 @@ issue_details.json
 issue_description.txt
 analysis_result.json
 rationale.txt
+
+# Drift / resequence transient artifacts (defensive — ensure not committed if re-created)
+drift-sample.json
+resequence-delta.json
+resequence-delta.md
