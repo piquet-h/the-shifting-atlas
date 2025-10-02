@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T05:30:23.565Z",
+  "generated": "2025-10-02T05:32:01.718Z",
   "items": [
     {
       "issue": 4,
@@ -227,6 +227,11 @@
       "issue": 60,
       "order": 45,
       "title": "Local LLM Intent Extraction Design (PI-1)"
+    },
+    {
+      "issue": 70,
+      "order": 46,
+      "title": "ADR-001: Acceptance & Cross-Linking"
     }
   ]
 }

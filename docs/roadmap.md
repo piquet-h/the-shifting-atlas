@@ -49,6 +49,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 43 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
 | 44 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
 | 45 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
+| 46 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | type:docs |  |
 
 ## Next Up
 
@@ -60,4 +61,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 | 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-02T05:30:31.168Z
+Last sync: 2025-10-02T05:32:14.200Z
