@@ -71,14 +71,15 @@ export class CosmosLocationRepository implements ILocationRepository {
                 lid: location.id,
                 name: location.name,
                 desc: location.description || '',
-                ver: newVersion
+                ver: newVersion,
+                pk: 'world' // Partition key required by Cosmos Gremlin API
             }
             if (location.tags) {
                 bindings.tags = location.tags
             }
 
             await this.client.submit(
-                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid))" +
+                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid).property('partitionKey', pk))" +
                     ".property('name', name).property('description', desc).property('version', ver)" +
                     (location.tags ? ".property('tags', tags)" : ''),
                 bindings
@@ -105,9 +106,15 @@ export class CosmosLocationRepository implements ILocationRepository {
     /** Ensure an exit edge with direction exists between fromId and toId */
     async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }> {
         if (!isDirection(direction)) return { created: false }
-        // Ensure both vertices exist (no-op if present)
-        await this.client.submit("g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid))", { fid: fromId })
-        await this.client.submit("g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid))", { tid: toId })
+        // Ensure both vertices exist (no-op if present); include partitionKey for Cosmos Gremlin API requirement
+        await this.client.submit(
+            "g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid).property('partitionKey', pk))",
+            { fid: fromId, pk: 'world' }
+        )
+        await this.client.submit(
+            "g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('partitionKey', pk))",
+            { tid: toId, pk: 'world' }
+        )
         // Use coalesce on existing edge
         await this.client.submit(
             "g.V(fid).as('a').V(tid).coalesce( a.outE('exit').has('direction', dir).where(inV().hasId(tid)), addE('exit').from('a').to(V(tid)).property('direction', dir).property('description', desc) )",

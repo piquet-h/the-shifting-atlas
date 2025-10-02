@@ -57,7 +57,9 @@ resource gremlinDb 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2023-
   }
 }
 
-// Gremlin graph (container). Partition key on /id (see ADR-001 appendix for rationale: simple id lookups, low cardinality risk)
+// Gremlin graph (container). Partition key on /partitionKey.
+// Note: Gremlin API reserves /id and /label, so a custom property must be used.
+// All vertices must set this property; a common strategy is to use vertex type or a region identifier.
 resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2023-09-15-preview' = {
   name: cosmosGremlinGraphName
   parent: gremlinDb
@@ -66,7 +68,7 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
       id: cosmosGremlinGraphName
       partitionKey: {
         paths: [
-          '/id'
+          '/partitionKey'
         ]
         kind: 'Hash'
         version: 2

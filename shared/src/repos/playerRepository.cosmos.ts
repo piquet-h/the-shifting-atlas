@@ -18,11 +18,12 @@ export class CosmosPlayerRepository implements IPlayerRepository {
             if (existing) return { record: existing, created: false }
         }
         const newId = id || cryptoRandomUUID()
-        // Create vertex (optimistically; ignore race condition for now)
+        // Create vertex (optimistically; ignore race condition for now); include partitionKey for Cosmos Gremlin API
         await this.client.submit(
-            "g.addV('player').property('id', pid).property('createdUtc', created).property('guest', true).property('currentLocationId', startLoc)",
+            "g.addV('player').property('id', pid).property('partitionKey', pk).property('createdUtc', created).property('guest', true).property('currentLocationId', startLoc)",
             {
                 pid: newId,
+                pk: 'world', // Partition key required by Cosmos Gremlin API
                 created: new Date().toISOString(),
                 startLoc: STARTER_LOCATION_ID
             }
