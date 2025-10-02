@@ -9,18 +9,23 @@
  *  - roadmap/implementation-order.json (ordering + titles) — source of truth order
  *  - GitHub Issues + ProjectV2 (labels, state, existing date field values, createdAt/closedAt)
  *
- * Heuristic:
- *  1. Build historical duration samples from CLOSED issues that have both start & target project date
- *     fields OR derive duration = closedAt - createdAt (fallback) in whole days (>=1).
- *  2. Group samples by composite key scopeLabel|typeLabel (scope label starts with 'scope:'; type is first
- *     non-scope label). Compute median per key; also compute per-scope and global median fallback.
- *  3. Walk implementation-order ascending. Skip issues already CLOSED or with Status = Done.
- *  4. For each unscheduled issue, if it already has both start + target dates, retain unless the start
- *     is earlier than the previous chain end (indicates drift) — then shift forward preserving its duration.
- *  5. For issues missing dates, assign start = previous chain end (or TODAY if first) and duration =
- *     median(scope|type) || median(scope) || median(global) || DEFAULT_DURATION_DAYS (2). Target = start + duration - 1 day.
- *  6. Optionally skip assigning dates to items whose Status is not yet 'Todo' (configurable) — current logic
- *     only skips if already Done/Closed.
+ * Heuristic (updated to support stable Gantt semantics):
+ *  1. Build historical duration samples from CLOSED issues that have both Start & Finish OR fallback to
+ *     createdAt->closedAt elapsed whole days (>=1).
+ *  2. Compute medians per (scope|type), per scope, global; use DEFAULT_DURATION_DAYS as final fallback.
+ *  3. Iterate implementation-order. Skip CLOSED or Status = Done.
+ *  4. Status IN PROGRESS semantics:
+ *       - Preserve the actual recorded Start date (do NOT rebaseline to today).
+ *       - If Start missing, set Start = today (first detection) and compute Finish = Start + plannedDuration - 1.
+ *       - If Finish exists but today > Finish, extend Finish to today (work took longer; cannot finish earlier).
+ *       - If Finish is missing, compute it from Start + plannedDuration - 1; extend to today if already past.
+ *  5. NOT STARTED (e.g., Status = Todo) with existing Start/Finish:
+ *       - If their window lies before the current cursor (gap/overdue), shift block forward preserving inclusive duration.
+ *       - Overdue windows (Finish < today) are also shifted forward even without weekly reseat.
+ *  6. Items missing any date(s): assign projected Start = max(cursor, today) and Finish = Start + plannedDuration - 1.
+ *  7. Sequential resource constraint: cursor always advances to (Finish + 1 day); we never pull future work earlier.
+ *  8. RESEAT_EXISTING still allows forward shifts for already scheduled future items when earlier blocks grew; it no
+ *     longer controls overdue correction (which now always applies).
  *
  * Modes:
  *   dry-run (default)  – prints planned changes, exits 0
@@ -289,7 +294,7 @@ async function main() {
 
     const projectMap = new Map(projectItems.map((pi) => [pi.content.number, pi]))
     const ordered = [...roadmap.items].sort((a, b) => a.order - b.order)
-    // Today (UTC midnight) used for initial cursor AND rebaseline anchor for in-progress items.
+    // Today (UTC midnight) used for initial cursor; in-progress items retain original Start once set.
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
     let cursorDate = new Date(today)
@@ -303,44 +308,89 @@ async function main() {
         const existingStart = extractFieldValue(item, START_FIELD_NAME)
         const existingEnd = extractFieldValue(item, TARGET_FIELD_NAME)
         const { scope, type } = classifyIssue(issue)
+        const inProgress = /in progress/i.test(status)
+
+        // Case 1: Both dates already present
         if (existingStart && existingEnd) {
             const sDate = new Date(existingStart + 'T00:00:00Z')
             const eDate = new Date(existingEnd + 'T00:00:00Z')
-            const inProgress = /in progress/i.test(status)
+            const inclusiveDuration = Math.max(1, wholeDayDiff(sDate, eDate))
+
             if (inProgress) {
-                // Rebaseline: move Start to today (even if that is earlier or later than original) and preserve duration.
-                // If today is past original Finish (overdue), we still preserve original duration length starting today.
-                const originalDuration = Math.max(1, wholeDayDiff(sDate, eDate))
-                const newStart = new Date(today)
-                const newEnd = addDays(newStart, originalDuration - 1)
-                const reason = today > eDate ? 'rebaseline-overdue' : 'rebaseline'
-                // Only record a change if dates actually differ to avoid noise.
-                if (iso(newStart) !== iso(sDate) || iso(newEnd) !== iso(eDate)) {
-                    changes.push({ issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason })
+                // Preserve actual start; extend finish if overdue (today later than current finish)
+                let newStart = sDate
+                let newEnd = eDate
+                if (today > newEnd) {
+                    newEnd = new Date(today) // extend ongoing work
                 }
-                cursorDate = addDays(newEnd, 1)
-            } else if (RESEAT_EXISTING && sDate < cursorDate) {
-                const dur = Math.max(1, wholeDayDiff(sDate, eDate))
-                const newStart = new Date(cursorDate)
-                const newEnd = addDays(newStart, dur - 1)
-                changes.push({ issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason: 'reseat' })
+                // No compression: if start lies before cursor (e.g., earlier tasks slipped), we do NOT move it.
+                // Instead we allow overlap in historical sense but advance cursor from the *later* of cursor & newEnd.
+                // For future scheduling we must ensure next start begins after real finish.
+                if (iso(newStart) !== iso(sDate) || iso(newEnd) !== iso(eDate)) {
+                    changes.push({
+                        issue: issue.number,
+                        itemId: item.id,
+                        start: iso(newStart),
+                        target: iso(newEnd),
+                        reason: today > eDate ? 'extend-in-progress' : 'adjust-in-progress'
+                    })
+                }
+                // Cursor must be at least day after finish (sequential capacity constraint)
                 cursorDate = addDays(newEnd, 1)
             } else {
-                cursorDate = addDays(eDate, 1)
+                // Not started yet (Todo / Backlog). If scheduled window is in the past or overlaps cursor, shift forward.
+                const needsShift = sDate < cursorDate || eDate < today
+                if (needsShift || (RESEAT_EXISTING && sDate < cursorDate)) {
+                    const dur = inclusiveDuration
+                    const newStart = new Date(Math.max(cursorDate.getTime(), today.getTime()))
+                    const newEnd = addDays(newStart, dur - 1)
+                    const reason = eDate < today ? 'overdue-shift' : 'shift-forward'
+                    changes.push({ issue: issue.number, itemId: item.id, start: iso(newStart), target: iso(newEnd), reason })
+                    cursorDate = addDays(newEnd, 1)
+                } else {
+                    cursorDate = addDays(eDate, 1)
+                }
             }
             continue
         }
-        const dur = Math.max(1, Math.round(chooseDuration(medians, scope, type, DEFAULT_DURATION_DAYS)))
-        const start = new Date(cursorDate)
-        const target = addDays(start, dur - 1)
+
+        // Case 2: Missing one or both dates
+        const plannedDuration = Math.max(1, Math.round(chooseDuration(medians, scope, type, DEFAULT_DURATION_DAYS)))
+        if (inProgress) {
+            // If start missing, set it today; else keep existing start if present.
+            const startDate = existingStart ? new Date(existingStart + 'T00:00:00Z') : new Date(today)
+            let finishDate
+            if (existingEnd) {
+                finishDate = new Date(existingEnd + 'T00:00:00Z')
+            } else {
+                finishDate = addDays(startDate, plannedDuration - 1)
+            }
+            if (today > finishDate) finishDate = new Date(today)
+            const needChange = !existingStart || !existingEnd || iso(startDate) !== existingStart || iso(finishDate) !== existingEnd
+            if (needChange) {
+                changes.push({
+                    issue: issue.number,
+                    itemId: item.id,
+                    start: iso(startDate),
+                    target: iso(finishDate),
+                    reason: !existingStart ? 'start-in-progress' : !existingEnd ? 'finish-infer' : 'extend-in-progress'
+                })
+            }
+            cursorDate = addDays(finishDate, 1)
+            continue
+        }
+
+        // Not started & missing dates: project forward.
+        const projectedStart = new Date(Math.max(cursorDate.getTime(), today.getTime()))
+        const projectedFinish = addDays(projectedStart, plannedDuration - 1)
         changes.push({
             issue: issue.number,
             itemId: item.id,
-            start: iso(start),
-            target: iso(target),
+            start: iso(projectedStart),
+            target: iso(projectedFinish),
             reason: existingStart || existingEnd ? 'partial-fill' : 'new'
         })
-        cursorDate = addDays(target, 1)
+        cursorDate = addDays(projectedFinish, 1)
     }
 
     if (!changes.length) {
