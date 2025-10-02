@@ -13,11 +13,11 @@
         "isolatedModules": true,
         "noEmitOnError": true,
         "types": ["node"],
-        "baseUrl": ".",
-        "paths": {
-            "@atlas/shared": ["shared/src/index.ts"],
-            "@atlas/shared/*": ["shared/src/*"]
-        }
+        "baseUrl": "."
+        /* Removed '@atlas/shared' path mapping to prevent source files from the shared package being
+           pulled directly into dependent project compilation contexts (e.g. frontend) which caused
+           TS6059/TS6307 rootDir and file list errors. Resolution now relies on workspace package
+           semantics + project references so only built declaration outputs are consumed. */
     },
     "exclude": ["node_modules", "dist", "src/**/__tests__", "**/*.test.ts"]
 }

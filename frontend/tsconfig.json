@@ -13,5 +13,6 @@
         "types": ["vite/client", "node"],
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
-    "include": ["src"]
+    "include": ["src"],
+    "references": [{ "path": "../shared" }]
 }

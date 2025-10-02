@@ -25,7 +25,11 @@
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "test": "node --test --import=tsx test/*.test.ts"
     },
+    "dependencies": {
+        "gremlin": "^3.7.0"
+    },
     "devDependencies": {
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "@types/gremlin": "^3.6.5"
     }
 }
