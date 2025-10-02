@@ -5,9 +5,9 @@ Source of truth: `roadmap/implementation-order.json`
 | Order | Issue | Title | Milestone | Scope | Type | Status |
 | ----- | ----- | ----- | --------- | ----- | ---- | ------ |
 | 1 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
-| 2 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | In progress |
+| 2 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Done |
 | 3 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | type:infra |  |
-| 4 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | Todo |
+| 4 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
 | 5 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
 | 6 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
 | 7 | #13 | Direction Normalization Utility (Stage 1) |  | scope:traversal | feature | Todo |
@@ -25,38 +25,39 @@ Source of truth: `roadmap/implementation-order.json`
 | 19 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
 | 20 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
 | 21 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
-| 22 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
-| 23 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
-| 24 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
-| 25 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
-| 26 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
-| 27 | #52 | Learn more page |  |  | enhancement | Todo |
-| 28 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
-| 29 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
-| 30 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
-| 31 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
-| 32 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
-| 33 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
-| 34 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
-| 35 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
-| 36 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
-| 37 | #17 | DI Suitability Report |  | scope:devx | docs |  |
-| 38 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
-| 39 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
-| 40 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
-| 41 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
-| 42 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
-| 43 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
-| 44 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
+| 22 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | type:docs |  |
+| 23 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
+| 24 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
+| 25 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
+| 26 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
+| 27 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
+| 28 | #52 | Learn more page |  |  | enhancement | Todo |
+| 29 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
+| 30 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
+| 31 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
+| 32 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
+| 33 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
+| 34 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
+| 35 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
+| 36 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
+| 37 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
+| 38 | #17 | DI Suitability Report |  | scope:devx | docs |  |
+| 39 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
+| 40 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
+| 41 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
+| 42 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
+| 43 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
+| 44 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
+| 45 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
 
 ## Next Up
 
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
-| 2 | #7 | In progress | Player Bootstrap & Persistence |
 | 3 | #49 |  | Managed Identity & Key Vault Secret Management Baseline |
-| 4 | #5 | Todo | Introduce EXIT Edge Model & Link Rooms |
+| 4 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
 | 5 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
+| 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-02T03:27:46.368Z
+Last sync: 2025-10-02T05:30:31.168Z
