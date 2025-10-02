@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T10:08:45.211Z",
+  "generated": "2025-10-02T11:35:57.733Z",
   "items": [
     {
       "issue": 4,
@@ -247,6 +247,36 @@
       "issue": 70,
       "order": 49,
       "title": "ADR-001: Acceptance & Cross-Linking"
+    },
+    {
+      "issue": 72,
+      "order": 50,
+      "title": "Persistence Strict Fallback Guard"
+    },
+    {
+      "issue": 69,
+      "order": 51,
+      "title": "M-P5: Description Telemetry & Integrity Hash Job"
+    },
+    {
+      "issue": 68,
+      "order": 52,
+      "title": "M-P4: Layer Validator (Immutability, Contradiction, Length)"
+    },
+    {
+      "issue": 67,
+      "order": 53,
+      "title": "M-P3: Ambient Snippet Registry & Deterministic Selection"
+    },
+    {
+      "issue": 65,
+      "order": 54,
+      "title": "M-P2: Description Composer Minimal (Base + Structural Layers)"
+    },
+    {
+      "issue": 51,
+      "order": 55,
+      "title": "(Conditional) Provision Dedicated Key Vault & Bicep Amend"
     }
   ]
 }
