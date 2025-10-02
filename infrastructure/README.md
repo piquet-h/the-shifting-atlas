@@ -2,11 +2,11 @@
 
 Provisioned resources:
 
-| Resource                      | Purpose                                               | Notes                                                                    |
-| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| Azure Static Web App (SWA)    | Hosts frontend + managed API (`/frontend/api`).       | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`). |
-| Azure Cosmos DB (Gremlin API) | World graph: rooms, exits, NPCs, items, player state. | Session consistency; Gremlin capability enabled.                         |
-| Azure Key Vault               | Stores Cosmos primary key secret.                     | Access policy grants SWA system identity get/list for secrets.           |
+| Resource                      | Purpose                                               | Notes                                                                                                                |
+| ----------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Azure Static Web App (SWA)    | Hosts frontend + managed API (`/frontend/api`).       | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                             |
+| Azure Cosmos DB (Gremlin API) | World graph: rooms, exits, NPCs, items, player state. | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices). |
+| Azure Key Vault               | Stores Cosmos primary key secret.                     | Access policy grants SWA system identity get/list for secrets.                                                       |
 
 Files:
 
@@ -14,6 +14,20 @@ Files:
 - `parameters.json` – example / placeholder (not required; inline params acceptable)
 
 Earlier storage + separate Function App plan has been superseded by co‑located managed API for MVP.
+
+## Cosmos DB Gremlin Partition Key
+
+The Gremlin graph uses `/partitionKey` as the partition key property. **Important constraints**:
+
+- Gremlin API reserves `/id` and `/label` properties; they cannot be used as partition keys
+- All vertices must include a `partitionKey` property when created
+- Common strategies: use vertex type (e.g., `"Location"`, `"Player"`) or a domain-specific identifier (e.g., region, zone)
+- For small-to-medium graphs, a single partition value (e.g., `"world"`) is acceptable during development
+
+**Example vertex creation**:
+```gremlin
+g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').property('name', 'Mosswell Square')
+```
 
 ## Parameters
 
@@ -108,6 +122,7 @@ az deployment group create \
 
 | Date       | Change                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------ |
+| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).          |
 | 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references. |
 
 ## Contributing

@@ -23,3 +23,7 @@ rationale.txt
 drift-sample.json
 resequence-delta.json
 resequence-delta.md
+
+# Generated ARM templates from Bicep build
+infrastructure/*.json
+!infrastructure/parameters.json
