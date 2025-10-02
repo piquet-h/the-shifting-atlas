@@ -4,6 +4,7 @@
  * Gracefully no-ops if not supplied (e.g., local dev without telemetry).
  */
 /* global localStorage */
+import { GAME_EVENT_NAMES } from '@atlas/shared'
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
 
 let appInsights: ApplicationInsights | undefined
@@ -36,6 +37,11 @@ export function trackEvent(name: string, properties?: Record<string, unknown>) {
 // Automatically injects service + playerGuid (from localStorage) + optional persistence mode (via env var)
 export function trackGameEventClient(name: string, properties?: Record<string, unknown>) {
     if (!appInsights) return
+    if (!(GAME_EVENT_NAMES as readonly string[]).includes(name)) {
+        // Surface invalid event names explicitly for later cleanup / dashboards
+        trackEvent('Telemetry.EventName.Invalid', { requested: name })
+        return
+    }
     let playerGuid: string | undefined
     try {
         const g = localStorage.getItem('tsa.playerGuid')

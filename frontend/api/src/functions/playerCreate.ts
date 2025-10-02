@@ -13,13 +13,16 @@ app.http('PlayerCreate', {
     methods: ['POST', 'GET'], // allow GET for simplicity during MVP
     authLevel: 'anonymous',
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+        const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const repo = getPlayerRepository()
         const result = await ensurePlayerForRequest(req.headers, repo)
         if (result.created) {
-            trackGameEventStrict('Player.Created', { playerGuid: result.playerGuid, method: result.source }, { correlationId })
+            const latencyMs = Date.now() - started
+            trackGameEventStrict('Player.Created', { playerGuid: result.playerGuid, method: result.source, latencyMs }, { correlationId })
         }
-        trackGameEventStrict('Player.Get', { playerGuid: result.playerGuid, status: 200 }, { correlationId })
+        const latencyMs = Date.now() - started
+        trackGameEventStrict('Player.Get', { playerGuid: result.playerGuid, status: 200, latencyMs }, { correlationId })
         const body = ok(
             {
                 id: result.playerGuid,

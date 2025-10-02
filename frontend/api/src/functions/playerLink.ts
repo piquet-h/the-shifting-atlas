@@ -17,6 +17,7 @@ interface LinkResponseBody {
 }
 
 export async function playerLink(request: HttpRequest): Promise<HttpResponseInit> {
+    const started = Date.now()
     const playerRepo = getPlayerRepository()
     let body: LinkRequestBody = {}
     try {
@@ -34,6 +35,10 @@ export async function playerLink(request: HttpRequest): Promise<HttpResponseInit
         await playerRepo.linkExternalId(guid, externalId)
         trackGameEventStrict('Auth.Player.Upgraded', { linkStrategy: 'merge', hadGuestProgress: true }, { playerGuid: guid })
     }
+    // Optional latency metric for upgrade path
+    const latencyMs = Date.now() - started
+    // Augment final event (reuse Player.Get semantics not necessary here); we could emit dedicated event if needed later.
+    trackGameEventStrict('Player.Get', { playerGuid: guid, status: 200, latencyMs }, {})
     const resBody: LinkResponseBody = { playerGuid: guid, linked: true, alreadyLinked, externalId: record.externalId }
     return json(200, resBody)
 }

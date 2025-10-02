@@ -6,6 +6,7 @@ app.http('PlayerGet', {
     methods: ['GET'],
     authLevel: 'anonymous',
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+        const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const repo = getPlayerRepository()
         const id = req.query.get('id') || req.headers.get('x-player-guid') || undefined
@@ -15,11 +16,13 @@ app.http('PlayerGet', {
         }
         const rec = await repo.get(id)
         if (!rec) {
-            trackGameEventStrict('Player.Get', { playerGuid: id, status: 404 }, { correlationId })
+            const latencyMs = Date.now() - started
+            trackGameEventStrict('Player.Get', { playerGuid: id, status: 404, latencyMs }, { correlationId })
             const body = err('NotFound', 'Player not found', correlationId)
             return { status: 404, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: body }
         }
-        trackGameEventStrict('Player.Get', { playerGuid: id, status: 200 }, { correlationId })
+        const latencyMs = Date.now() - started
+        trackGameEventStrict('Player.Get', { playerGuid: id, status: 200, latencyMs }, { correlationId })
         const body = ok({ id: rec.id, guest: rec.guest, externalId: rec.externalId }, correlationId)
         return {
             status: 200,

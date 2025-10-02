@@ -88,11 +88,20 @@ export interface EventPayloadMap {
     'Ping.Invoked': { echo?: string | null; latencyMs?: number }
     'Onboarding.GuestGuid.Started': Record<string, never>
     'Onboarding.GuestGuid.Created': { phase?: string }
+    'Onboarding.GuestGuid.Completed': { created: boolean }
     'Auth.Player.Upgraded': { linkStrategy?: string; hadGuestProgress?: boolean }
-    'Player.Get': { playerGuid: string; status: number }
-    'Player.Created': { playerGuid: string; method: string }
-    'Location.Get': { id: string; status: number }
-    'Location.Move': { from: string; to?: string; direction?: string | null; status: number; reason?: string; rawInput?: string }
+    'Player.Get': { playerGuid: string; status: number; latencyMs?: number }
+    'Player.Created': { playerGuid: string; method: string; latencyMs?: number }
+    'Location.Get': { id: string; status: number; latencyMs?: number }
+    'Location.Move': {
+        from: string
+        to?: string
+        direction?: string | null
+        status: number
+        reason?: string
+        rawInput?: string
+        latencyMs?: number
+    }
     'Navigation.Input.Ambiguous': { from: string; input: string; reason: string }
     'Command.Executed': { command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null }
     'World.Location.Generated': { locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string }

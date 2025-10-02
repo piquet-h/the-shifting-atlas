@@ -21,19 +21,23 @@ const locationRepo = getLocationRepository()
 const headingStore = getPlayerHeadingStore()
 
 export async function getLocationHandler(req: HttpRequest): Promise<HttpResponseInit> {
+    const started = Date.now()
     const id = req.query.get('id') || STARTER_LOCATION_ID
     const location = await locationRepo.get(id)
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
     if (!location) {
-        trackGameEventStrict('Location.Get', { id, status: 404 }, { playerGuid, correlationId })
+        const latencyMs = Date.now() - started
+        trackGameEventStrict('Location.Get', { id, status: 404, latencyMs }, { playerGuid, correlationId })
         return { status: 404, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: { error: 'Location not found', id } }
     }
-    trackGameEventStrict('Location.Get', { id, status: 200 }, { playerGuid, correlationId })
+    const latencyMs = Date.now() - started
+    trackGameEventStrict('Location.Get', { id, status: 200, latencyMs }, { playerGuid, correlationId })
     return { status: 200, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: location }
 }
 
 export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
+    const started = Date.now()
     const fromId = req.query.get('from') || STARTER_LOCATION_ID
     const rawDir = req.query.get('dir') || ''
     const playerGuid = extractPlayerGuid(req.headers)
@@ -60,9 +64,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     }
 
     if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
+        const latencyMs = Date.now() - started
         trackGameEventStrict(
             'Location.Move',
-            { from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction' },
+            { from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction', latencyMs },
             { playerGuid, correlationId }
         )
         return {
@@ -80,9 +85,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
 
     const from = await locationRepo.get(fromId)
     if (!from) {
+        const latencyMs = Date.now() - started
         trackGameEventStrict(
             'Location.Move',
-            { from: fromId, direction: dir, status: 404, reason: 'from-missing' },
+            { from: fromId, direction: dir, status: 404, reason: 'from-missing', latencyMs },
             { playerGuid, correlationId }
         )
         return {
@@ -93,9 +99,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     }
     const exit = from.exits?.find((e) => e.direction === dir)
     if (!exit || !exit.to) {
+        const latencyMs = Date.now() - started
         trackGameEventStrict(
             'Location.Move',
-            { from: fromId, direction: dir, status: 400, reason: 'no-exit' },
+            { from: fromId, direction: dir, status: 400, reason: 'no-exit', latencyMs },
             { playerGuid, correlationId }
         )
         return {
@@ -108,9 +115,10 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
     if (result.status === 'error') {
         const reason = result.reason
         const statusMap: Record<string, number> = { ['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500 }
+        const latencyMs = Date.now() - started
         trackGameEventStrict(
             'Location.Move',
-            { from: fromId, direction: dir, status: statusMap[reason] || 500, reason },
+            { from: fromId, direction: dir, status: statusMap[reason] || 500, reason, latencyMs },
             { playerGuid, correlationId }
         )
         return { status: statusMap[reason] || 500, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: { error: reason } }
@@ -120,9 +128,17 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
         headingStore.setLastHeading(playerGuid, dir)
     }
 
+    const latencyMs = Date.now() - started
     trackGameEventStrict(
         'Location.Move',
-        { from: fromId, to: result.location.id, direction: dir, status: 200, rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined },
+        {
+            from: fromId,
+            to: result.location.id,
+            direction: dir,
+            status: 200,
+            rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined,
+            latencyMs
+        },
         { playerGuid, correlationId }
     )
     return { status: 200, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: result.location }

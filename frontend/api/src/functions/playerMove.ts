@@ -20,6 +20,7 @@ app.http('PlayerMove', {
     methods: ['POST', 'GET'],
     authLevel: 'anonymous',
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+        const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const playerGuid = extractPlayerGuid(req.headers)
         const fromId = req.query.get('from') || STARTER_LOCATION_ID
@@ -42,9 +43,10 @@ app.http('PlayerMove', {
         }
 
         if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
+            const latencyMs = Date.now() - started
             trackGameEventStrict(
                 'Location.Move',
-                { from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction' },
+                { from: fromId, direction: rawDir, status: 400, reason: 'invalid-direction', latencyMs },
                 { playerGuid, correlationId }
             )
             return {
@@ -58,9 +60,10 @@ app.http('PlayerMove', {
 
         const from = await repo.get(fromId)
         if (!from) {
+            const latencyMs = Date.now() - started
             trackGameEventStrict(
                 'Location.Move',
-                { from: fromId, direction: dir, status: 404, reason: 'from-missing' },
+                { from: fromId, direction: dir, status: 404, reason: 'from-missing', latencyMs },
                 { playerGuid, correlationId }
             )
             return {
@@ -71,9 +74,10 @@ app.http('PlayerMove', {
         }
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
+            const latencyMs = Date.now() - started
             trackGameEventStrict(
                 'Location.Move',
-                { from: fromId, direction: dir, status: 400, reason: 'no-exit' },
+                { from: fromId, direction: dir, status: 400, reason: 'no-exit', latencyMs },
                 { playerGuid, correlationId }
             )
             return {
@@ -86,9 +90,10 @@ app.http('PlayerMove', {
         if (result.status === 'error') {
             const reason = result.reason
             const statusMap: Record<string, number> = { ['from-missing']: 404, ['no-exit']: 400, ['target-missing']: 500 }
+            const latencyMs = Date.now() - started
             trackGameEventStrict(
                 'Location.Move',
-                { from: fromId, direction: dir, status: statusMap[reason] || 500, reason },
+                { from: fromId, direction: dir, status: statusMap[reason] || 500, reason, latencyMs },
                 { playerGuid, correlationId }
             )
             return {
@@ -102,6 +107,7 @@ app.http('PlayerMove', {
             headingStore.setLastHeading(playerGuid, dir)
         }
 
+        const latencyMs = Date.now() - started
         trackGameEventStrict(
             'Location.Move',
             {
@@ -109,7 +115,8 @@ app.http('PlayerMove', {
                 to: result.location.id,
                 direction: dir,
                 status: 200,
-                rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined
+                rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined,
+                latencyMs
             },
             { playerGuid, correlationId }
         )

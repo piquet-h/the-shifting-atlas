@@ -7,6 +7,7 @@ export const GAME_EVENT_NAMES = [
     // Onboarding & Auth
     'Onboarding.GuestGuid.Started',
     'Onboarding.GuestGuid.Created',
+    'Onboarding.GuestGuid.Completed',
     'Auth.Player.Upgraded',
     // Player lifecycle
     'Player.Get',
