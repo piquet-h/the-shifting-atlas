@@ -1,30 +1,27 @@
 #!/usr/bin/env node
 /* eslint-env node */
+/* global process console */
 
 /**
  * Basic tests for implementation order automation scripts
  * Tests key functionality without full GitHub integration
  */
 
-import { test } from 'node:test'
 import assert from 'node:assert'
 import { execFileSync, execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-
-import { execSync, execFileSync } from 'node:child_process'
+import { test } from 'node:test'
 
 const TEST_DIR = path.join(process.cwd(), 'tmp', 'impl-order-tests')
 const TEST_JSON = path.join(TEST_DIR, 'implementation-order.json')
 
-// Create test directory and test data
 function setupTest() {
     if (fs.existsSync(TEST_DIR)) {
         fs.rmSync(TEST_DIR, { recursive: true })
     }
     fs.mkdirSync(TEST_DIR, { recursive: true })
 
-    // Create test implementation order file
     const testData = {
         project: 3,
         fieldId: 'PVTF_test',
@@ -45,7 +42,7 @@ function cleanupTest() {
     }
 }
 
-test('Priority analysis - high priority core feature', async (t) => {
+test('Priority analysis - high priority core feature', async () => {
     setupTest()
 
     const descFile = path.join(TEST_DIR, 'desc.txt')
@@ -86,7 +83,7 @@ test('Priority analysis - high priority core feature', async (t) => {
     cleanupTest()
 })
 
-test('Priority analysis - low priority documentation', async (t) => {
+test('Priority analysis - low priority documentation', async () => {
     setupTest()
 
     const descFile = path.join(TEST_DIR, 'desc.txt')
@@ -127,18 +124,15 @@ test('Priority analysis - low priority documentation', async (t) => {
     cleanupTest()
 })
 
-test('Apply assignment - high priority insertion', async (t) => {
+test('Apply assignment - high priority insertion', async () => {
     setupTest()
 
-    // Change working directory for the script to find our test file
     const originalCwd = process.cwd()
     const tempScriptDir = path.join(TEST_DIR, 'scripts')
     fs.mkdirSync(tempScriptDir, { recursive: true })
 
-    // Copy scripts to test location
     fs.copyFileSync('scripts/apply-impl-order-assignment.mjs', path.join(tempScriptDir, 'apply-impl-order-assignment.mjs'))
 
-    // Create roadmap directory in test location
     const testRoadmapDir = path.join(TEST_DIR, 'roadmap')
     fs.mkdirSync(testRoadmapDir, { recursive: true })
     fs.copyFileSync(TEST_JSON, path.join(testRoadmapDir, 'implementation-order.json'))
@@ -164,14 +158,12 @@ test('Apply assignment - high priority insertion', async (t) => {
             { encoding: 'utf8', shell: true }
         )
 
-        // Verify the result
         const updatedData = JSON.parse(fs.readFileSync(path.join(TEST_DIR, 'roadmap', 'implementation-order.json'), 'utf8'))
 
         assert.strictEqual(updatedData.items.length, 4)
         assert.strictEqual(updatedData.items[0].issue, 999)
         assert.strictEqual(updatedData.items[0].order, 1)
 
-        // Verify resequencing
         assert.strictEqual(updatedData.items[1].issue, 1)
         assert.strictEqual(updatedData.items[1].order, 2)
     } finally {
@@ -180,18 +172,15 @@ test('Apply assignment - high priority insertion', async (t) => {
     }
 })
 
-test('Apply assignment - low priority append', async (t) => {
+test('Apply assignment - low priority append', async () => {
     setupTest()
 
-    // Change working directory for the script to find our test file
     const originalCwd = process.cwd()
     const tempScriptDir = path.join(TEST_DIR, 'scripts')
     fs.mkdirSync(tempScriptDir, { recursive: true })
 
-    // Copy scripts to test location
     fs.copyFileSync('scripts/apply-impl-order-assignment.mjs', path.join(tempScriptDir, 'apply-impl-order-assignment.mjs'))
 
-    // Create roadmap directory in test location
     const testRoadmapDir = path.join(TEST_DIR, 'roadmap')
     fs.mkdirSync(testRoadmapDir, { recursive: true })
     fs.copyFileSync(TEST_JSON, path.join(testRoadmapDir, 'implementation-order.json'))
@@ -217,14 +206,12 @@ test('Apply assignment - low priority append', async (t) => {
             { encoding: 'utf8', shell: true }
         )
 
-        // Verify the result
         const updatedData = JSON.parse(fs.readFileSync(path.join(TEST_DIR, 'roadmap', 'implementation-order.json'), 'utf8'))
 
         assert.strictEqual(updatedData.items.length, 4)
         assert.strictEqual(updatedData.items[3].issue, 998)
         assert.strictEqual(updatedData.items[3].order, 4)
 
-        // Verify no resequencing of existing items
         assert.strictEqual(updatedData.items[0].issue, 1)
         assert.strictEqual(updatedData.items[0].order, 1)
     } finally {
@@ -233,7 +220,7 @@ test('Apply assignment - low priority append', async (t) => {
     }
 })
 
-test('Priority analysis with roadmap path dependencies', async (t) => {
+test('Priority analysis with roadmap path dependencies', async () => {
     setupTest()
 
     const descFile = path.join(TEST_DIR, 'desc.txt')
@@ -270,7 +257,6 @@ test('Priority analysis with roadmap path dependencies', async (t) => {
     assert.strictEqual(result.action, 'assign')
     assert(result.priorityScore > 300, 'Should have high priority due to roadmap path')
 
-    // Check that roadmap path analysis was included
     const pathFactors = result.factors.filter((f) => f.includes('Roadmap path'))
     assert(pathFactors.length > 0, 'Should include roadmap path factors')
     assert(result.rationale.includes('Roadmap Path Analysis'), 'Should mention roadmap path in rationale')
@@ -278,22 +264,21 @@ test('Priority analysis with roadmap path dependencies', async (t) => {
     cleanupTest()
 })
 
-test('Skip action when issue position is reasonable', async (t) => {
-    // Create isolated test roadmap with 12 items so low priority issue would append at 13.
+test('Skip action when issue position is reasonable', async () => {
     if (fs.existsSync(TEST_DIR)) {
-        fs.rmSync(TEST_DIR, {recursive: true})
+        fs.rmSync(TEST_DIR, { recursive: true })
     }
-    fs.mkdirSync(TEST_DIR, {recursive: true})
+    fs.mkdirSync(TEST_DIR, { recursive: true })
 
     const items = []
     for (let i = 1; i <= 12; i++) {
-        items.push({issue: i, order: i, title: `Issue ${i}`})
+        items.push({ issue: i, order: i, title: `Issue ${i}` })
     }
     const roadmapDir = path.join(TEST_DIR, 'roadmap')
-    fs.mkdirSync(roadmapDir, {recursive: true})
+    fs.mkdirSync(roadmapDir, { recursive: true })
     fs.writeFileSync(
         path.join(roadmapDir, 'implementation-order.json'),
-        JSON.stringify({project: 3, fieldId: 'PVTF_test', generated: new Date().toISOString(), items}, null, 2)
+        JSON.stringify({ project: 3, fieldId: 'PVTF_test', generated: new Date().toISOString(), items }, null, 2)
     )
 
     const descFile = path.join(TEST_DIR, 'desc.txt')
@@ -323,7 +308,7 @@ test('Skip action when issue position is reasonable', async (t) => {
                 '--force-resequence',
                 'false'
             ],
-            {encoding: 'utf8'}
+            { encoding: 'utf8' }
         )
 
         const result = JSON.parse(output)
