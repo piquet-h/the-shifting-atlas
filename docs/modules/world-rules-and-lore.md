@@ -78,16 +78,16 @@ Benefits:
 - Lowers token footprint vs. naive lore dumps.
 - Enables deterministic replay (fact set + template hash reconstructs context).
 
-### Layered Descriptions (Integration with Navigation Schema)
+### Layered Descriptions (Tokenless, See `description-layering-and-variation.md`)
 
-To maintain authorial control while leveraging generative AI, each Location stores a stable `baseDescription` plus an ordered list of `descLayers` (see `navigation-and-traversal.md`). Layers can represent seasonal shifts, event consequences, AI embellishments, or faction occupation.
+To maintain authorial control while leveraging generative AI, each Location stores a stable immutable `baseDescription` plus ordered additive layers (`descLayers`). No inline template tokens are required; ambient and faction variation is handled by additive micro‑snippets and structural event layers without rewriting the base.
 
-Rendering order (example):
+Rendering order (example, tokenless):
 
 1. `baseDescription`
-2. Active `event` layers (recent world changes)
-3. Active `seasonal` layer (if current in-game season matches)
-4. Most recent approved `ai` embellishment
+2. Structural / event layers (chronological; may supersede specific clauses)
+3. Seasonal / weather / time ambient layer (at most one per category)
+4. AI enhancement layer (optional sensory flourish)
 5. Synthesized exits summary (cached)
 
 Versioning: Each layer carries `createdUtc`, `layer`, optional `expiresUtc`, plus moderation metadata. Expired or invalidated layers are ignored without deletion (historical audit preserved).

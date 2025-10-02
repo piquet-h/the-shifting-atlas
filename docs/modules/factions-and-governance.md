@@ -13,6 +13,7 @@ This module weaves a living tapestry of power, belief and intrigue across your p
 - Political event simulator for elections, coups, treaties and diplomatic overtures
 - Event-timeline orchestrator for scheduling world-shaping events and narrative arcs
 - AI-driven lore integration using real-world news and global trends
+- Structural display layering: faction symbols (banners, standards, heraldry) materialize as **structural event layers** (see `description-layering-and-variation.md`) instead of mutating base location prose. Removal or replacement appends a new event layer, preserving historical audit.
 
 ---
 
@@ -63,6 +64,7 @@ The event-timeline orchestrator enables designers to schedule, simulate and adap
 - Timeline editor for placing events, triggers and dependencies across game epochs
 - Support for branching timelines, alternate histories and time-loop mechanics
 - Integration with faction systems, influence zones and belief trees for synchronized impact
+- Emission of location structural event layers (e.g., occupation banners raised, statues defaced) rather than rewriting existing descriptions—enabling reversible narrative without retcon drift.
 - Real-time monitoring and adjustment tools for live storytelling and GM intervention
 - Support for uplifting events such as peace accords, cultural renaissances, and heroic breakthroughs
 

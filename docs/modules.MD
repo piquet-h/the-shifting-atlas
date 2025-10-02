@@ -37,6 +37,23 @@ Below each module name links to its dedicated design document (if present). Use 
     - Linked faction zones with terrain access restrictions
     - Map injection API for developer-created regions and traversal puzzles
 
+- 🌍 **Geospatial & Hydrology Modeling** ([doc](modules/geospatial-and-hydrology.md)): Multi‑scale spatial tiling, regions, rivers, lakes, coastline context
+    - Deterministic spatial tiling & seeding
+    - Region hierarchy & biome aggregation
+    - River & lake (hydrology) graph (skeleton first, refinement later)
+    - Location hydrology context enrichment (distance to water, river order)
+    - Structured prompt fact block (biome, elevation, hydrology) feeding AI
+    - Lazy materialization to control RU & storage footprint
+    - Future: watersheds, sea level events, currents, erosion (deferred)
+
+- 📝 **Description Layering & Variation** ([doc](modules/description-layering-and-variation.md)): Tokenless immutable base + additive layers
+    - Immutable base description (no mid-life rewrites)
+    - Structural event layers (burn, collapse, faction banners)
+    - Ambient/time/weather snippet registry (deterministic selection)
+    - Enhancement & personalization overlays
+    - Attribute map + validators prevent retcon drift
+    - Telemetry & integrity hashing for audit
+
 - 🧠 **AI Prompt Engineering** ([doc](modules/ai-prompt-engineering.md)): Structuring inputs for consistent world generation
     - Prompt templates for NPCs, quests, and locations
     - Contextual memory and continuity enforcement

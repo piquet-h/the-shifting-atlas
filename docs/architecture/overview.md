@@ -81,6 +81,8 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 - Exits encoded as edges with semantic direction labels (`north`, `up`, etc.)
 - Events optionally stored as vertices or external log for replay/analytics
 - Prefer idempotent mutations: processors verify current state before applying changes
+- Planned multi‑scale spatial layer (see `../modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
+- Tokenless description layering (see `../modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
 
 ## Security & Identity Roadmap
 

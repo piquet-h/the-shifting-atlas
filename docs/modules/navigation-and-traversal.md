@@ -125,7 +125,7 @@ Parsing layer resolves synonyms → canonical `dir` + optional target filter (e.
 We preserve design control & moderation while leveraging generative AI:
 
 `baseDescription` – Hand-authored, safe fallback.
-`descLayers[]` – Array of layered augmentation objects:
+`descLayers[]` – Array of layered augmentation objects (see `description-layering-and-variation.md` for full cross‑cutting model). Token placeholders are **not** embedded; variation is additive and base text is immutable.
 
 ```
 {
@@ -138,11 +138,13 @@ We preserve design control & moderation while leveraging generative AI:
 }
 ```
 
-Render pipeline for LOOK:
+Render pipeline for LOOK (tokenless layering):
 
-1. Start with `baseDescription`.
-2. Append enabled `descLayers` in priority order (e.g., `event` > `ai` > `seasonal`).
-3. Append synthesized exits summary (from `exitsSummaryCache`).
+1. Start with immutable `baseDescription`.
+2. Apply structural event layers (chronological) that may supersede base clauses (without editing stored base).
+3. Apply active ambient (weather/time/season) + enhancement layers.
+4. Append synthesized exits summary (from `exitsSummaryCache`).
+5. (Optional) Append personalization overlay (not persisted globally).
 
 Exit generation uses a two-pass prompt approach:
 

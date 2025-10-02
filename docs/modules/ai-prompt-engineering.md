@@ -84,9 +84,14 @@ provenance: {
 }
 ```
 
-### Layered Description Integration
+### Layered Description Integration (Tokenless Model)
 
-Generated text becomes either the `baseDescription` (if new Location) or an appended `descLayer` (if event / environmental / faction change). Base text is never overwritten—subsequent AI adds context layers referencing prior states.
+Generated text becomes either the immutable `baseDescription` (genesis) or an appended additive layer (`descLayer`) per the tokenless system defined in `description-layering-and-variation.md`. The model is **never** asked to regenerate the whole base for routine weather/time variation; instead it may produce short ambient or structural event snippets under strict constraints (no structural contradictions, length bound). Validators enforce:
+
+1. Base immutability (hash check)
+2. Structural consistency with attribute map
+3. No unauthorized permanent nouns in non‑structural layers
+4. Length / safety bounds
 
 ### Prompt Assembly Architecture
 
