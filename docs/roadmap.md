@@ -47,7 +47,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 41    | #57   | Managed API Player Command Endpoint Contract (PI-2 Prep)              |           |                     |              |             |
 | 42    | #58   | Clarification Loop Interaction Design (PI-2)                          |           |                     |              |             |
 | 43    | #59   | Player Command Telemetry & Evaluation Harness (PI-0/PI-1)             |           |                     |              |             |
-| 44    | #60   | Local LLM Intent Extraction Design (PI-1)                              |           |                     |              |             |
+| 44    | #60   | Local LLM Intent Extraction Design (PI-1)                             |           |                     |              |             |
 
 ## Next Up
 
