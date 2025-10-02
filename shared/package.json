@@ -11,6 +11,9 @@
             "types": "./dist/index.d.ts"
         }
     },
+    "browser": {
+        "./dist/index.js": "./dist/index.browser.js"
+    },
     "files": [
         "dist"
     ],

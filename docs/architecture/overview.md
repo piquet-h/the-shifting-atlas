@@ -60,6 +60,21 @@ Stage Roadmap (Milestones):
 - `backend/` – Asynchronous world simulation (queue triggers), heavier domain logic
 - `shared/` (future) – Reusable graph + validation helpers
 
+### Shared Package Entry Points (Browser vs Backend)
+
+The `@atlas/shared` workspace now exposes **two entry points** to keep the frontend bundle free of Node‑only dependencies:
+
+- `index.ts` (default / backend): full export surface, including telemetry initialization that references Node built‑ins (`node:crypto`) and the Azure Application Insights SDK.
+- `index.browser.ts` (browser-mapped via the `"browser"` field in `shared/package.json`): minimal, currently exports only canonical telemetry event name constants. It deliberately omits telemetry initialization and any code touching Node APIs.
+
+Bundlers (Vite/Rollup) automatically substitute the browser build when targeting the frontend, preventing accidental inclusion of heavy or incompatible modules. When adding new shared utilities for the frontend, export them from `index.browser.ts` **only if** they are:
+
+1. Pure TypeScript/JS (no dynamic `require`, no Node built‑ins like `fs`, `net`, `crypto` beyond standard web APIs).
+2. Side‑effect free (no environment inspection or global initialization).
+3. Stable (domain constants, pure functions, type definitions).
+
+If a utility requires conditional behavior (different in backend vs browser), prefer a thin adapter in the frontend rather than branching logic inside shared code, to keep the browser surface auditable and tree‑shakable.
+
 ## Data & World Graph Principles
 
 - Stable GUIDs for all nodes (players, rooms, NPCs)
@@ -106,4 +121,4 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ---
 
-_Last updated: 2025-09-25 (added Agentic AI & MCP preview section)_
+_Last updated: 2025-10-02 (added Shared Package entry point separation section)_
