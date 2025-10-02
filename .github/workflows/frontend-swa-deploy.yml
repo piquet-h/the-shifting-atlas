@@ -175,6 +175,8 @@ jobs:
                     --app-location frontend/dist \
                     --output-location '' \
                     --api-location frontend/api \
+                    --api-language node \
+                    --api-version 20 \
                     --verbose
 
     preview-cleanup:
