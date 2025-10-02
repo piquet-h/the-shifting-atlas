@@ -14,6 +14,12 @@ param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
 ])
 param staticWebAppSku string = 'Standard'
 
+// Gremlin (graph) logical database & graph names + RU throughput (dev scale)
+param cosmosGremlinDatabaseName string = 'game'
+param cosmosGremlinGraphName string = 'world'
+@minValue(400)
+param cosmosGremlinGraphThroughput int = 400
+
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   name: cosmosAccountName
@@ -35,6 +41,39 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     ]
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
+    }
+  }
+}
+
+// Gremlin database (logical graph database)
+resource gremlinDb 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2023-09-15-preview' = {
+  name: cosmosGremlinDatabaseName
+  parent: cosmos
+  properties: {
+    resource: {
+      id: cosmosGremlinDatabaseName
+    }
+    options: {}
+  }
+}
+
+// Gremlin graph (container). Partition key on /id (see ADR-001 appendix for rationale: simple id lookups, low cardinality risk)
+resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2023-09-15-preview' = {
+  name: cosmosGremlinGraphName
+  parent: gremlinDb
+  properties: {
+    resource: {
+      id: cosmosGremlinGraphName
+      partitionKey: {
+        paths: [
+          '/id'
+        ]
+        kind: 'Hash'
+        version: 2
+      }
+    }
+    options: {
+      throughput: cosmosGremlinGraphThroughput
     }
   }
 }
@@ -71,6 +110,8 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
       COSMOS_ENDPOINT: cosmos.properties.documentEndpoint
       KEYVAULT_NAME: keyVault.name
       COSMOS_KEY_SECRET_NAME: 'cosmos-primary-key'
+      COSMOS_GREMLIN_DATABASE: cosmosGremlinDatabaseName
+      COSMOS_GREMLIN_GRAPH: cosmosGremlinGraphName
       // Application Insights connection string surfaced to the integrated Functions API
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
     }
@@ -131,3 +172,5 @@ output keyVaultName string = keyVault.name
 output cosmosPrimaryKeySecretName string = cosmosPrimaryKeySecret.name
 output appInsightsName string = appInsights.name
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
+output cosmosGremlinDatabaseName string = gremlinDb.name
+output cosmosGremlinGraphName string = gremlinGraph.name

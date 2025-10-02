@@ -25,8 +25,12 @@ export function loadPersistenceConfig(): PersistenceConfig {
         const database = process.env.COSMOS_GREMLIN_DATABASE
         const graph = process.env.COSMOS_GREMLIN_GRAPH
         const key = process.env.COSMOS_GREMLIN_KEY
+        const strict = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
         if (!endpoint || !database || !graph) {
-            // Fall back to memory if misconfigured (safer than throwing inside Function cold start)
+            if (strict) {
+                throw new Error('PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete (endpoint/database/graph).')
+            }
+            // Fall back to memory if misconfigured (non-strict mode only)
             return { mode: 'memory' }
         }
         return { mode, cosmos: { endpoint, database, graph, key } }

@@ -74,11 +74,13 @@ export function getLocationRepository(): ILocationRepository {
     if (singleton) return singleton
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
+        /* global process */
+        const strict =
+            typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
         try {
             const cfg = loadPersistenceConfig()
             if (cfg.mode === 'cosmos' && cfg.cosmos) {
                 const pending = createGremlinClient(cfg.cosmos)
-                // Proxy defers actual repository instantiation until first call completes.
                 const proxy: ILocationRepository = {
                     async get(id: string) {
                         const repo = new CosmosLocationRepository(await pending)
@@ -100,8 +102,11 @@ export function getLocationRepository(): ILocationRepository {
                 singleton = proxy
                 return singleton
             }
-        } catch {
-            // fall back silently
+        } catch (err) {
+            if (strict) {
+                throw err instanceof Error ? err : new Error('Cosmos repository initialization failed in strict mode.')
+            }
+            // non-strict: silently fall back
         }
     }
     singleton = new InMemoryLocationRepository()

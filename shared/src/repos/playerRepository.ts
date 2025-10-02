@@ -77,11 +77,12 @@ export function getPlayerRepository(): IPlayerRepository {
     if (playerRepoSingleton) return playerRepoSingleton
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
-        // Lazy dynamic client creation; swallow errors to fall back to memory (telemetry can record misconfig later)
+        /* global process */
+        const strict =
+            typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
         try {
             const cfg = loadPersistenceConfig()
             if (cfg.mode === 'cosmos' && cfg.cosmos) {
-                // createGremlinClient is async; but repository factory is sync. Provide a proxy that waits on first call.
                 const pending = createGremlinClient(cfg.cosmos)
                 const proxy: IPlayerRepository = {
                     async get(id: string) {
@@ -110,8 +111,11 @@ export function getPlayerRepository(): IPlayerRepository {
                 playerRepoSingleton = proxy
                 return playerRepoSingleton
             }
-        } catch {
-            // ignore and fall back
+        } catch (err) {
+            if (strict) {
+                throw err instanceof Error ? err : new Error('Cosmos player repository initialization failed in strict mode.')
+            }
+            // non-strict: ignore and fall back
         }
     }
     playerRepoSingleton = new InMemoryPlayerRepository()
