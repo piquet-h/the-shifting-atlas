@@ -8,19 +8,19 @@ Source of truth: `roadmap/implementation-order.json`
 | 2 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs |  |
 | 3 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
 | 4 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Done |
-| 5 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | type:infra |  |
-| 6 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
-| 7 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
-| 8 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
-| 9 | #13 | Direction Normalization Utility (Stage 1) |  | scope:traversal | feature | Todo |
-| 10 | #33 | Landmark & Semantic Direction Normalization (N2) |  | scope:traversal | feature | Todo |
-| 11 | #34 | Relative Direction Handling (N3) |  | scope:traversal | feature | Done |
-| 12 | #48 | Exit Proposal Staging Store |  | scope:traversal | feature | Todo |
-| 13 | #35 | Exit Generation Fallback & Event Emission (N4) |  | scope:traversal | feature | Todo |
-| 14 | #8 | Exits Summary Cache Generation Utility |  | scope:traversal | feature | Todo |
-| 15 | #12 | Seed Script: Anchor Locations & Exits |  | scope:devx | feature | Todo |
-| 16 | #15 | Smoke Test Script (Movement Loop) |  | scope:devx | test | Todo |
-| 17 | #14 | Integration Test Harness (Traversal + Persistence) |  | scope:devx | test |  |
+| 5 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
+| 6 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
+| 7 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
+| 8 | #13 | Direction Normalization Utility (Stage 1) |  | scope:traversal | feature | Todo |
+| 9 | #33 | Landmark & Semantic Direction Normalization (N2) |  | scope:traversal | feature | Todo |
+| 10 | #34 | Relative Direction Handling (N3) |  | scope:traversal | feature | Done |
+| 11 | #48 | Exit Proposal Staging Store |  | scope:traversal | feature | Todo |
+| 12 | #35 | Exit Generation Fallback & Event Emission (N4) |  | scope:traversal | feature | Todo |
+| 13 | #8 | Exits Summary Cache Generation Utility |  | scope:traversal | feature | Todo |
+| 14 | #12 | Seed Script: Anchor Locations & Exits |  | scope:devx | feature | Todo |
+| 15 | #15 | Smoke Test Script (Movement Loop) |  | scope:devx | test | Todo |
+| 16 | #14 | Integration Test Harness (Traversal + Persistence) |  | scope:devx | test |  |
+| 17 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | Todo |
 | 18 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 19 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
 | 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
@@ -30,11 +30,11 @@ Source of truth: `roadmap/implementation-order.json`
 | 24 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | type:docs |  |
 | 25 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | test |  |
 | 26 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | feature | Todo |
-| 27 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature |  |
+| 27 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | Todo |
 | 28 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
 | 29 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
 | 30 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
-| 31 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
+| 31 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | feature | Todo |
 | 32 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
 | 33 | #52 | Learn more page |  |  | enhancement | Todo |
 | 34 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
@@ -59,6 +59,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 53 | #69 | M-P5: Description Telemetry & Integrity Hash Job |  | scope:observability | feature | Todo |
 | 54 | #67 | M-P3: Ambient Snippet Registry & Deterministic Selection |  | scope:world | feature | Todo |
 | 55 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
+| 56 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
 
 ## Next Up
 
@@ -66,8 +67,8 @@ Source of truth: `roadmap/implementation-order.json`
 | ----- | ----- | ------ | ----- |
 | 1 | #68 | Todo | M-P4: Layer Validator (Immutability, Contradiction, Length) |
 | 2 | #74 |  | ADR-001 Appendix: Cosmos Partition Key Decision |
-| 5 | #49 |  | Managed Identity & Key Vault Secret Management Baseline |
-| 6 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
-| 7 | #6 | Todo | Movement Command (HttpMovePlayer) |
+| 5 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
+| 6 | #6 | Todo | Movement Command (HttpMovePlayer) |
+| 7 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-10-02T11:31:49.157Z
+Last sync: 2025-10-02T11:33:42.722Z

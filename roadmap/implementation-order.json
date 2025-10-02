@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T11:31:39.521Z",
+  "generated": "2025-10-02T11:33:27.429Z",
   "items": [
     {
       "issue": 68,
@@ -24,69 +24,69 @@
       "title": "Player Bootstrap & Persistence"
     },
     {
-      "issue": 49,
-      "order": 5,
-      "title": "Managed Identity & Key Vault Secret Management Baseline"
-    },
-    {
       "issue": 5,
-      "order": 6,
+      "order": 5,
       "title": "Introduce EXIT Edge Model & Link Rooms"
     },
     {
       "issue": 6,
-      "order": 7,
+      "order": 6,
       "title": "Movement Command (HttpMovePlayer)"
     },
     {
       "issue": 9,
-      "order": 8,
+      "order": 7,
       "title": "LOOK Command (HttpLook)"
     },
     {
       "issue": 13,
-      "order": 9,
+      "order": 8,
       "title": "Direction Normalization Utility (Stage 1)"
     },
     {
       "issue": 33,
-      "order": 10,
+      "order": 9,
       "title": "Landmark & Semantic Direction Normalization (N2)"
     },
     {
       "issue": 34,
-      "order": 11,
+      "order": 10,
       "title": "Relative Direction Handling (N3)"
     },
     {
       "issue": 48,
-      "order": 12,
+      "order": 11,
       "title": "Exit Proposal Staging Store"
     },
     {
       "issue": 35,
-      "order": 13,
+      "order": 12,
       "title": "Exit Generation Fallback & Event Emission (N4)"
     },
     {
       "issue": 8,
-      "order": 14,
+      "order": 13,
       "title": "Exits Summary Cache Generation Utility"
     },
     {
       "issue": 12,
-      "order": 15,
+      "order": 14,
       "title": "Seed Script: Anchor Locations & Exits"
     },
     {
       "issue": 15,
-      "order": 16,
+      "order": 15,
       "title": "Smoke Test Script (Movement Loop)"
     },
     {
       "issue": 14,
-      "order": 17,
+      "order": 16,
       "title": "Integration Test Harness (Traversal + Persistence)"
+    },
+    {
+      "issue": 49,
+      "order": 17,
+      "title": "Managed Identity & Key Vault Secret Management Baseline"
     },
     {
       "issue": 10,
@@ -277,6 +277,11 @@
       "issue": 65,
       "order": 55,
       "title": "M-P2: Description Composer Minimal (Base + Structural Layers)"
+    },
+    {
+      "issue": 51,
+      "order": 56,
+      "title": "(Conditional) Provision Dedicated Key Vault & Bicep Amend"
     }
   ]
 }
