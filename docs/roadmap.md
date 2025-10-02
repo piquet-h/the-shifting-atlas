@@ -59,4 +59,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 5 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-10-02T03:13:32.328Z
+Last sync: 2025-10-02T03:27:46.368Z
