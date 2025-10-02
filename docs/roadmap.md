@@ -27,31 +27,32 @@ Source of truth: `roadmap/implementation-order.json`
 | 21 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
 | 22 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | type:docs |  |
 | 23 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | type:test |  |
-| 24 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | type:feature |  |
-| 25 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
-| 26 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
-| 27 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
-| 28 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
-| 29 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
-| 30 | #52 | Learn more page |  |  | enhancement | Todo |
-| 31 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
-| 32 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
-| 33 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
-| 34 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
-| 35 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
-| 36 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
-| 37 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
-| 38 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
-| 39 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
-| 40 | #17 | DI Suitability Report |  | scope:devx | docs |  |
-| 41 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
-| 42 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
-| 43 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
-| 44 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
-| 45 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
-| 46 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
-| 47 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
-| 48 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | type:docs |  |
+| 24 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | type:feature |  |
+| 25 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | type:feature |  |
+| 26 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
+| 27 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
+| 28 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
+| 29 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | type:feature |  |
+| 30 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
+| 31 | #52 | Learn more page |  |  | enhancement | Todo |
+| 32 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
+| 33 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
+| 34 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
+| 35 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
+| 36 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
+| 37 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
+| 38 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
+| 39 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
+| 40 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
+| 41 | #17 | DI Suitability Report |  | scope:devx | docs |  |
+| 42 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
+| 43 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
+| 44 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
+| 45 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
+| 46 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
+| 47 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
+| 48 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
+| 49 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | type:docs |  |
 
 ## Next Up
 
@@ -63,4 +64,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 | 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-02T07:38:37.809Z
+Last sync: 2025-10-02T10:08:59.101Z
