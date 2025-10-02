@@ -24,9 +24,14 @@ permissions:
     contents: write
     issues: write
 
+# Concurrency:
+# Per-issue / per-PR isolation so multiple distinct issues can process simultaneously while
+# ensuring only the latest event for a SINGLE issue cancels previous in-flight work.
+# The group key derives from the triggering entity (issue number, workflow_dispatch input, or PR number).
+# This avoids earlier problem where a global group caused unrelated issues to starve/cancel.
 concurrency:
-    group: auto-impl-order-${{ github.repository }}
-    cancel-in-progress: false
+    group: auto-impl-order-${{ github.repository }}-${{ (github.event_name == 'issues' && github.event.issue.number) || (github.event_name == 'workflow_dispatch' && github.event.inputs.issue_number) || (github.event_name == 'pull_request' && github.event.pull_request.number) || 'misc' }}
+    cancel-in-progress: true
 
 jobs:
     assign:

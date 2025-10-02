@@ -1,0 +1,90 @@
+name: Auto Assign Implementation Order (Batch Finalize)
+
+# Debounced batch finalizer: ensures after a burst of issue events every OPEN issue
+# (excluding PRs) appears in roadmap/implementation-order.json and docs are regenerated.
+# Runs only once per quiet period because concurrency cancels earlier pending runs.
+
+on:
+    issues:
+        types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
+    workflow_dispatch:
+        inputs:
+            debounce_seconds:
+                description: Override wait (default 25)
+                required: false
+                type: string
+
+permissions:
+    contents: write
+    issues: read
+
+concurrency:
+    group: auto-impl-order-finalize-${{ github.repository }}
+    cancel-in-progress: true
+
+jobs:
+    finalize:
+        runs-on: ubuntu-latest
+        timeout-minutes: 6
+        steps:
+            - name: Debounce wait
+              run: |
+                  SECS="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debounce_seconds || '25' }}"
+                  echo "Sleeping ${SECS}s to debounce burst of issue events..."
+                  sleep "$SECS"
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
+            - name: Install Dependencies (minimal)
+              run: npm ci --omit=dev || npm install --only=production || true
+            - name: Select token
+              id: token
+              run: |
+                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+                    echo "value=${{ secrets.PROJECTS_TOKEN }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "value=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
+                  fi
+            - name: Ensure all open issues present
+              env:
+                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+              run: |
+                  node scripts/ensure-all-issues-in-order.mjs || echo "No changes or script degraded"
+            - name: Sync & Regenerate Docs
+              env:
+                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+                  ALLOW_MISSING_PROJECT: 'true'
+              run: |
+                  node scripts/sync-implementation-order.mjs apply || echo "Sync failed (non-fatal)"
+            - name: Commit & Push (if changes)
+              run: |
+                  set -euo pipefail
+                  if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then
+                    echo "No ordering/doc changes to commit"
+                    exit 0
+                  fi
+                  git config user.name 'github-actions[bot]'
+                  git config user.email 'github-actions[bot]@users.noreply.github.com'
+                  git add roadmap/implementation-order.json docs/roadmap.md
+                  git commit -m 'chore: impl-order: batch finalize' || echo 'Nothing to commit after add'
+                  for attempt in 1 2 3; do
+                    git fetch origin main || true
+                    if git rebase origin/main; then
+                      echo 'Rebase succeeded';
+                    else
+                      echo 'Rebase failed; attempting merge';
+                      git rebase --abort || true
+                      git merge --no-edit origin/main || true
+                    fi
+                    if git push; then
+                      echo 'Push succeeded'; break;
+                    else
+                      echo "Push failed attempt $attempt"; sleep $((attempt*2));
+                    fi
+                  done
