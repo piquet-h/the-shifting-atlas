@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T12:01:38.999Z",
+  "generated": "2025-10-02T12:30:46.505Z",
   "items": [
     {
       "issue": 4,
@@ -277,6 +277,26 @@
       "issue": 51,
       "order": 55,
       "title": "(Conditional) Provision Dedicated Key Vault & Bicep Amend"
+    },
+    {
+      "issue": 74,
+      "order": 56,
+      "title": "ADR-001 Appendix: Cosmos Partition Key Decision"
+    },
+    {
+      "issue": 73,
+      "order": 57,
+      "title": "Persistence Concurrency Idempotency Race Test"
+    },
+    {
+      "issue": 19,
+      "order": 58,
+      "title": "Only create DI Suitability Issue if needed"
+    },
+    {
+      "issue": 18,
+      "order": 59,
+      "title": "DI Suitability Report"
     }
   ]
 }
