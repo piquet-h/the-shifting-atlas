@@ -1,12 +1,16 @@
 [
     {
         "id": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-        "name": "Village Square",
-        "description": "Mosswell’s crossroads: a moss-rimmed fountain splashes at center; forge smoke to the west, bright awnings east, a lantern-signed tavern southeast, and a walled herb garden northwest.",
-        "tags": ["settlement:mosswell", "landmark:fountain", "hub"],
+        "name": "Mosswell River Jetty",
+        "description": "Timbered jetty where river current meets brackish tide; a moss‑rimmed fountain anchors a plank‑lined plaza just inland. Gulls wheel overhead, brine mingles with forge smoke west and spice canvas east. A lantern tavern sign swings in a salt breeze while herb scents drift from a walled garden above the bank.",
+        "tags": ["settlement:mosswell", "harbor:jetty", "landmark:fountain", "hub", "river-mouth"],
         "exits": [
-            { "direction": "north", "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53", "description": "Packed lane toward the north road." },
-            { "direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Road dipping toward southern farms." },
+            {
+                "direction": "north",
+                "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
+                "description": "Packed lane rising toward the north road."
+            },
+            { "direction": "south", "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1", "description": "Road bending inland toward farms." },
             { "direction": "east", "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41", "description": "Canvas stalls of Market Row." },
             { "direction": "west", "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f", "description": "Hammer clangs at the smithy." },
             { "direction": "southeast", "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c", "description": "Lantern glow of the tavern." },
@@ -15,14 +19,11 @@
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
                 "description": "Foot path toward cottages and fields."
             },
-            {
-                "direction": "northeast",
-                "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
-                "description": "Slate-roof manor overlooks the square."
-            },
-            { "direction": "northwest", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Low wall of the herb garden." }
+            { "direction": "northeast", "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d", "description": "Slope up to the manor overlook." },
+            { "direction": "northwest", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Low wall of the herb garden." },
+            { "direction": "down", "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c", "description": "Steps descending to the lower jetty." }
         ],
-        "version": 2
+        "version": 3
     },
     {
         "id": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
@@ -361,6 +362,47 @@
             { "direction": "east", "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e", "description": "Toward central south farms." },
             { "direction": "northeast", "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c", "description": "Toward southwest junction." }
         ],
+        "version": 1
+    },
+    {
+        "id": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
+        "name": "Lower Jetty Landing",
+        "description": "Damp planks close to the tide line; river current tugs south toward open water while mooring posts drip with salt-silvered rope.",
+        "tags": ["settlement:mosswell", "harbor:landing", "river-mouth"],
+        "exits": [
+            { "direction": "up", "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21", "description": "Stairs up to the main jetty plaza." },
+            {
+                "direction": "south",
+                "to": "2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f",
+                "description": "Sand track toward the river mouth dunes."
+            },
+            { "direction": "east", "to": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70", "description": "Along the quay to a low warehouse." },
+            { "direction": "west", "to": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081", "description": "Planks toward a fish market wharf." }
+        ],
+        "version": 1
+    },
+    {
+        "id": "2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f",
+        "name": "River Mouth Dunes",
+        "description": "Low salt-streaked dunes; tang of the near ocean heavy in the air and distant boom of surf beyond the bar.",
+        "tags": ["settlement:mosswell", "shore:dunes", "river-mouth"],
+        "exits": [{ "direction": "north", "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c", "description": "Trail back to the lower jetty." }],
+        "version": 1
+    },
+    {
+        "id": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70",
+        "name": "Harbor Warehouse",
+        "description": "Broad-beamed shed of tarred timber, crates stamped with faded trade sigils stacked shoulder high.",
+        "tags": ["settlement:mosswell", "harbor:warehouse", "commerce"],
+        "exits": [{ "direction": "west", "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c", "description": "Return along the quay." }],
+        "version": 1
+    },
+    {
+        "id": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081",
+        "name": "Fish Market Wharf",
+        "description": "Row of tables with woven baskets; sharp scent of brine and river silt—early trade murmurs echo under gull cries.",
+        "tags": ["settlement:mosswell", "market:fish", "harbor:wharf"],
+        "exits": [{ "direction": "east", "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c", "description": "Planks back to the landing." }],
         "version": 1
     }
 ]
