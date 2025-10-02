@@ -61,6 +61,7 @@ Historical Notes:
 - 2025-09-27: All labels previously prefixed with `kind:` (e.g. `kind:feature`, `kind:test`) were renamed to bare forms (`feature`, `test`).
 - 2025-09-27 (later): Removed `priority:` axis; replaced with Project numeric field "Implementation Order" (lower=earlier). Existing `priority:P0` items assigned initial contiguous order seeds.
 - 2025-09-28: Added `bug` to allowed type set (previously used implicitly) and documented usage boundary.
+- 2025-10-02: Consolidated legacy `documentation` label into canonical `docs` (one-off via GitHub API; no ongoing script logic required).
 
 ## Internal Sub-Phases
 
