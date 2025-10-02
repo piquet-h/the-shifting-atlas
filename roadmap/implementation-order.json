@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T05:46:37.201Z",
+  "generated": "2025-10-02T07:38:26.346Z",
   "items": [
     {
       "issue": 4,
@@ -114,128 +114,133 @@
       "title": "ADR-001: Mosswell Persistence & Tokenless Description Layering"
     },
     {
-      "issue": 64,
+      "issue": 66,
       "order": 23,
+      "title": "M-P2A: Structural Event Layer Simulation Script"
+    },
+    {
+      "issue": 64,
+      "order": 24,
       "title": "M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes)"
     },
     {
       "issue": 37,
-      "order": 24,
+      "order": 25,
       "title": "Prompt Template Registry & Versioned Metadata"
     },
     {
       "issue": 38,
-      "order": 25,
+      "order": 26,
       "title": "MCP Read-Only Servers: world-query & lore-memory"
     },
     {
       "issue": 41,
-      "order": 26,
+      "order": 27,
       "title": "Application Insights Correlation & OpenTelemetry Wiring"
     },
     {
       "issue": 50,
-      "order": 27,
+      "order": 28,
       "title": "AI Cost & Token Usage Telemetry + Budget Guardrails"
     },
     {
       "issue": 46,
-      "order": 28,
+      "order": 29,
       "title": "Telemetry MCP Server (Read-Only)"
     },
     {
       "issue": 52,
-      "order": 29,
+      "order": 30,
       "title": "Learn more page"
     },
     {
       "issue": 39,
-      "order": 30,
+      "order": 31,
       "title": "AI Structured Response Validator & Schema Gate"
     },
     {
       "issue": 47,
-      "order": 31,
+      "order": 32,
       "title": "AI Moderation Pipeline Phase 1"
     },
     {
       "issue": 42,
-      "order": 32,
+      "order": 33,
       "title": "Security Baseline: Rate Limiting & Input Validation"
     },
     {
       "issue": 22,
-      "order": 33,
+      "order": 34,
       "title": "Automate implementation order assignment for new issues using Copilot"
     },
     {
       "issue": 26,
-      "order": 34,
+      "order": 35,
       "title": "✨ Set up Copilot instructions"
     },
     {
       "issue": 21,
-      "order": 35,
+      "order": 36,
       "title": "Remove text in logged in header"
     },
     {
       "issue": 24,
-      "order": 36,
+      "order": 37,
       "title": "\"Create your explorer\" fails"
     },
     {
       "issue": 28,
-      "order": 37,
+      "order": 38,
       "title": "Frontend Managed API not deploying properly"
     },
     {
       "issue": 30,
-      "order": 38,
+      "order": 39,
       "title": "Ensure correct Issue board status in Projects"
     },
     {
       "issue": 17,
-      "order": 39,
+      "order": 40,
       "title": "DI Suitability Report"
     },
     {
       "issue": 53,
-      "order": 40,
+      "order": 41,
       "title": "Rooms discovered should be dynamic and renamed"
     },
     {
       "issue": 55,
-      "order": 41,
+      "order": 42,
       "title": "Player Command Intent Schema & Validator (PI-0)"
     },
     {
       "issue": 56,
-      "order": 42,
+      "order": 43,
       "title": "Heuristic Player Command Parser Design (PI-0)"
     },
     {
       "issue": 57,
-      "order": 43,
+      "order": 44,
       "title": "Managed API Player Command Endpoint Contract (PI-2 Prep)"
     },
     {
       "issue": 58,
-      "order": 44,
+      "order": 45,
       "title": "Clarification Loop Interaction Design (PI-2)"
     },
     {
       "issue": 59,
-      "order": 45,
+      "order": 46,
       "title": "Player Command Telemetry & Evaluation Harness (PI-0/PI-1)"
     },
     {
       "issue": 60,
-      "order": 46,
+      "order": 47,
       "title": "Local LLM Intent Extraction Design (PI-1)"
     },
     {
       "issue": 70,
-      "order": 47,
+      "order": 48,
       "title": "ADR-001: Acceptance & Cross-Linking"
     }
   ]
