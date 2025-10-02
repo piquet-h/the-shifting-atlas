@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T11:35:57.733Z",
+  "generated": "2025-10-02T12:01:38.999Z",
   "items": [
     {
       "issue": 4,
@@ -89,74 +89,74 @@
       "title": "Gremlin RU & Latency Telemetry Wrapper"
     },
     {
-      "issue": 45,
+      "issue": 52,
       "order": 18,
+      "title": "Learn more page"
+    },
+    {
+      "issue": 45,
+      "order": 19,
       "title": "World Event Queue Processor Skeleton"
     },
     {
       "issue": 40,
-      "order": 19,
+      "order": 20,
       "title": "Lore Canonical Fact Store (CRUD + Versioning)"
     },
     {
       "issue": 36,
-      "order": 20,
+      "order": 21,
       "title": "Biome & Environmental Tag Registry Scaffold"
     },
     {
       "issue": 44,
-      "order": 21,
+      "order": 22,
       "title": "Description Layering Engine & Render Pipeline"
     },
     {
       "issue": 63,
-      "order": 22,
+      "order": 23,
       "title": "ADR-001: Mosswell Persistence & Tokenless Description Layering"
     },
     {
       "issue": 66,
-      "order": 23,
+      "order": 24,
       "title": "M-P2A: Structural Event Layer Simulation Script"
     },
     {
       "issue": 71,
-      "order": 24,
+      "order": 25,
       "title": "Gremlin Health Check Function (HttpGremlinHealth)"
     },
     {
       "issue": 64,
-      "order": 25,
+      "order": 26,
       "title": "M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes)"
     },
     {
       "issue": 37,
-      "order": 26,
+      "order": 27,
       "title": "Prompt Template Registry & Versioned Metadata"
     },
     {
       "issue": 38,
-      "order": 27,
+      "order": 28,
       "title": "MCP Read-Only Servers: world-query & lore-memory"
     },
     {
       "issue": 41,
-      "order": 28,
+      "order": 29,
       "title": "Application Insights Correlation & OpenTelemetry Wiring"
     },
     {
       "issue": 50,
-      "order": 29,
+      "order": 30,
       "title": "AI Cost & Token Usage Telemetry + Budget Guardrails"
     },
     {
       "issue": 46,
-      "order": 30,
-      "title": "Telemetry MCP Server (Read-Only)"
-    },
-    {
-      "issue": 52,
       "order": 31,
-      "title": "Learn more page"
+      "title": "Telemetry MCP Server (Read-Only)"
     },
     {
       "issue": 39,

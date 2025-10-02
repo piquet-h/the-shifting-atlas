@@ -21,20 +21,20 @@ Source of truth: `roadmap/implementation-order.json`
 | 15 | #14 | Integration Test Harness (Traversal + Persistence) |  | scope:devx | test |  |
 | 16 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 17 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
-| 18 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
-| 19 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
-| 20 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
-| 21 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
-| 22 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | type:docs |  |
-| 23 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | test |  |
-| 24 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | feature | Todo |
-| 25 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | Todo |
-| 26 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
-| 27 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
-| 28 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
-| 29 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | feature | Todo |
-| 30 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
-| 31 | #52 | Learn more page |  |  | enhancement | Todo |
+| 18 | #52 | Learn more page |  | scope:core | enhancement | Todo |
+| 19 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
+| 20 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
+| 21 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
+| 22 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
+| 23 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | docs |  |
+| 24 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | test |  |
+| 25 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | feature | Todo |
+| 26 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | Todo |
+| 27 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
+| 28 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
+| 29 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
+| 30 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | feature | Todo |
+| 31 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
 | 32 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
 | 33 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
 | 34 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
@@ -45,14 +45,14 @@ Source of truth: `roadmap/implementation-order.json`
 | 39 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
 | 40 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
 | 41 | #17 | DI Suitability Report |  | scope:devx | docs |  |
-| 42 | #53 | Rooms discovered should be dynamic and renamed |  |  |  | Todo |
+| 42 | #53 | Rooms discovered should be dynamic and renamed |  | scope:traversal | enhancement | Todo |
 | 43 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
 | 44 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
 | 45 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
 | 46 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
 | 47 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test |  |
 | 48 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
-| 49 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | type:docs |  |
+| 49 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | docs |  |
 | 50 | #72 | Persistence Strict Fallback Guard |  | scope:world | feature | Todo |
 | 51 | #69 | M-P5: Description Telemetry & Integrity Hash Job |  | scope:observability | feature | Todo |
 | 52 | #68 | M-P4: Layer Validator (Immutability, Contradiction, Length) |  | scope:world | feature | Todo |
@@ -70,4 +70,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 | 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-02T11:36:13.168Z
+Last sync: 2025-10-02T12:01:49.175Z
