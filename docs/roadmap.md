@@ -63,6 +63,10 @@ Source of truth: `roadmap/implementation-order.json`
 | 57 | #73 | Persistence Concurrency Idempotency Race Test |  | scope:world | test | Todo |
 | 58 | #19 | Only create DI Suitability Issue if needed |  | scope:devx | enhancement | Todo |
 | 59 | #18 | DI Suitability Report |  | scope:devx | docs | Todo |
+| 60 | #79 | Observability: Capture Gremlin RU + latency telemetry for critical ops |  | scope:observability | type:enhancement | Todo |
+| 61 | #78 | Script: Region-based graph partition migration scaffold |  | scope:core | type:feature | Todo |
+| 62 | #77 | Feature: Player SQL projection repository & write-through from Gremlin |  | scope:core | type:feature | Todo |
+| 63 | #76 | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |  | scope:core | type:infra | Todo |
 
 ## Next Up
 
@@ -74,4 +78,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 | 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-02T12:31:02.227Z
+Last sync: 2025-10-03T00:03:56.585Z
