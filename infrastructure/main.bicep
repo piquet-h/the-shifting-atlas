@@ -7,7 +7,7 @@ param staticWebAppName string = 'web-${uniqueString(resourceGroup().id)}'
 param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 // Separate SQL (Core) API account for document projections (players, inventory, events, layers)
 // Keeping a distinct account avoids API mixing ambiguity and allows RU governance independent of Gremlin graph.
-// param cosmosSqlAccountName string = 'cosmosdoc${uniqueString(resourceGroup().id)}'
+param cosmosSqlAccountName string = 'cosmosdoc${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
 @description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
@@ -58,28 +58,28 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
 }
 
 // Cosmos DB account (SQL / Core) - separate for document / projection workload.
-// resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
-//   name: cosmosSqlAccountName
-//   location: location
-//   properties: {
-//     databaseAccountOfferType: 'Standard'
-//     locations: [
-//       {
-//         locationName: location
-//         failoverPriority: 0
-//         isZoneRedundant: false
-//       }
-//     ]
-//     consistencyPolicy: {
-//       defaultConsistencyLevel: 'Session'
-//     }
-//   }
-// }
+resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+  name: cosmosSqlAccountName
+  location: location
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    locations: [
+      {
+        locationName: location
+        failoverPriority: 0
+        isZoneRedundant: false
+      }
+    ]
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
+    }
+  }
+}
 
 // SQL database
 resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-09-15' = {
   name: cosmosSqlDatabaseName
-  parent: cosmos
+  parent: cosmosSql
   properties: {
     resource: {
       id: cosmosSqlDatabaseName
@@ -229,7 +229,7 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
       COSMOS_GREMLIN_DATABASE: cosmosGremlinDatabaseName
       COSMOS_GREMLIN_GRAPH: cosmosGremlinGraphName
       // SQL (Core) document store settings
-      COSMOS_SQL_ENDPOINT: cosmos.properties.documentEndpoint
+      COSMOS_SQL_ENDPOINT: cosmosSql.properties.documentEndpoint
       COSMOS_SQL_DATABASE: cosmosSqlDatabaseName
       COSMOS_SQL_KEY_SECRET_NAME: 'cosmos-sql-primary-key'
       COSMOS_SQL_CONTAINER_PLAYERS: cosmosSqlPlayersContainerName
@@ -294,13 +294,13 @@ resource cosmosSqlPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01
   name: 'cosmos-sql-primary-key'
   parent: keyVault
   properties: {
-    value: cosmos.listKeys().primaryMasterKey
+    value: cosmosSql.listKeys().primaryMasterKey
   }
 }
 
 output cosmosAccountName string = cosmos.name
 output cosmosEndpoint string = cosmos.properties.documentEndpoint
-output cosmosSqlEndpoint string = cosmos.properties.documentEndpoint
+output cosmosSqlEndpoint string = cosmosSql.properties.documentEndpoint
 output staticWebAppName string = staticSite.name
 output keyVaultName string = keyVault.name
 output cosmosPrimaryKeySecretName string = cosmosPrimaryKeySecret.name
