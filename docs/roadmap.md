@@ -1,13 +1,13 @@
 # Roadmap Implementation Order
 
-Source of truth: `roadmap/implementation-order.json`
+Source of truth: Project field 'Implementation order'
 
 | Order | Issue | Title | Milestone | Scope | Type | Status |
 | ----- | ----- | ----- | --------- | ----- | ---- | ------ |
 | 1 | #76 | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |  | scope:core | infra | Todo |
 | 2 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
 | 3 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Done |
-| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | Todo |
+| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | Done |
 | 5 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
 | 6 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
 | 7 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
@@ -23,7 +23,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 17 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 18 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
 | 19 | #52 | Learn more page |  | scope:core | enhancement | Todo |
-| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
+| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Done |
 | 21 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
 | 22 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
 | 23 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
@@ -74,9 +74,9 @@ Source of truth: `roadmap/implementation-order.json`
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
 | 1 | #76 | Todo | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |
-| 4 | #49 | Todo | Managed Identity & Key Vault Secret Management Baseline |
 | 5 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
 | 6 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 7 | #9 | Todo | LOOK Command (HttpLook) |
+| 8 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-03T06:51:58.989Z
+Last sync: 2025-10-03T10:04:11.334Z
