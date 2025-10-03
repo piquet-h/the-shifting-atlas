@@ -74,7 +74,6 @@ export function getLocationRepository(): ILocationRepository {
     if (singleton) return singleton
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
-        /* global process */
         const strict =
             typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
         try {

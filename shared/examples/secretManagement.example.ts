@@ -1,6 +1,6 @@
 /**
  * Example: Using the Secret Management Helper
- * 
+ *
  * This example demonstrates how to use the secret management helper
  * to fetch secrets securely from Azure Key Vault with Managed Identity.
  */
@@ -16,7 +16,7 @@ async function example1_BasicRetrieval() {
         // In production: fetches from Key Vault using Managed Identity
         // In development: falls back to COSMOS_GREMLIN_KEY env var
         const cosmosKey = await getSecret('cosmos-primary-key')
-        
+
         console.log('Successfully retrieved Cosmos key')
         // Use cosmosKey to connect to Cosmos DB...
     } catch (error) {
@@ -30,16 +30,13 @@ async function example1_BasicRetrieval() {
 async function example2_MultipleSecrets() {
     try {
         // Fetch multiple secrets in parallel
-        const [cosmosKey, sqlKey] = await Promise.all([
-            getSecret('cosmos-primary-key'),
-            getSecret('cosmos-sql-primary-key')
-        ])
-        
+        const [cosmosKey, sqlKey] = await Promise.all([getSecret('cosmos-primary-key'), getSecret('cosmos-sql-primary-key')])
+
         console.log('Retrieved both Cosmos keys successfully')
-        
+
         // Second fetch will use cached values (5-minute TTL)
         const cosmosKeyAgain = await getSecret('cosmos-primary-key')
-        
+
         // Check cache stats
         const stats = getSecretCacheStats()
         console.log(`Cache size: ${stats.size}, keys: ${stats.keys.join(', ')}`)
@@ -55,11 +52,11 @@ async function example3_CustomOptions() {
     try {
         // Customize retry behavior and cache TTL
         const secret = await getSecret('service-bus-connection-string', {
-            maxRetries: 5,              // Try up to 5 times
-            initialRetryDelayMs: 2000,  // Start with 2s delay
-            cacheTtlMs: 10 * 60 * 1000  // Cache for 10 minutes
+            maxRetries: 5, // Try up to 5 times
+            initialRetryDelayMs: 2000, // Start with 2s delay
+            cacheTtlMs: 10 * 60 * 1000 // Cache for 10 minutes
         })
-        
+
         console.log('Retrieved Service Bus connection string')
     } catch (error) {
         console.error('Failed after retries:', error)
@@ -72,14 +69,14 @@ async function example3_CustomOptions() {
 async function example4_CacheManagement() {
     // Fetch a secret
     await getSecret('cosmos-primary-key')
-    
+
     console.log('Before clear:', getSecretCacheStats())
-    
+
     // Clear cache to force fresh fetch
     clearSecretCache()
-    
+
     console.log('After clear:', getSecretCacheStats())
-    
+
     // Next fetch will hit Key Vault again
     await getSecret('cosmos-primary-key')
 }
@@ -91,7 +88,7 @@ async function example5_PersistenceConfig() {
     try {
         // Load config with secrets from Key Vault
         const config = await loadPersistenceConfigAsync()
-        
+
         if (config.mode === 'cosmos' && config.cosmos) {
             // Create Gremlin client with fetched credentials
             const client = await createGremlinClient(config.cosmos)
@@ -113,7 +110,7 @@ async function example6_ErrorHandling() {
         console.error('Expected error:', (error as Error).message)
         // Error: Secret key "invalid-secret-key" is not in allowlist
     }
-    
+
     try {
         // This will fail if Key Vault not configured and no local env var
         await getSecret('signing-secret')

@@ -4,98 +4,98 @@ name: Update Issue Status
 # Designed to be called when Copilot or developers start/finish work on issues
 
 on:
-    workflow_dispatch:
-        inputs:
-            issue_number:
-                description: 'Issue number to update'
-                required: true
-                type: string
-            status:
-                description: 'New status for the issue'
-                required: true
-                type: choice
-                options:
-                    - 'Todo'
-                    - 'In progress'
-                    - 'Done'
-                default: 'In progress'
-            reason:
-                description: 'Reason for status change'
-                required: false
-                type: string
-                default: 'Manual status update'
-    workflow_call:
-        inputs:
-            issue_number:
-                description: 'Issue number to update'
-                required: true
-                type: string
-            status:
-                description: 'New status for the issue'
-                required: true
-                type: string
-            reason:
-                description: 'Reason for status change'
-                required: false
-                type: string
-                default: 'Automated status update'
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to update'
+        required: true
+        type: string
+      status:
+        description: 'New status for the issue'
+        required: true
+        type: choice
+        options:
+          - 'Todo'
+          - 'In progress'
+          - 'Done'
+        default: 'In progress'
+      reason:
+        description: 'Reason for status change'
+        required: false
+        type: string
+        default: 'Manual status update'
+  workflow_call:
+    inputs:
+      issue_number:
+        description: 'Issue number to update'
+        required: true
+        type: string
+      status:
+        description: 'New status for the issue'
+        required: true
+        type: string
+      reason:
+        description: 'Reason for status change'
+        required: false
+        type: string
+        default: 'Automated status update'
 
 permissions:
-    contents: read
-    issues: read
-    repository-projects: write
+  contents: read
+  issues: read
+  repository-projects: write
 
 jobs:
-    update-status:
-        runs-on: ubuntu-latest
-        timeout-minutes: 5
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+  update-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: '20'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-            - name: Install minimal deps
-              run: npm ci --omit=dev || npm install --only=production || true
+      - name: Install minimal deps
+        run: npm ci --omit=dev || npm install --only=production || true
 
-            - name: Select token for project access
-              id: select-token
-              run: |
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Select token for project access
+        id: select-token
+        run: |
+          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+            echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+          fi
 
-            - name: Update issue status
-              env:
-                  GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
-              run: |
-                  ISSUE_NUM="${{ inputs.issue_number }}"
-                  NEW_STATUS="${{ inputs.status }}"
-                  REASON="${{ inputs.reason || 'Status update' }}"
+      - name: Update issue status
+        env:
+          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+        run: |
+          ISSUE_NUM="${{ inputs.issue_number }}"
+          NEW_STATUS="${{ inputs.status }}"
+          REASON="${{ inputs.reason || 'Status update' }}"
 
-                  echo "Updating issue #$ISSUE_NUM to status: $NEW_STATUS"
-                  echo "Reason: $REASON"
+          echo "Updating issue #$ISSUE_NUM to status: $NEW_STATUS"
+          echo "Reason: $REASON"
 
-                  if node scripts/update-issue-status.mjs --issue-number "$ISSUE_NUM" --status "$NEW_STATUS"; then
-                    echo "Successfully updated issue #$ISSUE_NUM status to '$NEW_STATUS'"
-                  else
-                    echo "Failed to update issue #$ISSUE_NUM status"
-                    exit 1
-                  fi
+          if node scripts/update-issue-status.mjs --issue-number "$ISSUE_NUM" --status "$NEW_STATUS"; then
+            echo "Successfully updated issue #$ISSUE_NUM status to '$NEW_STATUS'"
+          else
+            echo "Failed to update issue #$ISSUE_NUM status"
+            exit 1
+          fi
 
-            - name: Add comment to issue (if workflow_dispatch)
-              if: github.event_name == 'workflow_dispatch' && inputs.reason != 'Manual status update'
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  ISSUE_NUM="${{ inputs.issue_number }}"
-                  NEW_STATUS="${{ inputs.status }}"
-                  REASON="${{ inputs.reason || 'Status update' }}"
+      - name: Add comment to issue (if workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && inputs.reason != 'Manual status update'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUM="${{ inputs.issue_number }}"
+          NEW_STATUS="${{ inputs.status }}"
+          REASON="${{ inputs.reason || 'Status update' }}"
 
-                  # Post multiline comment without YAML indentation side-effects
-                  gh issue comment "$ISSUE_NUM" --body "$(printf '🔄 **Status Update**\n\nStatus changed to: **%s**\nReason: %s\n\n_Updated automatically via workflow_\n' "$NEW_STATUS" "$REASON")"
+          # Post multiline comment without YAML indentation side-effects
+          gh issue comment "$ISSUE_NUM" --body "$(printf '🔄 **Status Update**\n\nStatus changed to: **%s**\nReason: %s\n\n_Updated automatically via workflow_\n' "$NEW_STATUS" "$REASON")"

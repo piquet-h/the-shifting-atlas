@@ -100,10 +100,7 @@ test('response includes required fields', async () => {
 })
 
 test('response headers include correlation and cache-control', async () => {
-    const res = await playerBootstrap(
-        httpRequest({ headers: { 'x-correlation-id': 'test-correlation-123' } }),
-        makeContext()
-    )
+    const res = await playerBootstrap(httpRequest({ headers: { 'x-correlation-id': 'test-correlation-123' } }), makeContext())
 
     assert.ok(res.headers, 'headers should be present')
     assert.equal(res.headers['Content-Type'], 'application/json; charset=utf-8')

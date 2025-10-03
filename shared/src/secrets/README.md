@@ -35,11 +35,11 @@ Only these keys can be retrieved through the helper:
 
 1. Copy `.env.development.example` to `.env.development`
 2. Set required secrets:
-   ```bash
-   COSMOS_GREMLIN_KEY=your-local-cosmos-key
-   COSMOS_SQL_KEY=your-local-sql-key
-   NODE_ENV=development
-   ```
+    ```bash
+    COSMOS_GREMLIN_KEY=your-local-cosmos-key
+    COSMOS_SQL_KEY=your-local-sql-key
+    NODE_ENV=development
+    ```
 3. Leave `KEYVAULT_NAME` empty to use local fallback
 
 ## Production Configuration
@@ -50,6 +50,7 @@ Environment variables set by Azure infrastructure:
 - System-assigned Managed Identity with Key Vault access policy
 
 The helper automatically:
+
 1. Detects `KEYVAULT_NAME` presence
 2. Uses `DefaultAzureCredential` (Managed Identity in Azure)
 3. Fetches secrets from Key Vault
@@ -62,11 +63,12 @@ The helper automatically:
 Fetch a secret with caching and retry.
 
 **Parameters:**
+
 - `secretKey`: Must be one of the allowed keys
 - `options`: Optional configuration
-  - `maxRetries`: Max retry attempts (default: 3)
-  - `initialRetryDelayMs`: Initial delay for retry backoff (default: 1000ms)
-  - `cacheTtlMs`: Cache time-to-live (default: 300000ms = 5 minutes)
+    - `maxRetries`: Max retry attempts (default: 3)
+    - `initialRetryDelayMs`: Initial delay for retry backoff (default: 1000ms)
+    - `cacheTtlMs`: Cache time-to-live (default: 300000ms = 5 minutes)
 
 **Returns:** Promise<string>
 

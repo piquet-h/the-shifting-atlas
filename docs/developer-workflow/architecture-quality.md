@@ -22,22 +22,22 @@ The script (`scripts/di-suitability.mjs`) emits a machine‑readable JSON block 
 
 ### Current Signals (Heuristics)
 
-| Signal | Description | Rationale |
-| ------ | ----------- | --------- |
-| `highImportFiles` | Files exceeding import count threshold | Potential god-modules / service aggregators |
-| `complexParamFunctions` | Functions with parameter length / object nesting above threshold | Implicit service locator / manual wiring smell |
-| `contextPatternFiles` | Count of files importing custom context/provider patterns | Widening implicit dependency surface |
-| `wrapperUsage` | Utility wrappers around core services proliferating | Risk of ad-hoc DI re‑implementation |
-| `manualTelemetryEnrichment` | Repeated manual telemetry enrichment logic | Candidate for cross-cutting concern injection |
+| Signal                      | Description                                                      | Rationale                                      |
+| --------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| `highImportFiles`           | Files exceeding import count threshold                           | Potential god-modules / service aggregators    |
+| `complexParamFunctions`     | Functions with parameter length / object nesting above threshold | Implicit service locator / manual wiring smell |
+| `contextPatternFiles`       | Count of files importing custom context/provider patterns        | Widening implicit dependency surface           |
+| `wrapperUsage`              | Utility wrappers around core services proliferating              | Risk of ad-hoc DI re‑implementation            |
+| `manualTelemetryEnrichment` | Repeated manual telemetry enrichment logic                       | Candidate for cross-cutting concern injection  |
 
 Threshold constants live in the script; raise only after persistent false positives.
 
 ### Recommendation States
 
-| State | Meaning | Action |
-| ----- | ------- | ------ |
-| `NO_ACTION` | Signals below early-warning thresholds | Do nothing |
-| `OBSERVE` | Mild upward trend; consolidation possible | Track; refactor hotspots opportunistically |
+| State              | Meaning                                     | Action                                               |
+| ------------------ | ------------------------------------------- | ---------------------------------------------------- |
+| `NO_ACTION`        | Signals below early-warning thresholds      | Do nothing                                           |
+| `OBSERVE`          | Mild upward trend; consolidation possible   | Track; refactor hotspots opportunistically           |
 | `REVIEW_SUGGESTED` | Aggregated score crosses adoption threshold | Create/refresh report issue; follow evaluation steps |
 
 The workflow currently opens/updates an issue only on `REVIEW_SUGGESTED` (to limit noise).
@@ -48,14 +48,14 @@ The workflow currently opens/updates an issue only on `REVIEW_SUGGESTED` (to lim
 2. Attempt a **minimal interface extraction** in a branch (no container yet) for one hotspot.
 3. Re-run analyzer; measure delta. If hotspot complexity drops >30% (imports/params) with simple factoring, prefer continuing tactical refactors.
 4. If >2 hotspots resist simplification or duplication of wiring patterns persists, draft a DI introduction ADR:
-   - Scope (which layers / functions)
-   - Chosen mechanism (light factory map vs minimal container library)
-   - Replacement plan (incremental adoption path)
-   - Telemetry impact (ensure no regression of correlation IDs)
+    - Scope (which layers / functions)
+    - Chosen mechanism (light factory map vs minimal container library)
+    - Replacement plan (incremental adoption path)
+    - Telemetry impact (ensure no regression of correlation IDs)
 5. Merge ADR, then implement container in `shared/` with:
-   - Pure registration module
-   - Deterministic test override pattern
-   - No runtime reflection / dynamic require
+    - Pure registration module
+    - Deterministic test override pattern
+    - No runtime reflection / dynamic require
 
 ### Constraints & Guardrails
 
@@ -66,12 +66,12 @@ The workflow currently opens/updates an issue only on `REVIEW_SUGGESTED` (to lim
 
 ### Success Criteria Post-Adoption
 
-| Metric | Baseline (Pre) | Target (Post) |
-| ------ | -------------- | ------------- |
-| Avg imports in hotspot files | (Record from report) | -20% |
-| Max function parameter count | (Record) | -30% |
-| Manual telemetry enrichment duplication | N occurrences | 0 or centralized |
-| New services added with tests in same PR | < 60% | > 90% |
+| Metric                                   | Baseline (Pre)       | Target (Post)    |
+| ---------------------------------------- | -------------------- | ---------------- |
+| Avg imports in hotspot files             | (Record from report) | -20%             |
+| Max function parameter count             | (Record)             | -30%             |
+| Manual telemetry enrichment duplication  | N occurrences        | 0 or centralized |
+| New services added with tests in same PR | < 60%                | > 90%            |
 
 ### Exit / Reversal Plan
 
@@ -92,4 +92,5 @@ When a DI review issue is opened, link it in the roadmap Project and apply label
 - Integrate simplified architectural decision scoring (cost/benefit) into report.
 
 ---
-*Last updated: Consolidation of implementation order workflows & formalization of DI policy (2025-10-03).* 
+
+_Last updated: Consolidation of implementation order workflows & formalization of DI policy (2025-10-03)._
