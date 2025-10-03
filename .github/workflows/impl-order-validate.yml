@@ -1,0 +1,74 @@
+name: Implementation Order Validate
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/sync-implementation-order.mjs'
+      - 'scripts/assign-impl-order.mjs'
+      - '.github/workflows/impl-order-validate.yml'
+      - 'docs/developer-workflow/implementation-order-automation.md'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/sync-implementation-order.mjs'
+      - 'scripts/assign-impl-order.mjs'
+      - '.github/workflows/impl-order-validate.yml'
+  schedule:
+    - cron: '23 5 * * *'   # daily validation (UTC)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  # Need read on projects; if writing becomes necessary adjust here.
+  repository-projects: read
+
+concurrency:
+  group: impl-order-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies (prod only)
+        run: npm ci --omit=dev || npm ci
+
+      - name: Determine strict mode
+        id: mode
+        run: |
+          if [ "${{ github.repository_owner }}" = "piquet-h" ]; then
+            echo "strict=true" >> $GITHUB_OUTPUT
+          else
+            echo "strict=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run implementation order validation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALLOW_MISSING_PROJECT: ${{ steps.mode.outputs.strict == 'true' && 'false' || 'true' }}
+        run: |
+          set -e
+          if [ "${{ steps.mode.outputs.strict }}" = "true" ]; then
+            echo "Strict validation (fails on drift / non-contiguous)."
+            node scripts/sync-implementation-order.mjs validate
+          else
+            echo "Lenient validation (fork or external PR) — allowing missing project.";
+            if node scripts/sync-implementation-order.mjs validate; then
+              echo "Validation succeeded (if project accessible)."; else echo "Skipping failure due to fork context."; fi
+          fi
+
+      - name: Summarize
+        if: always()
+        run: |
+          echo '## Implementation Order Validation' >> $GITHUB_STEP_SUMMARY
+          echo '* Strict mode: ${{ steps.mode.outputs.strict }}' >> $GITHUB_STEP_SUMMARY
