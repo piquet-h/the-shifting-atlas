@@ -107,20 +107,20 @@ Runs on:
 
 ### Job Overview
 
-| Job | Purpose | Notes |
-| --- | ------- | ----- |
-| `changes` | Path-based filter (frontend, a11y, backend, shared) | Reduces conditional work (e.g., accessibility) |
-| `lint-typecheck` | Monorepo ESLint + TypeScript surface check | Fails fast; caches deps via composite action |
-| `tests` | Unit tests across workspaces | Depends on `lint-typecheck` |
-| `accessibility` | Axe scan for affected frontend / UX docs | Only on PRs where UI changed (`changes.a11y`) |
-| `build-artifacts` | Produces production builds (shared, API, frontend) | Uploads artifacts for reuse (deploy workflows) |
-| `summary` | Human-readable run digest | Always runs (even on failures) |
+| Job               | Purpose                                             | Notes                                          |
+| ----------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `changes`         | Path-based filter (frontend, a11y, backend, shared) | Reduces conditional work (e.g., accessibility) |
+| `lint-typecheck`  | Monorepo ESLint + TypeScript surface check          | Fails fast; caches deps via composite action   |
+| `tests`           | Unit tests across workspaces                        | Depends on `lint-typecheck`                    |
+| `accessibility`   | Axe scan for affected frontend / UX docs            | Only on PRs where UI changed (`changes.a11y`)  |
+| `build-artifacts` | Produces production builds (shared, API, frontend)  | Uploads artifacts for reuse (deploy workflows) |
+| `summary`         | Human-readable run digest                           | Always runs (even on failures)                 |
 
 Artifact handoff (shared/API/frontend dists) allows deployment workflows (e.g. future infra or SWA deploy variants) to optionally download rather than rebuild. Current SWA deploy still builds independently; optimization: consume CI artifacts to shorten deployment time.
 
 ### Failure Philosophy
 
-CI is the single merging gate: *no merge without green lint/typecheck/tests*. Accessibility job is advisory (skipped if unrelated). Build artifacts step ensures that code which passed tests can be deployed deterministically.
+CI is the single merging gate: _no merge without green lint/typecheck/tests_. Accessibility job is advisory (skipped if unrelated). Build artifacts step ensures that code which passed tests can be deployed deterministically.
 
 ### Future Enhancements
 
@@ -147,23 +147,23 @@ Runs on:
 ### Job Flow
 
 1. `validate` job
-	- Azure OIDC login (`azure/login@v2`)
-	- Ensures resource group exists (idempotent)
-	- `az deployment group validate` (syntax / basic checks)
-	- `what-if` (FullJson) artifact for change review
+    - Azure OIDC login (`azure/login@v2`)
+    - Ensures resource group exists (idempotent)
+    - `az deployment group validate` (syntax / basic checks)
+    - `what-if` (FullJson) artifact for change review
 2. `deploy` job (after successful validation)
-	- Re‑login via OIDC
-	- Idempotent resource group ensure
-	- `az deployment group create --mode Complete` (applies desired state)
-	- Emits SWA hostname + lists key resources for audit
+    - Re‑login via OIDC
+    - Idempotent resource group ensure
+    - `az deployment group create --mode Complete` (applies desired state)
+    - Emits SWA hostname + lists key resources for audit
 
 ### Required Secrets / Variables
 
-| Secret / Variable | Purpose |
-| ------------------| ------- |
-| `AZURE_CLIENT_ID` | Federated identity client ID |
-| `AZURE_TENANT_ID` | Tenant for OIDC auth |
-| `AZURE_SUBSCRIPTION_ID` | Target subscription |
+| Secret / Variable       | Purpose                      |
+| ----------------------- | ---------------------------- |
+| `AZURE_CLIENT_ID`       | Federated identity client ID |
+| `AZURE_TENANT_ID`       | Tenant for OIDC auth         |
+| `AZURE_SUBSCRIPTION_ID` | Target subscription          |
 
 `RG` currently hardcoded (`rg-core`). If multi-environment support is added, parameterize via workflow inputs (e.g. `environment` → derive RG naming convention).
 
@@ -183,12 +183,11 @@ Runs on:
 
 ## Cross‑Workflow Opportunities
 
-| Need | Current State | Opportunity |
-| ---- | ------------- | ----------- |
-| Duplicate builds | CI + SWA deploy both build | Consume CI artifacts in deploy to cut time |
-| Infra drift visibility | Manual inspection of what-if JSON | Summarize & comment on PR introducing infra change |
-| Security scanning | Not yet integrated | Add CodeQL / Dependabot security alerts (Dependabot config present) |
-| Rollback strategy | Manual redeploy of prior commit | Publish infra deployment metadata artifact (template hash, parameters) |
+| Need                   | Current State                     | Opportunity                                                            |
+| ---------------------- | --------------------------------- | ---------------------------------------------------------------------- |
+| Duplicate builds       | CI + SWA deploy both build        | Consume CI artifacts in deploy to cut time                             |
+| Infra drift visibility | Manual inspection of what-if JSON | Summarize & comment on PR introducing infra change                     |
+| Security scanning      | Not yet integrated                | Add CodeQL / Dependabot security alerts (Dependabot config present)    |
+| Rollback strategy      | Manual redeploy of prior commit   | Publish infra deployment metadata artifact (template hash, parameters) |
 
 ---
-
