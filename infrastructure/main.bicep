@@ -5,6 +5,9 @@ param location string = resourceGroup().location
 // Cosmos DB Account: cosmos${hash}
 param staticWebAppName string = 'web-${uniqueString(resourceGroup().id)}'
 param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
+// Separate SQL (Core) API account for document projections (players, inventory, events, layers)
+// Keeping a distinct account avoids API mixing ambiguity and allows RU governance independent of Gremlin graph.
+// param cosmosSqlAccountName string = 'cosmosdoc${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
 @description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
@@ -19,6 +22,15 @@ param cosmosGremlinDatabaseName string = 'game'
 param cosmosGremlinGraphName string = 'world'
 @minValue(400)
 param cosmosGremlinGraphThroughput int = 400
+
+// SQL (Core) API database & container names + minimal throughput (dev scale)
+param cosmosSqlDatabaseName string = 'game-docs'
+param cosmosSqlPlayersContainerName string = 'players'
+param cosmosSqlInventoryContainerName string = 'inventory'
+param cosmosSqlLayersContainerName string = 'descriptionLayers'
+param cosmosSqlEventsContainerName string = 'worldEvents'
+@minValue(400)
+param cosmosSqlThroughput int = 400
 
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
@@ -42,6 +54,108 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     consistencyPolicy: {
       defaultConsistencyLevel: 'Session'
     }
+  }
+}
+
+// Cosmos DB account (SQL / Core) - separate for document / projection workload.
+// resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
+//   name: cosmosSqlAccountName
+//   location: location
+//   properties: {
+//     databaseAccountOfferType: 'Standard'
+//     locations: [
+//       {
+//         locationName: location
+//         failoverPriority: 0
+//         isZoneRedundant: false
+//       }
+//     ]
+//     consistencyPolicy: {
+//       defaultConsistencyLevel: 'Session'
+//     }
+//   }
+// }
+
+// SQL database
+resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-09-15' = {
+  name: cosmosSqlDatabaseName
+  parent: cosmos
+  properties: {
+    resource: {
+      id: cosmosSqlDatabaseName
+    }
+    options: {}
+  }
+}
+
+// Players container (PK /id)
+resource sqlPlayers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
+  name: cosmosSqlPlayersContainerName
+  parent: sqlDb
+  properties: {
+    resource: {
+      id: cosmosSqlPlayersContainerName
+      partitionKey: {
+        paths: [ '/id' ]
+        kind: 'Hash'
+        version: 2
+      }
+    }
+    options: {
+      throughput: cosmosSqlThroughput
+    }
+  }
+}
+
+// Inventory container (PK /playerId)
+resource sqlInventory 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
+  name: cosmosSqlInventoryContainerName
+  parent: sqlDb
+  properties: {
+    resource: {
+      id: cosmosSqlInventoryContainerName
+      partitionKey: {
+        paths: [ '/playerId' ]
+        kind: 'Hash'
+        version: 2
+      }
+    }
+    options: {}
+  }
+}
+
+// Description layers container (PK /locationId)
+resource sqlLayers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
+  name: cosmosSqlLayersContainerName
+  parent: sqlDb
+  properties: {
+    resource: {
+      id: cosmosSqlLayersContainerName
+      partitionKey: {
+        paths: [ '/locationId' ]
+        kind: 'Hash'
+        version: 2
+      }
+    }
+    options: {}
+  }
+}
+
+// World events container (PK /scopeKey) scopeKey pattern: loc:<locationId> or player:<playerId>
+resource sqlEvents 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
+  name: cosmosSqlEventsContainerName
+  parent: sqlDb
+  properties: {
+    resource: {
+      id: cosmosSqlEventsContainerName
+      partitionKey: {
+        paths: [ '/scopeKey' ]
+        kind: 'Hash'
+        version: 2
+      }
+      // TTL or indexing policy amendments can be added later.
+    }
+    options: {}
   }
 }
 
@@ -114,6 +228,14 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
       COSMOS_KEY_SECRET_NAME: 'cosmos-primary-key'
       COSMOS_GREMLIN_DATABASE: cosmosGremlinDatabaseName
       COSMOS_GREMLIN_GRAPH: cosmosGremlinGraphName
+      // SQL (Core) document store settings
+      COSMOS_SQL_ENDPOINT: cosmos.properties.documentEndpoint
+      COSMOS_SQL_DATABASE: cosmosSqlDatabaseName
+      COSMOS_SQL_KEY_SECRET_NAME: 'cosmos-sql-primary-key'
+      COSMOS_SQL_CONTAINER_PLAYERS: cosmosSqlPlayersContainerName
+      COSMOS_SQL_CONTAINER_INVENTORY: cosmosSqlInventoryContainerName
+      COSMOS_SQL_CONTAINER_LAYERS: cosmosSqlLayersContainerName
+      COSMOS_SQL_CONTAINER_EVENTS: cosmosSqlEventsContainerName
       // Application Insights connection string surfaced to the integrated Functions API
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsights.properties.ConnectionString
     }
@@ -167,12 +289,28 @@ resource cosmosPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' =
   }
 }
 
+// Store SQL (Core) Cosmos primary key as separate secret
+resource cosmosSqlPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  name: 'cosmos-sql-primary-key'
+  parent: keyVault
+  properties: {
+    value: cosmos.listKeys().primaryMasterKey
+  }
+}
+
 output cosmosAccountName string = cosmos.name
 output cosmosEndpoint string = cosmos.properties.documentEndpoint
+output cosmosSqlEndpoint string = cosmos.properties.documentEndpoint
 output staticWebAppName string = staticSite.name
 output keyVaultName string = keyVault.name
 output cosmosPrimaryKeySecretName string = cosmosPrimaryKeySecret.name
+output cosmosSqlPrimaryKeySecretName string = cosmosSqlPrimaryKeySecret.name
 output appInsightsName string = appInsights.name
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
 output cosmosGremlinDatabaseName string = gremlinDb.name
 output cosmosGremlinGraphName string = gremlinGraph.name
+output cosmosSqlDatabaseName string = sqlDb.name
+output cosmosSqlPlayersContainerName string = sqlPlayers.name
+output cosmosSqlInventoryContainerName string = sqlInventory.name
+output cosmosSqlLayersContainerName string = sqlLayers.name
+output cosmosSqlEventsContainerName string = sqlEvents.name
