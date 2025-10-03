@@ -146,19 +146,10 @@ jobs:
                     --artifact ordering-decision-applied.json \
                     --emit-telemetry
 
-            - name: Select Token
-              id: token2
-              run: |
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  fi
-
             - name: Sync & Regenerate Docs
               if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
               env:
-                  GITHUB_TOKEN: ${{ steps.token2.outputs.value }}
+                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
                   ALLOW_MISSING_PROJECT: 'true'
               run: node scripts/sync-implementation-order.mjs apply || echo "Sync degraded"
 
