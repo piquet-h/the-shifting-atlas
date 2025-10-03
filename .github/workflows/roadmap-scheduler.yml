@@ -2,8 +2,8 @@ name: Roadmap Scheduler
 
 on:
     schedule:
-        # Daily at 04:15 UTC
-        - cron: '15 4 * * *'
+        # Daily at 00:02 UTC
+        - cron: '02 00 * * *'
     workflow_dispatch:
         inputs:
             apply:
