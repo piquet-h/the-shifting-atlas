@@ -23,14 +23,12 @@ param cosmosGremlinGraphName string = 'world'
 @minValue(400)
 param cosmosGremlinGraphThroughput int = 400
 
-// SQL (Core) API database & container names + minimal throughput (dev scale)
+// SQL (Core) API database & container names (serverless – no provisioned throughput). Serverless is cheaper for spiky dev load.
 param cosmosSqlDatabaseName string = 'game-docs'
 param cosmosSqlPlayersContainerName string = 'players'
 param cosmosSqlInventoryContainerName string = 'inventory'
 param cosmosSqlLayersContainerName string = 'descriptionLayers'
 param cosmosSqlEventsContainerName string = 'worldEvents'
-@minValue(400)
-param cosmosSqlThroughput int = 400
 
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
@@ -38,6 +36,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   location: location
   properties: {
     databaseAccountOfferType: 'Standard'
+    enableFreeTier: true
     locations: [
       {
         locationName: location
@@ -63,6 +62,12 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
   location: location
   properties: {
     databaseAccountOfferType: 'Standard'
+    // Serverless (no provisioned RU). Free tier already used by Gremlin account.
+    capabilities: [
+      {
+        name: 'EnableServerless'
+      }
+    ]
     locations: [
       {
         locationName: location
@@ -101,9 +106,8 @@ resource sqlPlayers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containe
         version: 2
       }
     }
-    options: {
-      throughput: cosmosSqlThroughput
-    }
+    // Serverless: leave options empty (no throughput block)
+    options: {}
   }
 }
 
