@@ -1,6 +1,7 @@
 import { isDirection } from '../domainModels.js'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
 import { Location } from '../location.js'
+import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { ILocationRepository } from './locationRepository.js'
 
@@ -72,14 +73,14 @@ export class CosmosLocationRepository implements ILocationRepository {
                 name: location.name,
                 desc: location.description || '',
                 ver: newVersion,
-                pk: 'world' // Partition key required by Cosmos Gremlin API
+                pk: WORLD_GRAPH_PARTITION_VALUE // Partition key required by Cosmos Gremlin API
             }
             if (location.tags) {
                 bindings.tags = location.tags
             }
 
             await this.client.submit(
-                "g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid).property('partitionKey', pk))" +
+                `g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))` +
                     ".property('name', name).property('description', desc).property('version', ver)" +
                     (location.tags ? ".property('tags', tags)" : ''),
                 bindings
@@ -108,12 +109,12 @@ export class CosmosLocationRepository implements ILocationRepository {
         if (!isDirection(direction)) return { created: false }
         // Ensure both vertices exist (no-op if present); include partitionKey for Cosmos Gremlin API requirement
         await this.client.submit(
-            "g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid).property('partitionKey', pk))",
-            { fid: fromId, pk: 'world' }
+            `g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
+            { fid: fromId, pk: WORLD_GRAPH_PARTITION_VALUE }
         )
         await this.client.submit(
-            "g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('partitionKey', pk))",
-            { tid: toId, pk: 'world' }
+            `g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
+            { tid: toId, pk: WORLD_GRAPH_PARTITION_VALUE }
         )
         // Use coalesce on existing edge
         await this.client.submit(

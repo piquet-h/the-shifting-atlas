@@ -1,5 +1,6 @@
 import { GremlinClient } from '../gremlin/gremlinClient.js'
 import { STARTER_LOCATION_ID } from '../location.js'
+import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
 import { IPlayerRepository, PlayerRecord } from './playerRepository.js'
 
 export class CosmosPlayerRepository implements IPlayerRepository {
@@ -20,10 +21,10 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         const newId = id || cryptoRandomUUID()
         // Create vertex (optimistically; ignore race condition for now); include partitionKey for Cosmos Gremlin API
         await this.client.submit(
-            "g.addV('player').property('id', pid).property('partitionKey', pk).property('createdUtc', created).property('guest', true).property('currentLocationId', startLoc)",
+            `g.addV('player').property('id', pid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk).property('createdUtc', created).property('guest', true).property('currentLocationId', startLoc)`,
             {
                 pid: newId,
-                pk: 'world', // Partition key required by Cosmos Gremlin API
+                pk: WORLD_GRAPH_PARTITION_VALUE, // Partition key required by Cosmos Gremlin API
                 created: new Date().toISOString(),
                 startLoc: STARTER_LOCATION_ID
             }
