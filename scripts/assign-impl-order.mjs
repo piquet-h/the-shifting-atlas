@@ -99,42 +99,75 @@ async function gh(query, variables) {
 }
 
 async function fetchProjectItems() {
-    const order =
-        OWNER_TYPE_HINT === 'org'
-            ? ['organization', 'user', 'viewer']
-            : OWNER_TYPE_HINT === 'user'
-              ? ['user', 'organization', 'viewer']
-              : ['user', 'organization', 'viewer']
-    for (const kind of order) {
+    // Attempt order: explicit hint first, then other owner type, finally viewer fallback.
+    const attempts = []
+    const pushUnique = (v) => {
+        if (!attempts.includes(v)) attempts.push(v)
+    }
+    if (OWNER_TYPE_HINT === 'org') pushUnique('organization')
+    else if (OWNER_TYPE_HINT === 'user') pushUnique('user')
+    else {
+        // no hint – try user first (most common for personal repos)
+        pushUnique('user')
+        pushUnique('organization')
+    }
+    pushUnique('viewer')
+
+    const collectedErrors = []
+
+    // Reusable fragment (kept inline to avoid fragment name collisions across queries)
+    const issueFields = `id number title state createdAt closedAt body labels(first:50){nodes{name}} milestone{title}`
+    const fieldValueFragments = `... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } \n            ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }`
+
+    for (const kind of attempts) {
         let hasNext = true
         let after = null
         const nodes = []
         let projectId = null
-        while (hasNext) {
-            let query
-            let vars
+
+        // Build static (multi‑line) query text; avoid dynamic root interpolation mistakes.
+        const buildQuery = () => {
             if (kind === 'viewer') {
-                query = `query($number:Int!,$after:String){viewer{projectV2(number:$number){id title items(first:100, after:$after){nodes{id content{... on Issue { id number title state createdAt closedAt body labels(first:50){nodes{name}} milestone{title} }} fieldValues(first:50){nodes{ ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo{hasNextPage endCursor}}}}`
-                vars = { number: PROJECT_NUMBER, after }
-            } else {
-                query = `query($owner:String!,$number:Int!,$after:String){${kind}(login:$owner){projectV2(number:$number){id title items(first:100, after:$after){nodes{id content{... on Issue { id number title state createdAt closedAt body labels(first:50){nodes{name}} milestone{title} }} fieldValues(first:50){nodes{ ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo{hasNextPage endCursor}}}}`
-                vars = { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
+                return `query($number:Int!,$after:String){\n  viewer {\n    projectV2(number:$number){\n      id title\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { ${issueFields} }}\n          fieldValues(first:50){nodes{${fieldValueFragments}}}\n        }\n        pageInfo{hasNextPage endCursor}\n      }\n    }\n  }\n}`
             }
+            const root = kind === 'organization' ? 'organization' : 'user'
+            return `query($owner:String!,$number:Int!,$after:String){\n  ${root}(login:$owner){\n    projectV2(number:$number){\n      id title\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { ${issueFields} }}\n          fieldValues(first:50){nodes{${fieldValueFragments}}}\n        }\n        pageInfo{hasNextPage endCursor}\n      }\n    }\n  }\n}`
+        }
+
+        const queryText = buildQuery()
+
+        while (hasNext) {
+            const vars = kind === 'viewer' ? { number: PROJECT_NUMBER, after } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
             let data
             try {
-                data = await gh(query, vars)
-            } catch {
+                data = await gh(queryText, vars)
+            } catch (e) {
+                collectedErrors.push({ attempt: kind, page: nodes.length / 100 + 1, message: e.message })
+                break // move to next attempt
+            }
+            const container = kind === 'viewer' ? data.viewer : data[kind === 'organization' ? 'organization' : 'user']
+            if (!container || !container.projectV2) {
+                // No project under this root; stop trying pages for this kind.
                 break
             }
-            const container = kind === 'viewer' ? data.viewer : data[kind]
-            if (!container || !container.projectV2) break
             projectId = container.projectV2.id
             const page = container.projectV2.items
             nodes.push(...page.nodes.filter((n) => n.content && n.content.number))
             hasNext = page.pageInfo.hasNextPage
             after = page.pageInfo.endCursor
         }
-        if (projectId) return { projectId, nodes }
+        if (projectId) {
+            if (collectedErrors.length) {
+                console.warn(
+                    'fetchProjectItems(): previous attempts produced errors before success:',
+                    JSON.stringify(collectedErrors, null, 2)
+                )
+            }
+            return { projectId, nodes }
+        }
+    }
+    if (collectedErrors.length) {
+        console.error('fetchProjectItems(): all attempts failed. Errors summary:', JSON.stringify(collectedErrors, null, 2))
     }
     return { projectId: null, nodes: [] }
 }
