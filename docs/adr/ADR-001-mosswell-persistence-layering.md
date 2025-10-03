@@ -45,6 +45,34 @@ P5: AI on-ramp (ambient generation, structural proposals with approval).
 - Large-scale environmental transforms → diff/patch model.
 - Layer storage growth threshold → separate container.
 
+## Appendix: Partition Key Strategy
+
+Early world persistence intentionally defers an optimized graph partitioning scheme in favor of speed and minimal surface area change. The Cosmos DB Gremlin container is provisioned with partition key path `/partitionKey` and—during the Mosswell bootstrap phase—uses a single logical value (currently `'world'`) for all vertices and edges.
+
+### Rationale (MVP Concession)
+
+- Small initial vertex set keeps RU + storage comfortably within a single logical partition.
+- Uniform value simplifies seeding, idempotent edge creation, and traversal queries while repositories and validation logic stabilize.
+- Centralizing the value (see ADR-002) lowers migration risk; call sites do not hard‑code literals.
+
+### Evolution Path (Region Sharding)
+
+Future scaling introduces region/biome partition values (e.g., `mosswell`, `northern_ridge`). Location creation will deterministically derive a region key; cross‑region travel remains infrequent enough that occasional cross‑partition traversals are acceptable.
+
+### Revisit Triggers
+
+- > 50k world vertices OR sustained RU utilization > 70% for 3 consecutive days.
+- Hot partition RU concentration (> 40% of total RU in 1 logical partition) or repeated 429 throttles on traversal at < 50 RPS.
+- Planned large region generation (bulk location ingestion) that would immediately exceed 10k new vertices in one batch.
+
+### Migration (High-Level Reference)
+
+Migration steps (export, region mapping, reingest, edge recreation, flip) are detailed in ADR-002. This appendix simply records that the current single-partition concession is intentional and bounded.
+
+### Source of Truth
+
+For the full, living decision record and thresholds, see **ADR-002: Graph Partition Strategy**. This appendix exists to anchor Mosswell persistence documentation and avoid ambiguity for early contributors reviewing only ADR-001.
+
 ---
 
 This condensed ADR intentionally omits narrative detail; see archive for full context.

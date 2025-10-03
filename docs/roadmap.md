@@ -61,7 +61,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 55 | #67 | M-P3: Ambient Snippet Registry & Deterministic Selection |  | scope:world | feature | Todo |
 | 56 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
 | 57 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
-| 58 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | In progress |
+| 58 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | Done |
 | 59 | #73 | Persistence Concurrency Idempotency Race Test |  | scope:world | test | Todo |
 | 60 | #19 | Only create DI Suitability Issue if needed |  | scope:devx | enhancement | Todo |
 | 61 | #18 | DI Suitability Report |  | scope:devx | docs | Todo |

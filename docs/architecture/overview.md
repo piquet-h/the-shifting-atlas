@@ -83,6 +83,7 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 - Prefer idempotent mutations: processors verify current state before applying changes
 - Planned multi‑scale spatial layer (see `../modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
 - Tokenless description layering (see `../modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
+- Partition key strategy: single logical partition during Mosswell bootstrap (MVP concession) with documented region sharding migration path (see `../adr/ADR-002-graph-partition-strategy.md` and Appendix in `../adr/ADR-001-mosswell-persistence-layering.md`).
 
 ## Security & Identity Roadmap
 
@@ -120,6 +121,8 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 - `../modules/world-rules-and-lore.md` – Narrative & systemic framing
 - `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
 - `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
+- `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
+- `../adr/ADR-001-mosswell-persistence-layering.md` – Mosswell persistence (includes partition strategy appendix)
 
 ---
 
