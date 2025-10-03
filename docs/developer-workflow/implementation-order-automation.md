@@ -4,13 +4,16 @@ This document describes the automated implementation order assignment system for
 
 ## Overview
 
-When a new issue is created or significantly updated (labels, milestones), GitHub Copilot automatically:
+Historically ordering used a local JSON snapshot + heuristic scripts. These have been fully retired. All automation now works directly against the Project v2 numeric field `Implementation order`.
 
-1. **Analyzes** the issue content, labels, and metadata
-2. **Determines** the appropriate priority and implementation order
-3. **Writes / updates** the Project v2 numeric field `Implementation order`
-4. **Resequences** existing project items if necessary
-5. **Regenerates** `docs/roadmap.md`
+When a new issue is created or significantly updated (labels, milestones), the system (human + on-demand tooling) may:
+
+1. Inspect issue labels / milestone.
+2. Optionally run the assignment helper script (see New Assignment Tool) in dry‑run.
+3. Apply updated contiguous ordering to the Project field.
+4. Regenerate `docs/roadmap.md` via `npm run sync:impl-order:apply`.
+
+There is no background priority auto-writer at the moment; the previous JSON-based priority analyzer & applier are deprecated and stubbed.
 
 ## How It Works
 
@@ -24,9 +27,22 @@ The automation runs on these GitHub events:
 - `issues.milestoned` - Milestone assignment affects priority
 - `issues.demilestoned` - Milestone removal affects priority
 
-### Priority Analysis
+### Priority Model (Deprecated vs Current)
 
-The system calculates a priority score based on:
+The legacy automated priority engine (now deprecated) calculated a composite score using labels, milestones, roadmap path keywords, and dependencies. That logic lived in `scripts/analyze-issue-priority.mjs` and `scripts/apply-impl-order-assignment.mjs` (both now stubs).
+
+Current approach favors an explicit, human-in-the-loop helper script (`assign-impl-order.mjs`) that:
+
+- Pulls all Project items & existing `Implementation order` values.
+- Scores issues with a light-weight heuristic (scope > type > milestone).
+- Recomputes (or appends) a contiguous ordering and outputs a diff (dry-run by default).
+- Optionally applies only the minimal changes.
+
+This keeps ordering transparent and avoids hidden large-scale reshuffles.
+
+#### Legacy Scoring (Reference Only)
+
+For context, the former model considered these factors (retained here only as historical reference):
 
 **Scope Labels** (primary factor):
 
@@ -40,7 +56,7 @@ The system calculates a priority score based on:
 - `scope:observability` - Lower priority
 - `scope:devx` - Lowest priority
 
-**Roadmap Path Dependencies** (NEW - major factor):
+**Roadmap Path Dependencies** (legacy weighted factor):
 
 - **Navigation Phase 1**: Core traversal foundation (locations, exits, graph) - Highest weight
 - **World Foundation**: World rules, lore, biomes, player identity - Very high weight
@@ -50,7 +66,7 @@ The system calculates a priority score based on:
 - **Navigation Phase 3**: AI-driven exit generation - Medium weight
 - **Infrastructure**: Telemetry, observability, testing, DevX - Lower weight
 
-The system analyzes issue content against the implementation phases documented in `docs/modules/` to determine which roadmap path the issue supports. This ensures issues are prioritized based on the logical delivery sequence for MVP and beyond.
+Legacy logic parsed issue bodies for keywords to infer phase. The new helper script does NOT perform deep content/keyword matching (future enhancement candidate).
 
 **Type Labels**:
 
@@ -77,46 +93,41 @@ The system analyzes issue content against the implementation phases documented i
 - Medium priority: "command", "api", "utility", "feature", "enhancement"
 - Low priority: "documentation", "polish", "cleanup", "maintenance"
 
-**Dependencies**:
+**Dependencies (Legacy)**: Blocking relationships nudged scores. This is currently omitted (low ROI vs complexity). Could be reinstated by enriching the helper.
 
-- Issues that block others get higher priority
-- Issues blocked by others get slightly lower priority
+### Decision Logic (Current)
 
-### Decision Logic
+The helper script supports three strategies:
 
-Based on the priority score, the system:
+| Strategy | Flag `--strategy` | Behavior |
+|----------|-------------------|----------|
+| auto (default) | auto | Re-scores all issues and outputs a full contiguous plan (score desc, tie by previous order, then issue #). |
+| append | append | Places target issue at end (order = N+1) without touching existing items. |
+| scope-block | scope-block | Inserts after the last item sharing the same `scope:*` label (else appends). |
 
-- **High scores (200+)**: Insert near beginning, requires resequencing
-- **Medium scores (100-199)**: Insert in middle, may require resequencing
-- **Low scores (<100)**: Append at end, no resequencing needed
+Apply mode mutates only rows whose numeric value changes (minimal drift footprint).
 
-For existing issues, the system skips updates if the current position is within ±2 positions of the recommended position.
+### Concurrency & Safety
 
-### Race Condition Prevention
+Because ordering updates are now explicit (invoked on demand) the prior JSON file backup/restore logic is unnecessary. Safety characteristics now rely on:
 
-The automation includes several safeguards:
-
-- **Concurrency control**: Only one workflow runs at a time using GitHub's concurrency groups
-- **Atomic updates**: File operations use backup/restore patterns
-- **Validation**: All changes are validated before committing
-- **Error recovery**: Failed operations preserve backups and log detailed errors
+- Project field being the single source of truth.
+- The helper producing a dry-run JSON diff for review before `--apply`.
+- `sync:impl-order:validate` ensuring contiguous integers (CI or local pre-check).
 
 ## Manual Overrides
 
-Maintainers can override automation by:
+Preferred flow:
 
-1. **Direct Project edits**: Adjust `Implementation order` values inline (prefer append; keep contiguous). Automation treats these as authoritative.
-2. **Force resequencing**: Use workflow dispatch or run a resequence script locally (future enhancement to operate directly on Project items).
-3. **Manual sync**: Run `npm run sync:impl-order:apply` (updates markdown). No snapshot is maintained.
+1. Run helper in dry-run: `npm run assign:impl-order -- --issue <num>`.
+2. Review JSON output (recommendedOrder + diff list).
+3. If acceptable, apply: `GITHUB_TOKEN=... npm run assign:impl-order -- --issue <num> --apply`.
+4. Regenerate docs: `npm run sync:impl-order:apply` (reads Project and rewrites `docs/roadmap.md`).
+5. If only appending: use `--strategy append` to avoid touching earlier items.
 
 ## Audit Trail
 
-All automated changes are tracked via:
-
-- **Git commits**: Each assignment creates a commit with issue reference
-- **Workflow logs**: Detailed analysis and rationale in GitHub Actions logs
-- **Issue comments**: Low/medium confidence assignments get explanatory comments
-- **Project updates**: GitHub Project fields are automatically synced
+Currently changes are Project-field edits (visible in Project history) plus regenerated `docs/roadmap.md` diffs. Optional future enhancement: helper can emit an issue comment summarizing alterations (not yet implemented).
 
 ## Edge Cases
 
@@ -171,7 +182,7 @@ Check the "Auto Assign Implementation Order" workflow for detailed logs of:
 
 ### Testing
 
-Scripts are integration-oriented; unit-level tests for ordering heuristics can be added by extracting pure functions if needed. The legacy JSON-based test harness has been removed.
+Heuristic scoring currently resides inline in `scripts/assign-impl-order.mjs`. If stability becomes critical, extract pure scoring + ordering functions and add node:test coverage. Legacy JSON harness removed.
 
 ## Configuration
 
@@ -183,31 +194,67 @@ Edit `.github/workflows/auto-assign-impl-order.yml` to:
 - Modify trigger conditions
 - Change comment thresholds
 
-### Priority Weights
+### Priority Weights / Assignment Logic
 
-Modify `scripts/analyze-issue-priority.mjs` to:
+Adjust weights or strategies by editing `scripts/assign-impl-order.mjs`:
 
-- Adjust priority score calculations
-- Add new scope/type categories
-- Change keyword classifications
+- Scope ordering: `SCOPE_PRIORITY` and derived weights.
+- Type weights: `TYPE_WEIGHT` map.
+- Milestone influence: `milestoneWeight()` function.
+- Ordering sort chain in the auto strategy (score -> original order -> issue #).
 
-### Assignment Logic
-
-Update `scripts/apply-impl-order-assignment.mjs` to:
-
-- Change insertion point algorithms
-- Modify resequencing thresholds
-- Adjust validation rules
+Add new strategy by extending `applyStrategy()`.
 
 ## Integration with Existing Workflows
 
 Automation now operates solely against the Project field (no JSON layer). Sync workflows regenerate docs directly from live Project data.
 
+## New Assignment Tool
+
+Script: `scripts/assign-impl-order.mjs` (npm: `assign:impl-order`).
+
+Dry-run example:
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123
+```
+
+Apply with append strategy:
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123 --strategy append --apply
+```
+
+Outputs JSON:
+
+```json
+{
+	"strategy": "auto",
+	"issue": 123,
+	"recommendedOrder": 14,
+	"changes": 3,
+	"diff": [ { "issue": 45, "from": 12, "to": 11 } ... ],
+	"plan": [ { "issue": 17, "score": 210, "desiredOrder": 1 }, ... ]
+}
+```
+
+No changes (no-op) keeps ordering stable.
+
+## Rollback / Removal
+
+If the helper behaves unexpectedly:
+
+1. Manually correct any order values in the Project UI (drag or edit field numbers).
+2. Run `npm run sync:impl-order:apply` to regenerate docs.
+3. Remove helper: delete `scripts/assign-impl-order.mjs` + its npm script entry.
+4. (Optional) Reintroduce a simpler append-only practice until heuristics are revised.
+
 ## Future Enhancements
 
-Planned improvements include:
+Potential roadmap:
 
-- Machine learning for priority prediction
-- Integration with dependency tracking
-- Automated milestone assignment
-- Historical analysis for better accuracy
+- Dependency graph influence (blocked/by) reintroduction.
+- Confidence scoring & optional issue comment output.
+- Bulk re-balance mode (simulate before apply with risk scoring).
+- ML-assisted classification (scope inference from text).
+- Status-aware ordering (e.g., pin In Progress items against inadvertent repositioning).

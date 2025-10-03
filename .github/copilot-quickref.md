@@ -12,10 +12,11 @@ Core Scripts:
 - Apply order: `npm run sync:impl-order:apply`
 - List next: `npm run sync:impl-order:next`
 - Labels reconcile: `npm run sync:labels`
+ - Recommend/assign order (dry-run default): `npm run assign:impl-order -- --issue <n>`
 
 Labels: One `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`). No legacy `area:*`, `phase-*`, `priority:*`.
 
-Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (No local JSON snapshot retained.)
+Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (No local JSON snapshot.) Helper script can auto-recompute or append.
 
 Next Up Logic: Non-Done → lowest order → earliest milestone → scope priority (core > world > traversal > ai > others). Avoid parallel starts unless requested.
 
