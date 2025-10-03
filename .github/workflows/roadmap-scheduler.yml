@@ -42,7 +42,8 @@ jobs:
         run: |
           echo "Token source: ${{ steps.token.outputs.source }}"
           echo "Preflight: ${{ steps.token.outputs.preflight }}"
-          echo "Token length: ${#TOK:0}"
+          # Show token length safely (avoid invalid parameter expansion)
+          echo "Token length: ${#TOK}"
         env:
           TOK: ${{ steps.token.outputs.value }}
 
