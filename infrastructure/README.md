@@ -25,6 +25,7 @@ The Gremlin graph uses `/partitionKey` as the partition key property. **Importan
 - For small-to-medium graphs, a single partition value (e.g., `"world"`) is acceptable during development
 
 **Example vertex creation**:
+
 ```gremlin
 g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').property('name', 'Mosswell Square')
 ```
@@ -94,31 +95,33 @@ az deployment group create \
 
 ## Security & Limitations
 
-| Topic               | Current State                                                                        | Planned Improvement                                         |
-| ------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| Secrets Management  | Key Vault configured with Managed Identity. Runtime retrieval via secrets helper.   | Add secret rotation automation (future).                    |
-| Observability       | Application Insights connected.                                                      | Add sampling & dependency tracking tuning.                  |
-| Messaging           | No Service Bus / queues.                                                             | Add Service Bus namespace + queue for world events.         |
-| Identity / RBAC     | System-assigned Managed Identity for SWA with Key Vault access policies.            | Migrate to RBAC authorization for finer-grained control.    |
-| CI/CD               | Workflow not auto-generated.                                                         | Author SWA + seeding GitHub Actions manually.               |
+| Topic              | Current State                                                                     | Planned Improvement                                      |
+| ------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Secrets Management | Key Vault configured with Managed Identity. Runtime retrieval via secrets helper. | Add secret rotation automation (future).                 |
+| Observability      | Application Insights connected.                                                   | Add sampling & dependency tracking tuning.               |
+| Messaging          | No Service Bus / queues.                                                          | Add Service Bus namespace + queue for world events.      |
+| Identity / RBAC    | System-assigned Managed Identity for SWA with Key Vault access policies.          | Migrate to RBAC authorization for finer-grained control. |
+| CI/CD              | Workflow not auto-generated.                                                      | Author SWA + seeding GitHub Actions manually.            |
 
 ## Secret Management Baseline
 
 **Status**: ✅ Implemented (Issue #45)
 
+**Decision**: A dedicated Key Vault was provisioned for this project. See [Key Vault Decision Document](../docs/decisions/keyvault-decision.md) for evaluation criteria and rationale.
+
 ### Architecture
 
 - **Key Vault**: Standard tier, access policy-based (SWA system identity has `get`, `list` permissions)
 - **Secrets Stored**:
-  - `cosmos-primary-key` (Gremlin API)
-  - `cosmos-sql-primary-key` (SQL/Core API)
-  - Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
+    - `cosmos-primary-key` (Gremlin API)
+    - `cosmos-sql-primary-key` (SQL/Core API)
+    - Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
 - **Runtime Access**: Via `@atlas/shared` `secretsHelper` with:
-  - Lazy caching (5-minute TTL)
-  - Exponential backoff retry (3 attempts)
-  - Telemetry (cache hit/miss, fetch success/failure)
-  - Allowlisted secret keys
-  - Local dev fallback to environment variables (`.env.development`)
+    - Lazy caching (5-minute TTL)
+    - Exponential backoff retry (3 attempts)
+    - Telemetry (cache hit/miss, fetch success/failure)
+    - Allowlisted secret keys
+    - Local dev fallback to environment variables (`.env.development`)
 
 ### Local Development
 
@@ -153,7 +156,7 @@ az deployment group create \
 
 | Date       | Change                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).          |
+| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).           |
 | 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references. |
 
 ## Contributing

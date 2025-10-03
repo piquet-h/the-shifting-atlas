@@ -6,163 +6,163 @@ name: Auto Update Issue Status on PR Events
 # - When PR is closed without merge → referenced issues set to "Todo"
 
 on:
-    pull_request:
-        # Include additional lifecycle events so status updates occur on pushes and reopen
-        types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
+  pull_request:
+    # Include additional lifecycle events so status updates occur on pushes and reopen
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
 
 permissions:
-    contents: read
-    issues: write # required to post issue comments
-    pull-requests: read
-    repository-projects: write # repo-level project items; user/org Project V2 needs PAT
+  contents: read
+  issues: write # required to post issue comments
+  pull-requests: read
+  repository-projects: write # repo-level project items; user/org Project V2 needs PAT
 
 jobs:
-    update-issue-status:
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
-        steps:
-            - name: Debug event
-              run: |
-                  echo "Action: ${{ github.event.action }}"
-                  echo "PR #: ${{ github.event.pull_request.number }}"
-                  echo "Is fork: ${{ github.event.pull_request.head.repo.fork }}"
-            - name: Checkout
-              uses: actions/checkout@v4
+  update-issue-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Debug event
+        run: |
+          echo "Action: ${{ github.event.action }}"
+          echo "PR #: ${{ github.event.pull_request.number }}"
+          echo "Is fork: ${{ github.event.pull_request.head.repo.fork }}"
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: '20'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-            - name: Install minimal deps
-              run: |
-                  if [ -f package.json ]; then
-                    npm ci --omit=dev || npm install --only=production || true
-                  fi
+      - name: Install minimal deps
+        run: |
+          if [ -f package.json ]; then
+            npm ci --omit=dev || npm install --only=production || true
+          fi
 
-            - name: Extract referenced issues from PR (robust)
-              id: extract-issues
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const pr = context.payload.pull_request;
-                      const title = pr.title || '';
-                      const body = pr.body || '';
-                      const text = `${title}\n${body}`;
-                      // Match: fixes #123, fix #1, closes #2, resolved #3, refs #4, references #5, etc.
-                      const re = /(?:(?:fixe?[sd]?|clos(?:e[sd])?|resolv(?:e[sd])?|refs?|references?)\s*#)(\d+)/gi;
-                      const issueNumbers = [...new Set([...text.matchAll(re)].map(m => m[1]))];
-                      core.info(`Found issue references: ${issueNumbers.join(' ') || '(none)'}`);
-                      core.setOutput('issue_numbers', issueNumbers.join(' '));
-                      core.setOutput('pr_state', pr.state);
-                      core.setOutput('pr_merged', String(pr.merged));
-                      core.setOutput('pr_draft', String(pr.draft));
+      - name: Extract referenced issues from PR (robust)
+        id: extract-issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title || '';
+            const body = pr.body || '';
+            const text = `${title}\n${body}`;
+            // Match: fixes #123, fix #1, closes #2, resolved #3, refs #4, references #5, etc.
+            const re = /(?:(?:fixe?[sd]?|clos(?:e[sd])?|resolv(?:e[sd])?|refs?|references?)\s*#)(\d+)/gi;
+            const issueNumbers = [...new Set([...text.matchAll(re)].map(m => m[1]))];
+            core.info(`Found issue references: ${issueNumbers.join(' ') || '(none)'}`);
+            core.setOutput('issue_numbers', issueNumbers.join(' '));
+            core.setOutput('pr_state', pr.state);
+            core.setOutput('pr_merged', String(pr.merged));
+            core.setOutput('pr_draft', String(pr.draft));
 
-            - name: Determine target status
-              id: determine-status
-              run: |
-                  PR_STATE="${{ steps.extract-issues.outputs.pr_state }}"
-                  PR_MERGED="${{ steps.extract-issues.outputs.pr_merged }}"
-                  PR_DRAFT="${{ steps.extract-issues.outputs.pr_draft }}"
-                  ACTION="${{ github.event.action }}"
+      - name: Determine target status
+        id: determine-status
+        run: |
+          PR_STATE="${{ steps.extract-issues.outputs.pr_state }}"
+          PR_MERGED="${{ steps.extract-issues.outputs.pr_merged }}"
+          PR_DRAFT="${{ steps.extract-issues.outputs.pr_draft }}"
+          ACTION="${{ github.event.action }}"
 
-                  echo "PR State: $PR_STATE, Merged: $PR_MERGED, Draft: $PR_DRAFT, Action: $ACTION"
+          echo "PR State: $PR_STATE, Merged: $PR_MERGED, Draft: $PR_DRAFT, Action: $ACTION"
 
-                  if [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
-                    echo "status=Done" >> $GITHUB_OUTPUT
-                    echo "reason=PR #${{ github.event.pull_request.number }} was merged" >> $GITHUB_OUTPUT
-                  elif [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "false" ]; then
-                    echo "status=Todo" >> $GITHUB_OUTPUT
-                    echo "reason=PR #${{ github.event.pull_request.number }} was closed without merging" >> $GITHUB_OUTPUT
-                  elif [ "$ACTION" = "opened" ] || [ "$ACTION" = "ready_for_review" ]; then
-                    if [ "$PR_DRAFT" = "false" ]; then
-                      echo "status=In progress" >> $GITHUB_OUTPUT
-                      echo "reason=PR #${{ github.event.pull_request.number }} is ready for review" >> $GITHUB_OUTPUT
-                    else
-                      echo "status=In progress" >> $GITHUB_OUTPUT  
-                      echo "reason=PR #${{ github.event.pull_request.number }} opened as draft" >> $GITHUB_OUTPUT
-                    fi
-                  elif [ "$ACTION" = "converted_to_draft" ]; then
-                    echo "status=In progress" >> $GITHUB_OUTPUT
-                    echo "reason=PR #${{ github.event.pull_request.number }} converted to draft" >> $GITHUB_OUTPUT
-                  else
-                    echo "status=" >> $GITHUB_OUTPUT
-                    echo "reason=" >> $GITHUB_OUTPUT
-                  fi
+          if [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+            echo "status=Done" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} was merged" >> $GITHUB_OUTPUT
+          elif [ "$PR_STATE" = "closed" ] && [ "$PR_MERGED" = "false" ]; then
+            echo "status=Todo" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} was closed without merging" >> $GITHUB_OUTPUT
+          elif [ "$ACTION" = "opened" ] || [ "$ACTION" = "ready_for_review" ]; then
+            if [ "$PR_DRAFT" = "false" ]; then
+              echo "status=In progress" >> $GITHUB_OUTPUT
+              echo "reason=PR #${{ github.event.pull_request.number }} is ready for review" >> $GITHUB_OUTPUT
+            else
+              echo "status=In progress" >> $GITHUB_OUTPUT  
+              echo "reason=PR #${{ github.event.pull_request.number }} opened as draft" >> $GITHUB_OUTPUT
+            fi
+          elif [ "$ACTION" = "converted_to_draft" ]; then
+            echo "status=In progress" >> $GITHUB_OUTPUT
+            echo "reason=PR #${{ github.event.pull_request.number }} converted to draft" >> $GITHUB_OUTPUT
+          else
+            echo "status=" >> $GITHUB_OUTPUT
+            echo "reason=" >> $GITHUB_OUTPUT
+          fi
 
-            - name: Detect fork & token availability
-              id: fork-check
-              run: |
-                  if [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-                    echo "is_fork=true" >> $GITHUB_OUTPUT
-                  else
-                    echo "is_fork=false" >> $GITHUB_OUTPUT
-                  fi
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "has_pat=true" >> $GITHUB_OUTPUT
-                  else
-                    echo "has_pat=false" >> $GITHUB_OUTPUT
-                  fi
+      - name: Detect fork & token availability
+        id: fork-check
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+            echo "has_pat=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_pat=false" >> $GITHUB_OUTPUT
+          fi
 
-            - name: Select token for project access
-              id: select-token
-              run: |
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "Using PROJECTS_TOKEN secret"
-                    echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "Using default GITHUB_TOKEN (may lack user/org Project V2 scopes)"
-                    echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Select token for project access
+        id: select-token
+        run: |
+          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+            echo "Using PROJECTS_TOKEN secret"
+            echo "token=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Using default GITHUB_TOKEN (may lack user/org Project V2 scopes)"
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+          fi
 
-            - name: Update status for referenced issues
-              if: steps.extract-issues.outputs.issue_numbers != '' && steps.determine-status.outputs.status != '' && steps.fork-check.outputs.is_fork == 'false'
-              env:
-                  GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
-              run: |
-                  ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
-                  NEW_STATUS="${{ steps.determine-status.outputs.status }}"
-                  REASON="${{ steps.determine-status.outputs.reason }}"
+      - name: Update status for referenced issues
+        if: steps.extract-issues.outputs.issue_numbers != '' && steps.determine-status.outputs.status != '' && steps.fork-check.outputs.is_fork == 'false'
+        env:
+          GITHUB_TOKEN: ${{ steps.select-token.outputs.token }}
+        run: |
+          ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
+          NEW_STATUS="${{ steps.determine-status.outputs.status }}"
+          REASON="${{ steps.determine-status.outputs.reason }}"
 
-                  echo "Updating status to '$NEW_STATUS' for issues: $ISSUE_NUMBERS"
-                  echo "Reason: $REASON"
+          echo "Updating status to '$NEW_STATUS' for issues: $ISSUE_NUMBERS"
+          echo "Reason: $REASON"
 
-                  # Update each referenced issue
-                  for issue_num in $ISSUE_NUMBERS; do
-                    echo "Updating issue #$issue_num..."
-                    if node scripts/update-issue-status.mjs --issue-number "$issue_num" --status "$NEW_STATUS"; then
-                      echo "✅ Successfully updated issue #$issue_num to '$NEW_STATUS'"
-                    else
-                      echo "⚠️ Failed to update issue #$issue_num status (might not exist in project)"
-                    fi
-                  done
+          # Update each referenced issue
+          for issue_num in $ISSUE_NUMBERS; do
+            echo "Updating issue #$issue_num..."
+            if node scripts/update-issue-status.mjs --issue-number "$issue_num" --status "$NEW_STATUS"; then
+              echo "✅ Successfully updated issue #$issue_num to '$NEW_STATUS'"
+            else
+              echo "⚠️ Failed to update issue #$issue_num status (might not exist in project)"
+            fi
+          done
 
-            - name: Skip (fork PR cannot mutate project)
-              if: steps.extract-issues.outputs.issue_numbers != '' && steps.determine-status.outputs.status != '' && steps.fork-check.outputs.is_fork == 'true'
-              run: echo "Fork PR detected; skipping project item updates & comments."
+      - name: Skip (fork PR cannot mutate project)
+        if: steps.extract-issues.outputs.issue_numbers != '' && steps.determine-status.outputs.status != '' && steps.fork-check.outputs.is_fork == 'true'
+        run: echo "Fork PR detected; skipping project item updates & comments."
 
-            - name: Comment on issues (for significant status changes)
-              if: steps.extract-issues.outputs.issue_numbers != '' && (steps.determine-status.outputs.status == 'Done' || steps.determine-status.outputs.status == 'Todo') && steps.fork-check.outputs.is_fork == 'false'
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
-                  NEW_STATUS="${{ steps.determine-status.outputs.status }}"
-                  REASON="${{ steps.determine-status.outputs.reason }}"
-                  PR_NUMBER="${{ github.event.pull_request.number }}"
+      - name: Comment on issues (for significant status changes)
+        if: steps.extract-issues.outputs.issue_numbers != '' && (steps.determine-status.outputs.status == 'Done' || steps.determine-status.outputs.status == 'Todo') && steps.fork-check.outputs.is_fork == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
+          NEW_STATUS="${{ steps.determine-status.outputs.status }}"
+          REASON="${{ steps.determine-status.outputs.reason }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
 
-                  # Comment on each issue for significant status changes (Done/Todo)
-                  for issue_num in $ISSUE_NUMBERS; do
-                    echo "Adding comment to issue #$issue_num..."
-                    
-                    if [ "$NEW_STATUS" = "Done" ]; then
-                      EMOJI="✅"
-                      MESSAGE="This issue has been completed!"
-                    else
-                      EMOJI="↩️" 
-                      MESSAGE="Work on this issue has been paused."
-                    fi
-                    
-                    BODY="$EMOJI **Status Update**\n\nStatus changed to: **$NEW_STATUS**  \n$REASON\n\nSee PR #$PR_NUMBER for details."
-                    gh issue comment "$issue_num" --body "$BODY" || echo "Failed to comment on issue #$issue_num"
-                  done
+          # Comment on each issue for significant status changes (Done/Todo)
+          for issue_num in $ISSUE_NUMBERS; do
+            echo "Adding comment to issue #$issue_num..."
+            
+            if [ "$NEW_STATUS" = "Done" ]; then
+              EMOJI="✅"
+              MESSAGE="This issue has been completed!"
+            else
+              EMOJI="↩️" 
+              MESSAGE="Work on this issue has been paused."
+            fi
+            
+            BODY="$EMOJI **Status Update**\n\nStatus changed to: **$NEW_STATUS**  \n$REASON\n\nSee PR #$PR_NUMBER for details."
+            gh issue comment "$issue_num" --body "$BODY" || echo "Failed to comment on issue #$issue_num"
+          done

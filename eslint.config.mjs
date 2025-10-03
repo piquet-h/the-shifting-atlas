@@ -10,6 +10,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
+import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 
 export default [
     {
@@ -27,7 +28,8 @@ export default [
                 rules: {
                     'telemetry-event-name': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
-                    'no-room-telemetry': noRoomTelemetryRule
+                    'no-room-telemetry': noRoomTelemetryRule,
+                    'no-direct-secret-access': noDirectSecretAccessRule
                 }
             }
         },
@@ -48,7 +50,31 @@ export default [
             ],
             'internal/telemetry-event-name': 'error',
             'internal/no-direct-track-event': 'error',
-            'internal/no-room-telemetry': 'error'
+            'internal/no-room-telemetry': 'error',
+            'internal/no-direct-secret-access': 'error'
+        }
+    },
+    {
+        // Shared package (Node.js environment)
+        files: ['shared/src/**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            ecmaVersion: 'latest',
+            sourceType: 'module',
+            globals: { process: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly' }
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+            prettier: prettierPlugin
+        },
+        rules: {
+            ...tsPlugin.configs.recommended.rules,
+            '@typescript-eslint/no-explicit-any': 'warn',
+            'prettier/prettier': 'error',
+            'internal/telemetry-event-name': 'error',
+            'internal/no-direct-track-event': 'error',
+            'internal/no-room-telemetry': 'error',
+            'internal/no-direct-secret-access': 'error'
         }
     },
     {

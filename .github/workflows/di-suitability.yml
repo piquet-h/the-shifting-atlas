@@ -1,96 +1,96 @@
 name: DI Suitability Analysis
 
 on:
-    workflow_dispatch: {}
-    schedule:
-        - cron: '0 5 * * 1' # Every Monday 05:00 UTC
-    pull_request:
-        paths:
-            - 'backend/src/**'
-            - 'frontend/src/**'
-            - 'frontend/api/src/**'
-            - 'shared/src/**'
-            - 'scripts/di-suitability.mjs'
-            - 'package.json'
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 5 * * 1' # Every Monday 05:00 UTC
+  pull_request:
+    paths:
+      - 'backend/src/**'
+      - 'frontend/src/**'
+      - 'frontend/api/src/**'
+      - 'shared/src/**'
+      - 'scripts/di-suitability.mjs'
+      - 'package.json'
 
 jobs:
-    analyze:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            issues: write
-            pull-requests: write
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: '20.x'
-                  cache: 'npm'
-            - name: Install
-              run: npm ci
-            - name: Run DI suitability analyzer
-              run: npm run analyze:di
-            - name: Capture JSON Summary
-              id: capture
-              run: |
-                  node scripts/di-suitability.mjs > di-report.txt
-                  sed -n '/DI_ANALYSIS_JSON_START/,/DI_ANALYSIS_JSON_END/p' di-report.txt | sed '1d;$d' > di-summary.json
-                  echo "summary<<EOF" >> $GITHUB_OUTPUT
-                  cat di-summary.json >> $GITHUB_OUTPUT
-                  echo "EOF" >> $GITHUB_OUTPUT
-            - name: Upload full report artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: di-suitability-report
-                  path: |
-                      di-report.txt
-                      di-summary.json
-            - name: Create or update issue
-              uses: actions/github-script@v7
-              with:
-                  script: |
-                      const summaryRaw = process.env.SUMMARY_JSON || core.getInput('summary');
-                      const summary = JSON.parse(summaryRaw);
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Run DI suitability analyzer
+        run: npm run analyze:di
+      - name: Capture JSON Summary
+        id: capture
+        run: |
+          node scripts/di-suitability.mjs > di-report.txt
+          sed -n '/DI_ANALYSIS_JSON_START/,/DI_ANALYSIS_JSON_END/p' di-report.txt | sed '1d;$d' > di-summary.json
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          cat di-summary.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Upload full report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: di-suitability-report
+          path: |
+            di-report.txt
+            di-summary.json
+      - name: Create or update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summaryRaw = process.env.SUMMARY_JSON || core.getInput('summary');
+            const summary = JSON.parse(summaryRaw);
 
-                      // Only create/update issues when DI is recommended
-                      if (summary.recommendation !== 'REVIEW_SUGGESTED') {
-                        console.log(`DI recommendation is "${summary.recommendation}" - no issue needed`);
-                        return;
-                      }
+            // Only create/update issues when DI is recommended
+            if (summary.recommendation !== 'REVIEW_SUGGESTED') {
+              console.log(`DI recommendation is "${summary.recommendation}" - no issue needed`);
+              return;
+            }
 
-                      const title = 'DI Suitability Report';
-                      const recommendation = 'Review Suggested';
-                      const body = `### Automated DI Suitability Report\n\n` +
-                        `Scanned At: ${summary.scannedAt}\n\n` +
-                        `| Metric | Value |\n|--------|-------|\n` +
-                        `| Total Files | ${summary.signals.totalFiles} |\n` +
-                        `| High Import Files | ${summary.signals.highImportFiles} |\n` +
-                        `| Complex Param Functions | ${summary.signals.complexParamFunctions} |\n` +
-                        `| Context Pattern Files | ${summary.signals.contextPatternFiles} |\n` +
-                        `| Wrapper Usage | ${summary.signals.wrapperUsage} |\n` +
-                        `| Manual Telemetry Enrichment | ${summary.signals.manualTelemetryEnrichment} |\n\n` +
-                        `Recommendation: **${recommendation}**\n\nRationale: ${summary.rationale}\n\n<sub>Thresholds: IMPORT>${summary.thresholds.IMPORT_THRESHOLD}, PARAMS>${summary.thresholds.PARAM_THRESHOLD}</sub>`;
+            const title = 'DI Suitability Report';
+            const recommendation = 'Review Suggested';
+            const body = `### Automated DI Suitability Report\n\n` +
+              `Scanned At: ${summary.scannedAt}\n\n` +
+              `| Metric | Value |\n|--------|-------|\n` +
+              `| Total Files | ${summary.signals.totalFiles} |\n` +
+              `| High Import Files | ${summary.signals.highImportFiles} |\n` +
+              `| Complex Param Functions | ${summary.signals.complexParamFunctions} |\n` +
+              `| Context Pattern Files | ${summary.signals.contextPatternFiles} |\n` +
+              `| Wrapper Usage | ${summary.signals.wrapperUsage} |\n` +
+              `| Manual Telemetry Enrichment | ${summary.signals.manualTelemetryEnrichment} |\n\n` +
+              `Recommendation: **${recommendation}**\n\nRationale: ${summary.rationale}\n\n<sub>Thresholds: IMPORT>${summary.thresholds.IMPORT_THRESHOLD}, PARAMS>${summary.thresholds.PARAM_THRESHOLD}</sub>`;
 
-                      // Find existing open issue
-                      const { data: issues } = await github.rest.issues.listForRepo({
-                        ...context.repo,
-                        state: 'open'
-                      });
-                      const existing = issues.find(i => i.title === title);
-                      if (existing) {
-                        await github.rest.issues.createComment({
-                          ...context.repo,
-                          issue_number: existing.number,
-                          body
-                        });
-                      } else {
-                        await github.rest.issues.create({
-                          ...context.repo,
-                          title,
-                          body
-                        });
-                      }
-              env:
-                  SUMMARY_JSON: ${{ steps.capture.outputs.summary }}
+            // Find existing open issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              ...context.repo,
+              state: 'open'
+            });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                ...context.repo,
+                title,
+                body
+              });
+            }
+        env:
+          SUMMARY_JSON: ${{ steps.capture.outputs.summary }}

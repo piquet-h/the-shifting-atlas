@@ -67,9 +67,7 @@ function getSecretClient(): SecretClient | null {
  */
 function validateSecretKey(key: string): asserts key is AllowedSecretKey {
     if (!(ALLOWED_SECRET_KEYS as readonly string[]).includes(key)) {
-        throw new Error(
-            `Secret key "${key}" is not in allowlist. Allowed keys: ${ALLOWED_SECRET_KEYS.join(', ')}`
-        )
+        throw new Error(`Secret key "${key}" is not in allowlist. Allowed keys: ${ALLOWED_SECRET_KEYS.join(', ')}`)
     }
 }
 
@@ -99,9 +97,7 @@ function getLocalFallback(secretKey: AllowedSecretKey): string | undefined {
     // Guard against using local fallback in production
     const nodeEnv = process.env.NODE_ENV || 'development'
     if (value && nodeEnv === 'production') {
-        throw new Error(
-            `Refusing to use local environment variable ${envVarName} in production. Configure Key Vault properly.`
-        )
+        throw new Error(`Refusing to use local environment variable ${envVarName} in production. Configure Key Vault properly.`)
     }
 
     return value
@@ -157,10 +153,7 @@ async function fetchSecretWithRetry(
  * In production: fetches from Azure Key Vault using Managed Identity
  * In development: falls back to environment variables (e.g., from .env.development)
  */
-export async function getSecret(
-    secretKey: string,
-    options: SecretFetchOptions = {}
-): Promise<string> {
+export async function getSecret(secretKey: string, options: SecretFetchOptions = {}): Promise<string> {
     // Validate allowlist
     validateSecretKey(secretKey)
 
@@ -220,9 +213,7 @@ export async function getSecret(
         error: 'No Key Vault configured and no local fallback found'
     })
 
-    throw new Error(
-        `Secret ${secretKey} not found. Configure KEYVAULT_NAME for production or set environment variable for local dev.`
-    )
+    throw new Error(`Secret ${secretKey} not found. Configure KEYVAULT_NAME for production or set environment variable for local dev.`)
 }
 
 /**

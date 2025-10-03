@@ -3,7 +3,6 @@
  * Initializes the Application Insights SDK early so automatic collection (requests, dependencies, traces, exceptions)
  * is enabled for all function executions. Uses connection string via env var APPLICATIONINSIGHTS_CONNECTION_STRING.
  */
-/* global process */
 import appInsights from 'applicationinsights'
 import { randomUUID } from 'node:crypto'
 import { SERVICE_BACKEND, SERVICE_SWA_API } from './serviceConstants.js'
