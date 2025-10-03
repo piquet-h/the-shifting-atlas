@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-03T00:03:45.830Z",
+  "generated": "2025-10-03T00:18:01.048Z",
   "items": [
     {
       "issue": 4,
@@ -317,6 +317,11 @@
       "issue": 76,
       "order": 63,
       "title": "Infra: Provision Cosmos SQL API containers for players, inventory, layers, events"
+    },
+    {
+      "issue": 80,
+      "order": 64,
+      "title": "Docs: Integrate ADR-002 references & update architecture diagram notes"
     }
   ]
 }

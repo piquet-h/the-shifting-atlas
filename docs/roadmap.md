@@ -67,6 +67,7 @@ Source of truth: `roadmap/implementation-order.json`
 | 61 | #78 | Script: Region-based graph partition migration scaffold |  | scope:core | type:feature | Todo |
 | 62 | #77 | Feature: Player SQL projection repository & write-through from Gremlin |  | scope:core | type:feature | Todo |
 | 63 | #76 | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |  | scope:core | type:infra | Todo |
+| 64 | #80 | Docs: Integrate ADR-002 references & update architecture diagram notes |  | scope:devx | type:docs | Todo |
 
 ## Next Up
 
@@ -78,4 +79,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #9 | Todo | LOOK Command (HttpLook) |
 | 7 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-03T00:03:56.585Z
+Last sync: 2025-10-03T00:18:12.670Z
