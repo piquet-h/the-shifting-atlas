@@ -33,7 +33,6 @@
  *   --owner <login>           Owner login (defaults to repo owner constant).
  *   --owner-type <user|org>   Hint for project owner type.
  *   --artifact <path>         Save ordering decision artifact to JSON file.
- *   --emit-telemetry          Emit telemetry events (ordering_applied, etc.).
  *
  * Exit codes: 0 success / no-op; 1 fatal error; 2 configuration error.
  */
@@ -55,8 +54,7 @@ const { values } = parseArgs({
         'project-number': { type: 'string', default: '3' },
         owner: { type: 'string', default: REPO_OWNER },
         'owner-type': { type: 'string', default: '' },
-        artifact: { type: 'string', default: '' },
-        'emit-telemetry': { type: 'boolean', default: false }
+        artifact: { type: 'string', default: '' }
     }
 })
 
@@ -71,7 +69,6 @@ const PROJECT_NUMBER = Number(values['project-number'])
 const PROJECT_OWNER = values.owner
 const OWNER_TYPE_HINT = (values['owner-type'] || '').toLowerCase()
 const ARTIFACT_PATH = values.artifact || ''
-const EMIT_TELEMETRY = !!values['emit-telemetry']
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
 if (!token) {
@@ -384,17 +381,6 @@ async function main() {
         } catch (err) {
             console.error(`Failed to save artifact: ${err.message}`)
         }
-    }
-
-    // Emit telemetry if requested
-    if (EMIT_TELEMETRY) {
-        const telemetryEvent =
-            APPLY && diffs.length > 0
-                ? 'ordering_applied'
-                : !APPLY && confidence === 'low'
-                  ? 'ordering_low_confidence'
-                  : 'ordering_recommendation'
-        console.error(`[TELEMETRY] ${telemetryEvent}: issue=${ISSUE_NUMBER}, confidence=${confidence}, changes=${diffs.length}`)
     }
 
     if (!APPLY) {

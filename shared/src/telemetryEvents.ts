@@ -35,10 +35,6 @@ export const GAME_EVENT_NAMES = [
     'Multiplayer.LayerDelta.Sent',
     'Multiplayer.LocationSnapshot.HashMismatch',
     'Multiplayer.Movement.Latency',
-    // Implementation order automation
-    'Ordering.Applied',
-    'Ordering.Overridden',
-    'Ordering.LowConfidence',
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid'
 ] as const

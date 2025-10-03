@@ -265,12 +265,7 @@ The workflow now supports confidence-based auto-apply with the following feature
     - Full diff and reordering plan
     - Timestamp and metadata
 
-4. **Telemetry Events**: The system emits structured telemetry:
-    - `Ordering.Applied` - High confidence auto-apply succeeded
-    - `Ordering.Overridden` - Manual change within observation window (future)
-    - `Ordering.LowConfidence` - Issue needs manual review
-
-5. **Sparse Metadata Handling**: Issues with incomplete metadata are still processed using append strategy:
+4. **Sparse Metadata Handling**: Issues with incomplete metadata are still processed using append strategy:
     - Assigned to the end of the implementation order
     - Marked with low confidence
     - Comment explains what metadata is missing
@@ -280,7 +275,6 @@ The workflow now supports confidence-based auto-apply with the following feature
 - ✅ High confidence path auto-applies without manual intervention
 - ✅ Artifact generation for all processed issues
 - ✅ Comment only on medium/low confidence
-- ✅ Telemetry events defined and emitted
 - ⏳ Weekly metrics summary (placeholder script created, full implementation pending)
 - ⏳ Tracking override rate (requires historical data collection)
 - ⏳ 80% auto-apply rate measurement (requires 7-day observation window)
@@ -305,7 +299,7 @@ Requirements:
 - ≥80% of issues enter without manual reorder.
 - Zero contiguous gap regressions.
   Metrics:
-- Track `ordering_applied` vs `ordering_overridden` events.
+- Track workflow outcomes and manual override rate.
 
 ### Stage 2 (Predictive Scheduling Integration)
 
@@ -400,8 +394,7 @@ Full options:
 npm run assign:impl-order -- --issue 123 \
   --apply \
   --strategy auto \
-  --artifact ordering-decision.json \
-  --emit-telemetry
+  --artifact ordering-decision.json
 ```
 
 Outputs JSON with confidence and metadata:

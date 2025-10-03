@@ -1,28 +1,28 @@
 name: Auto Assign Implementation Order
 
 on:
-    issues:
-        types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
-    pull_request:
-        paths:
-            - 'docs/**/*.md'
-            - '.github/copilot-instructions.md'
-            - 'shared/src/telemetryEvents.ts'
-    workflow_dispatch:
-        inputs:
-            issue_number:
-                description: Specific issue number to analyze
-                # Manual dispatch requires explicit issue number.
-                required: true
-                type: string
-            force_resequence:
-                description: Force resequence even if current position seems acceptable
-                required: false
-                type: boolean
+  issues:
+    types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
+  pull_request:
+    paths:
+      - 'docs/**/*.md'
+      - '.github/copilot-instructions.md'
+      - 'shared/src/telemetryEvents.ts'
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Specific issue number to analyze
+        # Manual dispatch requires explicit issue number.
+        required: true
+        type: string
+      force_resequence:
+        description: Force resequence even if current position seems acceptable
+        required: false
+        type: boolean
 
 permissions:
-    contents: write
-    issues: write
+  contents: write
+  issues: write
 
 # Concurrency:
 # Per-issue / per-PR isolation so multiple distinct issues can process simultaneously while
@@ -30,245 +30,243 @@ permissions:
 # The group key derives from the triggering entity (issue number, workflow_dispatch input, or PR number).
 # This avoids earlier problem where a global group caused unrelated issues to starve/cancel.
 concurrency:
-    group: auto-impl-order-${{ github.repository }}-${{ (github.event_name == 'issues' && github.event.issue.number) || (github.event_name == 'workflow_dispatch' && github.event.inputs.issue_number) || (github.event_name == 'pull_request' && github.event.pull_request.number) || 'misc' }}
-    cancel-in-progress: true
+  group: auto-impl-order-${{ github.repository }}-${{ (github.event_name == 'issues' && github.event.issue.number) || (github.event_name == 'workflow_dispatch' && github.event.inputs.issue_number) || (github.event_name == 'pull_request' && github.event.pull_request.number) || 'misc' }}
+  cancel-in-progress: true
 
 jobs:
-    assign:
-        if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
-        name: Analyze & Assign Implementation Order
-        runs-on: ubuntu-latest
-        timeout-minutes: 8
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                  # Need full history for safe rebase when concurrent automation commits occur
-                  fetch-depth: 0
+  assign:
+    if: github.event_name == 'issues' || github.event_name == 'workflow_dispatch'
+    name: Analyze & Assign Implementation Order
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history for safe rebase when concurrent automation commits occur
+          fetch-depth: 0
 
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
-                  cache: npm
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
 
-            - name: Install Dependencies
-              run: npm ci
+      - name: Install Dependencies
+        run: npm ci
 
-            - name: Resolve Issue Number
-              id: issue
-              run: |
-                  # Resolve issue number based on trigger type.
-                  # For manual dispatch, the input is now required (enforced above); still guard just in case.
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-                    if [ -z "${{ github.event.inputs.issue_number }}" ]; then
-                      echo "::error::Manual dispatch requires 'issue_number' input." >&2
-                      exit 1
-                    fi
-                    echo "number=${{ github.event.inputs.issue_number }}" >> "$GITHUB_OUTPUT"
-                  else
-                    # Issue-triggered events should always have github.event.issue.number
-                    if [ -z "${{ github.event.issue.number }}" ]; then
-                      echo "::error::Could not resolve issue number from event payload." >&2
-                      exit 1
-                    fi
-                    echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Resolve Issue Number
+        id: issue
+        run: |
+          # Resolve issue number based on trigger type.
+          # For manual dispatch, the input is now required (enforced above); still guard just in case.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -z "${{ github.event.inputs.issue_number }}" ]; then
+              echo "::error::Manual dispatch requires 'issue_number' input." >&2
+              exit 1
+            fi
+            echo "number=${{ github.event.inputs.issue_number }}" >> "$GITHUB_OUTPUT"
+          else
+            # Issue-triggered events should always have github.event.issue.number
+            if [ -z "${{ github.event.issue.number }}" ]; then
+              echo "::error::Could not resolve issue number from event payload." >&2
+              exit 1
+            fi
+            echo "number=${{ github.event.issue.number }}" >> "$GITHUB_OUTPUT"
+          fi
 
-            - name: Fetch Issue Details
-              id: fetch
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  set -euo pipefail
-                  if [ -z "${{ steps.issue.outputs.number }}" ]; then
-                    echo "::error::Issue number not set; aborting fetch." >&2
-                    exit 1
-                  fi
-                  gh api repos/${{ github.repository }}/issues/${{ steps.issue.outputs.number }} > issue.json
-                  jq -r '.body // ""' issue.json > issue_body.txt
-                  echo "state=$(jq -r .state issue.json)" >> "$GITHUB_OUTPUT"
-                  echo "title=$(jq -r .title issue.json)" >> "$GITHUB_OUTPUT"
-                  echo "labels=$(jq -r '[.labels[].name] | join(",")' issue.json)" >> "$GITHUB_OUTPUT"
-                  echo "milestone=$(jq -r '.milestone.title // ""' issue.json)" >> "$GITHUB_OUTPUT"
+      - name: Fetch Issue Details
+        id: fetch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${{ steps.issue.outputs.number }}" ]; then
+            echo "::error::Issue number not set; aborting fetch." >&2
+            exit 1
+          fi
+          gh api repos/${{ github.repository }}/issues/${{ steps.issue.outputs.number }} > issue.json
+          jq -r '.body // ""' issue.json > issue_body.txt
+          echo "state=$(jq -r .state issue.json)" >> "$GITHUB_OUTPUT"
+          echo "title=$(jq -r .title issue.json)" >> "$GITHUB_OUTPUT"
+          echo "labels=$(jq -r '[.labels[].name] | join(",")' issue.json)" >> "$GITHUB_OUTPUT"
+          echo "milestone=$(jq -r '.milestone.title // ""' issue.json)" >> "$GITHUB_OUTPUT"
 
-            - name: Skip Closed Issues
-              if: steps.fetch.outputs.state == 'closed'
-              run: echo "Issue closed; skipping workflow." && exit 0
+      - name: Skip Closed Issues
+        if: steps.fetch.outputs.state == 'closed'
+        run: echo "Issue closed; skipping workflow." && exit 0
 
-            - name: Select Token
-              id: token
-              run: |
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Select Token
+        id: token
+        run: |
+          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+            echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+          fi
 
-            - name: Analyze & Assign Implementation Order
-              id: analysis
-              env:
-                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-              run: |
-                  set -euo pipefail
-                  # Run assign-impl-order.mjs to get recommendation with confidence scoring
-                  node scripts/assign-impl-order.mjs \
-                    --issue "${{ steps.issue.outputs.number }}" \
-                    --artifact ordering-decision.json \
-                    --emit-telemetry > decision-output.json
-                  
-                  # Extract key fields
-                  echo "confidence=$(jq -r .confidence decision-output.json)" >> "$GITHUB_OUTPUT"
-                  echo "recommended=$(jq -r .recommendedOrder decision-output.json)" >> "$GITHUB_OUTPUT"
-                  echo "changes=$(jq -r .changes decision-output.json)" >> "$GITHUB_OUTPUT"
-                  echo "score=$(jq -r .score decision-output.json)" >> "$GITHUB_OUTPUT"
-                  jq -r .rationale decision-output.json > rationale.txt
-                  echo "Confidence: $(jq -r .confidence decision-output.json), Score: $(jq -r .score decision-output.json)"
+      - name: Analyze & Assign Implementation Order
+        id: analysis
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+        run: |
+          set -euo pipefail
+          # Run assign-impl-order.mjs to get recommendation with confidence scoring
+          node scripts/assign-impl-order.mjs \
+            --issue "${{ steps.issue.outputs.number }}" \
+            --artifact ordering-decision.json > decision-output.json
 
-            - name: Upload Ordering Decision Artifact
-              if: always()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: ordering-decision-${{ steps.issue.outputs.number }}
-                  path: ordering-decision.json
-                  retention-days: 30
+          # Extract key fields
+          echo "confidence=$(jq -r .confidence decision-output.json)" >> "$GITHUB_OUTPUT"
+          echo "recommended=$(jq -r .recommendedOrder decision-output.json)" >> "$GITHUB_OUTPUT"
+          echo "changes=$(jq -r .changes decision-output.json)" >> "$GITHUB_OUTPUT"
+          echo "score=$(jq -r .score decision-output.json)" >> "$GITHUB_OUTPUT"
+          jq -r .rationale decision-output.json > rationale.txt
+          echo "Confidence: $(jq -r .confidence decision-output.json), Score: $(jq -r .score decision-output.json)"
 
-            - name: Auto-Apply (High Confidence)
-              if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
-              env:
-                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-              run: |
-                  set -euo pipefail
-                  echo "High confidence detected - auto-applying ordering changes"
-                  node scripts/assign-impl-order.mjs \
-                    --issue "${{ steps.issue.outputs.number }}" \
-                    --apply \
-                    --artifact ordering-decision-applied.json \
-                    --emit-telemetry
+      - name: Upload Ordering Decision Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordering-decision-${{ steps.issue.outputs.number }}
+          path: ordering-decision.json
+          retention-days: 30
 
-            - name: Sync & Regenerate Docs
-              if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
-              env:
-                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-                  ALLOW_MISSING_PROJECT: 'true'
-              run: node scripts/sync-implementation-order.mjs apply || echo "Sync degraded"
+      - name: Auto-Apply (High Confidence)
+        if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+        run: |
+          set -euo pipefail
+          echo "High confidence detected - auto-applying ordering changes"
+          node scripts/assign-impl-order.mjs \
+            --issue "${{ steps.issue.outputs.number }}" \
+            --apply \
+            --artifact ordering-decision-applied.json
 
-            - name: Commit & Push Changes
-              if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
-              run: |
-                  set -euo pipefail
-                  if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then
-                    echo "No file changes to commit"
-                    exit 0
-                  fi
+      - name: Sync & Regenerate Docs
+        if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+          ALLOW_MISSING_PROJECT: 'true'
+        run: node scripts/sync-implementation-order.mjs apply || echo "Sync degraded"
 
-                  git config user.name 'github-actions[bot]'
-                  git config user.email 'github-actions[bot]@users.noreply.github.com'
-                  git add roadmap/implementation-order.json docs/roadmap.md
-                  git commit -m "chore: auto-apply impl-order #${{ steps.issue.outputs.number }} (high confidence)" || echo "Nothing to commit after add (race)"
+      - name: Commit & Push Changes
+        if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
+        run: |
+          set -euo pipefail
+          if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then
+            echo "No file changes to commit"
+            exit 0
+          fi
 
-                  # Retry push with rebase to handle concurrent workflow runs updating main.
-                  success=0
-                  for attempt in 1 2 3; do
-                    echo "Attempt ${attempt}: syncing with latest origin/main before push"
-                    # Always fetch first (already full history due to fetch-depth:0)
-                    git fetch origin main
-                    # Rebase; if it fails (conflict), fall back to an auto-merge (keeping both changes) and continue.
-                    if ! git rebase origin/main; then
-                      echo "Rebase failed (likely conflict). Attempting merge fast-forward or regular merge." >&2
-                      git rebase --abort || true
-                      git merge --no-edit origin/main || true
-                    fi
-                    if git push; then
-                      echo "Push succeeded on attempt ${attempt}."
-                      success=1
-                      break
-                    else
-                      echo "Push failed on attempt ${attempt}. Will retry after backoff." >&2
-                      sleep $((attempt * 2))
-                    fi
-                  done
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add roadmap/implementation-order.json docs/roadmap.md
+          git commit -m "chore: auto-apply impl-order #${{ steps.issue.outputs.number }} (high confidence)" || echo "Nothing to commit after add (race)"
 
-                  if [ "$success" -ne 1 ]; then
-                    echo "::warning::Failed to push after 3 attempts (likely high contention). Consider re-running the workflow." >&2
-                    # Do not fail the workflow; the ordering change can be retried safely.
-                  fi
+          # Retry push with rebase to handle concurrent workflow runs updating main.
+          success=0
+          for attempt in 1 2 3; do
+            echo "Attempt ${attempt}: syncing with latest origin/main before push"
+            # Always fetch first (already full history due to fetch-depth:0)
+            git fetch origin main
+            # Rebase; if it fails (conflict), fall back to an auto-merge (keeping both changes) and continue.
+            if ! git rebase origin/main; then
+              echo "Rebase failed (likely conflict). Attempting merge fast-forward or regular merge." >&2
+              git rebase --abort || true
+              git merge --no-edit origin/main || true
+            fi
+            if git push; then
+              echo "Push succeeded on attempt ${attempt}."
+              success=1
+              break
+            else
+              echo "Push failed on attempt ${attempt}. Will retry after backoff." >&2
+              sleep $((attempt * 2))
+            fi
+          done
 
-            - name: Comment (Medium/Low Confidence)
-              if: steps.analysis.outputs.confidence != 'high'
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  set -euo pipefail
-                  # Build comment file
-                  {
-                    echo "**Implementation Order Auto-Assignment**" > comment.md
-                    echo "" >> comment.md
-                    echo "Confidence: \`${{ steps.analysis.outputs.confidence }}\`" >> comment.md
-                    echo "Recommended Order: \`${{ steps.analysis.outputs.recommended }}\`" >> comment.md
-                    echo "Priority Score: \`${{ steps.analysis.outputs.score }}\`" >> comment.md
-                    echo "Changes Required: \`${{ steps.analysis.outputs.changes }}\`" >> comment.md
-                    echo "" >> comment.md
-                    echo "Rationale:" >> comment.md
-                    echo "" >> comment.md
-                    cat rationale.txt >> comment.md || echo "(rationale missing)" >> comment.md
-                    echo "" >> comment.md
-                    if [ "${{ steps.analysis.outputs.confidence }}" = "low" ]; then
-                      echo "⚠️ Low confidence: Please add missing metadata (scope label, milestone, or type label) for better priority calculation." >> comment.md
-                      echo "" >> comment.md
-                    fi
-                    echo 'Review the ordering decision artifact for details. To apply manually, use `npm run assign:impl-order -- --issue ${{ steps.issue.outputs.number }} --apply`' >> comment.md
-                  } || echo "Comment assembly failed"
-                  gh issue comment ${{ steps.issue.outputs.number }} --body-file comment.md || echo "Comment failed"
+          if [ "$success" -ne 1 ]; then
+            echo "::warning::Failed to push after 3 attempts (likely high contention). Consider re-running the workflow." >&2
+            # Do not fail the workflow; the ordering change can be retried safely.
+          fi
 
-            - name: Cleanup
-              if: always()
-              run: rm -f issue.json issue_body.txt decision-output.json ordering-decision.json ordering-decision-applied.json rationale.txt comment.md || true
+      - name: Comment (Medium/Low Confidence)
+        if: steps.analysis.outputs.confidence != 'high'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Build comment file
+          {
+            echo "**Implementation Order Auto-Assignment**" > comment.md
+            echo "" >> comment.md
+            echo "Confidence: \`${{ steps.analysis.outputs.confidence }}\`" >> comment.md
+            echo "Recommended Order: \`${{ steps.analysis.outputs.recommended }}\`" >> comment.md
+            echo "Priority Score: \`${{ steps.analysis.outputs.score }}\`" >> comment.md
+            echo "Changes Required: \`${{ steps.analysis.outputs.changes }}\`" >> comment.md
+            echo "" >> comment.md
+            echo "Rationale:" >> comment.md
+            echo "" >> comment.md
+            cat rationale.txt >> comment.md || echo "(rationale missing)" >> comment.md
+            echo "" >> comment.md
+            if [ "${{ steps.analysis.outputs.confidence }}" = "low" ]; then
+              echo "⚠️ Low confidence: Please add missing metadata (scope label, milestone, or type label) for better priority calculation." >> comment.md
+              echo "" >> comment.md
+            fi
+            echo 'Review the ordering decision artifact for details. To apply manually, use `npm run assign:impl-order -- --issue ${{ steps.issue.outputs.number }} --apply`' >> comment.md
+          } || echo "Comment assembly failed"
+          gh issue comment ${{ steps.issue.outputs.number }} --body-file comment.md || echo "Comment failed"
 
-    doc-drift:
-        if: github.event_name == 'pull_request'
-        name: Detect Reprioritisation Signals (Docs)
-        runs-on: ubuntu-latest
-        timeout-minutes: 6
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
-            - name: Setup Node
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
-            - name: Analyze Doc Drift
-              id: drift
-              run: |
-                  node scripts/analyze-doc-drift.mjs --base origin/${{ github.base_ref }} --head HEAD > drift.json
-                  echo "action=$(jq -r .recommendedAction drift.json)" >> $GITHUB_OUTPUT
-                  echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
-            - name: Comment on PR
-              if: steps.drift.outputs.action != 'none'
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  node scripts/format-drift-comment.mjs drift.json > comment.md
-                  echo "" >> comment.md
-                  echo "⚠️ Note: Auto-resequencing from doc drift is not yet implemented. Manual review recommended." >> comment.md
-                  gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
-            - name: Open Reprioritisation Proposal Issue
-              if: steps.drift.outputs.action == 'resequence'
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }} ${GITHUB_HEAD_REF}" || title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }}"
-                  {
-                    echo "Automated detection suggests resequencing (score: $(jq -r .scoreTotal drift.json))."
-                    echo
-                    echo "⚠️ Note: Automated resequencing from doc drift is not yet implemented. Manual review required."
-                    echo
-                    echo "Raw JSON:"
-                    echo
-                    echo '```'
-                    cat drift.json
-                    echo '```'
-                  } > issue_body.md
-                  gh issue create --title "$title" --body-file issue_body.md --label scope:devx --label enhancement || echo "Issue creation skipped"
+      - name: Cleanup
+        if: always()
+        run: rm -f issue.json issue_body.txt decision-output.json ordering-decision.json ordering-decision-applied.json rationale.txt comment.md || true
+
+  doc-drift:
+    if: github.event_name == 'pull_request'
+    name: Detect Reprioritisation Signals (Docs)
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Analyze Doc Drift
+        id: drift
+        run: |
+          node scripts/analyze-doc-drift.mjs --base origin/${{ github.base_ref }} --head HEAD > drift.json
+          echo "action=$(jq -r .recommendedAction drift.json)" >> $GITHUB_OUTPUT
+          echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
+      - name: Comment on PR
+        if: steps.drift.outputs.action != 'none'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/format-drift-comment.mjs drift.json > comment.md
+          echo "" >> comment.md
+          echo "⚠️ Note: Auto-resequencing from doc drift is not yet implemented. Manual review recommended." >> comment.md
+          gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+      - name: Open Reprioritisation Proposal Issue
+        if: steps.drift.outputs.action == 'resequence'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }} ${GITHUB_HEAD_REF}" || title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }}"
+          {
+            echo "Automated detection suggests resequencing (score: $(jq -r .scoreTotal drift.json))."
+            echo
+            echo "⚠️ Note: Automated resequencing from doc drift is not yet implemented. Manual review required."
+            echo
+            echo "Raw JSON:"
+            echo
+            echo '```'
+            cat drift.json
+            echo '```'
+          } > issue_body.md
+          gh issue create --title "$title" --body-file issue_body.md --label scope:devx --label enhancement || echo "Issue creation skipped"
