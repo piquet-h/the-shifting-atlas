@@ -7,8 +7,8 @@ Source of truth: Project field 'Implementation order'
 | 1 | #76 | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |  | scope:core | infra | Todo |
 | 2 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
 | 3 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Done |
-| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | In progress |
-| 5 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
+| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | Todo |
+| 5 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | Todo |
 | 6 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
 | 7 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
 | 8 | #13 | Direction Normalization Utility (Stage 1) |  | scope:traversal | feature | Todo |
@@ -23,14 +23,14 @@ Source of truth: Project field 'Implementation order'
 | 17 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 18 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
 | 19 | #52 | Learn more page |  | scope:core | enhancement | Todo |
-| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Done |
+| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
 | 21 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
 | 22 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
 | 23 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
 | 24 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | docs | Todo |
 | 25 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | test | Todo |
 | 26 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | feature | Todo |
-| 27 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | In progress |
+| 27 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | Todo |
 | 28 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
 | 29 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
 | 30 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
@@ -74,9 +74,9 @@ Source of truth: Project field 'Implementation order'
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
 | 1 | #76 | Todo | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |
-| 4 | #49 | In progress | Managed Identity & Key Vault Secret Management Baseline |
-| 5 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
+| 4 | #49 | Todo | Managed Identity & Key Vault Secret Management Baseline |
+| 5 | #5 | Todo | Introduce EXIT Edge Model & Link Rooms |
 | 6 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 7 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-10-03T11:06:39.458Z
+Last sync: 2025-10-03T11:07:45.833Z
