@@ -187,12 +187,96 @@ Heuristic scoring currently resides inline in `scripts/assign-impl-order.mjs`. I
 ## Configuration
 
 ### Workflow Settings
+Primary workflows:
 
-Edit `.github/workflows/auto-assign-impl-order.yml` to:
+| Purpose | Workflow |
+| ------- | -------- |
+| Per‑issue reactive assignment + doc drift heuristic | `auto-assign-impl-order.yml` |
+| Consolidated sync / validation / batch finalize | `impl-order-sync.yml` |
 
-- Adjust timeout values
-- Modify trigger conditions
-- Change comment thresholds
+`impl-order-sync.yml` merged prior `impl-order-sync.yml`, `impl-order-validate.yml`, and `auto-impl-order-finalize.yml`.
+
+Jobs inside consolidated workflow:
+
+| Job | When It Runs | Actions |
+| ---- | ------------ | ------- |
+| `sync` | Push to ordering/scripts, PR touching ordering, manual apply/resequence (`workflow_dispatch`) | Validate → auto-fix drift → optional resequence → ensure labels → regenerate docs + JSON |
+| `validate` | Daily schedule (05:23 UTC) or manual `mode=validate` | Strict (canonical repo) vs lenient (fork) contiguous ordering validation |
+| `finalize` | Issue events burst (opened / labeled / etc.) or manual `mode=finalize` | Debounced ensure all open issues appear in ordering, apply & regenerate docs |
+
+Tuning knobs:
+
+- Debounce: `workflow_dispatch` input `debounce_seconds` (default 25s) controls batch window for finalize job.
+- Manual modes: `mode=apply|resequence|validate|finalize` via dispatch.
+- Label sync only occurs when an apply/resequence changed ordering.
+
+To adjust triggers/timeouts edit the respective job section in `.github/workflows/impl-order-sync.yml`.
+
+## Automation Maturity Stages
+
+Automation will evolve through defined stages. Each stage has clear entry conditions, scoped changes, acceptance criteria, and rollback posture. Stage 0 (current) is committed; later stages tracked as separate issues.
+
+| Stage | Name | Focus | Key Additions | Exit / Acceptance | Rollback Trigger |
+| ----- | ---- | ----- | ------------- | ----------------- | ---------------- |
+| 0 | Baseline Reactive | Stable per-issue ordering + consolidated sync | Consolidated workflow, manual resequence, daily validate | Zero gaps; manual adjustments ≤ defined tolerance | Ordering drift or excessive manual edits |
+| 1 | MVP Full Automation | Confidence-gated auto apply | Auto-apply high-confidence, append low-info, metrics artifact | ≥80% issues auto-applied w/out override | Spike in overrides >20% weekly |
+| 2 | Predictive Scheduling | Integrate provisional dates early | Provisional Start/Finish comments, partial rebaseline | Median variance <10% vs daily scheduler | Variance >25% over 1 week |
+| 3 | Parallel Streams | Capacity-aware planning | Multi-cursor scheduling, WIP limits | No resource contention alerts for 2 weeks | Sustained contention alerts |
+| 4 | Adaptive Prioritization | Data-informed refinements | Historical feature extraction, optional model | Model suggestions accepted ≥60% | Precision <40% or high false positives |
+| 5 | No-Touch Mode | Silent automation | Weekly digest only, anomaly alerts | <5% anomaly rate | Anomalies >10% for 2 cycles |
+
+### Stage 0 (Baseline Reactive) – Implemented
+Current state: Human-in-loop resequencing, deterministic scripts, consolidated workflow. Risk managed through daily validation.
+
+### Stage 1 (MVP Full Automation)
+Requirements:
+- Auto-apply ordering when confidence = high.
+- Auto-append for sparse metadata issues (no manual block).
+- Artifact: `ordering-decision.json` (score, rationale, diff summary).
+- Comment only on medium/low confidence or ambiguous label mismatches.
+Acceptance:
+- ≥80% of issues enter without manual reorder.
+- Zero contiguous gap regressions.
+Metrics:
+- Track `ordering_applied` vs `ordering_overridden` events.
+
+### Stage 2 (Predictive Scheduling Integration)
+Requirements:
+- Inline provisional duration & dates on assignment.
+- Scheduler compares provisional vs applied; annotate variance.
+- Fast partial rebaseline when status flips to In progress.
+Acceptance:
+- Median provisional vs final variance <10%.
+- Manual scheduler reruns reduced ≥70%.
+
+### Stage 3 (Parallel Stream Awareness)
+Requirements:
+- Configurable capacity (e.g. `roadmap/capacity.json`).
+- N independent cursors; scope affinity optional.
+- WIP limit alert when > capacity active.
+Acceptance:
+- Zero overlapping allocation incidents (contention) for 2 weeks.
+
+### Stage 4 (Adaptive / ML-Assisted Prioritization)
+Requirements:
+- Collect feature metrics (lines changed, review count, reopen count).
+- Lightweight regression/classifier producing score adjustments (shadow mode first → compare to heuristic).
+Acceptance:
+- ≥60% automated score suggestions accepted unchanged.
+
+### Stage 5 (Full No-Touch Mode)
+Requirements:
+- High-confidence path: silent apply.
+- Weekly digest summarizing: changes, forecast accuracy, anomalies.
+- Anomaly rules: low confidence, variance > threshold, sudden capacity saturation.
+Acceptance:
+- <5% anomalies.
+
+### Rollback Strategy
+Any stage can revert to previous by disabling its feature flag (future `automation-flags.json`) and removing added workflow steps; core Stage 0 scripts remain intact.
+
+### Tracking
+Each stage (1–5) has a dedicated GitHub issue capturing: scope, tasks, acceptance criteria, risk, rollback triggers.
 
 ### Priority Weights / Assignment Logic
 

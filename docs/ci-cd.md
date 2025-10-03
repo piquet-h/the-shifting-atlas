@@ -88,3 +88,107 @@ npm run swa # optional integrated emulator
 1. Visit production URL (Azure Portal > Static Web App). Confirm updated assets hash.
 2. Hit `/api/website/health` endpoint and check new build time or version marker (add one if needed).
 3. (PR) Validate preview URL (named environment `pr<PR_NUMBER>`) appears in PR conversation or Portal.
+
+---
+
+## Core Continuous Integration (`ci.yml`)
+
+Unified quality gate executed on all pushes & pull requests to `main` (and manual dispatch) providing fast feedback and build artifacts for downstream deploys.
+
+### Triggers
+
+Workflow: `.github/workflows/ci.yml`
+
+Runs on:
+
+- `pull_request` → quality feedback prior to merge
+- `push` to `main` → produce distributable artifacts
+- `workflow_dispatch` for ad‑hoc re-runs
+
+### Job Overview
+
+| Job | Purpose | Notes |
+| --- | ------- | ----- |
+| `changes` | Path-based filter (frontend, a11y, backend, shared) | Reduces conditional work (e.g., accessibility) |
+| `lint-typecheck` | Monorepo ESLint + TypeScript surface check | Fails fast; caches deps via composite action |
+| `tests` | Unit tests across workspaces | Depends on `lint-typecheck` |
+| `accessibility` | Axe scan for affected frontend / UX docs | Only on PRs where UI changed (`changes.a11y`) |
+| `build-artifacts` | Produces production builds (shared, API, frontend) | Uploads artifacts for reuse (deploy workflows) |
+| `summary` | Human-readable run digest | Always runs (even on failures) |
+
+Artifact handoff (shared/API/frontend dists) allows deployment workflows (e.g. future infra or SWA deploy variants) to optionally download rather than rebuild. Current SWA deploy still builds independently; optimization: consume CI artifacts to shorten deployment time.
+
+### Failure Philosophy
+
+CI is the single merging gate: *no merge without green lint/typecheck/tests*. Accessibility job is advisory (skipped if unrelated). Build artifacts step ensures that code which passed tests can be deployed deterministically.
+
+### Future Enhancements
+
+- Parallel test matrix (Node LTS versions) once stability proven.
+- Coverage threshold enforcement.
+- Upload ESLint SARIF for code scanning.
+- Reuse built artifacts directly in `frontend-swa-deploy.yml` via `download-artifact` (saves minutes per deploy).
+
+---
+
+## Infrastructure Deployment (`deploy-infrastructure.yml`)
+
+Declarative Azure resource provisioning (Cosmos DB, Static Web App, etc.) via Bicep with OIDC (no service principals with secrets, no publish profiles).
+
+### Triggers
+
+Workflow: `.github/workflows/deploy-infrastructure.yml`
+
+Runs on:
+
+- `push` to `main` affecting `infrastructure/**` or its own workflow file
+- Manual `workflow_dispatch` (safe re-deploy / what-if inspection)
+
+### Job Flow
+
+1. `validate` job
+	- Azure OIDC login (`azure/login@v2`)
+	- Ensures resource group exists (idempotent)
+	- `az deployment group validate` (syntax / basic checks)
+	- `what-if` (FullJson) artifact for change review
+2. `deploy` job (after successful validation)
+	- Re‑login via OIDC
+	- Idempotent resource group ensure
+	- `az deployment group create --mode Complete` (applies desired state)
+	- Emits SWA hostname + lists key resources for audit
+
+### Required Secrets / Variables
+
+| Secret / Variable | Purpose |
+| ------------------| ------- |
+| `AZURE_CLIENT_ID` | Federated identity client ID |
+| `AZURE_TENANT_ID` | Tenant for OIDC auth |
+| `AZURE_SUBSCRIPTION_ID` | Target subscription |
+
+`RG` currently hardcoded (`rg-core`). If multi-environment support is added, parameterize via workflow inputs (e.g. `environment` → derive RG naming convention).
+
+### Safety & Review
+
+- `what-if` artifact enables reviewing planned changes without deployment.
+- `--mode Complete` enforces drift removal (intentionally) — ensure no out‑of‑band resources live in the RG or they will be deleted; future enhancement: switch to `Incremental` for conservative runs or add input flag.
+- Consider adding conditional approval (environment protection rules) for destructive diffs once team grows.
+
+### Future Enhancements
+
+- Promote `what-if` diff summary into PR comment (auto or on label).
+- Parameterize region for future multi‑region active/active design.
+- Integrate cost estimation (e.g., `az costmanagement` or third-party) as advisory step.
+
+---
+
+## Cross‑Workflow Opportunities
+
+| Need | Current State | Opportunity |
+| ---- | ------------- | ----------- |
+| Duplicate builds | CI + SWA deploy both build | Consume CI artifacts in deploy to cut time |
+| Infra drift visibility | Manual inspection of what-if JSON | Summarize & comment on PR introducing infra change |
+| Security scanning | Not yet integrated | Add CodeQL / Dependabot security alerts (Dependabot config present) |
+| Rollback strategy | Manual redeploy of prior commit | Publish infra deployment metadata artifact (template hash, parameters) |
+
+---
+
