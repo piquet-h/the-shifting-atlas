@@ -35,38 +35,38 @@ Source of truth: `roadmap/implementation-order.json`
 | 29 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
 | 30 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
 | 31 | #50 | AI Cost & Token Usage Telemetry + Budget Guardrails |  | scope:observability | feature | Todo |
-| 32 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
-| 33 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
-| 34 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
-| 35 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
-| 36 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
-| 37 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
-| 38 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
-| 39 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
-| 40 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
-| 41 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
-| 42 | #17 | DI Suitability Report |  | scope:devx | docs | Todo |
-| 43 | #53 | Rooms discovered should be dynamic and renamed |  | scope:traversal | enhancement | Todo |
-| 44 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
-| 45 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
-| 46 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
-| 47 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
-| 48 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test | Todo |
-| 49 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
-| 50 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | docs | Todo |
-| 51 | #72 | Persistence Strict Fallback Guard |  | scope:world | feature | Todo |
-| 52 | #69 | M-P5: Description Telemetry & Integrity Hash Job |  | scope:observability | feature | Todo |
-| 53 | #68 | M-P4: Layer Validator (Immutability, Contradiction, Length) |  | scope:world | feature | Todo |
-| 54 | #67 | M-P3: Ambient Snippet Registry & Deterministic Selection |  | scope:world | feature | Todo |
-| 55 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
-| 56 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
-| 57 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | In progress |
-| 58 | #73 | Persistence Concurrency Idempotency Race Test |  | scope:world | test | Todo |
-| 59 | #19 | Only create DI Suitability Issue if needed |  | scope:devx | enhancement | Todo |
-| 60 | #18 | DI Suitability Report |  | scope:devx | docs | Todo |
-| 61 | #79 | Observability: Capture Gremlin RU + latency telemetry for critical ops |  | scope:observability | type:enhancement | Todo |
-| 62 | #78 | Script: Region-based graph partition migration scaffold |  | scope:core | type:feature | Todo |
-| 63 | #77 | Feature: Player SQL projection repository & write-through from Gremlin |  | scope:core | type:feature | Todo |
+| 32 | #79 | Observability: Capture Gremlin RU + latency telemetry for critical ops |  | scope:observability | enhancement | Todo |
+| 33 | #46 | Telemetry MCP Server (Read-Only) |  | scope:mcp | feature | Todo |
+| 34 | #39 | AI Structured Response Validator & Schema Gate |  | scope:ai | feature | Todo |
+| 35 | #47 | AI Moderation Pipeline Phase 1 |  | scope:ai | feature | Todo |
+| 36 | #42 | Security Baseline: Rate Limiting & Input Validation |  | scope:security | infra | Todo |
+| 37 | #22 | Automate implementation order assignment for new issues using Copilot |  | scope:devx | enhancement | Done |
+| 38 | #26 | ✨ Set up Copilot instructions |  | scope:devx | enhancement | Done |
+| 39 | #21 | Remove text in logged in header |  | scope:devx | enhancement | Done |
+| 40 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
+| 41 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
+| 42 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
+| 43 | #17 | DI Suitability Report |  | scope:devx | docs | Todo |
+| 44 | #53 | Rooms discovered should be dynamic and renamed |  | scope:traversal | enhancement | Todo |
+| 45 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
+| 46 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
+| 47 | #57 | Managed API Player Command Endpoint Contract (PI-2 Prep) |  | scope:systems | feature | Todo |
+| 48 | #58 | Clarification Loop Interaction Design (PI-2) |  | scope:systems | feature | Todo |
+| 49 | #59 | Player Command Telemetry & Evaluation Harness (PI-0/PI-1) |  | scope:observability | test | Todo |
+| 50 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
+| 51 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | docs | Todo |
+| 52 | #72 | Persistence Strict Fallback Guard |  | scope:world | feature | Todo |
+| 53 | #69 | M-P5: Description Telemetry & Integrity Hash Job |  | scope:observability | feature | Todo |
+| 54 | #68 | M-P4: Layer Validator (Immutability, Contradiction, Length) |  | scope:world | feature | Todo |
+| 55 | #67 | M-P3: Ambient Snippet Registry & Deterministic Selection |  | scope:world | feature | Todo |
+| 56 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
+| 57 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
+| 58 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | In progress |
+| 59 | #73 | Persistence Concurrency Idempotency Race Test |  | scope:world | test | Todo |
+| 60 | #19 | Only create DI Suitability Issue if needed |  | scope:devx | enhancement | Todo |
+| 61 | #18 | DI Suitability Report |  | scope:devx | docs | Todo |
+| 62 | #78 | Script: Region-based graph partition migration scaffold |  | scope:core | feature | Todo |
+| 63 | #77 | Feature: Player SQL projection repository & write-through from Gremlin |  | scope:core | feature | Todo |
 | 64 | #80 | Docs: Integrate ADR-002 references & update architecture diagram notes |  | scope:devx | docs | Todo |
 
 ## Next Up
@@ -79,4 +79,4 @@ Source of truth: `roadmap/implementation-order.json`
 | 6 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 7 | #9 | Todo | LOOK Command (HttpLook) |
 
-Last sync: 2025-10-03T05:17:03.540Z
+Last sync: 2025-10-03T05:18:05.333Z
