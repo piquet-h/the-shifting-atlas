@@ -1,0 +1,18 @@
+name: Select Project Token
+description: Chooses PROJECTS_TOKEN secret if present else falls back to GITHUB_TOKEN; exposes as output for workflows needing Project V2 access.
+
+outputs:
+  value:
+    description: Token value to use for GitHub Project (v2) GraphQL operations
+
+runs:
+  using: composite
+  steps:
+    - name: Select token
+      shell: bash
+      run: |
+        if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
+          echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
+        fi

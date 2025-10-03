@@ -1,79 +1,74 @@
 name: Roadmap Scheduler
 
 on:
-    schedule:
-        # Daily at 00:02 UTC
-        - cron: '02 00 * * *'
-    workflow_dispatch:
-        inputs:
-            apply:
-                description: 'Apply changes (true) or dry-run (false)'
-                required: false
-                default: 'true'
-            reseat:
-                description: 'Force reseat existing dates (true/false)'
-                required: false
-                default: 'false'
+  schedule:
+    # Daily at 00:02 UTC
+    - cron: '02 00 * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Apply changes (true) or dry-run (false)'
+        required: false
+        default: 'true'
+      reseat:
+        description: 'Force reseat existing dates (true/false)'
+        required: false
+        default: 'false'
 
 # Only repository-projects (classic) permission keyword exists; ProjectV2 uses the same token scopes.
 # We do not modify issue content, so issues:write is unnecessary.
 permissions:
-    contents: read
-    repository-projects: write
+  contents: read
+  repository-projects: write
 
 concurrency:
-    group: roadmap-scheduler
-    cancel-in-progress: false
+  group: roadmap-scheduler
+  cancel-in-progress: false
 
 jobs:
-    schedule:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+  schedule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Select Token
-              id: token
-              run: |
-                  if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-                    echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Select Token
+        id: token
+        uses: ./.github/actions/select-project-token
 
-            - name: Setup workspace (composite)
-              uses: ./.github/actions/node-workspace-setup
+      - name: Setup workspace (composite)
+        uses: ./.github/actions/node-workspace-setup
 
-            - name: Decide Reseat Flag (weekly Monday reseat)
-              id: reseat
-              run: |
-                  # Force reseat if manual input true OR it's Monday (UTC) to eliminate drift/overlaps.
-                  DOW=$(date -u +%u) # 1=Mon
-                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.reseat }}" = "true" ]; then
-                    echo "value=true" >> "$GITHUB_OUTPUT"
-                  elif [ "$DOW" = "1" ]; then
-                    echo "value=true" >> "$GITHUB_OUTPUT"
-                  else
-                    echo "value=false" >> "$GITHUB_OUTPUT"
-                  fi
+      - name: Decide Reseat Flag (weekly Monday reseat)
+        id: reseat
+        run: |
+          # Force reseat if manual input true OR it's Monday (UTC) to eliminate drift/overlaps.
+          DOW=$(date -u +%u) # 1=Mon
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.reseat }}" = "true" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          elif [ "$DOW" = "1" ]; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
 
-            - name: Schedule (dry-run)
-              if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply != 'true' }}
-              env:
-                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-                  RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
-              run: npm run schedule:roadmap -- dry-run
+      - name: Schedule (dry-run)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+          RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
+        run: npm run schedule:roadmap -- dry-run
 
-            - name: Schedule (apply)
-              if: ${{ github.event_name == 'schedule' || inputs.apply == 'true' }}
-              env:
-                  GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-                  RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
-              run: npm run schedule:roadmap -- apply
+      - name: Schedule (apply)
+        if: ${{ github.event_name == 'schedule' || inputs.apply == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+          RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
+        run: npm run schedule:roadmap -- apply
 
-            - name: Summary
-              if: always()
-              run: |
-                  echo '## Roadmap Scheduler' >> $GITHUB_STEP_SUMMARY
-                  echo "Mode: $([[ '${{ github.event_name }}' == 'workflow_dispatch' && '${{ inputs.apply }}' != 'true' ]] && echo 'dry-run' || echo 'apply')" >> $GITHUB_STEP_SUMMARY
-                  echo "Reseat Existing: ${{ steps.reseat.outputs.value }}" >> $GITHUB_STEP_SUMMARY
+      - name: Summary
+        if: always()
+        run: |
+          echo '## Roadmap Scheduler' >> $GITHUB_STEP_SUMMARY
+          echo "Mode: $([[ '${{ github.event_name }}' == 'workflow_dispatch' && '${{ inputs.apply }}' != 'true' ]] && echo 'dry-run' || echo 'apply')" >> $GITHUB_STEP_SUMMARY
+          echo "Reseat Existing: ${{ steps.reseat.outputs.value }}" >> $GITHUB_STEP_SUMMARY

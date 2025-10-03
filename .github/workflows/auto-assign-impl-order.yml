@@ -1,5 +1,12 @@
 name: Auto Assign Implementation Order
 
+# Permissions rationale (align with impl-order-sync & roadmap-scheduler workflows):
+# - contents: write          -> commit regenerated roadmap artifacts when high-confidence auto-apply occurs
+# - issues: write            -> post analysis comments on medium/low confidence, create proposal issues (doc-drift)
+# - repository-projects: write -> required to read/update Project V2 field values via GraphQL (Implementation order field)
+#   NOTE: For user-owned Project V2, the default GITHUB_TOKEN may still lack scopes; provide PROJECTS_TOKEN (classic PAT
+#   or fine‑grained PAT with project access) to elevate. The Select Token step prefers PROJECTS_TOKEN when present.
+
 on:
   issues:
     types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
@@ -23,6 +30,10 @@ on:
 permissions:
   contents: write
   issues: write
+  # Required for updating / reading Project v2 field values through GraphQL mutations.
+  # Note: For some org/user project contexts the default GITHUB_TOKEN still lacks
+  # sufficient scope; in that case provide a fine‑grained PAT in PROJECTS_TOKEN.
+  repository-projects: write
 
 # Concurrency:
 # Per-issue / per-PR isolation so multiple distinct issues can process simultaneously while
@@ -98,12 +109,7 @@ jobs:
 
       - name: Select Token
         id: token
-        run: |
-          if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
-            echo "value=${{ secrets.PROJECTS_TOKEN }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ secrets.GITHUB_TOKEN }}" >> "$GITHUB_OUTPUT"
-          fi
+        uses: ./.github/actions/select-project-token
 
       - name: Analyze & Assign Implementation Order
         id: analysis

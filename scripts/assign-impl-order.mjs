@@ -37,8 +37,8 @@
  * Exit codes: 0 success / no-op; 1 fatal error; 2 configuration error.
  */
 
-import { parseArgs } from 'node:util'
 import { writeFileSync } from 'node:fs'
+import { parseArgs } from 'node:util'
 
 // --- Configuration ---
 const REPO_OWNER = 'piquet-h'
@@ -84,7 +84,15 @@ async function gh(query, variables) {
     })
     const json = await resp.json()
     if (json.errors) {
-        console.error('GraphQL errors:', JSON.stringify(json.errors, null, 2))
+        const forbidden = json.errors.find((e) => /access|resource/i.test(e.message))
+        if (forbidden) {
+            console.error(
+                'GraphQL access error. This usually means the token lacks project access (need repository-projects:write or fine-grained PAT with project permissions). Original errors:',
+                JSON.stringify(json.errors, null, 2)
+            )
+        } else {
+            console.error('GraphQL errors:', JSON.stringify(json.errors, null, 2))
+        }
         throw new Error('GraphQL query failed')
     }
     return json.data
@@ -129,6 +137,15 @@ async function fetchProjectItems() {
         if (projectId) return { projectId, nodes }
     }
     return { projectId: null, nodes: [] }
+}
+
+async function fetchProjectFields(projectId) {
+    const data = await gh(
+        `query($id:ID!){node(id:$id){... on ProjectV2 {fields(first:100){nodes{__typename ... on ProjectV2FieldCommon { id name dataType }}}}}}`,
+        { id: projectId }
+    )
+    const nodes = data.node?.fields?.nodes || []
+    return nodes.filter((f) => f.id && f.name)
 }
 
 async function fetchIssue(number) {
@@ -262,10 +279,22 @@ async function main() {
         console.error('Project not found.')
         process.exit(1)
     }
-    const fieldId = extractFieldId(nodes, FIELD_NAME)
+    let fieldId = extractFieldId(nodes, FIELD_NAME)
     if (!fieldId) {
-        console.error(`Field '${FIELD_NAME}' not found in project.`)
-        process.exit(1)
+        // Fallback: query project fields directly (handles case where no existing item has a value yet)
+        try {
+            const fields = await fetchProjectFields(projectId)
+            const match = fields.find((f) => f.name === FIELD_NAME)
+            if (match) fieldId = match.id
+        } catch (e) {
+            console.error('Failed to fetch project fields for fallback:', e.message)
+        }
+        if (!fieldId) {
+            console.error(
+                `Field '${FIELD_NAME}' not found in project (after fallback). Ensure the custom number field exists and the token has access.`
+            )
+            process.exit(1)
+        }
     }
 
     // Locate target issue in current items
