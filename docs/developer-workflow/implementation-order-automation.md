@@ -34,14 +34,14 @@ The automation runs on these GitHub events:
 Current workflow:
 
 1. **Automatic Analysis**: On issue creation/update, the workflow runs `assign-impl-order.mjs` which:
-   - Pulls all Project items & existing `Implementation order` values
-   - Scores issues using a lightweight heuristic (scope > type > milestone)
-   - Calculates confidence level based on metadata completeness
-   - Generates an ordering decision artifact with detailed rationale
+    - Pulls all Project items & existing `Implementation order` values
+    - Scores issues using a lightweight heuristic (scope > type > milestone)
+    - Calculates confidence level based on metadata completeness
+    - Generates an ordering decision artifact with detailed rationale
 
 2. **Confidence-Based Action**:
-   - **High confidence** (scope + milestone + type): Automatically applies ordering changes, commits, pushes
-   - **Medium/Low confidence**: Posts issue comment with recommendation and rationale, requires manual review
+    - **High confidence** (scope + milestone + type): Automatically applies ordering changes, commits, pushes
+    - **Medium/Low confidence**: Posts issue comment with recommendation and rationale, requires manual review
 
 3. **Transparency**: All decisions generate an artifact (`ordering-decision.json`) uploaded to workflow artifacts for audit and troubleshooting.
 
@@ -248,32 +248,32 @@ Current state: Human-in-loop resequencing, deterministic scripts, consolidated w
 The workflow now supports confidence-based auto-apply with the following features:
 
 1. **Confidence Scoring**: Issues are automatically analyzed and assigned confidence levels:
-   - **High**: Has scope label + milestone + type label → Auto-applies ordering changes without manual review
-   - **Medium**: Has scope label + (milestone OR type label) → Requires manual review, posts comment
-   - **Low**: Missing scope or both milestone and type → Requires manual review, posts comment with warning
+    - **High**: Has scope label + milestone + type label → Auto-applies ordering changes without manual review
+    - **Medium**: Has scope label + (milestone OR type label) → Requires manual review, posts comment
+    - **Low**: Missing scope or both milestone and type → Requires manual review, posts comment with warning
 
 2. **Auto-Apply Path**: When confidence is high and changes are required, the workflow automatically:
-   - Applies ordering changes to the Project field
-   - Syncs and regenerates roadmap documentation
-   - Commits and pushes changes with clear commit messages
-   - No issue comment is posted (silent success)
+    - Applies ordering changes to the Project field
+    - Syncs and regenerates roadmap documentation
+    - Commits and pushes changes with clear commit messages
+    - No issue comment is posted (silent success)
 
 3. **Artifact Generation**: Every run generates `ordering-decision.json` containing:
-   - Confidence level and priority score
-   - Recommended order and changes required
-   - Detailed rationale (scope, type, milestone)
-   - Full diff and reordering plan
-   - Timestamp and metadata
+    - Confidence level and priority score
+    - Recommended order and changes required
+    - Detailed rationale (scope, type, milestone)
+    - Full diff and reordering plan
+    - Timestamp and metadata
 
 4. **Telemetry Events**: The system emits structured telemetry:
-   - `Ordering.Applied` - High confidence auto-apply succeeded
-   - `Ordering.Overridden` - Manual change within observation window (future)
-   - `Ordering.LowConfidence` - Issue needs manual review
+    - `Ordering.Applied` - High confidence auto-apply succeeded
+    - `Ordering.Overridden` - Manual change within observation window (future)
+    - `Ordering.LowConfidence` - Issue needs manual review
 
 5. **Sparse Metadata Handling**: Issues with incomplete metadata are still processed using append strategy:
-   - Assigned to the end of the implementation order
-   - Marked with low confidence
-   - Comment explains what metadata is missing
+    - Assigned to the end of the implementation order
+    - Marked with low confidence
+    - Comment explains what metadata is missing
 
 **Acceptance Criteria Progress**:
 

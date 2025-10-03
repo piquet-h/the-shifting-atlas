@@ -3,15 +3,15 @@
 /* global console, process */
 /**
  * weekly-ordering-metrics.mjs
- * 
+ *
  * Placeholder script for Stage 1 MVP: Weekly metrics summary for implementation order automation.
- * 
+ *
  * Currently outputs a basic summary. Future enhancements:
  * - Query GitHub Actions runs to count ordering_applied, ordering_overridden, ordering_low_confidence events
  * - Calculate override rate (manual changes within 24h)
  * - Track contiguous ordering integrity (gaps/duplicates)
  * - Generate weekly digest or append to existing digest
- * 
+ *
  * Usage:
  *   node scripts/weekly-ordering-metrics.mjs
  *   node scripts/weekly-ordering-metrics.mjs --days 7

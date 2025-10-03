@@ -355,9 +355,9 @@ async function main() {
     const scope = SCOPE_PRIORITY.find((s) => labels.has(s)) || 'none'
     const type = [...labels].find((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l]) || 'none'
     const milestone = targetIssue.milestone?.title || 'none'
-    
+
     const rationale = `Issue #${ISSUE_NUMBER}: scope=${scope}, type=${type}, milestone=${milestone}, score=${computeScore(targetIssue)}. Strategy: ${STRATEGY}. Changes required: ${diffs.length}.`
-    
+
     const result = {
         strategy: STRATEGY,
         issue: ISSUE_NUMBER,
@@ -375,7 +375,7 @@ async function main() {
             timestamp: new Date().toISOString()
         }
     }
-    
+
     // Save artifact if requested
     if (ARTIFACT_PATH) {
         try {
@@ -385,15 +385,18 @@ async function main() {
             console.error(`Failed to save artifact: ${err.message}`)
         }
     }
-    
+
     // Emit telemetry if requested
     if (EMIT_TELEMETRY) {
-        const telemetryEvent = APPLY && diffs.length > 0 ? 'ordering_applied' : 
-                               !APPLY && confidence === 'low' ? 'ordering_low_confidence' :
-                               'ordering_recommendation'
+        const telemetryEvent =
+            APPLY && diffs.length > 0
+                ? 'ordering_applied'
+                : !APPLY && confidence === 'low'
+                  ? 'ordering_low_confidence'
+                  : 'ordering_recommendation'
         console.error(`[TELEMETRY] ${telemetryEvent}: issue=${ISSUE_NUMBER}, confidence=${confidence}, changes=${diffs.length}`)
     }
-    
+
     if (!APPLY) {
         console.log(JSON.stringify(result, null, 2))
         return
