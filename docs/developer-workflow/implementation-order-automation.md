@@ -8,9 +8,9 @@ When a new issue is created or significantly updated (labels, milestones), GitHu
 
 1. **Analyzes** the issue content, labels, and metadata
 2. **Determines** the appropriate priority and implementation order
-3. **Updates** the `roadmap/implementation-order.json` file
-4. **Resequences** existing issues if necessary
-5. **Syncs** changes with GitHub Project and regenerates documentation
+3. **Writes / updates** the Project v2 numeric field `Implementation order`
+4. **Resequences** existing project items if necessary
+5. **Exports (optional)** a snapshot `roadmap/implementation-order.json` (legacy read‑only) and regenerates `docs/roadmap.md`
 
 ## How It Works
 
@@ -105,11 +105,11 @@ The automation includes several safeguards:
 
 Maintainers can override automation by:
 
-1. **Direct editing**: Modify `roadmap/implementation-order.json` directly
-2. **Force resequencing**: Use workflow dispatch with `force_resequence: true`
-3. **Manual sync**: Run `npm run sync:impl-order:apply` locally
+1. **Direct Project edits**: Adjust `Implementation order` values inline (prefer append; keep contiguous). Automation treats these as authoritative.
+2. **Force resequencing**: Use workflow dispatch or run a resequence script locally (future enhancement to operate directly on Project items).
+3. **Manual sync/export**: Run `npm run sync:impl-order:apply` (updates markdown + optional snapshot) or `npm run export:impl-order:snapshot` (snapshot only).
 
-The automation respects manual changes and won't override recent manual edits.
+The snapshot file is never the source of truth; edits there are ignored.
 
 ## Audit Trail
 

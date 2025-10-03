@@ -46,6 +46,8 @@
         "update:issue-status": "node scripts/update-issue-status.mjs",
         "test:issue-status": "node scripts/test-update-issue-status.mjs",
         "schedule:roadmap": "node scripts/schedule-roadmap.mjs"
+            ,
+            "export:impl-order:snapshot": "node scripts/export-implementation-order-snapshot.mjs"
     },
     "devDependencies": {
         "@azure/static-web-apps-cli": "^2.0.6",

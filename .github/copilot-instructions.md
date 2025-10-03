@@ -22,7 +22,7 @@ Principle: Event‑driven, stateless functions, no polling loops.
 - `backend/` Functions (`functions/`, `shared/` utilities)
 - `shared/` Cross‑package domain models + telemetry
 - `scripts/` Automation (ordering, labels, seed)
-- `roadmap/implementation-order.json` Canonical execution order
+- GitHub Project (v2) numeric field `Implementation order` – canonical execution sequence (JSON file now legacy snapshot)
 - `docs/` Design & narrative sources
 
 ---
@@ -71,7 +71,7 @@ Exactly 1 scope + 1 type label.
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types: `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
-Ordering: `roadmap/implementation-order.json` → sync script updates Project + `docs/roadmap.md`.
+Ordering: Project v2 field `Implementation order` (numeric) → sync/export scripts regenerate `docs/roadmap.md` and optional snapshot `roadmap/implementation-order.json` (legacy, do not hand‑edit).
 Status field: `Todo|In progress|Done`.
 Never use legacy `area:*`, `phase-*`, `priority:*`.
 
@@ -116,7 +116,7 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ### Roadmap & Status Guardrails (Do NOT Manual Edit)
 
-`docs/roadmap.md` is an auto-generated artifact. Its single source of truth is the **human‑curated** `roadmap/implementation-order.json` plus live issue labels/status. A scheduled GitHub Action (`roadmap-scheduler.yml`) and the sync scripts (`npm run sync:impl-order:*`) rebuild it. **Agents and contributors must not manually modify**:
+`docs/roadmap.md` is an auto-generated artifact. Its single source of truth is the **GitHub Project v2 numeric field** `Implementation order` plus live issue labels/status. A scheduled GitHub Action (`roadmap-scheduler.yml`) and the sync scripts (`npm run sync:impl-order:*`) rebuild it. An optional cached snapshot `roadmap/implementation-order.json` may exist but is **read-only** and can be regenerated at any time. **Agents and contributors must not manually modify**:
 
 - The ordering numbers in `docs/roadmap.md`
 - Status values (Todo/In progress/Done) inside `docs/roadmap.md`
@@ -125,8 +125,9 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 Instead:
 
 1. Adjust labels (scope / type) or issue status in GitHub for status changes.
-2. Update `roadmap/implementation-order.json` only when intentionally resequencing or appending new issues (keep contiguous integers; prefer append). This file is NOT auto-generated.
-3. Run `npm run sync:impl-order:validate` locally if needed; let CI / the scheduled workflow publish the rendered `docs/roadmap.md`.
+2. Change ordering by editing the Project field directly (inline edit or bulk). The next sync/export will refresh artifacts.
+3. (Optional) Run `npm run export:impl-order:snapshot` to refresh the legacy JSON snapshot (never the source of truth).
+4. Run `npm run sync:impl-order:validate` locally if needed; let CI / the scheduled workflow publish the rendered `docs/roadmap.md`.
 
 If a user explicitly asks to “edit roadmap.md” or to change a status directly, respond by proposing the change to ordering file or labels and DO NOT patch `docs/roadmap.md` manually. Only proceed with a manual diff to that file if the user includes an explicit override phrase: `override roadmap manually`.
 
@@ -150,7 +151,7 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 Exit: directional traversal edge.
 Event vertex: persisted world action for timeline queries.
-Implementation order: enforced execution sequence.
+Implementation order: enforced execution sequence (stored in Project field, not JSON file).
 Scope label: high-level functional grouping.
 Status: lightweight progress state powering “Next Up”.
 

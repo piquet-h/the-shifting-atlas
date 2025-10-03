@@ -15,7 +15,7 @@ Core Scripts:
 
 Labels: One `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`). No legacy `area:*`, `phase-*`, `priority:*`.
 
-Ordering Source: `roadmap/implementation-order.json` (contiguous integers).
+Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). `roadmap/implementation-order.json` = optional snapshot (do not edit).
 
 Next Up Logic: Non-Done → lowest order → earliest milestone → scope priority (core > world > traversal > ai > others). Avoid parallel starts unless requested.
 
