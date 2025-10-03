@@ -11,9 +11,11 @@
  * atomic updates to prevent race conditions.
  */
 
-import fs from 'node:fs'
-import path from 'node:path'
-import { parseArgs } from 'node:util'
+// (legacy imports removed)
+
+console.error('[deprecated] apply-impl-order-assignment.mjs has been retired (implementation-order.json removed).')
+process.exit(0)
+/*
 
 const ROADMAP_JSON = path.join(process.cwd(), 'roadmap/implementation-order.json')
 
@@ -243,7 +245,8 @@ async function main() {
     }
 }
 
-main().catch((err) => {
-    console.error('Unexpected error:', err)
+main && main().catch((err) => {
+    console.error('Unexpected error (deprecated path):', err)
     process.exit(1)
 })
+*/

@@ -18,6 +18,9 @@
  * closed issues remain but new open issues still get appended.
  */
 
+console.error('[deprecated] ensure-all-issues-in-order.mjs retired (local ordering file removed).')
+process.exit(0)
+// Legacy code retained below (inactive)
 import console from 'node:console'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -119,7 +122,9 @@ async function main() {
     }
 }
 
-main().catch((err) => {
-    console.error(err)
-    process.exit(1)
-})
+main &&
+    main().catch((err) => {
+        console.error(err)
+        process.exit(1)
+    })
+// end legacy

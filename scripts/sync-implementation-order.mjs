@@ -3,14 +3,13 @@
 /* global fetch, process, console */
 /**
  * Sync Implementation Order between:
- *  - roadmap/implementation-order.json (source of truth edited by humans or tools)
- *  - GitHub Project (Projects v2) number (field "Implementation order") – optional / best-effort
+ *  - GitHub Project (Projects v2) numeric field "Implementation order" (canonical)
  *  - docs/roadmap.md (generated summary for Copilot context & readers)
  *
  * Usage:
  *   node scripts/sync-implementation-order.mjs validate          # exits non-zero if drift (project optional)
  *   node scripts/sync-implementation-order.mjs apply             # apply updates to project + regen docs
- *   node scripts/sync-implementation-order.mjs resequence        # resequence orders 1..N in file then apply
+ *   node scripts/sync-implementation-order.mjs resequence        # resequence orders 1..N directly in project
  *   node scripts/sync-implementation-order.mjs next [N]          # print next N actionable issues (skip Done) as JSON
  *
  * Environment (optional overrides):
@@ -32,7 +31,6 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
-const ROADMAP_JSON = path.join(ROOT, 'roadmap', 'implementation-order.json')
 const DOC_PATH = path.join(ROOT, 'docs', 'roadmap.md')
 const REPO_OWNER = 'piquet-h' // adjust if repo transferred
 const PROJECT_OWNER = process.env.PROJECT_OWNER || REPO_OWNER
@@ -49,12 +47,7 @@ if (!token) {
 
 const allowMissingProject = /^(1|true|yes)$/i.test(process.env.ALLOW_MISSING_PROJECT || '')
 
-function readJson(file) {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
-}
-function writeJson(file, data) {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n')
-}
+// JSON snapshot removed; all ordering derives from live Project field.
 
 async function ghGraphQL(query, variables) {
     const resp = await fetch('https://api.github.com/graphql', {
@@ -167,58 +160,6 @@ function extractFieldId(nodes) {
     return null
 }
 
-function extractStatusFieldId(nodes) {
-    for (const n of nodes) {
-        for (const fv of n.fieldValues.nodes) {
-            if (fv.field?.name === 'Status') {
-                return fv.field.id // first occurrence
-            }
-        }
-    }
-    return null
-}
-
-function findStatusOptionId(projectFields, statusValue) {
-    const statusField = projectFields.find((field) => field.name === 'Status' && field.options)
-    if (!statusField) return null
-
-    const option = statusField.options.find((opt) => opt.name === statusValue)
-    return option?.id || null
-}
-
-async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields) {
-    try {
-        // Find the project item for this issue
-        const projectItem = projectItems.find((item) => item.content?.number === issueNumber)
-        if (!projectItem) {
-            console.log(`Issue #${issueNumber} not found in project items`)
-            return false
-        }
-
-        // Get status field ID
-        const statusFieldId = extractStatusFieldId([projectItem]) || projectFields.find((f) => f.name === 'Status')?.id
-        if (!statusFieldId) {
-            console.log(`Status field not found in project`)
-            return false
-        }
-
-        // Get status option ID
-        const statusOptionId = findStatusOptionId(projectFields, newStatus)
-        if (!statusOptionId) {
-            console.log(`Status option "${newStatus}" not found`)
-            return false
-        }
-
-        // Update the status
-        await updateSingleSelectField(projectId, projectItem.id, statusFieldId, statusOptionId)
-        console.log(`Updated issue #${issueNumber} status to "${newStatus}"`)
-        return true
-    } catch (error) {
-        console.error(`Failed to update status for issue #${issueNumber}:`, error)
-        return false
-    }
-}
-
 async function updateNumberField(projectId, itemId, fieldId, number) {
     await ghGraphQL(
         `mutation($p:ID!,$i:ID!,$f:ID!,$v:Float!){
@@ -226,37 +167,6 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
   }`,
         { p: projectId, i: itemId, f: fieldId, v: number }
     )
-}
-
-async function updateSingleSelectField(projectId, itemId, fieldId, optionId) {
-    await ghGraphQL(
-        `mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
-    updateProjectV2ItemFieldValue(input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$v}}){ projectV2Item { id } }
-  }`,
-        { p: projectId, i: itemId, f: fieldId, v: optionId }
-    )
-}
-
-async function fetchProjectFields(projectId) {
-    const data = await ghGraphQL(
-        `query($projectId:ID!){
-    node(id:$projectId){ 
-      ... on ProjectV2 { 
-        fields(first:20){
-          nodes{
-            ... on ProjectV2FieldCommon { id name }
-            ... on ProjectV2SingleSelectField { 
-              id name 
-              options { id name }
-            }
-          }
-        }
-      }
-    }
-  }`,
-        { projectId }
-    )
-    return data.node.fields.nodes
 }
 
 function hashOrdering(items) {
@@ -279,11 +189,11 @@ function escapeMarkdownTableCell(str) {
     return String(str).replace(/\\/g, '\\\\').replace(/\|/g, '\\|')
 }
 
-async function regenerateDocs(json, projectItems) {
+async function regenerateDocs(items, projectItems) {
     const lines = []
     lines.push('# Roadmap Implementation Order')
     lines.push('')
-    lines.push(`Source of truth: \`roadmap/implementation-order.json\``)
+    lines.push(`Source of truth: Project field 'Implementation order'`)
     lines.push('')
     lines.push('| Order | Issue | Title | Milestone | Scope | Type | Status |')
     lines.push('| ----- | ----- | ----- | --------- | ----- | ---- | ------ |')
@@ -301,7 +211,7 @@ async function regenerateDocs(json, projectItems) {
         issueMetaCache.set(num, issue)
         return issue
     }
-    for (const item of [...json.items].sort((a, b) => a.order - b.order)) {
+    for (const item of [...items].sort((a, b) => a.order - b.order)) {
         let issue
         try {
             issue = await fetchIssue(item.issue)
@@ -320,7 +230,7 @@ async function regenerateDocs(json, projectItems) {
     }
     lines.push('')
     // Next Up section (skip Done)
-    const actionable = [...json.items]
+    const actionable = [...items]
         .sort((a, b) => a.order - b.order)
         .map((it) => ({
             order: it.order,
@@ -346,7 +256,6 @@ async function regenerateDocs(json, projectItems) {
 }
 
 async function main() {
-    const json = readJson(ROADMAP_JSON)
     const { projectId, nodes: projectNodes, ownerType } = await fetchProjectItems()
     if (!projectId) {
         const msg =
@@ -361,71 +270,52 @@ async function main() {
     } else {
         console.log(`Project located (type=${ownerType}) id=${projectId}`)
     }
-    const fieldId = projectId ? extractFieldId(projectNodes) || json.fieldId || json.fieldID || null : null
+    const fieldId = projectId ? extractFieldId(projectNodes) : null
     if (projectId && !fieldId) {
         console.error('Could not determine field id for Implementation order in project. Ensure the number field exists.')
         process.exit(3)
     }
 
     // Build maps
-    const fileMap = new Map(json.items.map((i) => [i.issue, i.order]))
-    // Resequence if requested
-    if (mode === 'resequence') {
-        let i = 1
-        for (const issue of [...fileMap.keys()].sort((a, b) => fileMap.get(a) - fileMap.get(b))) {
-            fileMap.set(issue, i++)
-        }
-        json.items = [...fileMap.entries()].map(([issue, order]) => ({
-            issue,
-            order,
-            title: json.items.find((it) => it.issue === issue)?.title || ''
-        }))
-        writeJson(ROADMAP_JSON, json)
-    }
-
-    // Detect missing issues present in project but not file (optionally append at end)
-    let maxOrder = Math.max(0, ...fileMap.values())
+    // Build current ordering from project field
+    const projectOrdering = []
     if (projectId) {
         for (const n of projectNodes) {
-            const num = n.content.number
-            if (!fileMap.has(num)) {
-                maxOrder += 1
-                fileMap.set(num, maxOrder)
-                json.items.push({ issue: num, order: maxOrder, title: n.content.title })
-            }
-        }
-    }
-
-    // Validate contiguous ordering
-    const sortedOrders = [...fileMap.values()].sort((a, b) => a - b)
-    const contiguous = sortedOrders.every((val, idx) => val === idx + 1)
-    if (!contiguous && mode !== 'resequence') {
-        console.warn('Non-contiguous implementation order detected. Use resequence to normalize.')
-    }
-
-    // Compare with project values
-    const diffs = []
-    if (projectId) {
-        for (const n of projectNodes) {
-            const num = n.content.number
-            const desired = fileMap.get(num)
-            let current = null
+            let orderVal = null
             for (const fv of n.fieldValues.nodes) {
-                if (fv.field?.name === FIELD_NAME) {
-                    current = fv.number ?? fv.text ?? null
-                }
+                if (fv.field?.name === FIELD_NAME) orderVal = fv.number ?? null
             }
-            if (String(current) !== String(desired)) {
-                diffs.push({ num, from: current, to: desired, itemId: n.id })
-            }
+            if (orderVal != null) projectOrdering.push({ issue: n.content.number, order: orderVal, title: n.content.title })
         }
     }
+    // Validate we have contiguous integers
+    projectOrdering.sort((a, b) => a.order - b.order)
+    const contiguous = projectOrdering.every((it, idx) => it.order === idx + 1)
+    if (mode === 'resequence' && projectId) {
+        // Resequence in project
+        if (!contiguous) {
+            console.log('Resequencing project ordering to be contiguous...')
+            let next = 1
+            for (const entry of projectOrdering) {
+                if (entry.order !== next) {
+                    const node = projectNodes.find((p) => p.content.number === entry.issue)
+                    await updateNumberField(projectId, node.id, extractFieldId(projectNodes), next)
+                    entry.order = next
+                }
+                next++
+            }
+        } else {
+            console.log('Ordering already contiguous.')
+        }
+    } else if (!contiguous) {
+        console.warn('Non-contiguous implementation order detected in Project.')
+    }
+
+    // No file diff concept now
 
     if (mode === 'next') {
         const limit = Number(process.argv[3] || 3)
-        // Build quick status map
-        const list = [...json.items]
-            .sort((a, b) => a.order - b.order)
+        const list = [...projectOrdering]
             .map((it) => {
                 const node = projectNodes.find((p) => p.content.number === it.issue)
                 return {
@@ -441,41 +331,24 @@ async function main() {
         console.log(JSON.stringify(list, null, 2))
         return
     } else if (mode === 'validate') {
-        if (projectId) {
-            if (diffs.length) {
-                console.error(`Drift detected for ${diffs.length} item(s):`)
-                for (const d of diffs) console.error(`#${d.num}: ${d.from} -> ${d.to}`)
-                process.exit(1)
-            } else {
-                console.log('Implementation order in project matches file.')
-            }
-        } else {
-            console.log('No project available; validation limited to JSON file only.')
+        if (!projectId) {
+            console.error('Project not available; cannot validate.')
+            process.exit(1)
         }
+        if (!contiguous) {
+            console.error('Non-contiguous ordering detected.')
+            process.exit(2)
+        }
+        console.log('Project ordering contiguous and valid.')
     } else {
-        // apply / resequence
-        if (projectId) {
-            if (diffs.length) {
-                console.log(`Applying ${diffs.length} update(s)...`)
-                for (const d of diffs) {
-                    await updateNumberField(projectId, d.itemId, fieldId, d.to)
-                    console.log(`#${d.num} updated ${d.from} -> ${d.to}`)
-                }
-            } else {
-                console.log('No updates needed for project field values.')
-            }
-        } else {
-            console.log('Skipping project field updates (project unavailable).')
+        if (!projectId) {
+            console.error('Cannot apply without project.')
+            process.exit(1)
         }
-        // Update file (ensure consistent ordering & timestamp)
-        json.items.sort((a, b) => a.order - b.order)
-        json.generated = new Date().toISOString()
-        writeJson(ROADMAP_JSON, json)
-        await regenerateDocs(json, projectId ? projectNodes : [])
+        await regenerateDocs(projectOrdering, projectNodes)
         console.log('Docs regenerated at docs/roadmap.md')
     }
-
-    console.log('Ordering hash:', hashOrdering(json.items))
+    console.log('Ordering hash:', hashOrdering(projectOrdering))
 }
 
 main().catch((err) => {

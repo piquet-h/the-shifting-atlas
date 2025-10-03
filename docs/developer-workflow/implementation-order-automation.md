@@ -10,7 +10,7 @@ When a new issue is created or significantly updated (labels, milestones), GitHu
 2. **Determines** the appropriate priority and implementation order
 3. **Writes / updates** the Project v2 numeric field `Implementation order`
 4. **Resequences** existing project items if necessary
-5. **Exports (optional)** a snapshot `roadmap/implementation-order.json` (legacy read‑only) and regenerates `docs/roadmap.md`
+5. **Regenerates** `docs/roadmap.md`
 
 ## How It Works
 
@@ -107,9 +107,7 @@ Maintainers can override automation by:
 
 1. **Direct Project edits**: Adjust `Implementation order` values inline (prefer append; keep contiguous). Automation treats these as authoritative.
 2. **Force resequencing**: Use workflow dispatch or run a resequence script locally (future enhancement to operate directly on Project items).
-3. **Manual sync/export**: Run `npm run sync:impl-order:apply` (updates markdown + optional snapshot) or `npm run export:impl-order:snapshot` (snapshot only).
-
-The snapshot file is never the source of truth; edits there are ignored.
+3. **Manual sync**: Run `npm run sync:impl-order:apply` (updates markdown). No snapshot is maintained.
 
 ## Audit Trail
 
@@ -173,11 +171,7 @@ Check the "Auto Assign Implementation Order" workflow for detailed logs of:
 
 ### Testing
 
-Run the test suite to validate functionality:
-
-```bash
-node scripts/test-impl-order-automation.mjs
-```
+Scripts are integration-oriented; unit-level tests for ordering heuristics can be added by extracting pure functions if needed. The legacy JSON-based test harness has been removed.
 
 ## Configuration
 
@@ -207,12 +201,7 @@ Update `scripts/apply-impl-order-assignment.mjs` to:
 
 ## Integration with Existing Workflows
 
-The automation works alongside existing implementation order management:
-
-- **Preserves** existing sync workflows
-- **Extends** the current JSON-based system
-- **Maintains** compatibility with manual processes
-- **Integrates** with GitHub Project fields
+Automation now operates solely against the Project field (no JSON layer). Sync workflows regenerate docs directly from live Project data.
 
 ## Future Enhancements
 

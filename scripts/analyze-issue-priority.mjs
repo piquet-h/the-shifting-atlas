@@ -1,116 +1,11 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global fetch, process, console */
-/**
- * Issue Priority Analysis Script
- *
- * Analyzes a GitHub issue to determine appropriate implementation order priority
- * using heuristics based on labels, milestones, dependencies, and content analysis.
- *
- * This script emulates Copilot-like analysis by examining:
- * - Issue scope and type labels
- * - Milestone priority
- * - Dependencies mentioned in issue description
- * - Core system vs feature classification
- * - Project roadmap context
- */
-
-import fs from 'node:fs'
-import path from 'node:path'
-import { parseArgs } from 'node:util'
-
-const ROADMAP_JSON = path.join(process.cwd(), 'roadmap/implementation-order.json')
-const MODULES_DIR = path.join(process.cwd(), 'docs/modules')
-
-// Priority weights for different aspects
-const WEIGHTS = {
-    SCOPE_CORE: 100,
-    SCOPE_WORLD: 80,
-    SCOPE_TRAVERSAL: 70,
-    SCOPE_AI: 50,
-    SCOPE_MCP: 40,
-    SCOPE_SYSTEMS: 30,
-    SCOPE_OBSERVABILITY: 20,
-    SCOPE_DEVX: 10,
-    SCOPE_SECURITY: 60,
-
-    TYPE_FEATURE: 50,
-    TYPE_ENHANCEMENT: 30,
-    TYPE_REFACTOR: 20,
-    TYPE_INFRA: 40,
-    TYPE_DOCS: 10,
-    TYPE_SPIKE: 25,
-    TYPE_TEST: 15,
-
-    MILESTONE_M0: 150, // Foundation
-    MILESTONE_M1: 120, // Core Systems
-    MILESTONE_M2: 100, // World Building
-    MILESTONE_M3: 80, // Traversal
-    MILESTONE_M4: 60, // AI Integration
-    MILESTONE_M5: 40, // Systems Polish
-
-    DEPENDENCY_BLOCKER: 200, // Blocks other issues
-    DEPENDENCY_BLOCKED: -50 // Blocked by other issues
-}
-
-// Keywords that suggest high priority/foundational work
-const PRIORITY_KEYWORDS = {
-    HIGH: [
-        'foundation',
-        'bootstrap',
-        'persistence',
-        'core',
-        'basic',
-        'essential',
-        'database',
-        'cosmos',
-        'gremlin',
-        'player',
-        'location',
-        'movement',
-        'authentication',
-        'security',
-        'critical',
-        'blocker'
-    ],
-    MEDIUM: ['command', 'api', 'utility', 'helper', 'integration', 'feature', 'enhancement', 'improvement', 'optimization'],
-    LOW: ['documentation', 'docs', 'polish', 'nice-to-have', 'future', 'refactor', 'cleanup', 'maintenance', 'style']
-}
-
-// Roadmap path dependencies extracted from docs/modules
-const ROADMAP_PATH_DEPENDENCIES = {
-    // Navigation & Traversal phases (navigation-and-traversal.md)
-    NAVIGATION_PHASE_1: {
-        keywords: ['location', 'exit', 'edge', 'baseDescription', 'graph', 'vertex', 'traversal'],
-        weight: 200, // Foundation phase
-        description: 'Core traversal foundation - locations and exits'
-    },
-    NAVIGATION_PHASE_2: {
-        keywords: ['normalization', 'direction', 'exit summary', 'cache', 'look'],
-        weight: 150, // Depends on Phase 1
-        description: 'Player-friendly navigation - normalization and caching'
-    },
-    NAVIGATION_PHASE_3: {
-        keywords: ['ai candidate', 'generation', 'proposal'],
-        weight: 100, // Depends on Phase 2
-        description: 'AI-driven exit generation'
-    },
-
-    // AI Prompt Engineering stages (ai-prompt-engineering.md)
-    AI_STAGE_M3_M4: {
-        keywords: ['mcp', 'world-query', 'lore-memory', 'read-only', 'tool'],
-        weight: 120,
-        description: 'MCP read-only tools integration'
-    },
-    AI_STAGE_M5_PLUS: {
-        keywords: ['world-mutation', 'validator', 'authoritative', 'prompt assembly'],
-        weight: 80, // Depends on M3-M4
-        description: 'MCP mutation tools - advanced AI integration'
-    },
-
-    // World & Player foundation
-    WORLD_FOUNDATION: {
-        keywords: ['world rules', 'lore', 'biome', 'faction', 'identity', 'player bootstrap'],
+/* global console, process */
+// Deprecated: analyze-issue-priority.mjs relied on local implementation-order.json which has been removed.
+// Priority / ordering decisions now derive directly from the Project field 'Implementation order'.
+console.error('[deprecated] analyze-issue-priority.mjs has been retired (no local ordering file).')
+process.exit(0)
+/*
         weight: 180,
         description: 'World foundation and player identity systems'
     },
@@ -421,7 +316,8 @@ async function main() {
     console.log(JSON.stringify(result, null, 2))
 }
 
-main().catch((err) => {
-    console.error('Error analyzing issue:', err)
+main && main().catch((err) => {
+    console.error('Error analyzing issue (deprecated path):', err)
     process.exit(1)
 })
+*/

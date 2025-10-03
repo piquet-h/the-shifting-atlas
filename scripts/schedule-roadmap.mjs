@@ -6,8 +6,8 @@
  * based on historical median durations per (scope,type) label pair and implementation order.
  *
  * Data sources:
- *  - roadmap/implementation-order.json (ordering + titles) — source of truth order
- *  - GitHub Issues + ProjectV2 (labels, state, existing date field values, createdAt/closedAt)
+ *  - GitHub ProjectV2: numeric field 'Implementation order' (canonical ordering)
+ *  - GitHub Issues + ProjectV2 (labels, status, existing date field values, createdAt/closedAt)
  *
  * Heuristic (updated to support stable Gantt semantics):
  *  1. Build historical duration samples from CLOSED issues that have both Start & Finish OR fallback to
@@ -45,13 +45,11 @@
  * Exit codes: 0 success; non-zero on fatal errors.
  */
 
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ROOT = path.resolve(__dirname, '..')
-const ROADMAP_JSON = path.join(ROOT, 'roadmap', 'implementation-order.json')
+path.resolve(__dirname, '..') // ROOT no longer required for ordering file
 const REPO_OWNER = 'piquet-h'
 // (repo name constant reserved for future use; keep commented to avoid unused var lint)
 // const REPO_NAME = 'the-shifting-atlas'
@@ -72,9 +70,7 @@ const DEFAULT_DURATION_DAYS = Number(process.env.DEFAULT_DURATION_DAYS || 2)
 const RESEAT_EXISTING = /^(1|true|yes)$/i.test(process.env.RESEAT_EXISTING || '')
 const mode = process.argv[2] || 'dry-run'
 
-function readJson(file) {
-    return JSON.parse(fs.readFileSync(file, 'utf8'))
-}
+// Local JSON snapshot removed; ordering derives solely from Project field.
 
 /**
  * Execute a GraphQL query, throwing unless all returned errors are explicitly suppressed.
@@ -263,7 +259,6 @@ function chooseDuration(medians, scope, type, fallback) {
 }
 
 async function main() {
-    const roadmap = readJson(ROADMAP_JSON)
     const { projectId, nodes: projectItems, ownerType } = await fetchProjectItems()
     if (!projectId) {
         console.error('Project not found; cannot schedule.')
@@ -292,15 +287,24 @@ async function main() {
         global: medians.global
     })
 
-    const projectMap = new Map(projectItems.map((pi) => [pi.content.number, pi]))
-    const ordered = [...roadmap.items].sort((a, b) => a.order - b.order)
+    function getImplementationOrder(pi) {
+        for (const fv of pi.fieldValues.nodes) {
+            if (fv.field?.name === 'Implementation order') return fv.number ?? null
+        }
+        return null
+    }
+    const ordered = projectItems
+        .map((pi) => ({ pi, order: getImplementationOrder(pi) }))
+        .filter((x) => typeof x.order === 'number' && x.order > 0)
+        .sort((a, b) => a.order - b.order)
+
     // Today (UTC midnight) used for initial cursor; in-progress items retain original Start once set.
     const today = new Date()
     today.setUTCHours(0, 0, 0, 0)
     let cursorDate = new Date(today)
     const changes = []
     for (const entry of ordered) {
-        const item = projectMap.get(entry.issue)
+        const item = entry.pi
         if (!item) continue
         const issue = item.content
         const status = extractFieldValue(item, 'Status') || ''

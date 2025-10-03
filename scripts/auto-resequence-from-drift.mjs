@@ -19,9 +19,11 @@
  *
  * This is deliberately conservative; it does NOT insert new issues or guess missing work.
  */
-import { spawnSync } from 'node:child_process'
-import fs from 'node:fs'
-import { parseArgs } from 'node:util'
+// (legacy imports removed)
+
+console.error('[deprecated] auto-resequence-from-drift.mjs retired (implementation-order.json removed).')
+process.exit(0)
+/*
 
 const { values } = parseArgs({
     options: {
@@ -159,3 +161,4 @@ fs.writeFileSync(
 
 console.log('Resequenced implementation order based on doc drift signals.')
 console.log(JSON.stringify({ maxScore, threshold: THRESHOLD, changed: true, deltas: deltas.slice(0, 15) }, null, 2))
+*/

@@ -10,13 +10,12 @@ Daily GitHub Action (`.github/workflows/roadmap-scheduler.yml`) assigns / mainta
 
 ### Inputs
 
-| Source                              | Purpose                                                                            |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| Project field `Implementation order` | Ordered sequence of issue numbers (canonical)                                       |
-| `roadmap/implementation-order.json` (snapshot) | Legacy exported snapshot (optional, read‑only)                        |
-| Project fields (`Start`, `Finish`)  | Scheduling outputs (date fields)                                                   |
-| Issue metadata (labels, state)      | Determine scope (`scope:*`) & type (first non-scope label) + Done/Closed filtering |
-| Historical closed issues            | Derive median durations per (scope,type) & fallbacks                               |
+| Source                               | Purpose                                                                            |
+| ------------------------------------ | ---------------------------------------------------------------------------------- |
+| Project field `Implementation order` | Ordered sequence of issue numbers (canonical)                                      |
+| Project fields (`Start`, `Finish`)   | Scheduling outputs (date fields)                                                   |
+| Issue metadata (labels, state)       | Determine scope (`scope:*`) & type (first non-scope label) + Done/Closed filtering |
+| Historical closed issues             | Derive median durations per (scope,type) & fallbacks                               |
 
 ### Duration Heuristic
 
