@@ -87,21 +87,52 @@ az deployment group create \
 
 ## Post-Deployment Checklist
 
-1. (Done) CI workflow builds & deploys SWA + API (`.github/workflows/frontend-swa-deploy.yml`).
-2. Seed Gremlin graph (rooms/NPCs) – script pending.
-3. Move runtime code to managed identity access (stop surfacing raw key to Functions once Gremlin SDK usage added).
-4. Add Application Insights + instrumentation (future Bicep update).
+1. ✅ CI workflow builds & deploys SWA + API (`.github/workflows/frontend-swa-deploy.yml`).
+2. ✅ Managed Identity & Key Vault configured for secret retrieval.
+3. Seed Gremlin graph (rooms/NPCs) – script pending.
+4. Add telemetry sampling configuration in Application Insights (future).
 
 ## Security & Limitations
 
-| Topic               | Current State                                              | Planned Improvement                                                 |
-| ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------- |
-| Cosmos Key Exposure | Primary key injected into SWA app settings (`COSMOS_KEY`). | Replace with Key Vault or identity-based access.                    |
-| Observability       | No Application Insights yet.                               | Add App Insights + sampling & dependency tracking.                  |
-| Messaging           | No Service Bus / queues.                                   | Add Service Bus namespace + queue for world events.                 |
-| Secrets Management  | Key Vault present (Cosmos key).                            | Expand to additional secrets (api keys, feature flags).             |
-| Identity / RBAC     | No managed identity assignments.                           | Add system-assigned / user-assigned identity and Cosmos RBAC roles. |
-| CI/CD               | Workflow not auto-generated.                               | Author SWA + seeding GitHub Actions manually.                       |
+| Topic               | Current State                                                                        | Planned Improvement                                         |
+| ------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Secrets Management  | Key Vault configured with Managed Identity. Runtime retrieval via secrets helper.   | Add secret rotation automation (future).                    |
+| Observability       | Application Insights connected.                                                      | Add sampling & dependency tracking tuning.                  |
+| Messaging           | No Service Bus / queues.                                                             | Add Service Bus namespace + queue for world events.         |
+| Identity / RBAC     | System-assigned Managed Identity for SWA with Key Vault access policies.            | Migrate to RBAC authorization for finer-grained control.    |
+| CI/CD               | Workflow not auto-generated.                                                         | Author SWA + seeding GitHub Actions manually.               |
+
+## Secret Management Baseline
+
+**Status**: ✅ Implemented (Issue #45)
+
+### Architecture
+
+- **Key Vault**: Standard tier, access policy-based (SWA system identity has `get`, `list` permissions)
+- **Secrets Stored**:
+  - `cosmos-primary-key` (Gremlin API)
+  - `cosmos-sql-primary-key` (SQL/Core API)
+  - Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
+- **Runtime Access**: Via `@atlas/shared` `secretsHelper` with:
+  - Lazy caching (5-minute TTL)
+  - Exponential backoff retry (3 attempts)
+  - Telemetry (cache hit/miss, fetch success/failure)
+  - Allowlisted secret keys
+  - Local dev fallback to environment variables (`.env.development`)
+
+### Local Development
+
+1. Copy `.env.development.example` to `.env.development`
+2. Set required secrets (e.g., `COSMOS_GREMLIN_KEY`)
+3. Helper automatically uses env vars when `KEYVAULT_NAME` is not set
+4. Production guard: refuses to use local env vars if `NODE_ENV=production`
+
+### Security Notes
+
+- Never commit `.env.development` (excluded in `.gitignore`)
+- Direct access to secrets outside helper is prevented by allowlist validation
+- Managed Identity eliminates need for connection strings in app settings
+- Consider enabling soft-delete and purge protection for production
 
 ## Alignment With Architecture
 
