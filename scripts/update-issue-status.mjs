@@ -189,7 +189,7 @@ async function fetchIssueNodeId(issueNumber) {
                 issue(number:$number){ id number title }
             }
         }`,
-        {owner: REPO_OWNER, repo: REPO_NAME, number: issueNumber}
+        { owner: REPO_OWNER, repo: REPO_NAME, number: issueNumber }
     )
     return data?.repository?.issue?.id || null
 }
@@ -200,31 +200,7 @@ async function addIssueToProject(projectId, issueNodeId) {
         `mutation($projectId:ID!,$contentId:ID!){
             addProjectV2ItemById(input:{projectId:$projectId,contentId:$contentId}){ item { id } }
         }`,
-        {projectId, contentId: issueNodeId}
-    )
-    return data?.addProjectV2ItemById?.item?.id || null
-}
-
-async function fetchIssueNodeId(issueNumber) {
-    // Fetch issue node ID via GraphQL
-    const data = await ghGraphQL(
-        `query($owner:String!,$repo:String!,$number:Int!){
-            repository(owner:$owner,name:$repo){
-                issue(number:$number){ id number title }
-            }
-        }`,
-        {owner: REPO_OWNER, repo: REPO_NAME, number: issueNumber}
-    )
-    return data?.repository?.issue?.id || null
-}
-
-async function addIssueToProject(projectId, issueNodeId) {
-    if (!issueNodeId) return null
-    const data = await ghGraphQL(
-        `mutation($projectId:ID!,$contentId:ID!){
-            addProjectV2ItemById(input:{projectId:$projectId,contentId:$contentId}){ item { id } }
-        }`,
-        {projectId, contentId: issueNodeId}
+        { projectId, contentId: issueNodeId }
     )
     return data?.addProjectV2ItemById?.item?.id || null
 }
@@ -246,10 +222,17 @@ function findStatusOptionId(projectFields, statusValue) {
     return option?.id || null
 }
 
-async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields, {autoAdd = false, printOnly = false} = {}) {
+async function updateIssueStatus(
+    projectId,
+    issueNumber,
+    newStatus,
+    projectItems,
+    projectFields,
+    { autoAdd = false, printOnly = false } = {}
+) {
     try {
         // Find the project item for this issue
-        let projectItem = projectItems.find(item => item.content?.number === issueNumber)
+        let projectItem = projectItems.find((item) => item.content?.number === issueNumber)
         if (!projectItem) {
             console.log(`ℹ️ Issue #${issueNumber} not currently in project items.`)
             if (autoAdd) {
@@ -265,7 +248,7 @@ async function updateIssueStatus(projectId, issueNumber, newStatus, projectItems
                     // Refetch project items to include the new one (minimal incremental fetch for simplicity)
                     const refreshed = await fetchProjectItems()
                     projectItems = refreshed.nodes
-                    projectItem = projectItems.find(item => item.content?.number === issueNumber)
+                    projectItem = projectItems.find((item) => item.content?.number === issueNumber)
                 } else {
                     console.log('❌ Failed to add issue to project')
                     return false
@@ -336,11 +319,11 @@ async function main() {
     const { values } = parseArgs({
         args: process.argv.slice(2),
         options: {
-            'issue-number': {type: 'string'},
-            'status': {type: 'string'},
-            'print-status-only': {type: 'boolean'},
-            'auto-add': {type: 'boolean'},
-            'help': {type: 'boolean', short: 'h'}
+            'issue-number': { type: 'string' },
+            status: { type: 'string' },
+            'print-status-only': { type: 'boolean' },
+            'auto-add': { type: 'boolean' },
+            help: { type: 'boolean', short: 'h' }
         }
     })
 
@@ -401,8 +384,8 @@ Environment variables:
         console.log(`✅ Found ${projectFields.length} project fields`)
 
         // Update the issue status
-        const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields, {autoAdd, printOnly})
-        
+        const success = await updateIssueStatus(projectId, issueNumber, newStatus, projectItems, projectFields, { autoAdd, printOnly })
+
         if (success) {
             if (printOnly) {
                 console.log('🎉 Status fetch completed successfully!')
