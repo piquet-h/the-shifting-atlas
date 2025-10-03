@@ -99,11 +99,11 @@ Legacy logic parsed issue bodies for keywords to infer phase. The new helper scr
 
 The helper script supports three strategies:
 
-| Strategy | Flag `--strategy` | Behavior |
-|----------|-------------------|----------|
-| auto (default) | auto | Re-scores all issues and outputs a full contiguous plan (score desc, tie by previous order, then issue #). |
-| append | append | Places target issue at end (order = N+1) without touching existing items. |
-| scope-block | scope-block | Inserts after the last item sharing the same `scope:*` label (else appends). |
+| Strategy       | Flag `--strategy` | Behavior                                                                                                   |
+| -------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| auto (default) | auto              | Re-scores all issues and outputs a full contiguous plan (score desc, tie by previous order, then issue #). |
+| append         | append            | Places target issue at end (order = N+1) without touching existing items.                                  |
+| scope-block    | scope-block       | Inserts after the last item sharing the same `scope:*` label (else appends).                               |
 
 Apply mode mutates only rows whose numeric value changes (minimal drift footprint).
 

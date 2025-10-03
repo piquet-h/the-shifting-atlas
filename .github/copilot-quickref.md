@@ -12,7 +12,7 @@ Core Scripts:
 - Apply order: `npm run sync:impl-order:apply`
 - List next: `npm run sync:impl-order:next`
 - Labels reconcile: `npm run sync:labels`
- - Recommend/assign order (dry-run default): `npm run assign:impl-order -- --issue <n>`
+- Recommend/assign order (dry-run default): `npm run assign:impl-order -- --issue <n>`
 
 Labels: One `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`). No legacy `area:*`, `phase-*`, `priority:*`.
 
