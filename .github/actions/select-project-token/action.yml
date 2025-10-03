@@ -4,11 +4,13 @@ description: Chooses PROJECTS_TOKEN secret if present else falls back to GITHUB_
 outputs:
   value:
     description: Token value to use for GitHub Project (v2) GraphQL operations
+    value: ${{ steps.select.outputs.value }}
 
 runs:
   using: composite
   steps:
-    - name: Select token
+    - id: select
+      name: Select token
       shell: bash
       run: |
         if [ -n "${{ secrets.PROJECTS_TOKEN }}" ]; then
