@@ -35,6 +35,16 @@ jobs:
       - name: Select Token
         id: token
         uses: ./.github/actions/select-project-token
+        with:
+          projects_token: ${{ secrets.PROJECTS_TOKEN }}
+
+      - name: Token diagnostics
+        run: |
+          echo "Token source: ${{ steps.token.outputs.source }}"
+          echo "Preflight: ${{ steps.token.outputs.preflight }}"
+          echo "Token length: ${#TOK:0}"
+        env:
+          TOK: ${{ steps.token.outputs.value }}
 
       - name: Setup workspace (composite)
         uses: ./.github/actions/node-workspace-setup

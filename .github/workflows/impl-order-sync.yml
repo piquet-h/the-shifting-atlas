@@ -56,6 +56,15 @@ jobs:
       - name: Select token (PROJECTS_TOKEN overrides GITHUB_TOKEN)
         id: token
         uses: ./.github/actions/select-project-token
+        with:
+          projects_token: ${{ secrets.PROJECTS_TOKEN }}
+      - name: Token diagnostics
+        run: |
+          echo "Token source: ${{ steps.token.outputs.source }}"
+          echo "Preflight: ${{ steps.token.outputs.preflight }}"
+          echo "Token length: ${#TOK:0}"
+        env:
+          TOK: ${{ steps.token.outputs.value }}
       - name: Sync / Apply
         id: run-sync
         env:
@@ -139,6 +148,15 @@ jobs:
       - name: Select token
         id: token
         uses: ./.github/actions/select-project-token
+        with:
+          projects_token: ${{ secrets.PROJECTS_TOKEN }}
+      - name: Token diagnostics
+        run: |
+          echo "Token source: ${{ steps.token.outputs.source }}"
+          echo "Preflight: ${{ steps.token.outputs.preflight }}"
+          echo "Token length: ${#TOK:0}"
+        env:
+          TOK: ${{ steps.token.outputs.value }}
       - name: Ensure all open issues present
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.value }}
