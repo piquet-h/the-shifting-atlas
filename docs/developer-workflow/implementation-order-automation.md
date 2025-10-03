@@ -13,7 +13,7 @@ When a new issue is created or significantly updated (labels, milestones), the s
 3. Apply updated contiguous ordering to the Project field.
 4. Regenerate `docs/roadmap.md` via `npm run sync:impl-order:apply`.
 
-There is no background priority auto-writer at the moment; the previous JSON-based priority analyzer & applier are deprecated and stubbed.
+There is no background priority auto-writer at the moment; the previous JSON-based priority analyzer & applier were removed. Any JSON file that appears (e.g. `roadmap/implementation-order.json`) is a **derived artifact** regenerated from the Project field for human review and context only – it is never read as input when computing order.
 
 ## How It Works
 
@@ -27,27 +27,23 @@ The automation runs on these GitHub events:
 - `issues.milestoned` - Milestone assignment affects priority
 - `issues.demilestoned` - Milestone removal affects priority
 
-### Priority Model (Current - Stage 1)
+### Priority Model (Current – Stage 1)
 
-**Stage 1 Implementation**: The system now supports confidence-based automatic ordering with the `assign-impl-order.mjs` script enhanced for automation.
+The system supports **confidence‑based automatic ordering** implemented in `assign-impl-order.mjs` and orchestrated by `auto-assign-impl-order.yml`.
 
-Current workflow:
+Workflow path:
 
-1. **Automatic Analysis**: On issue creation/update, the workflow runs `assign-impl-order.mjs` which:
-    - Pulls all Project items & existing `Implementation order` values
-    - Scores issues using a lightweight heuristic (scope > type > milestone)
-    - Calculates confidence level based on metadata completeness
-    - Generates an ordering decision artifact with detailed rationale
+1. **Automatic Analysis** (issue events / manual dispatch):
+    - Fetch all Project items & their current numeric order
+    - Compute heuristic score (scope > type > milestone)
+    - Derive confidence (metadata completeness)
+    - Produce decision artifact (`ordering-decision.json`) with rationale, diff, plan
+2. **Confidence Gating**:
+    - **High** (scope + milestone + type): auto-apply ordering → regenerate docs → commit & push (silent success, no comment)
+    - **Medium / Low**: no auto-apply; issue comment summarises recommendation & missing metadata
+3. **Transparency**: Every run emits an artifact. Comments only where human input is useful (non-high confidence).
 
-2. **Confidence-Based Action**:
-    - **High confidence** (scope + milestone + type): Automatically applies ordering changes, commits, pushes
-    - **Medium/Low confidence**: Posts issue comment with recommendation and rationale, requires manual review
-
-3. **Transparency**: All decisions generate an artifact (`ordering-decision.json`) uploaded to workflow artifacts for audit and troubleshooting.
-
-This approach balances automation efficiency with safety, ensuring well-specified issues are processed immediately while flagging incomplete issues for human review.
-
-**Deprecated Scripts**: The legacy `analyze-issue-priority.mjs` and `apply-impl-order-assignment.mjs` scripts have been removed. All functionality is now consolidated in `assign-impl-order.mjs`.
+Legacy scripts `analyze-issue-priority.mjs` & `apply-impl-order-assignment.mjs` have been removed; logic is fully consolidated in `assign-impl-order.mjs`.
 
 #### Legacy Scoring (Reference Only)
 
@@ -136,7 +132,7 @@ Preferred flow:
 
 ## Audit Trail
 
-Currently changes are Project-field edits (visible in Project history) plus regenerated `docs/roadmap.md` diffs. Optional future enhancement: helper can emit an issue comment summarizing alterations (not yet implemented).
+Currently changes are Project-field edits (visible in Project history) plus regenerated `docs/roadmap.md` diffs. The decision artifact (`ordering-decision.json`) attached to each workflow run provides an auditable snapshot of rationale & plan.
 
 ## Edge Cases
 
@@ -199,10 +195,10 @@ Heuristic scoring currently resides inline in `scripts/assign-impl-order.mjs`. I
 
 Primary workflows:
 
-| Purpose                                             | Workflow                     |
-| --------------------------------------------------- | ---------------------------- |
-| Per‑issue reactive assignment + doc drift heuristic | `auto-assign-impl-order.yml` |
-| Consolidated sync / validation / batch finalize     | `impl-order-sync.yml`        |
+| Purpose                                                                      | Workflow                     | Notes                                 |
+| ---------------------------------------------------------------------------- | ---------------------------- | ------------------------------------- |
+| Per‑issue reactive assignment (+ confidence, artifact, selective auto‑apply) | `auto-assign-impl-order.yml` | Fast feedback path                    |
+| Consolidated sync / validation / batch finalize                              | `impl-order-sync.yml`        | Debounced ensure-all + daily validate |
 
 `impl-order-sync.yml` merged prior `impl-order-sync.yml`, `impl-order-validate.yml`, and `auto-impl-order-finalize.yml`.
 
@@ -224,7 +220,13 @@ To adjust triggers/timeouts edit the respective job section in `.github/workflow
 
 ## Automation Maturity Stages
 
-Automation will evolve through defined stages. Each stage has clear entry conditions, scoped changes, acceptance criteria, and rollback posture. Stage 0 (current) is committed; later stages tracked as separate issues.
+Automation will evolve through defined stages. Each stage has clear entry conditions, scoped changes, acceptance criteria, and rollback posture. Stages are tracked as _issues_:
+
+- Stage 1 (Issue #82) – Implemented and closed
+- Stage 2 (Issue #83) – Open
+- Stage 3 (Issue #84) – Open
+- Stage 4 (Issue #85) – Open
+- Stage 5 (Issue #86) – Open
 
 | Stage | Name                    | Focus                                         | Key Additions                                                 | Exit / Acceptance                                 | Rollback Trigger                         |
 | ----- | ----------------------- | --------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------- |
@@ -239,78 +241,38 @@ Automation will evolve through defined stages. Each stage has clear entry condit
 
 Current state: Human-in-loop resequencing, deterministic scripts, consolidated workflow. Risk managed through daily validation.
 
-### Stage 1 (MVP Full Automation) – Implemented
+### Stage 1 (MVP Full Automation) – Implemented (Issue #82 Closed)
 
-**Status**: Active (Current Stage)
+Implemented features:
 
-**Implementation**:
+- Confidence scoring (high / medium / low)
+- High confidence auto-apply path (silent, no comment)
+- Artifact generation (`ordering-decision.json`) every run
+- Comment output for medium / low confidence with rationale & missing metadata guidance
+- Append behavior for sparse metadata (when no high confidence)
 
-The workflow now supports confidence-based auto-apply with the following features:
+Not yet implemented (tracked for later measurement / Stage 2+):
 
-1. **Confidence Scoring**: Issues are automatically analyzed and assigned confidence levels:
-    - **High**: Has scope label + milestone + type label → Auto-applies ordering changes without manual review
-    - **Medium**: Has scope label + (milestone OR type label) → Requires manual review, posts comment
-    - **Low**: Missing scope or both milestone and type → Requires manual review, posts comment with warning
+- Weekly metrics aggregation & digest
+- Override rate tracking & goal attainment reporting
+- Telemetry events (replaced by artifacts for now)
 
-2. **Auto-Apply Path**: When confidence is high and changes are required, the workflow automatically:
-    - Applies ordering changes to the Project field
-    - Syncs and regenerates roadmap documentation
-    - Commits and pushes changes with clear commit messages
-    - No issue comment is posted (silent success)
+Manual apply remains available:
 
-3. **Artifact Generation**: Every run generates `ordering-decision.json` containing:
-    - Confidence level and priority score
-    - Recommended order and changes required
-    - Detailed rationale (scope, type, milestone)
-    - Full diff and reordering plan
-    - Timestamp and metadata
+```bash
+npm run assign:impl-order -- --issue <number> --apply
+```
 
-4. **Sparse Metadata Handling**: Issues with incomplete metadata are still processed using append strategy:
-    - Assigned to the end of the implementation order
-    - Marked with low confidence
-    - Comment explains what metadata is missing
+### Stage 2 (Predictive Scheduling Integration) – Planned (Issue #83)
 
-**Acceptance Criteria Progress**:
+Focus shifts from ordering to _schedule quality_. Planned additions:
 
-- ✅ High confidence path auto-applies without manual intervention
-- ✅ Artifact generation for all processed issues
-- ✅ Comment only on medium/low confidence
-- ⏳ Weekly metrics summary (placeholder script created, full implementation pending)
-- ⏳ Tracking override rate (requires historical data collection)
-- ⏳ 80% auto-apply rate measurement (requires 7-day observation window)
+- Provisional Start / Finish estimation during ordering
+- Variance measurement vs daily scheduler output
+- Partial rebaseline on Status → In progress
+- Variance threshold alerts (diagnostic issue)
 
-**Usage**:
-
-High confidence issues (scope + milestone + type) are automatically assigned and applied. Medium/low confidence issues receive a comment explaining the recommendation and requesting metadata improvements.
-
-To manually apply a recommendation: `npm run assign:impl-order -- --issue <number> --apply`
-
-**Weekly Metrics**: Run `node scripts/weekly-ordering-metrics.mjs` for current status (placeholder implementation).
-
-### Stage 2 (Predictive Scheduling Integration)
-
-Requirements:
-
-- Auto-apply ordering when confidence = high.
-- Auto-append for sparse metadata issues (no manual block).
-- Artifact: `ordering-decision.json` (score, rationale, diff summary).
-- Comment only on medium/low confidence or ambiguous label mismatches.
-  Acceptance:
-- ≥80% of issues enter without manual reorder.
-- Zero contiguous gap regressions.
-  Metrics:
-- Track workflow outcomes and manual override rate.
-
-### Stage 2 (Predictive Scheduling Integration)
-
-Requirements:
-
-- Inline provisional duration & dates on assignment.
-- Scheduler compares provisional vs applied; annotate variance.
-- Fast partial rebaseline when status flips to In progress.
-  Acceptance:
-- Median provisional vs final variance <10%.
-- Manual scheduler reruns reduced ≥70%.
+Key success metrics (planned): median provisional variance <10%, scheduler re-run requests ↓ ≥70%.
 
 ### Stage 3 (Parallel Stream Awareness)
 
@@ -368,7 +330,7 @@ Automation now operates solely against the Project field (no JSON layer). Sync w
 
 Script: `scripts/assign-impl-order.mjs` (npm: `assign:impl-order`).
 
-**Stage 1 Enhancements**: The script now supports confidence scoring, artifact generation, and telemetry emission.
+**Stage 1 Enhancements**: The script now supports confidence scoring and artifact generation (telemetry events intentionally deferred).
 
 Dry-run example:
 
@@ -416,7 +378,6 @@ Outputs JSON with confidence and metadata:
 		"milestone": "M0",
 		"timestamp": "2025-01-15T10:30:00.000Z"
 	}
-}
 }
 ```
 
