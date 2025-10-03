@@ -47,5 +47,9 @@
             // Referenced from user-level setting previously; moved here for portability.
             "file": ".github/copilot-commit-message-instructions.md"
         }
-    ]
+    ],
+    "[yaml]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2
+    }
 }

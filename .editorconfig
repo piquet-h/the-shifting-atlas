@@ -19,4 +19,10 @@ trim_trailing_whitespace = false
 [Makefile]
 indent_style = tab
 
-# You can add language-specific overrides later if a tool insists on 2-space YAML.
+# YAML uses 2-space indentation for readability & interoperability with common tooling
+[*.yml]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
