@@ -48,8 +48,55 @@
             "file": ".github/copilot-commit-message-instructions.md"
         }
     ],
+    // Per-language Copilot & editor tuning: see .github/copilot-language-style.md for rationale.
+    "[javascript]": {
+        "github.copilot.inlineSuggest.enable": true,
+        "editor.suggest.preview": true
+    },
+    "[javascriptreact]": {
+        "github.copilot.inlineSuggest.enable": true
+    },
+    "[typescript]": {
+        "github.copilot.inlineSuggest.enable": true,
+        "editor.inlayHints.enabled": "on" // keep rich hints for TS
+    },
+    "[typescriptreact]": {
+        "github.copilot.inlineSuggest.enable": true
+    },
+    "[markdown]": {
+        "github.copilot.inlineSuggest.enable": false,
+        "editor.wordWrap": "on"
+    },
+    "[json]": {
+        "github.copilot.inlineSuggest.enable": true
+    },
     "[yaml]": {
         "editor.insertSpaces": true,
-        "editor.tabSize": 2
-    }
+        "editor.tabSize": 2,
+        "github.copilot.inlineSuggest.enable": true
+    },
+    "[shellscript]": {
+        "github.copilot.inlineSuggest.enable": true
+    },
+    // Explicitly enable Copilot for requested languages (jsx, js, tsx, ts, md, json, yml, mjs, mts, sh)
+    // Language IDs used by VS Code:
+    //  - javascript (.js, .mjs)
+    //  - javascriptreact (.jsx)
+    //  - typescript (.ts, .mts)
+    //  - typescriptreact (.tsx)
+    //  - markdown (.md)
+    //  - json (.json)
+    //  - yaml (.yml / .yaml)
+    //  - shellscript (.sh)
+    "github.copilot.enable": {
+        "markdown": true,
+        "javascript": true,
+        "javascriptreact": true,
+        "typescript": true,
+        "typescriptreact": true,
+        "json": true,
+        "yaml": true,
+        "shellscript": true
+    },
+    "github.copilot.chat.reviewSelection.instructions": []
 }

@@ -1,6 +1,6 @@
 # The Shifting Atlas – Copilot Operating Guide (Compact)
 
-Source of truth for daily generation. Archived full version: `./copilot-instructions.full.md`. Quick mnemonic: `./copilot-quickref.md`.
+Source of truth for daily generation. Quick mnemonic: `./copilot-quickref.md`. Language/style specifics: `./copilot-language-style.md`.
 
 ---
 
@@ -22,7 +22,7 @@ Principle: Event‑driven, stateless functions, no polling loops.
 - `backend/` Functions (`functions/`, `shared/` utilities)
 - `shared/` Cross‑package domain models + telemetry
 - `scripts/` Automation (ordering, labels, seed)
-- GitHub Project (v2) numeric field `Implementation order` – canonical execution sequence
+- GitHub Project (v2) numeric field `Implementation order` – canonical execution sequence (single source of truth; any JSON snapshots are auxiliary only)
 - `docs/` Design & narrative sources
 
 ---
@@ -46,6 +46,7 @@ Function naming: `<Trigger><Action>` (`HttpMovePlayer`, `QueueProcessNPCStep`).
 Single responsibility per Function.
 Telemetry event names centralized (no inline literals).
 Comment only domain nuance or cross-service contract.
+Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings; do not handcraft alternative spacing/semicolons.
 
 ---
 
@@ -165,7 +166,7 @@ Status: lightweight progress state powering “Next Up”.
 
 ---
 
-Full historical version: `./copilot-instructions.full.md` | Quick reference: `./copilot-quickref.md`
+Quick reference: `./copilot-quickref.md` | Language/style: `./copilot-language-style.md`
 
 ---
 

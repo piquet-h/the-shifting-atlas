@@ -16,16 +16,18 @@ Core Scripts:
 
 Labels: One `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`). No legacy `area:*`, `phase-*`, `priority:*`.
 
-Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (No local JSON snapshot.) Helper script can auto-recompute or append.
+Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (Any JSON snapshot is auxiliary; edit the Project field directly.) Helper script can auto-recompute or append.
 
 Next Up Logic: Non-Done → lowest order → earliest milestone → scope priority (core > world > traversal > ai > others). Avoid parallel starts unless requested.
 
 Telemetry: Use shared constants only; include correlation IDs; no ad-hoc event names.
 
+Formatting: Prettier (140 cols, 4-space indent, single quotes, no semicolons, no trailing commas). ESLint enforces domain/a11y/telemetry rules. (See `./copilot-language-style.md`.)
+
 Do Not: Poll loops | duplicate labels | hardcode telemetry strings | lore walls in code | unchecked duplicate edges | skip direction validation.
 
 Additions: New scope/milestone → update labels + roadmap + compact guide + reference ADR.
 
-Full detail: `./copilot-instructions.full.md` | Compact guide: `./copilot-instructions.md`
+Detail: `./copilot-instructions.md` | Language/style: `./copilot-language-style.md`
 
 Commit Policy: PROPOSE ONLY (no auto stage/commit) unless user says: `stage now` / `commit now` / `open PR`.

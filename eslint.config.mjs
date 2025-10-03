@@ -35,8 +35,6 @@ export default [
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
-            // Keep brace spacing consistent with Prettier setting bracketSpacing:true (spaced style)
-            'object-curly-spacing': ['error', 'always'],
             'no-restricted-imports': [
                 'error',
                 {
@@ -85,7 +83,6 @@ export default [
             'react/prop-types': 'off',
             'react/react-in-jsx-scope': 'off',
             'react/jsx-uses-react': 'off',
-            'arrow-parens': ['error', 'always'],
             'jsx-a11y/no-autofocus': 'warn',
             'jsx-a11y/anchor-is-valid': ['error', { aspects: ['noHref', 'invalidHref'] }],
             '@typescript-eslint/no-explicit-any': 'warn'
