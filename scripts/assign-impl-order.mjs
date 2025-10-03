@@ -23,6 +23,7 @@
  *   node scripts/assign-impl-order.mjs --issue 123                # dry-run recommendation
  *   node scripts/assign-impl-order.mjs --issue 123 --apply        # apply reordering (min changes)
  *   node scripts/assign-impl-order.mjs --issue 123 --strategy append   # force append only
+ *   node scripts/assign-impl-order.mjs --issue 123 --artifact decision.json  # save decision artifact
  *
  * Options:
  *   --issue <number>          Required issue number.
@@ -31,11 +32,14 @@
  *   --project-number <n>      Override project number (default 3).
  *   --owner <login>           Owner login (defaults to repo owner constant).
  *   --owner-type <user|org>   Hint for project owner type.
+ *   --artifact <path>         Save ordering decision artifact to JSON file.
+ *   --emit-telemetry          Emit telemetry events (ordering_applied, etc.).
  *
  * Exit codes: 0 success / no-op; 1 fatal error; 2 configuration error.
  */
 
 import { parseArgs } from 'node:util'
+import { writeFileSync } from 'node:fs'
 
 // --- Configuration ---
 const REPO_OWNER = 'piquet-h'
@@ -50,7 +54,9 @@ const { values } = parseArgs({
         strategy: { type: 'string', default: 'auto' },
         'project-number': { type: 'string', default: '3' },
         owner: { type: 'string', default: REPO_OWNER },
-        'owner-type': { type: 'string', default: '' }
+        'owner-type': { type: 'string', default: '' },
+        artifact: { type: 'string', default: '' },
+        'emit-telemetry': { type: 'boolean', default: false }
     }
 })
 
@@ -64,6 +70,8 @@ const STRATEGY = values.strategy
 const PROJECT_NUMBER = Number(values['project-number'])
 const PROJECT_OWNER = values.owner
 const OWNER_TYPE_HINT = (values['owner-type'] || '').toLowerCase()
+const ARTIFACT_PATH = values.artifact || ''
+const EMIT_TELEMETRY = !!values['emit-telemetry']
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
 if (!token) {
@@ -210,6 +218,29 @@ function computeScore(issue) {
     return score
 }
 
+/**
+ * Calculate confidence level for ordering decision
+ * Returns: 'high' | 'medium' | 'low'
+ *
+ * High confidence: Issue has scope label + milestone + type
+ * Medium confidence: Issue has scope label + (milestone OR type)
+ * Low confidence: Issue missing scope or both milestone and type
+ */
+function calculateConfidence(issue) {
+    const labels = labelSet(issue)
+    const hasScope = SCOPE_PRIORITY.some((s) => labels.has(s))
+    const hasType = [...labels].some((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l])
+    const hasMilestone = !!issue.milestone?.title
+
+    if (hasScope && hasMilestone && hasType) {
+        return 'high'
+    } else if (hasScope && (hasMilestone || hasType)) {
+        return 'medium'
+    } else {
+        return 'low'
+    }
+}
+
 function applyStrategy(existingOrdered, target, strategy) {
     if (strategy === 'append') {
         return existingOrdered.length + 1
@@ -318,15 +349,51 @@ async function main() {
         }
     }
 
-    // Output summary
+    // Output summary with confidence and rationale
+    const confidence = calculateConfidence(targetIssue)
+    const labels = labelSet(targetIssue)
+    const scope = SCOPE_PRIORITY.find((s) => labels.has(s)) || 'none'
+    const type = [...labels].find((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l]) || 'none'
+    const milestone = targetIssue.milestone?.title || 'none'
+    
+    const rationale = `Issue #${ISSUE_NUMBER}: scope=${scope}, type=${type}, milestone=${milestone}, score=${computeScore(targetIssue)}. Strategy: ${STRATEGY}. Changes required: ${diffs.length}.`
+    
     const result = {
         strategy: STRATEGY,
         issue: ISSUE_NUMBER,
         recommendedOrder: desiredMap.get(ISSUE_NUMBER),
         changes: diffs.length,
+        confidence,
+        score: computeScore(targetIssue),
+        rationale,
         diff: diffs.sort((a, b) => a.to - b.to),
-        plan: finalPlan.sort((a, b) => a.desiredOrder - b.desiredOrder)
+        plan: finalPlan.sort((a, b) => a.desiredOrder - b.desiredOrder),
+        metadata: {
+            scope,
+            type,
+            milestone,
+            timestamp: new Date().toISOString()
+        }
     }
+    
+    // Save artifact if requested
+    if (ARTIFACT_PATH) {
+        try {
+            writeFileSync(ARTIFACT_PATH, JSON.stringify(result, null, 2))
+            console.error(`Artifact saved to ${ARTIFACT_PATH}`)
+        } catch (err) {
+            console.error(`Failed to save artifact: ${err.message}`)
+        }
+    }
+    
+    // Emit telemetry if requested
+    if (EMIT_TELEMETRY) {
+        const telemetryEvent = APPLY && diffs.length > 0 ? 'ordering_applied' : 
+                               !APPLY && confidence === 'low' ? 'ordering_low_confidence' :
+                               'ordering_recommendation'
+        console.error(`[TELEMETRY] ${telemetryEvent}: issue=${ISSUE_NUMBER}, confidence=${confidence}, changes=${diffs.length}`)
+    }
+    
     if (!APPLY) {
         console.log(JSON.stringify(result, null, 2))
         return

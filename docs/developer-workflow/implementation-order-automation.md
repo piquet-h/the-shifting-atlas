@@ -27,18 +27,27 @@ The automation runs on these GitHub events:
 - `issues.milestoned` - Milestone assignment affects priority
 - `issues.demilestoned` - Milestone removal affects priority
 
-### Priority Model (Deprecated vs Current)
+### Priority Model (Current - Stage 1)
 
-The legacy automated priority engine (now deprecated) calculated a composite score using labels, milestones, roadmap path keywords, and dependencies. That logic lived in `scripts/analyze-issue-priority.mjs` and `scripts/apply-impl-order-assignment.mjs` (both now stubs).
+**Stage 1 Implementation**: The system now supports confidence-based automatic ordering with the `assign-impl-order.mjs` script enhanced for automation.
 
-Current approach favors an explicit, human-in-the-loop helper script (`assign-impl-order.mjs`) that:
+Current workflow:
 
-- Pulls all Project items & existing `Implementation order` values.
-- Scores issues with a light-weight heuristic (scope > type > milestone).
-- Recomputes (or appends) a contiguous ordering and outputs a diff (dry-run by default).
-- Optionally applies only the minimal changes.
+1. **Automatic Analysis**: On issue creation/update, the workflow runs `assign-impl-order.mjs` which:
+   - Pulls all Project items & existing `Implementation order` values
+   - Scores issues using a lightweight heuristic (scope > type > milestone)
+   - Calculates confidence level based on metadata completeness
+   - Generates an ordering decision artifact with detailed rationale
 
-This keeps ordering transparent and avoids hidden large-scale reshuffles.
+2. **Confidence-Based Action**:
+   - **High confidence** (scope + milestone + type): Automatically applies ordering changes, commits, pushes
+   - **Medium/Low confidence**: Posts issue comment with recommendation and rationale, requires manual review
+
+3. **Transparency**: All decisions generate an artifact (`ordering-decision.json`) uploaded to workflow artifacts for audit and troubleshooting.
+
+This approach balances automation efficiency with safety, ensuring well-specified issues are processed immediately while flagging incomplete issues for human review.
+
+**Deprecated Scripts**: The legacy `analyze-issue-priority.mjs` and `apply-impl-order-assignment.mjs` scripts have been removed. All functionality is now consolidated in `assign-impl-order.mjs`.
 
 #### Legacy Scoring (Reference Only)
 
@@ -230,7 +239,61 @@ Automation will evolve through defined stages. Each stage has clear entry condit
 
 Current state: Human-in-loop resequencing, deterministic scripts, consolidated workflow. Risk managed through daily validation.
 
-### Stage 1 (MVP Full Automation)
+### Stage 1 (MVP Full Automation) – Implemented
+
+**Status**: Active (Current Stage)
+
+**Implementation**:
+
+The workflow now supports confidence-based auto-apply with the following features:
+
+1. **Confidence Scoring**: Issues are automatically analyzed and assigned confidence levels:
+   - **High**: Has scope label + milestone + type label → Auto-applies ordering changes without manual review
+   - **Medium**: Has scope label + (milestone OR type label) → Requires manual review, posts comment
+   - **Low**: Missing scope or both milestone and type → Requires manual review, posts comment with warning
+
+2. **Auto-Apply Path**: When confidence is high and changes are required, the workflow automatically:
+   - Applies ordering changes to the Project field
+   - Syncs and regenerates roadmap documentation
+   - Commits and pushes changes with clear commit messages
+   - No issue comment is posted (silent success)
+
+3. **Artifact Generation**: Every run generates `ordering-decision.json` containing:
+   - Confidence level and priority score
+   - Recommended order and changes required
+   - Detailed rationale (scope, type, milestone)
+   - Full diff and reordering plan
+   - Timestamp and metadata
+
+4. **Telemetry Events**: The system emits structured telemetry:
+   - `Ordering.Applied` - High confidence auto-apply succeeded
+   - `Ordering.Overridden` - Manual change within observation window (future)
+   - `Ordering.LowConfidence` - Issue needs manual review
+
+5. **Sparse Metadata Handling**: Issues with incomplete metadata are still processed using append strategy:
+   - Assigned to the end of the implementation order
+   - Marked with low confidence
+   - Comment explains what metadata is missing
+
+**Acceptance Criteria Progress**:
+
+- ✅ High confidence path auto-applies without manual intervention
+- ✅ Artifact generation for all processed issues
+- ✅ Comment only on medium/low confidence
+- ✅ Telemetry events defined and emitted
+- ⏳ Weekly metrics summary (placeholder script created, full implementation pending)
+- ⏳ Tracking override rate (requires historical data collection)
+- ⏳ 80% auto-apply rate measurement (requires 7-day observation window)
+
+**Usage**:
+
+High confidence issues (scope + milestone + type) are automatically assigned and applied. Medium/low confidence issues receive a comment explaining the recommendation and requesting metadata improvements.
+
+To manually apply a recommendation: `npm run assign:impl-order -- --issue <number> --apply`
+
+**Weekly Metrics**: Run `node scripts/weekly-ordering-metrics.mjs` for current status (placeholder implementation).
+
+### Stage 2 (Predictive Scheduling Integration)
 
 Requirements:
 
@@ -311,30 +374,64 @@ Automation now operates solely against the Project field (no JSON layer). Sync w
 
 Script: `scripts/assign-impl-order.mjs` (npm: `assign:impl-order`).
 
+**Stage 1 Enhancements**: The script now supports confidence scoring, artifact generation, and telemetry emission.
+
 Dry-run example:
 
 ```bash
 GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123
 ```
 
-Apply with append strategy:
+Apply with high confidence:
 
 ```bash
-GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123 --strategy append --apply
+GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123 --apply
 ```
 
-Outputs JSON:
+Generate artifact:
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run assign:impl-order -- --issue 123 --artifact decision.json
+```
+
+Full options:
+
+```bash
+npm run assign:impl-order -- --issue 123 \
+  --apply \
+  --strategy auto \
+  --artifact ordering-decision.json \
+  --emit-telemetry
+```
+
+Outputs JSON with confidence and metadata:
 
 ```json
 {
 	"strategy": "auto",
 	"issue": 123,
 	"recommendedOrder": 14,
+	"confidence": "high",
+	"score": 180,
+	"rationale": "Issue #123: scope=scope:core, type=feature, milestone=M0, score=180. Strategy: auto. Changes required: 3.",
 	"changes": 3,
-	"diff": [ { "issue": 45, "from": 12, "to": 11 } ... ],
-	"plan": [ { "issue": 17, "score": 210, "desiredOrder": 1 }, ... ]
+	"diff": [{ "issue": 45, "from": 12, "to": 11 }, ...],
+	"plan": [{ "issue": 17, "score": 210, "desiredOrder": 1 }, ...],
+	"metadata": {
+		"scope": "scope:core",
+		"type": "feature",
+		"milestone": "M0",
+		"timestamp": "2025-01-15T10:30:00.000Z"
+	}
+}
 }
 ```
+
+**Confidence Levels**:
+
+- **High**: Issue has scope label + milestone + type label
+- **Medium**: Issue has scope label + (milestone OR type label)
+- **Low**: Issue missing scope or both milestone and type
 
 No changes (no-op) keeps ordering stable.
 
