@@ -114,6 +114,23 @@ Run lint + typecheck before commit; CI blocks on ordering drift & labels.
 Compact guide stable; long narrative stays in `docs/`.
 Any new scope/milestone: update labels + roadmap + this file (minimal diff) + reference ADR.
 
+### Roadmap & Status Guardrails (Do NOT Manual Edit)
+
+`docs/roadmap.md` is an auto-generated artifact. Its single source of truth is `roadmap/implementation-order.json` plus live issue labels/status. A scheduled GitHub Action (`roadmap-scheduler.yml`) and the sync scripts (`npm run sync:impl-order:*`) rebuild it. **Agents and contributors must not manually modify**:
+
+- The ordering numbers in `docs/roadmap.md`
+- Status values (Todo/In progress/Done) inside `docs/roadmap.md`
+- The file header comment indicating it is auto-generated
+
+Instead:
+1. Adjust labels (scope / type) or issue status in GitHub.
+2. Update `roadmap/implementation-order.json` only when intentionally resequencing (keep contiguous integers; prefer append).
+3. Run `npm run sync:impl-order:validate` locally if needed; let CI / the scheduled workflow publish the rendered `docs/roadmap.md`.
+
+If a user explicitly asks to “edit roadmap.md” or to change a status directly, respond by proposing the change to ordering file or labels and DO NOT patch `docs/roadmap.md` manually. Only proceed with a manual diff to that file if the user includes an explicit override phrase: `override roadmap manually`.
+
+Automation will treat any unapproved manual diff to `docs/roadmap.md` as drift and may overwrite it; avoid churn.
+
 ---
 
 ## 12. “Next Up” Algorithm
