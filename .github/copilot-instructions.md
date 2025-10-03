@@ -203,3 +203,43 @@ On PR request:
 If ambiguous instruction: ask for clarification before staging.
 
 Reminder heuristic: If same unapproved edits persist for >1 user response, include a gentle note offering `stage now` or modification.
+
+---
+
+## 17. Diagnostics & Logs First Policy
+
+Purpose: Eliminate time lost to speculation. Always ground fixes in real, retrieved evidence before proposing or applying changes.
+
+When something fails (CI job, GitHub Action, tests, lint, typecheck, runtime):
+
+1. Acquire Logs Before Hypothesizing
+    - GitHub Actions: list workflows -> list recent runs -> fetch failed job logs (prefer `failed_only` view) before editing.
+    - Local / tests: run the relevant task (lint, test) to reproduce and capture the exact error output.
+    - Do NOT propose a patch based only on memory or guesswork if logs are obtainable.
+2. Summarize Evidence
+    - Extract the minimal decisive lines (error codes, stack trace root cause, failing command) into the analysis section of the response.
+    - Note the run ID / job name for traceability.
+3. Formulate Fix
+    - Only after steps 1–2, outline the smallest change addressing the concrete error.
+4. Apply & Re‑verify
+    - Re‑run the same workflow / tests to confirm the specific failing symptom is resolved and no regressions appear.
+
+Unavailable Logs Scenario:
+If logs are expired / inaccessible (e.g., artifact retention lapsed), explicitly state this, then: (a) attempt to re‑trigger the workflow to regenerate logs, or (b) construct a minimal local reproduction path. Only proceed with an inferential fix after documenting why direct evidence is unavailable.
+
+Secrets / Tokens:
+
+- Never echo raw secret values.
+- Diagnostics must use only: source, preflight result, length (`${#TOK}`), and redacted first/last chars if absolutely necessary (avoid unless explicitly requested for debugging).
+
+Prohibited Without Logs:
+
+- Broad refactors presented as “likely” fixes.
+- Multi‑file edits addressing hypothetical causes.
+
+Fast Path Heuristic:
+
+- If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
+
+Rationale:
+This codifies a “logs-first, patch-second” discipline prompted by prior wasted cycles where guessing preceded log retrieval.
