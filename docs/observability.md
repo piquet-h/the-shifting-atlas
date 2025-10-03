@@ -181,3 +181,15 @@ Proposed starter charts:
 - Should movement latency be separated from overall request latency? (If queue handoff introduced.)
 
 _Last updated: 2025-09-25_
+
+---
+
+## AI Telemetry Pointer (Stage M3+)
+
+AI / MCP specific event emissions and required dimensions are defined in `architecture/agentic-ai-and-mcp.md` (section: _AI Telemetry Implementation_). Do **not** invent ad-hoc AI event names outside the canonical enumeration in `shared/src/telemetryEvents.ts`; propose additions via PR updating that file + this doc if classification changes are needed.
+
+Canonical enumeration source of truth:
+
+- `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
+
+Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.

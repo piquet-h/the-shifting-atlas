@@ -157,6 +157,43 @@ Minimum metrics per AI invocation:
 
 Dashboards: Cost per purpose, rejection rate trend, latency percentiles, dialogue diversity (distinct n-grams), retrieval recall sampling.
 
+### AI Telemetry Implementation (Initial Spec)
+
+All AI / MCP related metrics MUST funnel through the canonical game telemetry layer (`trackGameEventStrict` / `trackGameEventClient`) using standardized event names. Additional raw model usage metrics (tokens, latency) are attached as **dimensions** to avoid event name proliferation.
+
+Authoritative event name enumeration lives in `shared/src/telemetryEvents.ts` (import `GAME_EVENT_NAMES`). New AI-specific names MUST be added there _before_ emission. Lint rules will begin enforcing membership once Stage M3 lands.
+
+Required dimensions per AI invocation event (`Prompt.Genesis.Issued`, `Prompt.Genesis.Rejected`, etc.):
+
+- `ai.model` – exact model identifier
+- `ai.purpose` – controlled vocabulary (ambience|npc_dialogue|quest_seed|classification|retrieval)
+- `ai.tokens.prompt` / `ai.tokens.completion`
+- `ai.latency.total_ms`
+- `ai.toolCalls.count`
+- `ai.validation.outcome` – accepted|rejected|modified
+- `ai.moderation.flagged` – boolean
+
+Optional (emit when present):
+
+- `ai.cache.hit` (bool) – context hash reuse
+- `ai.retry.count` – number of reprompts
+- `ai.version.template` – semantic version of prompt template
+
+Sampling: None at Stage M3. Introduce selective sampling only if ingestion threatens budget; never sample rejection or moderation-flag events.
+
+Kusto Starter Query Snippet (illustrative):
+
+```
+customEvents
+| where name startswith "Prompt.Genesis" or name startswith "Prompt.Layer.Generated"
+| extend model = tostring(customDimensions['ai.model']),
+		 purpose = tostring(customDimensions['ai.purpose']),
+		 accepted = tostring(customDimensions['ai.validation.outcome']) == 'accepted'
+| summarize count(), avg(todouble(customDimensions['ai.latency.total_ms'])) by model, purpose, accepted
+```
+
+This section complements (does not duplicate) broader telemetry guidance in `observability.md`.
+
 ## Multi-Agent (Future Pattern)
 
 Committee Example (Stage M6+):

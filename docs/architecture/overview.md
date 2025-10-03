@@ -1,6 +1,8 @@
 # Architecture Overview
 
-> Status Accuracy (2025-09-21): Only a frontend shell and basic `ping` HTTP Functions exist. Cosmos DB is not yet accessed by code; no queues, no movement/room persistence, no AI integration, and only baseline Application Insights bootstrap (no custom events). This overview reflects intended direction—not current implementation depth.
+> Status Accuracy (2025-10-03): Only a frontend shell and basic `ping` HTTP Functions exist. Cosmos DB is not yet accessed by code; no queues, no movement/room persistence, no AI integration, and only baseline Application Insights bootstrap (no custom events). This overview reflects intended direction—not current implementation depth.
+>
+> Terminology Note: _Status Accuracy_ captures the last date the factual implementation claims were manually audited. The footer _Last updated_ reflects the last structural/content edit (which may add future-looking sections without changing audited status lines).
 
 This overview provides a concise narrative bridge between the high‑level vision (persistent, event‑driven text world) and the concrete MVP implementation described in `mvp-azure-architecture.md`.
 
@@ -28,7 +30,7 @@ Implemented (thin slice – see repo for exact handlers):
 - In‑memory traversal (2 rooms, movement + fetch handlers)
 - Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
 - Canonical telemetry framework (`trackGameEventStrict`, event name governance)
-- Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry)
+- Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry), `telemetry` (read-only AI usage & decision logging)
 
 Still provisioned but unused: Cosmos DB, Service Bus, Key Vault (no runtime bindings yet).
 
@@ -57,8 +59,8 @@ Stage Roadmap (Milestones):
 
 - `frontend/` – Presentation + minimal command dispatch
 - `frontend/api/` – Lightweight synchronous request handlers
-- `backend/` – Asynchronous world simulation (queue triggers), heavier domain logic
-- `shared/` (future) – Reusable graph + validation helpers
+- `backend/` – Asynchronous world simulation (queue-triggered world event processors + NPC ticks), heavier domain logic
+- `shared/` (expanding) – Currently exports telemetry events + dual entry points; will accrete graph helpers, validation schemas, and MCP tool type definitions
 
 ### Shared Package Entry Points (Browser vs Backend)
 
@@ -101,7 +103,7 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 
 Early AI integration will adopt a **Model Context Protocol (MCP)** tooling layer instead of embedding raw model prompts inside gameplay Functions. Rationale: prevent prompt sprawl, enable least‑privilege access, and keep the deterministic world model authoritative.
 
-Stage M3 (planned) introduces **read‑only MCP servers**:
+Stage M3 (planned) introduces **read‑only MCP servers** (all advisory, no mutations):
 
 - `world-query-mcp` – Structured room / player / event fetch (no direct DB exposure to prompts)
 - `prompt-template-mcp` – Versioned prompt template registry (hash + semantic name)
@@ -110,6 +112,10 @@ Stage M3 (planned) introduces **read‑only MCP servers**:
 Later phases add controlled proposal endpoints (`world-mutation-mcp`) plus retrieval (`lore-memory-mcp`) and simulation planners. All AI outputs remain **advisory** until validated by deterministic rules (schema, safety, invariants) and only then materialize as domain events.
 
 See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
+
+### World Event Contract (Preview)
+
+Queued evolution (post-MVP) relies on a `WorldEvent` envelope processed by queue-triggered Functions. A dedicated specification now lives in `world-event-contract.md`. Early HTTP handlers that _simulate_ events should shape objects to this contract to reduce refactor friction.
 
 ## Why This Document Exists
 

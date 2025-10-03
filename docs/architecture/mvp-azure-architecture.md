@@ -1,6 +1,8 @@
 # MVP Azure Architecture
 
-> Status Accuracy (2025-09-21): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early location + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
+> Status Accuracy (2025-10-03): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early location + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
+>
+> Temporary Constraint: **All persistence references in this document describe the _target_ asynchronous, event-driven model.** The _current_ MVP path will introduce **direct Cosmos writes from HTTP Functions** first, immediately followed by an enqueue + queue-triggered processor refactor (see `overview.md` and `world-event-contract.md`). Avoid embedding long-running logic in HTTP handlers; keep them thin so the cutover is mechanical.
 
 ## 🎯 Goals
 
@@ -147,7 +149,7 @@ Extensible: Each system is modular, so you can swap in AI‑generated content, e
 🚀 Deployment Flow
 Code Push → GitHub Actions → Deploy frontend + Managed API to Static Web Apps.
 
-Managed API functions connect directly to Cosmos DB and optional AI services.
+Managed API functions (temporarily) connect directly to Cosmos DB (initial persistence milestone) before the enqueue + world event processor cutover. Optional AI services remain deferred.
 
 Cosmos DB pre‑seeded with starter zone (5–10 locations, 1–2 NPCs).
 
