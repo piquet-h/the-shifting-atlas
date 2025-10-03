@@ -7,7 +7,7 @@ Source of truth: Project field 'Implementation order'
 | 1 | #76 | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |  | scope:core | infra | Todo |
 | 2 | #4 | Implement Cosmos Gremlin Location Persistence |  | scope:world | feature | Done |
 | 3 | #7 | Player Bootstrap & Persistence |  | scope:world | feature | Done |
-| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | Done |
+| 4 | #49 | Managed Identity & Key Vault Secret Management Baseline |  | scope:security | infra | In progress |
 | 5 | #5 | Introduce EXIT Edge Model & Link Rooms |  | scope:traversal | feature | In progress |
 | 6 | #6 | Movement Command (HttpMovePlayer) |  | scope:traversal | feature | Todo |
 | 7 | #9 | LOOK Command (HttpLook) |  | scope:traversal | feature | Todo |
@@ -46,7 +46,7 @@ Source of truth: Project field 'Implementation order'
 | 40 | #24 | "Create your explorer" fails |  | scope:world | bug | Done |
 | 41 | #28 | Frontend Managed API not deploying properly |  | scope:devx | bug | Done |
 | 42 | #30 | Ensure correct Issue board status in Projects |  | scope:devx | enhancement | Done |
-| 43 | #17 | DI Suitability Report |  | scope:devx | docs | Todo |
+| 43 | #17 | DI Suitability Report |  | scope:devx | docs | Done |
 | 44 | #53 | Rooms discovered should be dynamic and renamed |  | scope:traversal | enhancement | Todo |
 | 45 | #55 | Player Command Intent Schema & Validator (PI-0) |  | scope:systems | feature | Todo |
 | 46 | #56 | Heuristic Player Command Parser Design (PI-0) |  | scope:systems | feature | Todo |
@@ -74,9 +74,9 @@ Source of truth: Project field 'Implementation order'
 | Order | Issue | Status | Title |
 | ----- | ----- | ------ | ----- |
 | 1 | #76 | Todo | Infra: Provision Cosmos SQL API containers for players, inventory, layers, events |
+| 4 | #49 | In progress | Managed Identity & Key Vault Secret Management Baseline |
 | 5 | #5 | In progress | Introduce EXIT Edge Model & Link Rooms |
 | 6 | #6 | Todo | Movement Command (HttpMovePlayer) |
 | 7 | #9 | Todo | LOOK Command (HttpLook) |
-| 8 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 
-Last sync: 2025-10-03T10:04:11.334Z
+Last sync: 2025-10-03T11:06:39.458Z
