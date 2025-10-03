@@ -1,7 +1,7 @@
 {
   "project": 3,
   "fieldId": "PVTF_lAHOANLlqs4BEJKizg13FDI",
-  "generated": "2025-10-02T12:30:46.505Z",
+  "generated": "2025-10-03T00:18:01.048Z",
   "items": [
     {
       "issue": 4,
@@ -297,6 +297,31 @@
       "issue": 18,
       "order": 59,
       "title": "DI Suitability Report"
+    },
+    {
+      "issue": 79,
+      "order": 60,
+      "title": "Observability: Capture Gremlin RU + latency telemetry for critical ops"
+    },
+    {
+      "issue": 78,
+      "order": 61,
+      "title": "Script: Region-based graph partition migration scaffold"
+    },
+    {
+      "issue": 77,
+      "order": 62,
+      "title": "Feature: Player SQL projection repository & write-through from Gremlin"
+    },
+    {
+      "issue": 76,
+      "order": 63,
+      "title": "Infra: Provision Cosmos SQL API containers for players, inventory, layers, events"
+    },
+    {
+      "issue": 80,
+      "order": 64,
+      "title": "Docs: Integrate ADR-002 references & update architecture diagram notes"
     }
   ]
 }
