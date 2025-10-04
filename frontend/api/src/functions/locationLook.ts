@@ -19,7 +19,7 @@ app.http('LocationLook', {
         const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const playerGuid = extractPlayerGuid(req.headers)
-        const repo = getLocationRepository()
+        const repo = await getLocationRepository()
         const id = req.query.get('id') || STARTER_LOCATION_ID
         const loc = await repo.get(id)
         if (!loc) {

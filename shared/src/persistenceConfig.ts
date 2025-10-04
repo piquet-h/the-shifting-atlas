@@ -25,25 +25,8 @@ export function resolvePersistenceMode(): PersistenceMode {
  * For production, use loadPersistenceConfigAsync which fetches from Key Vault.
  * @deprecated Use loadPersistenceConfigAsync for production workloads
  */
-export function loadPersistenceConfig(): PersistenceConfig {
-    const mode = resolvePersistenceMode()
-    if (mode === 'cosmos') {
-        const endpoint = process.env.COSMOS_GREMLIN_ENDPOINT
-        const database = process.env.COSMOS_GREMLIN_DATABASE
-        const graph = process.env.COSMOS_GREMLIN_GRAPH
-        const key = process.env.COSMOS_GREMLIN_KEY
-        const strict = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
-        if (!endpoint || !database || !graph) {
-            if (strict) {
-                throw new Error('PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete (endpoint/database/graph).')
-            }
-            // Fall back to memory if misconfigured (non-strict mode only)
-            return { mode: 'memory' }
-        }
-        return { mode, cosmos: { endpoint, database, graph, key } }
-    }
-    return { mode: 'memory' }
-}
+// Deprecated synchronous loader removed (previously loadPersistenceConfig). All code paths
+// should migrate to the async variant below which sources secrets via Key Vault helper.
 /**
  * Load persistence configuration asynchronously, fetching secrets from Key Vault via managed identity
  * Falls back to environment variables for local development

@@ -17,12 +17,13 @@ import {
 } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 
-const locationRepo = getLocationRepository()
+const locationRepoPromise = getLocationRepository()
 const headingStore = getPlayerHeadingStore()
 
 export async function getLocationHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const started = Date.now()
     const id = req.query.get('id') || STARTER_LOCATION_ID
+    const locationRepo = await locationRepoPromise
     const location = await locationRepo.get(id)
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
@@ -83,6 +84,7 @@ export async function moveHandler(req: HttpRequest): Promise<HttpResponseInit> {
 
     const dir = normalizationResult.canonical
 
+    const locationRepo = await locationRepoPromise
     const from = await locationRepo.get(fromId)
     if (!from) {
         const latencyMs = Date.now() - started

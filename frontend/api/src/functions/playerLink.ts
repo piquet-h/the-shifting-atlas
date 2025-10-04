@@ -18,7 +18,7 @@ interface LinkResponseBody {
 
 export async function playerLink(request: HttpRequest): Promise<HttpResponseInit> {
     const started = Date.now()
-    const playerRepo = getPlayerRepository()
+    const playerRepo = await getPlayerRepository()
     let body: LinkRequestBody = {}
     try {
         body = (await request.json()) as LinkRequestBody

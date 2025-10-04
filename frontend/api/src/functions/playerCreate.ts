@@ -15,7 +15,7 @@ app.http('PlayerCreate', {
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
         const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
-        const repo = getPlayerRepository()
+        const repo = await getPlayerRepository()
         const result = await ensurePlayerForRequest(req.headers, repo)
         if (result.created) {
             const latencyMs = Date.now() - started

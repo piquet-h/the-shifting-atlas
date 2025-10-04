@@ -41,7 +41,7 @@ test('parseClientPrincipal returns object for valid header', () => {
 
 test('ensurePlayerForRequest creates and reuses player for SWA principal', async () => {
     __resetPlayerRepositoryForTests()
-    const repo = getPlayerRepository()
+    const repo = await getPlayerRepository()
     const { b64 } = makePrincipalPayload({ userId: 'UserXYZ' })
     const headers1 = new HeaderBag()
     headers1.set('x-ms-client-principal', b64)

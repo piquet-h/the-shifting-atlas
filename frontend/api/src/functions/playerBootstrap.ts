@@ -14,7 +14,7 @@ const HEADER_PLAYER_GUID = 'x-player-guid'
 export async function playerBootstrap(request: HttpRequest): Promise<HttpResponseInit> {
     const started = Date.now()
     const correlationId = extractCorrelationId(request.headers)
-    const playerRepo = getPlayerRepository()
+    const playerRepo = await getPlayerRepository()
     const existing = request.headers.get(HEADER_PLAYER_GUID) || undefined
     trackGameEventStrict('Onboarding.GuestGuid.Started', {}, { correlationId })
     const { record, created } = await playerRepo.getOrCreate(existing)
