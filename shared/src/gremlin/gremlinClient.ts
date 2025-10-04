@@ -26,7 +26,6 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
                 }
             }
         ).driver.DriverRemoteConnection
-        const Graph = (gmod as { structure: { Graph: new () => any } }).structure.Graph
         const authenticator = new (
             gmod as { driver: { auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => any } } }
         ).driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, config.key)
@@ -34,7 +33,6 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
             authenticator,
             traversalsource: 'g'
         })
-        const g = new Graph().traversal().withRemote(connection)
         return {
             async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
                 // Use connection underlying client (driver internal API). If gremlin changes, refactor accordingly.

@@ -17,5 +17,7 @@ export const WORLD_GRAPH_PARTITION_VALUE = 'world'
  * always returns the global value. Replace implementation during migration.
  */
 export function resolveGraphPartitionKey(_regionId?: string): string {
+    // Intentional no-op for future regional partitioning; mark parameter as used to satisfy lint until implemented.
+    void _regionId
     return WORLD_GRAPH_PARTITION_VALUE
 }

@@ -44,7 +44,6 @@ export function loadPersistenceConfig(): PersistenceConfig {
     }
     return { mode: 'memory' }
 }
-
 /**
  * Load persistence configuration asynchronously, fetching secrets from Key Vault via managed identity
  * Falls back to environment variables for local development
@@ -56,7 +55,7 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
         const database = process.env.COSMOS_GREMLIN_DATABASE
         const graph = process.env.COSMOS_GREMLIN_GRAPH
         const strict = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
-
+        // Validate required config
         if (!endpoint || !database || !graph) {
             if (strict) {
                 throw new Error('PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete (endpoint/database/graph).')
@@ -64,9 +63,7 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
             // Fall back to memory if misconfigured (non-strict mode only)
             return { mode: 'memory' }
         }
-
-        // Fetch key from secrets helper
-        // Dynamic import to avoid circular dependencies and handle browser context
+        // Dynamic import to avoid circular dependencies & keep browser bundle slim. Let errors surface.
         const { getSecret } = await import('./secrets/secretsHelper.js')
         const key = await getSecret('cosmos-primary-key' as AllowedSecretKey)
         return { mode, cosmos: { endpoint, database, graph, key } }
