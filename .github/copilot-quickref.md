@@ -1,8 +1,8 @@
 # Copilot Quickref
 
-Arch: SWA (React+Vite+Tailwind) + Azure Functions + API Mgmt + Service Bus + Cosmos (Gremlin) + App Insights.
+Arch: SWA (React+Vite+Tailwind) + Azure Functions + API Mgmt + Service Bus + Cosmos (Gremlin + SQL dual persistence) + App Insights.
 
-Vertices: Locations | Players | NPCs | Events. Edges = semantic (exits: north,south,east,west,up,down,in,out). IDs = GUID.
+Graph (Gremlin): Locations | NPCs (spatial edges). Documents (SQL): Players | Inventory | Description Layers | Events. Edges = semantic (exits: north,south,east,west,up,down,in,out). IDs = GUID.
 
 Function Naming: Http<VerbNoun>, Queue<ProcessThing>. Stateless, single purpose.
 
