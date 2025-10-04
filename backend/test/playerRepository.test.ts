@@ -5,7 +5,7 @@ import { test } from 'node:test'
 
 test('player repository assigns starting location', async () => {
     __resetPlayerRepositoryForTests()
-    const repo = getPlayerRepository()
+    const repo = await getPlayerRepository()
     const { record, created } = await repo.getOrCreate()
     assert.ok(created, 'expected new record')
     const currentLocationId = (record as PlayerRecord).currentLocationId

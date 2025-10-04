@@ -2,7 +2,7 @@ import starterLocationsData from '../data/villageLocations.json' with { type: 'j
 import { isDirection } from '../domainModels.js'
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
 import { Location } from '../location.js'
-import { loadPersistenceConfig, resolvePersistenceMode } from '../persistenceConfig.js'
+import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosLocationRepository } from './locationRepository.cosmos.js'
 
 // Repository contract isolates persistence (memory, cosmos, etc.) from handlers & AI tools.
@@ -70,14 +70,14 @@ class InMemoryLocationRepository implements ILocationRepository {
 }
 
 let singleton: ILocationRepository | undefined
-export function getLocationRepository(): ILocationRepository {
+export async function getLocationRepository(): Promise<ILocationRepository> {
     if (singleton) return singleton
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
         const strict =
             typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
         try {
-            const cfg = loadPersistenceConfig()
+            const cfg = await loadPersistenceConfigAsync()
             if (cfg.mode === 'cosmos' && cfg.cosmos) {
                 const pending = createGremlinClient(cfg.cosmos)
                 const proxy: ILocationRepository = {

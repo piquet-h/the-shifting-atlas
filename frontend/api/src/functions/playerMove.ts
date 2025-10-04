@@ -12,7 +12,7 @@ import {
 } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 
-const repo = getLocationRepository()
+const repoPromise = getLocationRepository()
 const headingStore = getPlayerHeadingStore()
 
 app.http('PlayerMove', {
@@ -58,6 +58,7 @@ app.http('PlayerMove', {
 
         const dir = normalizationResult.canonical
 
+        const repo = await repoPromise
         const from = await repo.get(fromId)
         if (!from) {
             const latencyMs = Date.now() - started

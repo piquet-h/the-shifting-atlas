@@ -21,7 +21,6 @@ export default {
         const allowed =
             /shared\/src\/secrets\/secretsHelper\.ts$/.test(filename) ||
             /shared\/test\/secretsHelper\.test\.ts$/.test(filename) ||
-            /shared\/src\/persistenceConfig\.ts$/.test(filename) ||
             /\.env\.development\.example$/.test(filename)
 
         // Secret environment variable names that should go through the helper

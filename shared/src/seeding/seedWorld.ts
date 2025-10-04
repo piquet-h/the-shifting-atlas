@@ -24,8 +24,8 @@ export interface SeedWorldResult {
 export async function seedWorld(opts: SeedWorldOptions = {}): Promise<SeedWorldResult> {
     const blueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({ ...l }))
     const log = opts.log || (() => {})
-    const locRepo = getLocationRepository()
-    const playerRepo = getPlayerRepository()
+    const locRepo = await getLocationRepository()
+    const playerRepo = await getPlayerRepository()
 
     let locationVerticesCreated = 0
     let exitsCreated = 0

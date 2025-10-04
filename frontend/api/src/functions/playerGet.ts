@@ -8,7 +8,7 @@ app.http('PlayerGet', {
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
         const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
-        const repo = getPlayerRepository()
+        const repo = await getPlayerRepository()
         const id = req.query.get('id') || req.headers.get('x-player-guid') || undefined
         if (!id) {
             const body = err('MissingPlayerId', 'Player id or x-player-guid header required', correlationId)

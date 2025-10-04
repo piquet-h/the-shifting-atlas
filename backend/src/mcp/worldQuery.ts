@@ -9,16 +9,18 @@ import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
  *  - op=getStarter (shorthand) returns starter location
  * Future: listRecentEvents, getPlayerState
  */
-const locationRepo = getLocationRepository()
+const locationRepoPromise = getLocationRepository()
 
 export async function worldQueryHandler(req: HttpRequest): Promise<HttpResponseInit> {
     const op = req.query.get('op') || 'getStarter'
     if (op === 'getStarter') {
+        const locationRepo = await locationRepoPromise
         const location = await locationRepo.get(STARTER_LOCATION_ID)
         return json(200, { location })
     }
     if (op === 'getLocation') {
         const id = req.query.get('id') || STARTER_LOCATION_ID
+        const locationRepo = await locationRepoPromise
         const location = await locationRepo.get(id)
         if (!location) return json(404, { error: 'Location not found', id })
         return json(200, { location })

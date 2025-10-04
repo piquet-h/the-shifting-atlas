@@ -1,7 +1,7 @@
 import crypto from 'crypto'
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
 import { STARTER_LOCATION_ID } from '../location.js'
-import { loadPersistenceConfig, resolvePersistenceMode } from '../persistenceConfig.js'
+import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosPlayerRepository } from './playerRepository.cosmos.js'
 
 export interface PlayerRecord {
@@ -73,14 +73,14 @@ class InMemoryPlayerRepository implements IPlayerRepository {
 }
 
 let playerRepoSingleton: IPlayerRepository | undefined
-export function getPlayerRepository(): IPlayerRepository {
+export async function getPlayerRepository(): Promise<IPlayerRepository> {
     if (playerRepoSingleton) return playerRepoSingleton
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
         const strict =
             typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
         try {
-            const cfg = loadPersistenceConfig()
+            const cfg = await loadPersistenceConfigAsync()
             if (cfg.mode === 'cosmos' && cfg.cosmos) {
                 const pending = createGremlinClient(cfg.cosmos)
                 const proxy: IPlayerRepository = {
