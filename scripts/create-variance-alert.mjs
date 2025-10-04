@@ -118,7 +118,7 @@ async function createAlert(variance, issueCount, period) {
     const body = generateAlertBody(variance, issueCount, period)
 
     const result = await gh(
-        `issue create --repo ${REPO_OWNER}/${REPO_NAME} --title "${title}" --body "${body.replace(/"/g, '\\"')}" --label "scope:observability" --label "variance-alert" --label "enhancement"`
+        `issue create --repo ${REPO_OWNER}/${REPO_NAME} --title "${title}" --body "${body.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}" --label "scope:observability" --label "variance-alert" --label "enhancement"`
     )
 
     console.log('Created variance alert issue:', result)
