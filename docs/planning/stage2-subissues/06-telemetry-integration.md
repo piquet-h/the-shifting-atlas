@@ -8,14 +8,35 @@
 
 The roadmap scheduler needs to emit structured telemetry events to enable monitoring, debugging, and continuous improvement of scheduling accuracy. 
 
-**IMPORTANT: Build vs Game Telemetry Separation**
+---
 
-This sub-issue concerns **build/automation telemetry** which MUST be kept separate from game telemetry:
+## ⚠️ CRITICAL: Build vs Game Telemetry Separation
 
-- **Game Telemetry** (`shared/src/telemetry.ts`, `shared/src/telemetryEvents.ts`): Application Insights tracking for in-game events (player actions, world generation, etc.)
-- **Build Telemetry** (this sub-issue): Separate tracking for CI/automation workflows (scheduler variance, ordering metrics, etc.)
+**This sub-issue concerns BUILD/AUTOMATION telemetry which MUST be kept separate from game telemetry.**
 
-**DO NOT** add build/automation events to `shared/src/telemetryEvents.ts` or use `shared/src/telemetry.ts` for scheduler metrics. The shared folder is exclusively for game domain code.
+### Architectural Rule
+
+| Telemetry Type | Module Location | Purpose | Event Format |
+|----------------|-----------------|---------|--------------|
+| **Game Telemetry** | `shared/src/telemetry.ts`<br/>`shared/src/telemetryEvents.ts` | In-game events (player actions, world generation) | `Domain.Subject.Action` |
+| **Build Telemetry** | `scripts/shared/build-telemetry.mjs` | CI/automation (scheduler, ordering, variance) | `build.<component>_<action>` |
+
+### Critical Requirements
+
+1. **DO NOT** add build/automation events to `shared/src/telemetryEvents.ts`
+2. **DO NOT** use `shared/src/telemetry.ts` for scheduler metrics
+3. **DO NOT** mix game and build events in the same module
+4. The `shared/` folder is **exclusively for game domain code**
+5. Build automation uses `scripts/shared/` for all tooling
+
+### Rationale
+
+- **Separation of concerns:** Game telemetry tracks player experience; build telemetry tracks development workflows
+- **Different audiences:** Game telemetry for designers/players; build telemetry for developers
+- **Cleaner queries:** Prevents game dashboards from being polluted with CI noise
+- **Architectural integrity:** Maintains `shared/` as pure game domain code
+
+---
 
 ## Requirements
 

@@ -80,9 +80,9 @@ This document provides an overview of all sub-issues created for Stage 2 impleme
 - **Conditions:** Only post for high-confidence, non-closed issues
 
 ### 3. Provisional Storage
-- **Location:** GitHub Projects v2 custom fields (primary)
-- **Custom Fields:** Provisional Start, Provisional Finish, Provisional Confidence, Estimation Basis
-- **Fallback:** `roadmap/provisional-schedules.json` if custom fields insufficient
+- **Location:** GitHub Projects v2 custom fields
+- **Custom Fields:** Provisional Start (Date), Provisional Finish (Date), Provisional Confidence (Single select), Estimation Basis (Text)
+- **Decision:** Native custom fields are the correct choice (officially supported by GitHub)
 - **Access:** GraphQL API for reading/writing custom field values
 
 ### 4. Variance Calculation
@@ -99,9 +99,10 @@ This document provides an overview of all sub-issues created for Stage 2 impleme
 
 ### 6. Telemetry
 - **Event name:** `build.schedule_variance` (build telemetry, NOT game telemetry)
-- **Module:** `scripts/shared/build-telemetry.mjs` (separate from `shared/src/telemetry.ts`)
+- **Module:** `scripts/shared/build-telemetry.mjs` (MUST be separate from `shared/src/telemetry.ts`)
 - **Backend:** Application Insights
 - **Separation:** Build events use `build.` prefix and `telemetrySource: 'build-automation'`
+- **Critical Rule:** The `shared/` folder is exclusively for game domain code
 - **Fallback:** Console logging when AppInsights unavailable
 
 ## Success Metrics
@@ -166,10 +167,10 @@ This document provides an overview of all sub-issues created for Stage 2 impleme
 ## FAQ
 
 **Q: Why use GitHub Projects custom fields for storage?**
-A: GitHub Projects v2 supports custom fields natively. This provides clean separation from authoritative Start/Finish fields, avoids file conflicts, and is queryable via GraphQL. Repo file used as fallback only if custom fields prove insufficient.
+A: GitHub Projects v2 officially supports custom fields. This is the correct architectural choice - native integration, no file conflicts, queryable via GraphQL, and survives issue reorganization.
 
-**Q: Why not use issue custom fields?**
-A: Issues don't support custom fields, only Projects do. Custom fields are on Project items, not issues directly.
+**Q: What about a repo file approach?**
+A: Not needed. Custom fields are officially supported and sufficient for provisional schedule data.
 
 **Q: Why weekly alerts instead of daily?**
 A: Balance responsiveness vs noise. Daily alerts would be too frequent; weekly provides actionable cadence.
@@ -181,7 +182,7 @@ A: Finish date matters most for dependencies and stakeholder expectations. Start
 A: First investigate root causes (estimation model, sample quality, external factors). If persistent, rollback per exit criteria.
 
 **Q: How do we separate build and game telemetry?**
-A: Use separate modules: `scripts/shared/build-telemetry.mjs` for CI/automation events (scheduler, ordering) and `shared/src/telemetry.ts` for game events only. Build events use `build.` prefix and custom dimension `telemetrySource: 'build-automation'`. The shared folder is exclusively for game domain code.
+A: **Critical architectural rule:** Use separate modules. `scripts/shared/build-telemetry.mjs` for CI/automation events (scheduler, ordering); `shared/src/telemetry.ts` for game events ONLY (player, world, navigation). Build events use `build.` prefix and custom dimension `telemetrySource: 'build-automation'`. The `shared/` folder is exclusively for game domain code - DO NOT mix them.
 
 **Q: Can we skip low-confidence provisional schedules?**
 A: Yes, low-confidence schedules are not posted as comments (to avoid noise). They may still be stored for variance tracking.

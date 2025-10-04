@@ -135,12 +135,12 @@ done
 - **Fallback:** DEFAULT_DURATION_DAYS = 2
 
 ### Provisional Storage
-- **Primary:** GitHub Projects v2 custom fields
+- **Location:** GitHub Projects v2 custom fields
   - Provisional Start (Date)
   - Provisional Finish (Date)
   - Provisional Confidence (Single select: High/Medium/Low)
   - Estimation Basis (Text)
-- **Fallback:** `roadmap/provisional-schedules.json` if custom fields insufficient
+- **Decision:** Native custom fields (officially supported by GitHub)
 - **Access:** GraphQL API
 
 ### Variance Formula
@@ -163,6 +163,7 @@ overallVariance = abs(finishDelta) / provisionalDuration
 - **Game telemetry:** `shared/src/telemetry.ts` (game events only)
 - **Event prefix:** `build.` for automation events
 - **Custom dimension:** `telemetrySource: 'build-automation'`
+- **CRITICAL RULE:** The `shared/` folder is exclusively for game domain code
 
 ## 🔗 Dependency Chain
 

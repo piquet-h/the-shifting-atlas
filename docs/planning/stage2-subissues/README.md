@@ -78,14 +78,15 @@ All → #7 (Documentation) MUST be last
 ## Key Design Decisions
 
 ### Storage
-- **Primary:** GitHub Projects v2 custom fields
+- **Location:** GitHub Projects v2 custom fields
   - Provisional Start (Date)
   - Provisional Finish (Date) 
   - Provisional Confidence (Single select: High/Medium/Low)
   - Estimation Basis (Text)
-- **Fallback:** `roadmap/provisional-schedules.json` if custom fields insufficient
-- **Rationale:** Native, queryable via GraphQL, no file conflicts
+- **Rationale:** Natively supported by GitHub, queryable via GraphQL, no file conflicts
 - **Access:** [GitHub Projects custom fields documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields)
+
+**Note:** Custom fields are the correct choice (officially supported by GitHub Projects v2).
 
 ### Variance Formula
 - **Method:** Finish-weighted (abs(finishDelta) / provisionalDuration)
@@ -116,7 +117,8 @@ All → #7 (Documentation) MUST be last
   - Purpose: Game domain events only (player, world, navigation)
   - Event format: `Domain.Subject.Action`
   - Part of game code in `shared/`
-- **Rationale:** Keep shared folder for game code only; prevents pollution of game telemetry with build noise
+- **CRITICAL RULE:** Keep `shared/` folder for game code only; prevents pollution of game telemetry with build noise
+- **DO NOT** mix game and build events or use `shared/src/telemetry.ts` for build automation
 
 ## Testing Strategy
 
