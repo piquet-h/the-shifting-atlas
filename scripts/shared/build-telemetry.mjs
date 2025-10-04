@@ -30,7 +30,11 @@ export function initBuildTelemetry() {
             // Dynamic import to avoid requiring applicationinsights as dependency
             import('applicationinsights')
                 .then((appInsights) => {
-                    appInsights.setup(connectionString).start()
+                    // Check if already initialized (e.g., by game telemetry in shared/)
+                    // This ensures we don't conflict with the game telemetry module
+                    if (!appInsights.defaultClient) {
+                        appInsights.setup(connectionString).start()
+                    }
                     buildTelemetryEnabled = true
                     buildTelemetryClient = appInsights.defaultClient
                     console.log('Build telemetry enabled (Application Insights)')
