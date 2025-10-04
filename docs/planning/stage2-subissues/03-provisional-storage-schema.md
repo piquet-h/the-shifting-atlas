@@ -16,24 +16,26 @@ GitHub Projects v2 natively supports custom fields ([official documentation](htt
 
 ### Option Comparison
 
-| Option | Pros | Cons | Decision |
-|--------|------|------|----------|
-| **Project custom field** | Native, queryable, survives issue moves, no file conflicts | Requires GraphQL API, limited to Project context | **✅ SELECTED** |
-| **Repo artifact** | Version controlled, auditable, simple | Requires file commits, potential conflicts | ❌ Not needed - custom fields sufficient |
-| **Issue metadata** | Native to issue | No custom fields on issues (only on Projects) | ❌ Not available |
-| **External DB** | Scalable, flexible | Adds infrastructure dependency | ❌ Overkill |
+| Option                   | Pros                                                       | Cons                                             | Decision                                 |
+| ------------------------ | ---------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| **Project custom field** | Native, queryable, survives issue moves, no file conflicts | Requires GraphQL API, limited to Project context | **✅ SELECTED**                          |
+| **Repo artifact**        | Version controlled, auditable, simple                      | Requires file commits, potential conflicts       | ❌ Not needed - custom fields sufficient |
+| **Issue metadata**       | Native to issue                                            | No custom fields on issues (only on Projects)    | ❌ Not available                         |
+| **External DB**          | Scalable, flexible                                         | Adds infrastructure dependency                   | ❌ Overkill                              |
 
 ### Implementation: GitHub Projects v2 Custom Fields
 
 **Location:** Custom fields on Project items in Project #3
 
 **Custom Fields to Add:**
+
 - `Provisional Start` (Date field)
 - `Provisional Finish` (Date field)
 - `Provisional Confidence` (Single select: High/Medium/Low)
 - `Estimation Basis` (Text field)
 
 **Rationale:**
+
 - GitHub Projects v2 natively supports custom fields
 - Native integration with existing Start/Finish fields
 - No file conflicts or merge issues
@@ -49,33 +51,41 @@ GitHub Projects v2 natively supports custom fields ([official documentation](htt
 
 **Custom Fields on Project Items:**
 
-| Field Name | Type | Values | Purpose |
-|------------|------|--------|---------|
-| `Provisional Start` | Date | YYYY-MM-DD | Estimated start date from ordering time |
-| `Provisional Finish` | Date | YYYY-MM-DD | Estimated finish date from ordering time |
-| `Provisional Confidence` | Single Select | High / Medium / Low | Confidence level of estimate |
-| `Estimation Basis` | Text | e.g., "7 scope:core\|feature samples" | Human-readable basis description |
+| Field Name               | Type          | Values                                | Purpose                                  |
+| ------------------------ | ------------- | ------------------------------------- | ---------------------------------------- |
+| `Provisional Start`      | Date          | YYYY-MM-DD                            | Estimated start date from ordering time  |
+| `Provisional Finish`     | Date          | YYYY-MM-DD                            | Estimated finish date from ordering time |
+| `Provisional Confidence` | Single Select | High / Medium / Low                   | Confidence level of estimate             |
+| `Estimation Basis`       | Text          | e.g., "7 scope:core\|feature samples" | Human-readable basis description         |
 
 **GraphQL Access:**
 
 ```graphql
 query GetProvisionalSchedule($itemId: ID!) {
-  node(id: $itemId) {
-    ... on ProjectV2Item {
-      fieldValueByName(name: "Provisional Start") {
-        ... on ProjectV2ItemFieldDateValue { date }
-      }
-      provisionalFinish: fieldValueByName(name: "Provisional Finish") {
-        ... on ProjectV2ItemFieldDateValue { date }
-      }
-      provisionalConfidence: fieldValueByName(name: "Provisional Confidence") {
-        ... on ProjectV2ItemFieldSingleSelectValue { name }
-      }
-      estimationBasis: fieldValueByName(name: "Estimation Basis") {
-        ... on ProjectV2ItemFieldTextValue { text }
-      }
+    node(id: $itemId) {
+        ... on ProjectV2Item {
+            fieldValueByName(name: "Provisional Start") {
+                ... on ProjectV2ItemFieldDateValue {
+                    date
+                }
+            }
+            provisionalFinish: fieldValueByName(name: "Provisional Finish") {
+                ... on ProjectV2ItemFieldDateValue {
+                    date
+                }
+            }
+            provisionalConfidence: fieldValueByName(name: "Provisional Confidence") {
+                ... on ProjectV2ItemFieldSingleSelectValue {
+                    name
+                }
+            }
+            estimationBasis: fieldValueByName(name: "Estimation Basis") {
+                ... on ProjectV2ItemFieldTextValue {
+                    text
+                }
+            }
+        }
     }
-  }
 }
 ```
 
@@ -83,16 +93,11 @@ query GetProvisionalSchedule($itemId: ID!) {
 
 ```graphql
 mutation SetProvisionalSchedule($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-  updateProjectV2ItemFieldValue(
-    input: {
-      projectId: $projectId
-      itemId: $itemId
-      fieldId: $fieldId
-      value: $value
+    updateProjectV2ItemFieldValue(input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }) {
+        projectV2Item {
+            id
+        }
     }
-  ) {
-    projectV2Item { id }
-  }
 }
 ```
 
@@ -104,13 +109,13 @@ mutation SetProvisionalSchedule($projectId: ID!, $itemId: ID!, $fieldId: ID!, $v
 export async function updateProvisionalSchedule(itemId, scheduleData) {
     const projectId = await getProjectId()
     const fields = await getProjectFields(projectId)
-    
+
     // Get field IDs
-    const provisionalStartField = fields.find(f => f.name === 'Provisional Start')
-    const provisionalFinishField = fields.find(f => f.name === 'Provisional Finish')
-    const confidenceField = fields.find(f => f.name === 'Provisional Confidence')
-    const basisField = fields.find(f => f.name === 'Estimation Basis')
-    
+    const provisionalStartField = fields.find((f) => f.name === 'Provisional Start')
+    const provisionalFinishField = fields.find((f) => f.name === 'Provisional Finish')
+    const confidenceField = fields.find((f) => f.name === 'Provisional Confidence')
+    const basisField = fields.find((f) => f.name === 'Estimation Basis')
+
     // Set custom field values
     await setProjectFieldValue(projectId, itemId, provisionalStartField.id, {
         date: scheduleData.start
@@ -118,15 +123,13 @@ export async function updateProvisionalSchedule(itemId, scheduleData) {
     await setProjectFieldValue(projectId, itemId, provisionalFinishField.id, {
         date: scheduleData.finish
     })
-    
+
     // Set confidence (single select)
-    const confidenceOption = confidenceField.options.find(
-        o => o.name.toLowerCase() === scheduleData.confidence
-    )
+    const confidenceOption = confidenceField.options.find((o) => o.name.toLowerCase() === scheduleData.confidence)
     await setProjectFieldValue(projectId, itemId, confidenceField.id, {
         singleSelectOptionId: confidenceOption.id
     })
-    
+
     // Set estimation basis (text)
     const basisText = generateBasisDescription(
         scheduleData.confidence,
@@ -166,6 +169,7 @@ export async function getProvisionalStats()
 Variance data will be calculated by comparing provisional custom fields against actual Start/Finish fields set by the daily scheduler.
 
 **Variance Calculation:**
+
 - Read provisional values from custom fields (Provisional Start, Provisional Finish)
 - Read actual values from standard fields (Start, Finish)
 - Compute deltas and store results (implementation details in sub-issue #4)
@@ -182,12 +186,12 @@ After order assignment, set provisional custom fields:
 - name: Set Provisional Schedule Fields
   if: steps.assign.outputs.applied == 'true'
   run: |
-    node scripts/set-provisional-fields.mjs \
-      --item-id ${{ steps.assign.outputs.item_id }} \
-      --start ${{ steps.assign.outputs.provisional_start }} \
-      --finish ${{ steps.assign.outputs.provisional_finish }} \
-      --confidence ${{ steps.assign.outputs.confidence }} \
-      --basis "${{ steps.assign.outputs.basis_description }}"
+      node scripts/set-provisional-fields.mjs \
+        --item-id ${{ steps.assign.outputs.item_id }} \
+        --start ${{ steps.assign.outputs.provisional_start }} \
+        --finish ${{ steps.assign.outputs.provisional_finish }} \
+        --confidence ${{ steps.assign.outputs.confidence }} \
+        --basis "${{ steps.assign.outputs.basis_description }}"
 ```
 
 ### 2. Daily Scheduler (roadmap-scheduler.yml)
@@ -220,6 +224,7 @@ Periodic job to compute variance by reading both provisional and actual fields:
 **Location:** `scripts/shared/provisional-storage.test.mjs`
 
 Test cases:
+
 1. Set custom field values (Provisional Start, Finish, Confidence, Basis)
 2. Read custom field values for a project item
 3. Query items by confidence level
@@ -239,21 +244,22 @@ Test cases:
 ### Files to Update
 
 1. **docs/developer-workflow/implementation-order-automation.md**
-   - Add "Provisional Data Storage" section
-   - Document custom fields approach
-   - Explain lifecycle (provisional → actual → variance)
+    - Add "Provisional Data Storage" section
+    - Document custom fields approach
+    - Explain lifecycle (provisional → actual → variance)
 
 2. **docs/developer-workflow/roadmap-scheduling.md**
-   - Note integration with provisional custom fields
-   - Explain relationship between provisional and actual fields
+    - Note integration with provisional custom fields
+    - Explain relationship between provisional and actual fields
 
 3. **README.md**
-   - Document required Project custom fields
-   - Link to GitHub custom fields documentation
+    - Document required Project custom fields
+    - Link to GitHub custom fields documentation
 
 ## Rollback Procedure
 
 If custom fields cause issues:
+
 1. Stop setting provisional custom field values (disable workflow steps)
 2. Custom fields remain in Project but aren't actively used
 3. Can remove custom fields from Project if needed
@@ -274,4 +280,3 @@ If custom fields cause issues:
 - No file size concerns (fields are stored by GitHub)
 - Clean separation from authoritative Start/Finish fields
 - Can add additional custom fields in future without breaking existing ones
-

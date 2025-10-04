@@ -6,61 +6,67 @@ This directory contains detailed specifications for all sub-issues required to i
 
 ## Contents
 
-| File | Description |
-|------|-------------|
-| `00-SUMMARY.md` | Overview of all sub-issues with dependency graph and implementation sequence |
-| `01-duration-estimation-module.md` | Extract historical duration estimation into reusable module |
-| `02-provisional-comment-format.md` | Define canonical format for provisional schedule comments |
-| `03-provisional-storage-schema.md` | Specify JSON schema and storage location for provisional data |
-| `04-variance-calculation.md` | Implement variance metrics and rolling window aggregation |
-| `05-diagnostic-alert-logic.md` | Create automated alert issues for high variance |
-| `06-telemetry-integration.md` | Extend scheduler to emit observability events |
-| `07-documentation-updates.md` | Update all affected documentation |
-| `CREATE-ISSUES.md` | GitHub CLI commands to create all issues |
-| `README.md` | This file |
+| File                               | Description                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| `00-SUMMARY.md`                    | Overview of all sub-issues with dependency graph and implementation sequence |
+| `01-duration-estimation-module.md` | Extract historical duration estimation into reusable module                  |
+| `02-provisional-comment-format.md` | Define canonical format for provisional schedule comments                    |
+| `03-provisional-storage-schema.md` | Specify JSON schema and storage location for provisional data                |
+| `04-variance-calculation.md`       | Implement variance metrics and rolling window aggregation                    |
+| `05-diagnostic-alert-logic.md`     | Create automated alert issues for high variance                              |
+| `06-telemetry-integration.md`      | Extend scheduler to emit observability events                                |
+| `07-documentation-updates.md`      | Update all affected documentation                                            |
+| `CREATE-ISSUES.md`                 | GitHub CLI commands to create all issues                                     |
+| `README.md`                        | This file                                                                    |
 
 ## Quick Start
 
 1. **Review Summary:**
-   ```bash
-   cat 00-SUMMARY.md
-   ```
+
+    ```bash
+    cat 00-SUMMARY.md
+    ```
 
 2. **Review Individual Sub-Issues:**
    Each markdown file is a complete issue specification with:
-   - Context and requirements
-   - Technical specifications
-   - Acceptance criteria
-   - Testing strategy
-   - Documentation impact
-   - Rollback procedure
+    - Context and requirements
+    - Technical specifications
+    - Acceptance criteria
+    - Testing strategy
+    - Documentation impact
+    - Rollback procedure
 
 3. **Create GitHub Issues:**
-   ```bash
-   # Follow instructions in CREATE-ISSUES.md
-   cat CREATE-ISSUES.md
-   
-   # Run batch creation script
-   ./create-stage2-issues.sh
-   ```
+
+    ```bash
+    # Follow instructions in CREATE-ISSUES.md
+    cat CREATE-ISSUES.md
+
+    # Run batch creation script
+    ./create-stage2-issues.sh
+    ```
 
 ## Implementation Approach
 
 ### Recommended Sequence
 
 **Week 1 - Foundation:**
+
 - Sub-issue #1: Duration Estimation Module (3 days)
 - Sub-issue #3: Provisional Storage Schema (3 days) [parallel]
 
 **Week 2 - Features:**
+
 - Sub-issue #2: Comment Format (2 days)
 - Sub-issue #4: Variance Calculation (4 days)
 
 **Week 3 - Observability:**
+
 - Sub-issue #5: Alert Logic (3 days)
 - Sub-issue #6: Telemetry (2 days) [parallel]
 
 **Week 3-4 - Documentation:**
+
 - Sub-issue #7: Documentation Updates (3 days)
 
 **Total:** ~20 days sequential, 3-4 weeks with parallelization
@@ -80,51 +86,58 @@ All → #7 (Documentation) MUST be last
 ## Key Design Decisions
 
 ### Storage
+
 - **Location:** GitHub Projects v2 custom fields
-  - Provisional Start (Date)
-  - Provisional Finish (Date) 
-  - Provisional Confidence (Single select: High/Medium/Low)
-  - Estimation Basis (Text)
+    - Provisional Start (Date)
+    - Provisional Finish (Date)
+    - Provisional Confidence (Single select: High/Medium/Low)
+    - Estimation Basis (Text)
 - **Rationale:** Natively supported by GitHub, queryable via GraphQL, no file conflicts
 - **Access:** [GitHub Projects custom fields documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields)
 
 **Note:** Custom fields are the correct choice (officially supported by GitHub Projects v2).
 
 ### Variance Formula
+
 - **Method:** Finish-weighted (abs(finishDelta) / provisionalDuration)
 - **Rationale:** Finish date most important for planning
 - **Threshold:** 10% target, 25% alert, 40% critical
 
 ### Alert Cadence
+
 - **Period:** Weekly (ISO week)
 - **Aggregation:** One issue per period (not per variance item)
 - **Rationale:** Balances noise vs responsiveness
 
 ### Confidence Levels
+
 - **High:** ≥5 samples for scope|type combination
 - **Medium:** ≥3 samples for scope OR ≥10 globally
 - **Low:** Fallback to default (2 days)
 
 ### Comment Strategy
+
 - **Marker:** `<!-- PROVISIONAL_SCHEDULE:v1 -->`
 - **Idempotent:** Update same comment (no duplicates)
 - **Visibility:** Only post high-confidence estimates
 
 ### Telemetry Separation
+
 - **Build telemetry:** `scripts/shared/build-telemetry.mjs`
-  - Purpose: CI/automation events (scheduler, ordering, variance)
-  - Event prefix: `build.` (e.g., `build.schedule_variance`)
-  - Custom dimension: `telemetrySource: 'build-automation'`
+    - Purpose: CI/automation events (scheduler, ordering, variance)
+    - Event prefix: `build.` (e.g., `build.schedule_variance`)
+    - Custom dimension: `telemetrySource: 'build-automation'`
 - **Game telemetry:** `shared/src/telemetry.ts`
-  - Purpose: Game domain events only (player, world, navigation)
-  - Event format: `Domain.Subject.Action`
-  - Part of game code in `shared/`
+    - Purpose: Game domain events only (player, world, navigation)
+    - Event format: `Domain.Subject.Action`
+    - Part of game code in `shared/`
 - **CRITICAL RULE:** Keep `shared/` folder for game code only; prevents pollution of game telemetry with build noise
 - **DO NOT** mix game and build events or use `shared/src/telemetry.ts` for build automation
 
 ## Testing Strategy
 
 Each sub-issue includes:
+
 - **Unit tests:** ≥90% coverage target for new modules
 - **Integration tests:** Workflow end-to-end validation
 - **Manual tests:** Real project data scenarios
@@ -132,10 +145,12 @@ Each sub-issue includes:
 ## Success Metrics
 
 **Stage 2 Exit Criteria:**
+
 - Median provisional variance <10%
 - Scheduler re-run requests ↓ ≥70%
 
 **Operational Metrics:**
+
 - Variance alerts: <1 per month
 - High-confidence estimates: ≥80% of issues
 - Estimation accuracy improving over time
@@ -145,6 +160,7 @@ Each sub-issue includes:
 **Trigger:** Median variance >25% for 3 consecutive weeks
 
 **Procedure:**
+
 1. Disable provisional comments (workflow change)
 2. Stop variance calculations (keep data collection)
 3. Archive provisional-schedules.json
@@ -184,6 +200,7 @@ A: Follow rollback plan. Don't force Stage 2 if estimates are consistently inacc
 ## Contributing
 
 When implementing sub-issues:
+
 1. Read full sub-issue specification
 2. Review acceptance criteria
 3. Write tests first (TDD approach)
@@ -202,4 +219,4 @@ When implementing sub-issues:
 
 ---
 
-*Generated for The Shifting Atlas - Automation Stage 2 Planning*
+_Generated for The Shifting Atlas - Automation Stage 2 Planning_

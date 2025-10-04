@@ -1,0 +1,43 @@
+name: Calculate Schedule Variance
+
+on:
+  schedule:
+    # Run daily at 00:30 UTC (30 minutes after scheduler runs at 00:00)
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+    inputs:
+      window_days:
+        description: 'Rolling window size in days'
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  calculate-variance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Calculate variance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_OWNER: ${{ github.repository_owner }}
+          PROJECT_NUMBER: 3
+          VARIANCE_THRESHOLD: 0.25
+          APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+        run: |
+          WINDOW_DAYS="${{ github.event.inputs.window_days || '30' }}"
+          node scripts/calculate-variance.mjs --window-days=$WINDOW_DAYS

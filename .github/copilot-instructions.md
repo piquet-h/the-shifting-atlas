@@ -11,10 +11,11 @@ Backend: Azure Functions (HTTP player actions + queue world logic)
 API: Azure API Management
 Messaging: Azure Service Bus
 Data: Dual persistence (ADR-002)
-  - Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
-  - Cosmos DB SQL API: Documents (players, inventory, description layers, events)
-Observability: Application Insights
-Principle: Event‑driven, stateless functions, no polling loops.
+
+- Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
+- Cosmos DB SQL API: Documents (players, inventory, description layers, events)
+  Observability: Application Insights
+  Principle: Event‑driven, stateless functions, no polling loops.
 
 ---
 
@@ -57,6 +58,7 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 ## 5. Cosmos DB SQL API Containers (Dual Persistence)
 
 Environment variables (wired in Bicep, available in Functions):
+
 - `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
 - `COSMOS_SQL_DATABASE` – Database name (`game-docs`)
 - `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
@@ -67,6 +69,7 @@ Environment variables (wired in Bicep, available in Functions):
 
 Access pattern: Use `@azure/cosmos` SDK with Managed Identity or Key Vault secret.
 Partition key patterns:
+
 - Players: Use player GUID as PK value.
 - Inventory: Use player GUID to colocate all items for a player.
 - Layers: Use location GUID to colocate all layers for a location.

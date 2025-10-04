@@ -119,3 +119,39 @@ Permissions used:
 ### Rationale
 
 Chose medians (not mean) to resist occasional long spikes. Inclusive target date simplifies visual blocks on roadmap board. Algorithm prefers stability: existing explicitly scheduled items are preserved unless they would overlap after upstream changes.
+
+---
+
+## Stage 2: Predictive Scheduling (Provisional Schedules)
+
+Stage 2 extends the roadmap automation with **provisional scheduling** that provides early visibility into expected dates before the daily scheduler runs.
+
+### Overview
+
+When an issue receives an implementation order (via auto-assignment), the system automatically:
+
+1. **Estimates duration** using historical data (same algorithm as scheduler)
+2. **Projects dates** based on queue position and cursor calculation
+3. **Stores provisional data** in GitHub Projects v2 custom fields
+4. **Posts a comment** on the issue (high/medium confidence only)
+
+### Custom Fields
+
+Four new custom fields in Project #3:
+
+- **Provisional Start** (Date) - Estimated start date
+- **Provisional Finish** (Date) - Estimated finish date
+- **Provisional Confidence** (Single select: High/Medium/Low) - Confidence level
+- **Estimation Basis** (Text) - How estimate was calculated
+
+**Setup:** Fields must be created manually. See [Stage 2 User Guide](./stage2-user-guide.md#setting-up-custom-fields).
+
+### Related Documentation
+
+- **[Stage 2 User Guide](./stage2-user-guide.md)** - Complete user documentation
+- **[Scripts README](../../scripts/shared/README.md)** - Module documentation
+- **[Stage 2 Sub-Issues](../planning/stage2-subissues/)** - Technical specifications
+
+---
+
+_Last updated: 2025-01-08_

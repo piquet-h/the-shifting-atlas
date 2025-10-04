@@ -167,6 +167,20 @@ jobs:
           ALLOW_MISSING_PROJECT: 'true'
         run: node scripts/sync-implementation-order.mjs apply || echo "Sync degraded"
 
+      - name: Calculate & Post Provisional Schedule
+        if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+          PROJECT_OWNER: ${{ github.repository_owner }}
+          PROJECT_NUMBER: 3
+          APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+        run: |
+          set -euo pipefail
+          echo "Calculating provisional schedule for issue #${{ steps.issue.outputs.number }}"
+          node scripts/post-provisional-schedule.mjs \
+            --issue "${{ steps.issue.outputs.number }}" \
+            --apply || echo "Provisional schedule calculation failed (non-fatal)"
+
       - name: Commit & Push Changes
         if: steps.analysis.outputs.confidence == 'high' && steps.analysis.outputs.changes != '0'
         run: |

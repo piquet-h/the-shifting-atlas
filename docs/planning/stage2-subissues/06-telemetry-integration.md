@@ -6,7 +6,7 @@
 
 ## Context
 
-The roadmap scheduler needs to emit structured telemetry events to enable monitoring, debugging, and continuous improvement of scheduling accuracy. 
+The roadmap scheduler needs to emit structured telemetry events to enable monitoring, debugging, and continuous improvement of scheduling accuracy.
 
 ---
 
@@ -16,10 +16,10 @@ The roadmap scheduler needs to emit structured telemetry events to enable monito
 
 ### Architectural Rule
 
-| Telemetry Type | Module Location | Purpose | Event Format |
-|----------------|-----------------|---------|--------------|
-| **Game Telemetry** | `shared/src/telemetry.ts`<br/>`shared/src/telemetryEvents.ts` | In-game events (player actions, world generation) | `Domain.Subject.Action` |
-| **Build Telemetry** | `scripts/shared/build-telemetry.mjs` | CI/automation (scheduler, ordering, variance) | `build.<component>_<action>` |
+| Telemetry Type      | Module Location                                               | Purpose                                           | Event Format                 |
+| ------------------- | ------------------------------------------------------------- | ------------------------------------------------- | ---------------------------- |
+| **Game Telemetry**  | `shared/src/telemetry.ts`<br/>`shared/src/telemetryEvents.ts` | In-game events (player actions, world generation) | `Domain.Subject.Action`      |
+| **Build Telemetry** | `scripts/shared/build-telemetry.mjs`                          | CI/automation (scheduler, ordering, variance)     | `build.<component>_<action>` |
 
 ### Critical Requirements
 
@@ -60,7 +60,7 @@ The roadmap scheduler needs to emit structured telemetry events to enable monito
         // Issue Identification
         issueNumber: 123,
         implementationOrder: 42,
-        
+
         // Schedule Data
         provisionalStart: '2025-01-10',
         provisionalFinish: '2025-01-15',
@@ -68,28 +68,28 @@ The roadmap scheduler needs to emit structured telemetry events to enable monito
         actualStart: '2025-01-12',
         actualFinish: '2025-01-18',
         actualDuration: 7,
-        
+
         // Variance Metrics
         startDelta: 2,           // days (positive = actual later)
         finishDelta: 3,          // days
         durationDelta: 1,        // days
         overallVariance: 0.50,   // finish-weighted (50%)
-        
+
         // Classification
         scope: 'scope:core',
         type: 'feature',
         milestone: 'M0',
         confidence: 'high',
-        
+
         // Estimation Context
         sampleSize: 7,
         basis: 'scope-type',
         medianUsed: 6.0,
-        
+
         // Scheduler Context
         schedulerReason: 'new',  // reason from schedule-roadmap.mjs
         status: 'Todo',
-        
+
         // Metadata
         calculationSource: 'daily_scheduler',
         provisionalCalculatedAt: '2025-01-08T14:20:00Z',
@@ -113,13 +113,14 @@ for (const change of changes) {
     await updateDateField(projectId, change.itemId, startField.id, change.start)
     await updateDateField(projectId, change.itemId, targetField.id, change.target)
     console.log(`Applied #${change.issue}`)
-    
+
     // NEW: Emit telemetry if provisional exists
     await emitScheduleVarianceTelemetry(change)
 }
 ```
 
 **Secondary (Future):** When provisional schedule is created
+
 - Emit `provisional_schedule_created` event
 - Track provisional schedule quality over time
 
@@ -128,6 +129,7 @@ for (const change of changes) {
 **Build Telemetry Module:** Create NEW module `scripts/shared/build-telemetry.mjs` (NOT `shared/src/telemetry.ts`)
 
 **Separation Rationale:**
+
 - `shared/src/` is for **game domain code only** (player actions, world events)
 - `scripts/shared/` is for **build/automation tooling** (scheduler, ordering, CI)
 - Different Application Insights instances (or separate custom dimensions)
@@ -156,13 +158,13 @@ export type BuildEventName = typeof BUILD_EVENT_NAMES[number]
 // ❌ WRONG - Do not add build events here
 export const GAME_EVENT_NAMES = [
     // ... game events only
-    'schedule_variance',  // ❌ NO - this is build telemetry
+    'schedule_variance' // ❌ NO - this is build telemetry
 ]
 
 // ✅ CORRECT - Keep game events only
 export const GAME_EVENT_NAMES = [
     'Player.Get',
-    'Location.Move',
+    'Location.Move'
     // ... other game events
 ]
 ```
@@ -178,7 +180,7 @@ let buildTelemetryClient = null
 export function initializeBuildTelemetry() {
     const connString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
     if (!connString) return
-    
+
     // Separate client or use custom dimension to distinguish from game telemetry
     if (!appInsights.defaultClient) {
         appInsights.setup(connString).start()
@@ -191,13 +193,13 @@ export function trackBuildEvent(name, properties) {
         console.log('[BUILD_TELEMETRY]', name, properties)
         return
     }
-    
+
     // Add custom dimension to distinguish from game events
     buildTelemetryClient.trackEvent({
         name,
         properties: {
             ...properties,
-            telemetrySource: 'build-automation',  // Key differentiator
+            telemetrySource: 'build-automation', // Key differentiator
             telemetryType: 'ci-workflow'
         }
     })
@@ -233,12 +235,12 @@ if (telemetryEnabled) {
 ```kusto
 customEvents
 | where name == "schedule_variance"
-| extend 
+| extend
     scope = tostring(customDimensions.scope),
     type = tostring(customDimensions.type),
     confidence = tostring(customDimensions.confidence),
     variance = todouble(customDimensions.overallVariance)
-| summarize 
+| summarize
     avgVariance = avg(variance),
     p50Variance = percentile(variance, 50),
     p95Variance = percentile(variance, 95),
@@ -250,6 +252,7 @@ customEvents
 **Example Queries:**
 
 1. **Median variance by scope:**
+
 ```kusto
 customEvents
 | where name == "schedule_variance"
@@ -260,17 +263,19 @@ customEvents
 ```
 
 2. **High variance issues:**
+
 ```kusto
 customEvents
 | where name == "schedule_variance"
 | where todouble(customDimensions.overallVariance) > 0.25
-| project timestamp, 
+| project timestamp,
           issueNumber = toint(customDimensions.issueNumber),
           variance = todouble(customDimensions.overallVariance),
           scope = tostring(customDimensions.scope)
 ```
 
 3. **Variance trend over time:**
+
 ```kusto
 customEvents
 | where name == "schedule_variance"
@@ -419,7 +424,7 @@ let eventBuffer = []
 export function initializeBuildTelemetry() {
     const connString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
     buildTelemetryEnabled = !!connString
-    
+
     if (buildTelemetryEnabled) {
         if (!appInsights.defaultClient) {
             appInsights.setup(connString).start()
@@ -433,7 +438,7 @@ export function initializeBuildTelemetry() {
 
 export function trackScheduleVariance(data) {
     const event = {
-        name: 'build.schedule_variance',  // Prefixed to distinguish from game events
+        name: 'build.schedule_variance', // Prefixed to distinguish from game events
         properties: {
             ...data,
             timestamp: new Date().toISOString(),
@@ -442,13 +447,13 @@ export function trackScheduleVariance(data) {
             stage: 2
         }
     }
-    
+
     if (buildTelemetryEnabled && buildTelemetryClient) {
         buildTelemetryClient.trackEvent(event)
     } else {
         console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
     }
-    
+
     eventBuffer.push(event)
 }
 
@@ -458,7 +463,7 @@ export function isBuildTelemetryEnabled() {
 
 export function flushTelemetryArtifact(filepath) {
     if (!filepath || !eventBuffer.length) return
-    
+
     writeFileSync(filepath, JSON.stringify(eventBuffer, null, 2))
     console.log(`Telemetry artifact written: ${filepath} (${eventBuffer.length} events)`)
     eventBuffer = []
@@ -471,23 +476,19 @@ export function flushTelemetryArtifact(filepath) {
 
 ```javascript
 // At top of file
-import { 
-    initializeBuildTelemetry, 
-    trackScheduleVariance,
-    flushTelemetryArtifact
-} from './shared/build-telemetry.mjs'  // NEW - separate from game telemetry
+import { initializeBuildTelemetry, trackScheduleVariance, flushTelemetryArtifact } from './shared/build-telemetry.mjs' // NEW - separate from game telemetry
 
 // In main()
 async function main() {
-    initializeBuildTelemetry()  // Separate from game telemetry initialization
-    
+    initializeBuildTelemetry() // Separate from game telemetry initialization
+
     // ... existing logic ...
-    
+
     for (const ch of changes) {
         await updateDateField(projectId, ch.itemId, startField.id, ch.start)
         await updateDateField(projectId, ch.itemId, targetField.id, ch.target)
         console.log(`Applied #${ch.issue}`)
-        
+
         // NEW: Check for provisional and emit build telemetry
         const provisional = await getProvisionalSchedule(ch.issue)
         if (provisional) {
@@ -502,10 +503,7 @@ async function main() {
                 actual: {
                     start: ch.start,
                     finish: ch.target,
-                    duration: wholeDayDiff(
-                        new Date(ch.start + 'T00:00:00Z'),
-                        new Date(ch.target + 'T00:00:00Z')
-                    )
+                    duration: wholeDayDiff(new Date(ch.start + 'T00:00:00Z'), new Date(ch.target + 'T00:00:00Z'))
                 },
                 variance: calculateVarianceMetrics(provisional.provisional, {
                     start: ch.start,
@@ -518,7 +516,7 @@ async function main() {
             })
         }
     }
-    
+
     // Flush artifact if requested
     const artifactPath = process.env.TELEMETRY_ARTIFACT
     if (artifactPath) {
@@ -537,19 +535,19 @@ async function main() {
 - name: Schedule (apply)
   if: ${{ github.event_name == 'schedule' || inputs.apply == 'true' }}
   env:
-    GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-    RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
-    APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
-    TELEMETRY_ARTIFACT: telemetry-schedule-variance.json
+      GITHUB_TOKEN: ${{ steps.token.outputs.value }}
+      RESEAT_EXISTING: ${{ steps.reseat.outputs.value }}
+      APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+      TELEMETRY_ARTIFACT: telemetry-schedule-variance.json
   run: npm run schedule:roadmap -- apply
 
 - name: Upload Telemetry Artifact
   if: always()
   uses: actions/upload-artifact@v4
   with:
-    name: schedule-telemetry
-    path: telemetry-schedule-variance.json
-    retention-days: 30
+      name: schedule-telemetry
+      path: telemetry-schedule-variance.json
+      retention-days: 30
 ```
 
 ## Testing Strategy
@@ -559,6 +557,7 @@ async function main() {
 **Location:** `scripts/shared/telemetry-helper.test.mjs`
 
 Test cases:
+
 1. Initialize telemetry (with connection string)
 2. Initialize telemetry (without connection string)
 3. Track schedule_variance event
@@ -570,20 +569,20 @@ Test cases:
 ### Integration Tests
 
 1. **End-to-end telemetry flow:**
-   - Run scheduler with provisional data
-   - Verify schedule_variance events emitted
-   - Check artifact file created
-   - Validate event schema
+    - Run scheduler with provisional data
+    - Verify schedule_variance events emitted
+    - Check artifact file created
+    - Validate event schema
 
 2. **Multiple events:**
-   - Schedule multiple issues
-   - Verify one event per issue with provisional
-   - Verify no events for issues without provisional
+    - Schedule multiple issues
+    - Verify one event per issue with provisional
+    - Verify no events for issues without provisional
 
 3. **Telemetry disabled:**
-   - Run without APPLICATIONINSIGHTS_CONNECTION_STRING
-   - Verify console logging fallback
-   - Verify no errors
+    - Run without APPLICATIONINSIGHTS_CONNECTION_STRING
+    - Verify console logging fallback
+    - Verify no errors
 
 ### Manual Testing
 
@@ -598,31 +597,32 @@ Test cases:
 ### Files to Update
 
 1. **docs/developer-workflow/roadmap-scheduling.md**
-   - Add "Telemetry" section
-   - Document emitted events
-   - Provide example queries
-   - **Add note:** Build telemetry is separate from game telemetry
+    - Add "Telemetry" section
+    - Document emitted events
+    - Provide example queries
+    - **Add note:** Build telemetry is separate from game telemetry
 
 2. **docs/developer-workflow/implementation-order-automation.md**
-   - Document Stage 2 telemetry integration
-   - Link to observability dashboard (if created)
-   - **Add note:** Build telemetry uses `scripts/shared/build-telemetry.mjs`
+    - Document Stage 2 telemetry integration
+    - Link to observability dashboard (if created)
+    - **Add note:** Build telemetry uses `scripts/shared/build-telemetry.mjs`
 
 3. **NEW: docs/developer-workflow/build-telemetry.md**
-   - **Document separation:** Build vs game telemetry
-   - `scripts/shared/build-telemetry.mjs` (CI/automation events)
-   - `shared/src/telemetry.ts` (game domain events only)
-   - Event naming conventions (prefix with `build.` for automation)
-   - Application Insights custom dimensions for filtering
+    - **Document separation:** Build vs game telemetry
+    - `scripts/shared/build-telemetry.mjs` (CI/automation events)
+    - `shared/src/telemetry.ts` (game domain events only)
+    - Event naming conventions (prefix with `build.` for automation)
+    - Application Insights custom dimensions for filtering
 
 4. **README.md**
-   - Note telemetry configuration requirement
-   - Link to observability documentation
-   - **Clarify:** Two separate telemetry systems (build + game)
+    - Note telemetry configuration requirement
+    - Link to observability documentation
+    - **Clarify:** Two separate telemetry systems (build + game)
 
 ## Rollback Procedure
 
 If telemetry causes issues:
+
 1. Remove telemetry emission from schedule-roadmap.mjs (comment out trackScheduleVariance calls)
 2. Telemetry helper functions remain (no-op)
 3. Re-enable after fixing with updated logic
