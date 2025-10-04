@@ -16,6 +16,18 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
     try {
         // Dynamic import keeps dev install light when only using memory mode.
         const gremlin = await import('gremlin')
+        /**
+         * Internal lightweight facades below intentionally mirror only the tiny slice of the Gremlin
+         * driver surface we use. Rationale:
+         *  - Avoid pulling full gremlin types into consuming (especially frontend) bundles when
+         *    cosmos mode is not enabled (tree‑shaking friendliness + smaller install surface).
+         *  - Preserve an optional / dynamic boundary so packages that never touch Cosmos Gremlin
+         *    don’t acquire an unnecessary hard dependency.
+         *  - Minimize blast radius if the upstream driver’s internal structures change; we adapt
+         *    a single narrow shim instead of propagating types across the codebase.
+         * If new capabilities are required, extend these minimal interfaces rather than importing
+         * external driver types directly.
+         */
         // Minimal internal type surface to avoid explicit any & keep optional dependency boundary small.
         type InternalRemoteResult<T = unknown> = { _items: T[] }
         interface InternalRemoteClient {
