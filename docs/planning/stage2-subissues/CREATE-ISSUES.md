@@ -120,13 +120,13 @@ created_issues=()
 
 for issue_spec in "${issues[@]}"; do
     IFS='|' read -r num title labels milestone filename <<< "$issue_spec"
-    
+
     echo ""
     echo "Creating Sub-Issue $num: $title"
     echo "  Labels: $labels"
     echo "  Milestone: $milestone"
     echo "  Body: $ISSUE_DIR/$filename"
-    
+
     issue_url=$(gh issue create \
         --repo "$REPO" \
         --title "$title" \
@@ -134,7 +134,7 @@ for issue_spec in "${issues[@]}"; do
         --milestone "$milestone" \
         --body-file "$ISSUE_DIR/$filename" \
         2>&1)
-    
+
     if [ $? -eq 0 ]; then
         echo "  ✓ Created: $issue_url"
         created_issues+=("$num|$title|$issue_url")
@@ -235,6 +235,7 @@ done
 ## Troubleshooting
 
 **Issue: Labels not found**
+
 ```bash
 # Ensure labels exist in repository
 gh label list --repo "$REPO"
@@ -244,6 +245,7 @@ gh label create "scope:observability" --repo "$REPO" --description "Observabilit
 ```
 
 **Issue: Milestone not found**
+
 ```bash
 # List milestones
 gh api repos/$REPO/milestones --jq '.[] | "\(.number): \(.title)"'
@@ -253,6 +255,7 @@ gh api repos/$REPO/milestones -f title="M0" -f description="Foundation"
 ```
 
 **Issue: Body too large**
+
 ```bash
 # GitHub issue body limit: ~65,536 characters
 # All sub-issues are well under this limit

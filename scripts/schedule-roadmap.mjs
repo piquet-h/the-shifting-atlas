@@ -47,6 +47,7 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file
@@ -66,7 +67,6 @@ const PROJECT_OWNER_TYPE = process.env.PROJECT_OWNER_TYPE || ''
 // Field names fixed (simplified per current project convention)
 const START_FIELD_NAME = 'Start'
 const TARGET_FIELD_NAME = 'Finish'
-const DEFAULT_DURATION_DAYS = Number(process.env.DEFAULT_DURATION_DAYS || 2)
 const RESEAT_EXISTING = /^(1|true|yes)$/i.test(process.env.RESEAT_EXISTING || '')
 const mode = process.argv[2] || 'dry-run'
 
@@ -115,13 +115,6 @@ async function updateDateField(projectId, itemId, fieldId, date) {
     )
 }
 
-function median(nums) {
-    if (!nums.length) return 0
-    const s = [...nums].sort((a, b) => a - b)
-    const m = Math.floor(s.length / 2)
-    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
-}
-
 function iso(d) {
     return d.toISOString().slice(0, 10)
 }
@@ -150,43 +143,6 @@ function classifyIssue(issue) {
     const scope = labels.find((l) => l.startsWith('scope:')) || ''
     const type = labels.find((l) => !l.startsWith('scope:')) || ''
     return { scope, type }
-}
-
-function buildHistoricalDurations(projectItems, startFieldName, targetFieldName) {
-    const samples = []
-    for (const item of projectItems) {
-        const content = item.content
-        if (content.state !== 'CLOSED') continue
-        const startStr = extractFieldValue(item, startFieldName)
-        const endStr = extractFieldValue(item, targetFieldName)
-        let duration = null
-        if (startStr && endStr) {
-            const s = new Date(startStr + 'T00:00:00Z')
-            const e = new Date(endStr + 'T00:00:00Z')
-            if (!isNaN(s) && !isNaN(e) && e >= s) duration = wholeDayDiff(s, e) + 0 // inclusive days
-        }
-        if (duration == null && content.createdAt && content.closedAt) {
-            const s = new Date(content.createdAt)
-            const e = new Date(content.closedAt)
-            if (!isNaN(s) && !isNaN(e) && e >= s) duration = wholeDayDiff(s, e)
-        }
-        if (duration == null) continue
-        const { scope, type } = classifyIssue(content)
-        samples.push({ scope, type, duration })
-    }
-    const byKey = new Map()
-    const byScope = new Map()
-    const all = []
-    // Populate grouped collections
-    for (const s of samples) {
-        const key = `${s.scope}|${s.type}`
-        if (!byKey.has(key)) byKey.set(key, [])
-        byKey.get(key).push(s.duration)
-        if (!byScope.has(s.scope)) byScope.set(s.scope, [])
-        byScope.get(s.scope).push(s.duration)
-        all.push(s.duration)
-    }
-    return { byKey, byScope, all }
 }
 
 // Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
@@ -250,14 +206,6 @@ async function fetchProjectItems() {
     return { projectId, nodes: allNodes, ownerType }
 }
 
-function chooseDuration(medians, scope, type, fallback) {
-    const key = `${scope}|${type}`
-    if (medians.byKey.has(key)) return medians.byKey.get(key)
-    if (medians.byScope.has(scope)) return medians.byScope.get(scope)
-    if (medians.global) return medians.global
-    return fallback
-}
-
 async function main() {
     const { projectId, nodes: projectItems, ownerType } = await fetchProjectItems()
     if (!projectId) {
@@ -276,11 +224,7 @@ async function main() {
     }
 
     const hist = buildHistoricalDurations(projectItems, START_FIELD_NAME, TARGET_FIELD_NAME)
-    const medians = {
-        byKey: new Map([...hist.byKey.entries()].map(([k, v]) => [k, median(v)])),
-        byScope: new Map([...hist.byScope.entries()].map(([k, v]) => [k, median(v)])),
-        global: median(hist.all)
-    }
+    const medians = computeMedians(hist)
     console.log('Historical medians summary:', {
         pairs: [...medians.byKey.entries()].slice(0, 10),
         scopes: [...medians.byScope.entries()],
