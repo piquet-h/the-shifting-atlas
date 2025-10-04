@@ -10,37 +10,101 @@ Provisional schedule data must be stored in machine-readable format to enable va
 
 ## Decision: Storage Location
 
-After evaluating options, **recommendation: GitHub issue custom field (future) OR workflow artifact + repo file**.
+After evaluating options, **recommendation: GitHub Projects v2 Custom Fields (primary) with repo file fallback**.
 
 ### Option Comparison
 
 | Option | Pros | Cons | Recommendation |
 |--------|------|------|----------------|
-| **Issue metadata** | Native, queryable, survives | Requires custom fields (not widely available) | Future (if GitHub adds support) |
-| **Repo artifact** | Version controlled, auditable, simple | Requires file commits, potential conflicts | **Selected for Stage 2** |
-| **Project custom field** | Close to Start/Finish fields | Pollutes project UI, hard to query | Not recommended |
+| **Project custom field** | Native, queryable, survives issue moves, no file conflicts | Requires GraphQL API, limited to Project context | **Selected for Stage 2** |
+| **Repo artifact** | Version controlled, auditable, simple | Requires file commits, potential conflicts | **Fallback if custom fields insufficient** |
+| **Issue metadata** | Native to issue | No custom fields on issues (only on Projects) | Not available |
 | **External DB** | Scalable, flexible | Adds infrastructure dependency | Overkill for Stage 2 |
 
-### Selected Approach: Repository Artifact File
+### Selected Approach: GitHub Projects v2 Custom Fields
 
-**Location:** `roadmap/provisional-schedules.json`
+**Location:** Custom fields on Project items in Project #3
+
+**Custom Fields to Add:**
+- `Provisional Start` (Date field)
+- `Provisional Finish` (Date field)
+- `Provisional Confidence` (Single select: High/Medium/Low)
+- `Estimation Basis` (Text field)
 
 **Rationale:**
-- Simple to implement with existing tools
-- Version controlled (audit trail)
-- Easy to query with jq or node scripts
-- No external dependencies
-- Can migrate to issue metadata later if GitHub adds support
+- GitHub Projects v2 supports custom fields ([documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields))
+- Native integration with existing Start/Finish fields
+- No file conflicts or merge issues
+- Queryable via GraphQL API
+- Survives issue reorganization
+- Clean separation from authoritative schedule fields
+
+**Fallback:** If custom fields prove insufficient (e.g., need nested JSON), fall back to `roadmap/provisional-schedules.json` as secondary storage
 
 ## Storage Schema
 
-### File Structure
+### Primary: GitHub Projects v2 Custom Fields
+
+**Custom Fields on Project Items:**
+
+| Field Name | Type | Values | Purpose |
+|------------|------|--------|---------|
+| `Provisional Start` | Date | YYYY-MM-DD | Estimated start date from ordering time |
+| `Provisional Finish` | Date | YYYY-MM-DD | Estimated finish date from ordering time |
+| `Provisional Confidence` | Single Select | High / Medium / Low | Confidence level of estimate |
+| `Estimation Basis` | Text | e.g., "7 scope:core\|feature samples" | Human-readable basis description |
+
+**GraphQL Access:**
+
+```graphql
+query GetProvisionalSchedule($itemId: ID!) {
+  node(id: $itemId) {
+    ... on ProjectV2Item {
+      fieldValueByName(name: "Provisional Start") {
+        ... on ProjectV2ItemFieldDateValue { date }
+      }
+      provisionalFinish: fieldValueByName(name: "Provisional Finish") {
+        ... on ProjectV2ItemFieldDateValue { date }
+      }
+      provisionalConfidence: fieldValueByName(name: "Provisional Confidence") {
+        ... on ProjectV2ItemFieldSingleSelectValue { name }
+      }
+      estimationBasis: fieldValueByName(name: "Estimation Basis") {
+        ... on ProjectV2ItemFieldTextValue { text }
+      }
+    }
+  }
+}
+```
+
+**Setting Values:**
+
+```graphql
+mutation SetProvisionalSchedule($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: $value
+    }
+  ) {
+    projectV2Item { id }
+  }
+}
+```
+
+### Fallback: Repository File (if custom fields insufficient)
+
+**Location:** `roadmap/provisional-schedules.json`
+
+**File Structure:**
 
 ```json
 {
     "version": "1.0.0",
     "generatedAt": "2025-01-10T14:23:15Z",
-    "description": "Provisional schedule assignments computed during implementation order automation",
+    "description": "Provisional schedule assignments (fallback storage if custom fields insufficient)",
     "schedules": {
         "123": {
             "issueNumber": 123,
@@ -81,7 +145,7 @@ After evaluating options, **recommendation: GitHub issue custom field (future) O
 }
 ```
 
-### Schema Definition
+### Schema Definition (Fallback File)
 
 #### Root Object
 
@@ -170,7 +234,53 @@ After evaluating options, **recommendation: GitHub issue custom field (future) O
 
 ## File Operations
 
-### Create/Update Entry
+### Primary: Custom Field Operations
+
+**Script:** `scripts/shared/provisional-storage.mjs`
+
+```javascript
+export async function updateProvisionalSchedule(itemId, scheduleData) {
+    const projectId = await getProjectId()
+    const fields = await getProjectFields(projectId)
+    
+    // Get field IDs
+    const provisionalStartField = fields.find(f => f.name === 'Provisional Start')
+    const provisionalFinishField = fields.find(f => f.name === 'Provisional Finish')
+    const confidenceField = fields.find(f => f.name === 'Provisional Confidence')
+    const basisField = fields.find(f => f.name === 'Estimation Basis')
+    
+    // Set custom field values
+    await setProjectFieldValue(projectId, itemId, provisionalStartField.id, {
+        date: scheduleData.start
+    })
+    await setProjectFieldValue(projectId, itemId, provisionalFinishField.id, {
+        date: scheduleData.finish
+    })
+    
+    // Set confidence (single select)
+    const confidenceOption = confidenceField.options.find(
+        o => o.name.toLowerCase() === scheduleData.confidence
+    )
+    await setProjectFieldValue(projectId, itemId, confidenceField.id, {
+        singleSelectOptionId: confidenceOption.id
+    })
+    
+    // Set estimation basis (text)
+    const basisText = generateBasisDescription(
+        scheduleData.confidence,
+        scheduleData.sampleSize,
+        scheduleData.basis,
+        scheduleData.scope,
+        scheduleData.type,
+        scheduleData.duration
+    )
+    await setProjectFieldValue(projectId, itemId, basisField.id, {
+        text: basisText
+    })
+}
+```
+
+### Fallback: File Operations (if custom fields insufficient)
 
 **Script:** `scripts/shared/provisional-storage.mjs`
 

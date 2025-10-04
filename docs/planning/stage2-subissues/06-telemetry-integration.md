@@ -6,7 +6,16 @@
 
 ## Context
 
-The roadmap scheduler needs to emit structured telemetry events to enable monitoring, debugging, and continuous improvement of scheduling accuracy. This aligns with the project's observability goals and provides data for variance analysis.
+The roadmap scheduler needs to emit structured telemetry events to enable monitoring, debugging, and continuous improvement of scheduling accuracy. 
+
+**IMPORTANT: Build vs Game Telemetry Separation**
+
+This sub-issue concerns **build/automation telemetry** which MUST be kept separate from game telemetry:
+
+- **Game Telemetry** (`shared/src/telemetry.ts`, `shared/src/telemetryEvents.ts`): Application Insights tracking for in-game events (player actions, world generation, etc.)
+- **Build Telemetry** (this sub-issue): Separate tracking for CI/automation workflows (scheduler variance, ordering metrics, etc.)
+
+**DO NOT** add build/automation events to `shared/src/telemetryEvents.ts` or use `shared/src/telemetry.ts` for scheduler metrics. The shared folder is exclusively for game domain code.
 
 ## Requirements
 
@@ -95,49 +104,81 @@ for (const change of changes) {
 
 ### 4. Telemetry Integration
 
-**Shared Telemetry Module:** Use existing `shared/src/telemetry.ts`
+**Build Telemetry Module:** Create NEW module `scripts/shared/build-telemetry.mjs` (NOT `shared/src/telemetry.ts`)
 
-**Extension Required:**
+**Separation Rationale:**
+- `shared/src/` is for **game domain code only** (player actions, world events)
+- `scripts/shared/` is for **build/automation tooling** (scheduler, ordering, CI)
+- Different Application Insights instances (or separate custom dimensions)
+- Prevents pollution of game telemetry with build metrics
 
-```typescript
-// shared/src/telemetryEvents.ts
-export enum TelemetryEvent {
-    // ... existing events
-    SCHEDULE_VARIANCE = 'schedule_variance',
-    PROVISIONAL_SCHEDULE_CREATED = 'provisional_schedule_created',
-    VARIANCE_ALERT_CREATED = 'variance_alert_created',
-    REBASELINE_TRIGGERED = 'rebaseline_triggered'
-}
+**Event Definition:**
+
+```javascript
+// scripts/shared/build-telemetry.mjs
+// Build/automation telemetry events (NOT game events)
+
+export const BUILD_EVENT_NAMES = [
+    'build.schedule_variance',
+    'build.provisional_schedule_created',
+    'build.variance_alert_created',
+    'build.rebaseline_triggered',
+    'build.ordering_assigned'
+] as const
+
+export type BuildEventName = typeof BUILD_EVENT_NAMES[number]
+```
+
+**DO NOT add to shared/src/telemetryEvents.ts:**
+
+```javascript
+// ❌ WRONG - Do not add build events here
+export const GAME_EVENT_NAMES = [
+    // ... game events only
+    'schedule_variance',  // ❌ NO - this is build telemetry
+]
+
+// ✅ CORRECT - Keep game events only
+export const GAME_EVENT_NAMES = [
+    'Player.Get',
+    'Location.Move',
+    // ... other game events
+]
 ```
 
 **Wrapper Function:**
 
 ```javascript
-// scripts/shared/telemetry-helper.mjs
-import { trackScheduleVariance } from '@atlas/shared'
+// scripts/shared/build-telemetry.mjs
+import appInsights from 'applicationinsights'
 
-export async function emitScheduleVarianceTelemetry(change, provisionalData) {
-    if (!provisionalData) return // No provisional to compare
+let buildTelemetryClient = null
+
+export function initializeBuildTelemetry() {
+    const connString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
+    if (!connString) return
     
-    const variance = calculateVariance(provisionalData, change)
+    // Separate client or use custom dimension to distinguish from game telemetry
+    if (!appInsights.defaultClient) {
+        appInsights.setup(connString).start()
+    }
+    buildTelemetryClient = appInsights.defaultClient
+}
+
+export function trackBuildEvent(name, properties) {
+    if (!buildTelemetryClient) {
+        console.log('[BUILD_TELEMETRY]', name, properties)
+        return
+    }
     
-    await trackScheduleVariance({
-        issueNumber: change.issue,
-        implementationOrder: change.order,
-        provisional: {
-            start: provisionalData.start,
-            finish: provisionalData.finish,
-            duration: provisionalData.duration
-        },
-        actual: {
-            start: change.start,
-            finish: change.target,
-            duration: calculateDuration(change.start, change.target)
-        },
-        variance,
-        metadata: provisionalData.metadata,
-        estimation: provisionalData.estimation,
-        schedulerReason: change.reason
+    // Add custom dimension to distinguish from game events
+    buildTelemetryClient.trackEvent({
+        name,
+        properties: {
+            ...properties,
+            telemetrySource: 'build-automation',  // Key differentiator
+            telemetryType: 'ci-workflow'
+        }
     })
 }
 ```
@@ -328,62 +369,70 @@ if (TELEMETRY_ARTIFACT) {
 
 ### Telemetry Helper Module
 
-**Location:** `scripts/shared/telemetry-helper.mjs`
+**Location:** `scripts/shared/build-telemetry.mjs` (NEW - separate from game telemetry)
 
 **Exports:**
 
 ```javascript
 export {
-    initializeTelemetry,
+    initializeBuildTelemetry,
     trackScheduleVariance,
     trackProvisionalCreated,
     trackVarianceAlert,
     trackRebaseline,
-    isTelemetryEnabled
+    isBuildTelemetryEnabled
 }
 ```
 
 **Implementation:**
 
 ```javascript
-import { trackEvent } from '@atlas/shared'
+// scripts/shared/build-telemetry.mjs
+// Build/automation telemetry - SEPARATE from game telemetry in shared/src/
+import appInsights from 'applicationinsights'
 
-let telemetryEnabled = false
+let buildTelemetryEnabled = false
+let buildTelemetryClient = null
 let eventBuffer = []
 
-export function initializeTelemetry() {
+export function initializeBuildTelemetry() {
     const connString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-    telemetryEnabled = !!connString
+    buildTelemetryEnabled = !!connString
     
-    if (telemetryEnabled) {
-        // Initialize AppInsights client (already done in @atlas/shared)
-        console.log('Telemetry enabled (Application Insights)')
+    if (buildTelemetryEnabled) {
+        if (!appInsights.defaultClient) {
+            appInsights.setup(connString).start()
+        }
+        buildTelemetryClient = appInsights.defaultClient
+        console.log('Build telemetry enabled (Application Insights)')
     } else {
-        console.log('Telemetry disabled (no connection string)')
+        console.log('Build telemetry disabled (no connection string)')
     }
 }
 
 export function trackScheduleVariance(data) {
     const event = {
-        name: 'schedule_variance',
+        name: 'build.schedule_variance',  // Prefixed to distinguish from game events
         properties: {
             ...data,
             timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation',
+            telemetryType: 'scheduler',
             stage: 2
         }
     }
     
-    if (telemetryEnabled) {
-        trackEvent(event)
+    if (buildTelemetryEnabled && buildTelemetryClient) {
+        buildTelemetryClient.trackEvent(event)
     } else {
-        console.log('[TELEMETRY]', JSON.stringify(event, null, 2))
+        console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
     }
     
     eventBuffer.push(event)
 }
 
-export function isTelemetryEnabled() {
-    return telemetryEnabled
+export function isBuildTelemetryEnabled() {
+    return buildTelemetryEnabled
 }
 
 export function flushTelemetryArtifact(filepath) {
@@ -402,14 +451,14 @@ export function flushTelemetryArtifact(filepath) {
 ```javascript
 // At top of file
 import { 
-    initializeTelemetry, 
+    initializeBuildTelemetry, 
     trackScheduleVariance,
     flushTelemetryArtifact
-} from './shared/telemetry-helper.mjs'
+} from './shared/build-telemetry.mjs'  // NEW - separate from game telemetry
 
 // In main()
 async function main() {
-    initializeTelemetry()
+    initializeBuildTelemetry()  // Separate from game telemetry initialization
     
     // ... existing logic ...
     
@@ -418,7 +467,7 @@ async function main() {
         await updateDateField(projectId, ch.itemId, targetField.id, ch.target)
         console.log(`Applied #${ch.issue}`)
         
-        // NEW: Check for provisional and emit telemetry
+        // NEW: Check for provisional and emit build telemetry
         const provisional = await getProvisionalSchedule(ch.issue)
         if (provisional) {
             trackScheduleVariance({
@@ -456,6 +505,8 @@ async function main() {
     }
 }
 ```
+
+**Note:** Do NOT import from `@atlas/shared` for build telemetry. Keep game and build telemetry completely separate.
 
 ### Workflow Configuration
 
@@ -529,18 +580,24 @@ Test cases:
    - Add "Telemetry" section
    - Document emitted events
    - Provide example queries
+   - **Add note:** Build telemetry is separate from game telemetry
 
 2. **docs/developer-workflow/implementation-order-automation.md**
    - Document Stage 2 telemetry integration
    - Link to observability dashboard (if created)
+   - **Add note:** Build telemetry uses `scripts/shared/build-telemetry.mjs`
 
-3. **shared/src/telemetryEvents.ts**
-   - Add TSDoc comments for new events
-   - Document event schema
+3. **NEW: docs/developer-workflow/build-telemetry.md**
+   - **Document separation:** Build vs game telemetry
+   - `scripts/shared/build-telemetry.mjs` (CI/automation events)
+   - `shared/src/telemetry.ts` (game domain events only)
+   - Event naming conventions (prefix with `build.` for automation)
+   - Application Insights custom dimensions for filtering
 
 4. **README.md**
    - Note telemetry configuration requirement
    - Link to observability documentation
+   - **Clarify:** Two separate telemetry systems (build + game)
 
 ## Rollback Procedure
 
@@ -552,9 +609,10 @@ If telemetry causes issues:
 
 ## Dependencies
 
-- Existing `shared/src/telemetry.ts` module
-- Application Insights connection string (secret)
+- Sub-issue #1 (Duration Estimation Module)
 - Sub-issue #3 (Provisional Storage) - need provisional data to compare
+- Application Insights connection string (secret)
+- **New module:** `scripts/shared/build-telemetry.mjs` (separate from game telemetry)
 
 ## Estimated Duration
 

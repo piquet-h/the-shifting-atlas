@@ -78,9 +78,14 @@ All → #7 (Documentation) MUST be last
 ## Key Design Decisions
 
 ### Storage
-- **Location:** `roadmap/provisional-schedules.json` (repository file)
-- **Rationale:** Simple, version-controlled, no external dependencies
-- **Future:** Migrate to issue custom fields when GitHub supports them
+- **Primary:** GitHub Projects v2 custom fields
+  - Provisional Start (Date)
+  - Provisional Finish (Date) 
+  - Provisional Confidence (Single select: High/Medium/Low)
+  - Estimation Basis (Text)
+- **Fallback:** `roadmap/provisional-schedules.json` if custom fields insufficient
+- **Rationale:** Native, queryable via GraphQL, no file conflicts
+- **Access:** [GitHub Projects custom fields documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/understanding-fields)
 
 ### Variance Formula
 - **Method:** Finish-weighted (abs(finishDelta) / provisionalDuration)
@@ -101,6 +106,17 @@ All → #7 (Documentation) MUST be last
 - **Marker:** `<!-- PROVISIONAL_SCHEDULE:v1 -->`
 - **Idempotent:** Update same comment (no duplicates)
 - **Visibility:** Only post high-confidence estimates
+
+### Telemetry Separation
+- **Build telemetry:** `scripts/shared/build-telemetry.mjs`
+  - Purpose: CI/automation events (scheduler, ordering, variance)
+  - Event prefix: `build.` (e.g., `build.schedule_variance`)
+  - Custom dimension: `telemetrySource: 'build-automation'`
+- **Game telemetry:** `shared/src/telemetry.ts`
+  - Purpose: Game domain events only (player, world, navigation)
+  - Event format: `Domain.Subject.Action`
+  - Part of game code in `shared/`
+- **Rationale:** Keep shared folder for game code only; prevents pollution of game telemetry with build noise
 
 ## Testing Strategy
 

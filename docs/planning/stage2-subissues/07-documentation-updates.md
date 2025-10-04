@@ -38,7 +38,15 @@ Stage 2 introduces significant new functionality that must be documented compreh
    - Link to variance monitoring documentation
    - Note provisional schedule comments
 
-5. **docs/architecture/roadmap-consolidated.md** (if needed)
+5. **NEW: docs/developer-workflow/build-telemetry.md**
+   - **Document telemetry separation:** Build vs game telemetry
+   - `scripts/shared/build-telemetry.mjs` - CI/automation events (scheduler, ordering)
+   - `shared/src/telemetry.ts` - Game domain events only (player, world)
+   - Event naming conventions (`build.` prefix for automation)
+   - Application Insights filtering strategies
+   - Rationale: Keep shared folder for game code only
+
+6. **docs/architecture/roadmap-consolidated.md** (if needed)
    - Reference Stage 2 as implemented
    - Note observability additions
 
@@ -91,6 +99,48 @@ Stage 2 introduces significant new functionality that must be documented compreh
    - Application Insights KQL queries
    - Example variance analysis queries
    - Future: Grafana dashboard setup
+
+#### Create: docs/developer-workflow/build-telemetry.md
+
+**Purpose:** Document separation between build and game telemetry
+
+**Sections:**
+
+1. **Overview**
+   - Two separate telemetry systems
+   - Why separation matters
+
+2. **Build Telemetry** (`scripts/shared/build-telemetry.mjs`)
+   - Purpose: CI/automation workflows (scheduler, ordering, variance)
+   - Event prefix: `build.` (e.g., `build.schedule_variance`)
+   - Custom dimension: `telemetrySource: 'build-automation'`
+   - Not part of game domain
+
+3. **Game Telemetry** (`shared/src/telemetry.ts`)
+   - Purpose: In-game events (player actions, world generation, navigation)
+   - Event format: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+   - Part of game domain code in `shared/`
+
+4. **Separation Rules**
+   - `shared/src/` is for **game domain code only**
+   - `scripts/shared/` is for **build/automation tooling only**
+   - Never mix build events into `shared/src/telemetryEvents.ts`
+   - Use separate Application Insights instances or custom dimensions
+
+5. **Event Naming Conventions**
+   - Build events: `build.<component>_<action>` (snake_case after prefix)
+   - Game events: `Domain.Subject.Action` (PascalCase, 2-3 segments)
+
+6. **Querying Application Insights**
+   - Filter by `telemetrySource` custom dimension
+   - Build: `customDimensions.telemetrySource == 'build-automation'`
+   - Game: `customDimensions.telemetrySource == 'game'` (or absence of build dimension)
+
+7. **Rationale**
+   - Prevents pollution of game telemetry with infrastructure noise
+   - Different audiences (devs vs players/designers)
+   - Different lifecycle (build fails vs game crashes)
+   - Cleaner queries and dashboards
 
 #### Create: docs/developer-workflow/provisional-scheduling.md
 
