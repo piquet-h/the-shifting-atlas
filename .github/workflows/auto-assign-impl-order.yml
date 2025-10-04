@@ -211,6 +211,7 @@ jobs:
       - name: Comment (Medium/Low Confidence)
         if: steps.analysis.outputs.confidence != 'high'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
@@ -261,8 +262,12 @@ jobs:
           echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
       - name: Comment on PR
         if: steps.drift.outputs.action != 'none'
+        # Use GH_TOKEN (not GITHUB_TOKEN) so the GitHub CLI authenticates properly.
+        # Failure cause: previous run exported only GITHUB_TOKEN; gh CLI ignores it and attempted an
+        # unauthenticated GraphQL addComment -> "Resource not accessible by integration".
+        # Mapping the workflow token to GH_TOKEN resolves the permission error.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           node scripts/format-drift-comment.mjs drift.json > comment.md
           echo "" >> comment.md
@@ -271,7 +276,7 @@ jobs:
       - name: Open Reprioritisation Proposal Issue
         if: steps.drift.outputs.action == 'resequence'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }} ${GITHUB_HEAD_REF}" || title="Reprioritisation Proposal: PR #${{ github.event.pull_request.number }}"
           {

@@ -92,6 +92,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.reason != 'Manual status update'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ISSUE_NUM="${{ inputs.issue_number }}"
           NEW_STATUS="${{ inputs.status }}"

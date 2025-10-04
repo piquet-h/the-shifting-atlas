@@ -145,6 +145,7 @@ jobs:
         if: steps.extract-issues.outputs.issue_numbers != '' && (steps.determine-status.outputs.status == 'Done' || steps.determine-status.outputs.status == 'Todo') && steps.fork-check.outputs.is_fork == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # gh CLI prefers GH_TOKEN
         run: |
           ISSUE_NUMBERS="${{ steps.extract-issues.outputs.issue_numbers }}"
           NEW_STATUS="${{ steps.determine-status.outputs.status }}"
