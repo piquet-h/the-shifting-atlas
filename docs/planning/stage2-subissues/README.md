@@ -2,6 +2,8 @@
 
 This directory contains detailed specifications for all sub-issues required to implement **Automation Stage 2: Predictive Scheduling Integration** (parent issue #83).
 
+> **⚠️ Planning Documentation Lifecycle:** This directory serves as planning documentation during Stage 2 implementation. Once Stage 2 is fully operational, this directory should be cleaned up and removed unless it's absolutely essential for future reference. All permanent documentation will be in `docs/developer-workflow/`.
+
 ## Contents
 
 | File | Description |

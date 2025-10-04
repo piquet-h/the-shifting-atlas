@@ -434,6 +434,7 @@ This is called by `roadmap-scheduler.yml` after applying date field changes.
 - [ ] README.md mentions Stage 2 features
 - [ ] variance-monitoring.md created with all sections
 - [ ] provisional-scheduling.md created with all sections
+- [ ] build-telemetry.md created with separation rules
 - [ ] All new npm scripts documented
 - [ ] JSDoc comments added to all new modules
 - [ ] Workflow YAML files have inline comments
@@ -443,6 +444,7 @@ This is called by `roadmap-scheduler.yml` after applying date field changes.
 - [ ] Documentation follows existing style guide
 - [ ] Spell check passed
 - [ ] Technical review by maintainer
+- [ ] **Planning documentation cleanup:** Remove `docs/planning/stage2-subissues/` unless essential for future reference
 
 ## Technical Specifications
 
@@ -610,3 +612,18 @@ All other Stage 2 sub-issues must be completed before documentation can be final
 - Use diagrams if they clarify complex workflows (Mermaid supported in GitHub)
 - Consider adding FAQ section to variance-monitoring.md
 - May need updates after Stage 2 deployment based on user feedback
+
+### Planning Documentation Cleanup (Post-Implementation)
+
+**Directive:** Once Stage 2 is fully implemented and operational, the planning documentation in `docs/planning/stage2-subissues/` should be cleaned up and removed unless it's absolutely essential for future reference.
+
+**Rationale:**
+- Planning docs served their purpose during implementation
+- Keeping unnecessary planning docs adds maintenance burden
+- Final user-facing documentation is in `docs/developer-workflow/`
+
+**Cleanup Checklist:**
+- [ ] Verify all critical information migrated to permanent documentation
+- [ ] Archive or remove `docs/planning/stage2-subissues/` directory
+- [ ] Keep only if team decides it's valuable for future Stage 3+ planning patterns
+- [ ] Update any links that referenced planning docs
