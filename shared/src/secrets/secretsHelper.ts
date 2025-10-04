@@ -1,5 +1,4 @@
 /** Secret retrieval helper with lazy caching, retry logic, and telemetry */
-/* global process, setTimeout */
 
 import { DefaultAzureCredential } from '@azure/identity'
 import { SecretClient } from '@azure/keyvault-secrets'
