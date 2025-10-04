@@ -48,6 +48,8 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
+import { trackScheduleVariance, initBuildTelemetry, flushBuildTelemetry } from './shared/build-telemetry.mjs'
+import { getProvisionalSchedule } from './shared/provisional-storage.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file
@@ -207,6 +209,9 @@ async function fetchProjectItems() {
 }
 
 async function main() {
+    // Initialize telemetry
+    initBuildTelemetry()
+
     const { projectId, nodes: projectItems, ownerType } = await fetchProjectItems()
     if (!projectId) {
         console.error('Project not found; cannot schedule.')
@@ -354,9 +359,70 @@ async function main() {
             await updateDateField(projectId, ch.itemId, startField.id, ch.start)
             await updateDateField(projectId, ch.itemId, targetField.id, ch.target)
             console.log(`Applied #${ch.issue}`)
+
+            // Emit telemetry if provisional schedule exists for comparison
+            try {
+                const provisional = await getProvisionalSchedule(ch.itemId)
+                if (provisional && provisional.start && provisional.finish) {
+                    // Calculate variance between provisional and actual
+                    const dateDiff = (d1, d2) => {
+                        const date1 = new Date(d1 + 'T00:00:00Z')
+                        const date2 = new Date(d2 + 'T00:00:00Z')
+                        return Math.round((date1 - date2) / (1000 * 60 * 60 * 24))
+                    }
+                    const provisionalDuration = Math.max(1, Math.abs(dateDiff(provisional.finish, provisional.start)) + 1)
+                    const actualDuration = Math.max(1, Math.abs(dateDiff(ch.target, ch.start)) + 1)
+                    const startDelta = dateDiff(ch.start, provisional.start)
+                    const finishDelta = dateDiff(ch.target, provisional.finish)
+                    const overallVariance = Math.abs(finishDelta) / provisionalDuration
+
+                    // Find issue details for classification
+                    const item = projectItems.find((pi) => pi.id === ch.itemId)
+                    const issue = item?.content
+                    if (issue) {
+                        const labels = issue.labels?.nodes?.map((l) => l.name) || []
+                        const scope = labels.find((l) => l.startsWith('scope:')) || ''
+                        const type = labels.find((l) => !l.startsWith('scope:')) || ''
+
+                        trackScheduleVariance({
+                            issueNumber: ch.issue,
+                            implementationOrder: getImplementationOrder(item),
+                            provisionalStart: provisional.start,
+                            provisionalFinish: provisional.finish,
+                            provisionalDuration,
+                            actualStart: ch.start,
+                            actualFinish: ch.target,
+                            actualDuration,
+                            startDelta,
+                            finishDelta,
+                            durationDelta: actualDuration - provisionalDuration,
+                            overallVariance,
+                            scope,
+                            type,
+                            confidence: provisional.confidence || 'unknown',
+                            sampleSize: 0,
+                            basis: provisional.basis || 'unknown',
+                            schedulerReason: ch.reason,
+                            status: extractFieldValue(item, 'Status') || ''
+                        })
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to emit telemetry for #${ch.issue}:`, err.message)
+            }
         }
+
+        // Flush telemetry before exit
+        await flushBuildTelemetry()
     } else {
         console.log('Dry-run; re-run with "apply" to persist changes.')
+    }
+
+    function getImplementationOrder(pi) {
+        for (const fv of pi.fieldValues.nodes) {
+            if (fv.field?.name === 'Implementation order') return fv.number ?? null
+        }
+        return null
     }
 }
 
