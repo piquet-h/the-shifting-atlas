@@ -9,6 +9,7 @@ Stage 2 provides **provisional scheduling** - automatic calculation and posting 
 ### Components Implemented
 
 ✅ **7 Shared Modules** (`scripts/shared/`)
+
 - duration-estimation.mjs
 - provisional-comment.mjs
 - provisional-storage.mjs
@@ -16,11 +17,13 @@ Stage 2 provides **provisional scheduling** - automatic calculation and posting 
 - (Plus 3 main scripts: calculate-variance, create-variance-alert, post-provisional-schedule)
 
 ✅ **3 Workflows**
+
 - Auto-assign order → calculate provisional schedule (updated)
 - Daily scheduler → emit variance telemetry (updated)
 - Calculate variance → create alerts (new)
 
 ✅ **Complete Documentation**
+
 - Stage 2 User Guide
 - Shared Modules README
 - Updated Roadmap Scheduling docs
@@ -41,12 +44,14 @@ Navigate to [Project #3](https://github.com/users/piquet-h/projects/3) and add 4
 ### Step 2: Verify Permissions
 
 Existing tokens should work, but verify:
+
 - `PROJECTS_TOKEN` has project write access
 - `GITHUB_TOKEN` has issues:write and contents:write
 
 ### Step 3: Optional - Configure Telemetry
 
 Set repository secret (recommended but optional):
+
 - `APPLICATIONINSIGHTS_CONNECTION_STRING` - Application Insights connection string
 
 If not set, telemetry logs to console instead (non-blocking).
@@ -54,11 +59,13 @@ If not set, telemetry logs to console instead (non-blocking).
 ### Step 4: Test with a New Issue
 
 Create a test issue with:
+
 - Scope label (e.g., `scope:devx`)
 - Type label (e.g., `enhancement`)
 - Milestone (e.g., `M0`)
 
 The auto-assign workflow should:
+
 1. Assign implementation order
 2. Calculate provisional schedule
 3. Post a comment with estimated dates (if high/medium confidence)
@@ -66,6 +73,7 @@ The auto-assign workflow should:
 ### Step 5: Monitor Variance
 
 After a few days:
+
 - Check Application Insights for `build.schedule_variance` events
 - Review variance alerts (if created)
 - Adjust thresholds if needed
@@ -95,11 +103,11 @@ After a few days:
 
 ### Confidence Levels
 
-| Level | Criteria | Result |
-|-------|----------|--------|
-| High | ≥5 completed issues (scope+type) | Comment posted |
+| Level  | Criteria                                  | Result         |
+| ------ | ----------------------------------------- | -------------- |
+| High   | ≥5 completed issues (scope+type)          | Comment posted |
 | Medium | ≥3 completed issues (scope) OR ≥10 global | Comment posted |
-| Low | Insufficient data (default 2 days) | No comment |
+| Low    | Insufficient data (default 2 days)        | No comment     |
 
 ### Variance Formula
 
@@ -120,6 +128,7 @@ Focus on finish date (most important for dependencies).
 ### Provisional schedule not posted
 
 **Check:**
+
 1. Does issue have implementation order? (Check project field)
 2. Are there enough historical samples for high/medium confidence?
 3. Do custom fields exist in project?
@@ -130,6 +139,7 @@ Focus on finish date (most important for dependencies).
 ### Custom fields not updating
 
 **Check:**
+
 1. Do fields exist with exact names (case-sensitive)?
 2. Does workflow log show permission errors?
 
@@ -140,6 +150,7 @@ Focus on finish date (most important for dependencies).
 **This is expected behavior!** System alerts when estimates are off.
 
 **Actions:**
+
 1. Review high-variance issues in alert
 2. Check if external factors caused delays
 3. Alert auto-closes when variance improves
@@ -150,18 +161,21 @@ Focus on finish date (most important for dependencies).
 All scripts support dry-run by default. Add `--apply` to execute.
 
 ### Calculate provisional schedule
+
 ```bash
 node scripts/post-provisional-schedule.mjs --issue 123        # dry-run
 node scripts/post-provisional-schedule.mjs --issue 123 --apply
 ```
 
 ### Calculate variance
+
 ```bash
 node scripts/calculate-variance.mjs                           # 30-day window
 node scripts/calculate-variance.mjs --window-days=45          # custom window
 ```
 
 ### Create variance alert
+
 ```bash
 node scripts/create-variance-alert.mjs 0.32 12 2025-W02      # 32%, 12 issues, week 2
 ```
@@ -169,11 +183,13 @@ node scripts/create-variance-alert.mjs 0.32 12 2025-W02      # 32%, 12 issues, w
 ## Documentation
 
 **Primary docs:**
+
 - [Stage 2 User Guide](../developer-workflow/stage2-user-guide.md) - Complete user documentation
 - [Shared Modules README](../../scripts/shared/README.md) - Technical module docs
 - [Roadmap Scheduling](../developer-workflow/roadmap-scheduling.md) - Scheduler integration
 
 **Technical specs:**
+
 - [Stage 2 Sub-Issues](../planning/stage2-subissues/) - Detailed specifications
 
 ## Rollback
@@ -201,5 +217,5 @@ Monitor these after deployment:
 
 ---
 
-*Quick Start Guide for Stage 2 Predictive Scheduling*  
-*Last updated: 2025-01-08*
+_Quick Start Guide for Stage 2 Predictive Scheduling_  
+_Last updated: 2025-01-08_
