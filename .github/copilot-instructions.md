@@ -10,7 +10,9 @@ Frontend: Azure Static Web Apps (React + Vite + Tailwind)
 Backend: Azure Functions (HTTP player actions + queue world logic)
 API: Azure API Management
 Messaging: Azure Service Bus
-Data: Cosmos DB (Gremlin) – Vertices: Locations, Players, NPCs, Events (edges for relations)
+Data: Dual persistence (ADR-002)
+  - Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
+  - Cosmos DB SQL API: Documents (players, inventory, description layers, events)
 Observability: Application Insights
 Principle: Event‑driven, stateless functions, no polling loops.
 
@@ -30,11 +32,13 @@ Principle: Event‑driven, stateless functions, no polling loops.
 ## 3. Modeling Rules
 
 IDs: GUID always.
-Vertex types: Locations, Players, NPCs, Events.
+Graph vertex types: Locations, NPCs (edges for spatial relations).
+Document types: Players, Inventory items, Description layers, World events.
 Edges: semantic (e.g., `exit_north`, `owns_item`).
 Exits: allowed directions set (north,south,east,west,up,down,in,out).
-Player action flow: HTTP validate → persist → enqueue world event.
+Player action flow: HTTP validate → persist (SQL + graph) → enqueue world event.
 World evolution: queue triggers only.
+Dual persistence (ADR-002): Mutable player data in SQL API; immutable world structure in Gremlin graph.
 
 ---
 
@@ -50,7 +54,27 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 ---
 
-## 5. Telemetry
+## 5. Cosmos DB SQL API Containers (Dual Persistence)
+
+Environment variables (wired in Bicep, available in Functions):
+- `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
+- `COSMOS_SQL_DATABASE` – Database name (`game-docs`)
+- `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
+- `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
+- `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
+- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
+- `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
+
+Access pattern: Use `@azure/cosmos` SDK with Managed Identity or Key Vault secret.
+Partition key patterns:
+- Players: Use player GUID as PK value.
+- Inventory: Use player GUID to colocate all items for a player.
+- Layers: Use location GUID to colocate all layers for a location.
+- Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+
+---
+
+## 6. Telemetry
 
 Use shared telemetry helper + constant enum.
 Include correlation IDs across chained events.
@@ -58,7 +82,7 @@ Avoid noisy high‑cardinality ad‑hoc logs.
 
 ---
 
-## 6. AI / Prompts
+## 7. AI / Prompts
 
 Store prompts under `shared/src/prompts/`.
 Reference doc filenames instead of pasting lore blocks.
@@ -66,7 +90,7 @@ World content generation: see `.github/instructions/world/.instructions.md`.
 
 ---
 
-## 7. Issue & Roadmap Taxonomy
+## 8. Issue & Roadmap Taxonomy
 
 Exactly 1 scope + 1 type label.
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
@@ -80,7 +104,7 @@ Never use legacy `area:*`, `phase-*`, `priority:*`.
 
 ---
 
-## 8. Implementation Order Commands
+## 9. Implementation Order Commands
 
 ```bash
 npm run sync:impl-order:validate
@@ -93,7 +117,7 @@ Guidelines: Append when possible; resequence only for narrative clarity; keep in
 
 ---
 
-## 9. Code Generation Heuristics
+## 10. Code Generation Heuristics
 
 1. Identify trigger (HTTP/Queue) → choose template.
 2. Import domain models (don’t redefine shapes).
@@ -103,14 +127,14 @@ Guidelines: Append when possible; resequence only for narrative clarity; keep in
 
 ---
 
-## 10. Testing Baseline
+## 11. Testing Baseline
 
 Provide tests for: happy path, invalid direction, missing player ID.
 Run lint + typecheck before commit; CI blocks on ordering drift & labels.
 
 ---
 
-## 11. Drift Control
+## 12. Drift Control
 
 Compact guide stable; long narrative stays in `docs/`.
 Any new scope/milestone: update labels + roadmap + this file (minimal diff) + reference ADR.
@@ -135,19 +159,19 @@ Automation will treat any unapproved manual diff to `docs/roadmap.md` as drift a
 
 ---
 
-## 12. “Next Up” Algorithm
+## 13. “Next Up” Algorithm
 
 Filter non-`Done` → lowest Implementation order → earliest milestone → scope priority (`core > world > traversal > ai > others`). Prefer not starting parallel if one `In progress` exists unless asked.
 
 ---
 
-## 13. Anti‑Patterns
+## 14. Anti‑Patterns
 
 Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation.
 
 ---
 
-## 14. Glossary (Micro)
+## 15. Glossary (Micro)
 
 Exit: directional traversal edge.
 Event vertex: persisted world action for timeline queries.
@@ -157,7 +181,7 @@ Status: lightweight progress state powering “Next Up”.
 
 ---
 
-## 15. Update Checklist
+## 16. Update Checklist
 
 1. Change design / ADR.
 2. Amend this compact guide & quickref (minimal diff).
@@ -170,7 +194,7 @@ Quick reference: `./copilot-quickref.md` | Language/style: `./copilot-language-s
 
 ---
 
-## 16. Agent Commit Policy
+## 17. Agent Commit Policy
 
 Default mode: PROPOSE ONLY.
 
@@ -206,7 +230,7 @@ Reminder heuristic: If same unapproved edits persist for >1 user response, inclu
 
 ---
 
-## 17. Diagnostics & Logs First Policy
+## 18. Diagnostics & Logs First Policy
 
 Purpose: Eliminate time lost to speculation. Always ground fixes in real, retrieved evidence before proposing or applying changes.
 
