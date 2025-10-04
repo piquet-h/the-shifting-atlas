@@ -4,6 +4,89 @@ Source of truth for daily generation. Quick mnemonic: `./copilot-quickref.md`. L
 
 ---
 
+## 0. Interaction & Prompt Patterns
+
+Purpose: Make every agent exchange deterministic: clear goal, bounded scope, explicit success criteria, no hidden assumptions.
+
+### 0.1 Prompt Template (copy/paste)
+```
+Goal: <single atomic goal>
+Context: <only directly relevant files/models>
+Constraints: <performance|style|security|latency|size>
+Acceptance Criteria:
+- [ ] <criterion 1>
+- [ ] <criterion 2>
+Edge Cases: <bullet 2–3>
+Risk: <LOW|DATA-MODEL|RUNTIME-BEHAVIOR|BUILD-SCRIPT|INFRA>
+Tests (Given/When/Then):
+- Given ... When ... Then ...
+Assumptions allowed: <yes/no>
+```
+
+### 0.2 Decision Matrix (Trivial vs Non‑Trivial)
+Trivial task (any ALL true): ≤1 file touched OR ≤15 LOC net diff, no new dependency, no public API / schema change.
+→ Agent may skip formal todo list; apply patch + run tests.
+
+Non‑Trivial: anything else.
+→ Agent MUST: (1) create/manage todo list (one item in-progress) (2) state assumptions (3) run build/lint/tests before completion.
+
+### 0.3 Clarification Protocol
+If truly blocked by ambiguity after reading workspace:
+1. Ask exactly ONE clarifying question.
+2. Provide conditional plan branches for plausible answers.
+3. Pause for user reply.
+If not blocking → proceed and record assumptions (Section 0.4).
+
+### 0.4 Assumptions Block
+Every non-trivial response requiring inference must include:
+```
+Assumptions:
+- A1: <assumption> (confidence: high|med|low) → Mitigation/Test: <how verified>
+```
+Low confidence assumptions require a guard (runtime check or test case).
+
+### 0.5 Risk Tags
+Use the highest applicable:
+- LOW – simple/internal edit
+- DATA-MODEL – schema, partition key, ID semantics
+- RUNTIME-BEHAVIOR – execution flow / side-effects change
+- BUILD-SCRIPT – CI / scripts / tooling logic
+- INFRA – Bicep, deployment, secret wiring
+Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
+
+### 0.6 Response Structure (Non‑Trivial)
+1. Preamble (1 line: intent + next action)
+2. Todo list (states: not-started/in-progress/completed)
+3. Actions Taken (concise)
+4. Diff Summary (no full code unless requested; refer to files)
+5. Verification (build/lint/tests outcomes)
+6. Self QA footer
+7. Next Steps / Follow‑ups (if any)
+
+### 0.7 Self QA Footer
+```
+Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Tests <x passed / y run> | Edge Cases Covered <yes/no> | Assumptions Logged <yes/no>
+```
+
+### 0.8 Hallucination Guardrails
+- Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
+- Never invent APIs; prefer searching codebase first.
+
+### 0.9 Test Spec Pattern (Inline)
+Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1 happy path + 1 edge/invalid for new logic.
+
+### 0.10 Fast Path vs Full Workflow
+- Fast Path (Trivial): direct patch → run tests → summarize
+- Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
+
+### 0.11 New Azure Function High‑Level Flow
+Use Appendix A checklist before committing: trigger chosen, validation, telemetry constant, idempotency note, tests (happy + invalid), risk tag.
+
+### 0.12 When to Refactor vs Defer
+Refactor only if directly enabling the goal OR reducing clear, measured complexity (≥20% LOC reduction or removal of duplication impacting change). Else, defer and note in Next Steps.
+
+---
+
 ## 1. Platform Architecture
 
 Frontend: Azure Static Web Apps (React + Vite + Tailwind)
@@ -125,6 +208,8 @@ Guidelines: Append when possible; resequence only for narrative clarity; keep in
 4. Use telemetry constants; add new only in shared enumeration.
 5. Cosmos ops idempotent where possible; avoid duplicate edges.
 
+Reference: For interaction workflow & templates see Section 0 (patterns) and Appendix A (checklists).
+
 ---
 
 ## 11. Testing Baseline
@@ -178,6 +263,7 @@ Event vertex: persisted world action for timeline queries.
 Implementation order: enforced execution sequence (stored in Project field, not JSON file).
 Scope label: high-level functional grouping.
 Status: lightweight progress state powering “Next Up”.
+Risk tags: LOW (simple), DATA-MODEL (schema/partition), RUNTIME-BEHAVIOR (flow change), BUILD-SCRIPT (CI/tooling), INFRA (deployment/IaC).
 
 ---
 
@@ -191,6 +277,71 @@ Status: lightweight progress state powering “Next Up”.
 ---
 
 Quick reference: `./copilot-quickref.md` | Language/style: `./copilot-language-style.md`
+
+---
+
+## Appendix A. Templates & Checklists
+
+### A.1 Prompt Template (canonical)
+```
+Goal: <single atomic goal>
+Context: <minimal relevant files/models>
+Constraints: <performance|style|security|latency|size>
+Acceptance Criteria:
+- [ ] <criterion>
+Edge Cases: <2–3 bullets>
+Risk: <LOW|DATA-MODEL|RUNTIME-BEHAVIOR|BUILD-SCRIPT|INFRA>
+Tests (Given/When/Then):
+- Given ... When ... Then ...
+Assumptions allowed: <yes/no>
+```
+
+### A.2 Success Criteria / Definition of Done Checklist
+- All acceptance criteria checkboxes addressed (Done/Deferred noted)
+- Risk tag declared (non‑LOW has extra verification)
+- Assumptions block present (if any inference)
+- Tests: existing pass + new tests for new logic (happy + 1 edge)
+- No stray telemetry literals (only enum)
+- No roadmap manual edits (Section 12 guardrails)
+- Build + lint + typecheck clean
+
+### A.3 Assumptions Block Pattern
+```
+Assumptions:
+- A1: <detail> (confidence: med) → Mitigation: <test name>
+```
+
+### A.4 Given / When / Then Example
+```
+Given a player with no current location
+When HttpMovePlayer is invoked with direction "north"
+Then it returns 400 (invalid: no starting location) and emits no world event
+```
+
+### A.5 New Azure Function Checklist
+- Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
+- Trigger binding & auth level appropriate
+- Input validation (shared validators) + clear 4xx vs 5xx handling
+- Telemetry: existing constants only; new constant added centrally if required
+- Cosmos operations idempotent / duplicate-safe
+- Queue/event emission includes correlation IDs
+- Tests: happy path + invalid input + (if side-effects) idempotency repeat
+- Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
+
+### A.6 Refactor Safety Sequence
+1. Snapshot public exports (list)
+2. Outline proposed structural changes (bullets)
+3. Apply smallest diff
+4. Run tests / lint / typecheck
+5. Confirm no public export signature drift (unless intentional & documented)
+
+### A.7 Self QA Footer (copy)
+```
+Self QA: Build PASS | Lint PASS | Tests 12/12 | Edge Cases Covered yes | Assumptions Logged yes
+```
+
+### A.8 Risk Tag Quick Reference
+LOW | DATA-MODEL | RUNTIME-BEHAVIOR | BUILD-SCRIPT | INFRA
 
 ---
 
