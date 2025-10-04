@@ -173,7 +173,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.token.outputs.value }}
           PROJECT_OWNER: ${{ github.repository_owner }}
           PROJECT_NUMBER: 3
-          APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
         run: |
           set -euo pipefail
           echo "Calculating provisional schedule for issue #${{ steps.issue.outputs.number }}"

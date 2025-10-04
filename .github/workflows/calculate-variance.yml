@@ -37,7 +37,15 @@ jobs:
           PROJECT_OWNER: ${{ github.repository_owner }}
           PROJECT_NUMBER: 3
           VARIANCE_THRESHOLD: 0.25
-          APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}
+          TELEMETRY_ARTIFACT: telemetry-variance.json
         run: |
           WINDOW_DAYS="${{ github.event.inputs.window_days || '30' }}"
           node scripts/calculate-variance.mjs --window-days=$WINDOW_DAYS
+
+      - name: Upload Telemetry Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: variance-telemetry
+          path: telemetry-variance.json
+          retention-days: 30

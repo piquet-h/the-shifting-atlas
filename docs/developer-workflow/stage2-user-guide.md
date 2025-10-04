@@ -248,7 +248,7 @@ Stage 2 telemetry is separate from game telemetry to avoid mixing infrastructure
 ### For Maintainers
 
 1. **Monitor variance alerts** - high variance indicates estimation issues
-2. **Review variance trends** in Application Insights
+2. **Review variance trends** in workflow artifacts and logs
 3. **Adjust DEFAULT_DURATION_DAYS** if global estimates are consistently off
 4. **Create custom fields** before enabling provisional scheduling
 
@@ -300,7 +300,7 @@ If Stage 2 causes issues:
     - Disable the `calculate-variance.yml` workflow
 
 3. **Preserve telemetry data:**
-    - Historical variance data remains in Application Insights
+    - Historical variance data remains in workflow artifacts
 
 4. **Ordering automation continues:**
     - Core ordering functionality is unaffected

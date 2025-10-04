@@ -9,45 +9,21 @@
  *
  * Separation rationale:
  * - Build events use `build.` prefix
- * - Custom dimension `telemetrySource: 'build-automation'`
+ * - Stays within GitHub ecosystem (artifacts, workflow outputs)
+ * - Application Insights is ONLY for game telemetry
  * - The shared/ folder is exclusively for game domain code
  * - Prevents mixing infrastructure and domain concerns
  */
 
-let buildTelemetryEnabled = false
-let buildTelemetryClient = null
 const eventBuffer = []
 
 /**
- * Initialize build telemetry with Application Insights.
- * Falls back to console logging if connection string unavailable.
+ * Initialize build telemetry.
+ * Build telemetry uses GitHub-native features (artifacts, outputs) only.
+ * Application Insights is reserved exclusively for game telemetry.
  */
 export function initBuildTelemetry() {
-    const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-
-    if (connectionString) {
-        try {
-            // Dynamic import to avoid requiring applicationinsights as dependency
-            import('applicationinsights')
-                .then((appInsights) => {
-                    // Check if already initialized (e.g., by game telemetry in shared/)
-                    // This ensures we don't conflict with the game telemetry module
-                    if (!appInsights.defaultClient) {
-                        appInsights.setup(connectionString).start()
-                    }
-                    buildTelemetryEnabled = true
-                    buildTelemetryClient = appInsights.defaultClient
-                    console.log('Build telemetry enabled (Application Insights)')
-                })
-                .catch((err) => {
-                    console.log('Build telemetry disabled (applicationinsights not available):', err.message)
-                })
-        } catch (err) {
-            console.log('Build telemetry disabled (initialization failed):', err.message)
-        }
-    } else {
-        console.log('Build telemetry disabled (no connection string)')
-    }
+    console.log('Build telemetry initialized (GitHub artifacts mode)')
 }
 
 /**
@@ -86,12 +62,9 @@ export function trackScheduleVariance(data) {
         }
     }
 
-    if (buildTelemetryEnabled && buildTelemetryClient) {
-        buildTelemetryClient.trackEvent(event)
-    } else {
-        console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
-    }
-
+    // Build telemetry logs to console for GitHub Actions logs
+    // and stores in event buffer for artifact export
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
     eventBuffer.push(event)
 }
 
@@ -120,12 +93,9 @@ export function trackProvisionalCreated(data) {
         }
     }
 
-    if (buildTelemetryEnabled && buildTelemetryClient) {
-        buildTelemetryClient.trackEvent(event)
-    } else {
-        console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
-    }
-
+    // Build telemetry logs to console for GitHub Actions logs
+    // and stores in event buffer for artifact export
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
     eventBuffer.push(event)
 }
 
@@ -151,22 +121,20 @@ export function trackVarianceAlert(data) {
         }
     }
 
-    if (buildTelemetryEnabled && buildTelemetryClient) {
-        buildTelemetryClient.trackEvent(event)
-    } else {
-        console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
-    }
-
+    // Build telemetry logs to console for GitHub Actions logs
+    // and stores in event buffer for artifact export
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
     eventBuffer.push(event)
 }
 
 /**
  * Check if build telemetry is enabled.
+ * Build telemetry is always enabled (logs to console + artifacts).
  *
  * @returns {boolean} True if telemetry is enabled
  */
 export function isBuildTelemetryEnabled() {
-    return buildTelemetryEnabled
+    return true
 }
 
 /**
@@ -179,19 +147,19 @@ export function getBufferedEvents() {
 }
 
 /**
- * Flush telemetry and wait for delivery (if applicable).
+ * Flush telemetry to artifact file (if path specified).
+ * Build telemetry stays within GitHub ecosystem via artifacts.
  *
+ * @param {string} [artifactPath] - Optional path to write telemetry artifact
  * @returns {Promise<void>}
  */
-export async function flushBuildTelemetry() {
-    if (buildTelemetryEnabled && buildTelemetryClient) {
-        return new Promise((resolve) => {
-            buildTelemetryClient.flush({
-                callback: () => {
-                    console.log('Build telemetry flushed')
-                    resolve()
-                }
-            })
-        })
+export async function flushBuildTelemetry(artifactPath) {
+    if (artifactPath) {
+        const fs = await import('node:fs')
+        const events = getBufferedEvents()
+        fs.writeFileSync(artifactPath, JSON.stringify(events, null, 2))
+        console.log(`Build telemetry flushed to artifact: ${artifactPath} (${events.length} events)`)
+    } else {
+        console.log('Build telemetry complete (no artifact path specified)')
     }
 }

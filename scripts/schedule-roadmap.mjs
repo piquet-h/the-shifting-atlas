@@ -412,8 +412,9 @@ async function main() {
             }
         }
 
-        // Flush telemetry before exit
-        await flushBuildTelemetry()
+        // Flush telemetry to artifact if path specified
+        const telemetryArtifact = process.env.TELEMETRY_ARTIFACT
+        await flushBuildTelemetry(telemetryArtifact)
     } else {
         console.log('Dry-run; re-run with "apply" to persist changes.')
     }

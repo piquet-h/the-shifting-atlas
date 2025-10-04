@@ -140,13 +140,13 @@ Telemetry for build automation events (separate from game telemetry).
 
 **Exports:**
 
-- `initBuildTelemetry()` - Initialize Application Insights
+- `initBuildTelemetry()` - Initialize build telemetry (GitHub artifacts mode)
 - `trackScheduleVariance(data)` - Track variance between provisional and actual
 - `trackProvisionalCreated(data)` - Track provisional schedule creation
 - `trackVarianceAlert(data)` - Track variance alert events
-- `isBuildTelemetryEnabled()` - Check if telemetry is active
+- `isBuildTelemetryEnabled()` - Check if telemetry is active (always true)
 - `getBufferedEvents()` - Get event buffer (for artifacts)
-- `flushBuildTelemetry()` - Flush and wait for delivery
+- `flushBuildTelemetry(artifactPath)` - Flush events to artifact file
 
 **Event Names:**
 
@@ -159,12 +159,14 @@ Telemetry for build automation events (separate from game telemetry).
 - Build events use `build.` prefix
 - Custom dimension: `telemetrySource: 'build-automation'`
 - Module located in `scripts/` (not `shared/src/`)
+- **Application Insights is ONLY for game telemetry**
+- Build telemetry stays within GitHub ecosystem (logs + artifacts)
 - Game telemetry: `shared/src/telemetry.ts` (domain events only)
 
 **Usage:**
 
 ```javascript
-import { initBuildTelemetry, trackProvisionalCreated } from './shared/build-telemetry.mjs'
+import { initBuildTelemetry, trackProvisionalCreated, flushBuildTelemetry } from './shared/build-telemetry.mjs'
 
 initBuildTelemetry() // Call once at startup
 
@@ -178,6 +180,9 @@ trackProvisionalCreated({
     sampleSize: 7,
     basis: 'scope-type'
 })
+
+// At end of script, optionally flush to artifact
+await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
 ```
 
 ---
@@ -191,14 +196,15 @@ trackProvisionalCreated({
 - **Build telemetry:** `scripts/shared/build-telemetry.mjs`
     - Purpose: CI/automation events (scheduler, ordering, variance)
     - Prefix: `build.`
-    - Dimension: `telemetrySource: 'build-automation'`
+    - Destination: GitHub Actions logs + artifacts
+    - **Does NOT use Application Insights**
 
 - **Game telemetry:** `shared/src/telemetry.ts`
     - Purpose: Game domain events (player, world, navigation)
-    - Prefix: None (or game-specific)
+    - Destination: Application Insights
     - Location: `shared/` folder (exclusively for game code)
 
-**Rationale:** Prevents mixing infrastructure and domain concerns, ensures clean separation of build and runtime telemetry.
+**Rationale:** Prevents mixing infrastructure and domain concerns, ensures clean separation of build and runtime telemetry. Application Insights is reserved exclusively for game events.
 
 ### Module Design
 
@@ -215,9 +221,9 @@ All modules respect these environment variables:
 - `GITHUB_TOKEN` / `GH_TOKEN` - GitHub API authentication (required)
 - `PROJECT_OWNER` - Project owner (default: 'piquet-h')
 - `PROJECT_NUMBER` - Project number (default: 3)
-- `APPLICATIONINSIGHTS_CONNECTION_STRING` - Application Insights (optional)
+- `TELEMETRY_ARTIFACT` - Path to write build telemetry artifact (optional)
 
-Missing optional variables result in console logging instead of telemetry emission.
+Build telemetry uses GitHub-native features (logs + artifacts). Application Insights is reserved exclusively for game telemetry.
 
 ## Testing
 
