@@ -116,6 +116,21 @@ export interface EventPayloadMap {
     }
     'World.Layer.Added': { locationId: string; layerType: string }
     'World.Exit.Created': { fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string }
+    'World.Event.Processed': {
+        eventType: string
+        actorKind: string
+        latencyMs?: number
+        duplicate: boolean
+        correlationId?: string
+        causationId?: string
+    }
+    'World.Event.Duplicate': {
+        eventType: string
+        actorKind: string
+        idempotencyKeyHash: string
+        correlationId?: string
+        causationId?: string
+    }
     'Prompt.Genesis.Issued': { promptHash: string; model: string; contextSize?: number }
     'Prompt.Genesis.Rejected': { promptHash: string; failureCode: string }
     'Prompt.Genesis.Crystallized': { promptHash: string; locationId: string; tokensPrompt?: number; tokensCompletion?: number }
