@@ -108,56 +108,9 @@ jobs:
           path: frontend/axe-report
           if-no-files-found: ignore
 
-  build-artifacts:
-    name: Build Production Artifacts
-    needs: [tests]
-    if: ${{ github.event_name != 'pull_request' || github.base_ref == 'main' }}
-    # We run this for push to main and optionally for PRs targeting main so preview deployments / downstream workflows
-    # can reuse build output instead of rebuilding. This keeps deployment workflow lean (downloads artifacts only).
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup & Install
-        uses: ./.github/actions/node-workspace-setup
-      - name: Build shared (declarations first)
-        run: npm run build -w shared
-      - name: Install API production deps
-        run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
-      - name: Vendor shared into API
-        run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
-      - name: Build API (tsc)
-        run: npm run build -w frontend/api
-      - name: Verify host.json present
-        run: |
-          if [ ! -f frontend/api/dist/host.json ]; then echo 'host.json missing in frontend/api/dist' >&2; exit 1; fi
-      - name: Build Frontend (Vite)
-        run: npm run build -w frontend
-      - name: Verify SWA config
-        run: |
-          if [ ! -f frontend/dist/staticwebapp.config.json ]; then echo 'staticwebapp.config.json missing in frontend/dist' >&2; exit 1; fi
-      - name: Upload shared dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: shared-dist
-          path: shared/dist
-          if-no-files-found: error
-      - name: Upload api dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: api-dist
-          path: frontend/api/dist
-          if-no-files-found: error
-      - name: Upload frontend dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-          if-no-files-found: error
-
   summary:
     name: CI Summary
-    needs: [lint-typecheck, tests, accessibility, build-artifacts]
+    needs: [lint-typecheck, tests, accessibility]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -167,4 +120,3 @@ jobs:
           echo '* Lint & Typecheck: ${{ needs.lint-typecheck.result }}' >> $GITHUB_STEP_SUMMARY
           echo '* Tests: ${{ needs.tests.result }}' >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.build-artifacts.result }}" != "" ]; then echo '* Build Artifacts: ${{ needs.build-artifacts.result }}' >> $GITHUB_STEP_SUMMARY; fi

@@ -107,16 +107,15 @@ Runs on:
 
 ### Job Overview
 
-| Job               | Purpose                                             | Notes                                          |
-| ----------------- | --------------------------------------------------- | ---------------------------------------------- |
-| `changes`         | Path-based filter (frontend, a11y, backend, shared) | Reduces conditional work (e.g., accessibility) |
-| `lint-typecheck`  | Monorepo ESLint + TypeScript surface check          | Fails fast; caches deps via composite action   |
-| `tests`           | Unit tests across workspaces                        | Depends on `lint-typecheck`                    |
-| `accessibility`   | Axe scan for affected frontend / UX docs            | Only on PRs where UI changed (`changes.a11y`)  |
-| `build-artifacts` | Produces production builds (shared, API, frontend)  | Uploads artifacts for reuse (deploy workflows) |
-| `summary`         | Human-readable run digest                           | Always runs (even on failures)                 |
+| Job              | Purpose                                             | Notes                                          |
+| ---------------- | --------------------------------------------------- | ---------------------------------------------- |
+| `changes`        | Path-based filter (frontend, a11y, backend, shared) | Reduces conditional work (e.g., accessibility) |
+| `lint-typecheck` | Monorepo ESLint + TypeScript surface check          | Fails fast; caches deps via composite action   |
+| `tests`          | Unit tests across workspaces                        | Depends on `lint-typecheck`                    |
+| `accessibility`  | Axe scan for affected frontend / UX docs            | Only on PRs where UI changed (`changes.a11y`)  |
+| `summary`        | Human-readable run digest                           | Always runs (even on failures)                 |
 
-Artifact handoff (shared/API/frontend dists) allows deployment workflows (e.g. future infra or SWA deploy variants) to optionally download rather than rebuild. Current SWA deploy still builds independently; optimization: consume CI artifacts to shorten deployment time.
+Previously a `build-artifacts` job produced distributable bundles (shared/API/frontend) for potential reuse. This has been removed: Azure Static Web Apps now performs authoritative builds for both the frontend and managed API. Any future optimization would shift to consuming SWA build outputs or adding selective caching, not re‑introducing artifact packaging here.
 
 ### Failure Philosophy
 
@@ -127,7 +126,7 @@ CI is the single merging gate: _no merge without green lint/typecheck/tests_. Ac
 - Parallel test matrix (Node LTS versions) once stability proven.
 - Coverage threshold enforcement.
 - Upload ESLint SARIF for code scanning.
-- Reuse built artifacts directly in `frontend-swa-deploy.yml` via `download-artifact` (saves minutes per deploy).
+  -- (Removed) Reuse CI-built artifacts in deploy workflow (SWA now builds directly; revisit only if build duration becomes a bottleneck).
 
 ---
 
