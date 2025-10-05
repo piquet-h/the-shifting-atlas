@@ -12,6 +12,17 @@ export interface PersistenceConfig {
         graph: string
         key?: string
     }
+    cosmosSql?: {
+        endpoint: string
+        database: string
+        keySecretName: string
+        containers: {
+            players: string
+            inventory: string
+            layers: string
+            events: string
+        }
+    }
 }
 
 export function resolvePersistenceMode(): PersistenceMode {
@@ -38,7 +49,17 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
         const database = process.env.COSMOS_GREMLIN_DATABASE
         const graph = process.env.COSMOS_GREMLIN_GRAPH
         const strict = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
-        // Validate required config
+
+        // SQL API configuration
+        const sqlEndpoint = process.env.COSMOS_SQL_ENDPOINT
+        const sqlDatabase = process.env.COSMOS_SQL_DATABASE
+        const sqlKeySecretName = process.env.COSMOS_SQL_KEY_SECRET_NAME
+        const sqlContainerPlayers = process.env.COSMOS_SQL_CONTAINER_PLAYERS
+        const sqlContainerInventory = process.env.COSMOS_SQL_CONTAINER_INVENTORY
+        const sqlContainerLayers = process.env.COSMOS_SQL_CONTAINER_LAYERS
+        const sqlContainerEvents = process.env.COSMOS_SQL_CONTAINER_EVENTS
+
+        // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
             if (strict) {
                 throw new Error('PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete (endpoint/database/graph).')
@@ -46,10 +67,56 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
             // Fall back to memory if misconfigured (non-strict mode only)
             return { mode: 'memory' }
         }
+
+        // Validate SQL API config (required for dual persistence)
+        if (
+            !sqlEndpoint ||
+            !sqlDatabase ||
+            !sqlKeySecretName ||
+            !sqlContainerPlayers ||
+            !sqlContainerInventory ||
+            !sqlContainerLayers ||
+            !sqlContainerEvents
+        ) {
+            if (strict) {
+                throw new Error(
+                    'PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete (endpoint/database/keySecretName/containers).'
+                )
+            }
+            // Log warning but continue (SQL API might not be used yet in all code paths)
+            console.warn('Cosmos SQL API configuration incomplete. Some features may not be available.')
+        }
+
         // Dynamic import to avoid circular dependencies & keep browser bundle slim. Let errors surface.
         const { getSecret } = await import('./secrets/secretsHelper.js')
         const key = await getSecret('cosmos-primary-key' as AllowedSecretKey)
-        return { mode, cosmos: { endpoint, database, graph, key } }
+
+        const config: PersistenceConfig = { mode, cosmos: { endpoint, database, graph, key } }
+
+        // Add SQL config if all required vars are present
+        if (
+            sqlEndpoint &&
+            sqlDatabase &&
+            sqlKeySecretName &&
+            sqlContainerPlayers &&
+            sqlContainerInventory &&
+            sqlContainerLayers &&
+            sqlContainerEvents
+        ) {
+            config.cosmosSql = {
+                endpoint: sqlEndpoint,
+                database: sqlDatabase,
+                keySecretName: sqlKeySecretName,
+                containers: {
+                    players: sqlContainerPlayers,
+                    inventory: sqlContainerInventory,
+                    layers: sqlContainerLayers,
+                    events: sqlContainerEvents
+                }
+            }
+        }
+
+        return config
     }
     return { mode: 'memory' }
 }
