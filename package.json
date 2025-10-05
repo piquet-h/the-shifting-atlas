@@ -51,6 +51,7 @@
     "detect:ordering-overrides": "node scripts/detect-ordering-overrides.mjs",
     "metrics:weekly": "node scripts/weekly-ordering-metrics.mjs",
     "test:ordering": "node scripts/test-ordering-telemetry.mjs",
+    "test:ordering-hardening": "node scripts/test-ordering-hardening.mjs",
     "validate:telemetry-separation": "node scripts/validate-telemetry-separation.mjs",
     "validate:artifact-schema": "node scripts/validate-artifact-schema.mjs"
   },
