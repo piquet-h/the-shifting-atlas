@@ -20,9 +20,7 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         }
         const newId = id || cryptoRandomUUID()
         // Upsert pattern (fold + coalesce) avoids duplicate vertex creation races for the same supplied id.
-        // We still perform a preliminary get for fast path and clarity of created flag.
-        const existingFast = await (id ? this.get(id) : Promise.resolve(undefined))
-        if (existingFast) return { record: existingFast, created: false }
+        // The preliminary get above is sufficient; no need for a second existence check.
         const createdIso = new Date().toISOString()
         await this.client.submit(
             `g.V(pid).hasLabel('player').fold().coalesce(unfold(), addV('player')
