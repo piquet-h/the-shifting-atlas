@@ -63,6 +63,38 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
       defaultConsistencyLevel: 'Session'
     }
   }
+  // Gremlin database (logical graph database)
+  resource gremlinDb 'gremlinDatabases' = {
+    name: cosmosGremlinDatabaseName
+    properties: {
+      resource: {
+        id: cosmosGremlinDatabaseName
+      }
+      options: {}
+    }
+
+    // Gremlin graph (container). Partition key on /partitionKey.
+    // Note: Gremlin API reserves /id and /label, so a custom property must be used.
+    // All vertices must set this property; a common strategy is to use vertex type or a region identifier.
+    resource gremlinGraph 'graphs' = {
+      name: cosmosGremlinGraphName
+      properties: {
+        resource: {
+          id: cosmosGremlinGraphName
+          partitionKey: {
+            paths: [
+              '/partitionKey'
+            ]
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {
+          throughput: cosmosGremlinGraphThroughput
+        }
+      }
+    }
+  }
 }
 
 // Cosmos DB account (SQL / Core) - separate for document / projection workload.
@@ -88,124 +120,85 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
       defaultConsistencyLevel: 'Session'
     }
   }
-}
 
-// SQL database
-resource sqlDb 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2023-09-15' = {
-  name: cosmosSqlDatabaseName
-  parent: cosmosSql
-  properties: {
-    resource: {
-      id: cosmosSqlDatabaseName
+  // SQL database
+  resource sqlDb 'sqlDatabases' = {
+    name: cosmosSqlDatabaseName
+    properties: {
+      resource: {
+        id: cosmosSqlDatabaseName
+      }
+      options: {}
     }
-    options: {}
-  }
-}
 
-// Players container (PK /id)
-resource sqlPlayers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
-  name: cosmosSqlPlayersContainerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: cosmosSqlPlayersContainerName
-      partitionKey: {
-        paths: [ '/id' ]
-        kind: 'Hash'
-        version: 2
+    // Players container (PK /id)
+    resource sqlPlayers 'containers' = {
+      name: cosmosSqlPlayersContainerName
+      properties: {
+        resource: {
+          id: cosmosSqlPlayersContainerName
+          partitionKey: {
+            paths: [ '/id' ]
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        // Serverless: leave options empty (no throughput block)
+        options: {}
       }
     }
-    // Serverless: leave options empty (no throughput block)
-    options: {}
-  }
-}
 
-// Inventory container (PK /playerId)
-resource sqlInventory 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
-  name: cosmosSqlInventoryContainerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: cosmosSqlInventoryContainerName
-      partitionKey: {
-        paths: [ '/playerId' ]
-        kind: 'Hash'
-        version: 2
+    // Inventory container (PK /playerId)
+    resource sqlInventory 'containers' = {
+      name: cosmosSqlInventoryContainerName
+      properties: {
+        resource: {
+          id: cosmosSqlInventoryContainerName
+          partitionKey: {
+            paths: [ '/playerId' ]
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
       }
     }
-    options: {}
-  }
-}
 
-// Description layers container (PK /locationId)
-resource sqlLayers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
-  name: cosmosSqlLayersContainerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: cosmosSqlLayersContainerName
-      partitionKey: {
-        paths: [ '/locationId' ]
-        kind: 'Hash'
-        version: 2
+    // Description layers container (PK /locationId)
+    resource sqlLayers 'containers' = {
+      name: cosmosSqlLayersContainerName
+      properties: {
+        resource: {
+          id: cosmosSqlLayersContainerName
+          partitionKey: {
+            paths: [ '/locationId' ]
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
       }
     }
-    options: {}
-  }
-}
 
-// World events container (PK /scopeKey) scopeKey pattern: loc:<locationId> or player:<playerId>
-resource sqlEvents 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-09-15' = {
-  name: cosmosSqlEventsContainerName
-  parent: sqlDb
-  properties: {
-    resource: {
-      id: cosmosSqlEventsContainerName
-      partitionKey: {
-        paths: [ '/scopeKey' ]
-        kind: 'Hash'
-        version: 2
-      }
-      // TTL or indexing policy amendments can be added later.
-    }
-    options: {}
-  }
-}
-
-// Gremlin database (logical graph database)
-resource gremlinDb 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2023-09-15-preview' = {
-  name: cosmosGremlinDatabaseName
-  parent: cosmos
-  properties: {
-    resource: {
-      id: cosmosGremlinDatabaseName
-    }
-    options: {}
-  }
-}
-
-// Gremlin graph (container). Partition key on /partitionKey.
-// Note: Gremlin API reserves /id and /label, so a custom property must be used.
-// All vertices must set this property; a common strategy is to use vertex type or a region identifier.
-resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2023-09-15-preview' = {
-  name: cosmosGremlinGraphName
-  parent: gremlinDb
-  properties: {
-    resource: {
-      id: cosmosGremlinGraphName
-      partitionKey: {
-        paths: [
-          '/partitionKey'
-        ]
-        kind: 'Hash'
-        version: 2
+    // World events container (PK /scopeKey) scopeKey pattern: loc:<locationId> or player:<playerId>
+    resource sqlEvents 'containers' = {
+      name: cosmosSqlEventsContainerName
+      properties: {
+        resource: {
+          id: cosmosSqlEventsContainerName
+          partitionKey: {
+            paths: [ '/scopeKey' ]
+            kind: 'Hash'
+            version: 2
+          }
+          // TTL or indexing policy amendments can be added later.
+        }
+        options: {}
       }
     }
-    options: {
-      throughput: cosmosGremlinGraphThroughput
-    }
   }
 }
+
 
 // Service Bus Namespace (Basic tier - free for dev/test up to 1M operations/month)
 // Updated to latest stable API version with available type definitions (2024-01-01)
@@ -399,7 +392,7 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
 
   // Application settings now exclude the raw key. Functions should use managed identity to retrieve the secret from Key Vault.
   // Adjusted child config API version to align with parent and avoid validation issues.
-  resource config 'config@2024-04-01' = {
+  resource config 'config' = {
     name: 'functionappsettings'
     properties: {
       COSMOS_ENDPOINT: cosmos.properties.documentEndpoint
@@ -515,13 +508,13 @@ output cosmosPrimaryKeySecretName string = cosmosPrimaryKeySecret.name
 output cosmosSqlPrimaryKeySecretName string = cosmosSqlPrimaryKeySecret.name
 output appInsightsName string = appInsights.name
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
-output cosmosGremlinDatabaseName string = gremlinDb.name
-output cosmosGremlinGraphName string = gremlinGraph.name
-output cosmosSqlDatabaseName string = sqlDb.name
-output cosmosSqlPlayersContainerName string = sqlPlayers.name
-output cosmosSqlInventoryContainerName string = sqlInventory.name
-output cosmosSqlLayersContainerName string = sqlLayers.name
-output cosmosSqlEventsContainerName string = sqlEvents.name
+output cosmosGremlinDatabaseName string = cosmos::gremlinDb.name
+output cosmosGremlinGraphName string = cosmos::gremlinDb::gremlinGraph.name
+output cosmosSqlDatabaseName string = cosmosSql::sqlDb.name
+output cosmosSqlPlayersContainerName string = cosmosSql::sqlDb::sqlPlayers.name
+output cosmosSqlInventoryContainerName string = cosmosSql::sqlDb::sqlInventory.name
+output cosmosSqlLayersContainerName string = cosmosSql::sqlDb::sqlLayers.name
+output cosmosSqlEventsContainerName string = cosmosSql::sqlDb::sqlEvents.name
 output serviceBusNamespaceName string = serviceBusNamespace.name
 output serviceBusQueueName string = serviceBusQueue.name
 output functionAppName string = functionApp.name
