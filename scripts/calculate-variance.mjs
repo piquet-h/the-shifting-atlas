@@ -14,8 +14,8 @@
  *   VARIANCE_THRESHOLD - Alert threshold (default 0.25 = 25%)
  */
 
+import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
 import { getProjectId } from './shared/provisional-storage.mjs'
-import { trackScheduleVariance, flushBuildTelemetry, initBuildTelemetry } from './shared/build-telemetry.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
@@ -187,11 +187,7 @@ async function main() {
     initBuildTelemetry()
 
     // Get project ID
-    const projectId = await getProjectId(
-        REPO_OWNER,
-        PROJECT_NUMBER,
-        process.env.PROJECT_OWNER_TYPE || 'auto'
-    )
+    const projectId = await getProjectId(REPO_OWNER, PROJECT_NUMBER, process.env.PROJECT_OWNER_TYPE || 'auto')
     console.log(`Project ID: ${projectId}`)
 
     // Fetch all items
@@ -305,7 +301,7 @@ async function main() {
 }
 
 // Wrap main to ensure telemetry flush even on early failure.
-(async () => {
+;(async () => {
     try {
         await main()
     } catch (err) {
