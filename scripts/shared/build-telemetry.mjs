@@ -22,11 +22,19 @@ const eventBuffer = []
  * These are build/CI events, NOT game domain events.
  */
 export const BUILD_EVENT_NAMES = {
-    // Stage 1 ordering events
+    // Stage 1 ordering events (legacy flat names - kept for backward compatibility)
     ORDERING_APPLIED: 'build.ordering_applied',
     ORDERING_LOW_CONFIDENCE: 'build.ordering_low_confidence',
     ORDERING_OVERRIDDEN: 'build.ordering_overridden',
     ORDERING_ASSIGNED: 'build.ordering_assigned',
+    // Stage 1 ordering events (granular nested structure)
+    ASSIGN_ATTEMPT: 'build.ordering.assign.attempt',
+    ASSIGN_APPLY: 'build.ordering.assign.apply',
+    ASSIGN_SKIP: 'build.ordering.assign.skip',
+    CONFIDENCE_LOW: 'build.ordering.confidence.low',
+    OVERRIDE_DETECTED: 'build.ordering.override.detected',
+    INTEGRITY_SNAPSHOT: 'build.ordering.integrity.snapshot',
+    METRICS_WEEKLY: 'build.ordering.metrics.weekly',
     // Stage 2 scheduling events
     SCHEDULE_VARIANCE: 'build.schedule_variance',
     PROVISIONAL_SCHEDULE_CREATED: 'build.provisional_schedule_created',
@@ -41,6 +49,30 @@ export const BUILD_EVENT_NAMES = {
  */
 export function initBuildTelemetry() {
     console.log('Build telemetry initialized (GitHub artifacts mode)')
+}
+
+/**
+ * Emit an ordering event with automatic `build.ordering.` prefix.
+ * Helper for Stage 1 granular telemetry events.
+ *
+ * @param {string} name - Event name segment (e.g., 'assign.attempt')
+ * @param {object} props - Event properties
+ */
+export function emitOrderingEvent(name, props) {
+    const fullName = name.startsWith('build.ordering.') ? name : `build.ordering.${name}`
+    const event = {
+        name: fullName,
+        properties: {
+            ...props,
+            timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation',
+            telemetryType: 'ordering',
+            stage: 1
+        }
+    }
+
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
+    eventBuffer.push(event)
 }
 
 /**

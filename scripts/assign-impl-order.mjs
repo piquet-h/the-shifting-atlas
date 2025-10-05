@@ -45,6 +45,7 @@ import {
     initBuildTelemetry,
     trackOrderingApplied,
     trackOrderingLowConfidence,
+    emitOrderingEvent,
     flushBuildTelemetry
 } from './shared/build-telemetry.mjs'
 
@@ -500,6 +501,19 @@ async function main() {
         console.error(`Warning: Failed to save decision artifact: ${err.message}`)
     }
 
+    // Emit assign.attempt event (Stage 1 granular telemetry)
+    emitOrderingEvent('assign.attempt', {
+        issueNumber: ISSUE_NUMBER,
+        existingOrder: targetNode ? getFieldNumber(targetNode, FIELD_NAME) : null,
+        recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+        confidence,
+        score: computeScore(targetIssue),
+        changesRequired: diffs.length,
+        scope,
+        type,
+        milestone
+    })
+
     // Emit telemetry based on confidence
     if (confidence !== 'high') {
         const missingMetadata = []
@@ -507,6 +521,7 @@ async function main() {
         if (type === 'none') missingMetadata.push('type')
         if (milestone === 'none') missingMetadata.push('milestone')
 
+        // Legacy event for backward compatibility
         trackOrderingLowConfidence({
             issueNumber: ISSUE_NUMBER,
             recommendedOrder: desiredMap.get(ISSUE_NUMBER),
@@ -517,15 +532,55 @@ async function main() {
             type,
             milestone
         })
+
+        // New granular event
+        emitOrderingEvent('confidence.low', {
+            issueNumber: ISSUE_NUMBER,
+            recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+            confidence,
+            score: computeScore(targetIssue),
+            reason: `Missing: ${missingMetadata.join(', ')}`,
+            missingMetadata,
+            scope,
+            type,
+            milestone
+        })
     }
 
     if (!APPLY) {
+        // Emit assign.skip for dry-run
+        emitOrderingEvent('assign.skip', {
+            issueNumber: ISSUE_NUMBER,
+            reason: 'dryRun',
+            recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+            confidence
+        })
         console.log(JSON.stringify(result, null, 2))
         return
     }
 
     if (!diffs.length) {
+        // Emit assign.skip for no-op
+        emitOrderingEvent('assign.skip', {
+            issueNumber: ISSUE_NUMBER,
+            reason: 'alreadyOrdered',
+            recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+            confidence
+        })
         console.log(JSON.stringify({ ...result, applied: false, reason: 'no-op' }, null, 2))
+        return
+    }
+
+    // Check if confidence is too low to auto-apply (additional safety check)
+    if (confidence === 'low') {
+        emitOrderingEvent('assign.skip', {
+            issueNumber: ISSUE_NUMBER,
+            reason: 'lowConfidence',
+            recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+            confidence,
+            score: computeScore(targetIssue)
+        })
+        console.log(JSON.stringify({ ...result, applied: false, reason: 'low-confidence-blocked' }, null, 2))
         return
     }
 
@@ -537,6 +592,7 @@ async function main() {
     }
 
     // Perform updates
+    const startTime = Date.now()
     for (const d of diffs) {
         if (d.itemId === null) {
             // newly added target; refresh to find its itemId (simple refetch all items once)
@@ -551,8 +607,9 @@ async function main() {
             await updateNumberField(projectId, d.itemId, fieldId, d.to)
         }
     }
+    const durationMs = Date.now() - startTime
 
-    // Emit telemetry for successful application
+    // Emit telemetry for successful application (legacy + granular)
     trackOrderingApplied({
         issueNumber: ISSUE_NUMBER,
         recommendedOrder: desiredMap.get(ISSUE_NUMBER),
@@ -563,6 +620,22 @@ async function main() {
         scope,
         type,
         milestone
+    })
+
+    // New granular event
+    emitOrderingEvent('assign.apply', {
+        issueNumber: ISSUE_NUMBER,
+        recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+        confidence,
+        score: computeScore(targetIssue),
+        changes: diffs.length,
+        strategy: STRATEGY,
+        scope,
+        type,
+        milestone,
+        durationMs,
+        delta: diffs.length,
+        reason: 'auto'
     })
 
     // Flush telemetry to artifact

@@ -17,7 +17,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initBuildTelemetry, trackOrderingOverridden, flushBuildTelemetry } from './shared/build-telemetry.mjs'
+import { initBuildTelemetry, trackOrderingOverridden, emitOrderingEvent, flushBuildTelemetry } from './shared/build-telemetry.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -129,7 +129,16 @@ async function main() {
         console.log(`Found ${overrides.length} override(s):`)
         for (const override of overrides) {
             console.log(`  Issue #${override.issueNumber}: ${override.previousOrder} -> ${override.manualOrder} (${override.hoursSinceAutomation}h after automation)`)
+            // Legacy event for backward compatibility
             trackOrderingOverridden(override)
+            // New granular event
+            emitOrderingEvent('override.detected', {
+                issueNumber: override.issueNumber,
+                previousAutoOrder: override.previousOrder,
+                newOrder: override.manualOrder,
+                hoursSinceAuto: override.hoursSinceAutomation,
+                automationTimestamp: override.automationTimestamp
+            })
         }
     }
 

@@ -66,6 +66,58 @@ async function testBuildTelemetry() {
     console.log('  ✅ Build telemetry events emitted correctly')
 }
 
+// Test 1a: Granular events with emitOrderingEvent helper
+async function testGranularEvents() {
+    console.log('Test 1a: Granular telemetry events...')
+    
+    const { emitOrderingEvent, getBufferedEvents, BUILD_EVENT_NAMES } = 
+        await import('./shared/build-telemetry.mjs')
+    
+    // Clear buffer by re-importing (or just test from clean state)
+    const initialCount = getBufferedEvents().length
+    
+    emitOrderingEvent('assign.attempt', {
+        issueNumber: 100,
+        recommendedOrder: 5,
+        confidence: 'high'
+    })
+    
+    emitOrderingEvent('assign.apply', {
+        issueNumber: 100,
+        durationMs: 1500,
+        reason: 'auto'
+    })
+    
+    emitOrderingEvent('integrity.snapshot', {
+        totalIssues: 50,
+        gaps: [],
+        duplicates: [],
+        isContiguous: true
+    })
+    
+    const events = getBufferedEvents()
+    assert.ok(events.length > initialCount, 'Should have new events')
+    
+    // Find our events
+    const attemptEvent = events.find(e => e.name === 'build.ordering.assign.attempt')
+    const applyEvent = events.find(e => e.name === 'build.ordering.assign.apply')
+    const snapshotEvent = events.find(e => e.name === 'build.ordering.integrity.snapshot')
+    
+    assert.ok(attemptEvent, 'Should have assign.attempt event')
+    assert.ok(applyEvent, 'Should have assign.apply event')
+    assert.ok(snapshotEvent, 'Should have integrity.snapshot event')
+    
+    assert.equal(attemptEvent.properties.issueNumber, 100)
+    assert.equal(snapshotEvent.properties.isContiguous, true)
+    
+    // Check event name constants
+    assert.equal(BUILD_EVENT_NAMES.ASSIGN_ATTEMPT, 'build.ordering.assign.attempt')
+    assert.equal(BUILD_EVENT_NAMES.ASSIGN_APPLY, 'build.ordering.assign.apply')
+    assert.equal(BUILD_EVENT_NAMES.INTEGRITY_SNAPSHOT, 'build.ordering.integrity.snapshot')
+    
+    console.log('  ✅ Granular telemetry events working correctly')
+}
+
 // Test 2: Artifact pruning logic
 async function testArtifactPruning() {
     console.log('Test 2: Artifact pruning...')
@@ -166,6 +218,7 @@ async function main() {
     
     try {
         await testBuildTelemetry()
+        await testGranularEvents()
         await testArtifactPruning()
         await testWeeklyMetrics()
         await testEventNameConstants()

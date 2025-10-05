@@ -21,6 +21,7 @@ import { parseArgs } from 'node:util'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { emitOrderingEvent } from './shared/build-telemetry.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -150,6 +151,22 @@ async function main() {
     console.log(`  - Auto-applied: ${metrics.applied} (${metrics.appliedPercent}%)`)
     console.log(`  - Override rate: ${metrics.overrideCount} / ${metrics.applied} (${metrics.overrideRate}%)`)
     console.log('')
+
+    // Emit metrics.weekly event
+    emitOrderingEvent('metrics.weekly', {
+        periodDays: DAYS,
+        totalProcessed: metrics.totalProcessed,
+        counts: {
+            high: metrics.highConfidence,
+            medium: metrics.mediumConfidence,
+            low: metrics.lowConfidence,
+            applied: metrics.applied,
+            overrides: metrics.overrideCount
+        },
+        appliedPct: metrics.appliedPercent,
+        overrideRate: metrics.overrideRate,
+        lowConfidencePct: Math.round((metrics.lowConfidence / metrics.totalProcessed) * 100) || 0
+    })
 
     // Check integrity by running the integrity checker
     console.log('🔍 Contiguous Ordering Integrity:')
