@@ -1,5 +1,9 @@
-// Canonical telemetry event names (Domain.[Subject].Action) with 2-3 PascalCase segments.
+// Canonical game telemetry event names (Domain.[Subject].Action) with 2-3 PascalCase segments.
 // These align documentation across navigation, AI prompt engineering, extensions, and multiplayer modules.
+//
+// CRITICAL: This file is for GAME DOMAIN events ONLY (player actions, world events, gameplay).
+// DO NOT add build/CI automation events here - those belong in scripts/shared/build-telemetry.mjs.
+// See docs/developer-workflow/build-telemetry.md for separation rules.
 
 export const GAME_EVENT_NAMES = [
     // Core service / utility

@@ -178,7 +178,33 @@ Partition key patterns:
 
 ## 6. Telemetry
 
-Use shared telemetry helper + constant enum.
+**CRITICAL SEPARATION**: Build automation and game domain telemetry are strictly separated.
+
+### Build Telemetry (CI/Automation)
+- **Module**: `scripts/shared/build-telemetry.mjs`
+- **Purpose**: CI/automation workflows (ordering, scheduling, variance)
+- **Event prefix**: `build.` (e.g., `build.ordering_applied`)
+- **Destination**: GitHub Actions logs + artifacts (NOT Application Insights)
+- **Location**: `scripts/` folder ONLY
+
+### Game Telemetry (Domain Events)
+- **Module**: `shared/src/telemetry.ts`
+- **Purpose**: In-game events (player actions, world generation, navigation)
+- **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+- **Destination**: Application Insights ONLY
+- **Location**: `shared/src/` folder ONLY
+
+### Separation Rules (Never Violate)
+1. ❌ NEVER add build events to `shared/src/telemetryEvents.ts` (game domain only)
+2. ❌ NEVER add game events to `scripts/shared/build-telemetry.mjs` (build automation only)
+3. ❌ NEVER use Application Insights for build telemetry (GitHub artifacts only)
+4. ✅ Always use `scripts/shared/build-telemetry.mjs` for ALL CI/automation events
+5. ✅ Always use `shared/src/telemetry.ts` for ALL game domain events
+
+**Rationale**: Prevents pollution of game analytics with infrastructure noise, enables clean separation of concerns, reduces Application Insights costs, allows independent evolution.
+
+See `docs/developer-workflow/build-telemetry.md` for complete documentation.
+
 Include correlation IDs across chained events.
 Avoid noisy high‑cardinality ad‑hoc logs.
 
