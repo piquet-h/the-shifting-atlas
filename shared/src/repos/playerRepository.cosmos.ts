@@ -59,9 +59,21 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         }
     }
 
-    async linkExternalId(id: string, externalId: string): Promise<{ updated: boolean; record?: PlayerRecord }> {
+    async linkExternalId(
+        id: string,
+        externalId: string
+    ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }> {
         const existing = await this.get(id)
         if (!existing) return { updated: false }
+        // Idempotent: if already linked to this externalId, no-op (don't update timestamp)
+        if (existing.externalId === externalId) {
+            return { updated: false, record: existing }
+        }
+        // Conflict detection: check if externalId is already linked to a different player
+        const existingExternal = await this.findByExternalId(externalId)
+        if (existingExternal && existingExternal.id !== id) {
+            return { updated: false, conflict: true, existingPlayerId: existingExternal.id }
+        }
         const updatedIso = new Date().toISOString()
         await this.client.submit(
             "g.V(pid).hasLabel('player').property('externalId', ext).property('guest', false).property('updatedUtc', updated)",

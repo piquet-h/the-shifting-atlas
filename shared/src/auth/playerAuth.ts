@@ -71,7 +71,13 @@ export async function ensurePlayerForRequest(
         if (found) return { playerGuid: found.id, created: false, source: 'swa-auth', principal, externalId }
         // create & link
         const { record } = await repo.getOrCreate()
-        await repo.linkExternalId(record.id, externalId)
+        const linkResult = await repo.linkExternalId(record.id, externalId)
+        // If conflict occurs during auto-link (rare race condition), fall back to guest
+        if (linkResult.conflict) {
+            // Log this scenario but proceed with guest player
+            const { record: guestRecord } = await repo.getOrCreate()
+            return { playerGuid: guestRecord.id, created: true, source: 'generated' }
+        }
         return { playerGuid: record.id, created: true, source: 'swa-auth', principal, externalId }
     }
     // 3. Anonymous fallback guest

@@ -21,7 +21,10 @@ export interface PlayerRecord {
 export interface IPlayerRepository {
     get(id: string): Promise<PlayerRecord | undefined>
     getOrCreate(id?: string): Promise<{ record: PlayerRecord; created: boolean }>
-    linkExternalId(id: string, externalId: string): Promise<{ updated: boolean; record?: PlayerRecord }>
+    linkExternalId(
+        id: string,
+        externalId: string
+    ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }>
     findByExternalId(externalId: string): Promise<PlayerRecord | undefined>
 }
 
@@ -52,6 +55,15 @@ class InMemoryPlayerRepository implements IPlayerRepository {
     async linkExternalId(id: string, externalId: string) {
         const rec = this.players.get(id)
         if (!rec) return { updated: false }
+        // Idempotent: if already linked to this externalId, no-op (don't update timestamp)
+        if (rec.externalId === externalId) {
+            return { updated: false, record: rec }
+        }
+        // Conflict detection: check if externalId is already linked to a different player
+        const existing = await this.findByExternalId(externalId)
+        if (existing && existing.id !== id) {
+            return { updated: false, conflict: true, existingPlayerId: existing.id }
+        }
         rec.externalId = externalId
         rec.guest = false
         // Track mutation timestamp for analytics / future conflict resolution logic.
@@ -65,9 +77,11 @@ class InMemoryPlayerRepository implements IPlayerRepository {
         return undefined
     }
     private make(id: string): PlayerRecord {
+        const now = new Date().toISOString()
         return {
             id,
-            createdUtc: new Date().toISOString(),
+            createdUtc: now,
+            updatedUtc: now,
             guest: true,
             currentLocationId: resolveStartLocationId()
         }
