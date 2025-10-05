@@ -72,11 +72,13 @@ Purpose (Planned):
 
 - Store locations, exits, NPCs, items, and player state as a graph or JSON Entity.
 - Enable semantic navigation and relationship queries. Enable XP and attribute updates
+- Dual persistence strategy (see `../adr/ADR-002-graph-partition-strategy.md`): immutable world structure in Gremlin graph; mutable player data in SQL API documents.
 
 Current Reality:
 
 - No runtime code initializes Gremlin client or writes data yet.
 - Next concrete step: introduce a minimal `Location` vertex upsert in a new `/api/location` Function.
+- MVP uses single logical partition (`'world'`) for all Gremlin vertices; region sharding deferred (ADR-002).
 
 4. AI Integration
    Service: Azure OpenAI Service (Future Optional)

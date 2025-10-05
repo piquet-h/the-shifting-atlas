@@ -131,6 +131,26 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 - Introduce probabilistic sampling (e.g., 0.5) only if monthly ingestion nears free tier.
 - NEVER sample security/audit events (future auth-critical events).
 
+## Partition Revisit Telemetry
+
+As the world graph scales, telemetry must track signals indicating when the single-partition MVP strategy (ADR-002) should migrate to region sharding:
+
+- **RU Utilization**: Sustained >70% RU consumption over 3 consecutive days.
+- **Throttling Events**: Repeated 429 responses on movement/look operations at <50 RPS.
+- **Hot Partition Concentration**: >40% of total RU consumed by a single logical partition.
+- **Vertex Count**: World vertices exceeding 50k.
+
+Recommended custom dimensions for future `Cosmos.PartitionMetrics` events:
+
+| Dimension      | Purpose                         | Example        |
+| -------------- | ------------------------------- | -------------- |
+| `partitionKey` | Logical partition value         | `world`        |
+| `ruConsumed`   | Request units for the operation | `23.5`         |
+| `throttled`    | Boolean indicating 429 response | `true`/`false` |
+| `vertexCount`  | Current vertex count estimate   | `12453`        |
+
+See **ADR-002: Graph Partition Strategy** for detailed thresholds and migration planning.
+
 ## Current Event Mapping (Old → New)
 
 | Old                           | New                            | Notes                                  |
