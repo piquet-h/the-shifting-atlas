@@ -28,6 +28,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { extractStatus } from './shared/project-utils.mjs'
+import { paginateProjectItems } from './shared/pagination.mjs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -69,83 +70,27 @@ async function ghGraphQL(query, variables) {
 }
 
 async function fetchProjectItems() {
-    // Try user then org (unless type constrained)
     const attempts = []
-    // Try user (personal project) first, then organization, then viewer as a last resort.
     if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'user') attempts.push('user')
     if (!PROJECT_OWNER_TYPE || PROJECT_OWNER_TYPE === 'org' || PROJECT_OWNER_TYPE === 'organization') attempts.push('organization')
     if (!PROJECT_OWNER_TYPE) attempts.push('viewer')
-
     for (const kind of attempts) {
-        let hasNext = true
-        let after = null
-        const nodes = []
-        let projectId = null
-        while (hasNext) {
-            let data
-            if (kind === 'viewer') {
-                data = await ghGraphQL(
-                    `query($number:Int!,$after:String){
-                        viewer{
-                            projectV2(number:$number){
-                                id title
-                                items(first:100, after:$after){
-                                    nodes{
-                                        id
-                                        content{... on Issue { id number title state }}
-                                        fieldValues(first:50){
-                                            nodes{
-                                                ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number }
-                                                ... on ProjectV2ItemFieldTextValue { field { ... on ProjectV2FieldCommon { id name } } text }
-                                                ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }
-                                            }
-                                        }
-                                    }
-                                    pageInfo{hasNextPage endCursor}
-                                }
-                            }
-                        }
-                    }`,
-                    { number: PROJECT_NUMBER, after }
-                ).catch((err) => ({ viewer: null, _error: err }))
-            } else {
-                const queryOwnerField = kind // 'user' or 'organization'
-                data = await ghGraphQL(
-                    `query($owner:String!,$number:Int!,$after:String){
-                        ${queryOwnerField}(login:$owner){
-                            projectV2(number:$number){
-                                id title
-                                items(first:100, after:$after){
-                                    nodes{
-                                        id
-                                        content{... on Issue { id number title state }}
-                                        fieldValues(first:50){
-                                            nodes{
-                                                ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number }
-                                                ... on ProjectV2ItemFieldTextValue { field { ... on ProjectV2FieldCommon { id name } } text }
-                                                ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }
-                                            }
-                                        }
-                                    }
-                                    pageInfo{hasNextPage endCursor}
-                                }
-                            }
-                        }
-                    }`,
-                    { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
-                ).catch((err) => ({ [queryOwnerField]: null, _error: err }))
-            }
-            const project = data?.[kind]?.projectV2
-            if (!project) break
-            projectId = project.id
-            const page = project.items
-            nodes.push(...page.nodes)
-            hasNext = page.pageInfo.hasNextPage
-            after = page.pageInfo.endCursor
-        }
-        if (projectId) {
-            return { projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind }
-        }
+        const isViewer = kind === 'viewer'
+        const baseQuery = isViewer
+            ? `query($number:Int!,$after:String){\n  viewer{ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{... on Issue { id number title state }} fieldValues(first:50){ nodes{ ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } ... on ProjectV2ItemFieldTextValue { field { ... on ProjectV2FieldCommon { id name } } text } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo{hasNextPage endCursor} } } }\n}`
+            : `query($owner:String!,$number:Int!,$after:String){\n  ${kind}(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{... on Issue { id number title state }} fieldValues(first:50){ nodes{ ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } ... on ProjectV2ItemFieldTextValue { field { ... on ProjectV2FieldCommon { id name } } text } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo{hasNextPage endCursor} } } }\n}`
+        let encounteredError = null
+        const { projectId, nodes } = await paginateProjectItems({
+            initialVariables: isViewer ? { number: PROJECT_NUMBER } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER },
+            runQuery: (vars) =>
+                ghGraphQL(baseQuery, vars).catch((err) => {
+                    encounteredError = err
+                    return isViewer ? { viewer: null, _error: err } : { [kind]: null, _error: err }
+                }),
+            selectProject: (raw) => raw?.[isViewer ? 'viewer' : kind]?.projectV2 || null
+        })
+        if (projectId) return { projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind }
+        if (encounteredError) continue
     }
     return { projectId: null, nodes: [], ownerType: null }
 }

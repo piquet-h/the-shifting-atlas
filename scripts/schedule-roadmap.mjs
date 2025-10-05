@@ -51,6 +51,7 @@ import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURAT
 import { trackScheduleVariance, initBuildTelemetry, flushBuildTelemetry } from './shared/build-telemetry.mjs'
 import { getProvisionalSchedule } from './shared/provisional-storage.mjs'
 import { extractFieldValue, classifyIssue, wholeDayDiff } from './shared/project-utils.mjs'
+import { paginateProjectItems } from './shared/pagination.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file
@@ -130,7 +131,7 @@ function addDays(date, days) {
 
 // wholeDayDiff / extractFieldValue / classifyIssue imported from shared/project-utils.mjs
 
-// Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
+// Fetch project items using shared paginator (user -> org -> viewer attempts)
 async function fetchProjectItems() {
     const ownerPreference = PROJECT_OWNER_TYPE.toLowerCase()
     const attemptOrder =
@@ -139,56 +140,29 @@ async function fetchProjectItems() {
             : ownerPreference === 'user'
               ? ['user', 'org', 'viewer']
               : ['user', 'org', 'viewer']
-
-    let projectId = null
-    let ownerType = null
-    const allNodes = []
-
     for (const kind of attemptOrder) {
-        let hasNext = true
-        let after = null
-        while (hasNext) {
-            let query = ''
-            if (kind === 'user') {
-                query = `query($owner:String!,$number:Int!,$after:String){
-                  user(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
-                }`
-            } else if (kind === 'org') {
-                query = `query($owner:String!,$number:Int!,$after:String){
-                  organization(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }
-                }`
-            } else {
-                query = `query($number:Int!,$after:String){
-                  viewer { projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } }
-                }`
-            }
-            let data
-            try {
-                data = await ghGraphQL(
-                    query,
-                    kind === 'viewer' ? { number: PROJECT_NUMBER, after } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after },
-                    {
-                        suppressPaths: kind === 'org' ? ['organization'] : kind === 'user' ? ['user'] : []
-                    }
-                )
-            } catch {
-                // Non-suppressed errors: break out and try next kind.
-                break
-            }
-            const container = kind === 'user' ? data.user : kind === 'org' ? data.organization : data.viewer
-            if (!container || !container.projectV2) break
-            if (!projectId) {
-                projectId = container.projectV2.id
-                ownerType = kind
-            }
-            const page = container.projectV2.items
-            allNodes.push(...page.nodes.filter((n) => n.content && n.content.number))
-            hasNext = page.pageInfo.hasNextPage
-            after = page.pageInfo.endCursor
+        const isViewer = kind === 'viewer'
+        const query = isViewer
+            ? `query($number:Int!,$after:String){\n  viewer { projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } }\n}`
+            : `query($owner:String!,$number:Int!,$after:String){\n  ${kind}(login:$owner){ projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{ ... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }} fieldValues(first:50){ nodes { ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date } ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId } } } } pageInfo { hasNextPage endCursor } } } }\n}`
+        let encounteredError = null
+        const { projectId, nodes } = await paginateProjectItems({
+            initialVariables: isViewer ? { number: PROJECT_NUMBER } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER },
+            runQuery: async (vars) =>
+                ghGraphQL(query, vars, {
+                    suppressPaths: kind === 'org' ? ['organization'] : kind === 'user' ? ['user'] : []
+                }).catch((err) => {
+                    encounteredError = err
+                    return isViewer ? { viewer: null, _error: err } : { [kind]: null, _error: err }
+                }),
+            selectProject: (raw) => raw?.[isViewer ? 'viewer' : kind]?.projectV2 || null
+        })
+        if (projectId) {
+            return { projectId, nodes: nodes.filter((n) => n.content && n.content.number), ownerType: kind }
         }
-        if (projectId) break
+        if (encounteredError) continue
     }
-    return { projectId, nodes: allNodes, ownerType }
+    return { projectId: null, nodes: [], ownerType: null }
 }
 
 async function main() {

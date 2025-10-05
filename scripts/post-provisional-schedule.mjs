@@ -21,6 +21,7 @@
 import { parseArgs } from 'node:util'
 import { estimateDuration } from './shared/duration-estimation.mjs'
 import { extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
+import { paginate } from './shared/pagination.mjs'
 import { generateProvisionalComment, shouldPostProvisionalComment, findProvisionalComment } from './shared/provisional-comment.mjs'
 import { getProjectId, updateProvisionalSchedule } from './shared/provisional-storage.mjs'
 import { trackProvisionalCreated, initBuildTelemetry } from './shared/build-telemetry.mjs'
@@ -142,60 +143,12 @@ async function updateComment(commentId, body) {
  * Fetch all project items with implementation orders.
  */
 async function fetchProjectItems(projectId) {
-    const query = `query($projectId:ID!,$after:String){
-        node(id:$projectId){
-            ... on ProjectV2 {
-                items(first:100, after:$after){
-                    nodes{
-                        id
-                        content{
-                            ... on Issue {
-                                id
-                                number
-                                title
-                                state
-                                createdAt
-                                closedAt
-                                labels(first:30){nodes{name}}
-                            }
-                        }
-                        fieldValues(first:50){
-                            nodes{
-                                ... on ProjectV2ItemFieldDateValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    date
-                                }
-                                ... on ProjectV2ItemFieldSingleSelectValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    name
-                                    optionId
-                                }
-                                ... on ProjectV2ItemFieldNumberValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    number
-                                }
-                            }
-                        }
-                    }
-                    pageInfo { hasNextPage endCursor }
-                }
-            }
-        }
-    }`
-
-    let allNodes = []
-    let hasNext = true
-    let after = null
-
-    while (hasNext) {
-        const data = await gh(query, { projectId, after })
-        const page = data.node.items
-        allNodes.push(...page.nodes.filter((n) => n.content && n.content.number))
-        hasNext = page.pageInfo.hasNextPage
-        after = page.pageInfo.endCursor
-    }
-
-    return allNodes
+    const query = `query($projectId:ID!,$after:String){\n  node(id:$projectId){\n    ... on ProjectV2 {\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }}\n          fieldValues(first:50){\n            nodes{\n              ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date }\n              ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }\n              ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number }\n            }\n          }\n        }\n        pageInfo { hasNextPage endCursor }\n      }\n    }\n  }\n}`
+    const nodes = await paginate({
+        runQuery: (vars) => gh(query, { projectId, after: vars.after }),
+        selectPage: (raw) => raw?.node?.items || null
+    })
+    return nodes.filter((n) => n.content && n.content.number)
 }
 
 /**

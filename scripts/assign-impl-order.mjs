@@ -120,51 +120,29 @@ async function fetchProjectItems() {
     const fieldValueFragments = `... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number } \n            ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }`
 
     for (const kind of attempts) {
-        let hasNext = true
-        let after = null
-        const nodes = []
-        let projectId = null
-
-        // Build static (multi‑line) query text; avoid dynamic root interpolation mistakes.
-        const buildQuery = () => {
-            if (kind === 'viewer') {
-                return `query($number:Int!,$after:String){\n  viewer {\n    projectV2(number:$number){\n      id title\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { ${issueFields} }}\n          fieldValues(first:50){nodes{${fieldValueFragments}}}\n        }\n        pageInfo{hasNextPage endCursor}\n      }\n    }\n  }\n}`
-            }
-            const root = kind === 'organization' ? 'organization' : 'user'
-            return `query($owner:String!,$number:Int!,$after:String){\n  ${root}(login:$owner){\n    projectV2(number:$number){\n      id title\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { ${issueFields} }}\n          fieldValues(first:50){nodes{${fieldValueFragments}}}\n        }\n        pageInfo{hasNextPage endCursor}\n      }\n    }\n  }\n}`
-        }
-
-        const queryText = buildQuery()
-
-        while (hasNext) {
-            const vars = kind === 'viewer' ? { number: PROJECT_NUMBER, after } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER, after }
-            let data
-            try {
-                data = await gh(queryText, vars)
-            } catch (e) {
-                collectedErrors.push({ attempt: kind, page: nodes.length / 100 + 1, message: e.message })
-                break // move to next attempt
-            }
-            const container = kind === 'viewer' ? data.viewer : data[kind === 'organization' ? 'organization' : 'user']
-            if (!container || !container.projectV2) {
-                // No project under this root; stop trying pages for this kind.
-                break
-            }
-            projectId = container.projectV2.id
-            const page = container.projectV2.items
-            nodes.push(...page.nodes.filter((n) => n.content && n.content.number))
-            hasNext = page.pageInfo.hasNextPage
-            after = page.pageInfo.endCursor
-        }
+        const isViewer = kind === 'viewer'
+        const root = kind === 'organization' ? 'organization' : kind === 'user' ? 'user' : 'viewer'
+        const queryText = isViewer
+            ? `query($number:Int!,$after:String){\n  viewer {\n    projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{... on Issue { ${issueFields} }} fieldValues(first:50){nodes{${fieldValueFragments}}} } pageInfo{hasNextPage endCursor} } }\n  }\n}`
+            : `query($owner:String!,$number:Int!,$after:String){\n  ${root}(login:$owner){\n    projectV2(number:$number){ id title items(first:100, after:$after){ nodes{ id content{... on Issue { ${issueFields} }} fieldValues(first:50){nodes{${fieldValueFragments}}} } pageInfo{hasNextPage endCursor} } }\n  }\n}`
+        let encounteredError = null
+        const { paginateProjectItems } = await import('./shared/pagination.mjs')
+        const { projectId, nodes } = await paginateProjectItems({
+            initialVariables: isViewer ? { number: PROJECT_NUMBER } : { owner: PROJECT_OWNER, number: PROJECT_NUMBER },
+            runQuery: (vars) =>
+                gh(queryText, vars).catch((err) => {
+                    encounteredError = err
+                    return isViewer ? { viewer: null, _error: err } : { [root]: null, _error: err }
+                }),
+            selectProject: (raw) => raw?.[isViewer ? 'viewer' : root]?.projectV2 || null
+        })
         if (projectId) {
             if (collectedErrors.length) {
-                console.warn(
-                    'fetchProjectItems(): previous attempts produced errors before success:',
-                    JSON.stringify(collectedErrors, null, 2)
-                )
+                console.warn('fetchProjectItems(): previous attempts produced errors before success:', JSON.stringify(collectedErrors, null, 2))
             }
-            return { projectId, nodes }
+            return { projectId, nodes: nodes.filter((n) => n.content && n.content.number) }
         }
+        if (encounteredError) continue
     }
     if (collectedErrors.length) {
         console.error('fetchProjectItems(): all attempts failed. Errors summary:', JSON.stringify(collectedErrors, null, 2))

@@ -17,6 +17,7 @@
 import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
 import { getProjectId } from './shared/provisional-storage.mjs'
 import { dateDiff, wholeDayDiff, extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
+import { paginate } from './shared/pagination.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
@@ -92,64 +93,12 @@ function calculateVarianceMetrics(provisional, actual) {
  * Fetch project items with provisional and actual schedules.
  */
 async function fetchProjectItemsForVariance(projectId) {
-    const query = `query($projectId:ID!,$after:String){
-        node(id:$projectId){
-            ... on ProjectV2 {
-                items(first:100, after:$after){
-                    nodes{
-                        id
-                        content{
-                            ... on Issue {
-                                id
-                                number
-                                title
-                                state
-                                createdAt
-                                closedAt
-                                labels(first:30){nodes{name}}
-                            }
-                        }
-                        fieldValues(first:50){
-                            nodes{
-                                ... on ProjectV2ItemFieldDateValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    date
-                                }
-                                ... on ProjectV2ItemFieldSingleSelectValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    name
-                                    optionId
-                                }
-                                ... on ProjectV2ItemFieldNumberValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    number
-                                }
-                                ... on ProjectV2ItemFieldTextValue {
-                                    field { ... on ProjectV2FieldCommon { id name } }
-                                    text
-                                }
-                            }
-                        }
-                    }
-                    pageInfo { hasNextPage endCursor }
-                }
-            }
-        }
-    }`
-
-    let allNodes = []
-    let hasNext = true
-    let after = null
-
-    while (hasNext) {
-        const data = await ghGraphQL(query, { projectId, after })
-        const page = data.node.items
-        allNodes.push(...page.nodes.filter((n) => n.content && n.content.number))
-        hasNext = page.pageInfo.hasNextPage
-        after = page.pageInfo.endCursor
-    }
-
-    return allNodes
+    const query = `query($projectId:ID!,$after:String){\n  node(id:$projectId){\n    ... on ProjectV2 {\n      items(first:100, after:$after){\n        nodes{\n          id\n          content{... on Issue { id number title state createdAt closedAt labels(first:30){nodes{name}} }}\n          fieldValues(first:50){\n            nodes{\n              ... on ProjectV2ItemFieldDateValue { field { ... on ProjectV2FieldCommon { id name } } date }\n              ... on ProjectV2ItemFieldSingleSelectValue { field { ... on ProjectV2FieldCommon { id name } } name optionId }\n              ... on ProjectV2ItemFieldNumberValue { field { ... on ProjectV2FieldCommon { id name } } number }\n              ... on ProjectV2ItemFieldTextValue { field { ... on ProjectV2FieldCommon { id name } } text }\n            }\n          }\n        }\n        pageInfo { hasNextPage endCursor }\n      }\n    }\n  }\n}`
+    const nodes = await paginate({
+        runQuery: (vars) => ghGraphQL(query, { projectId, after: vars.after }),
+        selectPage: (raw) => raw?.node?.items || null
+    })
+    return nodes.filter((n) => n.content && n.content.number)
 }
 
 /**
