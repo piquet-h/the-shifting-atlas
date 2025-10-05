@@ -2,13 +2,13 @@
 
 Provisioned resources:
 
-| Resource                        | Purpose                                                          | Notes                                                                                                                                    |
-| ------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Azure Static Web App (SWA)      | Hosts frontend + managed API (`/frontend/api`).                  | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                 |
-| Azure Cosmos DB (Gremlin API)   | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                     |
-| Azure Cosmos DB (SQL/Core API)  | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game-docs`. Containers detailed below.              |
-| Azure Key Vault                 | Stores Cosmos primary key secrets.                               | Access policy grants SWA system identity get/list for secrets. Stores both `cosmos-primary-key` (Gremlin) and `cosmos-sql-primary-key`. |
-| Azure Application Insights      | Telemetry and observability.                                     | Connection string wired to SWA Functions for automatic instrumentation.                                                                  |
+| Resource                       | Purpose                                                          | Notes                                                                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Azure Static Web App (SWA)     | Hosts frontend + managed API (`/frontend/api`).                  | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                |
+| Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                    |
+| Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game-docs`. Containers detailed below.             |
+| Azure Key Vault                | Stores Cosmos primary key secrets.                               | Access policy grants SWA system identity get/list for secrets. Stores both `cosmos-primary-key` (Gremlin) and `cosmos-sql-primary-key`. |
+| Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions for automatic instrumentation.                                                                 |
 
 Files:
 
@@ -21,16 +21,17 @@ Earlier storage + separate Function App plan has been superseded by co‑located
 
 The SQL/Core API account (`cosmosdoc*`) implements the document side of the dual-persistence strategy (see ADR-002). These containers handle mutable, player-centric, and append-heavy data that benefits from document model optimization:
 
-| Container            | Partition Key | Purpose                                                                      |
-| -------------------- | ------------- | ---------------------------------------------------------------------------- |
-| `players`            | `/id`         | Player profiles, settings, and mutable state (write-through from graph).     |
-| `inventory`          | `/playerId`   | Player inventory items (enables efficient per-player queries).               |
-| `descriptionLayers`  | `/locationId` | Additive description layers per location (ambient, structural, enhancement). |
-| `worldEvents`        | `/scopeKey`   | Event log partitioned by scope: `loc:<id>` or `player:<id>`.                |
+| Container           | Partition Key | Purpose                                                                      |
+| ------------------- | ------------- | ---------------------------------------------------------------------------- |
+| `players`           | `/id`         | Player profiles, settings, and mutable state (write-through from graph).     |
+| `inventory`         | `/playerId`   | Player inventory items (enables efficient per-player queries).               |
+| `descriptionLayers` | `/locationId` | Additive description layers per location (ambient, structural, enhancement). |
+| `worldEvents`       | `/scopeKey`   | Event log partitioned by scope: `loc:<id>` or `player:<id>`.                 |
 
 **Capacity Mode**: Serverless (no provisioned RU/s). Cost-effective for spiky development workload and scales automatically.
 
 **Key Design Decisions** (from ADR-002):
+
 - Player/inventory moved off graph to reduce hot partition risk
 - Location description layers stored separately to enable AI enrichment workflow
 - Event log scoped by entity for efficient timeline queries
@@ -53,23 +54,23 @@ g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').pr
 
 ## Parameters
 
-| Name                              | Type    | Default                 | Required | Description                                                  |
-| --------------------------------- | ------- | ----------------------- | -------- | ------------------------------------------------------------ |
-| `location`                        | string  | resource group location | No       | Region (override).                                           |
-| `staticWebAppSku`                 | string  | Standard                | No       | SWA tier (`Free` or `Standard`).                             |
-| `staticWebAppName`                | string  | derived unique string   | No       | Auto‑generated if not overridden.                            |
-| `cosmosAccountName`               | string  | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden.  |
-| `cosmosSqlAccountName`            | string  | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.      |
-| `keyVaultName`                    | string  | derived unique string   | No       | Auto‑generated if not overridden.                            |
-| `appInsightsName`                 | string  | derived unique string   | No       | Auto‑generated if not overridden.                            |
-| `cosmosGremlinDatabaseName`       | string  | game                    | No       | Gremlin database name.                                       |
-| `cosmosGremlinGraphName`          | string  | world                   | No       | Gremlin graph name.                                          |
-| `cosmosGremlinGraphThroughput`    | int     | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).                |
-| `cosmosSqlDatabaseName`           | string  | game-docs               | No       | SQL API database name.                                       |
-| `cosmosSqlPlayersContainerName`   | string  | players                 | No       | Players container name.                                      |
-| `cosmosSqlInventoryContainerName` | string  | inventory               | No       | Inventory container name.                                    |
-| `cosmosSqlLayersContainerName`    | string  | descriptionLayers       | No       | Description layers container name.                           |
-| `cosmosSqlEventsContainerName`    | string  | worldEvents             | No       | World events container name.                                 |
+| Name                              | Type   | Default                 | Required | Description                                                 |
+| --------------------------------- | ------ | ----------------------- | -------- | ----------------------------------------------------------- |
+| `location`                        | string | resource group location | No       | Region (override).                                          |
+| `staticWebAppSku`                 | string | Standard                | No       | SWA tier (`Free` or `Standard`).                            |
+| `staticWebAppName`                | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
+| `cosmosAccountName`               | string | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden. |
+| `cosmosSqlAccountName`            | string | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.     |
+| `keyVaultName`                    | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
+| `appInsightsName`                 | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
+| `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                      |
+| `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                         |
+| `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).               |
+| `cosmosSqlDatabaseName`           | string | game-docs               | No       | SQL API database name.                                      |
+| `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                     |
+| `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                   |
+| `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                          |
+| `cosmosSqlEventsContainerName`    | string | worldEvents             | No       | World events container name.                                |
 
 Secrets/keys are injected via Key Vault; no repository URL parameter is currently required because CI handles deployment.
 
@@ -77,24 +78,24 @@ Example parameter usage inline or via a parameter file you maintain separately.
 
 ## Outputs
 
-| Output                             | Description                                |
-| ---------------------------------- | ------------------------------------------ |
-| `cosmosAccountName`                | Name of the Cosmos DB Gremlin account.     |
-| `cosmosEndpoint`                   | Document (Gremlin) endpoint URL.           |
-| `cosmosSqlEndpoint`                | SQL API endpoint URL.                      |
-| `staticWebAppName`                 | Name of the Static Web App resource.       |
-| `keyVaultName`                     | Name of the Key Vault resource.            |
-| `cosmosPrimaryKeySecretName`       | Secret name for Gremlin primary key.       |
-| `cosmosSqlPrimaryKeySecretName`    | Secret name for SQL API primary key.       |
-| `appInsightsName`                  | Name of Application Insights resource.     |
-| `appInsightsConnectionString`      | Application Insights connection string.    |
-| `cosmosGremlinDatabaseName`        | Gremlin database name.                     |
-| `cosmosGremlinGraphName`           | Gremlin graph name.                        |
-| `cosmosSqlDatabaseName`            | SQL API database name.                     |
-| `cosmosSqlPlayersContainerName`    | Players container name.                    |
-| `cosmosSqlInventoryContainerName`  | Inventory container name.                  |
-| `cosmosSqlLayersContainerName`     | Description layers container name.         |
-| `cosmosSqlEventsContainerName`     | World events container name.               |
+| Output                            | Description                             |
+| --------------------------------- | --------------------------------------- |
+| `cosmosAccountName`               | Name of the Cosmos DB Gremlin account.  |
+| `cosmosEndpoint`                  | Document (Gremlin) endpoint URL.        |
+| `cosmosSqlEndpoint`               | SQL API endpoint URL.                   |
+| `staticWebAppName`                | Name of the Static Web App resource.    |
+| `keyVaultName`                    | Name of the Key Vault resource.         |
+| `cosmosPrimaryKeySecretName`      | Secret name for Gremlin primary key.    |
+| `cosmosSqlPrimaryKeySecretName`   | Secret name for SQL API primary key.    |
+| `appInsightsName`                 | Name of Application Insights resource.  |
+| `appInsightsConnectionString`     | Application Insights connection string. |
+| `cosmosGremlinDatabaseName`       | Gremlin database name.                  |
+| `cosmosGremlinGraphName`          | Gremlin graph name.                     |
+| `cosmosSqlDatabaseName`           | SQL API database name.                  |
+| `cosmosSqlPlayersContainerName`   | Players container name.                 |
+| `cosmosSqlInventoryContainerName` | Inventory container name.               |
+| `cosmosSqlLayersContainerName`    | Description layers container name.      |
+| `cosmosSqlEventsContainerName`    | World events container name.            |
 
 ## Deployment Examples
 
@@ -200,7 +201,7 @@ az deployment group create \
 
 | Date       | Change                                                                                                       |
 | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.            |
+| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.             |
 | 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).           |
 | 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references. |
 

@@ -47,6 +47,9 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
+import { trackScheduleVariance, initBuildTelemetry, flushBuildTelemetry } from './shared/build-telemetry.mjs'
+import { getProvisionalSchedule } from './shared/provisional-storage.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file
@@ -66,7 +69,6 @@ const PROJECT_OWNER_TYPE = process.env.PROJECT_OWNER_TYPE || ''
 // Field names fixed (simplified per current project convention)
 const START_FIELD_NAME = 'Start'
 const TARGET_FIELD_NAME = 'Finish'
-const DEFAULT_DURATION_DAYS = Number(process.env.DEFAULT_DURATION_DAYS || 2)
 const RESEAT_EXISTING = /^(1|true|yes)$/i.test(process.env.RESEAT_EXISTING || '')
 const mode = process.argv[2] || 'dry-run'
 
@@ -115,13 +117,6 @@ async function updateDateField(projectId, itemId, fieldId, date) {
     )
 }
 
-function median(nums) {
-    if (!nums.length) return 0
-    const s = [...nums].sort((a, b) => a - b)
-    const m = Math.floor(s.length / 2)
-    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
-}
-
 function iso(d) {
     return d.toISOString().slice(0, 10)
 }
@@ -150,43 +145,6 @@ function classifyIssue(issue) {
     const scope = labels.find((l) => l.startsWith('scope:')) || ''
     const type = labels.find((l) => !l.startsWith('scope:')) || ''
     return { scope, type }
-}
-
-function buildHistoricalDurations(projectItems, startFieldName, targetFieldName) {
-    const samples = []
-    for (const item of projectItems) {
-        const content = item.content
-        if (content.state !== 'CLOSED') continue
-        const startStr = extractFieldValue(item, startFieldName)
-        const endStr = extractFieldValue(item, targetFieldName)
-        let duration = null
-        if (startStr && endStr) {
-            const s = new Date(startStr + 'T00:00:00Z')
-            const e = new Date(endStr + 'T00:00:00Z')
-            if (!isNaN(s) && !isNaN(e) && e >= s) duration = wholeDayDiff(s, e) + 0 // inclusive days
-        }
-        if (duration == null && content.createdAt && content.closedAt) {
-            const s = new Date(content.createdAt)
-            const e = new Date(content.closedAt)
-            if (!isNaN(s) && !isNaN(e) && e >= s) duration = wholeDayDiff(s, e)
-        }
-        if (duration == null) continue
-        const { scope, type } = classifyIssue(content)
-        samples.push({ scope, type, duration })
-    }
-    const byKey = new Map()
-    const byScope = new Map()
-    const all = []
-    // Populate grouped collections
-    for (const s of samples) {
-        const key = `${s.scope}|${s.type}`
-        if (!byKey.has(key)) byKey.set(key, [])
-        byKey.get(key).push(s.duration)
-        if (!byScope.has(s.scope)) byScope.set(s.scope, [])
-        byScope.get(s.scope).push(s.duration)
-        all.push(s.duration)
-    }
-    return { byKey, byScope, all }
 }
 
 // Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
@@ -250,15 +208,10 @@ async function fetchProjectItems() {
     return { projectId, nodes: allNodes, ownerType }
 }
 
-function chooseDuration(medians, scope, type, fallback) {
-    const key = `${scope}|${type}`
-    if (medians.byKey.has(key)) return medians.byKey.get(key)
-    if (medians.byScope.has(scope)) return medians.byScope.get(scope)
-    if (medians.global) return medians.global
-    return fallback
-}
-
 async function main() {
+    // Initialize telemetry
+    initBuildTelemetry()
+
     const { projectId, nodes: projectItems, ownerType } = await fetchProjectItems()
     if (!projectId) {
         console.error('Project not found; cannot schedule.')
@@ -276,11 +229,7 @@ async function main() {
     }
 
     const hist = buildHistoricalDurations(projectItems, START_FIELD_NAME, TARGET_FIELD_NAME)
-    const medians = {
-        byKey: new Map([...hist.byKey.entries()].map(([k, v]) => [k, median(v)])),
-        byScope: new Map([...hist.byScope.entries()].map(([k, v]) => [k, median(v)])),
-        global: median(hist.all)
-    }
+    const medians = computeMedians(hist)
     console.log('Historical medians summary:', {
         pairs: [...medians.byKey.entries()].slice(0, 10),
         scopes: [...medians.byScope.entries()],
@@ -410,9 +359,71 @@ async function main() {
             await updateDateField(projectId, ch.itemId, startField.id, ch.start)
             await updateDateField(projectId, ch.itemId, targetField.id, ch.target)
             console.log(`Applied #${ch.issue}`)
+
+            // Emit telemetry if provisional schedule exists for comparison
+            try {
+                const provisional = await getProvisionalSchedule(ch.itemId)
+                if (provisional && provisional.start && provisional.finish) {
+                    // Calculate variance between provisional and actual
+                    const dateDiff = (d1, d2) => {
+                        const date1 = new Date(d1 + 'T00:00:00Z')
+                        const date2 = new Date(d2 + 'T00:00:00Z')
+                        return Math.round((date1 - date2) / (1000 * 60 * 60 * 24))
+                    }
+                    const provisionalDuration = Math.max(1, Math.abs(dateDiff(provisional.finish, provisional.start)) + 1)
+                    const actualDuration = Math.max(1, Math.abs(dateDiff(ch.target, ch.start)) + 1)
+                    const startDelta = dateDiff(ch.start, provisional.start)
+                    const finishDelta = dateDiff(ch.target, provisional.finish)
+                    const overallVariance = Math.abs(finishDelta) / provisionalDuration
+
+                    // Find issue details for classification
+                    const item = projectItems.find((pi) => pi.id === ch.itemId)
+                    const issue = item?.content
+                    if (issue) {
+                        const labels = issue.labels?.nodes?.map((l) => l.name) || []
+                        const scope = labels.find((l) => l.startsWith('scope:')) || ''
+                        const type = labels.find((l) => !l.startsWith('scope:')) || ''
+
+                        trackScheduleVariance({
+                            issueNumber: ch.issue,
+                            implementationOrder: getImplementationOrder(item),
+                            provisionalStart: provisional.start,
+                            provisionalFinish: provisional.finish,
+                            provisionalDuration,
+                            actualStart: ch.start,
+                            actualFinish: ch.target,
+                            actualDuration,
+                            startDelta,
+                            finishDelta,
+                            durationDelta: actualDuration - provisionalDuration,
+                            overallVariance,
+                            scope,
+                            type,
+                            confidence: provisional.confidence || 'unknown',
+                            sampleSize: 0,
+                            basis: provisional.basis || 'unknown',
+                            schedulerReason: ch.reason,
+                            status: extractFieldValue(item, 'Status') || ''
+                        })
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to emit telemetry for #${ch.issue}:`, err.message)
+            }
         }
+
+        // Flush telemetry to artifact if path specified
+        const telemetryArtifact = process.env.TELEMETRY_ARTIFACT
+        await flushBuildTelemetry(telemetryArtifact)
     } else {
         console.log('Dry-run; re-run with "apply" to persist changes.')
+    }
+
+    function getImplementationOrder(pi) {
+        for (const fv of pi.fieldValues.nodes) {
+            if (fv.field?.name === 'Implementation order') return fv.number ?? null
+        }
+        return null
     }
 }
 

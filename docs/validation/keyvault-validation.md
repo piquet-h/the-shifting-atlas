@@ -15,6 +15,7 @@ The Managed Identity and Key Vault secret management baseline has been correctly
 **Location**: `infrastructure/main.bicep`
 
 Validated:
+
 - [x] Key Vault resource provisioned with standard tier
 - [x] System-assigned Managed Identity enabled for Static Web App
 - [x] Access policy grants SWA identity `get` and `list` permissions on secrets
@@ -22,6 +23,7 @@ Validated:
 - [x] Application settings reference Key Vault name (not raw secrets)
 
 **Evidence**:
+
 ```bicep
 // Lines 217-219: System-assigned Managed Identity
 identity: {
@@ -52,6 +54,7 @@ COSMOS_KEY_SECRET_NAME: 'cosmos-primary-key'
 **Location**: `shared/src/secrets/secretsHelper.ts`
 
 Validated:
+
 - [x] Allowlist validation (5 secret keys)
 - [x] Lazy caching with configurable TTL (default 5 minutes)
 - [x] Exponential backoff retry (default 3 attempts)
@@ -61,6 +64,7 @@ Validated:
 - [x] Uses `DefaultAzureCredential` for Managed Identity
 
 **Key Features**:
+
 ```typescript
 // Allowlist enforcement
 export const ALLOWED_SECRET_KEYS = [
@@ -73,9 +77,7 @@ export const ALLOWED_SECRET_KEYS = [
 
 // Production guard (lines 99-105)
 if (value && nodeEnv === 'production') {
-    throw new Error(
-        `Refusing to use local environment variable ${envVarName} in production.`
-    )
+    throw new Error(`Refusing to use local environment variable ${envVarName} in production.`)
 }
 
 // Managed Identity via DefaultAzureCredential (lines 56-59)
@@ -88,6 +90,7 @@ secretClient = new SecretClient(vaultUrl, credential)
 **Location**: `shared/test/secretsHelper.test.ts`
 
 Test Results:
+
 ```
 ✔ ALLOWED_SECRET_KEYS contains expected keys
 ✔ rejects non-allowlisted secret key
@@ -107,6 +110,7 @@ Total: 108 tests, 108 passed, 0 failed
 **Location**: `eslint-rules/no-direct-secret-access.mjs`
 
 Validated:
+
 - [x] Custom ESLint rule created
 - [x] Detects direct `process.env` access to secret keys
 - [x] Allows exceptions for secrets helper itself and test files
@@ -116,23 +120,26 @@ Validated:
 
 **Test Verification**:
 Created test file with direct secret access:
+
 ```typescript
 const cosmosKey = process.env.COSMOS_GREMLIN_KEY // ❌ Caught by rule
-const sqlKey = process.env.COSMOS_SQL_KEY        // ❌ Caught by rule
-const nodeEnv = process.env.NODE_ENV             // ✅ Allowed (not a secret)
+const sqlKey = process.env.COSMOS_SQL_KEY // ❌ Caught by rule
+const nodeEnv = process.env.NODE_ENV // ✅ Allowed (not a secret)
 ```
 
 Result: Rule correctly caught all 3 secret violations.
 
 ### 5. Documentation ✅
 
-**Locations**: 
+**Locations**:
+
 - `shared/src/secrets/README.md` - Usage guide
 - `infrastructure/README.md` - Architecture overview
 - `docs/decisions/keyvault-decision.md` - Key Vault decision
 - `.env.development.example` - Local dev template
 
 Validated:
+
 - [x] Complete usage examples
 - [x] Feature descriptions
 - [x] API reference
@@ -148,6 +155,7 @@ Validated:
 Decision: **New Dedicated Key Vault**
 
 Rationale:
+
 1. Clean infrastructure baseline for new project
 2. Simplified access control with Managed Identity
 3. No external dependencies or cross-team coordination
@@ -159,6 +167,7 @@ Evaluation criteria from issue #45 documented and addressed.
 ### 7. Security Validation ✅
 
 Validated:
+
 - [x] `.gitignore` excludes `.env` and `.env.development`
 - [x] No secrets in committed files (only `.env.development.example` with placeholders)
 - [x] Application settings in Bicep reference Key Vault, not raw secrets
@@ -169,6 +178,7 @@ Validated:
 ### 8. Code Quality ✅
 
 Build & Test Results:
+
 - Typecheck: ✅ Passing
 - Lint: ✅ Passing (excluding 2 pre-existing unrelated warnings)
 - Tests: ✅ 108/108 passing
@@ -191,6 +201,7 @@ From Issue #45:
 ### Deprecated Synchronous API
 
 The `loadPersistenceConfig()` function in `shared/src/persistenceConfig.ts` still directly accesses `process.env.COSMOS_GREMLIN_KEY` but:
+
 - Is explicitly marked `@deprecated` with JSDoc
 - Documents migration to `loadPersistenceConfigAsync()`
 - Is allowed by ESLint rule (file-level exception)
@@ -201,6 +212,7 @@ The `loadPersistenceConfig()` function in `shared/src/persistenceConfig.ts` stil
 ### Future Enhancements
 
 Documented in `infrastructure/README.md` and decision document:
+
 1. Secret rotation automation
 2. Migration to RBAC authorization (from access policies)
 3. Private endpoints for production
