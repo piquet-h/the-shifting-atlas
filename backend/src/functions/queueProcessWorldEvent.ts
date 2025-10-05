@@ -65,31 +65,6 @@ function markProcessed(idempotencyKey: string, eventId: string): void {
     })
 }
 
-/**
- * Periodic sweep to remove expired entries.
- * In serverless/consumption plan, each function invocation is short-lived,
- * so periodic cleanup via setInterval is not appropriate. Cleanup happens
- * inline during duplicate checks via TTL expiration.
- *
- * For long-running dedicated hosting, this function can be called manually
- * on a timer if needed.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function sweepExpiredEntries(): void {
-    const now = Date.now()
-    const keysToDelete: string[] = []
-
-    for (const [key, entry] of idempotencyCache.entries()) {
-        if (now - entry.timestamp > DUPE_TTL_MS) {
-            keysToDelete.push(key)
-        }
-    }
-
-    for (const key of keysToDelete) {
-        idempotencyCache.delete(key)
-    }
-}
-
 // --- Utility Functions -------------------------------------------------------
 
 /**
