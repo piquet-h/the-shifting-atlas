@@ -1,3 +1,5 @@
+targetScope = 'resourceGroup'
+
 param location string = resourceGroup().location
 // Naming: subscription dedicated to this project so we avoid redundant prefixes.
 // Stable hash keeps uniqueness when required.
@@ -206,7 +208,7 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
 }
 
 // Service Bus Namespace (Basic tier - free for dev/test up to 1M operations/month)
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01' = {
   name: serviceBusNamespaceName
   location: location
   sku: {
@@ -217,7 +219,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 }
 
 // Service Bus Queue for world events
-resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01' = {
   name: serviceBusQueueName
   parent: serviceBusNamespace
   properties: {
@@ -395,7 +397,8 @@ resource staticSite 'Microsoft.Web/staticSites@2024-04-01' = {
   }
 
   // Application settings now exclude the raw key. Functions should use managed identity to retrieve the secret from Key Vault.
-  resource config 'config@2024-11-01' = {
+  // Adjusted child config API version to align with parent and avoid validation issues.
+  resource config 'config@2024-04-01' = {
     name: 'functionappsettings'
     properties: {
       COSMOS_ENDPOINT: cosmos.properties.documentEndpoint
