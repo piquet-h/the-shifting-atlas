@@ -13,6 +13,21 @@ export interface ILocationRepository {
     upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }>
     /** Ensure an exit edge between two locations. Returns whether a new edge was created. */
     ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }>
+    /** Ensure an exit edge with optional bidirectional creation. Returns creation status for both directions. */
+    ensureExitBidirectional(
+        fromId: string,
+        direction: string,
+        toId: string,
+        opts?: { reciprocal?: boolean; description?: string; reciprocalDescription?: string }
+    ): Promise<{ created: boolean; reciprocalCreated?: boolean }>
+    /** Remove an exit edge. Returns whether an edge was actually removed. */
+    removeExit(fromId: string, direction: string): Promise<{ removed: boolean }>
+    /** Batch apply multiple exits. Returns summary metrics. */
+    applyExits(exits: Array<{ fromId: string; direction: string; toId: string; description?: string; reciprocal?: boolean }>): Promise<{
+        exitsCreated: number
+        exitsSkipped: number
+        reciprocalApplied: number
+    }>
 }
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
@@ -88,6 +103,52 @@ class InMemoryLocationRepository implements ILocationRepository {
         from.exits.push({ direction, to: toId, description })
         return { created: true }
     }
+
+    async ensureExitBidirectional(
+        fromId: string,
+        direction: string,
+        toId: string,
+        opts?: { reciprocal?: boolean; description?: string; reciprocalDescription?: string }
+    ) {
+        if (!isDirection(direction)) return { created: false }
+        const result = await this.ensureExit(fromId, direction, toId, opts?.description)
+        if (!opts?.reciprocal) {
+            return result
+        }
+        // Create reciprocal exit
+        const { getOppositeDirection } = await import('../domainModels.js')
+        const oppositeDir = getOppositeDirection(direction)
+        const reciprocalResult = await this.ensureExit(toId, oppositeDir, fromId, opts?.reciprocalDescription)
+        return { created: result.created, reciprocalCreated: reciprocalResult.created }
+    }
+
+    async removeExit(fromId: string, direction: string) {
+        if (!isDirection(direction)) return { removed: false }
+        const from = this.locations.get(fromId)
+        if (!from || !from.exits) return { removed: false }
+        const initialLength = from.exits.length
+        from.exits = from.exits.filter((e) => !(e.direction === direction))
+        const removed = from.exits.length < initialLength
+        return { removed }
+    }
+
+    async applyExits(exits: Array<{ fromId: string; direction: string; toId: string; description?: string; reciprocal?: boolean }>) {
+        let exitsCreated = 0
+        let exitsSkipped = 0
+        let reciprocalApplied = 0
+
+        for (const exit of exits) {
+            const result = await this.ensureExitBidirectional(exit.fromId, exit.direction, exit.toId, {
+                reciprocal: exit.reciprocal,
+                description: exit.description
+            })
+            if (result.created) exitsCreated++
+            else exitsSkipped++
+            if ('reciprocalCreated' in result && result.reciprocalCreated) reciprocalApplied++
+        }
+
+        return { exitsCreated, exitsSkipped, reciprocalApplied }
+    }
 }
 
 let singleton: ILocationRepository | undefined
@@ -117,6 +178,18 @@ export async function getLocationRepository(): Promise<ILocationRepository> {
                     async ensureExit(fromId, direction, toId, description) {
                         const repo = new CosmosLocationRepository(await pending)
                         return repo.ensureExit(fromId, direction, toId, description)
+                    },
+                    async ensureExitBidirectional(fromId, direction, toId, opts) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.ensureExitBidirectional(fromId, direction, toId, opts)
+                    },
+                    async removeExit(fromId, direction) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.removeExit(fromId, direction)
+                    },
+                    async applyExits(exits) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.applyExits(exits)
                     }
                 }
                 singleton = proxy

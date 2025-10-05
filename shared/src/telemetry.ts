@@ -116,6 +116,7 @@ export interface EventPayloadMap {
     }
     'World.Layer.Added': { locationId: string; layerType: string }
     'World.Exit.Created': { fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string }
+    'World.Exit.Removed': { fromLocationId: string; dir: string; toLocationId?: string }
     'World.Event.Processed': {
         eventType: string
         actorKind: string
