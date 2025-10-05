@@ -9,30 +9,31 @@ export default {
             recommended: false
         },
         messages: {
-            avoidRawPagination: 'Use shared paginate()/paginateProjectItems() abstraction instead of raw pageInfo.hasNextPage or endCursor access.'
+            avoidRawPagination:
+                'Use shared paginate()/paginateProjectItems() abstraction instead of raw pageInfo.hasNextPage or endCursor access.'
         },
         schema: []
     },
     create(context) {
-        const filename = context.getFilename().replace(/\\/g, '/');
+        const filename = context.getFilename().replace(/\\/g, '/')
         // Allow in the canonical paginator file itself
-        const allow = /shared\/pagination\.mjs$/.test(filename);
-        if (allow) return {};
+        const allow = /shared\/pagination\.mjs$/.test(filename)
+        if (allow) return {}
         function report(node) {
-            context.report({ node, messageId: 'avoidRawPagination' });
+            context.report({ node, messageId: 'avoidRawPagination' })
         }
         return {
             MemberExpression(node) {
                 if (node.property && !node.computed && node.property.name === 'hasNextPage') {
-                    report(node.property);
+                    report(node.property)
                 }
             },
             Identifier(node) {
                 if (node.name === 'endCursor') {
                     // If part of a property definition like { endCursor } still discourage; helpers should capture it internally.
-                    report(node);
+                    report(node)
                 }
             }
-        };
+        }
     }
-};
+}

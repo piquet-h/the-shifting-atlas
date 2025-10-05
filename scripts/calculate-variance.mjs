@@ -15,9 +15,9 @@
  */
 
 import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
-import { getProjectId } from './shared/provisional-storage.mjs'
-import { dateDiff, wholeDayDiff, extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
 import { paginate } from './shared/pagination.mjs'
+import { classifyIssue, dateDiff, extractFieldValue, wholeDayDiff } from './shared/project-utils.mjs'
+import { getProjectId } from './shared/provisional-storage.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)

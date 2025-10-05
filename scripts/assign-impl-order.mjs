@@ -138,7 +138,10 @@ async function fetchProjectItems() {
         })
         if (projectId) {
             if (collectedErrors.length) {
-                console.warn('fetchProjectItems(): previous attempts produced errors before success:', JSON.stringify(collectedErrors, null, 2))
+                console.warn(
+                    'fetchProjectItems(): previous attempts produced errors before success:',
+                    JSON.stringify(collectedErrors, null, 2)
+                )
             }
             return { projectId, nodes: nodes.filter((n) => n.content && n.content.number) }
         }

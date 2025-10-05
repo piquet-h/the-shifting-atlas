@@ -3,16 +3,16 @@
 import js from '@eslint/js'
 import tsPlugin from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
+import importPlugin from 'eslint-plugin-import'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
 import prettierPlugin from 'eslint-plugin-prettier'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
-import importPlugin from 'eslint-plugin-import'
+import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
+import noRawPaginationLoopRule from './eslint-rules/no-raw-pagination-loop.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
-import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
-import noRawPaginationLoopRule from './eslint-rules/no-raw-pagination-loop.mjs'
 
 export default [
     {
@@ -163,7 +163,7 @@ export default [
     {
         // Automation / maintenance scripts (MJS) - ensure Prettier + internal rules + import ordering
         files: ['scripts/**/*.mjs'],
-    languageOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+        languageOptions: { ecmaVersion: 'latest', sourceType: 'module' },
         plugins: {
             prettier: prettierPlugin,
             import: importPlugin,

@@ -30,8 +30,8 @@
  */
 
 import { parseArgs } from 'node:util'
-import { extractStatus } from './shared/project-utils.mjs'
 import { paginateProjectItems } from './shared/pagination.mjs'
+import { extractStatus } from './shared/project-utils.mjs'
 
 // Import the functions we need from the main sync script
 // Note: This is a bit of duplication, but keeps the logic centralized

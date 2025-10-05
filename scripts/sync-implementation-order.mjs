@@ -27,9 +27,9 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { extractStatus } from './shared/project-utils.mjs'
-import { paginateProjectItems } from './shared/pagination.mjs'
 import { fileURLToPath } from 'node:url'
+import { paginateProjectItems } from './shared/pagination.mjs'
+import { extractStatus } from './shared/project-utils.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -114,7 +114,6 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
         { p: projectId, i: itemId, f: fieldId, v: number }
     )
 }
-
 
 function hashOrdering(items) {
     const h = crypto.createHash('sha256')
