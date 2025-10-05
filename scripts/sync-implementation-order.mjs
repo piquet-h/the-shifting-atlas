@@ -27,6 +27,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { extractStatus } from './shared/project-utils.mjs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -169,20 +170,14 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
     )
 }
 
+
 function hashOrdering(items) {
     const h = crypto.createHash('sha256')
     h.update(JSON.stringify(items.map((i) => ({ issue: i.issue, order: i.order }))))
     return h.digest('hex').slice(0, 12)
 }
 
-function extractStatus(fieldValues) {
-    for (const fv of fieldValues.nodes) {
-        if (fv.field?.name === 'Status') {
-            return fv.name || fv.text || fv.number || ''
-        }
-    }
-    return ''
-}
+// extractStatus imported from shared/project-utils.mjs
 
 // Escapes both backslash and pipe characters for markdown table cells
 function escapeMarkdownTableCell(str) {

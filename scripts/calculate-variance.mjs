@@ -16,6 +16,7 @@
 
 import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
 import { getProjectId } from './shared/provisional-storage.mjs'
+import { dateDiff, wholeDayDiff, extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
@@ -54,21 +55,7 @@ async function ghGraphQL(query, variables) {
  * Calculate date difference in days.
  * @private
  */
-function dateDiff(date1, date2) {
-    const d1 = new Date(date1 + 'T00:00:00Z')
-    const d2 = new Date(date2 + 'T00:00:00Z')
-    return Math.round((d1 - d2) / (1000 * 60 * 60 * 24))
-}
-
-/**
- * Calculate whole day difference (inclusive).
- * @private
- */
-function wholeDayDiff(start, end) {
-    const s = new Date(start + 'T00:00:00Z')
-    const e = new Date(end + 'T00:00:00Z')
-    return Math.max(1, Math.round((e - s) / (1000 * 60 * 60 * 24)))
-}
+// dateDiff & wholeDayDiff now imported from shared/project-utils.mjs
 
 /**
  * Calculate variance metrics for a single issue.
@@ -93,25 +80,13 @@ function calculateVarianceMetrics(provisional, actual) {
  * Extract field value from project item.
  * @private
  */
-function extractFieldValue(node, fieldName) {
-    for (const fv of node.fieldValues.nodes) {
-        if (fv.field?.name === fieldName) {
-            return fv.date || fv.name || fv.number || null
-        }
-    }
-    return null
-}
+// extractFieldValue imported
 
 /**
  * Classify issue by labels.
  * @private
  */
-function classifyIssue(issue) {
-    const labels = issue.labels?.nodes?.map((l) => l.name) || []
-    const scope = labels.find((l) => l.startsWith('scope:')) || ''
-    const type = labels.find((l) => !l.startsWith('scope:')) || ''
-    return { scope, type }
-}
+// classifyIssue imported
 
 /**
  * Fetch project items with provisional and actual schedules.
