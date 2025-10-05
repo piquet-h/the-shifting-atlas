@@ -61,7 +61,7 @@ export default [
             parser: tsParser,
             ecmaVersion: 'latest',
             sourceType: 'module',
-            globals: { process: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly' }
+            globals: { process: 'readonly', console: 'readonly', setTimeout: 'readonly', clearTimeout: 'readonly' }
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
