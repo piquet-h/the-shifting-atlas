@@ -170,7 +170,6 @@ async function updateNumberField(projectId, itemId, fieldId, number) {
     )
 }
 
-
 function hashOrdering(items) {
     const h = crypto.createHash('sha256')
     h.update(JSON.stringify(items.map((i) => ({ issue: i.issue, order: i.order }))))

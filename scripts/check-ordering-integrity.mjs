@@ -18,6 +18,7 @@
  */
 
 import { parseArgs } from 'node:util'
+import { emitOrderingEvent } from './shared/build-telemetry.mjs'
 
 const { values } = parseArgs({
     options: {
@@ -129,35 +130,52 @@ async function main() {
 
     if (ordered.length === 0) {
         console.log('No items with implementation order found.')
+        emitOrderingEvent('integrity.snapshot', {
+            totalIssues: 0,
+            gaps: [],
+            duplicates: [],
+            isContiguous: true
+        })
         return
     }
 
     // Check for duplicates
     const orderValues = ordered.map((o) => o.order)
     const uniqueOrders = new Set(orderValues)
+    const duplicates = []
     if (uniqueOrders.size !== orderValues.length) {
         console.error('❌ VIOLATION: Duplicate order values detected')
-        const duplicates = orderValues.filter((val, idx) => orderValues.indexOf(val) !== idx)
-        console.error(`   Duplicates: ${[...new Set(duplicates)].join(', ')}`)
-        process.exit(1)
+        const dupValues = orderValues.filter((val, idx) => orderValues.indexOf(val) !== idx)
+        duplicates.push(...new Set(dupValues))
+        console.error(`   Duplicates: ${duplicates.join(', ')}`)
     }
 
     // Check for gaps (should be contiguous 1..N)
     const expectedSequence = Array.from({ length: ordered.length }, (_, i) => i + 1)
     const actualSequence = orderValues
 
-    let hasGaps = false
+    const gaps = []
     for (let i = 0; i < expectedSequence.length; i++) {
         if (actualSequence[i] !== expectedSequence[i]) {
-            if (!hasGaps) {
+            if (gaps.length === 0) {
                 console.error('❌ VIOLATION: Non-contiguous ordering detected')
-                hasGaps = true
             }
+            gaps.push(expectedSequence[i])
             console.error(`   Expected ${expectedSequence[i]}, found ${actualSequence[i]} (issue #${ordered[i].issue})`)
         }
     }
 
-    if (hasGaps) {
+    const isContiguous = duplicates.length === 0 && gaps.length === 0
+
+    // Emit integrity.snapshot event
+    emitOrderingEvent('integrity.snapshot', {
+        totalIssues: ordered.length,
+        gaps,
+        duplicates,
+        isContiguous
+    })
+
+    if (!isContiguous) {
         process.exit(1)
     }
 
