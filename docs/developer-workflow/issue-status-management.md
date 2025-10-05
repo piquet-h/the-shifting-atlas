@@ -55,26 +55,20 @@ The workflow detects issue references in PR titles and descriptions using common
 - `resolves #123`
 - etc.
 
-### 4. Manual Status Update Workflow (`update-issue-status.yml`)
+### Manual Status Updates (No Dedicated Workflow)
 
-A reusable workflow for manual status updates or integration with other workflows.
+The former reusable workflow `update-issue-status.yml` has been removed to reduce maintenance surface (duplicate Node setup, token selection logic) and because core transitions are already automated (implementation order + PR lifecycle).
 
-**Manual Usage:**
+For ad‑hoc changes you have two lightweight options:
 
-1. Go to Actions → Update Issue Status
-2. Enter issue number and desired status
-3. Optionally provide a reason for the change
+1. Update the Status field directly in the Project board UI (fastest; immediate GraphQL update)
+2. Run the script locally (or in a one‑off workflow step):
 
-**Workflow Integration:**
-
-```yaml
-- name: Set issue in progress
-  uses: ./.github/workflows/update-issue-status.yml
-  with:
-      issue_number: '123'
-      status: 'In progress'
-      reason: 'Starting development work'
+```bash
+npm run update:issue-status -- --issue-number 123 --status "In progress"
 ```
+
+If frequent manual automation needs re‑emerge, prefer adding a tiny composite action or a GitHub Script step instead of reinstating a full workflow file.
 
 ## Status Transitions
 
