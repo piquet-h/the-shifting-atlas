@@ -68,6 +68,7 @@ test('cosmos location repository upsert - create new location', async () => {
     const result = await repo.upsert(newLocation)
     assert.equal(result.created, true)
     assert.equal(result.id, 'test-123')
+    assert.equal(result.updatedRevision, 1) // New location should return updatedRevision = 1
 
     // Verify it was stored correctly
     const retrieved = await repo.get('test-123')
@@ -92,6 +93,7 @@ test('cosmos location repository upsert - update existing location (revision inc
     const result = await repo.upsert(updatedLocation)
     assert.equal(result.created, false)
     assert.equal(result.id, 'existing-123')
+    assert.equal(result.updatedRevision, 3) // Should return the new revision number
 
     // Verify the version was incremented
     const retrieved = await repo.get('existing-123')
@@ -127,4 +129,101 @@ test('cosmos location repository upsert - fetch stored vertex', async () => {
     assert.equal(fetched.tags?.[1], 'test')
     assert.equal(typeof fetched.version, 'number')
     assert.equal(fetched.version, 5) // Version should be the input version for new location when specified
+})
+
+test('cosmos location repository upsert - idempotent (no content change)', async () => {
+    const existingLocation = { 
+        id: 'idempotent-123', 
+        name: ['Stable Location'], 
+        description: ['This location will not change'], 
+        version: 2,
+        tags: ['stable', 'test']
+    }
+    const fake = new FakeGremlinClient({ locations: { 'idempotent-123': existingLocation }, exits: {} })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Upsert with exact same content
+    const sameLocation = {
+        id: 'idempotent-123',
+        name: 'Stable Location',
+        description: 'This location will not change',
+        tags: ['stable', 'test']
+    }
+
+    const result = await repo.upsert(sameLocation)
+    assert.equal(result.created, false)
+    assert.equal(result.id, 'idempotent-123')
+    assert.equal(result.updatedRevision, undefined) // No revision change for identical content
+
+    // Verify the version was NOT incremented
+    const retrieved = await repo.get('idempotent-123')
+    assert.ok(retrieved)
+    assert.equal(retrieved.version, 2) // Should remain at 2
+})
+
+test('cosmos location repository upsert - revision increment on content change', async () => {
+    const existingLocation = { 
+        id: 'content-change-123', 
+        name: ['Original Name'], 
+        description: ['Original description'], 
+        version: 1,
+        tags: ['original']
+    }
+    const fake = new FakeGremlinClient({ locations: { 'content-change-123': existingLocation }, exits: {} })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Change only the description
+    const modifiedLocation = {
+        id: 'content-change-123',
+        name: 'Original Name',
+        description: 'Modified description',
+        tags: ['original']
+    }
+
+    const result = await repo.upsert(modifiedLocation)
+    assert.equal(result.created, false)
+    assert.equal(result.id, 'content-change-123')
+    assert.equal(result.updatedRevision, 2) // Should increment to 2
+
+    // Verify the version was incremented
+    const retrieved = await repo.get('content-change-123')
+    assert.ok(retrieved)
+    assert.equal(retrieved.version, 2)
+    assert.equal(retrieved.description, 'Modified description')
+})
+
+test('cosmos location repository upsert - tag order does not affect hash', async () => {
+    const existingLocation = { 
+        id: 'tag-order-123', 
+        name: ['Tagged Location'], 
+        description: ['Location with tags'], 
+        version: 1,
+        tags: ['alpha', 'beta', 'gamma']
+    }
+    const fake = new FakeGremlinClient({ locations: { 'tag-order-123': existingLocation }, exits: {} })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Upsert with same tags but different order
+    const reorderedTagsLocation = {
+        id: 'tag-order-123',
+        name: 'Tagged Location',
+        description: 'Location with tags',
+        tags: ['gamma', 'alpha', 'beta'] // Different order
+    }
+
+    const result = await repo.upsert(reorderedTagsLocation)
+    assert.equal(result.created, false)
+    assert.equal(result.updatedRevision, undefined) // No revision change since content is effectively the same
+
+    const retrieved = await repo.get('tag-order-123')
+    assert.ok(retrieved)
+    assert.equal(retrieved.version, 1) // Version should remain unchanged
+})
+
+test('cosmos location repository get - unknown id returns undefined', async () => {
+    const fake = new FakeGremlinClient({ locations: {}, exits: {} })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    const result = await repo.get('unknown-id-999')
+    assert.equal(result, undefined)
 })
