@@ -19,13 +19,23 @@ export class CosmosPlayerRepository implements IPlayerRepository {
             if (existing) return { record: existing, created: false }
         }
         const newId = id || cryptoRandomUUID()
-        // Create vertex (optimistically; ignore race condition for now); include partitionKey for Cosmos Gremlin API
+        // Upsert pattern (fold + coalesce) avoids duplicate vertex creation races for the same supplied id.
+        // We still perform a preliminary get for fast path and clarity of created flag.
+        const existingFast = await (id ? this.get(id) : Promise.resolve(undefined))
+        if (existingFast) return { record: existingFast, created: false }
+        const createdIso = new Date().toISOString()
         await this.client.submit(
-            `g.addV('player').property('id', pid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk).property('createdUtc', created).property('guest', true).property('currentLocationId', startLoc)`,
+            `g.V(pid).hasLabel('player').fold().coalesce(unfold(), addV('player')
+                .property('id', pid)
+                .property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk)
+                .property('createdUtc', created)
+                .property('updatedUtc', created)
+                .property('guest', true)
+                .property('currentLocationId', startLoc))`,
             {
                 pid: newId,
-                pk: WORLD_GRAPH_PARTITION_VALUE, // Partition key required by Cosmos Gremlin API
-                created: new Date().toISOString(),
+                pk: WORLD_GRAPH_PARTITION_VALUE,
+                created: createdIso,
                 startLoc: STARTER_LOCATION_ID
             }
         )
@@ -33,7 +43,8 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         return {
             record: rec || {
                 id: newId,
-                createdUtc: new Date().toISOString(),
+                createdUtc: createdIso,
+                updatedUtc: createdIso,
                 guest: true,
                 currentLocationId: STARTER_LOCATION_ID,
                 name: undefined
@@ -45,10 +56,15 @@ export class CosmosPlayerRepository implements IPlayerRepository {
     async linkExternalId(id: string, externalId: string): Promise<{ updated: boolean; record?: PlayerRecord }> {
         const existing = await this.get(id)
         if (!existing) return { updated: false }
-        await this.client.submit("g.V(pid).hasLabel('player').property('externalId', ext).property('guest', false)", {
-            pid: id,
-            ext: externalId
-        })
+        const updatedIso = new Date().toISOString()
+        await this.client.submit(
+            "g.V(pid).hasLabel('player').property('externalId', ext).property('guest', false).property('updatedUtc', updated)",
+            {
+                pid: id,
+                ext: externalId,
+                updated: updatedIso
+            }
+        )
         const updated = await this.get(id)
         return { updated: true, record: updated }
     }
@@ -67,6 +83,7 @@ function mapVertexToPlayer(v: Record<string, unknown>): PlayerRecord {
     return {
         id: String(v.id || v['id']),
         createdUtc: firstScalar(v.createdUtc) || new Date().toISOString(),
+        updatedUtc: firstScalar(v.updatedUtc) || firstScalar(v.createdUtc) || new Date().toISOString(),
         guest: parseBool(firstScalar(v.guest)) ?? true,
         externalId: firstScalar(v.externalId) || undefined,
         currentLocationId: firstScalar(v.currentLocationId) || STARTER_LOCATION_ID,

@@ -54,6 +54,8 @@ class InMemoryPlayerRepository implements IPlayerRepository {
         if (!rec) return { updated: false }
         rec.externalId = externalId
         rec.guest = false
+        // Track mutation timestamp for analytics / future conflict resolution logic.
+        rec.updatedUtc = new Date().toISOString()
         return { updated: true, record: rec }
     }
     async findByExternalId(externalId: string) {
