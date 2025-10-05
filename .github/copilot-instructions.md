@@ -299,6 +299,48 @@ Quick reference: `./copilot-quickref.md` | Language/style: `./copilot-language-s
 
 ---
 
+## 19. Script Formatting Exemplar (Automation `.mjs`)
+
+Use this pattern when generating or editing automation scripts under `scripts/` so format-on-save produces zero diff:
+
+```js
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { paginateProjectItems } from './shared/pagination.mjs'
+import { extractStatus } from './shared/project-utils.mjs'
+
+// Group order:
+// 1. Node builtins
+// 2. External packages
+// 3. Internal shared helpers (pagination first, then project-utils, telemetry, domain specific)
+// Blank line between groups; alphabetize within group.
+
+async function main() {
+  const { items } = await paginateProjectItems({
+    token: process.env.GITHUB_TOKEN,
+    owner: 'piquet-h',
+    projectNumber: 3,
+    select: (n) => (n.content && n.content.number ? { number: n.content.number, status: extractStatus(n) } : null)
+  })
+  console.log('items', items.length)
+}
+
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
+```
+
+Rules enforced automatically:
+- Prettier (4-space indent, 140 col width, no semicolons, single quotes)
+- ESLint import/order (grouped & alphabetized)
+- Custom rule forbidding raw `pageInfo.hasNextPage` / `endCursor` (must use paginator helpers)
+
+When Copilot suggests code violating these, adjust before accepting to reduce noisy diffs.
+
+
 ## Appendix A. Templates & Checklists
 
 ### A.1 Prompt Template (canonical)

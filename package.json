@@ -32,7 +32,7 @@
         "coverage": "c8 --reporter=text --reporter=lcov npm run test",
         "a11y": "npm run a11y -w frontend",
         "prelint": "node -e \"['@typescript-eslint/eslint-plugin','@typescript-eslint/parser'].forEach(m=>{try{require.resolve(m);console.log('found',m)}catch(e){console.error('MISSING',m);process.exitCode=1}})\"",
-        "lint": "npm run prelint && eslint 'shared/src' 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
+    "lint": "npm run prelint && eslint 'shared/src' 'backend/src' 'frontend/src' 'frontend/api/src' 'scripts' --ext .ts,.tsx,.mjs",
         "lint:fix": "npm run lint -- --fix",
         "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
         "format": "prettier . --write",
@@ -60,6 +60,7 @@
         "eslint-plugin-prettier": "^5.2.1",
         "eslint-plugin-react": "^7.37.5",
         "eslint-plugin-react-hooks": "^5.2.0",
+        "eslint-plugin-import": "^2.29.1",
         "prettier": "^3.3.3",
         "tsx": "^4.20.5",
         "typescript": "^5.9.2"

@@ -7,10 +7,12 @@ import jsxA11y from 'eslint-plugin-jsx-a11y'
 import prettierPlugin from 'eslint-plugin-prettier'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import importPlugin from 'eslint-plugin-import'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
 import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
+import noRawPaginationLoopRule from './eslint-rules/no-raw-pagination-loop.mjs'
 
 export default [
     {
@@ -24,12 +26,14 @@ export default [
         plugins: {
             '@typescript-eslint': tsPlugin,
             prettier: prettierPlugin,
+            import: importPlugin,
             internal: {
                 rules: {
                     'telemetry-event-name': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
-                    'no-direct-secret-access': noDirectSecretAccessRule
+                    'no-direct-secret-access': noDirectSecretAccessRule,
+                    'no-raw-pagination-loop': noRawPaginationLoopRule
                 }
             }
         },
@@ -37,6 +41,15 @@ export default [
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
+            // Enforce consistent import grouping/alphabetization for TS (soft fail: warn)
+            'import/order': [
+                'warn',
+                {
+                    groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object', 'type'],
+                    'newlines-between': 'always',
+                    alphabetize: { order: 'asc', caseInsensitive: true }
+                }
+            ],
             'no-restricted-imports': [
                 'error',
                 {
@@ -51,7 +64,8 @@ export default [
             'internal/telemetry-event-name': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
-            'internal/no-direct-secret-access': 'error'
+            'internal/no-direct-secret-access': 'error',
+            'internal/no-raw-pagination-loop': 'error'
         }
     },
     {
@@ -74,7 +88,8 @@ export default [
             'internal/telemetry-event-name': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
-            'internal/no-direct-secret-access': 'error'
+            'internal/no-direct-secret-access': 'error',
+            'internal/no-raw-pagination-loop': 'error'
         }
     },
     {
@@ -143,6 +158,40 @@ export default [
         rules: {
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn'
+        }
+    },
+    {
+        // Automation / maintenance scripts (MJS) - ensure Prettier + internal rules + import ordering
+        files: ['scripts/**/*.mjs'],
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+        plugins: {
+            prettier: prettierPlugin,
+            import: importPlugin,
+            internal: {
+                rules: {
+                    'telemetry-event-name': telemetryEventRule,
+                    'no-direct-track-event': noDirectTrackEventRule,
+                    'no-room-telemetry': noRoomTelemetryRule,
+                    'no-direct-secret-access': noDirectSecretAccessRule,
+                    'no-raw-pagination-loop': noRawPaginationLoopRule
+                }
+            }
+        },
+        rules: {
+            'prettier/prettier': 'error',
+            'import/order': [
+                'warn',
+                {
+                    groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object'],
+                    'newlines-between': 'always',
+                    alphabetize: { order: 'asc', caseInsensitive: true }
+                }
+            ],
+            'internal/no-raw-pagination-loop': 'error',
+            // Relax legacy script issues; focus on pagination + formatting enforcement first.
+            'no-redeclare': 'off',
+            'no-undef': 'off',
+            'no-unused-vars': 'off'
         }
     }
 ]
