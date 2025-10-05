@@ -87,14 +87,10 @@ export async function getPlayerRepository(): Promise<IPlayerRepository> {
                 const pending = createGremlinClient(cfg.cosmos)
                 const proxy: IPlayerRepository = {
                     async get(id: string) {
-                        const client = await pending
-                        const rows = await client.submit<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", {
-                            playerId: id
-                        })
-                        if (!rows.length) return undefined
-                        const v = rows[0]
-                        const idVal = (v as Record<string, unknown>).id || (v as Record<string, unknown>)['id']
-                        return { id: String(idVal), createdUtc: new Date().toISOString(), guest: true }
+                        // Reuse full CosmosPlayerRepository mapping logic to ensure all expected properties
+                        // (currentLocationId, externalId, updatedUtc) are returned consistently.
+                        const repo = new CosmosPlayerRepository(await pending)
+                        return repo.get(id)
                     },
                     async getOrCreate(id?: string) {
                         const repo = new CosmosPlayerRepository(await pending)
