@@ -23,13 +23,21 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         // The preliminary get above is sufficient; no need for a second existence check.
         const createdIso = new Date().toISOString()
         await this.client.submit(
-            `g.V(pid).hasLabel('player').fold().coalesce(unfold(), addV('player')
-                .property('id', pid)
-                .property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk)
-                .property('createdUtc', created)
-                .property('updatedUtc', created)
-                .property('guest', true)
-                .property('currentLocationId', startLoc))`,
+            `
+                g.V(pid)
+                    .hasLabel('player')
+                    .fold()
+                    .coalesce(
+                        unfold(),
+                        addV('player')
+                            .property('id', pid)
+                            .property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk)
+                            .property('createdUtc', created)
+                            .property('updatedUtc', created)
+                            .property('guest', true)
+                            .property('currentLocationId', startLoc)
+                    )
+            `,
             {
                 pid: newId,
                 pk: WORLD_GRAPH_PARTITION_VALUE,
