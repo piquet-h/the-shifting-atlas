@@ -50,6 +50,7 @@ import { fileURLToPath } from 'node:url'
 import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
 import { trackScheduleVariance, initBuildTelemetry, flushBuildTelemetry } from './shared/build-telemetry.mjs'
 import { getProvisionalSchedule } from './shared/provisional-storage.mjs'
+import { extractFieldValue, classifyIssue, wholeDayDiff } from './shared/project-utils.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file
@@ -127,25 +128,7 @@ function addDays(date, days) {
     return d
 }
 
-function wholeDayDiff(a, b) {
-    return Math.max(1, Math.round((b - a) / (1000 * 60 * 60 * 24)))
-}
-
-function extractFieldValue(node, fieldName) {
-    for (const fv of node.fieldValues.nodes) {
-        if (fv.field?.name === fieldName) {
-            return fv.date || fv.name || null
-        }
-    }
-    return null
-}
-
-function classifyIssue(issue) {
-    const labels = issue.labels?.nodes?.map((l) => l.name) || []
-    const scope = labels.find((l) => l.startsWith('scope:')) || ''
-    const type = labels.find((l) => !l.startsWith('scope:')) || ''
-    return { scope, type }
-}
+// wholeDayDiff / extractFieldValue / classifyIssue imported from shared/project-utils.mjs
 
 // Fetch project items, trying user -> organization -> viewer while suppressing NOT_FOUND on the unused type.
 async function fetchProjectItems() {
@@ -236,12 +219,7 @@ async function main() {
         global: medians.global
     })
 
-    function getImplementationOrder(pi) {
-        for (const fv of pi.fieldValues.nodes) {
-            if (fv.field?.name === 'Implementation order') return fv.number ?? null
-        }
-        return null
-    }
+    // getImplementationOrder helper already defined earlier in main scope; duplicate removed for clarity.
     const ordered = projectItems
         .map((pi) => ({ pi, order: getImplementationOrder(pi) }))
         .filter((x) => typeof x.order === 'number' && x.order > 0)

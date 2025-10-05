@@ -20,12 +20,8 @@
 
 import { parseArgs } from 'node:util'
 import { estimateDuration } from './shared/duration-estimation.mjs'
-import {
-    generateProvisionalComment,
-    shouldPostProvisionalComment,
-    findProvisionalComment,
-    PROVISIONAL_MARKER
-} from './shared/provisional-comment.mjs'
+import { extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
+import { generateProvisionalComment, shouldPostProvisionalComment, findProvisionalComment } from './shared/provisional-comment.mjs'
 import { getProjectId, updateProvisionalSchedule } from './shared/provisional-storage.mjs'
 import { trackProvisionalCreated, initBuildTelemetry } from './shared/build-telemetry.mjs'
 
@@ -140,24 +136,7 @@ async function updateComment(commentId, body) {
 /**
  * Extract field value from project item.
  */
-function extractFieldValue(node, fieldName) {
-    for (const fv of node.fieldValues.nodes) {
-        if (fv.field?.name === fieldName) {
-            return fv.date || fv.name || fv.number || null
-        }
-    }
-    return null
-}
-
-/**
- * Classify issue by labels.
- */
-function classifyIssue(issue) {
-    const labels = issue.labels?.map((l) => l.name) || []
-    const scope = labels.find((l) => l.startsWith('scope:')) || ''
-    const type = labels.find((l) => !l.startsWith('scope:')) || ''
-    return { scope, type }
-}
+// extractFieldValue & classifyIssue imported from shared/project-utils.mjs
 
 /**
  * Fetch all project items with implementation orders.
