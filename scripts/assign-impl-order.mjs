@@ -37,8 +37,20 @@
  * Exit codes: 0 success / no-op; 1 fatal error; 2 configuration error.
  */
 
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import { parseArgs } from 'node:util'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+    initBuildTelemetry,
+    trackOrderingApplied,
+    trackOrderingLowConfidence,
+    flushBuildTelemetry
+} from './shared/build-telemetry.mjs'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ROOT = join(__dirname, '..')
+const ARTIFACTS_DIR = join(ROOT, 'artifacts', 'ordering')
 
 // --- Configuration ---
 const REPO_OWNER = 'piquet-h'
@@ -266,6 +278,33 @@ function computeScore(issue) {
 }
 
 /**
+ * Prune old artifact files, keeping only the last N files.
+ * @param {number} keepCount - Number of recent files to keep
+ */
+function pruneOldArtifacts(keepCount = 200) {
+    try {
+        const files = readdirSync(ARTIFACTS_DIR)
+            .filter((f) => f.endsWith('.json'))
+            .map((f) => ({
+                name: f,
+                path: join(ARTIFACTS_DIR, f),
+                mtime: statSync(join(ARTIFACTS_DIR, f)).mtime
+            }))
+            .sort((a, b) => b.mtime - a.mtime) // newest first
+
+        if (files.length > keepCount) {
+            const toDelete = files.slice(keepCount)
+            console.error(`Pruning ${toDelete.length} old artifact file(s)`)
+            for (const file of toDelete) {
+                unlinkSync(file.path)
+            }
+        }
+    } catch (err) {
+        console.error(`Warning: Failed to prune old artifacts: ${err.message}`)
+    }
+}
+
+/**
  * Calculate confidence level for ordering decision
  * Returns: 'high' | 'medium' | 'low'
  *
@@ -307,6 +346,9 @@ function applyStrategy(existingOrdered, target, strategy) {
 }
 
 async function main() {
+    // Initialize build telemetry
+    initBuildTelemetry()
+
     const { projectId, nodes } = await fetchProjectItems()
     if (!projectId) {
         console.error('Project not found.')
@@ -445,6 +487,38 @@ async function main() {
         }
     }
 
+    // Always save to artifacts directory for metrics collection
+    try {
+        mkdirSync(ARTIFACTS_DIR, { recursive: true })
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+        const artifactFilename = `${timestamp}-issue-${ISSUE_NUMBER}.json`
+        const artifactPath = join(ARTIFACTS_DIR, artifactFilename)
+        writeFileSync(artifactPath, JSON.stringify(result, null, 2))
+        console.error(`Decision artifact saved: ${artifactFilename}`)
+        pruneOldArtifacts(200)
+    } catch (err) {
+        console.error(`Warning: Failed to save decision artifact: ${err.message}`)
+    }
+
+    // Emit telemetry based on confidence
+    if (confidence !== 'high') {
+        const missingMetadata = []
+        if (scope === 'none') missingMetadata.push('scope')
+        if (type === 'none') missingMetadata.push('type')
+        if (milestone === 'none') missingMetadata.push('milestone')
+
+        trackOrderingLowConfidence({
+            issueNumber: ISSUE_NUMBER,
+            recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+            confidence,
+            score: computeScore(targetIssue),
+            reason: `Missing: ${missingMetadata.join(', ')}`,
+            scope,
+            type,
+            milestone
+        })
+    }
+
     if (!APPLY) {
         console.log(JSON.stringify(result, null, 2))
         return
@@ -477,6 +551,23 @@ async function main() {
             await updateNumberField(projectId, d.itemId, fieldId, d.to)
         }
     }
+
+    // Emit telemetry for successful application
+    trackOrderingApplied({
+        issueNumber: ISSUE_NUMBER,
+        recommendedOrder: desiredMap.get(ISSUE_NUMBER),
+        confidence,
+        score: computeScore(targetIssue),
+        changes: diffs.length,
+        strategy: STRATEGY,
+        scope,
+        type,
+        milestone
+    })
+
+    // Flush telemetry to artifact
+    await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
+
     console.log(JSON.stringify({ ...result, applied: true }, null, 2))
 }
 

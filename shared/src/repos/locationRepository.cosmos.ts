@@ -1,9 +1,17 @@
+import crypto from 'crypto'
 import { isDirection } from '../domainModels.js'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
 import { Location } from '../location.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { ILocationRepository } from './locationRepository.js'
+
+/** Compute content hash for revision tracking (name + description + sorted tags) */
+function computeLocationContentHash(name: string, description: string, tags?: string[]): string {
+    const sortedTags = tags && tags.length > 0 ? [...tags].sort() : []
+    const content = JSON.stringify({ name, description, tags: sortedTags })
+    return crypto.createHash('sha256').update(content, 'utf8').digest('hex')
+}
 
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 export class CosmosLocationRepository implements ILocationRepository {
@@ -44,24 +52,56 @@ export class CosmosLocationRepository implements ILocationRepository {
     }
 
     /** Upsert (idempotent) a location vertex. */
-    async upsert(location: Location): Promise<{ created: boolean; id: string }> {
+    async upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }> {
+        // Input validation
+        if (!location.id || !location.name || location.description === undefined) {
+            const error = new Error('Location missing required fields (id, name, description)')
+            trackGameEventStrict('World.Location.Upsert', {
+                locationId: location.id || 'unknown',
+                latencyMs: 0,
+                success: false,
+                reason: 'validation-error'
+            })
+            throw error
+        }
+
         const startTime = Date.now()
         let success = false
         let created = false
         let reason: string | undefined
+        let updatedRevision: number | undefined
 
         try {
+            // Compute content hash for the new location
+            const newContentHash = computeLocationContentHash(location.name, location.description, location.tags)
+
             // First, check if the location exists to determine if this is create vs update
             const existingVertices = await this.client.submit<Record<string, unknown>>('g.V(lid).valueMap(true)', { lid: location.id })
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
 
             let newVersion = 1 // Default version for new locations
+            let shouldIncrementRevision = true
+
             if (exists) {
-                // If updating, increment version from existing
+                // If updating, check if content has changed
                 const existing = existingVertices[0]
                 const currentVersion = typeof existing.version === 'number' ? existing.version : 0
-                newVersion = currentVersion + 1
+
+                // Extract existing content for comparison
+                const existingName = firstScalar(existing.name) || ''
+                const existingDescription = firstScalar(existing.description) || ''
+                const existingTags = Array.isArray(existing.tags) ? (existing.tags as string[]) : undefined
+                const existingContentHash = computeLocationContentHash(existingName, existingDescription, existingTags)
+
+                // Only increment revision if content changed
+                if (existingContentHash === newContentHash) {
+                    shouldIncrementRevision = false
+                    newVersion = currentVersion
+                } else {
+                    shouldIncrementRevision = true
+                    newVersion = currentVersion + 1
+                }
             } else if (location.version !== undefined) {
                 // For new locations, use provided version if specified
                 newVersion = location.version
@@ -87,7 +127,8 @@ export class CosmosLocationRepository implements ILocationRepository {
             )
 
             success = true
-            return { created, id: location.id }
+            updatedRevision = shouldIncrementRevision ? newVersion : undefined
+            return { created, id: location.id, updatedRevision }
         } catch (error) {
             success = false
             reason = error instanceof Error ? error.message : 'Unknown error'
@@ -99,6 +140,8 @@ export class CosmosLocationRepository implements ILocationRepository {
                 latencyMs,
                 success,
                 created: success ? created : undefined,
+                revision: success ? updatedRevision : undefined,
+                ru: undefined, // RU tracking not available from Gremlin client
                 reason: success ? undefined : reason
             })
         }

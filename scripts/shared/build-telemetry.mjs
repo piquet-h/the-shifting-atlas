@@ -18,12 +18,117 @@
 const eventBuffer = []
 
 /**
+ * Build event names for Stage 1 ordering automation.
+ * These are build/CI events, NOT game domain events.
+ */
+export const BUILD_EVENT_NAMES = {
+    // Stage 1 ordering events
+    ORDERING_APPLIED: 'build.ordering_applied',
+    ORDERING_LOW_CONFIDENCE: 'build.ordering_low_confidence',
+    ORDERING_OVERRIDDEN: 'build.ordering_overridden',
+    ORDERING_ASSIGNED: 'build.ordering_assigned',
+    // Stage 2 scheduling events
+    SCHEDULE_VARIANCE: 'build.schedule_variance',
+    PROVISIONAL_SCHEDULE_CREATED: 'build.provisional_schedule_created',
+    VARIANCE_ALERT: 'build.variance_alert',
+    REBASELINE_TRIGGERED: 'build.rebaseline_triggered'
+}
+
+/**
  * Initialize build telemetry.
  * Build telemetry uses GitHub-native features (artifacts, outputs) only.
  * Application Insights is reserved exclusively for game telemetry.
  */
 export function initBuildTelemetry() {
     console.log('Build telemetry initialized (GitHub artifacts mode)')
+}
+
+/**
+ * Track an ordering applied event.
+ * Emitted when implementation order is successfully applied without manual intervention.
+ *
+ * @param {object} data - Ordering data
+ * @param {number} data.issueNumber - Issue number
+ * @param {number} data.recommendedOrder - Recommended implementation order
+ * @param {string} data.confidence - Confidence level (high/medium/low)
+ * @param {number} data.score - Priority score
+ * @param {number} data.changes - Number of issues reordered
+ * @param {string} data.strategy - Strategy used (auto/append/scope-block)
+ * @param {string} data.scope - Scope label
+ * @param {string} data.type - Type label
+ * @param {string} data.milestone - Milestone
+ */
+export function trackOrderingApplied(data) {
+    const event = {
+        name: BUILD_EVENT_NAMES.ORDERING_APPLIED,
+        properties: {
+            ...data,
+            timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation',
+            telemetryType: 'ordering',
+            stage: 1
+        }
+    }
+
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
+    eventBuffer.push(event)
+}
+
+/**
+ * Track a low confidence ordering event.
+ * Emitted when confidence is not high and automation refrains from auto-apply.
+ *
+ * @param {object} data - Ordering data
+ * @param {number} data.issueNumber - Issue number
+ * @param {number} data.recommendedOrder - Recommended implementation order
+ * @param {string} data.confidence - Confidence level (medium/low)
+ * @param {number} data.score - Priority score
+ * @param {string} data.reason - Why confidence is low (missing metadata)
+ * @param {string} data.scope - Scope label (or 'none')
+ * @param {string} data.type - Type label (or 'none')
+ * @param {string} data.milestone - Milestone (or 'none')
+ */
+export function trackOrderingLowConfidence(data) {
+    const event = {
+        name: BUILD_EVENT_NAMES.ORDERING_LOW_CONFIDENCE,
+        properties: {
+            ...data,
+            timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation',
+            telemetryType: 'ordering',
+            stage: 1
+        }
+    }
+
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
+    eventBuffer.push(event)
+}
+
+/**
+ * Track an ordering override event.
+ * Emitted when manual change detected within 24h of last automation run.
+ *
+ * @param {object} data - Override data
+ * @param {number} data.issueNumber - Issue number
+ * @param {number} data.previousOrder - Order assigned by automation
+ * @param {number} data.manualOrder - Order set manually
+ * @param {number} data.hoursSinceAutomation - Hours since automation applied
+ * @param {string} data.automationTimestamp - Timestamp of automation run
+ */
+export function trackOrderingOverridden(data) {
+    const event = {
+        name: BUILD_EVENT_NAMES.ORDERING_OVERRIDDEN,
+        properties: {
+            ...data,
+            timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation',
+            telemetryType: 'ordering',
+            stage: 1
+        }
+    }
+
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
+    eventBuffer.push(event)
 }
 
 /**
@@ -39,7 +144,7 @@ export function initBuildTelemetry() {
  * @param {string} data.actualFinish - Actual finish date (YYYY-MM-DD)
  * @param {number} data.actualDuration - Actual duration (days)
  * @param {number} data.startDelta - Start date delta (days)
- * @param {number} data.finishDelta - Finish date delta (days)
+ * @param {number} data.finishDelta - Finish date (days)
  * @param {number} data.durationDelta - Duration delta (days)
  * @param {number} data.overallVariance - Overall variance (0-1, finish-weighted)
  * @param {string} data.scope - Scope label
@@ -52,7 +157,7 @@ export function initBuildTelemetry() {
  */
 export function trackScheduleVariance(data) {
     const event = {
-        name: 'build.schedule_variance',
+        name: BUILD_EVENT_NAMES.SCHEDULE_VARIANCE,
         properties: {
             ...data,
             timestamp: new Date().toISOString(),
@@ -83,7 +188,7 @@ export function trackScheduleVariance(data) {
  */
 export function trackProvisionalCreated(data) {
     const event = {
-        name: 'build.provisional_schedule_created',
+        name: BUILD_EVENT_NAMES.PROVISIONAL_SCHEDULE_CREATED,
         properties: {
             ...data,
             timestamp: new Date().toISOString(),
@@ -111,7 +216,7 @@ export function trackProvisionalCreated(data) {
  */
 export function trackVarianceAlert(data) {
     const event = {
-        name: 'build.variance_alert',
+        name: BUILD_EVENT_NAMES.VARIANCE_ALERT,
         properties: {
             ...data,
             timestamp: new Date().toISOString(),
