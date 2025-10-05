@@ -31,9 +31,18 @@ async function ghGraphQL(query, variables) {
         body: JSON.stringify({ query, variables })
     })
     const json = await resp.json()
+    if (!resp.ok) {
+        throw new Error(`GitHub GraphQL HTTP error ${resp.status}: ${json.message || resp.statusText}`)
+    }
+    if (json.message && !json.data) {
+        throw new Error(`GitHub GraphQL error: ${json.message}`)
+    }
     if (json.errors) {
         console.error('GraphQL errors:', JSON.stringify(json.errors, null, 2))
         throw new Error('GraphQL query failed')
+    }
+    if (!json.data) {
+        throw new Error('GitHub GraphQL: missing data in response')
     }
     return json.data
 }
@@ -62,6 +71,12 @@ export async function getProjectId(owner, projectNumber, ownerType = 'user') {
 
     const data = await ghGraphQL(query, { owner, number: projectNumber })
     const container = ownerType === 'org' ? data.organization : data.user
+    if (!container || !container.projectV2) {
+        throw new Error(
+            `Project not found or inaccessible (owner=${owner} project=${projectNumber} ownerType=${ownerType}). ` +
+                'Verify token permissions and that the project number is correct.'
+        )
+    }
     return container.projectV2.id
 }
 

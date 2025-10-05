@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global process, console */
+/* global process, console, fetch */
 /**
  * Calculate schedule variance between provisional and actual schedules.
  *
@@ -14,8 +14,8 @@
  *   VARIANCE_THRESHOLD - Alert threshold (default 0.25 = 25%)
  */
 
-import { getProjectId, getProjectFields } from './shared/provisional-storage.mjs'
-import { trackScheduleVariance } from './shared/build-telemetry.mjs'
+import { getProjectId } from './shared/provisional-storage.mjs'
+import { trackScheduleVariance, flushBuildTelemetry, initBuildTelemetry } from './shared/build-telemetry.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)
@@ -183,6 +183,9 @@ async function fetchProjectItemsForVariance(projectId) {
 async function main() {
     console.log(`Calculating variance (window: ${WINDOW_DAYS} days, threshold: ${VARIANCE_THRESHOLD * 100}%)`)
 
+    // Initialize build telemetry (console + artifact buffer)
+    initBuildTelemetry()
+
     // Get project ID
     const projectId = await getProjectId(REPO_OWNER, PROJECT_NUMBER, 'user')
     console.log(`Project ID: ${projectId}`)
@@ -287,6 +290,13 @@ async function main() {
         }
     } else {
         console.log('\nNo variance data available (no items in window with complete schedules)')
+    }
+
+    // Flush telemetry to artifact if path provided (GitHub Action sets TELEMETRY_ARTIFACT)
+    try {
+        await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
+    } catch (e) {
+        console.warn('Telemetry flush failed (non-fatal):', e.message)
     }
 }
 
