@@ -86,3 +86,30 @@ test('400 when missing guid', async () => {
     const res = await playerLink(httpRequest({ method: 'POST', body: {}, headers: { 'Content-Type': 'application/json' } }))
     assert.equal(res.status, 400)
 })
+
+test('409 conflict when externalId already linked to different player', async () => {
+    const bootstrap1 = await playerBootstrap(httpRequest({}))
+    const guid1 = (bootstrap1.jsonBody as { playerGuid: string }).playerGuid
+    const bootstrap2 = await playerBootstrap(httpRequest({}))
+    const guid2 = (bootstrap2.jsonBody as { playerGuid: string }).playerGuid
+    // Link first player to externalId
+    await playerLink(
+        httpRequest({
+            method: 'POST',
+            body: { playerGuid: guid1 },
+            headers: { 'Content-Type': 'application/json', 'x-external-id': 'shared-ext-id' }
+        })
+    )
+    // Attempt to link second player to same externalId
+    const conflictRes = await playerLink(
+        httpRequest({
+            method: 'POST',
+            body: { playerGuid: guid2 },
+            headers: { 'Content-Type': 'application/json', 'x-external-id': 'shared-ext-id' }
+        })
+    )
+    assert.equal(conflictRes.status, 409)
+    const conflictBody = conflictRes.jsonBody as { code: string; playerId: string }
+    assert.equal(conflictBody.code, 'externalId-conflict')
+    assert.equal(conflictBody.playerId, guid1)
+})
