@@ -10,6 +10,10 @@ param cosmosAccountName string = 'cosmos${uniqueString(resourceGroup().id)}'
 param cosmosSqlAccountName string = 'cosmosdoc${uniqueString(resourceGroup().id)}'
 param keyVaultName string = 'kv-${uniqueString(resourceGroup().id)}'
 param appInsightsName string = 'appi-${uniqueString(resourceGroup().id)}'
+param serviceBusNamespaceName string = 'sb-${uniqueString(resourceGroup().id)}'
+param functionAppName string = 'func-${uniqueString(resourceGroup().id)}'
+param storageAccountName string = 'st${uniqueString(resourceGroup().id)}'
+param appServicePlanName string = 'asp-${uniqueString(resourceGroup().id)}'
 @description('SKU tier for the Static Web App. Free for personal/dev, Standard for production features like more staging slots & private endpoints.')
 @allowed([
   'Free'
@@ -29,6 +33,9 @@ param cosmosSqlPlayersContainerName string = 'players'
 param cosmosSqlInventoryContainerName string = 'inventory'
 param cosmosSqlLayersContainerName string = 'descriptionLayers'
 param cosmosSqlEventsContainerName string = 'worldEvents'
+
+// Service Bus queue name for world events
+param serviceBusQueueName string = 'world-events'
 
 // Cosmos DB account (Gremlin) - minimal configuration for development & testing
 resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
@@ -198,6 +205,170 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
   }
 }
 
+// Service Bus Namespace (Basic tier - free for dev/test up to 1M operations/month)
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
+  name: serviceBusNamespaceName
+  location: location
+  sku: {
+    name: 'Basic'
+    tier: 'Basic'
+  }
+  properties: {}
+}
+
+// Service Bus Queue for world events
+resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: serviceBusQueueName
+  parent: serviceBusNamespace
+  properties: {
+    maxSizeInMegabytes: 1024
+    defaultMessageTimeToLive: 'P1D'
+    lockDuration: 'PT5M'
+    enablePartitioning: false
+    requiresDuplicateDetection: false
+    requiresSession: false
+  }
+}
+
+// Storage Account for Function App (required for consumption plan)
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    supportsHttpsTrafficOnly: true
+    minimumTlsVersion: 'TLS1_2'
+  }
+}
+
+// App Service Plan (Consumption / Dynamic - Y1 SKU is free tier)
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+  name: appServicePlanName
+  location: location
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+  properties: {
+    reserved: true // Required for Linux
+  }
+}
+
+// Function App for backend queue processors
+resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: appServicePlan.id
+    siteConfig: {
+      linuxFxVersion: 'NODE|20'
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(functionAppName)
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'node'
+        }
+        {
+          name: 'WEBSITE_NODE_DEFAULT_VERSION'
+          value: '~20'
+        }
+        {
+          name: 'ServiceBusConnection__fullyQualifiedNamespace'
+          value: '${serviceBusNamespaceName}.servicebus.windows.net'
+        }
+        {
+          name: 'COSMOS_ENDPOINT'
+          value: cosmos.properties.documentEndpoint
+        }
+        {
+          name: 'KEYVAULT_NAME'
+          value: keyVaultName
+        }
+        {
+          name: 'COSMOS_KEY_SECRET_NAME'
+          value: 'cosmos-primary-key'
+        }
+        {
+          name: 'COSMOS_GREMLIN_DATABASE'
+          value: cosmosGremlinDatabaseName
+        }
+        {
+          name: 'COSMOS_GREMLIN_GRAPH'
+          value: cosmosGremlinGraphName
+        }
+        {
+          name: 'COSMOS_SQL_ENDPOINT'
+          value: cosmosSql.properties.documentEndpoint
+        }
+        {
+          name: 'COSMOS_SQL_DATABASE'
+          value: cosmosSqlDatabaseName
+        }
+        {
+          name: 'COSMOS_SQL_KEY_SECRET_NAME'
+          value: 'cosmos-sql-primary-key'
+        }
+        {
+          name: 'COSMOS_SQL_CONTAINER_PLAYERS'
+          value: cosmosSqlPlayersContainerName
+        }
+        {
+          name: 'COSMOS_SQL_CONTAINER_INVENTORY'
+          value: cosmosSqlInventoryContainerName
+        }
+        {
+          name: 'COSMOS_SQL_CONTAINER_LAYERS'
+          value: cosmosSqlLayersContainerName
+        }
+        {
+          name: 'COSMOS_SQL_CONTAINER_EVENTS'
+          value: cosmosSqlEventsContainerName
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: appInsights.properties.ConnectionString
+        }
+        {
+          name: 'WORLD_EVENT_DUPE_TTL_MS'
+          value: '600000'
+        }
+        {
+          name: 'WORLD_EVENT_CACHE_MAX_SIZE'
+          value: '10000'
+        }
+        {
+          name: 'WORLD_EVENT_DEADLETTER_MODE'
+          value: 'log-only'
+        }
+      ]
+      ftpsState: 'Disabled'
+    }
+    httpsOnly: true
+  }
+}
+
 // Static Web App (lightweight resource). Note: For production you may prefer to
 // create the Static Web App in the portal or via az cli with a deployment token.
 // Static Web App resource
@@ -284,6 +455,23 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   }
 }
 
+// Add Function App access policy to Key Vault after Function App is created
+resource keyVaultAccessPolicyForFunctionApp 'Microsoft.KeyVault/vaults/accessPolicies@2023-02-01' = {
+  name: 'add'
+  parent: keyVault
+  properties: {
+    accessPolicies: [
+      {
+        tenantId: tenant().tenantId
+        objectId: functionApp.identity.principalId
+        permissions: {
+          secrets: ['get', 'list']
+        }
+      }
+    ]
+  }
+}
+
 // Store Cosmos primary key as a secret so application can retrieve it at runtime via managed identity.
 resource cosmosPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
   name: 'cosmos-primary-key'
@@ -299,6 +487,18 @@ resource cosmosSqlPrimaryKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-02-01
   parent: keyVault
   properties: {
     value: cosmosSql.listKeys().primaryMasterKey
+  }
+}
+
+// Role assignment: Grant Function App "Azure Service Bus Data Receiver" role on the namespace
+// Built-in role ID: 4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0
+resource serviceBusDataReceiverRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(serviceBusNamespace.id, functionApp.id, '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')
+  scope: serviceBusNamespace
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -318,3 +518,8 @@ output cosmosSqlPlayersContainerName string = sqlPlayers.name
 output cosmosSqlInventoryContainerName string = sqlInventory.name
 output cosmosSqlLayersContainerName string = sqlLayers.name
 output cosmosSqlEventsContainerName string = sqlEvents.name
+output serviceBusNamespaceName string = serviceBusNamespace.name
+output serviceBusQueueName string = serviceBusQueue.name
+output functionAppName string = functionApp.name
+output storageAccountName string = storageAccount.name
+output appServicePlanName string = appServicePlan.name

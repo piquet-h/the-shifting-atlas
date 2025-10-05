@@ -18,8 +18,9 @@
         "npm": ">=10.0.0"
     },
     "dependencies": {
-        "@azure/functions": "^4.8.0",
         "@atlas/shared": "file:../shared",
-        "applicationinsights": "^2.9.5"
+        "@azure/functions": "^4.8.0",
+        "applicationinsights": "^2.9.5",
+        "zod": "^4.1.11"
     }
 }

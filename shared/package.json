@@ -9,6 +9,11 @@
         ".": {
             "import": "./dist/index.js",
             "types": "./dist/index.d.ts"
+        },
+        "./events": {
+            "import": "./dist/events/worldEventSchema.js",
+            "types": "./dist/events/worldEventSchema.d.ts",
+            "require": "./dist/events/worldEventSchema.js"
         }
     },
     "browser": {
@@ -31,7 +36,8 @@
     "dependencies": {
         "@azure/identity": "^4.12.0",
         "@azure/keyvault-secrets": "^4.10.0",
-        "gremlin": "^3.7.0"
+        "gremlin": "^3.7.0",
+        "zod": "^4.1.11"
     },
     "devDependencies": {
         "@types/gremlin": "^3.6.5",
