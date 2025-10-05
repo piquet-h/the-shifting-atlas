@@ -130,15 +130,15 @@ jobs:
           # Run assign-impl-order.mjs to get recommendation with confidence scoring
           node scripts/assign-impl-order.mjs \
             --issue "${{ steps.issue.outputs.number }}" \
-            --artifact ordering-decision.json > decision-output.json
+            --artifact ordering-decision.json
 
-          # Extract key fields
-          echo "confidence=$(jq -r .confidence decision-output.json)" >> "$GITHUB_OUTPUT"
-          echo "recommended=$(jq -r .recommendedOrder decision-output.json)" >> "$GITHUB_OUTPUT"
-          echo "changes=$(jq -r .changes decision-output.json)" >> "$GITHUB_OUTPUT"
-          echo "score=$(jq -r .score decision-output.json)" >> "$GITHUB_OUTPUT"
-          jq -r .rationale decision-output.json > rationale.txt
-          echo "Confidence: $(jq -r .confidence decision-output.json), Score: $(jq -r .score decision-output.json)"
+          # Extract key fields from the artifact (more robust than stdout capture)
+          echo "confidence=$(jq -r .confidence ordering-decision.json)" >> "$GITHUB_OUTPUT"
+          echo "recommended=$(jq -r .recommendedOrder ordering-decision.json)" >> "$GITHUB_OUTPUT"
+          echo "changes=$(jq -r .changes ordering-decision.json)" >> "$GITHUB_OUTPUT"
+          echo "score=$(jq -r .score ordering-decision.json)" >> "$GITHUB_OUTPUT"
+          jq -r .rationale ordering-decision.json > rationale.txt
+          echo "Confidence: $(jq -r .confidence ordering-decision.json), Score: $(jq -r .score ordering-decision.json)"
 
       - name: Upload Ordering Decision Artifact
         if: always()
@@ -251,7 +251,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f issue.json issue_body.txt decision-output.json ordering-decision.json ordering-decision-applied.json rationale.txt comment.md || true
+        run: rm -f issue.json issue_body.txt ordering-decision.json ordering-decision-applied.json rationale.txt comment.md || true
 
   doc-drift:
     if: github.event_name == 'pull_request'
