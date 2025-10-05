@@ -24,6 +24,8 @@
  *   node scripts/assign-impl-order.mjs --issue 123 --apply        # apply reordering (min changes)
  *   node scripts/assign-impl-order.mjs --issue 123 --strategy append   # force append only
  *   node scripts/assign-impl-order.mjs --issue 123 --artifact decision.json  # save decision artifact
+ *   node scripts/assign-impl-order.mjs --issue 123 --artifact-dir ./my-artifacts  # custom artifact directory
+ *   node scripts/assign-impl-order.mjs --issue 123 --no-artifact  # skip artifact generation
  *
  * Options:
  *   --issue <number>          Required issue number.
@@ -33,11 +35,20 @@
  *   --owner <login>           Owner login (defaults to repo owner constant).
  *   --owner-type <user|org>   Hint for project owner type.
  *   --artifact <path>         Save ordering decision artifact to JSON file.
+ *   --artifact-dir <path>     Directory for automatic artifacts (default ./ordering-artifacts).
+ *   --no-artifact             Skip automatic artifact generation.
+ *   --prune-old <n>           Keep only N most recent artifacts (default 200).
  *
- * Exit codes: 0 success / no-op; 1 fatal error; 2 configuration error.
+ * Exit codes:
+ *   0 - success / no-op
+ *   1 - fatal error
+ *   2 - configuration error
+ *   3 - concurrency conflict (retry recommended)
+ *   4 - integrity violation (duplicate/gap found)
  */
 
 import { writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { parseArgs } from 'node:util'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,7 +78,10 @@ const { values } = parseArgs({
         'project-number': { type: 'string', default: '3' },
         owner: { type: 'string', default: REPO_OWNER },
         'owner-type': { type: 'string', default: '' },
-        artifact: { type: 'string', default: '' }
+        artifact: { type: 'string', default: '' },
+        'artifact-dir': { type: 'string', default: './ordering-artifacts' },
+        'no-artifact': { type: 'boolean', default: false },
+        'prune-old': { type: 'string', default: '200' }
     }
 })
 
@@ -82,6 +96,9 @@ const PROJECT_NUMBER = Number(values['project-number'])
 const PROJECT_OWNER = values.owner
 const OWNER_TYPE_HINT = (values['owner-type'] || '').toLowerCase()
 const ARTIFACT_PATH = values.artifact || ''
+const ARTIFACT_DIR_OVERRIDE = values['artifact-dir']
+const NO_ARTIFACT = !!values['no-artifact']
+const PRUNE_COUNT = Number(values['prune-old'])
 
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
 if (!token) {
@@ -124,6 +141,70 @@ async function createComment(issueNumber, body) {
         throw new Error(`Failed to create comment: ${resp.status} ${resp.statusText}`)
     }
     return resp.json()
+}
+
+/**
+ * Fetch all comments for an issue.
+ */
+async function fetchComments(issueNumber) {
+    const resp = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${issueNumber}/comments`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' }
+    })
+    if (!resp.ok) {
+        throw new Error(`Failed to fetch comments: ${resp.status} ${resp.statusText}`)
+    }
+    return resp.json()
+}
+
+/**
+ * Update an existing GitHub issue comment.
+ */
+async function updateComment(commentId, body) {
+    const resp = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/comments/${commentId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json' },
+        body: JSON.stringify({ body })
+    })
+    if (!resp.ok) {
+        throw new Error(`Failed to update comment: ${resp.status} ${resp.statusText}`)
+    }
+    return resp.json()
+}
+
+/**
+ * Create or update an idempotent automation comment.
+ * Searches for existing comment with marker and updates it instead of creating duplicates.
+ * @param {number} issueNumber - Issue number
+ * @param {string} body - Comment body (should include marker)
+ * @param {string} marker - Unique marker to identify the comment
+ */
+async function createOrUpdateComment(issueNumber, body, marker = '<!-- IMPL_ORDER_AUTOMATION -->') {
+    try {
+        const comments = await fetchComments(issueNumber)
+        const existing = comments.find((c) => c.body && c.body.includes(marker))
+
+        if (existing) {
+            await updateComment(existing.id, body)
+            console.error(`Updated existing automation comment (ID: ${existing.id})`)
+        } else {
+            await createComment(issueNumber, body)
+            console.error('Created new automation comment')
+        }
+    } catch (err) {
+        throw new Error(`Failed to create/update comment: ${err.message}`)
+    }
+}
+
+/**
+ * Calculate SHA256 hash of the sorted plan for integrity verification.
+ * @param {Array} plan - Sorted plan array
+ * @returns {string} SHA256 hash (hex)
+ */
+function calculatePlanHash(plan) {
+    const sortedPlan = [...plan].sort((a, b) => a.desiredOrder - b.desiredOrder)
+    const planString = JSON.stringify(sortedPlan, null, 0)
+    return createHash('sha256').update(planString).digest('hex')
 }
 
 async function fetchProjectItems() {
@@ -296,15 +377,17 @@ function computeScore(issue) {
 /**
  * Prune old artifact files, keeping only the last N files.
  * @param {number} keepCount - Number of recent files to keep
+ * @param {string} directory - Directory to prune (defaults to ARTIFACTS_DIR)
  */
-function pruneOldArtifacts(keepCount = 200) {
+function pruneOldArtifacts(keepCount = 200, directory = null) {
     try {
-        const files = readdirSync(ARTIFACTS_DIR)
+        const targetDir = directory || ARTIFACTS_DIR
+        const files = readdirSync(targetDir)
             .filter((f) => f.endsWith('.json'))
             .map((f) => ({
                 name: f,
-                path: join(ARTIFACTS_DIR, f),
-                mtime: statSync(join(ARTIFACTS_DIR, f)).mtime
+                path: join(targetDir, f),
+                mtime: statSync(join(targetDir, f)).mtime
             }))
             .sort((a, b) => b.mtime - a.mtime) // newest first
 
@@ -317,6 +400,49 @@ function pruneOldArtifacts(keepCount = 200) {
         }
     } catch (err) {
         console.error(`Warning: Failed to prune old artifacts: ${err.message}`)
+    }
+}
+
+/**
+ * Check ordering integrity for gaps and duplicates.
+ * @param {Array} plan - Sorted plan array with desiredOrder
+ * @returns {object} { valid: boolean, errors: Array<string> }
+ */
+function checkOrderingIntegrity(plan) {
+    const errors = []
+    const orders = plan.map((p) => p.desiredOrder).sort((a, b) => a - b)
+
+    // Check for duplicates
+    const duplicates = new Set()
+    const seen = new Set()
+    for (const order of orders) {
+        if (seen.has(order)) {
+            duplicates.add(order)
+        }
+        seen.add(order)
+    }
+    if (duplicates.size > 0) {
+        errors.push(`Duplicate order values: ${[...duplicates].join(', ')}`)
+    }
+
+    // Check for gaps (should be contiguous 1..N)
+    if (orders.length > 0) {
+        const expected = Array.from({ length: orders.length }, (_, i) => i + 1)
+        const missing = expected.filter((e) => !orders.includes(e))
+        if (missing.length > 0) {
+            errors.push(`Missing order values (gaps): ${missing.join(', ')}`)
+        }
+        if (orders[0] !== 1) {
+            errors.push(`Ordering should start at 1, but starts at ${orders[0]}`)
+        }
+        if (orders[orders.length - 1] !== orders.length) {
+            errors.push(`Ordering should end at ${orders.length}, but ends at ${orders[orders.length - 1]}`)
+        }
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
     }
 }
 
@@ -446,6 +572,21 @@ async function main() {
         finalPlan = scored.map((s, idx) => ({ issue: s.issue.number, score: s.score, desiredOrder: idx + 1, node: s.node }))
     }
 
+    // Check ordering integrity (gaps and duplicates)
+    const integrity = checkOrderingIntegrity(finalPlan)
+    if (!integrity.valid) {
+        console.error('Ordering integrity violation detected:')
+        for (const error of integrity.errors) {
+            console.error(`  - ${error}`)
+        }
+        emitOrderingEvent('assign.integrity_violation', {
+            issueNumber: ISSUE_NUMBER,
+            errors: integrity.errors
+        })
+        await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
+        process.exit(4) // Exit code 4: integrity violation
+    }
+
     // Determine needed updates
     const desiredMap = new Map(finalPlan.map((p) => [p.issue, p.desiredOrder]))
     const diffs = []
@@ -475,6 +616,9 @@ async function main() {
 
     const rationale = `Issue #${ISSUE_NUMBER}: scope=${scope}, type=${type}, milestone=${milestone}, score=${computeScore(targetIssue)}. Strategy: ${STRATEGY}. Changes required: ${diffs.length}.`
 
+    // Calculate plan hash for integrity verification
+    const planHash = calculatePlanHash(finalPlan)
+
     const result = {
         strategy: STRATEGY,
         issue: ISSUE_NUMBER,
@@ -485,6 +629,7 @@ async function main() {
         rationale,
         diff: diffs.sort((a, b) => a.to - b.to),
         plan: finalPlan.sort((a, b) => a.desiredOrder - b.desiredOrder),
+        planHash, // SHA256 hash for reproducibility verification
         metadata: {
             scope,
             type,
@@ -503,17 +648,21 @@ async function main() {
         }
     }
 
-    // Always save to artifacts directory for metrics collection
-    try {
-        mkdirSync(ARTIFACTS_DIR, { recursive: true })
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-        const artifactFilename = `${timestamp}-issue-${ISSUE_NUMBER}.json`
-        const artifactPath = join(ARTIFACTS_DIR, artifactFilename)
-        writeFileSync(artifactPath, JSON.stringify(result, null, 2))
-        console.error(`Decision artifact saved: ${artifactFilename}`)
-        pruneOldArtifacts(200)
-    } catch (err) {
-        console.error(`Warning: Failed to save decision artifact: ${err.message}`)
+    // Always save to artifacts directory for metrics collection (unless --no-artifact)
+    if (!NO_ARTIFACT) {
+        try {
+            const artifactDir = ARTIFACT_DIR_OVERRIDE || ARTIFACTS_DIR
+            mkdirSync(artifactDir, { recursive: true })
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+            // New pattern: decision-<issue>-<timestamp>.json
+            const artifactFilename = `decision-${ISSUE_NUMBER}-${timestamp}.json`
+            const artifactPath = join(artifactDir, artifactFilename)
+            writeFileSync(artifactPath, JSON.stringify(result, null, 2))
+            console.error(`Decision artifact saved: ${artifactFilename}`)
+            pruneOldArtifacts(PRUNE_COUNT, artifactDir)
+        } catch (err) {
+            console.error(`Warning: Failed to save decision artifact: ${err.message}`)
+        }
     }
 
     // Emit assign.attempt event (Stage 1 granular telemetry)
@@ -562,9 +711,12 @@ async function main() {
         })
 
         // Post comment explaining the recommendation (only in apply mode)
+        // Use idempotent comment to avoid duplicates
         if (APPLY) {
             try {
-                const commentBody = `## 🤖 Implementation Order Automation
+                const marker = '<!-- IMPL_ORDER_AUTOMATION -->'
+                const commentBody = `${marker}
+## 🤖 Implementation Order Automation
 
 **Confidence: ${confidence}** (manual review recommended)
 
@@ -589,8 +741,8 @@ To improve automation confidence, please add the missing labels/milestone. The a
 ---
 *This comment was generated by the implementation order automation. See [documentation](../docs/developer-workflow/implementation-order-automation.md) for details.*`
 
-                await createComment(ISSUE_NUMBER, commentBody)
-                console.error('Posted low/medium confidence explanation comment')
+                await createOrUpdateComment(ISSUE_NUMBER, commentBody, marker)
+                console.error('Posted/updated low/medium confidence explanation comment')
             } catch (err) {
                 console.error(`Warning: Failed to post comment: ${err.message}`)
             }
@@ -639,6 +791,39 @@ To improve automation confidence, please add the missing labels/milestone. The a
         const fresh = await fetchIssue(ISSUE_NUMBER) // fetch ensures we have id
         const newItemId = await addIssueToProject(projectId, fresh.id)
         targetNode = { id: newItemId, content: fresh, fieldValues: { nodes: [] } }
+    }
+
+    // Optimistic concurrency control: refetch and verify before applying
+    console.error('Performing optimistic concurrency check...')
+    const { nodes: verifyNodes } = await fetchProjectItems()
+    const concurrencyConflicts = []
+
+    for (const d of diffs) {
+        const currentNode = verifyNodes.find((n) => n.content.number === d.issue)
+        if (currentNode) {
+            const currentValue = getFieldNumber(currentNode, FIELD_NAME)
+            if (currentValue !== d.from) {
+                concurrencyConflicts.push({
+                    issue: d.issue,
+                    expectedFrom: d.from,
+                    actualCurrent: currentValue,
+                    plannedTo: d.to
+                })
+            }
+        }
+    }
+
+    if (concurrencyConflicts.length > 0) {
+        console.error('Concurrency conflict detected. Ordering values changed since planning phase.')
+        console.error('Conflicts:', JSON.stringify(concurrencyConflicts, null, 2))
+        console.error('Recommendation: Retry the operation to recalculate with latest values.')
+        emitOrderingEvent('assign.conflict', {
+            issueNumber: ISSUE_NUMBER,
+            conflicts: concurrencyConflicts,
+            reason: 'concurrency'
+        })
+        await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
+        process.exit(3) // Exit code 3: concurrency conflict
     }
 
     // Perform updates

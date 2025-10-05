@@ -299,20 +299,25 @@ jobs:
           path: |
             drift.json
             drift.stderr.log
+            comment.stderr.log
+          if-no-files-found: ignore
       - name: Comment on PR
         if: steps.drift.outputs.action != 'none'
         # Post an informational comment about detected documentation drift signals.
         # Hardened: failure to comment (permissions / forks) is downgraded to a warning so the job stays green.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
+          set +e  # Allow failures in comment posting
           node scripts/format-drift-comment.mjs drift.json > comment.md
           echo "" >> comment.md
           echo "⚠️ Note: Auto-resequencing from doc drift is not yet implemented. Manual review recommended." >> comment.md
-          if ! gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md; then
-            echo "::warning::Failed to post doc drift comment (likely permissions). Continuing without failing." >&2
+          if ! gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md 2>&1 | tee comment.stderr.log; then
+            echo "::warning::Failed to post doc drift comment (likely permissions or fork restriction). See stderr:" >&2
+            cat comment.stderr.log >&2 || true
           fi
+          exit 0  # Always succeed to avoid failing the workflow
       - name: Open Reprioritisation Proposal Issue
         if: steps.drift.outputs.action == 'resequence'
         env:

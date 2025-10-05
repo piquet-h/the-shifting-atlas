@@ -434,6 +434,7 @@ Outputs JSON with confidence and metadata:
 	"changes": 3,
 	"diff": [{ "issue": 45, "from": 12, "to": 11 }, ...],
 	"plan": [{ "issue": 17, "score": 210, "desiredOrder": 1 }, ...],
+	"planHash": "a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890",
 	"metadata": {
 		"scope": "scope:core",
 		"type": "feature",
@@ -448,6 +449,73 @@ Outputs JSON with confidence and metadata:
 - **High**: Issue has scope label + milestone + type label
 - **Medium**: Issue has scope label + (milestone OR type label)
 - **Low**: Issue missing scope or both milestone and type
+
+### Hardening Features (Issue #105)
+
+The assignment tool has been hardened for production use with the following safety features:
+
+**Optimistic Concurrency Control**:
+- Refetches project state immediately before applying changes
+- Detects if any target issue's order changed since planning phase
+- Exits with code 3 (concurrency conflict) if changes detected
+- Recommendation: Retry the operation to recalculate with latest values
+
+**Artifact Management**:
+```bash
+# Custom artifact directory
+npm run assign:impl-order -- --issue 123 --artifact-dir ./my-artifacts
+
+# Skip automatic artifact generation
+npm run assign:impl-order -- --issue 123 --no-artifact
+
+# Configure pruning (keep last 100 artifacts)
+npm run assign:impl-order -- --issue 123 --prune-old 100
+```
+
+Default behavior: Artifacts saved to `./ordering-artifacts/` with pattern `decision-<issue>-<timestamp>.json`
+
+**Integrity Verification**:
+- All plans include SHA256 hash (`planHash` field) for reproducibility verification
+- Automatic detection of gaps or duplicates in ordering sequence
+- Exits with code 4 (integrity violation) if gaps/duplicates found
+
+**Idempotent Comments**:
+- Medium/low confidence comments include unique marker `<!-- IMPL_ORDER_AUTOMATION -->`
+- Subsequent runs update existing comment instead of creating duplicates
+- Reduces notification noise and maintains comment history
+
+**Exit Codes**:
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | Success or no-op | Continue |
+| 1 | Fatal error | Check logs, fix issue |
+| 2 | Configuration error | Verify options and environment |
+| 3 | Concurrency conflict | Retry operation (recommended) |
+| 4 | Integrity violation | Manual review required; indicates gaps or duplicates |
+
+**Doc Drift Workflow**:
+
+The `doc-drift` job in `auto-assign-impl-order.yml` has been hardened:
+- Explicit permissions block (contents:read, pull-requests:write, issues:write)
+- Comment failures downgraded to warnings (don't fail the job)
+- Always uploads artifacts (`drift.json`, `drift.stderr.log`, `comment.stderr.log`)
+- Analyzer script failures properly fail the job
+- Comment failures captured in logs for troubleshooting
+
+**Failure Mode Matrix**:
+
+| Scenario | Job Result | Artifacts | Notes |
+|----------|------------|-----------|-------|
+| Analyzer succeeds, comment succeeds | ✅ Pass | Full artifacts | Normal operation |
+| Analyzer succeeds, comment fails | ✅ Pass (warning) | Full artifacts + stderr | Fork restrictions or permissions |
+| Analyzer fails | ❌ Fail | Partial artifacts + stderr | Processing error, must be fixed |
+
+To retrieve artifacts after a run:
+```bash
+gh run view <run-id> --log
+gh run download <run-id> --name doc-drift-<run-id>
+```
 
 No changes (no-op) keeps ordering stable.
 

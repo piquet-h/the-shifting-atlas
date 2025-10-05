@@ -36,6 +36,7 @@ const EXPECTED_KEYS = new Set([
     'rationale',
     'diff',
     'plan',
+    'planHash',
     'metadata',
     'applied',
     'reason',
