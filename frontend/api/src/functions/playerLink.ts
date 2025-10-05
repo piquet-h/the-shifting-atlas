@@ -32,8 +32,13 @@ export async function playerLink(request: HttpRequest): Promise<HttpResponseInit
     const externalId = request.headers.get('x-external-id') || `ext-${guid.slice(0, 8)}`
     const alreadyLinked = !!record.externalId && record.guest === false
     if (!alreadyLinked) {
-        await playerRepo.linkExternalId(guid, externalId)
-        trackGameEventStrict('Auth.Player.Upgraded', { linkStrategy: 'merge', hadGuestProgress: true }, { playerGuid: guid })
+        const linkResult = await playerRepo.linkExternalId(guid, externalId)
+        if (linkResult.conflict) {
+            return json(409, { code: 'externalId-conflict', playerId: linkResult.existingPlayerId })
+        }
+        if (linkResult.updated) {
+            trackGameEventStrict('Auth.Player.Upgraded', { linkStrategy: 'merge', hadGuestProgress: true }, { playerGuid: guid })
+        }
     }
     // Optional latency metric for upgrade path
     const latencyMs = Date.now() - started
