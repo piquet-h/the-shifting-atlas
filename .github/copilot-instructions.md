@@ -445,3 +445,39 @@ Fast Path Heuristic:
 
 Rationale:
 This codifies a “logs-first, patch-second” discipline prompted by prior wasted cycles where guessing preceded log retrieval.
+
+---
+
+## 19. Active Follow-Up Backlog (Automation & Persistence)
+
+Purpose: Provide the agent with a canonical list of currently open follow-up issues created to close gaps discovered in the closed-issue audit (2025-10-05). Do NOT duplicate scope or create variants; extend or close these in place.
+
+| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                           | Dependencies / References                       |
+| ----- | --------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------------------- |
+| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                   | Refs closed #4; enables richer traversal & look |
+| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                   | Contract doc, precursor to AI events            |
+| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness           | ADR-002; closed #76 gap                         |
+| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert | Depends on #100 (locations)                     |
+| #104  | Stage 1 Ordering Telemetry & Metrics                | devx / enhancement      | Automation observability                | Builds on closed #82; before #106               |
+| #105  | Ordering Assignment Hardening                       | devx / enhancement      | Concurrency & artifact integrity        | Complements #104, precursor to #106             |
+| #106  | Stage 2 Predictive Scheduling Execution             | devx / enhancement      | Provisional scheduling & variance       | Builds on #104/#105; closed #83 spec            |
+| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness          | Closed #49 baseline                             |
+| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals       | Historical #17 #18 #19                          |
+| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                    | Closed #34 implementation                       |
+| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                    | Closed #24; relates #7 (#103)                   |
+| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                  | Closed #28                                      |
+
+Prioritization Guidance (apply when selecting “Next Up” beyond ordering field):
+
+1. Developer acceleration / automation hardening (#104, #105, #106, #108, #111).
+2. Core world data foundations (#100, #103) then asynchronous evolution (#101).
+3. Infrastructure correctness (#102) before higher-level event processing (#101).
+4. Security & reliability (#107) followed by analytics/telemetry enhancements (#109, #110).
+
+Rules:
+
+- Do not open duplicate issues for the same gap; update these.
+- When closing one, ensure acceptance criteria are mirrored in PR description & tests.
+- Update this section only when adding or fully retiring a follow-up; keep minimal diff.
+
+NOTE: Implementation order numeric field remains source of truth for sequencing; this list is a thematic index only.
