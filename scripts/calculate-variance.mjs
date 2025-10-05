@@ -187,7 +187,11 @@ async function main() {
     initBuildTelemetry()
 
     // Get project ID
-    const projectId = await getProjectId(REPO_OWNER, PROJECT_NUMBER, 'user')
+    const projectId = await getProjectId(
+        REPO_OWNER,
+        PROJECT_NUMBER,
+        process.env.PROJECT_OWNER_TYPE || 'auto'
+    )
     console.log(`Project ID: ${projectId}`)
 
     // Fetch all items

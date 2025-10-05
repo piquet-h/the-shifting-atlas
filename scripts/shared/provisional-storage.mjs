@@ -56,28 +56,48 @@ async function ghGraphQL(query, variables) {
  * @returns {Promise<string>} Project ID
  */
 export async function getProjectId(owner, projectNumber, ownerType = 'user') {
-    const query =
-        ownerType === 'org'
-            ? `query($owner:String!,$number:Int!){
-                organization(login:$owner){
-                    projectV2(number:$number){id}
-                }
-            }`
-            : `query($owner:String!,$number:Int!){
-                user(login:$owner){
-                    projectV2(number:$number){id}
-                }
-            }`
-
-    const data = await ghGraphQL(query, { owner, number: projectNumber })
-    const container = ownerType === 'org' ? data.organization : data.user
-    if (!container || !container.projectV2) {
-        throw new Error(
-            `Project not found or inaccessible (owner=${owner} project=${projectNumber} ownerType=${ownerType}). ` +
-                'Verify token permissions and that the project number is correct.'
-        )
+    // Support automatic fallback similar to sync-implementation-order script.
+    const attempts = []
+    if (ownerType === 'auto' || ownerType === '' || ownerType == null) {
+        attempts.push('user', 'organization', 'viewer')
+    } else if (ownerType === 'org' || ownerType === 'organization') {
+        attempts.push('organization')
+    } else if (ownerType === 'viewer') {
+        attempts.push('viewer')
+    } else {
+        attempts.push('user')
     }
-    return container.projectV2.id
+
+    const errors = []
+    for (const kind of attempts) {
+        try {
+            let query
+            if (kind === 'viewer') {
+                query = `query($number:Int!){ viewer{ projectV2(number:$number){ id } } }`
+                const data = await ghGraphQL(query, { number: projectNumber })
+                const project = data.viewer?.projectV2
+                if (project?.id) return project.id
+            } else if (kind === 'organization') {
+                query = `query($owner:String!,$number:Int!){ organization(login:$owner){ projectV2(number:$number){ id } } }`
+                const data = await ghGraphQL(query, { owner, number: projectNumber })
+                const project = data.organization?.projectV2
+                if (project?.id) return project.id
+            } else {
+                // user
+                query = `query($owner:String!,$number:Int!){ user(login:$owner){ projectV2(number:$number){ id } } }`
+                const data = await ghGraphQL(query, { owner, number: projectNumber })
+                const project = data.user?.projectV2
+                if (project?.id) return project.id
+            }
+            errors.push(`${kind}: not found`)
+        } catch (e) {
+            errors.push(`${kind}: ${e.message}`)
+        }
+    }
+    throw new Error(
+        `Project not found or inaccessible after attempts (${attempts.join(', ')}) for owner='${owner}' number=${projectNumber}. ` +
+            `Errors: ${errors.join(' | ')}. Ensure workflow permissions include 'projects: read' and number is correct.`
+    )
 }
 
 /**
