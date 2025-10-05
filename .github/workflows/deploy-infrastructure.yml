@@ -53,10 +53,13 @@ jobs:
 
       - name: What-if (Full JSON)
         run: |
-          az deployment group what-if \
+          if ! az deployment group what-if \
             --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
             --template-file $BICEP_FILE \
-            --result-format FullJson > whatif.json || echo '{}' > whatif.json
+            --result-format FullJson > whatif.json; then
+            echo '{}' > whatif.json
+          fi
+
       - name: Upload what-if artifact
         uses: actions/upload-artifact@v4
         with:
