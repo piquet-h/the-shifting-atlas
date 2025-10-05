@@ -258,6 +258,14 @@ jobs:
     name: Detect Reprioritisation Signals (Docs)
     runs-on: ubuntu-latest
     timeout-minutes: 6
+    # Explicit minimal permissions needed for this job (do not rely on broader defaults):
+    # - contents: read (fetch & diff)
+    # - pull-requests: write (post PR comment)
+    # - issues: write (optional future: create proposal issue)
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -267,25 +275,44 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Resolve Base/Head Info
+        run: |
+          echo "Base ref: origin/${{ github.base_ref }}"
+          echo "Head SHA: $GITHUB_SHA"
       - name: Analyze Doc Drift
         id: drift
         run: |
-          node scripts/analyze-doc-drift.mjs --base origin/${{ github.base_ref }} --head HEAD > drift.json
+          set -euo pipefail
+          if ! node scripts/analyze-doc-drift.mjs --base origin/${{ github.base_ref }} --head HEAD > drift.json 2>drift.stderr.log; then
+            echo "::error::Doc drift analyzer failed. See stderr (first 120 lines) below:" >&2
+            sed -n '1,120p' drift.stderr.log || true
+            exit 1
+          fi
           echo "action=$(jq -r .recommendedAction drift.json)" >> $GITHUB_OUTPUT
-          echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
+            echo "score=$(jq -r .scoreTotal drift.json)" >> $GITHUB_OUTPUT
+          echo "Analyzer succeeded with action=$(jq -r .recommendedAction drift.json) score=$(jq -r .scoreTotal drift.json)"
+      - name: Upload Drift Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-drift-${{ github.run_id }}
+          path: |
+            drift.json
+            drift.stderr.log
       - name: Comment on PR
         if: steps.drift.outputs.action != 'none'
-        # Use GH_TOKEN (not GITHUB_TOKEN) so the GitHub CLI authenticates properly.
-        # Failure cause: previous run exported only GITHUB_TOKEN; gh CLI ignores it and attempted an
-        # unauthenticated GraphQL addComment -> "Resource not accessible by integration".
-        # Mapping the workflow token to GH_TOKEN resolves the permission error.
+        # Post an informational comment about detected documentation drift signals.
+        # Hardened: failure to comment (permissions / forks) is downgraded to a warning so the job stays green.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           node scripts/format-drift-comment.mjs drift.json > comment.md
           echo "" >> comment.md
           echo "⚠️ Note: Auto-resequencing from doc drift is not yet implemented. Manual review recommended." >> comment.md
-          gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md
+          if ! gh pr comment ${{ github.event.pull_request.number }} --body-file comment.md; then
+            echo "::warning::Failed to post doc drift comment (likely permissions). Continuing without failing." >&2
+          fi
       - name: Open Reprioritisation Proposal Issue
         if: steps.drift.outputs.action == 'resequence'
         env:
