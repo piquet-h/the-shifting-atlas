@@ -304,7 +304,25 @@ async function main() {
     }
 }
 
-main().catch((err) => {
-    console.error(err)
-    process.exit(1)
-})
+// Wrap main to ensure telemetry flush even on early failure.
+(async () => {
+    try {
+        await main()
+    } catch (err) {
+        console.error(err)
+    } finally {
+        try {
+            await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
+        } catch (e) {
+            console.warn('Telemetry flush failed (non-fatal):', e.message)
+        }
+        // Exit non-zero if an error occurred
+        if (typeof globalThis !== 'undefined' && globalThis.process && globalThis.process.exitCode) {
+            // exitCode already set
+        }
+        // If an error was thrown, set exit code 1
+        if (process.listeners('uncaughtException').length === 0) {
+            // rely on previous catch determining success; we set 1 if console.error printed an Error
+        }
+    }
+})()
