@@ -42,8 +42,25 @@ Workflow path:
     - **High** (scope + milestone + type): auto-apply ordering → regenerate docs → commit & push (silent success, no comment)
     - **Medium / Low**: no auto-apply; issue comment summarises recommendation & missing metadata
 3. **Transparency**: Every run emits an artifact. Comments only where human input is useful (non-high confidence).
+4. **Telemetry & Metrics** (Stage 1 complete):
+    - Build telemetry events track ordering outcomes (NOT game telemetry - see [Build Telemetry](./build-telemetry.md))
+    - Artifacts stored in `artifacts/ordering/` for metrics analysis
+    - Weekly metrics available via `npm run metrics:weekly`
+    - Override detection tracks manual changes within 24h of automation
+    - Contiguous integrity checker validates no gaps/duplicates
 
 Legacy scripts `analyze-issue-priority.mjs` & `apply-impl-order-assignment.mjs` have been removed; logic is fully consolidated in `assign-impl-order.mjs`.
+
+### Telemetry Events
+
+**CRITICAL**: Build automation events are tracked via `scripts/shared/build-telemetry.mjs` (NOT `shared/src/telemetryEvents.ts` which is for game domain events only).
+
+Stage 1 ordering events:
+- `build.ordering_applied` - High confidence order applied successfully
+- `build.ordering_low_confidence` - Medium/low confidence (manual review needed)
+- `build.ordering_overridden` - Manual change detected within 24h of automation
+
+See [Build Telemetry](./build-telemetry.md) for complete separation rules and rationale.
 
 #### Legacy Scoring (Reference Only)
 
@@ -132,7 +149,52 @@ Preferred flow:
 
 ## Audit Trail
 
-Currently changes are Project-field edits (visible in Project history) plus regenerated `docs/roadmap.md` diffs. The decision artifact (`ordering-decision.json`) attached to each workflow run provides an auditable snapshot of rationale & plan.
+All ordering decisions are tracked through multiple mechanisms:
+
+1. **Decision Artifacts**: Each run saves to `artifacts/ordering/<timestamp>-issue-<num>.json` with:
+   - Confidence level, score, recommended order
+   - Applied status, metadata (scope, type, milestone)
+   - Diff of all changes
+   - Full execution plan
+
+2. **Build Telemetry Events**: Emitted to GitHub Actions logs and artifacts:
+   - `build.ordering_applied` - Successful auto-application
+   - `build.ordering_low_confidence` - Manual review needed
+   - `build.ordering_overridden` - Manual change detected
+
+3. **Project History**: Field changes visible in GitHub Project v2 interface
+
+4. **Roadmap Diffs**: Changes to `docs/roadmap.md` tracked in git commits
+
+### Metrics and Monitoring
+
+Run weekly metrics to track automation effectiveness:
+
+```bash
+npm run metrics:weekly
+```
+
+Outputs:
+- Total issues processed (last 7 days)
+- High confidence auto-applied percentage
+- Medium/low confidence requiring manual review
+- Override rate (manual changes within 24h)
+
+Check ordering integrity:
+
+```bash
+npm run check:ordering-integrity
+```
+
+Validates contiguous ordering (1..N) with no gaps or duplicates. Exits non-zero on violations.
+
+Detect overrides:
+
+```bash
+npm run detect:ordering-overrides
+```
+
+Identifies manual changes within 24h of automation runs and emits telemetry events.
 
 ## Edge Cases
 
