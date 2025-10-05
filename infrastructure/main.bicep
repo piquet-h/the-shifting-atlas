@@ -208,7 +208,8 @@ resource gremlinGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/gr
 }
 
 // Service Bus Namespace (Basic tier - free for dev/test up to 1M operations/month)
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01' = {
+// Updated to latest stable API version with available type definitions (2024-01-01)
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: serviceBusNamespaceName
   location: location
   sku: {
@@ -219,7 +220,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01' = {
 }
 
 // Service Bus Queue for world events
-resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01' = {
+resource serviceBusQueue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01' = {
   name: serviceBusQueueName
   parent: serviceBusNamespace
   properties: {
