@@ -227,3 +227,23 @@ test('cosmos location repository get - unknown id returns undefined', async () =
     const result = await repo.get('unknown-id-999')
     assert.equal(result, undefined)
 })
+
+test('cosmos location repository upsert - validation error for missing fields', async () => {
+    const fake = new FakeGremlinClient({ locations: {}, exits: {} })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Missing required fields should throw
+    const invalidLocation = {
+        id: 'invalid-123',
+        name: 'Test'
+        // missing description
+    }
+
+    try {
+        await repo.upsert(invalidLocation as any)
+        assert.fail('Should have thrown validation error')
+    } catch (error) {
+        assert.ok(error instanceof Error)
+        assert.ok(error.message.includes('missing required fields'))
+    }
+})
