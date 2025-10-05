@@ -138,7 +138,7 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
         resource: {
           id: cosmosSqlPlayersContainerName
           partitionKey: {
-            paths: [ '/id' ]
+            paths: ['/id']
             kind: 'Hash'
             version: 2
           }
@@ -155,7 +155,7 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
         resource: {
           id: cosmosSqlInventoryContainerName
           partitionKey: {
-            paths: [ '/playerId' ]
+            paths: ['/playerId']
             kind: 'Hash'
             version: 2
           }
@@ -171,7 +171,7 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
         resource: {
           id: cosmosSqlLayersContainerName
           partitionKey: {
-            paths: [ '/locationId' ]
+            paths: ['/locationId']
             kind: 'Hash'
             version: 2
           }
@@ -187,7 +187,7 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
         resource: {
           id: cosmosSqlEventsContainerName
           partitionKey: {
-            paths: [ '/scopeKey' ]
+            paths: ['/scopeKey']
             kind: 'Hash'
             version: 2
           }
@@ -198,7 +198,6 @@ resource cosmosSql 'Microsoft.DocumentDB/databaseAccounts@2023-09-15' = {
     }
   }
 }
-
 
 // Service Bus Namespace (Basic tier - free for dev/test up to 1M operations/month)
 // Updated to latest stable API version with available type definitions (2024-01-01)
@@ -241,15 +240,13 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 }
 
 // App Service Plan (Consumption / Dynamic - Y1 SKU is free tier)
-resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2024-11-01' = {
   name: appServicePlanName
   location: location
+  kind: 'linux'
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
-  }
-  properties: {
-    reserved: true // Required for Linux
+    tier: 'FlexConsumption'
+    name: 'FC1'
   }
 }
 
@@ -493,7 +490,10 @@ resource serviceBusDataReceiverRole 'Microsoft.Authorization/roleAssignments@202
   name: guid(serviceBusNamespace.id, functionApp.id, '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')
   scope: serviceBusNamespace
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0')
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
+    )
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }

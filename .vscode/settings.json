@@ -98,5 +98,8 @@
         "yaml": true,
         "shellscript": true
     },
-    "github.copilot.chat.reviewSelection.instructions": []
+    "github.copilot.chat.reviewSelection.instructions": [],
+    "[bicep]": {
+        "editor.defaultFormatter": "ms-azuretools.vscode-bicep"
+    }
 }
