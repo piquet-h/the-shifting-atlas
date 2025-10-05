@@ -105,7 +105,15 @@ export interface EventPayloadMap {
     'Command.Executed': { command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null }
     'World.Location.Generated': { locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string }
     'World.Location.Rejected': { reasonCode: string; promptHash?: string; similarity?: number }
-    'World.Location.Upsert': { locationId: string; ru?: number; latencyMs?: number; success: boolean; created?: boolean; reason?: string }
+    'World.Location.Upsert': {
+        locationId: string
+        ru?: number
+        latencyMs?: number
+        success: boolean
+        created?: boolean
+        revision?: number
+        reason?: string
+    }
     'World.Layer.Added': { locationId: string; layerType: string }
     'World.Exit.Created': { fromLocationId: string; toLocationId: string; dir: string; kind: string; genSource?: string }
     'Prompt.Genesis.Issued': { promptHash: string; model: string; contextSize?: number }

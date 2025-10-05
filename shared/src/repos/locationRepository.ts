@@ -9,8 +9,8 @@ import { CosmosLocationRepository } from './locationRepository.cosmos.js'
 export interface ILocationRepository {
     get(id: string): Promise<Location | undefined>
     move(fromId: string, direction: string): Promise<{ status: 'ok'; location: Location } | { status: 'error'; reason: string }>
-    /** Upsert (idempotent) a location vertex. Returns whether a new vertex was created. */
-    upsert(location: Location): Promise<{ created: boolean; id: string }>
+    /** Upsert (idempotent) a location vertex. Returns whether a new vertex was created and updated revision (if changed). */
+    upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }>
     /** Ensure an exit edge between two locations. Returns whether a new edge was created. */
     ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }>
 }
@@ -39,18 +39,39 @@ class InMemoryLocationRepository implements ILocationRepository {
     async upsert(location: Location) {
         const existing = this.locations.get(location.id)
         if (existing) {
+            // Compute content hash for comparison
+            const existingHash = this.computeContentHash(existing.name, existing.description, existing.tags)
+            const newHash = this.computeContentHash(location.name, location.description, location.tags)
+
+            // Only update version if content changed
+            const contentChanged = existingHash !== newHash
+            const newVersion = contentChanged ? (existing.version || 0) + 1 : existing.version
+
             // Shallow update (keep existing exits unless provided)
             this.locations.set(location.id, {
                 ...existing,
                 name: location.name ?? existing.name,
                 description: location.description ?? existing.description,
                 exits: location.exits || existing.exits,
-                version: location.version ?? existing.version
+                version: newVersion ?? location.version
             })
-            return { created: false, id: location.id }
+            return { created: false, id: location.id, updatedRevision: contentChanged ? newVersion : undefined }
         }
-        this.locations.set(location.id, { ...location, exits: location.exits || [] })
-        return { created: true, id: location.id }
+        this.locations.set(location.id, { ...location, exits: location.exits || [], version: location.version || 1 })
+        return { created: true, id: location.id, updatedRevision: location.version || 1 }
+    }
+
+    private computeContentHash(name: string, description: string, tags?: string[]): string {
+        const sortedTags = tags && tags.length > 0 ? [...tags].sort() : []
+        const content = JSON.stringify({ name, description, tags: sortedTags })
+        // Simple hash for in-memory (doesn't need crypto strength)
+        let hash = 0
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i)
+            hash = (hash << 5) - hash + char
+            hash = hash & hash // Convert to 32bit integer
+        }
+        return hash.toString(36)
     }
     async ensureExit(fromId: string, direction: string, toId: string, description?: string) {
         if (!isDirection(direction)) return { created: false }
