@@ -37,15 +37,17 @@ function loadArtifacts() {
             }))
             .sort((a, b) => b.mtime - a.mtime) // newest first
 
-        return files.map((f) => {
-            try {
-                const content = JSON.parse(readFileSync(f.path, 'utf-8'))
-                return { ...content, _filename: f.name, _mtime: f.mtime }
-            } catch (err) {
-                console.error(`Warning: Failed to parse ${f.name}: ${err.message}`)
-                return null
-            }
-        }).filter(Boolean)
+        return files
+            .map((f) => {
+                try {
+                    const content = JSON.parse(readFileSync(f.path, 'utf-8'))
+                    return { ...content, _filename: f.name, _mtime: f.mtime }
+                } catch (err) {
+                    console.error(`Warning: Failed to parse ${f.name}: ${err.message}`)
+                    return null
+                }
+            })
+            .filter(Boolean)
     } catch (err) {
         console.error(`Warning: Failed to load artifacts: ${err.message}`)
         return []
@@ -58,7 +60,7 @@ function loadArtifacts() {
  */
 function detectOverrides(artifacts) {
     const overrides = []
-    
+
     // Group artifacts by issue number
     const byIssue = new Map()
     for (const artifact of artifacts) {
@@ -122,13 +124,15 @@ async function main() {
     }
 
     const overrides = detectOverrides(artifacts)
-    
+
     if (overrides.length === 0) {
         console.log('No overrides detected')
     } else {
         console.log(`Found ${overrides.length} override(s):`)
         for (const override of overrides) {
-            console.log(`  Issue #${override.issueNumber}: ${override.previousOrder} -> ${override.manualOrder} (${override.hoursSinceAutomation}h after automation)`)
+            console.log(
+                `  Issue #${override.issueNumber}: ${override.previousOrder} -> ${override.manualOrder} (${override.hoursSinceAutomation}h after automation)`
+            )
             // Legacy event for backward compatibility
             trackOrderingOverridden(override)
             // New granular event

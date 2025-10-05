@@ -34,7 +34,7 @@ function checkGameTelemetryFile() {
     try {
         const content = readFileSync(file, 'utf-8')
         const lines = content.split('\n')
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
             // Check for build. prefix in string literals
@@ -54,7 +54,8 @@ function checkGameTelemetryFile() {
                     violations.push({
                         file: 'shared/src/telemetryEvents.ts',
                         line: i + 1,
-                        message: 'Snake_case event name found (build telemetry convention). Game events should use Domain.Subject.Action format',
+                        message:
+                            'Snake_case event name found (build telemetry convention). Game events should use Domain.Subject.Action format',
                         content: line.trim()
                     })
                 }
@@ -71,7 +72,7 @@ function checkBuildTelemetryFile() {
     try {
         const content = readFileSync(file, 'utf-8')
         const lines = content.split('\n')
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]
             // Check for PascalCase.PascalCase.PascalCase pattern (game telemetry convention)
@@ -109,7 +110,7 @@ function checkSeparationComments() {
         { path: join(ROOT, 'scripts', 'shared', 'build-telemetry.mjs'), keyword: 'CRITICAL' },
         { path: join(ROOT, 'shared', 'src', 'telemetryEvents.ts'), keyword: 'game' }
     ]
-    
+
     for (const { path, keyword } of files) {
         try {
             const content = readFileSync(path, 'utf-8')
@@ -129,11 +130,11 @@ function checkSeparationComments() {
 
 function main() {
     console.log('Validating telemetry separation...\n')
-    
+
     checkGameTelemetryFile()
     checkBuildTelemetryFile()
     checkSeparationComments()
-    
+
     if (violations.length === 0) {
         console.log('✅ No telemetry separation violations found')
         console.log('\nSeparation rules:')
@@ -141,9 +142,9 @@ function main() {
         console.log('  • Game telemetry: shared/src/telemetry.ts (Domain.Subject.Action events)')
         return
     }
-    
+
     console.error(`❌ Found ${violations.length} telemetry separation violation(s):\n`)
-    
+
     for (const v of violations) {
         console.error(`${v.file}:${v.line}`)
         console.error(`  ${v.message}`)
@@ -152,7 +153,7 @@ function main() {
         }
         console.error('')
     }
-    
+
     console.error('See docs/developer-workflow/build-telemetry.md for separation rules')
     process.exit(1)
 }

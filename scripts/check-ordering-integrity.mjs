@@ -181,7 +181,6 @@ async function main() {
 
     console.log(`✅ Ordering integrity check passed: ${ordered.length} issues with contiguous order 1..${ordered.length}`)
 }
-}
 
 main().catch((err) => {
     console.error(err)

@@ -53,15 +53,17 @@ function loadArtifacts(daysBack) {
             })
             .filter((f) => f.mtime.getTime() >= cutoffTime)
 
-        return files.map((f) => {
-            try {
-                const content = JSON.parse(readFileSync(f.path, 'utf-8'))
-                return { ...content, _filename: f.name, _mtime: f.mtime }
-            } catch (err) {
-                console.error(`Warning: Failed to parse ${f.name}: ${err.message}`)
-                return null
-            }
-        }).filter(Boolean)
+        return files
+            .map((f) => {
+                try {
+                    const content = JSON.parse(readFileSync(f.path, 'utf-8'))
+                    return { ...content, _filename: f.name, _mtime: f.mtime }
+                } catch (err) {
+                    console.error(`Warning: Failed to parse ${f.name}: ${err.message}`)
+                    return null
+                }
+            })
+            .filter(Boolean)
     } catch (err) {
         console.error(`Warning: Failed to load artifacts: ${err.message}`)
         return []

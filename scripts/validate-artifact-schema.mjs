@@ -43,20 +43,9 @@ const EXPECTED_KEYS = new Set([
     '_mtime'
 ])
 
-const REQUIRED_KEYS = new Set([
-    'issue',
-    'recommendedOrder',
-    'confidence',
-    'score',
-    'metadata'
-])
+const REQUIRED_KEYS = new Set(['issue', 'recommendedOrder', 'confidence', 'score', 'metadata'])
 
-const METADATA_KEYS = new Set([
-    'scope',
-    'type',
-    'milestone',
-    'timestamp'
-])
+const METADATA_KEYS = new Set(['scope', 'type', 'milestone', 'timestamp'])
 
 /**
  * Validate a single artifact
@@ -123,8 +112,7 @@ async function main() {
     console.log('Validating artifact schema...\n')
 
     try {
-        const files = readdirSync(ARTIFACTS_DIR)
-            .filter((f) => f.endsWith('.json') && f !== '.gitkeep')
+        const files = readdirSync(ARTIFACTS_DIR).filter((f) => f.endsWith('.json') && f !== '.gitkeep')
 
         if (files.length === 0) {
             console.log('No artifact files found to validate')
@@ -139,7 +127,7 @@ async function main() {
         for (const file of files) {
             const path = join(ARTIFACTS_DIR, file)
             let artifact
-            
+
             try {
                 artifact = JSON.parse(readFileSync(path, 'utf-8'))
             } catch (err) {
@@ -150,7 +138,7 @@ async function main() {
             }
 
             const violations = validateArtifact(artifact, file)
-            
+
             if (violations.length > 0) {
                 console.error(`❌ ${file}:`)
                 for (const violation of violations) {
