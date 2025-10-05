@@ -9,9 +9,13 @@ test('player repository stable identity upsert semantics', async () => {
     const first = await repo.getOrCreate(fixedId)
     assert.ok(first.created, 'expected first creation to report created=true')
     assert.strictEqual(first.record.id, fixedId, 'id should match supplied fixed id')
+    // updatedUtc should be absent or equal to createdUtc on initial creation (implementation-dependent),
+    // but MUST NOT change on idempotent subsequent getOrCreate without mutations.
+    const initialUpdated = first.record.updatedUtc
     const second = await repo.getOrCreate(fixedId)
     assert.ok(!second.created, 'expected second call with same id to not create new record')
     assert.strictEqual(second.record.id, fixedId, 'second retrieval should preserve id')
+    assert.strictEqual(second.record.updatedUtc, initialUpdated, 'updatedUtc should remain stable on idempotent retrieval')
 })
 
 test('linkExternalId updates guest flag and sets updatedUtc', async () => {

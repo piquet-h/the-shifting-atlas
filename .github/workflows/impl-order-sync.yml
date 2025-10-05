@@ -23,14 +23,12 @@ on:
         default: '25'
   push:
     paths:
-      - 'roadmap/implementation-order.json'
       - 'scripts/sync-implementation-order.mjs'
       - '.github/workflows/impl-order-sync.yml'
       - '.github/copilot-instructions.md'
       - 'scripts/assign-impl-order.mjs'
   pull_request:
     paths:
-      - 'roadmap/implementation-order.json'
       - 'scripts/sync-implementation-order.mjs'
       - '.github/workflows/impl-order-sync.yml'
       - 'scripts/assign-impl-order.mjs'
@@ -90,10 +88,13 @@ jobs:
       - name: Commit regenerated docs
         if: ${{ steps.run-sync.outputs.apply_performed == 'true' }}
         run: |
-          if git diff --quiet docs/roadmap.md roadmap/implementation-order.json; then echo "No doc changes"; exit 0; fi
+          set -euo pipefail
+          # Only docs/roadmap.md is authoritative now
+          if [ ! -f docs/roadmap.md ]; then echo 'No roadmap doc present'; exit 0; fi
+          if git diff --quiet -- docs/roadmap.md; then echo 'No doc changes'; exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add docs/roadmap.md roadmap/implementation-order.json
+          git add docs/roadmap.md
           git commit -m 'chore(roadmap): sync implementation order' || echo 'Nothing to commit'
           git push || echo 'Push failed'
 
@@ -171,9 +172,10 @@ jobs:
       - name: Commit & Push (if changes)
         run: |
           set -euo pipefail
-          if git diff --quiet roadmap/implementation-order.json docs/roadmap.md; then echo 'No changes to commit'; exit 0; fi
+          if [ ! -f docs/roadmap.md ]; then echo 'No roadmap doc present'; exit 0; fi
+          if git diff --quiet -- docs/roadmap.md; then echo 'No changes to commit'; exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add roadmap/implementation-order.json docs/roadmap.md
+          git add docs/roadmap.md
           git commit -m 'chore: impl-order: batch finalize' || echo 'Nothing to commit after add'
           git push || echo 'Push failed'
