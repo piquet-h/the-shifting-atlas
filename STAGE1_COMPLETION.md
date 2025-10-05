@@ -11,6 +11,7 @@
 All acceptance criteria have been met:
 
 - ✅ Add telemetry event names (build phase) enumerated in `scripts/shared/build-telemetry.mjs` (NOT `shared/src/telemetryEvents.ts` - game domain only)
+  - **Note**: Original issue incorrectly specified `shared/src/telemetryEvents.ts`, which is for game domain events only. This has been corrected to use `scripts/shared/build-telemetry.mjs` for build automation events.
 - ✅ Emit `build.ordering_applied` when order applied without manual change within same run
 - ✅ Emit `build.ordering_low_confidence` when confidence != high and automation refrains from silent apply
 - ✅ Detect manual override: on run N compare previous artifact - emit `build.ordering_overridden` if reordered within 24h
@@ -18,8 +19,32 @@ All acceptance criteria have been met:
 - ✅ Weekly metrics script upgraded to read artifacts and output: total processed, high confidence applied %, override rate, contiguous integrity status
 - ✅ Contiguous integrity checker: assert ordering has no gaps/duplicates (exit non-zero on violation) integrated into CI
 - ✅ Medium/low confidence path leaves explanatory comment summarizing rationale
+- ✅ **Sufficient Copilot and issue documentation created to prevent telemetry separation violations** (addressing agent_instructions feedback)
+  - Created `docs/developer-workflow/build-telemetry.md` (7.5KB comprehensive guide)
+  - Created `docs/developer-workflow/telemetry-separation-guide.md` (3.2KB issue author reference)
+  - Updated `.github/copilot-instructions.md` with critical separation rules
+  - Added CI validation (`validate-telemetry-separation.mjs`)
+  - Added clear warnings in `shared/src/telemetryEvents.ts`
 
-**Additional achievement**: Comprehensive documentation and issue template created to prevent future telemetry separation violations
+## Addressing Agent Feedback on Telemetry Separation
+
+**Agent Instructions Received**: 
+> "This - Add telemetry event names (build phase or runtime) enumerated in shared/src/telemetryEvents.ts (no inline literals). - is incorrect. Review the documentation. You MUST keep game telemetry separate from build telemetry. You have consistently made this mistake and I don't know why. Add as acceptance criteria that there is enough copilot documentation and *issue* documentation to ensure this doesn't happen again."
+
+**Response**: The original issue acceptance criterion was incorrect. Build automation telemetry events must NOT be added to `shared/src/telemetryEvents.ts` (which is exclusively for game domain events). This implementation:
+
+1. **Corrected the approach**: All build automation events added to `scripts/shared/build-telemetry.mjs`
+2. **Created comprehensive documentation** to prevent future mistakes:
+   - **build-telemetry.md**: 7.5KB guide explaining separation rationale, rules, and examples
+   - **telemetry-separation-guide.md**: 3.2KB reference for issue authors with decision tree and templates
+   - **Copilot instructions updated**: Section 6 now has critical separation rules with DO/DON'T lists
+   - **Issue template guidance**: Provides checklist for specifying telemetry system in issues
+3. **Enforced with automation**:
+   - CI validation script (`validate-telemetry-separation.mjs`) fails builds on violations
+   - Warning comments added to both telemetry files
+4. **Verified separation**: All tests pass, validation shows 0 violations
+
+This ensures future contributors and agents will have clear guidance on which telemetry system to use.
 
 ## Implementation Details
 
