@@ -170,7 +170,7 @@ Both legacy and granular events are emitted where applicable, ensuring compatibi
 ## Non-Goals (Out of Scope)
 
 - ❌ Predictive scheduling (Stage 2, issue #106)
-- ❌ Application Insights emission for build events (console/workflow logs only)
+- ❌ Application Insights integration (build events use console/workflow logs only, never Application Insights)
 - ❌ Changes to runtime game telemetry enumeration
 
 ## Usage
