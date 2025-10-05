@@ -15,43 +15,43 @@ Stage 2 introduces significant new functionality that must be documented compreh
 #### Primary Documentation
 
 1. **docs/developer-workflow/implementation-order-automation.md**
-   - Add Stage 2 implementation details
-   - Document provisional scheduling workflow
-   - Explain variance monitoring
-   - Update automation maturity table
+    - Add Stage 2 implementation details
+    - Document provisional scheduling workflow
+    - Explain variance monitoring
+    - Update automation maturity table
 
 2. **docs/developer-workflow/roadmap-scheduling.md**
-   - Add provisional vs actual scheduling distinction
-   - Document integration with provisional storage
-   - Add troubleshooting section for variance issues
-   - Update environment variables
+    - Add provisional vs actual scheduling distinction
+    - Document integration with provisional storage
+    - Add troubleshooting section for variance issues
+    - Update environment variables
 
 3. **.github/copilot-instructions.md**
-   - Add provisional schedule comment format
-   - Document variance alert handling
-   - Update automation section with Stage 2 behavior
+    - Add provisional schedule comment format
+    - Document variance alert handling
+    - Update automation section with Stage 2 behavior
 
 #### Supporting Documentation
 
 4. **README.md**
-   - Add Stage 2 automation to features section
-   - Link to variance monitoring documentation
-   - Note provisional schedule comments
+    - Add Stage 2 automation to features section
+    - Link to variance monitoring documentation
+    - Note provisional schedule comments
 
 5. **NEW: docs/developer-workflow/build-telemetry.md**
-   - **Document telemetry separation:** Build vs game telemetry
-   - `scripts/shared/build-telemetry.mjs` - CI/automation events (scheduler, ordering)
-   - `shared/src/telemetry.ts` - Game domain events only (player, world)
-   - Event naming conventions (`build.` prefix for automation)
-   - Application Insights filtering strategies
-   - Rationale: Keep shared folder for game code only
+    - **Document telemetry separation:** Build vs game telemetry
+    - `scripts/shared/build-telemetry.mjs` - CI/automation events (scheduler, ordering)
+    - `shared/src/telemetry.ts` - Game domain events only (player, world)
+    - Event naming conventions (`build.` prefix for automation)
+    - Application Insights filtering strategies
+    - Rationale: Keep shared folder for game code only
 
 6. **docs/architecture/roadmap-consolidated.md** (if needed)
-   - Reference Stage 2 as implemented
-   - Note observability additions
+    - Reference Stage 2 as implemented
+    - Note observability additions
 
-6. **package.json**
-   - Ensure all new npm scripts documented in comments
+7. **package.json**
+    - Ensure all new npm scripts documented in comments
 
 ### 2. New Documentation Files
 
@@ -62,43 +62,43 @@ Stage 2 introduces significant new functionality that must be documented compreh
 **Sections:**
 
 1. **Overview**
-   - What is variance monitoring
-   - Why it matters
-   - Relationship to provisional scheduling
+    - What is variance monitoring
+    - Why it matters
+    - Relationship to provisional scheduling
 
 2. **Metrics**
-   - Variance formula explanation
-   - Confidence levels
-   - Rolling window definition
-   - Threshold levels (10%, 25%)
+    - Variance formula explanation
+    - Confidence levels
+    - Rolling window definition
+    - Threshold levels (10%, 25%)
 
 3. **Variance Alerts**
-   - When alerts are created
-   - Alert issue format
-   - Escalation process
-   - Manual resolution steps
+    - When alerts are created
+    - Alert issue format
+    - Escalation process
+    - Manual resolution steps
 
 4. **Interpreting Variance**
-   - What causes high variance
-   - Expected vs problematic variance
-   - Pattern analysis examples
-   - Common root causes
+    - What causes high variance
+    - Expected vs problematic variance
+    - Pattern analysis examples
+    - Common root causes
 
 5. **Troubleshooting**
-   - High variance: immediate actions
-   - Persistent high variance: investigation steps
-   - False positives: how to identify
-   - Adjusting thresholds
+    - High variance: immediate actions
+    - Persistent high variance: investigation steps
+    - False positives: how to identify
+    - Adjusting thresholds
 
 6. **Configuration**
-   - variance-config.json schema
-   - Tuning parameters
-   - When to adjust thresholds
+    - variance-config.json schema
+    - Tuning parameters
+    - When to adjust thresholds
 
 7. **Queries and Dashboards**
-   - Application Insights KQL queries
-   - Example variance analysis queries
-   - Future: Grafana dashboard setup
+    - Application Insights KQL queries
+    - Example variance analysis queries
+    - Future: Grafana dashboard setup
 
 #### Create: docs/developer-workflow/build-telemetry.md
 
@@ -107,40 +107,40 @@ Stage 2 introduces significant new functionality that must be documented compreh
 **Sections:**
 
 1. **Overview**
-   - Two separate telemetry systems
-   - Why separation matters
+    - Two separate telemetry systems
+    - Why separation matters
 
 2. **Build Telemetry** (`scripts/shared/build-telemetry.mjs`)
-   - Purpose: CI/automation workflows (scheduler, ordering, variance)
-   - Event prefix: `build.` (e.g., `build.schedule_variance`)
-   - Custom dimension: `telemetrySource: 'build-automation'`
-   - Not part of game domain
+    - Purpose: CI/automation workflows (scheduler, ordering, variance)
+    - Event prefix: `build.` (e.g., `build.schedule_variance`)
+    - Custom dimension: `telemetrySource: 'build-automation'`
+    - Not part of game domain
 
 3. **Game Telemetry** (`shared/src/telemetry.ts`)
-   - Purpose: In-game events (player actions, world generation, navigation)
-   - Event format: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
-   - Part of game domain code in `shared/`
+    - Purpose: In-game events (player actions, world generation, navigation)
+    - Event format: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+    - Part of game domain code in `shared/`
 
 4. **Separation Rules**
-   - `shared/src/` is for **game domain code only**
-   - `scripts/shared/` is for **build/automation tooling only**
-   - Never mix build events into `shared/src/telemetryEvents.ts`
-   - Use separate Application Insights instances or custom dimensions
+    - `shared/src/` is for **game domain code only**
+    - `scripts/shared/` is for **build/automation tooling only**
+    - Never mix build events into `shared/src/telemetryEvents.ts`
+    - Use separate Application Insights instances or custom dimensions
 
 5. **Event Naming Conventions**
-   - Build events: `build.<component>_<action>` (snake_case after prefix)
-   - Game events: `Domain.Subject.Action` (PascalCase, 2-3 segments)
+    - Build events: `build.<component>_<action>` (snake_case after prefix)
+    - Game events: `Domain.Subject.Action` (PascalCase, 2-3 segments)
 
 6. **Querying Application Insights**
-   - Filter by `telemetrySource` custom dimension
-   - Build: `customDimensions.telemetrySource == 'build-automation'`
-   - Game: `customDimensions.telemetrySource == 'game'` (or absence of build dimension)
+    - Filter by `telemetrySource` custom dimension
+    - Build: `customDimensions.telemetrySource == 'build-automation'`
+    - Game: `customDimensions.telemetrySource == 'game'` (or absence of build dimension)
 
 7. **Rationale**
-   - Prevents pollution of game telemetry with infrastructure noise
-   - Different audiences (devs vs players/designers)
-   - Different lifecycle (build fails vs game crashes)
-   - Cleaner queries and dashboards
+    - Prevents pollution of game telemetry with infrastructure noise
+    - Different audiences (devs vs players/designers)
+    - Different lifecycle (build fails vs game crashes)
+    - Cleaner queries and dashboards
 
 #### Create: docs/developer-workflow/provisional-scheduling.md
 
@@ -149,43 +149,43 @@ Stage 2 introduces significant new functionality that must be documented compreh
 **Sections:**
 
 1. **Overview**
-   - What is provisional scheduling
-   - Difference from actual scheduling (daily scheduler)
-   - Stage 2 goals
+    - What is provisional scheduling
+    - Difference from actual scheduling (daily scheduler)
+    - Stage 2 goals
 
 2. **How It Works**
-   - Triggered by implementation order assignment
-   - Duration estimation process
-   - Confidence levels
-   - Provisional comment posting
+    - Triggered by implementation order assignment
+    - Duration estimation process
+    - Confidence levels
+    - Provisional comment posting
 
 3. **Provisional Schedule Storage**
-   - File location (roadmap/provisional-schedules.json)
-   - Schema explanation
-   - Lifecycle of a provisional schedule
+    - File location (roadmap/provisional-schedules.json)
+    - Schema explanation
+    - Lifecycle of a provisional schedule
 
 4. **Confidence Levels**
-   - High confidence criteria (≥5 scope|type samples)
-   - Medium confidence criteria
-   - Low confidence handling
-   - Improving confidence over time
+    - High confidence criteria (≥5 scope|type samples)
+    - Medium confidence criteria
+    - Low confidence handling
+    - Improving confidence over time
 
 5. **Updating Provisional Schedules**
-   - Partial rebaseline on status change
-   - Manual adjustments
-   - When schedules are recalculated
+    - Partial rebaseline on status change
+    - Manual adjustments
+    - When schedules are recalculated
 
 6. **Best Practices**
-   - Label issues promptly
-   - Use consistent scope/type labels
-   - Close issues with accurate dates
-   - Review provisional comments regularly
+    - Label issues promptly
+    - Use consistent scope/type labels
+    - Close issues with accurate dates
+    - Review provisional comments regularly
 
 7. **Troubleshooting**
-   - Provisional schedule not created
-   - Inaccurate estimates
-   - Comment not posted
-   - Storage file corruption
+    - Provisional schedule not created
+    - Inaccurate estimates
+    - Comment not posted
+    - Storage file corruption
 
 ### 3. Documentation Updates Detail
 
@@ -193,7 +193,7 @@ Stage 2 introduces significant new functionality that must be documented compreh
 
 **Add Section: "Stage 2: Predictive Scheduling Integration (Implemented)"**
 
-```markdown
+````markdown
 ### Stage 2 (Predictive Scheduling Integration) – Implemented
 
 **Status:** ✅ Active (as of 2025-01)
@@ -203,6 +203,7 @@ Stage 2 extends ordering automation with provisional scheduling at assignment ti
 #### Features
 
 **Provisional Schedules:**
+
 - Calculated when implementation order assigned
 - Based on historical completion durations
 - Confidence-graded (high/medium/low)
@@ -210,12 +211,14 @@ Stage 2 extends ordering automation with provisional scheduling at assignment ti
 - Stored in `roadmap/provisional-schedules.json`
 
 **Variance Monitoring:**
+
 - Daily comparison of provisional vs actual schedules
 - Rolling 30-day window metrics
 - Automatic alert issues when variance >25%
 - Escalation at 2 weeks, rollback warning at 3 weeks
 
 **Partial Rebaseline:**
+
 - Status change to "In progress" triggers downstream recalculation
 - Preserves upstream schedules
 - Reduces cascading delays
@@ -252,7 +255,9 @@ npm run partial-rebaseline -- --issue 123  # Recalculate downstream
 # Storage management
 npm run clean:provisional-schedules  # Remove stale entries
 ```
-```
+````
+
+````
 
 **Add Section: "Stage 2 Rollback Procedure"**
 
@@ -287,13 +292,13 @@ If variance monitoring indicates systematic issues:
 
 **Re-enable:**
 After fixes validated in test environment, reverse steps 1-2.
-```
+````
 
 #### roadmap-scheduling.md Updates
 
 **Add Section: "Integration with Provisional Scheduling"**
 
-```markdown
+````markdown
 ### Integration with Provisional Scheduling
 
 The daily roadmap scheduler integrates with Stage 2 provisional scheduling to track variance and improve estimation accuracy.
@@ -307,19 +312,20 @@ The daily roadmap scheduler integrates with Stage 2 provisional scheduling to tr
 
 #### Provisional vs Actual
 
-| Aspect | Provisional | Actual |
-|--------|-------------|--------|
-| **Timing** | At order assignment | Daily at 00:02 UTC |
-| **Storage** | provisional-schedules.json + comment | Project Start/Finish fields |
+| Aspect          | Provisional                            | Actual                       |
+| --------------- | -------------------------------------- | ---------------------------- |
+| **Timing**      | At order assignment                    | Daily at 00:02 UTC           |
+| **Storage**     | provisional-schedules.json + comment   | Project Start/Finish fields  |
 | **Calculation** | Historical medians + cursor projection | Strict sequential scheduling |
-| **Updates** | On order change or partial rebaseline | Every scheduler run |
-| **Purpose** | Early visibility, variance tracking | Authoritative schedule |
+| **Updates**     | On order change or partial rebaseline  | Every scheduler run          |
+| **Purpose**     | Early visibility, variance tracking    | Authoritative schedule       |
 
 **Important:** Provisional schedules are estimates only. Always refer to Project fields for actual planned dates.
 
 #### Variance Tracking
 
 After scheduler runs, `calculate-variance.yml` workflow:
+
 1. Loads provisional-schedules.json
 2. Queries Project fields for actual dates
 3. Calculates variance for each issue
@@ -335,26 +341,31 @@ The scheduler automatically updates provisional storage with actual dates:
 ```bash
 npm run update:actual-schedules
 ```
+````
 
 This is called by `roadmap-scheduler.yml` after applying date field changes.
 
 #### Troubleshooting
 
 **Variance alerts every week:**
+
 - Check if DEFAULT_DURATION_DAYS too low
 - Review top variance contributors for patterns
 - Consider adding explicit size labels
 
 **Provisional and actual differ significantly:**
+
 - Normal for early-stage project (building history)
 - Check confidence levels (low confidence = sparse data)
 - Verify closed issues have accurate Start/Finish dates
 
 **Scheduler conflicts with provisional:**
+
 - Scheduler is authoritative
 - Provisional schedules may become stale if ordering changes frequently
 - Run partial rebaseline to update provisional schedules
-```
+
+````
 
 ### 4. Documentation Standards
 
@@ -379,34 +390,34 @@ This is called by `roadmap-scheduler.yml` after applying date field changes.
 ```javascript
 /**
  * Duration estimation module for provisional scheduling (Stage 2).
- * 
+ *
  * Extracts historical completion durations from closed issues and computes
  * median estimates for new issues based on scope/type labels.
- * 
+ *
  * @module duration-estimation
  * @see docs/developer-workflow/provisional-scheduling.md
  */
 
 /**
  * Estimate duration for an issue based on historical data.
- * 
+ *
  * Uses fallback hierarchy:
  * 1. Scope|Type median (≥5 samples)
  * 2. Scope-only median (≥3 samples)
  * 3. Global median (≥10 samples)
  * 4. DEFAULT_DURATION_DAYS fallback
- * 
+ *
  * @param {Array<ProjectItem>} projectItems - All project items for history
  * @param {string} scope - Scope label (e.g., 'scope:core')
  * @param {string} type - Type label (e.g., 'feature')
  * @param {Object} options - Optional configuration
  * @returns {EstimationResult} Duration estimate with confidence
- * 
+ *
  * @example
  * const result = estimateDuration(items, 'scope:core', 'feature')
  * console.log(`Estimated ${result.duration} days (${result.confidence} confidence)`)
  */
-```
+````
 
 ### 6. Inline Documentation
 
@@ -419,11 +430,11 @@ This is called by `roadmap-scheduler.yml` after applying date field changes.
 - name: Post Provisional Schedule Comment
   if: steps.assign.outputs.applied == 'true' && steps.assign.outputs.confidence == 'high'
   env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   run: |
-    node scripts/post-provisional-schedule.mjs \
-      --issue ${{ steps.issue.outputs.number }} \
-      --order ${{ steps.assign.outputs.order }}
+      node scripts/post-provisional-schedule.mjs \
+        --issue ${{ steps.issue.outputs.number }} \
+        --order ${{ steps.assign.outputs.order }}
 ```
 
 ## Acceptance Criteria
@@ -490,52 +501,55 @@ roadmap-scheduling.md
 
 **In provisional-scheduling.md:**
 
-```markdown
+````markdown
 #### Example: High Confidence Provisional Schedule
 
 Issue #123 (`scope:core`, `feature`, milestone `M0`) is assigned order 42.
 
 1. **Duration Estimation:**
-   - Found 7 closed issues with `scope:core|feature`
-   - Median duration: 4 days
-   - Confidence: High (≥5 samples)
+    - Found 7 closed issues with `scope:core|feature`
+    - Median duration: 4 days
+    - Confidence: High (≥5 samples)
 
 2. **Cursor Projection:**
-   - Previous issue (#122, order 41) ends on 2025-01-14
-   - Next available start: 2025-01-15
-   - Projected finish: 2025-01-18 (start + 4 - 1)
+    - Previous issue (#122, order 41) ends on 2025-01-14
+    - Next available start: 2025-01-15
+    - Projected finish: 2025-01-18 (start + 4 - 1)
 
 3. **Provisional Schedule:**
-   - Start: 2025-01-15
-   - Finish: 2025-01-18
-   - Duration: 4 days
+    - Start: 2025-01-15
+    - Finish: 2025-01-18
+    - Duration: 4 days
 
 4. **Comment Posted:**
-   ```markdown
-   📅 Provisional Schedule (Automated)
-   
-   Estimated Start: 2025-01-15
-   Estimated Finish: 2025-01-18
-   Duration: 4 days
-   
-   Confidence: High (based on 7 similar issues)
-   ```
+
+    ```markdown
+    📅 Provisional Schedule (Automated)
+
+    Estimated Start: 2025-01-15
+    Estimated Finish: 2025-01-18
+    Duration: 4 days
+
+    Confidence: High (based on 7 similar issues)
+    ```
+````
 
 5. **Storage:**
-   ```json
-   {
-     "123": {
-       "order": 42,
-       "provisional": {
-         "start": "2025-01-15",
-         "finish": "2025-01-18",
-         "duration": 4,
-         "confidence": "high"
-       }
-     }
-   }
-   ```
-```
+    ```json
+    {
+        "123": {
+            "order": 42,
+            "provisional": {
+                "start": "2025-01-15",
+                "finish": "2025-01-18",
+                "duration": 4,
+                "confidence": "high"
+            }
+        }
+    }
+    ```
+
+````
 
 ## Testing Strategy
 
@@ -588,11 +602,12 @@ This is the documentation sub-issue, so it IS the documentation impact. However:
   - [Provisional Scheduling](docs/developer-workflow/provisional-scheduling.md)
   - [Variance Monitoring](docs/developer-workflow/variance-monitoring.md)
   - [Roadmap Scheduling](docs/developer-workflow/roadmap-scheduling.md)
-```
+````
 
 ## Rollback Procedure
 
 Documentation rollback:
+
 1. Revert commits that added/modified documentation
 2. Re-add after features are re-implemented
 3. Archive old documentation as `*.archived.md` if needed
@@ -618,11 +633,13 @@ All other Stage 2 sub-issues must be completed before documentation can be final
 **Directive:** Once Stage 2 is fully implemented and operational, the planning documentation in `docs/planning/stage2-subissues/` should be cleaned up and removed unless it's absolutely essential for future reference.
 
 **Rationale:**
+
 - Planning docs served their purpose during implementation
 - Keeping unnecessary planning docs adds maintenance burden
 - Final user-facing documentation is in `docs/developer-workflow/`
 
 **Cleanup Checklist:**
+
 - [ ] Verify all critical information migrated to permanent documentation
 - [ ] Archive or remove `docs/planning/stage2-subissues/` directory
 - [ ] Keep only if team decides it's valuable for future Stage 3+ planning patterns

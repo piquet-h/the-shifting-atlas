@@ -19,13 +19,15 @@ Variance measures how accurately provisional schedules predicted actual schedule
 For a single issue with provisional schedule P and actual schedule A:
 
 **Date Delta (Days):**
+
 ```javascript
-startDelta = dateDiff(A.start, P.start)     // Positive = actual later than provisional
-finishDelta = dateDiff(A.finish, P.finish)  // Positive = actual later than provisional
-durationDelta = A.duration - P.duration     // Positive = actual longer than provisional
+startDelta = dateDiff(A.start, P.start) // Positive = actual later than provisional
+finishDelta = dateDiff(A.finish, P.finish) // Positive = actual later than provisional
+durationDelta = A.duration - P.duration // Positive = actual longer than provisional
 ```
 
 **Percentage Variance:**
+
 ```javascript
 startDeltaPct = (startDelta / P.duration) * 100
 finishDeltaPct = (finishDelta / P.duration) * 100
@@ -35,11 +37,13 @@ durationVariancePct = (durationDelta / P.duration) * 100
 **Overall Variance (Combined Metric):**
 
 Option A (Average Absolute Deviation):
+
 ```javascript
 overallVariance = (abs(startDelta) + abs(finishDelta)) / (2 * P.duration)
 ```
 
 Option B (Finish-Weighted):
+
 ```javascript
 overallVariance = abs(finishDelta) / P.duration
 // Rationale: Finish date matters most for dependencies
@@ -52,17 +56,20 @@ overallVariance = abs(finishDelta) / P.duration
 For N issues in a time window:
 
 **Median Variance:**
+
 ```javascript
 medianVariance = median([variance1, variance2, ..., varianceN])
 // More robust to outliers than mean
 ```
 
 **Mean Absolute Deviation:**
+
 ```javascript
 meanAbsVariance = mean([abs(variance1), abs(variance2), ..., abs(varianceN)])
 ```
 
 **Variance Distribution:**
+
 ```javascript
 {
     min: minVariance,
@@ -82,6 +89,7 @@ meanAbsVariance = mean([abs(variance1), abs(variance2), ..., abs(varianceN)])
 **Window Size:** 30 days (configurable)
 
 **Window Definition:**
+
 ```javascript
 const windowEnd = today
 const windowStart = addDays(today, -30)
@@ -93,6 +101,7 @@ const windowStart = addDays(today, -30)
 ```
 
 **Edge Cases:**
+
 - **Insufficient data:** Require minimum 5 issues in window for aggregate metrics
 - **Bootstrap period:** First 30 days may have sparse data; report as "insufficient data"
 - **Status changes:** Include issues that moved to "In progress" or "Done" during window
@@ -102,17 +111,17 @@ const windowStart = addDays(today, -30)
 **When to calculate variance:**
 
 1. **Daily (Primary):** After roadmap scheduler runs
-   - For each issue in provisional-schedules.json
-   - If actual dates exist in Project fields
-   - If variance not yet calculated OR actual dates changed
+    - For each issue in provisional-schedules.json
+    - If actual dates exist in Project fields
+    - If variance not yet calculated OR actual dates changed
 
 2. **On-Demand:** Manual workflow dispatch
-   - Recalculate all variances
-   - Useful for testing or debugging
+    - Recalculate all variances
+    - Useful for testing or debugging
 
 3. **Per-Issue:** When issue status changes to "Done"
-   - Final variance calculation
-   - Lock variance (don't recalculate)
+    - Final variance calculation
+    - Lock variance (don't recalculate)
 
 **Calculation Workflow:**
 
@@ -120,48 +129,49 @@ const windowStart = addDays(today, -30)
 # .github/workflows/calculate-variance.yml
 name: Calculate Schedule Variance
 on:
-  schedule:
-    - cron: '30 00 * * *'  # 30 min after scheduler runs
-  workflow_dispatch:
+    schedule:
+        - cron: '30 00 * * *' # 30 min after scheduler runs
+    workflow_dispatch:
 
 jobs:
-  calculate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Calculate Variance
-        run: npm run calculate:variance
-      
-      - name: Check Thresholds
-        id: check
-        run: npm run check:variance-threshold
-      
-      - name: Create Alert Issue
-        if: steps.check.outputs.alert_needed == 'true'
-        run: npm run create:variance-alert
+    calculate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Calculate Variance
+              run: npm run calculate:variance
+
+            - name: Check Thresholds
+              id: check
+              run: npm run check:variance-threshold
+
+            - name: Create Alert Issue
+              if: steps.check.outputs.alert_needed == 'true'
+              run: npm run create:variance-alert
 ```
 
 ### 4. Variance Alert Thresholds
 
 **Threshold Levels:**
 
-| Level | Median Variance | Action |
-|-------|----------------|--------|
-| **Green** | < 10% | No action (target state) |
-| **Yellow** | 10% - 25% | Log warning, track trend |
-| **Red** | > 25% | Create diagnostic alert issue |
+| Level      | Median Variance | Action                        |
+| ---------- | --------------- | ----------------------------- |
+| **Green**  | < 10%           | No action (target state)      |
+| **Yellow** | 10% - 25%       | Log warning, track trend      |
+| **Red**    | > 25%           | Create diagnostic alert issue |
 
 **Threshold Check:**
+
 ```javascript
 function checkThreshold(rollingVariance) {
     const { median } = rollingVariance
-    
+
     if (median > 0.25) {
         return {
             level: 'red',
             alert: true,
             message: `High variance detected: ${(median * 100).toFixed(1)}% > 25% threshold`
         }
-    } else if (median > 0.10) {
+    } else if (median > 0.1) {
         return {
             level: 'yellow',
             alert: false,
@@ -180,11 +190,13 @@ function checkThreshold(rollingVariance) {
 ### 5. Alert Issue Format
 
 **Title:**
+
 ```
 [VARIANCE ALERT] Provisional schedule accuracy below threshold (Week of YYYY-MM-DD)
 ```
 
 **Body:**
+
 ```markdown
 ## Schedule Variance Alert
 
@@ -204,11 +216,11 @@ function checkThreshold(rollingVariance) {
 
 ### Top Variance Contributors
 
-| Issue | Title | Provisional | Actual | Variance |
-|-------|-------|-------------|--------|----------|
-| #123 | Implement feature X | 2025-01-10 to 2025-01-15 | 2025-01-12 to 2025-01-22 | 58% |
-| #124 | Refactor module Y | 2025-01-16 to 2025-01-18 | 2025-01-18 to 2025-01-25 | 47% |
-| #125 | Add tests for Z | 2025-01-19 to 2025-01-21 | 2025-01-20 to 2025-01-26 | 43% |
+| Issue | Title               | Provisional              | Actual                   | Variance |
+| ----- | ------------------- | ------------------------ | ------------------------ | -------- |
+| #123  | Implement feature X | 2025-01-10 to 2025-01-15 | 2025-01-12 to 2025-01-22 | 58%      |
+| #124  | Refactor module Y   | 2025-01-16 to 2025-01-18 | 2025-01-18 to 2025-01-25 | 47%      |
+| #125  | Add tests for Z     | 2025-01-19 to 2025-01-21 | 2025-01-20 to 2025-01-26 | 43%      |
 
 ### Potential Causes
 
@@ -226,16 +238,18 @@ function checkThreshold(rollingVariance) {
 
 ### Automation Status
 
-This alert was automatically generated by the variance monitoring workflow. 
+This alert was automatically generated by the variance monitoring workflow.
 
 **Next check:** 2025-01-31 00:30 UTC  
 **Escalation:** If median variance >25% for 2 consecutive weeks, consider rollback per Stage 2 exit criteria.
 
 ---
-*Related: #83 (Automation Stage 2)*
+
+_Related: #83 (Automation Stage 2)_
 ```
 
 **Labels:**
+
 - `scope:devx`
 - `observability`
 - `automated-alert`
@@ -254,22 +268,23 @@ This alert was automatically generated by the variance monitoring workflow.
 **Partial Rebaseline:** Only recalculate downstream issues (higher order numbers).
 
 **Logic:**
+
 ```javascript
 async function handleStatusChange(issueNumber, newStatus) {
     if (newStatus !== 'In progress') return
-    
+
     // Get issue order
     const issue = await getIssueWithOrder(issueNumber)
     const order = issue.order
-    
+
     // Find downstream issues (order > current)
     const downstreamIssues = await getIssuesByOrderRange(order + 1, Infinity)
-    
+
     // Recalculate provisional schedules for downstream
     for (const downstream of downstreamIssues) {
         await recalculateProvisionalSchedule(downstream)
     }
-    
+
     console.log(`Recalculated ${downstreamIssues.length} downstream issues`)
 }
 ```
@@ -313,13 +328,7 @@ if (newStatus === 'In progress') {
 **Exports:**
 
 ```javascript
-export {
-    calculateIssueVariance,
-    calculateRollingVariance,
-    checkThreshold,
-    identifyTopContributors,
-    generateVarianceReport
-}
+export { calculateIssueVariance, calculateRollingVariance, checkThreshold, identifyTopContributors, generateVarianceReport }
 ```
 
 **Function Signatures:**
@@ -333,7 +342,7 @@ function calculateIssueVariance(provisional, actual) {
         startDeltaPct,
         finishDeltaPct,
         durationVariancePct,
-        overallVariance,  // finish-weighted
+        overallVariance, // finish-weighted
         calculatedAt: new Date().toISOString()
     }
 }
@@ -344,11 +353,15 @@ function calculateRollingVariance(issues, windowDays = 30) {
         windowEnd,
         sampleSize,
         distribution: {
-            min, p25, median, p75, max, mean, stdDev
+            min,
+            p25,
+            median,
+            p75,
+            max,
+            mean,
+            stdDev
         },
-        issues: [
-            { issueNumber, variance, provisional, actual }
-        ]
+        issues: [{ issueNumber, variance, provisional, actual }]
     }
 }
 
@@ -362,9 +375,7 @@ function checkThreshold(rollingVariance) {
 }
 
 function identifyTopContributors(rollingVariance, limit = 5) {
-    return issues
-        .sort((a, b) => b.variance - a.variance)
-        .slice(0, limit)
+    return issues.sort((a, b) => b.variance - a.variance).slice(0, limit)
 }
 
 function generateVarianceReport(rollingVariance, threshold) {
@@ -413,7 +424,7 @@ function generateVarianceReport(rollingVariance, threshold) {
     "windowDays": 30,
     "minSampleSize": 5,
     "thresholds": {
-        "yellow": 0.10,
+        "yellow": 0.1,
         "red": 0.25
     },
     "alertEscalationDays": 14,
@@ -428,49 +439,50 @@ function generateVarianceReport(rollingVariance, threshold) {
 **Location:** `scripts/shared/variance-calculator.test.mjs`
 
 Test cases:
+
 1. **calculateIssueVariance:**
-   - Positive delta (actual later)
-   - Negative delta (actual earlier)
-   - Zero delta (perfect match)
-   - Duration increase
-   - Duration decrease
+    - Positive delta (actual later)
+    - Negative delta (actual earlier)
+    - Zero delta (perfect match)
+    - Duration increase
+    - Duration decrease
 
 2. **calculateRollingVariance:**
-   - Sufficient samples (N ≥ 5)
-   - Insufficient samples (N < 5)
-   - Empty window
-   - Mixed variance values
-   - Outlier handling
+    - Sufficient samples (N ≥ 5)
+    - Insufficient samples (N < 5)
+    - Empty window
+    - Mixed variance values
+    - Outlier handling
 
 3. **checkThreshold:**
-   - Green level (< 10%)
-   - Yellow level (10-25%)
-   - Red level (> 25%)
-   - Boundary values
+    - Green level (< 10%)
+    - Yellow level (10-25%)
+    - Red level (> 25%)
+    - Boundary values
 
 4. **identifyTopContributors:**
-   - Correct sorting
-   - Limit enforcement
-   - Fewer issues than limit
+    - Correct sorting
+    - Limit enforcement
+    - Fewer issues than limit
 
 ### Integration Tests
 
 1. **End-to-end variance workflow:**
-   - Create provisional schedule
-   - Scheduler assigns actual dates
-   - Variance calculated
-   - Stored in JSON
-   - Alert created if threshold exceeded
+    - Create provisional schedule
+    - Scheduler assigns actual dates
+    - Variance calculated
+    - Stored in JSON
+    - Alert created if threshold exceeded
 
 2. **Partial rebaseline:**
-   - Status change to "In progress"
-   - Downstream issues recalculated
-   - Upstream issues unchanged
+    - Status change to "In progress"
+    - Downstream issues recalculated
+    - Upstream issues unchanged
 
 3. **Alert lifecycle:**
-   - Create alert
-   - Update with new data
-   - Auto-close when variance improves
+    - Create alert
+    - Update with new data
+    - Auto-close when variance improves
 
 ### Manual Testing
 
@@ -484,20 +496,21 @@ Test cases:
 ### Files to Update
 
 1. **docs/developer-workflow/implementation-order-automation.md**
-   - Add "Variance Monitoring" section
-   - Document thresholds and alert conditions
-   - Explain partial rebaseline
+    - Add "Variance Monitoring" section
+    - Document thresholds and alert conditions
+    - Explain partial rebaseline
 
 2. **docs/developer-workflow/roadmap-scheduling.md**
-   - Note variance calculation integration
-   - Document npm scripts for variance
+    - Note variance calculation integration
+    - Document npm scripts for variance
 
 3. **README.md**
-   - Add variance alert workflow to CI/automation section
+    - Add variance alert workflow to CI/automation section
 
 ## Rollback Procedure
 
 If variance monitoring causes issues:
+
 1. Disable variance calculation workflow
 2. Keep provisional-schedules.json for manual analysis
 3. Close open alert issues with explanation

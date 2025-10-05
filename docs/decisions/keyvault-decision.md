@@ -7,8 +7,9 @@
 ## Context
 
 The project requires secure secret management for:
+
 - Cosmos DB Gremlin API credentials
-- Cosmos DB SQL/Core API credentials  
+- Cosmos DB SQL/Core API credentials
 - Future: Service Bus connection strings, AI model provider API keys, signing secrets
 
 The implementation needed to decide between reusing an existing Key Vault or provisioning a dedicated new vault.
@@ -73,9 +74,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
 - `cosmos-primary-key` - Gremlin API authentication
 - `cosmos-sql-primary-key` - SQL/Core API authentication
 - Placeholders for future secrets:
-  - `service-bus-connection-string`
-  - `model-provider-api-key`
-  - `signing-secret`
+    - `service-bus-connection-string`
+    - `model-provider-api-key`
+    - `signing-secret`
 
 ### Security Configuration
 
