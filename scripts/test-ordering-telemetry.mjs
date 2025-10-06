@@ -9,7 +9,7 @@
  */
 
 import { strict as assert } from 'node:assert'
-import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'node:fs'
+import { writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -225,8 +225,26 @@ async function testEventNameConstants() {
     assert.equal(BUILD_EVENT_NAMES.ORDERING_APPLIED, 'build.ordering_applied')
     assert.equal(BUILD_EVENT_NAMES.ORDERING_LOW_CONFIDENCE, 'build.ordering_low_confidence')
     assert.equal(BUILD_EVENT_NAMES.ORDERING_OVERRIDDEN, 'build.ordering_overridden')
+    // New validation constants
+    assert.equal(BUILD_EVENT_NAMES.VALIDATION_START, 'build.ordering.validation.start')
+    assert.equal(BUILD_EVENT_NAMES.VALIDATION_SUCCESS, 'build.ordering.validation.success')
+    assert.equal(BUILD_EVENT_NAMES.VALIDATION_FAIL, 'build.ordering.validation.fail')
 
     console.log('  ✅ Event name constants correct')
+}
+
+// Test 5: Validation events helpers
+async function testValidationEvents() {
+    console.log('Test 5: Validation events...')
+    const { trackValidationStart, trackValidationSuccess, trackValidationFail, getBufferedEvents } = await import('./shared/build-telemetry.mjs')
+
+    const before = getBufferedEvents().length
+    trackValidationStart({ phase: 'test' })
+    trackValidationSuccess({ phase: 'test', totalIssues: 0 })
+    trackValidationFail({ phase: 'test', reason: 'simulated' })
+    const after = getBufferedEvents().length
+    assert.ok(after - before >= 3, 'Should have at least 3 new validation events')
+    console.log('  ✅ Validation events emitted')
 }
 
 async function main() {
@@ -237,7 +255,8 @@ async function main() {
         await testGranularEvents()
         await testArtifactPruning()
         await testWeeklyMetrics()
-        await testEventNameConstants()
+    await testEventNameConstants()
+    await testValidationEvents()
 
         console.log('\n✅ All tests passed!')
     } catch (err) {
