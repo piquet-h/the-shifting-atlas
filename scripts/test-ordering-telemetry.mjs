@@ -121,6 +121,13 @@ async function testGranularEvents() {
 async function testArtifactPruning() {
     console.log('Test 2: Artifact pruning...')
 
+    // Clean tmp directory first
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
+    } catch (err) {
+        // Directory might not exist, that's fine
+    }
+
     // Create test artifacts directory
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
 
@@ -156,6 +163,13 @@ async function testArtifactPruning() {
 // Test 3: Weekly metrics calculation
 async function testWeeklyMetrics() {
     console.log('Test 3: Weekly metrics calculation...')
+
+    // Clean tmp directory first
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
+    } catch (err) {
+        // Directory might not exist, that's fine
+    }
 
     // Create test artifacts
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
@@ -213,6 +227,123 @@ async function testWeeklyMetrics() {
     rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
 }
 
+// Test 3a: Enriched weekly metrics with gap and duplicate scenario
+async function testEnrichedWeeklyMetrics() {
+    console.log('Test 3a: Enriched weekly metrics with gaps and duplicates...')
+
+    // Clean tmp directory first
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
+    } catch (err) {
+        // Directory might not exist, that's fine
+    }
+
+    mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
+
+    // Create artifacts with a gap (missing order 3) and duplicate (order 5 appears twice)
+    const artifacts = [
+        { issue: 1, confidence: 'high', recommendedOrder: 1, applied: true, score: 150, metadata: { timestamp: new Date().toISOString() } },
+        { issue: 2, confidence: 'high', recommendedOrder: 2, applied: true, score: 140, metadata: { timestamp: new Date().toISOString() } },
+        // Order 3 missing (gap)
+        { issue: 4, confidence: 'medium', recommendedOrder: 4, applied: false, score: 100, metadata: { timestamp: new Date().toISOString() } },
+        { issue: 5, confidence: 'low', recommendedOrder: 5, applied: false, score: 50, metadata: { timestamp: new Date().toISOString() } },
+        { issue: 6, confidence: 'high', recommendedOrder: 5, applied: true, score: 150, metadata: { timestamp: new Date().toISOString() } } // Duplicate order 5
+    ]
+
+    for (let i = 0; i < artifacts.length; i++) {
+        const timestamp = new Date(Date.now() + i * 1000).toISOString().replace(/[:.]/g, '-')
+        writeFileSync(join(TEST_ARTIFACTS_DIR, `${timestamp}-issue-${artifacts[i].issue}.json`), JSON.stringify(artifacts[i]))
+    }
+
+    // Import functions from weekly-ordering-metrics
+    const { generateWeeklyMetrics, calculateMetrics, computeIntegritySnapshot, emitWeeklyMetricsEvent, getBufferedEvents } = await import(
+        './weekly-ordering-metrics.mjs'
+    )
+    const { getBufferedEvents: getBuildEvents } = await import('./shared/build-telemetry.mjs')
+    const { readdirSync, readFileSync, statSync } = await import('node:fs')
+
+    const files = readdirSync(TEST_ARTIFACTS_DIR)
+        .filter((f) => f.endsWith('.json'))
+        .map((f) => ({
+            name: f,
+            path: join(TEST_ARTIFACTS_DIR, f),
+            mtime: statSync(join(TEST_ARTIFACTS_DIR, f)).mtime
+        }))
+
+    const loadedArtifacts = files.map((f) => JSON.parse(readFileSync(f.path, 'utf-8')))
+
+    // Test calculateMetrics
+    const metrics = calculateMetrics(loadedArtifacts)
+    assert.equal(metrics.totalProcessed, 5, 'Should have 5 artifacts')
+    assert.equal(metrics.applied, 3, 'Should have 3 applied')
+    assert.equal(metrics.validationRuns, 5, 'Validation runs should equal totalProcessed')
+    assert.equal(metrics.validationSuccess, 3, 'Validation success should equal applied')
+    assert.equal(metrics.validationFail, 2, 'Validation fail should equal totalProcessed - applied')
+
+    // Test computeIntegritySnapshot
+    const integrity = computeIntegritySnapshot(loadedArtifacts)
+    assert.equal(integrity.contiguous, false, 'Should not be contiguous (has gap and duplicate)')
+    assert.equal(integrity.gaps.length, 1, 'Should have 1 gap (order 3)')
+    assert.ok(integrity.gaps.includes(3), 'Gap should include order 3')
+    assert.equal(integrity.duplicates.length, 1, 'Should have 1 duplicate (order 5)')
+    assert.ok(integrity.duplicates.includes(5), 'Duplicate should include order 5')
+    assert.equal(integrity.failureCount, 2, 'Failure count should be gaps + duplicates')
+    assert.equal(integrity.last, 5, 'Last order should be 5')
+    assert.ok(Array.isArray(integrity.gapsSample), 'gapsSample should be an array')
+
+    // Test invariant: success + fail == runs
+    assert.equal(metrics.validationSuccess + metrics.validationFail, metrics.validationRuns, 'Invariant: success + fail == runs')
+
+    // Test invariant: failureCount == gaps.length + duplicates.length
+    assert.equal(integrity.failureCount, integrity.gaps.length + integrity.duplicates.length, 'Invariant: failureCount == gaps + duplicates')
+
+    // Test generateWeeklyMetrics
+    const weeklyMetrics = generateWeeklyMetrics(loadedArtifacts, 7)
+    assert.equal(weeklyMetrics.schemaVersion, 2, 'Schema version should be 2')
+    assert.equal(weeklyMetrics.periodDays, 7, 'Period days should be 7')
+    assert.equal(weeklyMetrics.totalProcessed, 5, 'Total processed should be 5')
+
+    // Verify legacy fields
+    assert.ok(weeklyMetrics.counts, 'Should have counts object')
+    assert.equal(weeklyMetrics.counts.high, 3, 'High confidence count should be 3')
+    assert.equal(weeklyMetrics.counts.applied, 3, 'Applied count should be 3')
+    assert.ok(typeof weeklyMetrics.appliedPct === 'number', 'appliedPct should be a number')
+    assert.ok(typeof weeklyMetrics.overrideRate === 'number', 'overrideRate should be a number')
+    assert.ok(typeof weeklyMetrics.lowConfidencePct === 'number', 'lowConfidencePct should be a number')
+
+    // Verify new enriched fields
+    assert.ok(weeklyMetrics.validation, 'Should have validation object')
+    assert.equal(weeklyMetrics.validation.runs, 5, 'Validation runs should be 5')
+    assert.equal(weeklyMetrics.validation.success, 3, 'Validation success should be 3')
+    assert.equal(weeklyMetrics.validation.fail, 2, 'Validation fail should be 2')
+
+    assert.ok(weeklyMetrics.integrity, 'Should have integrity object')
+    assert.equal(weeklyMetrics.integrity.contiguous, false, 'Integrity contiguous should be false')
+    assert.equal(weeklyMetrics.integrity.gaps.length, 1, 'Integrity gaps should have 1 item')
+    assert.equal(weeklyMetrics.integrity.duplicates.length, 1, 'Integrity duplicates should have 1 item')
+    assert.equal(weeklyMetrics.integrity.failureCount, 2, 'Integrity failureCount should be 2')
+    assert.equal(weeklyMetrics.integrity.last, 5, 'Integrity last should be 5')
+
+    // Test event emission
+    const beforeEvents = getBuildEvents().length
+    emitWeeklyMetricsEvent(weeklyMetrics)
+    const afterEvents = getBuildEvents().length
+    assert.ok(afterEvents > beforeEvents, 'Should have emitted an event')
+
+    // Find the metrics.weekly event
+    const events = getBuildEvents()
+    const metricsEvent = events.find((e) => e.name === 'build.ordering.metrics.weekly')
+    assert.ok(metricsEvent, 'Should have metrics.weekly event')
+    assert.equal(metricsEvent.properties.schemaVersion, 2, 'Event should have schemaVersion 2')
+    assert.ok(metricsEvent.properties.validation, 'Event should have validation object')
+    assert.ok(metricsEvent.properties.integrity, 'Event should have integrity object')
+
+    console.log('  ✅ Enriched metrics with gaps and duplicates work correctly')
+
+    // Cleanup
+    rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
+}
+
 // Test 4: Event name constants
 async function testEventNameConstants() {
     console.log('Test 4: Event name constants...')
@@ -255,6 +386,7 @@ async function main() {
         await testGranularEvents()
         await testArtifactPruning()
         await testWeeklyMetrics()
+        await testEnrichedWeeklyMetrics()
     await testEventNameConstants()
     await testValidationEvents()
 
