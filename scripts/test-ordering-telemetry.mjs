@@ -120,8 +120,13 @@ async function testGranularEvents() {
 // Test 2: Artifact pruning logic
 async function testArtifactPruning() {
     console.log('Test 2: Artifact pruning...')
-
-    // Create test artifacts directory
+    // Clean & create test artifacts directory (isolate from previous tests)
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true, force: true })
+    } catch (_e) {
+        // ignore if directory does not exist
+        void _e
+    }
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
 
     // Create 10 test artifact files
@@ -156,8 +161,13 @@ async function testArtifactPruning() {
 // Test 3: Weekly metrics calculation
 async function testWeeklyMetrics() {
     console.log('Test 3: Weekly metrics calculation...')
-
-    // Create test artifacts
+    // Clean & create test artifacts
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true, force: true })
+    } catch (_e) {
+        // ignore if directory does not exist
+        void _e
+    }
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
 
     const artifacts = [
@@ -213,6 +223,75 @@ async function testWeeklyMetrics() {
     rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
 }
 
+// Test 3b: Enriched weekly metrics (schemaVersion=2) & event emission
+async function testWeeklyMetricsEnriched() {
+    console.log('Test 3b: Enriched weekly metrics (schemaVersion=2)...')
+    // Clean & recreate artifacts dir
+    try {
+        rmSync(TEST_ARTIFACTS_DIR, { recursive: true, force: true })
+    } catch (_e) {
+        // ignore if directory does not exist
+        void _e
+    }
+    mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
+
+    const enrichedArtifacts = [
+        {
+            issue: 10,
+            confidence: 'high',
+            recommendedOrder: 1,
+            applied: true,
+            score: 120,
+            metadata: { timestamp: new Date().toISOString() }
+        },
+        {
+            issue: 11,
+            confidence: 'medium',
+            recommendedOrder: 2,
+            applied: false,
+            score: 90,
+            metadata: { timestamp: new Date().toISOString() }
+        },
+        { issue: 12, confidence: 'low', recommendedOrder: 4, applied: false, score: 60, metadata: { timestamp: new Date().toISOString() } }, // gap (missing 3)
+        { issue: 13, confidence: 'high', recommendedOrder: 4, applied: true, score: 130, metadata: { timestamp: new Date().toISOString() } } // duplicate order
+    ]
+    for (let i = 0; i < enrichedArtifacts.length; i++) {
+        const ts = new Date(Date.now() + i * 10).toISOString().replace(/[:.]/g, '-')
+        writeFileSync(join(TEST_ARTIFACTS_DIR, `${ts}-issue-${enrichedArtifacts[i].issue}.json`), JSON.stringify(enrichedArtifacts[i]))
+    }
+
+    const { generateWeeklyMetrics, emitWeeklyMetricsEvent } = await import('./weekly-ordering-metrics.mjs')
+    const { metrics } = await generateWeeklyMetrics(7, TEST_ARTIFACTS_DIR)
+    assert.equal(metrics.schemaVersion, 2, 'schemaVersion should be 2')
+    assert.ok(metrics.validation.runs >= 0, 'validation.runs present')
+    assert.equal(metrics.validation.runs, metrics.validation.success + metrics.validation.fail, 'success+fail == runs')
+    assert.ok(metrics.integrity, 'integrity present')
+    assert.ok(metrics.integrity.last, 'integrity.last present')
+    assert.equal(metrics.integrity.last.gaps, 1, 'Should detect 1 gap')
+    assert.equal(metrics.integrity.last.duplicates, 1, 'Should detect 1 duplicate')
+    assert.equal(
+        metrics.integrity.last.failureCount,
+        metrics.integrity.last.gaps + metrics.integrity.last.duplicates,
+        'failureCount matches'
+    )
+
+    // Emit event and ensure it enters telemetry buffer
+    const { getBufferedEvents } = await import('./shared/build-telemetry.mjs')
+    const before = getBufferedEvents().length
+    emitWeeklyMetricsEvent(7, metrics)
+    const after = getBufferedEvents().length
+    assert.ok(after - before >= 1, 'metrics.weekly event emitted')
+    const evt = getBufferedEvents().find((e) => e.name === 'build.ordering.metrics.weekly')
+    assert.ok(evt, 'metrics.weekly event found in buffer')
+    assert.equal(evt.properties.schemaVersion, 2, 'Event includes schemaVersion 2')
+    assert.ok(evt.properties.validation, 'Event validation nested present')
+    assert.ok(evt.properties.integrity, 'Event integrity nested present')
+
+    console.log('  ✅ Enriched weekly metrics & event emission verified')
+
+    rmSync(TEST_ARTIFACTS_DIR, { recursive: true })
+}
+
 // Test 4: Event name constants
 async function testEventNameConstants() {
     console.log('Test 4: Event name constants...')
@@ -257,6 +336,7 @@ async function main() {
         await testGranularEvents()
         await testArtifactPruning()
         await testWeeklyMetrics()
+        await testWeeklyMetricsEnriched()
         await testEventNameConstants()
         await testValidationEvents()
 
