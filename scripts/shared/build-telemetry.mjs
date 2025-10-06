@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global process, console */
+/* global console */
 /**
  * Build automation telemetry module.
  *
@@ -35,11 +35,49 @@ export const BUILD_EVENT_NAMES = {
     OVERRIDE_DETECTED: 'build.ordering.override.detected',
     INTEGRITY_SNAPSHOT: 'build.ordering.integrity.snapshot',
     METRICS_WEEKLY: 'build.ordering.metrics.weekly',
+    VALIDATION_START: 'build.ordering.validation.start',
+    VALIDATION_SUCCESS: 'build.ordering.validation.success',
+    VALIDATION_FAIL: 'build.ordering.validation.fail',
     // Stage 2 scheduling events
     SCHEDULE_VARIANCE: 'build.schedule_variance',
     PROVISIONAL_SCHEDULE_CREATED: 'build.provisional_schedule_created',
     VARIANCE_ALERT: 'build.variance_alert',
     REBASELINE_TRIGGERED: 'build.rebaseline_triggered'
+}
+
+/**
+ * Generic build event emission (ensures build. prefix).
+ * @param {string} name Full event name (must start with build.)
+ * @param {object} props Additional properties
+ */
+export function emitBuildEvent(name, props = {}) {
+    if (!name.startsWith('build.')) {
+        console.error(`Invalid build event name '${name}' (must start with 'build.')`)
+        return
+    }
+    const event = {
+        name,
+        properties: {
+            ...props,
+            timestamp: new Date().toISOString(),
+            telemetrySource: 'build-automation'
+        }
+    }
+    console.log('[BUILD_TELEMETRY]', JSON.stringify(event, null, 2))
+    eventBuffer.push(event)
+}
+
+// Validation helpers (Stage 1 integrity)
+const ORDERING_VALIDATION_PROPS = { telemetryType: 'ordering', stage: 1 }
+
+export function trackValidationStart(props = {}) {
+    emitOrderingEvent('validation.start', { ...props, ...ORDERING_VALIDATION_PROPS })
+}
+export function trackValidationSuccess(props = {}) {
+    emitOrderingEvent('validation.success', { ...props, ...ORDERING_VALIDATION_PROPS })
+}
+export function trackValidationFail(props = {}) {
+    emitOrderingEvent('validation.fail', { ...props, ...ORDERING_VALIDATION_PROPS })
 }
 
 /**

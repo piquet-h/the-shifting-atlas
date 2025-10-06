@@ -18,7 +18,7 @@
  */
 
 import { parseArgs } from 'node:util'
-import { emitOrderingEvent } from './shared/build-telemetry.mjs'
+import { emitOrderingEvent, trackValidationStart, trackValidationSuccess, trackValidationFail } from './shared/build-telemetry.mjs'
 
 const { values } = parseArgs({
     options: {
@@ -90,7 +90,7 @@ async function fetchProjectItems() {
             let data
             try {
                 data = await gh(queryText, vars)
-            } catch (e) {
+            } catch {
                 break
             }
             const container = kind === 'viewer' ? data.viewer : data[kind === 'organization' ? 'organization' : 'user']
@@ -117,8 +117,10 @@ function getFieldNumber(n, name) {
 
 async function main() {
     const { projectId, nodes } = await fetchProjectItems()
+    trackValidationStart({ phase: 'fetch' })
     if (!projectId) {
         console.error('Project not found.')
+        trackValidationFail({ reason: 'project_not_found' })
         process.exit(2)
     }
 
@@ -136,6 +138,7 @@ async function main() {
             duplicates: [],
             isContiguous: true
         })
+        trackValidationSuccess({ totalIssues: 0 })
         return
     }
 
@@ -176,10 +179,12 @@ async function main() {
     })
 
     if (!isContiguous) {
+        trackValidationFail({ totalIssues: ordered.length, gaps: gaps.length, duplicates: duplicates.length })
         process.exit(1)
     }
 
     console.log(`✅ Ordering integrity check passed: ${ordered.length} issues with contiguous order 1..${ordered.length}`)
+    trackValidationSuccess({ totalIssues: ordered.length })
 }
 
 main().catch((err) => {

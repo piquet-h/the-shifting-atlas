@@ -48,17 +48,12 @@
  */
 
 import { createHash } from 'node:crypto'
-import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import {
-    emitOrderingEvent,
-    flushBuildTelemetry,
-    initBuildTelemetry,
-    trackOrderingApplied,
-    trackOrderingLowConfidence
-} from './shared/build-telemetry.mjs'
+import { emitOrderingEvent, flushBuildTelemetry, initBuildTelemetry, trackOrderingApplied, trackOrderingLowConfidence } from './shared/build-telemetry.mjs'
+import { pruneOldArtifacts } from './shared/ordering-artifacts.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -398,29 +393,7 @@ function computeScore(issue) {
  * @param {number} keepCount - Number of recent files to keep
  * @param {string} directory - Directory to prune (defaults to ARTIFACTS_DIR)
  */
-function pruneOldArtifacts(keepCount = 200, directory = null) {
-    try {
-        const targetDir = directory || ARTIFACTS_DIR
-        const files = readdirSync(targetDir)
-            .filter((f) => f.endsWith('.json'))
-            .map((f) => ({
-                name: f,
-                path: join(targetDir, f),
-                mtime: statSync(join(targetDir, f)).mtime
-            }))
-            .sort((a, b) => b.mtime - a.mtime) // newest first
-
-        if (files.length > keepCount) {
-            const toDelete = files.slice(keepCount)
-            console.error(`Pruning ${toDelete.length} old artifact file(s)`)
-            for (const file of toDelete) {
-                unlinkSync(file.path)
-            }
-        }
-    } catch (err) {
-        console.error(`Warning: Failed to prune old artifacts: ${err.message}`)
-    }
-}
+// pruneOldArtifacts now centralized in scripts/shared/ordering-artifacts.mjs
 
 /**
  * Check ordering integrity for gaps and duplicates.
