@@ -43,24 +43,28 @@ Maintain the current scalar `currentLocationId` for MVP while establishing groun
 ## Future Migration Path (Issue #103)
 
 ### Phase 1: Dual Write (Groundwork - This Issue)
+
 - Repository method signatures unchanged
 - Internally write both scalar and edge on player move
 - Telemetry tracks dual-write success/failure rates
 - Graph edge considered "shadow" data for analytics only
 
 ### Phase 2: Validation & Analytics (Follow-up Issue)
+
 - Scheduled job compares scalar vs edge for consistency
 - Alert on divergence rate > 1%
 - Implement read-only analytics queries using edges (e.g., `getPlayersNearLocation`)
 - Performance benchmarking
 
 ### Phase 3: Migration Script (Follow-up Issue)
+
 - Export all player `currentLocationId` values
 - Bulk create `(player)-[:in]->(location)` edges
 - Verify counts match
 - Enable consistency checks
 
 ### Phase 4: Flip Source of Truth (Future Issue)
+
 - Update repository to read from graph edge first
 - Keep scalar as denormalized cache for hot path
 - Update on edge changes
@@ -83,7 +87,7 @@ The following placeholders may be added during this issue if convenient, but are
 // async updatePlayerLocation(playerId: string, locationId: string): Promise<void> {
 //     // Update scalar field (SQL)
 //     // await this.updatePlayerDocument(playerId, { currentLocationId: locationId })
-//     
+//
 //     // Create graph edge (Gremlin) - optional shadow write
 //     // await this.ensurePlayerLocationEdge(playerId, locationId)
 // }
@@ -128,6 +132,7 @@ trackGameEventStrict('Player.Location.Updated', {
 ## Rollback Plan
 
 If graph edges prove problematic:
+
 1. Disable edge creation in repository (feature flag or config)
 2. Continue using scalar field only
 3. Drop existing player-location edges

@@ -12,19 +12,21 @@ The `version` property tracks **content changes** (name, description, tags) for 
 
 1. **Frequency Asymmetry**: Exit creation is rare (world generation, manual linking). Content changes are more frequent (AI-generated layers, description refinements). Mixing them inflates version numbers unnecessarily.
 
-2. **Optimistic Concurrency Intent**: Version numbers prevent conflicting *content* edits (e.g., two processes updating description simultaneously). Exit edge conflicts are handled by idempotent `ensureExit` - no race condition exists.
+2. **Optimistic Concurrency Intent**: Version numbers prevent conflicting _content_ edits (e.g., two processes updating description simultaneously). Exit edge conflicts are handled by idempotent `ensureExit` - no race condition exists.
 
-3. **Cache Invalidation Precision**: Frontend caches location *descriptions*, not exit topology. Exit changes don't require invalidating cached descriptive text.
+3. **Cache Invalidation Precision**: Frontend caches location _descriptions_, not exit topology. Exit changes don't require invalidating cached descriptive text.
 
 4. **Graph Semantics**: In property graph databases (Gremlin), vertices and edges are orthogonal. Edge mutations don't inherently modify vertex properties.
 
 ## Alternative Considered: Dual Revision Counters
 
 We could introduce:
+
 - `contentRevision` (name, description, tags)
 - `structuralRevision` (exit edges)
 
 **Rejected because**:
+
 - Adds complexity for minimal gain
 - Exit changes tracked via telemetry events (`World.Exit.Created`, `World.Exit.Removed`)
 - Future analytics can reconstruct exit history from telemetry timeline
@@ -62,13 +64,13 @@ The test suite includes cases verifying:
 test('location version unchanged when only exits added', async () => {
     // Create location with version 1
     await repo.upsert({ id: 'A', name: 'Alpha', description: 'First', version: 1 })
-    
+
     // Add exit (structural change only)
     await repo.ensureExit('A', 'north', 'B')
-    
+
     // Fetch location
     const location = await repo.get('A')
-    
+
     // Version should still be 1
     assert.equal(location.version, 1)
 })
@@ -76,9 +78,10 @@ test('location version unchanged when only exits added', async () => {
 
 ## Edge Case: Content and Exit Changes Together
 
-If a single operation updates *both* content and exits (unlikely in practice), the content change triggers version increment per existing logic. The exit change is incidental.
+If a single operation updates _both_ content and exits (unlikely in practice), the content change triggers version increment per existing logic. The exit change is incidental.
 
 Example:
+
 ```typescript
 // Scenario: AI generates new location with pre-defined exits
 await repo.upsert({ id: 'X', name: 'New', description: 'Generated', version: 1 })
@@ -89,6 +92,7 @@ await repo.ensureExit('X', 'north', 'Y')
 ## Telemetry
 
 Exit changes emit dedicated events:
+
 - `World.Exit.Created` (fromLocationId, toLocationId, direction)
 - `World.Exit.Removed` (fromLocationId, direction)
 
@@ -97,6 +101,7 @@ These events provide an audit trail independent of version numbers.
 ## Future Considerations
 
 If we later introduce:
+
 - **Exit metadata evolution** (e.g., changing `blocked` status, adding `requiredKey` property), we may need a separate `exitRevision` counter at the edge level (not vertex level).
 - **Exit snapshots for time-travel queries**, telemetry events will suffice until we implement explicit temporal modeling.
 

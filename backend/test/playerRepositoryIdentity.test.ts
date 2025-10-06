@@ -58,7 +58,7 @@ test('linkExternalId idempotent re-link does not update updatedUtc', async () =>
     assert.ok(first.updated, 'first link should succeed')
     const firstUpdated = first.record!.updatedUtc
     // Small delay to ensure timestamp would differ if updated
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise((resolve) => setTimeout(resolve, 10))
     // Re-link same player to same externalId
     const second = await repo.linkExternalId(record.id, ext)
     assert.ok(!second.updated, 'idempotent re-link should return updated=false')

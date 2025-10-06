@@ -7,6 +7,7 @@ Player identity linking ensures that each external identity (from authentication
 ## Conflict Detection
 
 The `linkExternalId` repository method now detects conflicts when:
+
 - An `externalId` is already linked to a different player
 - A second player attempts to link the same `externalId`
 
@@ -15,6 +16,7 @@ The `linkExternalId` repository method now detects conflicts when:
 ### Repository Level (`IPlayerRepository.linkExternalId`)
 
 **Returns:**
+
 ```typescript
 {
     updated: boolean
@@ -27,22 +29,23 @@ The `linkExternalId` repository method now detects conflicts when:
 **Scenarios:**
 
 1. **Successful Link** (first time linking unique externalId):
-   - `updated: true`
-   - `record: PlayerRecord` (with externalId set, guest: false, updatedUtc set)
+    - `updated: true`
+    - `record: PlayerRecord` (with externalId set, guest: false, updatedUtc set)
 
 2. **Idempotent Re-link** (same player, same externalId):
-   - `updated: false`
-   - `record: PlayerRecord` (unchanged, updatedUtc NOT modified)
-   - Rationale: No mutation occurred, timestamp should remain stable
+    - `updated: false`
+    - `record: PlayerRecord` (unchanged, updatedUtc NOT modified)
+    - Rationale: No mutation occurred, timestamp should remain stable
 
 3. **Conflict** (externalId already linked to different player):
-   - `updated: false`
-   - `conflict: true`
-   - `existingPlayerId: string` (the GUID of the player who already owns this externalId)
+    - `updated: false`
+    - `conflict: true`
+    - `existingPlayerId: string` (the GUID of the player who already owns this externalId)
 
 ### HTTP API Level (`/api/player/link`)
 
 **HTTP 409 Conflict Response:**
+
 ```json
 {
     "code": "externalId-conflict",
@@ -51,6 +54,7 @@ The `linkExternalId` repository method now detects conflicts when:
 ```
 
 This allows clients to:
+
 - Detect the conflict situation
 - Identify which player already owns the identity
 - Implement UI flows for identity resolution (e.g., "Link to existing account" vs "Contact support")
@@ -58,6 +62,7 @@ This allows clients to:
 ### Auto-Link Flow (`ensurePlayerForRequest`)
 
 When automatically linking a player during SWA authentication:
+
 - If conflict detected: Falls back to creating a new guest player
 - Rationale: Preserves availability during rare race conditions
 - Future enhancement: Could log for investigation or emit telemetry
@@ -71,11 +76,13 @@ When automatically linking a player during SWA authentication:
 ## Telemetry
 
 Onboarding telemetry events maintain correlation IDs across:
+
 - `Onboarding.GuestGuid.Started`
 - `Onboarding.GuestGuid.Created`
 - `Onboarding.GuestGuid.Completed`
 
 This enables analytics on:
+
 - Onboarding funnel completion rates
 - Latency distribution per phase
 - Guest-to-authenticated conversion patterns
@@ -85,6 +92,7 @@ This enables analytics on:
 ### Why No Auto-Merge?
 
 When a conflict is detected (guest player tries to link an externalId already owned by another player), we do NOT automatically merge accounts because:
+
 1. **Data Integrity**: Merging requires careful consideration of which player's data to preserve
 2. **Security**: Could enable account takeover vectors if not handled carefully
 3. **User Intent**: User may have created multiple accounts intentionally
@@ -94,6 +102,7 @@ Future iterations may add explicit "merge accounts" flows with user confirmation
 ### Why Idempotent Behavior?
 
 Re-linking the same externalId to the same player is treated as a no-op:
+
 - No mutation of data occurs
 - `updatedUtc` remains unchanged
 - Simplifies client retry logic

@@ -19,8 +19,8 @@
  *   1: Violations detected
  */
 
-import { readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -128,18 +128,123 @@ function checkSeparationComments() {
     }
 }
 
+// Check 4: No build.* telemetry usage outside scripts/ directory
+function checkBuildTelemetryGuard() {
+    // Directories to scan (game domain code that must NOT use build telemetry)
+    const scanDirs = ['backend/src', 'frontend/src', 'frontend/api/src', 'shared/src']
+
+    // File extensions to scan
+    const codeExtensions = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs']
+
+    for (const dir of scanDirs) {
+        const dirPath = join(ROOT, dir)
+        const files = collectCodeFiles(dirPath, codeExtensions)
+
+        for (const file of files) {
+            try {
+                const content = readFileSync(file, 'utf-8')
+                const lines = content.split('\n')
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i]
+
+                    // Skip comment lines to avoid false positives
+                    const trimmedLine = line.trim()
+                    if (trimmedLine.startsWith('//') || trimmedLine.startsWith('*') || trimmedLine.startsWith('/*')) {
+                        continue
+                    }
+
+                    // Check for build.* event strings (literal usage)
+                    // Pattern: 'build.' or "build." in string literals
+                    const buildEventMatch = line.match(/['"`](build\.[a-z_][a-z0-9._]*)['"]/gi)
+                    if (buildEventMatch) {
+                        const relPath = relative(ROOT, file)
+                        violations.push({
+                            file: relPath,
+                            line: i + 1,
+                            message: `Build telemetry event found in game domain code. Build events (build.*) must only be used in scripts/ directory.`,
+                            content: line.trim()
+                        })
+                    }
+
+                    // Check for imports from build-telemetry module (actual import statements)
+                    if (line.includes('import') && line.includes('build-telemetry')) {
+                        const relPath = relative(ROOT, file)
+                        violations.push({
+                            file: relPath,
+                            line: i + 1,
+                            message: `Import from build-telemetry module found in game domain code. Build telemetry is reserved for scripts/ only.`,
+                            content: line.trim()
+                        })
+                    }
+                }
+            } catch (err) {
+                // Silently skip unreadable files
+            }
+        }
+    }
+}
+
+/**
+ * Recursively collect code files from a directory.
+ * @param {string} dir - Directory path
+ * @param {string[]} extensions - File extensions to include
+ * @returns {string[]} - Array of file paths
+ */
+function collectCodeFiles(dir, extensions) {
+    const files = []
+
+    try {
+        const stack = [dir]
+
+        while (stack.length > 0) {
+            const currentDir = stack.pop()
+            const entries = readdirSync(currentDir, { withFileTypes: true })
+
+            for (const entry of entries) {
+                const fullPath = join(currentDir, entry.name)
+
+                if (entry.isDirectory()) {
+                    // Skip node_modules, dist, build, coverage, .azure
+                    if (['node_modules', 'dist', 'build', 'coverage', '.azure'].includes(entry.name)) {
+                        continue
+                    }
+                    stack.push(fullPath)
+                } else if (entry.isFile()) {
+                    // Skip .d.ts files and test files
+                    if (entry.name.endsWith('.d.ts')) continue
+                    if (entry.name.includes('.test.')) continue
+                    if (entry.name.includes('.spec.')) continue
+
+                    // Check if file has a code extension
+                    const hasCodeExtension = extensions.some((ext) => entry.name.endsWith(ext))
+                    if (hasCodeExtension) {
+                        files.push(fullPath)
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        // Directory doesn't exist or can't be read, return empty array
+    }
+
+    return files
+}
+
 function main() {
     console.log('Validating telemetry separation...\n')
 
     checkGameTelemetryFile()
     checkBuildTelemetryFile()
     checkSeparationComments()
+    checkBuildTelemetryGuard()
 
     if (violations.length === 0) {
         console.log('✅ No telemetry separation violations found')
         console.log('\nSeparation rules:')
         console.log('  • Build telemetry: scripts/shared/build-telemetry.mjs (build.* events)')
         console.log('  • Game telemetry: shared/src/telemetry.ts (Domain.Subject.Action events)')
+        console.log('  • Build telemetry guard: build.* events only allowed in scripts/ directory')
         return
     }
 

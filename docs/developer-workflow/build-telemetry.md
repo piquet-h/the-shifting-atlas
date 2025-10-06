@@ -22,14 +22,18 @@ The project maintains **two completely separate telemetry systems**:
 ## Build Telemetry (`scripts/shared/build-telemetry.mjs`)
 
 ### Purpose
+
 Tracks CI/automation workflows including:
+
 - Implementation order automation (Stage 1)
 - Provisional scheduling (Stage 2)
 - Schedule variance tracking
 - Variance alerts
 
 ### Event Naming Convention
+
 All build events use the `build.` prefix with snake_case:
+
 - `build.ordering_applied`
 - `build.ordering_low_confidence`
 - `build.ordering_overridden`
@@ -38,7 +42,9 @@ All build events use the `build.` prefix with snake_case:
 - `build.variance_alert`
 
 ### Custom Dimensions
+
 All build telemetry events include:
+
 ```javascript
 {
     telemetrySource: 'build-automation',
@@ -49,7 +55,9 @@ All build telemetry events include:
 ```
 
 ### Storage
+
 Build telemetry stays within the GitHub ecosystem:
+
 - Console logs (GitHub Actions logs)
 - Artifact files (JSON export)
 - **Does NOT use Application Insights**
@@ -57,11 +65,7 @@ Build telemetry stays within the GitHub ecosystem:
 ### Usage Example
 
 ```javascript
-import { 
-    initBuildTelemetry, 
-    trackOrderingApplied, 
-    flushBuildTelemetry 
-} from './shared/build-telemetry.mjs'
+import { initBuildTelemetry, trackOrderingApplied, flushBuildTelemetry } from './shared/build-telemetry.mjs'
 
 // Initialize at script start
 initBuildTelemetry()
@@ -86,7 +90,9 @@ await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
 ## Game Telemetry (`shared/src/telemetry.ts`)
 
 ### Purpose
+
 Tracks in-game domain events:
+
 - Player actions (movement, inventory)
 - World generation
 - AI interactions
@@ -95,7 +101,9 @@ Tracks in-game domain events:
 - Multiplayer synchronization
 
 ### Event Naming Convention
+
 Game events use `Domain.Subject.Action` format with PascalCase (2-3 segments):
+
 - `Player.Get`
 - `Location.Move`
 - `World.Location.Generated`
@@ -103,31 +111,67 @@ Game events use `Domain.Subject.Action` format with PascalCase (2-3 segments):
 - `Navigation.Input.Ambiguous`
 
 ### Storage
+
 - **Application Insights ONLY**
 - NOT in GitHub artifacts
 - NOT in console logs (except local dev)
 
 ### Location
+
 - **Exclusively in `shared/src/` folder** (game domain code)
 - Never in `scripts/` folder (build/automation code)
 
 ## Separation Rules (CRITICAL)
 
 ### DO NOT:
+
 1. ❌ Add build events to `shared/src/telemetryEvents.ts` (game domain only)
 2. ❌ Add game events to `scripts/shared/build-telemetry.mjs` (build automation only)
 3. ❌ Use Application Insights for build telemetry (GitHub artifacts only)
 4. ❌ Mix `build.` prefix with `Domain.Subject.Action` format
 5. ❌ Put build automation code in `shared/src/` folder
 6. ❌ Put game domain code in `scripts/` folder
+7. ❌ Use `build.*` events or import `build-telemetry` in game domain code (backend/, frontend/, shared/src/)
 
 ### DO:
+
 1. ✅ Use `scripts/shared/build-telemetry.mjs` for ALL CI/automation events
 2. ✅ Use `shared/src/telemetry.ts` for ALL game domain events
 3. ✅ Keep build events with `build.` prefix
 4. ✅ Keep game events with `Domain.Subject.Action` format
 5. ✅ Use GitHub artifacts for build telemetry export
 6. ✅ Use Application Insights for game telemetry only
+
+## Enforcement
+
+The telemetry separation is enforced by automated validation:
+
+### Build Telemetry Guard
+
+A validation script (`scripts/validate-telemetry-separation.mjs`) runs in CI and checks:
+
+1. **No build.\* events in game telemetry file** - `shared/src/telemetryEvents.ts` must not contain `build.` prefixed events
+2. **No game events in build telemetry file** - `scripts/shared/build-telemetry.mjs` must not contain `Domain.Subject.Action` patterns
+3. **No Application Insights in build telemetry** - Build scripts must not import `@azure/application-insights`
+4. **No build telemetry usage in game domain** - Files in `backend/src/`, `frontend/src/`, `frontend/api/src/`, and `shared/src/` must not:
+    - Use `build.*` event strings
+    - Import from `scripts/shared/build-telemetry.mjs`
+
+The guard automatically scans all TypeScript, JavaScript, and related files (excluding test files, type definitions, and build artifacts).
+
+**To run validation locally:**
+
+```bash
+npm run validate:telemetry-separation
+```
+
+**To test the guard:**
+
+```bash
+npm run test:build-telemetry-guard
+```
+
+The validation runs automatically in CI before linting.
 
 ## Querying Telemetry
 
@@ -156,6 +200,7 @@ customEvents
 ```
 
 To filter out build events:
+
 ```kusto
 customEvents
 | where customDimensions.telemetrySource != "build-automation"
@@ -165,23 +210,24 @@ customEvents
 
 ### Build Events (Stage 1 Ordering)
 
-| Event Name | When Emitted | Key Properties |
-|------------|--------------|----------------|
-| `build.ordering_applied` | High confidence order applied | `issueNumber`, `confidence`, `score`, `changes` |
-| `build.ordering_low_confidence` | Medium/low confidence (no auto-apply) | `issueNumber`, `confidence`, `reason`, `scope`, `type`, `milestone` |
-| `build.ordering_overridden` | Manual change within 24h of automation | `issueNumber`, `previousOrder`, `manualOrder`, `hoursSinceAutomation` |
+| Event Name                      | When Emitted                           | Key Properties                                                        |
+| ------------------------------- | -------------------------------------- | --------------------------------------------------------------------- |
+| `build.ordering_applied`        | High confidence order applied          | `issueNumber`, `confidence`, `score`, `changes`                       |
+| `build.ordering_low_confidence` | Medium/low confidence (no auto-apply)  | `issueNumber`, `confidence`, `reason`, `scope`, `type`, `milestone`   |
+| `build.ordering_overridden`     | Manual change within 24h of automation | `issueNumber`, `previousOrder`, `manualOrder`, `hoursSinceAutomation` |
 
 ### Build Events (Stage 2 Scheduling)
 
-| Event Name | When Emitted | Key Properties |
-|------------|--------------|----------------|
-| `build.provisional_schedule_created` | Provisional schedule calculated | `issueNumber`, `provisionalStart`, `provisionalFinish`, `confidence` |
-| `build.schedule_variance` | Variance detected vs provisional | `issueNumber`, `overallVariance`, `startDelta`, `finishDelta` |
-| `build.variance_alert` | Alert created/updated/closed | `alertType`, `period`, `variance`, `threshold` |
+| Event Name                           | When Emitted                     | Key Properties                                                       |
+| ------------------------------------ | -------------------------------- | -------------------------------------------------------------------- |
+| `build.provisional_schedule_created` | Provisional schedule calculated  | `issueNumber`, `provisionalStart`, `provisionalFinish`, `confidence` |
+| `build.schedule_variance`            | Variance detected vs provisional | `issueNumber`, `overallVariance`, `startDelta`, `finishDelta`        |
+| `build.variance_alert`               | Alert created/updated/closed     | `alertType`, `period`, `variance`, `threshold`                       |
 
 ## Rationale
 
 The separation prevents:
+
 1. **Pollution**: Infrastructure noise doesn't contaminate game analytics
 2. **Confusion**: Clear boundary between build and runtime concerns
 3. **Cost**: Application Insights pricing doesn't include CI noise
