@@ -223,9 +223,10 @@ World content generation: see `.github/instructions/world/.instructions.md`.
 
 ## 8. Issue & Roadmap Taxonomy
 
-Exactly 1 scope + 1 type label.
+Atomic issues: exactly 1 scope + 1 type label.
+Epics: exactly 1 scope label + the coordination label `epic` (no type label applied).
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
-Types: `feature|enhancement|refactor|infra|docs|spike|test|epic`.
+Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
 Ordering: Project v2 field `Implementation order` (numeric) → sync script regenerates `docs/roadmap.md`.
 Status field: `Todo|In progress|Done`.
@@ -582,8 +583,8 @@ else:
 ### 20.6 Labeling Rules for Generated Issues
 
 - Exactly one `scope:*` label (reuse existing taxonomy Section 8)
-- Exactly one type label: choose among `feature|enhancement|infra|docs|test|refactor|spike|epic`
-- Epics use `epic` (coordination only, no implementation acceptance criteria) plus exactly one scope label
+- Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
+- Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
 - Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
 
 ### 20.7 Ordering Guidance

@@ -14,7 +14,11 @@ Core Scripts:
 - Labels reconcile: `npm run sync:labels`
 - Recommend/assign order (dry-run default): `npm run assign:impl-order -- --issue <n>`
 
-Labels: One `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`). No legacy `area:*`, `phase-*`, `priority:*`.
+Labels:
+
+- Atomic issue: one `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`).
+- Epic: one `scope:*` + `epic` (no type label).
+  No legacy `area:*`, `phase-*`, `priority:*`.
 
 Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (Any JSON snapshot is auxiliary; edit the Project field directly.) Helper script can auto-recompute or append.
 
