@@ -133,7 +133,7 @@ export function pruneOldArtifacts(dir, keepCount = 200) {
         const files = listArtifactFiles(dir)
         if (files.length <= keepCount) return
         const toDelete = files.slice(keepCount)
-        console.error(`Pruning ${toDelete.length} old artifact file(s) (keep=${keepCount})`)
+        console.log(`Pruning ${toDelete.length} old artifact file(s) (keep=${keepCount})`)
         for (const f of toDelete) unlinkSync(f.path)
     } catch (err) {
         console.error(`ordering-artifacts: Failed to prune old artifacts: ${err.message}`)

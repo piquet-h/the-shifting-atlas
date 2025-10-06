@@ -68,14 +68,16 @@ export function emitBuildEvent(name, props = {}) {
 }
 
 // Validation helpers (Stage 1 integrity)
+const ORDERING_VALIDATION_PROPS = { telemetryType: 'ordering', stage: 1 }
+
 export function trackValidationStart(props = {}) {
-    emitOrderingEvent('validation.start', { ...props, telemetryType: 'ordering', stage: 1 })
+    emitOrderingEvent('validation.start', { ...props, ...ORDERING_VALIDATION_PROPS })
 }
 export function trackValidationSuccess(props = {}) {
-    emitOrderingEvent('validation.success', { ...props, telemetryType: 'ordering', stage: 1 })
+    emitOrderingEvent('validation.success', { ...props, ...ORDERING_VALIDATION_PROPS })
 }
 export function trackValidationFail(props = {}) {
-    emitOrderingEvent('validation.fail', { ...props, telemetryType: 'ordering', stage: 1 })
+    emitOrderingEvent('validation.fail', { ...props, ...ORDERING_VALIDATION_PROPS })
 }
 
 /**
