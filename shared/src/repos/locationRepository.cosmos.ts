@@ -159,12 +159,107 @@ export class CosmosLocationRepository implements ILocationRepository {
             `g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
             { tid: toId, pk: WORLD_GRAPH_PARTITION_VALUE }
         )
-        // Use coalesce on existing edge
-        await this.client.submit(
-            "g.V(fid).as('a').V(tid).coalesce( a.outE('exit').has('direction', dir).where(inV().hasId(tid)), addE('exit').from('a').to(V(tid)).property('direction', dir).property('description', desc) )",
-            { fid: fromId, tid: toId, dir: direction, desc: description || '' }
+
+        // Check if edge already exists
+        const existingEdges = await this.client.submit<Record<string, unknown>>(
+            "g.V(fid).outE('exit').has('direction', dir).where(inV().hasId(tid))",
+            { fid: fromId, tid: toId, dir: direction }
         )
-        return { created: false }
+
+        if (existingEdges && existingEdges.length > 0) {
+            // Edge already exists, not created
+            return { created: false }
+        }
+
+        // Create new edge
+        await this.client.submit("g.V(fid).as('a').addE('exit').to(V(tid)).property('direction', dir).property('description', desc)", {
+            fid: fromId,
+            tid: toId,
+            dir: direction,
+            desc: description || ''
+        })
+
+        // Emit telemetry for actual creation
+        trackGameEventStrict('World.Exit.Created', {
+            fromLocationId: fromId,
+            toLocationId: toId,
+            dir: direction,
+            kind: 'manual',
+            genSource: undefined
+        })
+
+        return { created: true }
+    }
+
+    /** Ensure an exit edge with optional bidirectional creation */
+    async ensureExitBidirectional(
+        fromId: string,
+        direction: string,
+        toId: string,
+        opts?: { reciprocal?: boolean; description?: string; reciprocalDescription?: string }
+    ): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
+        if (!isDirection(direction)) return { created: false }
+        const result = await this.ensureExit(fromId, direction, toId, opts?.description)
+        if (!opts?.reciprocal) {
+            return result
+        }
+        // Create reciprocal exit
+        const { getOppositeDirection } = await import('../domainModels.js')
+        const oppositeDir = getOppositeDirection(direction)
+        const reciprocalResult = await this.ensureExit(toId, oppositeDir, fromId, opts?.reciprocalDescription)
+        return { created: result.created, reciprocalCreated: reciprocalResult.created }
+    }
+
+    /** Remove an exit edge */
+    async removeExit(fromId: string, direction: string): Promise<{ removed: boolean }> {
+        if (!isDirection(direction)) return { removed: false }
+
+        // Find and remove matching edges
+        const edges = await this.client.submit<Record<string, unknown>>("g.V(fid).outE('exit').has('direction', dir)", {
+            fid: fromId,
+            dir: direction
+        })
+
+        if (!edges || edges.length === 0) {
+            return { removed: false }
+        }
+
+        // Get destination for telemetry before removing
+        const toLocationId = edges.length > 0 ? String((edges[0] as Record<string, unknown>).inV || '') : undefined
+
+        // Drop the edges
+        await this.client.submit("g.V(fid).outE('exit').has('direction', dir).drop()", { fid: fromId, dir: direction })
+
+        // Emit telemetry for actual removal
+        trackGameEventStrict('World.Exit.Removed', {
+            fromLocationId: fromId,
+            dir: direction,
+            toLocationId
+        })
+
+        return { removed: true }
+    }
+
+    /** Batch apply multiple exits */
+    async applyExits(
+        exits: Array<{ fromId: string; direction: string; toId: string; description?: string; reciprocal?: boolean }>
+    ): Promise<{ exitsCreated: number; exitsSkipped: number; reciprocalApplied: number }> {
+        let exitsCreated = 0
+        let exitsSkipped = 0
+        let reciprocalApplied = 0
+
+        // Group by fromId for potential optimization (future enhancement)
+        for (const exit of exits) {
+            const result = await this.ensureExitBidirectional(exit.fromId, exit.direction, exit.toId, {
+                reciprocal: exit.reciprocal,
+                description: exit.description
+            })
+            if (result.created) exitsCreated++
+            else exitsSkipped++
+            if (result.reciprocalCreated) reciprocalApplied++
+        }
+
+        return { exitsCreated, exitsSkipped, reciprocalApplied }
     }
 }
 

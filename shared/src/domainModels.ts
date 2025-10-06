@@ -49,6 +49,27 @@ export function isDirection(value: string): value is Direction {
     return (DIRECTIONS as readonly string[]).includes(value)
 }
 
+/** Map of directions to their canonical opposites for bidirectional exit creation */
+const OPPOSITE_DIRECTIONS: Readonly<Record<Direction, Direction>> = {
+    north: 'south',
+    south: 'north',
+    east: 'west',
+    west: 'east',
+    northeast: 'southwest',
+    southwest: 'northeast',
+    northwest: 'southeast',
+    southeast: 'northwest',
+    up: 'down',
+    down: 'up',
+    in: 'out',
+    out: 'in'
+} as const
+
+/** Get the opposite direction for bidirectional exit creation */
+export function getOppositeDirection(direction: Direction): Direction {
+    return OPPOSITE_DIRECTIONS[direction]
+}
+
 /** An explicit exit edge between two locations. */
 export interface ExitEdge {
     /** Source location ID. */
