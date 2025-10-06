@@ -47,17 +47,17 @@
  *   4 - integrity violation (duplicate/gap found)
  */
 
-import { writeFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-import { parseArgs } from 'node:util'
-import { join, dirname } from 'node:path'
+import { mkdirSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import {
+    emitOrderingEvent,
+    flushBuildTelemetry,
     initBuildTelemetry,
     trackOrderingApplied,
-    trackOrderingLowConfidence,
-    emitOrderingEvent,
-    flushBuildTelemetry
+    trackOrderingLowConfidence
 } from './shared/build-telemetry.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -351,6 +351,26 @@ const TYPE_WEIGHT = {
     test: 10
 }
 
+/**
+ * Derive the (normalized) type label from a set of labels.
+ * Accepts legacy prefixed form "type:<name>" but returns only the bare type name.
+ * (All user‑facing output and new automation must use the bare form.)
+ * @param {Set<string>} labels
+ * @returns {string} normalized type label or ''
+ */
+function extractType(labels) {
+    for (const l of labels) {
+        if (TYPE_WEIGHT[l]) return l // already normalized
+        const idx = l.indexOf(':')
+        if (idx > 0) {
+            const prefix = l.slice(0, idx)
+            const rest = l.slice(idx + 1)
+            if (prefix === 'type' && TYPE_WEIGHT[rest]) return rest // legacy form
+        }
+    }
+    return ''
+}
+
 function milestoneWeight(title) {
     if (!title) return 0
     const m = title.match(/^M(\d+)/i)
@@ -364,11 +384,10 @@ function milestoneWeight(title) {
 function computeScore(issue) {
     const labels = labelSet(issue)
     const scope = SCOPE_PRIORITY.find((s) => labels.has(s))
-    const type = [...labels].find((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l]) || ''
+    const type = extractType(labels)
     let score = 0
     if (scope) score += SCOPE_WEIGHT[scope]
-    const typeKey = type.replace(/^type:/, '')
-    if (TYPE_WEIGHT[typeKey]) score += TYPE_WEIGHT[typeKey]
+    if (TYPE_WEIGHT[type]) score += TYPE_WEIGHT[type]
     score += milestoneWeight(issue.milestone?.title)
     // Light boost for short bodies (foundation tasks) vs long (feature narratives) skipped: keep simple.
     return score
@@ -457,7 +476,7 @@ function checkOrderingIntegrity(plan) {
 function calculateConfidence(issue) {
     const labels = labelSet(issue)
     const hasScope = SCOPE_PRIORITY.some((s) => labels.has(s))
-    const hasType = [...labels].some((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l])
+    const hasType = !!extractType(labels)
     const hasMilestone = !!issue.milestone?.title
 
     if (hasScope && hasMilestone && hasType) {
@@ -611,7 +630,7 @@ async function main() {
     const confidence = calculateConfidence(targetIssue)
     const labels = labelSet(targetIssue)
     const scope = SCOPE_PRIORITY.find((s) => labels.has(s)) || 'none'
-    const type = [...labels].find((l) => TYPE_WEIGHT[l.replace(/^type:/, '')] || TYPE_WEIGHT[l]) || 'none'
+    const type = extractType(labels) || 'none'
     const milestone = targetIssue.milestone?.title || 'none'
 
     const rationale = `Issue #${ISSUE_NUMBER}: scope=${scope}, type=${type}, milestone=${milestone}, score=${computeScore(targetIssue)}. Strategy: ${STRATEGY}. Changes required: ${diffs.length}.`

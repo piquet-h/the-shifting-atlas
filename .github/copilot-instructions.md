@@ -181,6 +181,7 @@ Partition key patterns:
 **CRITICAL SEPARATION**: Build automation and game domain telemetry are strictly separated.
 
 ### Build Telemetry (CI/Automation)
+
 - **Module**: `scripts/shared/build-telemetry.mjs`
 - **Purpose**: CI/automation workflows (ordering, scheduling, variance)
 - **Event prefix**: `build.` (e.g., `build.ordering_applied`)
@@ -188,6 +189,7 @@ Partition key patterns:
 - **Location**: `scripts/` folder ONLY
 
 ### Game Telemetry (Domain Events)
+
 - **Module**: `shared/src/telemetry.ts`
 - **Purpose**: In-game events (player actions, world generation, navigation)
 - **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
@@ -195,6 +197,7 @@ Partition key patterns:
 - **Location**: `shared/src/` folder ONLY
 
 ### Separation Rules (Never Violate)
+
 1. ❌ NEVER add build events to `shared/src/telemetryEvents.ts` (game domain only)
 2. ❌ NEVER add game events to `scripts/shared/build-telemetry.mjs` (build automation only)
 3. ❌ NEVER use Application Insights for build telemetry (GitHub artifacts only)
@@ -222,7 +225,7 @@ World content generation: see `.github/instructions/world/.instructions.md`.
 
 Exactly 1 scope + 1 type label.
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
-Types: `feature|enhancement|refactor|infra|docs|spike|test`.
+Types: `feature|enhancement|refactor|infra|docs|spike|test|epic`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
 Ordering: Project v2 field `Implementation order` (numeric) → sync script regenerates `docs/roadmap.md`.
 Status field: `Todo|In progress|Done`.
@@ -507,3 +510,139 @@ Rules:
 - Update this section only when adding or fully retiring a follow-up; keep minimal diff.
 
 NOTE: Implementation order numeric field remains source of truth for sequencing; this list is a thematic index only.
+
+---
+
+## 20. Atomic Issue Generation & Splitting Policy
+
+Purpose: Guarantee every new implementation issue is a small, testable, reviewable unit; large feature requests become an EPIC (coordination shell) plus a generated set of atomic child issues. This section governs how Copilot must respond when the user asks to "create issues", "open an issue for X", or supplies a multi-part feature description.
+
+### 20.1 Definitions
+
+Atomic Issue: Delivers exactly one deployable increment (code, script, doc update, or test harness) with ≤10 acceptance criteria and one clear responsibility.
+Epic Issue: Organizational/coordination issue containing no implementation acceptance criteria; instead links to child atomic issues and tracks status.
+
+### 20.2 Atomicity Heuristics (Failing ≥2 ⇒ Split)
+
+- Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
+- Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
+- Follow-up checklist >5 items or mixes runtime + infra + docs
+- Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
+- Requires more than one new Azure Function OR more than one new script
+- Adds both telemetry enumeration and feature logic simultaneously
+
+### 20.3 Required Fields (Atomic Issue Template)
+
+```
+Summary: <one sentence outcome>
+Goal: <explicit end-state user/system value>
+Acceptance Criteria:
+- [ ] <criterion 1>
+- [ ] <criterion 2>
+Edge Cases: <2–3 bullets>
+Risk: <LOW|DATA-MODEL|RUNTIME-BEHAVIOR|BUILD-SCRIPT|INFRA>
+Out of Scope: <concise bullets>
+References: #<issue> docs/<path> (only directly relevant)
+```
+
+No embedded “Follow-up Task Checklist” inside atomic issues (create new issues instead).
+
+### 20.4 Epic Issue Structure
+
+```
+Epic: <Feature / Stage Name>
+Context: <why now / linkage>
+Child Issues Planned:
+- [ ] <Child 1 short title>
+- [ ] <Child 2 short title>
+Decomposition Rationale: <1–2 sentences>
+Non-Goals: <bullets>
+```
+
+Epic must NOT contain implementation acceptance criteria; it is closed only when all child issues closed (automation can verify via checklist).
+
+### 20.5 Splitting Algorithm (Pseudo)
+
+```
+input = user feature description
+if clearly single concern & ≤10 criteria & no multi-scope keywords => create 1 atomic issue
+else:
+  create Epic (docs or enhancement depending on nature) with coordination checklist
+  identify concern clusters by noun/action grouping:
+    - persistence / storage
+    - telemetry / metrics
+    - validation / rules
+    - automation / workflow
+    - docs / design
+  for each cluster:
+    generate atomic issue with unique goal, minimal acceptance, single risk tag
+  map dependencies: order telemetry after core logic; docs can parallel if spec stable
+```
+
+### 20.6 Labeling Rules for Generated Issues
+
+- Exactly one `scope:*` label (reuse existing taxonomy Section 8)
+- Exactly one type label: choose among `feature|enhancement|infra|docs|test|refactor|spike|epic`
+- Epics use `epic` (coordination only, no implementation acceptance criteria) plus exactly one scope label
+- Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
+
+### 20.7 Ordering Guidance
+
+- If user does not specify ordering, assign children sequential provisional ordering after current max, preserving logical build order: core data → logic → instrumentation → docs → optimization.
+- Avoid resequencing existing issues unless dependency requires (see Section 9).
+
+### 20.8 Telemetry & Security Separation When Splitting
+
+- Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
+- Security hardening (rate limits, secret rules) separated from functional feature increments.
+
+### 20.9 DO / DO NOT
+
+DO: Split “create exit management with scanner + reciprocity + versioning + telemetry” into 4–5 child issues.
+DO: Keep a stress test harness separate from core repository implementation.
+DO: Place future/optional tasks as new issues referenced from Epic — not a checklist inside each atomic issue.
+DO NOT: Add large follow-up checklist items beneath Acceptance Criteria of an atomic issue.
+DO NOT: Mix infrastructure provisioning (Bicep) and runtime handler code in one issue unless trivial (≤5 LOC infra change).
+
+### 20.10 Response Behavior (Copilot)
+
+When the user requests issue creation for a broad feature:
+
+1. Parse description; apply heuristics.
+2. If splitting: output an Epic body + a numbered list of proposed atomic issue titles with draft acceptance criteria (concise) BEFORE creating them (unless user explicitly says “auto-create now”).
+3. Wait for user confirmation if ambiguity exists; otherwise proceed using existing taxonomy.
+4. Never create duplicate of any open issue title (case-insensitive); if near-duplicate found, propose augmentation instead.
+
+### 20.11 Quality Gate for Generated Atomic Issues
+
+Each generated issue must:
+
+- Have ≤10 acceptance checkboxes
+- Contain ≤1 risk tag
+- Contain at least 1 edge case
+- Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
+- Not define more than one new function trigger or script
+
+### 20.12 Enforcement Automation (Future)
+
+If implemented, a script may scan new issues and comment when atomicity rules are violated. Until then, Copilot serves as the guardrail by applying this section.
+
+### 20.13 Rationale
+
+Consistent small slices shorten review cycles, reduce merge conflict surface, keep telemetry noise isolated, and maintain a predictable Implementation order without large speculative bundles.
+
+### 20.14 Examples
+
+User asks: “Implement adaptive scheduling with variance alerts and rebaseline logic.”
+Copilot output (summary):
+
+- Epic: Adaptive Scheduling & Variance
+- Child: Duration Estimation Module
+- Child: Provisional Comment Manager
+- Child: Variance Calculation & Alert Workflow
+- Child: Partial Rebaseline Script
+- Child: Scheduling Telemetry Events
+
+Each child then receives its atomic template.
+
+---
