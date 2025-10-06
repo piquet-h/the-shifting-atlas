@@ -23,7 +23,7 @@ Source of truth: Project field 'Implementation order'
 | 17 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 18 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
 | 19 | #52 | Epic: Learn More Page & Automated Content |  | scope:devx | epic | Todo |
-| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Done |
+| 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Todo |
 | 21 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
 | 22 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
 | 23 | #44 | Description Layering Engine & Render Pipeline |  | scope:world | feature | Todo |
@@ -60,7 +60,7 @@ Source of truth: Project field 'Implementation order'
 | 54 | #68 | Epic: Layer Validator & Similarity Guardrails |  | scope:world | epic | Todo |
 | 55 | #67 | Epic: Ambient Context Registry |  | scope:ai | epic | Todo |
 | 56 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
-| 57 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
+| 57 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Done |
 | 58 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | Done |
 | 59 | #73 | Persistence Concurrency Idempotency Race Test |  | scope:world | test | Todo |
 | 60 | #19 | Only create DI Suitability Issue if needed |  | scope:devx | enhancement | Done |
@@ -79,4 +79,4 @@ Source of truth: Project field 'Implementation order'
 | 8 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 | 9 | #33 | Todo | Landmark & Semantic Direction Normalization (N2) |
 
-Last sync: 2025-10-06T06:39:40.034Z
+Last sync: 2025-10-06T06:47:14.248Z
