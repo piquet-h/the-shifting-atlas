@@ -14,15 +14,14 @@
  * Looks for changes where automation applied an order and it was manually changed within 24h.
  */
 
-import { join, dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { initBuildTelemetry, trackOrderingOverridden, emitOrderingEvent, flushBuildTelemetry } from './shared/build-telemetry.mjs'
-import { loadArtifacts, detectOverrides } from './shared/ordering-artifacts.mjs'
+import { emitOrderingEvent, flushBuildTelemetry, initBuildTelemetry, trackOrderingOverridden } from './shared/build-telemetry.mjs'
+import { detectOverrides, loadArtifacts } from './shared/ordering-artifacts.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const ARTIFACTS_DIR = join(ROOT, 'artifacts', 'ordering')
-
 
 async function main() {
     initBuildTelemetry()
