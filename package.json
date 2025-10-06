@@ -54,7 +54,8 @@
         "test:ordering-hardening": "node scripts/test-ordering-hardening.mjs",
         "test:idempotent-comments": "node scripts/test-idempotent-comments.mjs",
         "validate:telemetry-separation": "node scripts/validate-telemetry-separation.mjs",
-        "validate:artifact-schema": "node scripts/validate-artifact-schema.mjs"
+        "validate:artifact-schema": "node scripts/validate-artifact-schema.mjs",
+        "scan:graph-consistency": "node scripts/scan-graph-consistency.mjs"
     },
     "devDependencies": {
         "@azure/static-web-apps-cli": "^2.0.6",
