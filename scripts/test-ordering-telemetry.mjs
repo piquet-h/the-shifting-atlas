@@ -123,9 +123,9 @@ async function testArtifactPruning() {
     // Clean & create test artifacts directory (isolate from previous tests)
     try {
         rmSync(TEST_ARTIFACTS_DIR, { recursive: true, force: true })
-    } catch (_e) {
+    } catch (_) {
         // ignore if directory does not exist
-        void _e
+        
     }
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
 
