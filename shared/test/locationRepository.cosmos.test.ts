@@ -132,10 +132,10 @@ test('cosmos location repository upsert - fetch stored vertex', async () => {
 })
 
 test('cosmos location repository upsert - idempotent (no content change)', async () => {
-    const existingLocation = { 
-        id: 'idempotent-123', 
-        name: ['Stable Location'], 
-        description: ['This location will not change'], 
+    const existingLocation = {
+        id: 'idempotent-123',
+        name: ['Stable Location'],
+        description: ['This location will not change'],
         version: 2,
         tags: ['stable', 'test']
     }
@@ -162,10 +162,10 @@ test('cosmos location repository upsert - idempotent (no content change)', async
 })
 
 test('cosmos location repository upsert - revision increment on content change', async () => {
-    const existingLocation = { 
-        id: 'content-change-123', 
-        name: ['Original Name'], 
-        description: ['Original description'], 
+    const existingLocation = {
+        id: 'content-change-123',
+        name: ['Original Name'],
+        description: ['Original description'],
         version: 1,
         tags: ['original']
     }
@@ -193,10 +193,10 @@ test('cosmos location repository upsert - revision increment on content change',
 })
 
 test('cosmos location repository upsert - tag order does not affect hash', async () => {
-    const existingLocation = { 
-        id: 'tag-order-123', 
-        name: ['Tagged Location'], 
-        description: ['Location with tags'], 
+    const existingLocation = {
+        id: 'tag-order-123',
+        name: ['Tagged Location'],
+        description: ['Location with tags'],
         version: 1,
         tags: ['alpha', 'beta', 'gamma']
     }

@@ -125,7 +125,6 @@ async function testArtifactPruning() {
         rmSync(TEST_ARTIFACTS_DIR, { recursive: true, force: true })
     } catch (_) {
         // ignore if directory does not exist
-        
     }
     mkdirSync(TEST_ARTIFACTS_DIR, { recursive: true })
 

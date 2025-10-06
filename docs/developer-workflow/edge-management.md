@@ -30,6 +30,7 @@ await repo.ensureExitBidirectional('location-a', 'north', 'location-b', {
 ```
 
 **Returns:**
+
 ```typescript
 {
     created: boolean,           // true if forward exit was new
@@ -47,6 +48,7 @@ const result = await repo.removeExit('location-a', 'north')
 ```
 
 **Behavior:**
+
 - Returns `removed: true` only if exit existed and was deleted
 - Returns `removed: false` if exit didn't exist (idempotent)
 - Emits `World.Exit.Removed` telemetry only on actual removal
@@ -81,10 +83,12 @@ npm run scan:graph-consistency -- --output=report.json
 ```
 
 **Detects:**
+
 - **Dangling exits**: Exit edges pointing to non-existent locations
 - **Orphan locations**: Locations with no inbound or outbound exits
 
 **Output:**
+
 ```json
 {
     "scannedAt": "2025-01-15T10:30:00.000Z",
@@ -113,11 +117,12 @@ npm run scan:graph-consistency -- --output=report.json
 import { getOppositeDirection } from '@atlas/shared'
 
 const opposite = getOppositeDirection('north') // 'south'
-const opposite = getOppositeDirection('up')    // 'down'
-const opposite = getOppositeDirection('in')    // 'out'
+const opposite = getOppositeDirection('up') // 'down'
+const opposite = getOppositeDirection('in') // 'out'
 ```
 
 **Full Mapping:**
+
 - `north` ↔ `south`
 - `east` ↔ `west`
 - `northeast` ↔ `southwest`
@@ -160,6 +165,7 @@ Emitted only when an exit is actually deleted:
 **Exit changes DO NOT increment location version.**
 
 Rationale:
+
 - `version` tracks **content changes** (name, description, tags)
 - Exit edges are **structural relationships** separate from content
 - Optimistic concurrency is for content conflicts, not edge conflicts
@@ -232,6 +238,7 @@ Comprehensive test coverage in `shared/test/edgeManagement.test.ts`:
 - Version policy verification (version unchanged on exit changes)
 
 Run tests:
+
 ```bash
 npm test
 ```
@@ -245,6 +252,7 @@ Future work will add `(player)-[:in]->(location)` edges alongside scalar `curren
 ### Exit Metadata
 
 Potential extensions:
+
 - `blocked` status (doors, keys, conditions)
 - `cost` for pathfinding weights
 - `requiredSkill` for traversal gating
@@ -253,6 +261,7 @@ Potential extensions:
 ### Consistency Enforcement
 
 Future automated checks:
+
 - Scheduled validation (CI/CD)
 - Alert on dangling exit rate > threshold
 - Auto-cleanup of orphan locations (with approval workflow)

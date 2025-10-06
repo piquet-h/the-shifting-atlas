@@ -2,16 +2,16 @@
 
 Provisioned resources:
 
-| Resource                       | Purpose                                                          | Notes                                                                                                                                   |
-| ------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Azure Static Web App (SWA)     | Hosts frontend + managed API (`/frontend/api`).                  | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                |
-| Azure Function App             | Backend queue processors (`/backend`).                           | Consumption (Y1) plan with Node.js 20 runtime. Processes world events from Service Bus queue.                                          |
-| Azure Service Bus              | Message queue for world events (async processing).               | Basic tier (free up to 1M operations/month). Queue: `world-events`.                                                                     |
-| Azure Storage Account          | Function App backend storage (required for consumption plan).    | Standard LRS tier.                                                                                                                      |
-| Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                    |
-| Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game-docs`. Containers detailed below.             |
+| Resource                       | Purpose                                                          | Notes                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Azure Static Web App (SWA)     | Hosts frontend + managed API (`/frontend/api`).                  | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                         |
+| Azure Function App             | Backend queue processors (`/backend`).                           | Consumption (Y1) plan with Node.js 20 runtime. Processes world events from Service Bus queue.                                                    |
+| Azure Service Bus              | Message queue for world events (async processing).               | Basic tier (free up to 1M operations/month). Queue: `world-events`.                                                                              |
+| Azure Storage Account          | Function App backend storage (required for consumption plan).    | Standard LRS tier.                                                                                                                               |
+| Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                             |
+| Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game-docs`. Containers detailed below.                      |
 | Azure Key Vault                | Stores Cosmos primary key secrets.                               | Access policy grants SWA and Function App system identities get/list for secrets. Stores both `cosmos-primary-key` and `cosmos-sql-primary-key`. |
-| Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                |
+| Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                         |
 
 Files:
 
@@ -57,28 +57,28 @@ g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').pr
 
 ## Parameters
 
-| Name                              | Type   | Default                 | Required | Description                                                 |
-| --------------------------------- | ------ | ----------------------- | -------- | ----------------------------------------------------------- |
-| `location`                        | string | resource group location | No       | Region (override).                                          |
-| `staticWebAppSku`                 | string | Standard                | No       | SWA tier (`Free` or `Standard`).                            |
-| `staticWebAppName`                | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
-| `cosmosAccountName`               | string | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden. |
-| `cosmosSqlAccountName`            | string | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.     |
-| `keyVaultName`                    | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
-| `appInsightsName`                 | string | derived unique string   | No       | Auto‑generated if not overridden.                           |
-| `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                      |
-| `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                         |
-| `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).               |
-| `cosmosSqlDatabaseName`           | string | game-docs               | No       | SQL API database name.                                      |
-| `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                     |
-| `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                   |
-| `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                          |
-| `cosmosSqlEventsContainerName`    | string | worldEvents             | No       | World events container name.                                |
+| Name                              | Type   | Default                 | Required | Description                                                   |
+| --------------------------------- | ------ | ----------------------- | -------- | ------------------------------------------------------------- |
+| `location`                        | string | resource group location | No       | Region (override).                                            |
+| `staticWebAppSku`                 | string | Standard                | No       | SWA tier (`Free` or `Standard`).                              |
+| `staticWebAppName`                | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
+| `cosmosAccountName`               | string | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden.   |
+| `cosmosSqlAccountName`            | string | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.       |
+| `keyVaultName`                    | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
+| `appInsightsName`                 | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
+| `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                        |
+| `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                           |
+| `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).                 |
+| `cosmosSqlDatabaseName`           | string | game-docs               | No       | SQL API database name.                                        |
+| `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                       |
+| `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                     |
+| `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                            |
+| `cosmosSqlEventsContainerName`    | string | worldEvents             | No       | World events container name.                                  |
 | `serviceBusNamespaceName`         | string | derived unique string   | No       | Service Bus namespace name. Auto‑generated if not overridden. |
-| `serviceBusQueueName`             | string | world-events            | No       | Service Bus queue name for world events.                    |
-| `functionAppName`                 | string | derived unique string   | No       | Function App name. Auto‑generated if not overridden.        |
-| `storageAccountName`              | string | derived unique string   | No       | Storage account name. Auto‑generated if not overridden.     |
-| `appServicePlanName`              | string | derived unique string   | No       | App Service Plan name. Auto‑generated if not overridden.    |
+| `serviceBusQueueName`             | string | world-events            | No       | Service Bus queue name for world events.                      |
+| `functionAppName`                 | string | derived unique string   | No       | Function App name. Auto‑generated if not overridden.          |
+| `storageAccountName`              | string | derived unique string   | No       | Storage account name. Auto‑generated if not overridden.       |
+| `appServicePlanName`              | string | derived unique string   | No       | App Service Plan name. Auto‑generated if not overridden.      |
 
 Secrets/keys are injected via Key Vault; no repository URL parameter is currently required because CI handles deployment.
 
@@ -153,13 +153,13 @@ az deployment group create \
 
 ## Security & Limitations
 
-| Topic              | Current State                                                                     | Planned Improvement                                      |
-| ------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Secrets Management | Key Vault configured with Managed Identity. Runtime retrieval via secrets helper. | Add secret rotation automation (future).                 |
-| Observability      | Application Insights connected.                                                   | Add sampling & dependency tracking tuning.               |
-| Messaging          | ✅ Service Bus namespace + queue for world events (Basic tier).                  | Add dead-letter queue handling and monitoring.           |
-| Identity / RBAC    | System-assigned Managed Identity for SWA and Function App with Key Vault access policies. Function App uses identity-based Service Bus connection. | Migrate to RBAC authorization for Cosmos data plane.     |
-| CI/CD              | Workflow not auto-generated.                                                      | Author Function App deployment GitHub Action.            |
+| Topic              | Current State                                                                                                                                      | Planned Improvement                                  |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Secrets Management | Key Vault configured with Managed Identity. Runtime retrieval via secrets helper.                                                                  | Add secret rotation automation (future).             |
+| Observability      | Application Insights connected.                                                                                                                    | Add sampling & dependency tracking tuning.           |
+| Messaging          | ✅ Service Bus namespace + queue for world events (Basic tier).                                                                                    | Add dead-letter queue handling and monitoring.       |
+| Identity / RBAC    | System-assigned Managed Identity for SWA and Function App with Key Vault access policies. Function App uses identity-based Service Bus connection. | Migrate to RBAC authorization for Cosmos data plane. |
+| CI/CD              | Workflow not auto-generated.                                                                                                                       | Author Function App deployment GitHub Action.        |
 
 ## Secret Management Baseline
 
@@ -213,12 +213,12 @@ az deployment group create \
 
 ## Changelog
 
-| Date       | Change                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Date       | Change                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2025-10-05 | Added Service Bus (Basic tier), Function App (consumption Y1), Storage Account, and RBAC role assignments for world event queue processing. |
-| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.             |
-| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).           |
-| 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references. |
+| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.                                            |
+| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).                                          |
+| 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references.                                |
 
 ## Contributing
 

@@ -63,13 +63,7 @@ export function computeIntegritySnapshot(artifacts) {
     for (const a of artifacts) {
         if (
             !latestByIssue.has(a.issue) ||
-            (
-                a._mtime &&
-                (
-                    !latestByIssue.get(a.issue)._mtime ||
-                    latestByIssue.get(a.issue)._mtime < a._mtime
-                )
-            )
+            (a._mtime && (!latestByIssue.get(a.issue)._mtime || latestByIssue.get(a.issue)._mtime < a._mtime))
         ) {
             latestByIssue.set(a.issue, a)
         }

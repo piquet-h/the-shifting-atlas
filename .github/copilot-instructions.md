@@ -201,8 +201,11 @@ Partition key patterns:
 1. ❌ NEVER add build events to `shared/src/telemetryEvents.ts` (game domain only)
 2. ❌ NEVER add game events to `scripts/shared/build-telemetry.mjs` (build automation only)
 3. ❌ NEVER use Application Insights for build telemetry (GitHub artifacts only)
-4. ✅ Always use `scripts/shared/build-telemetry.mjs` for ALL CI/automation events
-5. ✅ Always use `shared/src/telemetry.ts` for ALL game domain events
+4. ❌ NEVER use `build.*` events or import `build-telemetry` in game domain code (backend/, frontend/, shared/src/)
+5. ✅ Always use `scripts/shared/build-telemetry.mjs` for ALL CI/automation events
+6. ✅ Always use `shared/src/telemetry.ts` for ALL game domain events
+
+**Enforcement**: Automated validation (`npm run validate:telemetry-separation`) runs in CI and scans the entire codebase for violations. The build telemetry guard ensures `build.*` events only appear in `scripts/` directory.
 
 **Rationale**: Prevents pollution of game analytics with infrastructure noise, enables clean separation of concerns, reduces Application Insights costs, allows independent evolution.
 

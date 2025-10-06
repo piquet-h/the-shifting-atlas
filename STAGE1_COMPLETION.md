@@ -11,7 +11,7 @@
 All acceptance criteria have been met:
 
 - ✅ Add telemetry event names (build phase) enumerated in `scripts/shared/build-telemetry.mjs` (NOT `shared/src/telemetryEvents.ts` - game domain only)
-  - **Note**: Original issue incorrectly specified `shared/src/telemetryEvents.ts`, which is for game domain events only. This has been corrected to use `scripts/shared/build-telemetry.mjs` for build automation events.
+    - **Note**: Original issue incorrectly specified `shared/src/telemetryEvents.ts`, which is for game domain events only. This has been corrected to use `scripts/shared/build-telemetry.mjs` for build automation events.
 - ✅ Emit `build.ordering_applied` when order applied without manual change within same run
 - ✅ Emit `build.ordering_low_confidence` when confidence != high and automation refrains from silent apply
 - ✅ Detect manual override: on run N compare previous artifact - emit `build.ordering_overridden` if reordered within 24h
@@ -20,28 +20,29 @@ All acceptance criteria have been met:
 - ✅ Contiguous integrity checker: assert ordering has no gaps/duplicates (exit non-zero on violation) integrated into CI
 - ✅ Medium/low confidence path leaves explanatory comment summarizing rationale
 - ✅ **Sufficient Copilot and issue documentation created to prevent telemetry separation violations** (addressing agent_instructions feedback)
-  - Created `docs/developer-workflow/build-telemetry.md` (7.5KB comprehensive guide)
-  - Created `docs/developer-workflow/telemetry-separation-guide.md` (3.2KB issue author reference)
-  - Updated `.github/copilot-instructions.md` with critical separation rules
-  - Added CI validation (`validate-telemetry-separation.mjs`)
-  - Added clear warnings in `shared/src/telemetryEvents.ts`
+    - Created `docs/developer-workflow/build-telemetry.md` (7.5KB comprehensive guide)
+    - Created `docs/developer-workflow/telemetry-separation-guide.md` (3.2KB issue author reference)
+    - Updated `.github/copilot-instructions.md` with critical separation rules
+    - Added CI validation (`validate-telemetry-separation.mjs`)
+    - Added clear warnings in `shared/src/telemetryEvents.ts`
 
 ## Addressing Agent Feedback on Telemetry Separation
 
-**Agent Instructions Received**: 
-> "This - Add telemetry event names (build phase or runtime) enumerated in shared/src/telemetryEvents.ts (no inline literals). - is incorrect. Review the documentation. You MUST keep game telemetry separate from build telemetry. You have consistently made this mistake and I don't know why. Add as acceptance criteria that there is enough copilot documentation and *issue* documentation to ensure this doesn't happen again."
+**Agent Instructions Received**:
+
+> "This - Add telemetry event names (build phase or runtime) enumerated in shared/src/telemetryEvents.ts (no inline literals). - is incorrect. Review the documentation. You MUST keep game telemetry separate from build telemetry. You have consistently made this mistake and I don't know why. Add as acceptance criteria that there is enough copilot documentation and _issue_ documentation to ensure this doesn't happen again."
 
 **Response**: The original issue acceptance criterion was incorrect. Build automation telemetry events must NOT be added to `shared/src/telemetryEvents.ts` (which is exclusively for game domain events). This implementation:
 
 1. **Corrected the approach**: All build automation events added to `scripts/shared/build-telemetry.mjs`
 2. **Created comprehensive documentation** to prevent future mistakes:
-   - **build-telemetry.md**: 7.5KB guide explaining separation rationale, rules, and examples
-   - **telemetry-separation-guide.md**: 3.2KB reference for issue authors with decision tree and templates
-   - **Copilot instructions updated**: Section 6 now has critical separation rules with DO/DON'T lists
-   - **Issue template guidance**: Provides checklist for specifying telemetry system in issues
+    - **build-telemetry.md**: 7.5KB guide explaining separation rationale, rules, and examples
+    - **telemetry-separation-guide.md**: 3.2KB reference for issue authors with decision tree and templates
+    - **Copilot instructions updated**: Section 6 now has critical separation rules with DO/DON'T lists
+    - **Issue template guidance**: Provides checklist for specifying telemetry system in issues
 3. **Enforced with automation**:
-   - CI validation script (`validate-telemetry-separation.mjs`) fails builds on violations
-   - Warning comments added to both telemetry files
+    - CI validation script (`validate-telemetry-separation.mjs`) fails builds on violations
+    - Warning comments added to both telemetry files
 4. **Verified separation**: All tests pass, validation shows 0 violations
 
 This ensures future contributors and agents will have clear guidance on which telemetry system to use.
@@ -55,7 +56,7 @@ This ensures future contributors and agents will have clear guidance on which te
 export const BUILD_EVENT_NAMES = {
     ORDERING_APPLIED: 'build.ordering_applied',
     ORDERING_LOW_CONFIDENCE: 'build.ordering_low_confidence',
-    ORDERING_OVERRIDDEN: 'build.ordering_overridden',
+    ORDERING_OVERRIDDEN: 'build.ordering_overridden'
     // ... Stage 2 events
 }
 ```
@@ -63,115 +64,116 @@ export const BUILD_EVENT_NAMES = {
 ### New Scripts
 
 1. **check-ordering-integrity.mjs** (182 lines)
-   - Validates contiguous ordering (1..N)
-   - Detects gaps and duplicates
-   - Exits non-zero on violations
-   - Integrated into CI workflow
+    - Validates contiguous ordering (1..N)
+    - Detects gaps and duplicates
+    - Exits non-zero on violations
+    - Integrated into CI workflow
 
 2. **detect-ordering-overrides.mjs** (130 lines)
-   - Compares artifacts from previous runs
-   - Detects manual changes within 24h of automation
-   - Emits `build.ordering_overridden` telemetry
+    - Compares artifacts from previous runs
+    - Detects manual changes within 24h of automation
+    - Emits `build.ordering_overridden` telemetry
 
 3. **test-ordering-telemetry.mjs** (178 lines)
-   - 4 comprehensive test cases
-   - Tests telemetry emission, artifacts, metrics, constants
-   - All tests passing
+    - 4 comprehensive test cases
+    - Tests telemetry emission, artifacts, metrics, constants
+    - All tests passing
 
 4. **validate-telemetry-separation.mjs** (157 lines)
-   - Validates build vs game telemetry separation
-   - Checks for common violations
-   - Runs in CI before lint
+    - Validates build vs game telemetry separation
+    - Checks for common violations
+    - Runs in CI before lint
 
 5. **scripts/README.md** (177 lines)
-   - Documents all automation scripts
-   - Usage examples for all npm scripts
-   - Telemetry separation rules
+    - Documents all automation scripts
+    - Usage examples for all npm scripts
+    - Telemetry separation rules
 
 ### Modified Scripts
 
 1. **assign-impl-order.mjs**
-   - Added telemetry initialization and emission
-   - Saves artifacts to `artifacts/ordering/`
-   - Prunes old artifacts (keeps last 200)
-   - Emits telemetry based on confidence
+    - Added telemetry initialization and emission
+    - Saves artifacts to `artifacts/ordering/`
+    - Prunes old artifacts (keeps last 200)
+    - Emits telemetry based on confidence
 
 2. **weekly-ordering-metrics.mjs**
-   - Reads artifacts from `artifacts/ordering/`
-   - Calculates metrics: total, confidence breakdown, override rate
-   - Provides recommendations based on thresholds
+    - Reads artifacts from `artifacts/ordering/`
+    - Calculates metrics: total, confidence breakdown, override rate
+    - Provides recommendations based on thresholds
 
 ### Documentation
 
 1. **docs/developer-workflow/build-telemetry.md** (7.5KB)
-   - Complete separation rules and rationale
-   - Event catalog with examples
-   - Query patterns for both systems
-   - Troubleshooting guide
+    - Complete separation rules and rationale
+    - Event catalog with examples
+    - Query patterns for both systems
+    - Troubleshooting guide
 
 2. **docs/developer-workflow/telemetry-separation-guide.md** (3.2KB)
-   - Issue author guide
-   - Decision tree for choosing telemetry system
-   - Common mistakes to avoid
-   - Issue template with checklist
+    - Issue author guide
+    - Decision tree for choosing telemetry system
+    - Common mistakes to avoid
+    - Issue template with checklist
 
 3. **docs/developer-workflow/implementation-order-automation.md** (updated)
-   - Added telemetry section
-   - Added metrics and monitoring section
-   - Updated with audit trail details
+    - Added telemetry section
+    - Added metrics and monitoring section
+    - Updated with audit trail details
 
 4. **.github/copilot-instructions.md** (updated)
-   - Added critical separation rules in Section 6
-   - Clear DO/DON'T lists
-   - Links to detailed documentation
+    - Added critical separation rules in Section 6
+    - Clear DO/DON'T lists
+    - Links to detailed documentation
 
 ### Configuration
 
 1. **package.json**
-   - Added 5 new npm scripts
-   - All scripts tested and working
+    - Added 5 new npm scripts
+    - All scripts tested and working
 
 2. **.gitignore**
-   - Added `artifacts/ordering/*.json` (except `.gitkeep`)
-   - Ensures artifacts are excluded from commits
+    - Added `artifacts/ordering/*.json` (except `.gitkeep`)
+    - Ensures artifacts are excluded from commits
 
 3. **.github/workflows/ci.yml**
-   - Added telemetry separation validation step
-   - Runs before lint to catch violations early
+    - Added telemetry separation validation step
+    - Runs before lint to catch violations early
 
 4. **shared/src/telemetryEvents.ts**
-   - Added separation warning comment
-   - Clarifies this file is for game events only
+    - Added separation warning comment
+    - Clarifies this file is for game events only
 
 ### Artifacts
 
 - **Path**: `artifacts/ordering/<timestamp>-issue-<num>.json`
 - **Retention**: Last 200 files (automatic pruning)
 - **Schema**:
-  ```json
-  {
-    "strategy": "auto",
-    "issue": 123,
-    "recommendedOrder": 42,
-    "changes": 3,
-    "confidence": "high",
-    "score": 150,
-    "rationale": "...",
-    "diff": [...],
-    "plan": [...],
-    "metadata": {
-      "scope": "scope:core",
-      "type": "feature",
-      "milestone": "M0",
-      "timestamp": "2025-10-05T06:00:00.000Z"
-    },
-    "applied": true
-  }
-  ```
+    ```json
+    {
+      "strategy": "auto",
+      "issue": 123,
+      "recommendedOrder": 42,
+      "changes": 3,
+      "confidence": "high",
+      "score": 150,
+      "rationale": "...",
+      "diff": [...],
+      "plan": [...],
+      "metadata": {
+        "scope": "scope:core",
+        "type": "feature",
+        "milestone": "M0",
+        "timestamp": "2025-10-05T06:00:00.000Z"
+      },
+      "applied": true
+    }
+    ```
 
 ## Test Results
 
 ### Unit Tests
+
 ```
 Running ordering telemetry tests...
 
@@ -188,6 +190,7 @@ Test 4: Event name constants...
 ```
 
 ### Validation
+
 ```
 Validating telemetry separation...
 
@@ -201,27 +204,32 @@ Separation rules:
 ## Usage Examples
 
 ### Run weekly metrics
+
 ```bash
 npm run metrics:weekly
 npm run metrics:weekly -- --days 14
 ```
 
 ### Check ordering integrity
+
 ```bash
 npm run check:ordering-integrity
 ```
 
 ### Detect overrides
+
 ```bash
 npm run detect:ordering-overrides
 ```
 
 ### Validate telemetry separation
+
 ```bash
 npm run validate:telemetry-separation
 ```
 
 ### Run tests
+
 ```bash
 npm run test:ordering
 ```
@@ -231,18 +239,21 @@ npm run test:ordering
 This implementation enforces strict separation:
 
 ### Build Telemetry
+
 - **File**: `scripts/shared/build-telemetry.mjs`
 - **Events**: `build.*` prefix (e.g., `build.ordering_applied`)
 - **Destination**: GitHub Actions logs + artifacts
 - **NOT**: Application Insights
 
 ### Game Telemetry
+
 - **File**: `shared/src/telemetry.ts`
 - **Events**: `Domain.Subject.Action` (e.g., `Player.Get`)
 - **Destination**: Application Insights
 - **NOT**: GitHub artifacts
 
 ### Prevention Mechanisms
+
 1. Documentation at multiple levels
 2. CI validation (fails on violations)
 3. Clear comments in key files
@@ -258,6 +269,7 @@ This implementation enforces strict separation:
 ## Files Changed
 
 **Created** (9):
+
 - scripts/check-ordering-integrity.mjs
 - scripts/detect-ordering-overrides.mjs
 - scripts/test-ordering-telemetry.mjs
@@ -268,6 +280,7 @@ This implementation enforces strict separation:
 - artifacts/ordering/.gitkeep
 
 **Modified** (7):
+
 - scripts/assign-impl-order.mjs
 - scripts/weekly-ordering-metrics.mjs
 - scripts/shared/build-telemetry.mjs
@@ -282,11 +295,11 @@ This implementation enforces strict separation:
 
 ## Risks Mitigated
 
-| Risk | Mitigation Implemented |
-|------|------------------------|
-| Artifact growth | ✅ Retention policy (last 200), automatic pruning |
-| Race applying overlapping reorder | ℹ️ Noted for hardening issue (not in scope) |
-| Telemetry separation violations | ✅ CI validation, documentation, templates |
+| Risk                              | Mitigation Implemented                            |
+| --------------------------------- | ------------------------------------------------- |
+| Artifact growth                   | ✅ Retention policy (last 200), automatic pruning |
+| Race applying overlapping reorder | ℹ️ Noted for hardening issue (not in scope)       |
+| Telemetry separation violations   | ✅ CI validation, documentation, templates        |
 
 ## Non-Goals (As Specified)
 
@@ -295,6 +308,7 @@ This implementation enforces strict separation:
 ## Verification
 
 All functionality verified:
+
 - ✅ Telemetry events emit correctly
 - ✅ Artifacts saved with correct schema
 - ✅ Artifact pruning works (keeps last 200)
