@@ -1,59 +1,12 @@
-name: Select Project Token
-description: Chooses an explicit input PAT (projects_token) if provided, else falls back to the default github.token; exposes token + provenance + preflight result.
-
-inputs:
-  projects_token:
-    description: 'Optional PAT (classic or fine-grained) with access to Projects v2 (user/org) – overrides default github.token when non-empty.'
-    required: false
-    default: ''
+name: DEPRECATED select-project-token (No-Op)
+description: 'Deprecated action retained only for historical reference – performs no work.'
 
 outputs:
-  value:
-    description: Token value to use for GitHub Project (v2) GraphQL operations
-    value: ${{ steps.select.outputs.value }}
-  source:
-    description: Which token was selected (PROJECTS_TOKEN|GITHUB_TOKEN)
-    value: ${{ steps.select.outputs.source }}
-  preflight:
-    description: Result of lightweight GraphQL preflight (ok|fail)
-    value: ${{ steps.preflight.outputs.preflight }}
+  token:
+    description: 'Deprecated – always empty.'
 
 runs:
   using: composite
   steps:
-    - id: select
-      name: Select token
+    - run: echo 'select-project-token action deprecated; no token selection performed.'
       shell: bash
-      run: |
-        set -euo pipefail
-        if [ -n "${{ inputs.projects_token }}" ]; then
-          echo 'Using provided PROJECTS_TOKEN input'
-          echo "value=${{ inputs.projects_token }}" >> "$GITHUB_OUTPUT"
-          echo "source=PROJECTS_TOKEN" >> "$GITHUB_OUTPUT"
-        else
-          # github.token is always available within the workflow runtime context.
-          echo 'Using default GITHUB_TOKEN'
-          echo "value=${{ github.token }}" >> "$GITHUB_OUTPUT"
-          echo "source=GITHUB_TOKEN" >> "$GITHUB_OUTPUT"
-        fi
-    - id: preflight
-      name: Preflight GraphQL access
-      shell: bash
-      env:
-        TOKEN: ${{ steps.select.outputs.value }}
-      run: |
-        set -euo pipefail
-        if [ -z "${TOKEN}" ]; then
-          echo '::error::Empty token supplied to preflight'; echo 'preflight=fail' >> "$GITHUB_OUTPUT"; exit 1
-        fi
-        resp=$(curl -s -H "Authorization: bearer ${TOKEN}" -H 'Content-Type: application/json' \
-          -d '{"query":"query{viewer{login}}"}' https://api.github.com/graphql || true)
-        if echo "$resp" | grep -q '"login"'; then
-          echo 'GraphQL preflight OK'
-          echo 'preflight=ok' >> "$GITHUB_OUTPUT"
-        else
-          echo '::warning::GraphQL preflight failed (no login field). Response:'
-          echo "$resp" | sed 's/"token"/"t***n"/Ig'
-          echo 'preflight=fail' >> "$GITHUB_OUTPUT"
-          # Non-fatal: allow downstream logic to decide whether to proceed.
-        fi

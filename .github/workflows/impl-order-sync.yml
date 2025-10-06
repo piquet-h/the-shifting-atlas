@@ -1,43 +1,13 @@
-name: Implementation Order (Sync + Validate + Finalize)
-
-# Explicit permissions required:
-# - repository-projects: write   -> needed to update GitHub Projects (Projects v2) fields via GraphQL in sync script
-# - issues: write                -> label reconciliation / creation
-# - contents: write              -> committing regenerated docs & JSON ordering file
-# Keep the list tight (principle of least privilege).
-permissions:
-  contents: write
-  issues: write
-  repository-projects: write # Classic projects; Projects v2 still require PAT (classic) for user projects
+name: DEPRECATED Implementation Order Sync (No-Op)
 
 on:
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: 'Operation mode (apply|resequence|validate|finalize)'
-        required: false
-        default: 'apply'
-      debounce_seconds:
-        description: 'Override debounce for finalize (default 25)'
-        required: false
-        default: '25'
-  push:
-    paths:
-      - 'scripts/sync-implementation-order.mjs'
-      - '.github/workflows/impl-order-sync.yml'
-      - '.github/copilot-instructions.md'
-      - 'scripts/assign-impl-order.mjs'
-  pull_request:
-    paths:
-      - 'scripts/sync-implementation-order.mjs'
-      - '.github/workflows/impl-order-sync.yml'
-      - 'scripts/assign-impl-order.mjs'
-  schedule:
-    - cron: '23 5 * * *' # Daily validation (from former impl-order-validate.yml)
-  issues:
-    types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
+  workflow_dispatch: {}
 
 jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'impl-order-sync workflow deprecated; no actions performed.'
   sync:
     # Runs on push (ordering file / scripts), manual apply/resequence, and PR validation
     if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode != 'finalize' && github.event.inputs.mode != 'validate') }}

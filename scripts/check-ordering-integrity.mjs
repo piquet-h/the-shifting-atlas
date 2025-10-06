@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: check-ordering-integrity.mjs retired.
+console.error('check-ordering-integrity.mjs deprecated – no action performed.')
+process.exit(0)
 /* global fetch, console, process */
 /**
  * check-ordering-integrity.mjs

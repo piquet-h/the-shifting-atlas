@@ -1,65 +1,10 @@
-name: Calculate Schedule Variance
+name: DEPRECATED Calculate Schedule Variance (No-Op)
 
 on:
-  schedule:
-    # Run daily at 00:30 UTC (30 minutes after scheduler runs at 00:00)
-    - cron: '30 0 * * *'
-  workflow_dispatch:
-    inputs:
-      window_days:
-        description: 'Rolling window size in days'
-        required: false
-        default: '30'
-
-permissions:
-  contents: read
-  issues: write
+  workflow_dispatch: {}
 
 jobs:
-  calculate-variance:
+  noop:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Select Token
-        id: token
-        uses: ./.github/actions/select-project-token
-        with:
-          projects_token: ${{ secrets.PROJECTS_TOKEN }}
-      - name: Token diagnostics
-        run: |
-          echo "Token source: ${{ steps.token.outputs.source }}"
-          echo "Preflight: ${{ steps.token.outputs.preflight }}"
-          echo "Token length: ${#TOK}"
-        env:
-          TOK: ${{ steps.token.outputs.value }}
-
-      - name: Calculate variance
-        env:
-          GITHUB_TOKEN: ${{ steps.token.outputs.value }}
-          PROJECT_OWNER: ${{ github.repository_owner }}
-          PROJECT_NUMBER: 3
-          VARIANCE_THRESHOLD: 0.25
-          TELEMETRY_ARTIFACT: telemetry-variance.json
-          PROJECT_OWNER_TYPE: auto
-        run: |
-          WINDOW_DAYS="${{ github.event.inputs.window_days || '30' }}"
-          node scripts/calculate-variance.mjs --window-days=$WINDOW_DAYS
-
-      - name: Upload Telemetry Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: variance-telemetry
-          path: telemetry-variance.json
-          retention-days: 30
+      - run: echo 'calculate-variance workflow deprecated; no actions performed.'

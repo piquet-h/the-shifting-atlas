@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: test-idempotent-comments.mjs retired.
+console.error('test-idempotent-comments.mjs deprecated – no tests executed.')
+process.exit(0)
 /* global console, process */
 /**
  * test-idempotent-comments.mjs
@@ -106,5 +109,3 @@ function runTests() {
         process.exit(1)
     }
 }
-
-runTests()

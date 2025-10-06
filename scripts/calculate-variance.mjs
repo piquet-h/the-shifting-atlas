@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: calculate-variance.mjs retired.
+console.error('calculate-variance.mjs deprecated – no action performed.')
+process.exit(0)
 /* global process, console, fetch */
 /**
  * Calculate schedule variance between provisional and actual schedules.
@@ -15,8 +18,8 @@
  */
 
 import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
+import { classifyIssue, dateDiff, extractFieldValue, wholeDayDiff } from './shared/project-utils.mjs'
 import { getProjectId } from './shared/provisional-storage.mjs'
-import { dateDiff, wholeDayDiff, extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const PROJECT_NUMBER = Number(process.env.PROJECT_NUMBER || 3)

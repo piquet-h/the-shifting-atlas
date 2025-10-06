@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: ensure-all-issues-in-order.mjs retired.
+console.error('ensure-all-issues-in-order.mjs deprecated – no action performed.')
+process.exit(0)
 /**
  * ensure-all-issues-in-order.mjs
  *

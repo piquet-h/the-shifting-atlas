@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: update-issue-status.mjs retired.
+console.error('update-issue-status.mjs deprecated – no action performed.')
+process.exit(0)
 /* global fetch, process, console */
 /**
  * Update Issue Status in GitHub Project
@@ -30,8 +33,8 @@
  */
 
 import { parseArgs } from 'node:util'
-import { extractStatus } from './shared/project-utils.mjs'
 import { paginateProjectItems } from './shared/pagination.mjs'
+import { extractStatus } from './shared/project-utils.mjs'
 
 // Import the functions we need from the main sync script
 // Note: This is a bit of duplication, but keeps the logic centralized

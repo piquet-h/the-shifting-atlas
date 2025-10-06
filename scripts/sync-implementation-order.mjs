@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: sync-implementation-order.mjs retired. No operation performed.
+console.error('sync-implementation-order.mjs deprecated – no action performed.')
+process.exit(0)
 /* global fetch, process, console */
 /**
  * Sync Implementation Order between:
@@ -27,8 +30,8 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { extractStatus } from './shared/project-utils.mjs'
 import { fileURLToPath } from 'node:url'
+import { extractStatus } from './shared/project-utils.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')

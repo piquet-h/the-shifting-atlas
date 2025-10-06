@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: test-ordering-hardening.mjs retired.
+console.error('test-ordering-hardening.mjs deprecated – no tests executed.')
+process.exit(0)
 /* global console, process */
 /**
  * test-ordering-hardening.mjs
@@ -11,33 +14,9 @@
  *   node scripts/test-ordering-hardening.mjs
  */
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = join(__dirname, '..')
-const TEST_ARTIFACT_DIR = join(ROOT, '.test-artifacts-ordering')
-
-// Test data
-const testPlan = [
-    { issue: 1, score: 100, desiredOrder: 1 },
-    { issue: 2, score: 90, desiredOrder: 2 },
-    { issue: 3, score: 80, desiredOrder: 3 }
-]
-
-const testPlanWithGap = [
-    { issue: 1, score: 100, desiredOrder: 1 },
-    { issue: 2, score: 90, desiredOrder: 3 }, // Gap at 2
-    { issue: 3, score: 80, desiredOrder: 4 }
-]
-
-const testPlanWithDuplicate = [
-    { issue: 1, score: 100, desiredOrder: 1 },
-    { issue: 2, score: 90, desiredOrder: 2 },
-    { issue: 3, score: 80, desiredOrder: 2 } // Duplicate 2
-]
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /**
  * Calculate SHA256 hash (same as in assign-impl-order.mjs)
@@ -196,5 +175,3 @@ function runTests() {
         process.exit(1)
     }
 }
-
-runTests()

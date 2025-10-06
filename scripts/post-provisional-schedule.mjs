@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: post-provisional-schedule.mjs retired.
+console.error('post-provisional-schedule.mjs deprecated – no action performed.')
+process.exit(0)
 /* global fetch, console, process */
 /**
  * Calculate and post provisional schedule after implementation order assignment.
@@ -19,11 +22,11 @@
  */
 
 import { parseArgs } from 'node:util'
+import { initBuildTelemetry, trackProvisionalCreated } from './shared/build-telemetry.mjs'
 import { estimateDuration } from './shared/duration-estimation.mjs'
-import { extractFieldValue, classifyIssue } from './shared/project-utils.mjs'
-import { generateProvisionalComment, shouldPostProvisionalComment, findProvisionalComment } from './shared/provisional-comment.mjs'
+import { classifyIssue, extractFieldValue } from './shared/project-utils.mjs'
+import { findProvisionalComment, generateProvisionalComment, shouldPostProvisionalComment } from './shared/provisional-comment.mjs'
 import { getProjectId, updateProvisionalSchedule } from './shared/provisional-storage.mjs'
-import { trackProvisionalCreated, initBuildTelemetry } from './shared/build-telemetry.mjs'
 
 const REPO_OWNER = process.env.PROJECT_OWNER || 'piquet-h'
 const REPO_NAME = process.env.REPO_NAME || 'the-shifting-atlas'

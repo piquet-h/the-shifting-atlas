@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: detect-ordering-overrides.mjs retired.
+console.error('detect-ordering-overrides.mjs deprecated – no action performed.')
+process.exit(0)
 /* global console, process */
 /**
  * detect-ordering-overrides.mjs
@@ -14,14 +17,8 @@
  * Looks for changes where automation applied an order and it was manually changed within 24h.
  */
 
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { emitOrderingEvent, flushBuildTelemetry, initBuildTelemetry, trackOrderingOverridden } from './shared/build-telemetry.mjs'
 import { detectOverrides, loadArtifacts } from './shared/ordering-artifacts.mjs'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = join(__dirname, '..')
-const ARTIFACTS_DIR = join(ROOT, 'artifacts', 'ordering')
 
 async function main() {
     initBuildTelemetry()
@@ -61,8 +58,3 @@ async function main() {
     // Flush telemetry
     await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
 }
-
-main().catch((err) => {
-    console.error(err)
-    process.exit(1)
-})

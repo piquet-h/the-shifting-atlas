@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: validate-artifact-schema.mjs retired.
+console.error('validate-artifact-schema.mjs deprecated – no validation performed.')
+process.exit(0)
 /* global console, process */
 /**
  * validate-artifact-schema.mjs
@@ -16,37 +19,7 @@
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = join(__dirname, '..')
-const ARTIFACTS_DIR = join(ROOT, 'artifacts', 'ordering')
-
-/**
- * Expected artifact schema
- */
-const EXPECTED_KEYS = new Set([
-    'strategy',
-    'issue',
-    'recommendedOrder',
-    'changes',
-    'confidence',
-    'score',
-    'rationale',
-    'diff',
-    'plan',
-    'planHash',
-    'metadata',
-    'applied',
-    'reason',
-    '_filename',
-    '_mtime'
-])
-
-const REQUIRED_KEYS = new Set(['issue', 'recommendedOrder', 'confidence', 'score', 'metadata'])
-
-const METADATA_KEYS = new Set(['scope', 'type', 'milestone', 'timestamp'])
+import { join } from 'node:path'
 
 /**
  * Validate a single artifact
@@ -165,8 +138,3 @@ async function main() {
         throw err
     }
 }
-
-main().catch((err) => {
-    console.error(err)
-    process.exit(1)
-})

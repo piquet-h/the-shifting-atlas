@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global process console */
-
-/**
- * Basic tests for implementation order automation scripts
- * Tests key functionality without full GitHub integration
- */
-
-console.error('[deprecated] test-impl-order-automation.mjs retired (local implementation-order.json removed).')
+// DEPRECATED: test-impl-order-automation.mjs retired.
+console.error('test-impl-order-automation.mjs deprecated – no tests executed.')
 process.exit(0)
 import fs from 'node:fs'
 

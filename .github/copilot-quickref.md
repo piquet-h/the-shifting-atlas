@@ -6,13 +6,7 @@ Graph (Gremlin): Locations | NPCs (spatial edges). Documents (SQL): Players | In
 
 Function Naming: Http<VerbNoun>, Queue<ProcessThing>. Stateless, single purpose.
 
-Core Scripts:
-
-- Validate order: `npm run sync:impl-order:validate`
-- Apply order: `npm run sync:impl-order:apply`
-- List next: `npm run sync:impl-order:next`
-- Labels reconcile: `npm run sync:labels`
-- Recommend/assign order (dry-run default): `npm run assign:impl-order -- --issue <n>`
+Core Scripts (current): `npm run seed:world`, `npm run validate:telemetry-separation`, `npm run test:build-telemetry-guard`.
 
 Labels:
 
@@ -20,9 +14,7 @@ Labels:
 - Epic: one `scope:*` + `epic` (no type label).
   No legacy `area:*`, `phase-*`, `priority:*`.
 
-Ordering Source: Project v2 numeric field `Implementation order` (contiguous integers). (Any JSON snapshot is auxiliary; edit the Project field directly.) Helper script can auto-recompute or append.
-
-Next Up Logic: Non-Done → lowest order → earliest milestone → scope priority (core > world > traversal > ai > others). Avoid parallel starts unless requested.
+Project implementation-order & scheduling automation has been removed (legacy docs referencing it are deprecated).
 
 Telemetry: Use shared constants only; include correlation IDs; no ad-hoc event names.
 

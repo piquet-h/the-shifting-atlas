@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: schedule-roadmap.mjs retired.
+console.error('schedule-roadmap.mjs deprecated – no action performed.')
+process.exit(0)
 /* global fetch, process, console */
 /**
  * Schedule roadmap issues (Projects v2) by assigning Start / Target (Finish) dates
@@ -47,10 +50,10 @@
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildHistoricalDurations, computeMedians, chooseDuration, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
-import { trackScheduleVariance, initBuildTelemetry, flushBuildTelemetry } from './shared/build-telemetry.mjs'
+import { flushBuildTelemetry, initBuildTelemetry, trackScheduleVariance } from './shared/build-telemetry.mjs'
+import { buildHistoricalDurations, chooseDuration, computeMedians, DEFAULT_DURATION_DAYS } from './shared/duration-estimation.mjs'
+import { classifyIssue, extractFieldValue, wholeDayDiff } from './shared/project-utils.mjs'
 import { getProvisionalSchedule } from './shared/provisional-storage.mjs'
-import { extractFieldValue, classifyIssue, wholeDayDiff } from './shared/project-utils.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 path.resolve(__dirname, '..') // ROOT no longer required for ordering file

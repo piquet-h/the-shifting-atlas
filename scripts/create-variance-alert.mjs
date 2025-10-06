@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: create-variance-alert.mjs retired.
+console.error('create-variance-alert.mjs deprecated – no action performed.')
+process.exit(0)
 /* global process, console */
 /**
  * Create or update variance alert issues.

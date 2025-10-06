@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: test-update-issue-status.mjs retired.
+console.error('test-update-issue-status.mjs deprecated – no tests executed.')
+process.exit(0)
 /**
  * Test suite for issue status management functionality
  * Tests the core logic without requiring GitHub API access

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: format-drift-comment.mjs retired.
+console.error('format-drift-comment.mjs deprecated – no action performed.')
+process.exit(0)
 /* global console, process */
 /**
  * format-drift-comment.mjs

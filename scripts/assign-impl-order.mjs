@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /* eslint-env node */
 /* global fetch, console, process */
+// DEPRECATED: This script has been retired. It is kept only as a stub to avoid broken references.
+console.error('assign-impl-order.mjs has been removed (deprecated). No action performed.')
+process.exit(0)
 /**
  * assign-impl-order.mjs
  *

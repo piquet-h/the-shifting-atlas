@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: test-ordering-telemetry.mjs retired.
+console.error('test-ordering-telemetry.mjs deprecated – no tests executed.')
+process.exit(0)
 /* global console, process */
 /**
  * test-ordering-telemetry.mjs
@@ -10,12 +13,7 @@
 
 import { strict as assert } from 'node:assert'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = join(__dirname, '..')
-const TEST_ARTIFACTS_DIR = join(ROOT, 'tmp', 'test-artifacts')
+import { join } from 'node:path'
 
 // Test 1: Build telemetry module loads and emits events
 async function testBuildTelemetry() {
@@ -346,5 +344,3 @@ async function main() {
         process.exit(1)
     }
 }
-
-main()

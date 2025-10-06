@@ -1,23 +1,17 @@
-name: Auto Assign Implementation Order
+name: DEPRECATED Auto Assign Implementation Order (No-Op)
 
-# Permissions rationale (align with impl-order-sync & roadmap-scheduler workflows):
-# - contents: write          -> commit regenerated roadmap artifacts when high-confidence auto-apply occurs
-# - issues: write            -> post analysis comments on medium/low confidence, create proposal issues (doc-drift)
-# - repository-projects: write -> required to read/update Project V2 field values via GraphQL (Implementation order field)
-#   NOTE: For user-owned Project V2, the default GITHUB_TOKEN may still lack scopes; provide PROJECTS_TOKEN (classic PAT
-#   or fine‑grained PAT with project access) to elevate. The Select Token step prefers PROJECTS_TOKEN when present.
+# This workflow has been intentionally neutered. It remains only as a stub so that
+# historical references or badges do not cause 404s. To fully remove, delete this file.
 
 on:
-  issues:
-    types: [opened, edited, labeled, unlabeled, milestoned, demilestoned, reopened]
-  pull_request:
-    paths:
-      - 'docs/**/*.md'
-      - '.github/copilot-instructions.md'
-      - 'shared/src/telemetryEvents.ts'
-  workflow_dispatch:
-    inputs:
-      issue_number:
+  workflow_dispatch: {}
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Announce deprecation
+        run: echo 'auto-assign-impl-order workflow deprecated; no actions performed.'
         description: Specific issue number to analyze
         # Manual dispatch requires explicit issue number.
         required: true

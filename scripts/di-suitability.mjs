@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: di-suitability.mjs retired.
+console.error('di-suitability.mjs deprecated – no action performed.')
+process.exit(0)
 /* global process, console */
 /**
  * DI Suitability Analyzer

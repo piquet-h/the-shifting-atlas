@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: weekly-ordering-metrics.mjs retired.
+console.error('weekly-ordering-metrics.mjs deprecated – no action performed.')
+process.exit(0)
 /* global console, process */
 /**
  * weekly-ordering-metrics.mjs

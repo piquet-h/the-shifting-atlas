@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
+// DEPRECATED: analyze-doc-drift.mjs retired.
+console.error('analyze-doc-drift.mjs deprecated – no action performed.')
+process.exit(0)
 /* global console, process */
 /**
  * analyze-doc-drift.mjs
