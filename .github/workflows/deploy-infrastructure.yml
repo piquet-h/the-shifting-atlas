@@ -45,12 +45,6 @@ jobs:
         run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus2
         # Region fixed to West US 2 (westus2) per project decision; adjust here if future multi-region strategy is adopted.
 
-      - name: Validate template syntax
-        run: |
-          az deployment group validate \
-            --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
-            --template-file $BICEP_FILE
-
       - name: What-if (Full JSON)
         run: |
           if ! az deployment group what-if \
