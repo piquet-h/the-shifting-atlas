@@ -9,8 +9,8 @@
  */
 
 import { strict as assert } from 'node:assert'
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -236,7 +236,9 @@ async function testEventNameConstants() {
 // Test 5: Validation events helpers
 async function testValidationEvents() {
     console.log('Test 5: Validation events...')
-    const { trackValidationStart, trackValidationSuccess, trackValidationFail, getBufferedEvents } = await import('./shared/build-telemetry.mjs')
+    const { trackValidationStart, trackValidationSuccess, trackValidationFail, getBufferedEvents } = await import(
+        './shared/build-telemetry.mjs'
+    )
 
     const before = getBufferedEvents().length
     trackValidationStart({ phase: 'test' })
@@ -255,8 +257,8 @@ async function main() {
         await testGranularEvents()
         await testArtifactPruning()
         await testWeeklyMetrics()
-    await testEventNameConstants()
-    await testValidationEvents()
+        await testEventNameConstants()
+        await testValidationEvents()
 
         console.log('\n✅ All tests passed!')
     } catch (err) {

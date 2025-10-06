@@ -17,11 +17,11 @@
  *   node scripts/weekly-ordering-metrics.mjs --days 7
  */
 
-import { parseArgs } from 'node:util'
-import { join, dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { emitOrderingEvent } from './shared/build-telemetry.mjs'
-import { loadArtifacts, countOverrides } from './shared/ordering-artifacts.mjs'
+import { countOverrides, loadArtifacts } from './shared/ordering-artifacts.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -34,7 +34,6 @@ const { values } = parseArgs({
 })
 
 const DAYS = Number(values.days)
-
 
 /**
  * Calculate metrics from artifacts

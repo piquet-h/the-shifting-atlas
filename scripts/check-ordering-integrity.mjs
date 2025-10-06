@@ -18,7 +18,7 @@
  */
 
 import { parseArgs } from 'node:util'
-import { emitOrderingEvent, trackValidationStart, trackValidationSuccess, trackValidationFail } from './shared/build-telemetry.mjs'
+import { emitOrderingEvent, trackValidationFail, trackValidationStart, trackValidationSuccess } from './shared/build-telemetry.mjs'
 
 const { values } = parseArgs({
     options: {

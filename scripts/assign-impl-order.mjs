@@ -52,7 +52,13 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { emitOrderingEvent, flushBuildTelemetry, initBuildTelemetry, trackOrderingApplied, trackOrderingLowConfidence } from './shared/build-telemetry.mjs'
+import {
+    emitOrderingEvent,
+    flushBuildTelemetry,
+    initBuildTelemetry,
+    trackOrderingApplied,
+    trackOrderingLowConfidence
+} from './shared/build-telemetry.mjs'
 import { pruneOldArtifacts } from './shared/ordering-artifacts.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
