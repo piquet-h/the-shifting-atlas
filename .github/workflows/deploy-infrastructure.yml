@@ -49,16 +49,15 @@ jobs:
         run: |
           if ! az deployment group what-if \
             --resource-group "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" \
-            --template-file $BICEP_FILE \
-            --result-format FullJson > whatif.json; then
-            echo '{}' > whatif.json
+            --template-file $BICEP_FILE > whatif.txt; then
+            echo '{}' > whatif.txt
           fi
 
       - name: Upload what-if artifact
         uses: actions/upload-artifact@v4
         with:
           name: infra-whatif
-          path: whatif.json
+          path: whatif.txt
           if-no-files-found: error
 
   deploy:
