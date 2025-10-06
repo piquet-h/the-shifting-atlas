@@ -22,7 +22,7 @@ Source of truth: Project field 'Implementation order'
 | 16 | #14 | Integration Test Harness (Traversal + Persistence) |  | scope:devx | test | Todo |
 | 17 | #10 | Telemetry Event Registry Expansion |  | scope:observability | feature | Todo |
 | 18 | #11 | Gremlin RU & Latency Telemetry Wrapper |  | scope:observability | feature | Todo |
-| 19 | #52 | Learn more page |  | scope:core | enhancement | Todo |
+| 19 | #52 | Epic: Learn More Page & Automated Content |  | scope:devx | epic | Todo |
 | 20 | #45 | World Event Queue Processor Skeleton |  | scope:systems | feature | Done |
 | 21 | #40 | Lore Canonical Fact Store (CRUD + Versioning) |  | scope:world | feature | Todo |
 | 22 | #36 | Biome & Environmental Tag Registry Scaffold |  | scope:world | feature | Todo |
@@ -30,7 +30,7 @@ Source of truth: Project field 'Implementation order'
 | 24 | #63 | ADR-001: Mosswell Persistence & Tokenless Description Layering |  | scope:world | docs | Todo |
 | 25 | #66 | M-P2A: Structural Event Layer Simulation Script |  | scope:world | test | Todo |
 | 26 | #71 | Gremlin Health Check Function (HttpGremlinHealth) |  | scope:observability | feature | Todo |
-| 27 | #64 | M-P1: Mosswell Persistence Bootstrap (Anchors & Attributes) |  | scope:world | feature | Todo |
+| 27 | #64 | Epic: Mosswell Bootstrap & Repository Foundations |  | scope:world | epic | Todo |
 | 28 | #37 | Prompt Template Registry & Versioned Metadata |  | scope:ai | feature | Todo |
 | 29 | #38 | MCP Read-Only Servers: world-query & lore-memory |  | scope:mcp | feature | Todo |
 | 30 | #41 | Application Insights Correlation & OpenTelemetry Wiring |  | scope:observability | infra | Todo |
@@ -56,9 +56,9 @@ Source of truth: Project field 'Implementation order'
 | 50 | #60 | Local LLM Intent Extraction Design (PI-1) |  | scope:ai | feature | Todo |
 | 51 | #70 | ADR-001: Acceptance & Cross-Linking |  | scope:devx | docs | Todo |
 | 52 | #72 | Persistence Strict Fallback Guard |  | scope:world | feature | Todo |
-| 53 | #69 | M-P5: Description Telemetry & Integrity Hash Job |  | scope:observability | feature | Todo |
-| 54 | #68 | M-P4: Layer Validator (Immutability, Contradiction, Length) |  | scope:world | feature | Todo |
-| 55 | #67 | M-P3: Ambient Snippet Registry & Deterministic Selection |  | scope:world | feature | Todo |
+| 53 | #69 | Epic: Description Telemetry & Integrity Monitoring |  | scope:observability | epic | Todo |
+| 54 | #68 | Epic: Layer Validator & Similarity Guardrails |  | scope:world | epic | Todo |
+| 55 | #67 | Epic: Ambient Context Registry |  | scope:ai | epic | Todo |
 | 56 | #65 | M-P2: Description Composer Minimal (Base + Structural Layers) |  | scope:world | feature | Todo |
 | 57 | #51 | (Conditional) Provision Dedicated Key Vault & Bicep Amend |  | scope:security | infra | Todo |
 | 58 | #74 | ADR-001 Appendix: Cosmos Partition Key Decision |  | scope:world | docs | Done |
@@ -79,4 +79,4 @@ Source of truth: Project field 'Implementation order'
 | 8 | #13 | Todo | Direction Normalization Utility (Stage 1) |
 | 9 | #33 | Todo | Landmark & Semantic Direction Normalization (N2) |
 
-Last sync: 2025-10-06T01:34:45.663Z
+Last sync: 2025-10-06T02:53:42.522Z
