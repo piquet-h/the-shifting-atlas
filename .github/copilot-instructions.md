@@ -123,8 +123,7 @@ Data: Dual persistence (ADR-002)
 - `frontend/` SWA client
 - `backend/` Functions (`functions/`, `shared/` utilities)
 - `shared/` Cross‑package domain models + telemetry
-- `scripts/` Automation (ordering, labels, seed)
-- GitHub Project (v2) numeric field `Implementation order` – canonical execution sequence (single source of truth; any JSON snapshots are auxiliary only)
+- `scripts/` Automation (labels, seed) — legacy ordering/scheduling automation removed
 - `docs/` Design & narrative sources
 
 ---
@@ -231,24 +230,16 @@ Epics: exactly 1 scope label + the coordination label `epic` (no type label appl
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
-Ordering: Project v2 field `Implementation order` (numeric) → sync script regenerates `docs/roadmap.md`.
-Status field: `Todo|In progress|Done`.
-Never use legacy `area:*`, `phase-*`, `priority:*`.
+Status field: `Todo|In progress|Done`. Legacy ordering automation & numeric sequencing removed; manage priority manually.
+Never use legacy `area:*`, `phase-*`, `priority:*` (still deprecated).
 
-**Automated Assignment**: New issues automatically receive implementation order based on Copilot analysis of labels, milestones, and content. See `docs/developer-workflow/implementation-order-automation.md` for details.
+**Automated Assignment**: (Deprecated) Implementation order automation removed — ignore historical references.
 
 ---
 
-## 9. Implementation Order Commands
+## 9. (Deprecated) Implementation Order Commands
 
-```bash
-npm run sync:impl-order:validate
-npm run sync:impl-order:apply
-npm run sync:impl-order:next   # list upcoming (default 3)
-npm run sync:labels            # reconcile labels
-```
-
-Guidelines: Append when possible; resequence only for narrative clarity; keep integers contiguous.
+All prior ordering / scheduling commands removed. Use labels + milestone context for manual prioritization.
 
 ---
 
@@ -267,7 +258,7 @@ Reference: For interaction workflow & templates see Section 0 (patterns) and App
 ## 11. Testing Baseline
 
 Provide tests for: happy path, invalid direction, missing player ID.
-Run lint + typecheck before commit; CI blocks on ordering drift & labels.
+Run lint + typecheck before commit; (ordering drift checks removed).
 
 ---
 
@@ -278,27 +269,13 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ### Roadmap & Status Guardrails (Do NOT Manual Edit)
 
-`docs/roadmap.md` is an auto-generated artifact. Its single source of truth is the **GitHub Project v2 numeric field** `Implementation order` plus live issue labels/status. A scheduled GitHub Action (`roadmap-scheduler.yml`) and the sync scripts (`npm run sync:impl-order:*`) rebuild it. **Agents and contributors must not manually modify**:
-
-- The ordering numbers in `docs/roadmap.md`
-- Status values (Todo/In progress/Done) inside `docs/roadmap.md`
-- The file header comment indicating it is auto-generated
-
-Instead:
-
-1. Adjust labels (scope / type) or issue status in GitHub for status changes.
-2. Change ordering by editing the Project field directly (inline edit or bulk). The next sync will refresh artifacts.
-3. Run `npm run sync:impl-order:validate` locally if needed; let CI / the scheduled workflow publish the rendered `docs/roadmap.md`.
-
-If a user explicitly asks to “edit roadmap.md” or to change a status directly, respond by proposing the change to ordering file or labels and DO NOT patch `docs/roadmap.md` manually. Only proceed with a manual diff to that file if the user includes an explicit override phrase: `override roadmap manually`.
-
-Automation will treat any unapproved manual diff to `docs/roadmap.md` as drift and may overwrite it; avoid churn.
+`docs/roadmap.md` previously auto-generated via ordering automation; that system is deprecated. Edit roadmap content manually as needed (historical automation references can be ignored).
 
 ---
 
 ## 13. “Next Up” Algorithm
 
-Filter non-`Done` → lowest Implementation order → earliest milestone → scope priority (`core > world > traversal > ai > others`). Prefer not starting parallel if one `In progress` exists unless asked.
+Filter non-`Done` issues by milestone urgency, dependency readiness, then scope priority (`core > world > traversal > ai > others`). Parallel work minimal unless explicitly requested.
 
 ---
 
@@ -312,7 +289,7 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 Exit: directional traversal edge.
 Event vertex: persisted world action for timeline queries.
-Implementation order: enforced execution sequence (stored in Project field, not JSON file).
+Implementation order: (Deprecated) historical sequencing concept removed.
 Scope label: high-level functional grouping.
 Status: lightweight progress state powering “Next Up”.
 Risk tags: LOW (simple), DATA-MODEL (schema/partition), RUNTIME-BEHAVIOR (flow change), BUILD-SCRIPT (CI/tooling), INFRA (deployment/IaC).
@@ -485,20 +462,20 @@ This codifies a “logs-first, patch-second” discipline prompted by prior wast
 
 Purpose: Provide the agent with a canonical list of currently open follow-up issues created to close gaps discovered in the closed-issue audit (2025-10-05). Do NOT duplicate scope or create variants; extend or close these in place.
 
-| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                           | Dependencies / References                       |
-| ----- | --------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------------------- |
-| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                   | Refs closed #4; enables richer traversal & look |
-| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                   | Contract doc, precursor to AI events            |
-| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness           | ADR-002; closed #76 gap                         |
-| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert | Depends on #100 (locations)                     |
-| #104  | Stage 1 Ordering Telemetry & Metrics                | devx / enhancement      | Automation observability                | Builds on closed #82; before #106               |
-| #105  | Ordering Assignment Hardening                       | devx / enhancement      | Concurrency & artifact integrity        | Complements #104, precursor to #106             |
-| #106  | Stage 2 Predictive Scheduling Execution             | devx / enhancement      | Provisional scheduling & variance       | Builds on #104/#105; closed #83 spec            |
-| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness          | Closed #49 baseline                             |
-| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals       | Historical #17 #18 #19                          |
-| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                    | Closed #34 implementation                       |
-| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                    | Closed #24; relates #7 (#103)                   |
-| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                  | Closed #28                                      |
+| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                             | Dependencies / References                       |
+| ----- | --------------------------------------------------- | ----------------------- | ----------------------------------------- | ----------------------------------------------- |
+| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                     | Refs closed #4; enables richer traversal & look |
+| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                     | Contract doc, precursor to AI events            |
+| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness             | ADR-002; closed #76 gap                         |
+| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert   | Depends on #100 (locations)                     |
+| #104  | Stage 1 Ordering Telemetry & Metrics                | devx / enhancement      | Automation observability                  | Builds on closed #82; before #106               |
+| #105  | Ordering Assignment Hardening                       | devx / enhancement      | Concurrency & artifact integrity          | Complements #104, precursor to #106             |
+| #106  | (Deprecated) Predictive Scheduling Execution        | devx / enhancement      | Removed provisional scheduling & variance | Originally built on #104/#105 (removed)         |
+| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness            | Closed #49 baseline                             |
+| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals         | Historical #17 #18 #19                          |
+| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                      | Closed #34 implementation                       |
+| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                      | Closed #24; relates #7 (#103)                   |
+| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                    | Closed #28                                      |
 
 Prioritization Guidance (apply when selecting “Next Up” beyond ordering field):
 
@@ -513,7 +490,7 @@ Rules:
 - When closing one, ensure acceptance criteria are mirrored in PR description & tests.
 - Update this section only when adding or fully retiring a follow-up; keep minimal diff.
 
-NOTE: Implementation order numeric field remains source of truth for sequencing; this list is a thematic index only.
+NOTE: Former implementation order numeric field & scheduling automation removed; sequencing now curated manually.
 
 ---
 
@@ -633,19 +610,11 @@ If implemented, a script may scan new issues and comment when atomicity rules ar
 
 ### 20.13 Rationale
 
-Consistent small slices shorten review cycles, reduce merge conflict surface, keep telemetry noise isolated, and maintain a predictable Implementation order without large speculative bundles.
+Consistent small slices shorten review cycles, reduce merge conflict surface, and keep telemetry noise isolated without relying on legacy ordering automation.
 
 ### 20.14 Examples
 
-User asks: “Implement adaptive scheduling with variance alerts and rebaseline logic.”
-Copilot output (summary):
-
-- Epic: Adaptive Scheduling & Variance
-- Child: Duration Estimation Module
-- Child: Provisional Comment Manager
-- Child: Variance Calculation & Alert Workflow
-- Child: Partial Rebaseline Script
-- Child: Scheduling Telemetry Events
+User asks (historical example removed – scheduling & variance workflow deprecated).
 
 Each child then receives its atomic template.
 

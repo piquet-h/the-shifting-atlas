@@ -193,9 +193,9 @@ AI instructions forbid invention of unlisted large water bodies or major elevati
 | Prompt hallucination                  | Strict fact block + post‑gen validator vs feature list     |
 | Storage bloat                         | Lazy instantiation + TTL or pruning for untouched segments |
 
-## Implementation Ordering Guidance
+## Sequencing Guidance (Manual)
 
-Do **not** implement hydrology before basic persistent traversal (Implementation Order doc). This module’s early steps (G1–G2) can start immediately after Locations + Exits persist and before AI genesis generation scales.
+Hydrology work should follow establishment of basic persistent traversal. Early steps (G1–G2) can begin once Locations + Exits persistence is in place; no automated ordering system exists — apply engineering judgment.
 
 ## Minimal ADR Reference
 

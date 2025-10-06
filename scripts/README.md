@@ -1,112 +1,14 @@
 # Scripts Directory
 
-Automation scripts for The Shifting Atlas project.
+Automation scripts currently retained (legacy ordering / scheduling / variance / DI suitability tooling has been removed or stubbed).
 
-## Telemetry & Metrics (Stage 1)
+## Active Scripts
 
-**CRITICAL**: Build automation scripts use `shared/build-telemetry.mjs` (NOT game telemetry).
+### Validation
 
-### Implementation Order Automation
+- **`validate-telemetry-separation.mjs`** – Enforces build vs game telemetry boundary.
 
-- **`assign-impl-order.mjs`** - Assign or recalculate implementation order for an issue
-
-    ```bash
-    npm run assign:impl-order -- --issue 123
-    npm run assign:impl-order -- --issue 123 --apply
-    ```
-
-    - Emits telemetry: `build.ordering_applied`, `build.ordering_low_confidence`
-    - Saves artifacts to `artifacts/ordering/`
-    - Prunes old artifacts (keeps last 200)
-
-- **`check-ordering-integrity.mjs`** - Validate contiguous ordering (1..N)
-
-    ```bash
-    npm run check:ordering-integrity
-    ```
-
-    - Exits non-zero on gaps/duplicates
-    - Run in CI to prevent violations
-
-- **`detect-ordering-overrides.mjs`** - Detect manual changes within 24h
-
-    ```bash
-    npm run detect:ordering-overrides
-    ```
-
-    - Emits telemetry: `build.ordering_overridden`
-    - Compares artifacts to identify overrides
-
-- **`weekly-ordering-metrics.mjs`** - Generate weekly metrics summary
-    ```bash
-    npm run metrics:weekly
-    npm run metrics:weekly -- --days 14
-    ```
-
-    - Reads artifacts from `artifacts/ordering/`
-    - Outputs: processed count, confidence breakdown, override rate
-
-### Testing & Validation
-
-- **`test-ordering-telemetry.mjs`** - Test ordering telemetry functionality
-
-    ```bash
-    npm run test:ordering
-    ```
-
-    - 4 test cases: telemetry emission, artifact pruning, metrics, constants
-
-- **`validate-telemetry-separation.mjs`** - Validate telemetry separation rules
-    ```bash
-    npm run validate:telemetry-separation
-    ```
-
-    - Checks for violations (build events in game telemetry, etc.)
-    - Runs in CI (lint-typecheck job)
-
-## Project Management
-
-- **`sync-implementation-order.mjs`** - Sync Project field to docs
-
-    ```bash
-    npm run sync:impl-order:validate
-    npm run sync:impl-order:apply
-    npm run sync:impl-order:next
-    ```
-
-- **`sync-labels.mjs`** - Sync labels across repository
-
-    ```bash
-    npm run sync:labels
-    ```
-
-- **`update-issue-status.mjs`** - Update issue status in Project
-    ```bash
-    npm run update:issue-status
-    ```
-
-## Scheduling (Stage 2)
-
-- **`schedule-roadmap.mjs`** - Apply provisional schedules
-
-    ```bash
-    npm run schedule:roadmap
-    ```
-
-- **`post-provisional-schedule.mjs`** - Post provisional schedule to issue
-- **`calculate-variance.mjs`** - Calculate schedule variance
-- **`create-variance-alert.mjs`** - Create variance alert
-
-## Documentation & Analysis
-
-- **`analyze-doc-drift.mjs`** - Detect reprioritization signals from docs
-- **`format-drift-comment.mjs`** - Format drift analysis for PR comments
-- **`di-suitability.mjs`** - Analyze dependency injection suitability
-    ```bash
-    npm run analyze:di
-    ```
-
-## Build & Deploy
+### Build & Deploy
 
 - **`clean.mjs`** - Clean build artifacts
 
@@ -125,18 +27,13 @@ Automation scripts for The Shifting Atlas project.
     npm run seed:world
     ```
 
-## Shared Modules
+## Deprecated (Historical) Modules
 
-See [`shared/README.md`](./shared/README.md) for documentation on:
+The following historical modules/scripts are deprecated and retained only as stubs for provenance: ordering assignment, integrity / override detection, scheduling (provisional, variance), doc drift analysis, DI suitability, and related telemetry helpers.
 
-- `build-telemetry.mjs` - Build automation telemetry
-- `duration-estimation.mjs` - Duration estimation
-- `provisional-storage.mjs` - Provisional schedule storage
-- `provisional-comment.mjs` - Provisional schedule comments
-- `project-utils.mjs` - Project API utilities
-- `pagination.mjs` - GraphQL pagination helpers
+They MUST NOT be reactivated without an updated architectural decision and documentation refresh.
 
-## Telemetry Separation Rules
+## Telemetry Separation Rules (Still Active)
 
 **CRITICAL**: Never mix build and game telemetry.
 
@@ -182,17 +79,8 @@ Run all tests:
 npm test
 ```
 
-Run specific tests:
-
-```bash
-npm run test:ordering
-npm run test:issue-status
-npm run test:build-telemetry-guard
-```
-
-Validate automation:
+Validation:
 
 ```bash
 npm run validate:telemetry-separation
-npm run check:ordering-integrity
 ```

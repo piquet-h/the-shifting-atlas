@@ -1,6 +1,6 @@
-# Shared Automation Scripts
+# Shared Automation Scripts (Deprecated Components)
 
-This directory contains reusable modules for GitHub automation workflows (Stage 2+).
+Most automation related to implementation ordering, provisional scheduling, variance calculation, and DI suitability has been deprecated and the underlying scripts stubbed. This README now serves only as a historical pointer; active gameplay / platform code no longer depends on these modules.
 
 ## Modules
 
@@ -36,7 +36,7 @@ const estimation = estimateDuration(projectItems, 'scope:core', 'feature')
 
 ---
 
-### Provisional Comments
+### (Deprecated) Provisional Comments
 
 **File:** `provisional-comment.mjs`
 
@@ -93,7 +93,7 @@ if (shouldPostProvisionalComment(confidence, issueState)) {
 
 ---
 
-### Provisional Storage
+### (Deprecated) Provisional Storage
 
 **File:** `provisional-storage.mjs`
 
@@ -132,7 +132,7 @@ await updateProvisionalSchedule(projectId, itemId, {
 
 ---
 
-### Build Telemetry
+### (Scoped) Build Telemetry
 
 **File:** `build-telemetry.mjs`
 
@@ -187,14 +187,14 @@ await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
 
 ---
 
-## Architecture Principles
+## Architecture Principles (Updated)
 
 ### Telemetry Separation
 
 **Critical Rule:** Build automation and game domain telemetry are strictly separated.
 
 - **Build telemetry:** `scripts/shared/build-telemetry.mjs`
-    - Purpose: CI/automation events (scheduler, ordering, variance)
+    - Purpose: CI/automation events (limited — legacy scheduler/ordering/variance events no longer produced)
     - Prefix: `build.`
     - Destination: GitHub Actions logs + artifacts
     - **Does NOT use Application Insights**
@@ -234,22 +234,12 @@ Modules are designed for testability:
 3. **Artifact export:** Use `--artifact` to save decision data
 4. **Console fallback:** Telemetry falls back to console if AppInsights unavailable
 
-**Example:**
-
-```bash
-# Dry-run (safe)
-node scripts/post-provisional-schedule.mjs --issue 123
-
-# Apply (executes)
-node scripts/post-provisional-schedule.mjs --issue 123 --apply
-```
+Historical usage examples removed; associated scripts are deprecated.
 
 ## Related Documentation
 
-- [Stage 2 User Guide](../../docs/developer-workflow/stage2-user-guide.md) - User-facing documentation
-- [Stage 2 Sub-Issues](../../docs/planning/stage2-subissues/) - Technical specifications
-- [Roadmap Scheduling](../../docs/developer-workflow/roadmap-scheduling.md) - Scheduler documentation
+Legacy Stage 2 scheduling documentation references retained in version control history but no longer active.
 
 ---
 
-_Last updated: 2025-01-08 for Stage 2 implementation_
+_Last updated: 2025-10-06 – legacy automation deprecated_

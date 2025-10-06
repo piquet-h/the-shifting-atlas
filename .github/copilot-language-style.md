@@ -108,9 +108,9 @@ Avoid reflowing long narrative strings; prefer template literals only when inter
 | JSON / YAML      | Enabled             | Structural key/value scaffolding helpful            |
 | Shell            | Enabled             | Quick command snippet generation                    |
 
-## Implementation Order Awareness
+## (Deprecated) Implementation Order Automation
 
-When generating plans, sort candidate tasks by (1) lowest Implementation order, (2) earliest milestone, (3) scope priority: `core > world > traversal > ai > others`.
+Legacy implementation ordering automation has been removed. Do not reference or attempt to regenerate ordering metrics or commands; prioritize issues manually based on scope impact and dependencies.
 
 ## Anti-Patterns (Reject Suggestions That)
 
