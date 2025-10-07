@@ -23,10 +23,8 @@ const cosmosKey = await getSecret('cosmos-primary-key')
 
 ## Allowed Secret Keys
 
-Only these keys can be retrieved through the helper:
+Only these keys can be retrieved through the helper (Cosmos DB now uses Managed Identity; no primary keys fetched at runtime):
 
-- `cosmos-primary-key` → Cosmos DB Gremlin API key
-- `cosmos-sql-primary-key` → Cosmos DB SQL/Core API key
 - `service-bus-connection-string` → Azure Service Bus connection
 - `model-provider-api-key` → AI model provider API key
 - `signing-secret` → Application signing secret
@@ -34,13 +32,8 @@ Only these keys can be retrieved through the helper:
 ## Local Development
 
 1. Copy `.env.development.example` to `.env.development`
-2. Set required secrets:
-    ```bash
-    COSMOS_GREMLIN_KEY=your-local-cosmos-key
-    COSMOS_SQL_KEY=your-local-sql-key
-    NODE_ENV=development
-    ```
-3. Leave `KEYVAULT_NAME` empty to use local fallback
+2. (Optional) Add any non‑Cosmos secrets you need for testing (e.g., Service Bus connection)
+3. Run `az login` so DefaultAzureCredential can obtain an access token for Cosmos DB Gremlin & SQL APIs.
 
 ## Production Configuration
 
@@ -99,7 +92,7 @@ The helper emits these telemetry events:
 ## Security Notes
 
 - **Never** commit `.env.development` or any file containing real secrets
-- **Always** use the secrets helper; never access `process.env.COSMOS_KEY` directly
+- **Always** use the secrets helper for the remaining allow‑listed secrets
 - The production guard prevents accidental use of local env vars in production
 - Allowlist prevents typos and unauthorized secret access
 - Managed Identity eliminates need for stored credentials

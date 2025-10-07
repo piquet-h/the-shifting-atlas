@@ -1,7 +1,5 @@
 /** Persistence configuration & mode resolution */
 
-import type { AllowedSecretKey } from './secrets/secretsHelper.js'
-
 export type PersistenceMode = 'memory' | 'cosmos'
 
 export interface PersistenceConfig {
@@ -10,12 +8,11 @@ export interface PersistenceConfig {
         endpoint: string
         database: string
         graph: string
-        key?: string
+        /** Gremlin authentication is now Azure AD (Managed Identity) only. */
     }
     cosmosSql?: {
         endpoint: string
         database: string
-        keySecretName: string
         containers: {
             players: string
             inventory: string
@@ -53,7 +50,6 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
         // SQL API configuration
         const sqlEndpoint = process.env.COSMOS_SQL_ENDPOINT
         const sqlDatabase = process.env.COSMOS_SQL_DATABASE
-        const sqlKeySecretName = process.env.COSMOS_SQL_KEY_SECRET_NAME
         const sqlContainerPlayers = process.env.COSMOS_SQL_CONTAINER_PLAYERS
         const sqlContainerInventory = process.env.COSMOS_SQL_CONTAINER_INVENTORY
         const sqlContainerLayers = process.env.COSMOS_SQL_CONTAINER_LAYERS
@@ -69,44 +65,24 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
         }
 
         // Validate SQL API config (required for dual persistence)
-        if (
-            !sqlEndpoint ||
-            !sqlDatabase ||
-            !sqlKeySecretName ||
-            !sqlContainerPlayers ||
-            !sqlContainerInventory ||
-            !sqlContainerLayers ||
-            !sqlContainerEvents
-        ) {
+        if (!sqlEndpoint || !sqlDatabase || !sqlContainerPlayers || !sqlContainerInventory || !sqlContainerLayers || !sqlContainerEvents) {
             if (strict) {
-                throw new Error(
-                    'PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete (endpoint/database/keySecretName/containers).'
-                )
+                throw new Error('PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete (endpoint/database/containers).')
             }
             // Log warning but continue (SQL API might not be used yet in all code paths)
             console.warn('Cosmos SQL API configuration incomplete. Some features may not be available.')
         }
 
-        // Dynamic import to avoid circular dependencies & keep browser bundle slim. Let errors surface.
-        const { getSecret } = await import('./secrets/secretsHelper.js')
-        const key = await getSecret('cosmos-primary-key' as AllowedSecretKey)
-
-        const config: PersistenceConfig = { mode, cosmos: { endpoint, database, graph, key } }
+        const config: PersistenceConfig = {
+            mode,
+            cosmos: { endpoint, database, graph }
+        }
 
         // Add SQL config if all required vars are present
-        if (
-            sqlEndpoint &&
-            sqlDatabase &&
-            sqlKeySecretName &&
-            sqlContainerPlayers &&
-            sqlContainerInventory &&
-            sqlContainerLayers &&
-            sqlContainerEvents
-        ) {
+        if (sqlEndpoint && sqlDatabase && sqlContainerPlayers && sqlContainerInventory && sqlContainerLayers && sqlContainerEvents) {
             config.cosmosSql = {
                 endpoint: sqlEndpoint,
                 database: sqlDatabase,
-                keySecretName: sqlKeySecretName,
                 containers: {
                     players: sqlContainerPlayers,
                     inventory: sqlContainerInventory,

@@ -4,7 +4,6 @@ export interface GremlinClientConfig {
     endpoint: string
     database: string
     graph: string
-    key?: string
 }
 
 export interface GremlinClient {
@@ -48,7 +47,14 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
         }
         const gmod = gremlin as unknown as GremlinModuleShape
         const DriverRemoteConnection = gmod.driver.DriverRemoteConnection
-        const authenticator = new gmod.driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, config.key)
+        // Always use Azure AD (Managed Identity) now; legacy key mode removed.
+        const { DefaultAzureCredential } = await import('@azure/identity')
+        const credential = new DefaultAzureCredential()
+        const scope = 'https://cosmos.azure.com/.default'
+        const token = await credential.getToken(scope)
+        if (!token?.token) throw new Error('Failed to acquire AAD token for Cosmos Gremlin.')
+        const password = token.token
+        const authenticator = new gmod.driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, password)
         const connection: DriverRemoteConnectionLike = new DriverRemoteConnection(`${config.endpoint}`, {
             authenticator,
             traversalsource: 'g'

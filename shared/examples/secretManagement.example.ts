@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Example: Using the Secret Management Helper
  *
@@ -5,45 +6,10 @@
  * to fetch secrets securely from Azure Key Vault with Managed Identity.
  */
 
-import { getSecret, clearSecretCache, getSecretCacheStats, loadPersistenceConfigAsync, createGremlinClient } from '@atlas/shared'
+import { clearSecretCache, getSecret, getSecretCacheStats } from '@atlas/shared'
+import console from 'node:console'
 
-/**
- * Example 1: Basic secret retrieval
- */
-async function example1_BasicRetrieval() {
-    try {
-        // Fetch Cosmos DB key
-        // In production: fetches from Key Vault using Managed Identity
-        // In development: falls back to COSMOS_GREMLIN_KEY env var
-        const cosmosKey = await getSecret('cosmos-primary-key')
-
-        console.log('Successfully retrieved Cosmos key')
-        // Use cosmosKey to connect to Cosmos DB...
-    } catch (error) {
-        console.error('Failed to retrieve secret:', error)
-    }
-}
-
-/**
- * Example 2: Multiple secrets
- */
-async function example2_MultipleSecrets() {
-    try {
-        // Fetch multiple secrets in parallel
-        const [cosmosKey, sqlKey] = await Promise.all([getSecret('cosmos-primary-key'), getSecret('cosmos-sql-primary-key')])
-
-        console.log('Retrieved both Cosmos keys successfully')
-
-        // Second fetch will use cached values (5-minute TTL)
-        const cosmosKeyAgain = await getSecret('cosmos-primary-key')
-
-        // Check cache stats
-        const stats = getSecretCacheStats()
-        console.log(`Cache size: ${stats.size}, keys: ${stats.keys.join(', ')}`)
-    } catch (error) {
-        console.error('Failed to retrieve secrets:', error)
-    }
-}
+// Cosmos DB keys now sourced via Managed Identity (SQL) or direct env var (Gremlin) – no secret retrieval examples needed.
 
 /**
  * Example 3: Custom retry options
@@ -63,41 +29,15 @@ async function example3_CustomOptions() {
     }
 }
 
-/**
- * Example 4: Cache management
- */
+// Cache management still works for remaining secrets
 async function example4_CacheManagement() {
-    // Fetch a secret
-    await getSecret('cosmos-primary-key')
-
+    await getSecret('service-bus-connection-string').catch(() => {})
     console.log('Before clear:', getSecretCacheStats())
-
-    // Clear cache to force fresh fetch
     clearSecretCache()
-
     console.log('After clear:', getSecretCacheStats())
-
-    // Next fetch will hit Key Vault again
-    await getSecret('cosmos-primary-key')
 }
 
-/**
- * Example 5: Using with persistence config
- */
-async function example5_PersistenceConfig() {
-    try {
-        // Load config with secrets from Key Vault
-        const config = await loadPersistenceConfigAsync()
-
-        if (config.mode === 'cosmos' && config.cosmos) {
-            // Create Gremlin client with fetched credentials
-            const client = await createGremlinClient(config.cosmos)
-            console.log('Gremlin client ready')
-        }
-    } catch (error) {
-        console.error('Failed to initialize persistence:', error)
-    }
-}
+// Persistence config no longer pulls Cosmos keys from Key Vault – Gremlin key must be in env for now.
 
 /**
  * Example 6: Error handling
@@ -121,9 +61,6 @@ async function example6_ErrorHandling() {
 }
 
 // Run examples (uncomment to test)
-// example1_BasicRetrieval()
-// example2_MultipleSecrets()
 // example3_CustomOptions()
 // example4_CacheManagement()
-// example5_PersistenceConfig()
 // example6_ErrorHandling()

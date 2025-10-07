@@ -1,6 +1,7 @@
 import assert from 'node:assert'
-import { describe, test, beforeEach } from 'node:test'
-import { getSecret, clearSecretCache, getSecretCacheStats, ALLOWED_SECRET_KEYS } from '../src/secrets/secretsHelper.js'
+import process from 'node:process'
+import { beforeEach, describe, test } from 'node:test'
+import { ALLOWED_SECRET_KEYS, clearSecretCache, getSecret, getSecretCacheStats } from '../src/secrets/secretsHelper.js'
 
 describe('secretsHelper', () => {
     beforeEach(() => {
@@ -12,9 +13,7 @@ describe('secretsHelper', () => {
         delete process.env.NODE_ENV
     })
 
-    test('ALLOWED_SECRET_KEYS contains expected keys', () => {
-        assert.ok(ALLOWED_SECRET_KEYS.includes('cosmos-primary-key'))
-        assert.ok(ALLOWED_SECRET_KEYS.includes('cosmos-sql-primary-key'))
+    test('ALLOWED_SECRET_KEYS contains expected keys (post-migration)', () => {
         assert.ok(ALLOWED_SECRET_KEYS.includes('service-bus-connection-string'))
         assert.ok(ALLOWED_SECRET_KEYS.includes('model-provider-api-key'))
         assert.ok(ALLOWED_SECRET_KEYS.includes('signing-secret'))
@@ -31,39 +30,32 @@ describe('secretsHelper', () => {
         )
     })
 
-    test('uses local environment variable in development', async () => {
+    test('uses local environment variable in development (service bus)', async () => {
         process.env.NODE_ENV = 'development'
-        process.env.COSMOS_GREMLIN_KEY = 'test-local-key-123'
+        process.env.SERVICE_BUS_CONNECTION_STRING = 'Endpoint=sb://local/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=abc'
 
-        const secret = await getSecret('cosmos-primary-key')
-        assert.strictEqual(secret, 'test-local-key-123')
+        const secret = await getSecret('service-bus-connection-string')
+        assert.ok(secret.includes('Endpoint=sb://local/'))
     })
 
-    test('throws error if secret not found', async () => {
+    test('throws error if secret not found (model provider key)', async () => {
         process.env.NODE_ENV = 'development'
-        // No KEYVAULT_NAME, no local env var
-
         await assert.rejects(
             async () => {
-                await getSecret('cosmos-primary-key')
+                await getSecret('model-provider-api-key')
             },
-            {
-                message: /not found/
-            }
+            { message: /not found/ }
         )
     })
 
-    test('refuses to use local env var in production', async () => {
+    test('refuses to use local env var in production (service bus)', async () => {
         process.env.NODE_ENV = 'production'
-        process.env.COSMOS_GREMLIN_KEY = 'test-local-key-123'
-
+        process.env.SERVICE_BUS_CONNECTION_STRING = 'Endpoint=sb://local/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=abc'
         await assert.rejects(
             async () => {
-                await getSecret('cosmos-primary-key')
+                await getSecret('service-bus-connection-string')
             },
-            {
-                message: /Refusing to use local environment variable.*in production/
-            }
+            { message: /Refusing to use local environment variable.*in production/ }
         )
     })
 

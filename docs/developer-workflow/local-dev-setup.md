@@ -88,6 +88,18 @@ Code formatting (indentation, quotes, commas, semicolons) is fully automated:
 - CI will fail if formatting drifts—no need to memorize specific style rules.
 - Configure your editor for “Format on Save” with Prettier + EditorConfig enabled.
 
+## Cosmos (Gremlin + SQL) via Managed Identity
+
+Cosmos DB access now uses Azure AD (Managed Identity in Azure; your developer identity locally). There is **no key mode**.
+
+Local steps:
+
+1. Ensure you have Azure CLI installed and run `az login` (once per dev session).
+2. Set `PERSISTENCE_MODE=cosmos` and Gremlin/SQL endpoint + database env vars in `.env.development`.
+3. Start the emulator / Functions as usual. The first Gremlin query will acquire an AAD token via `DefaultAzureCredential`.
+
+If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` or verify your account has the Cosmos DB Data Contributor role in the target subscription.
+
 ## Common Troubleshooting
 
 | Symptom                                        | Fix                                                                        |

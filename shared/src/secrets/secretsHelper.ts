@@ -6,8 +6,7 @@ import { trackGameEvent } from '../telemetry.js'
 
 /** Allowlisted secret keys that can be retrieved */
 export const ALLOWED_SECRET_KEYS = [
-    'cosmos-primary-key',
-    'cosmos-sql-primary-key',
+    // Cosmos keys removed – managed identity now used for SQL API; Gremlin key sourced via env var only.
     'service-bus-connection-string',
     'model-provider-api-key',
     'signing-secret'
@@ -84,8 +83,6 @@ function sleep(ms: number): Promise<void> {
 function getLocalFallback(secretKey: AllowedSecretKey): string | undefined {
     // Map secret keys to environment variable names
     const envVarMap: Record<AllowedSecretKey, string> = {
-        'cosmos-primary-key': 'COSMOS_GREMLIN_KEY',
-        'cosmos-sql-primary-key': 'COSMOS_SQL_KEY',
         'service-bus-connection-string': 'SERVICE_BUS_CONNECTION_STRING',
         'model-provider-api-key': 'MODEL_PROVIDER_API_KEY',
         'signing-secret': 'SIGNING_SECRET'

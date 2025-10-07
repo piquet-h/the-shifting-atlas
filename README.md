@@ -37,7 +37,7 @@ Current implemented slice + planned extensions (details in `docs/architecture/mv
 Implemented now:
 
 - Static Web App (SWA) hosting React (Vite) + co‑located Azure Functions under `frontend/api`.
-- Bicep template provisioning SWA + Cosmos DB (Gremlin) + Key Vault (for Cosmos key) – see `infrastructure/`.
+- Bicep template provisioning SWA + Cosmos DB (Gremlin + SQL) using Managed Identity (AAD) – no runtime Cosmos keys.
 
 Planned (not yet in code):
 
@@ -77,8 +77,8 @@ Notable:
 | Frontend API (`frontend/api`)   | Health + action stub       | SWA emulator + build workflow                        |
 | Standalone backend (`backend/`) | Scaffolding only           | Will host queue/world logic later                    |
 | Queue / world logic             | Not implemented            | Planned Service Bus + queue triggers                 |
-| Cosmos DB integration           | Provisioned infra only     | No runtime graph code yet                            |
-| Key Vault integration           | Provisioned (secrets)      | Cosmos key secret seeded; no identity usage yet      |
+| Cosmos DB integration           | Provisioned infra only     | AAD (Managed Identity) auth path in place            |
+| Key Vault integration           | Provisioned (secrets)      | Non‑Cosmos secrets only; Cosmos keys deprecated      |
 | Infrastructure (Bicep)          | Core resources in place    | SWA + Cosmos + Key Vault                             |
 | CI/CD                           | Partial                    | SWA + infra workflows present; test pipeline missing |
 

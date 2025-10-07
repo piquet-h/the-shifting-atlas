@@ -25,7 +25,7 @@ export default {
 
         // Secret environment variable names that should go through the helper
         const secretEnvVars = [
-            'COSMOS_GREMLIN_KEY',
+            // Gremlin key removed (AAD auth only)
             'COSMOS_SQL_KEY',
             'SERVICE_BUS_CONNECTION_STRING',
             'MODEL_PROVIDER_API_KEY',
