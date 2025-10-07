@@ -37,7 +37,7 @@ jobs:
       - name: Compute values
         id: compute
         run: |
-          RG="rg-core"
+          RG="rg-atlas"
           echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
           echo "Using resource group: $RG"
 
