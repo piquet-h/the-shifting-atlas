@@ -77,12 +77,11 @@ jobs:
       - name: Compute values
         id: compute
         run: |
-          RG="rg-core"
+          RG="rg-atlas"
           echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
 
       - name: Ensure resource group exists
-        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus2
-        # Region fixed to West US 2 (westus2) per project decision; adjust here if future multi-region strategy is adopted.
+        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus3
 
       - name: Deploy (Cosmos + Static Web App)
         run: |
@@ -100,7 +99,5 @@ jobs:
 
       - name: Show resulting resources
         run: |
-          echo 'Cosmos Accounts:'
-          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --resource-type Microsoft.DocumentDB/databaseAccounts --query '[].name' -o tsv || true
-          echo 'Static Web Apps:'
-          az staticwebapp list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --query '[].name' -o tsv || true
+          echo 'Deployed resources:'
+          az resource list --resource-group ${{ steps.compute.outputs.RESOURCE_GROUP_NAME }} --query '[].name' -o tsv || true
