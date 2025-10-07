@@ -36,7 +36,7 @@ Current implemented slice + planned extensions (details in `docs/architecture/mv
 
 Implemented now:
 
-- Static Web App (SWA) hosting React (Vite) + co‑located Azure Functions under `frontend/api`.
+- Static Web App (SWA) hosting the React (Vite) frontend only (no co‑located Functions; all server logic lives in the unified `backend/` Function App).
 - Bicep template provisioning SWA + Cosmos DB (Gremlin + SQL) using Managed Identity (AAD) – no runtime Cosmos keys.
 
 Planned (not yet in code):
@@ -56,31 +56,29 @@ Design principles:
 ## 3. Repository Layout
 
 ```
-frontend/         React SPA + co‑located Functions API (`frontend/api`)
-frontend/api/     Health + player action stub Functions
-backend/          Future separated Function App scaffolding
+frontend/         React SPA
+backend/          Azure Functions App (HTTP + world / player endpoints, future queues)
 infrastructure/   Bicep (SWA, Cosmos, Key Vault)
 docs/             Architecture & domain design modules
 ```
 
 Notable:
 
-- `frontend/api/websiteHealthCheck.ts` – health endpoint.
-- `frontend/api/websiteHttpPlayerActions.ts` – action dispatch placeholder.
+- `backend/src/functions/*` – unified HTTP endpoints (player, location, movement, bootstrap, health).
 - `docs/modules/*` – domain design (future mechanics, keep as roadmap references).
 
 ## 4. Current Implementation Status
 
-| Area                            | Status                     | Notes                                                |
-| ------------------------------- | -------------------------- | ---------------------------------------------------- |
-| Frontend UI                     | Auth-aware shell + routing | Landing homepage (hero + auth states)                |
-| Frontend API (`frontend/api`)   | Health + action stub       | SWA emulator + build workflow                        |
-| Standalone backend (`backend/`) | Scaffolding only           | Will host queue/world logic later                    |
-| Queue / world logic             | Not implemented            | Planned Service Bus + queue triggers                 |
-| Cosmos DB integration           | Provisioned infra only     | AAD (Managed Identity) auth path in place            |
-| Key Vault integration           | Provisioned (secrets)      | Non‑Cosmos secrets only; Cosmos keys deprecated      |
-| Infrastructure (Bicep)          | Core resources in place    | SWA + Cosmos + Key Vault                             |
-| CI/CD                           | Partial                    | SWA + infra workflows present; test pipeline missing |
+| Area                           | Status                      | Notes                                                |
+| ------------------------------ | --------------------------- | ---------------------------------------------------- |
+| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)                |
+| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA)  |
+| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App             |
+| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                 |
+| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place            |
+| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated      |
+| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                             |
+| CI/CD                          | Partial                     | SWA + infra workflows present; test pipeline missing |
 
 ## 5. Quick Start (Local Dev)
 
@@ -99,7 +97,7 @@ npm run dev
 
 Visit: http://localhost:5173
 
-### Option B: Unified SWA Emulator (Frontend + API on one origin)
+### Backend Functions (Unified)
 
 Install deps once at repo root (workspaces):
 
@@ -107,27 +105,20 @@ Install deps once at repo root (workspaces):
 npm install --workspaces
 ```
 
-Start unified SWA emulator (frontend + Functions):
+Run frontend & backend separately during development:
 
 ```bash
-npm run swa
+npm run dev -w frontend   # Vite dev server (http://localhost:5173)
+npm start -w backend      # Azure Functions host (http://localhost:7071)
 ```
 
-The SWA emulator UI + proxy lives at: http://localhost:4280
+Health check (example):
 
-Underlying dev servers:
+```bash
+curl http://localhost:7071/api/ping
+```
 
-- Frontend: http://localhost:5173
-- Functions API: http://localhost:7071
-
-Health check:
-`curl http://localhost:4280/api/website/health`
-
-If you prefer the explicit script names you can still run `npm run swa:start` or a verbose mode with `npm run swa:start:verbose`.
-
-### Split Backend Functions (Planned)
-
-`backend/` is empty scaffolding. Future queue & world processors will live there. Until then all endpoints remain co‑located.
+The SWA CLI can still serve the static frontend, but API proxying is no longer required since Functions are decoupled; use simple CORS or a local reverse proxy if needed.
 
 ### Build Artifacts
 
@@ -177,9 +168,8 @@ Local emulator:
 
 Local auth convenience:
 
-- Run the whole stack (SWA emulator + frontend dev server + API functions defined in `frontend/api`) from the repo root with: `npm run swa`.
-- Internally this delegates to the frontend workspace's SWA CLI config (see `swa-cli.config.json`). Use `-w frontend` explicitly if you prefer: `npm run swa -w frontend`.
-- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions.
+- Run the whole stack via two terminals (frontend + backend). Add a lightweight proxy later if same-origin local testing is required.
+- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions in the frontend.
 - For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
 - The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
 

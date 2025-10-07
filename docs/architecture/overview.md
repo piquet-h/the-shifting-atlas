@@ -9,7 +9,7 @@ This overview provides a concise narrative bridge between the high‑level visio
 ## Purpose
 
 - Summarize the architectural intent before deep‑diving into MVP specifics.
-- Clarify phased evolution: co‑located Managed API now, separated services later.
+- Clarify phased evolution: unified Backend Function App for HTTP + async processing (embedded API removed).
 - Provide a stable link target for docs referencing an "architecture overview" page.
 
 ## Core Tenets
@@ -17,15 +17,15 @@ This overview provides a concise narrative bridge between the high‑level visio
 1. Event‑Driven Progression: Player commands and world changes become events; asynchronous processors (future Service Bus + queue‑triggered Functions) evolve state.
 2. Stateless Compute: Azure Functions remain stateless; all authoritative data resides in the graph (Cosmos Gremlin) and durable event records.
 3. Graph‑First World Model: Rooms, exits, NPCs, items, factions, and quests as vertices/edges enabling semantic traversal and relationship queries.
-4. Incremental Modularity: Start with a co‑located API (Static Web Apps Managed API). Introduce a dedicated Functions app only when queue depth or execution isolation demands it.
+4. Incremental Modularity: Start with a unified dedicated Functions App for HTTP + queue triggers; SWA serves static assets only.
 5. Cost Minimization: Favor free / consumption tiers until sustained playtest load justifies scaling investments.
 
 ## Current Slice (MVP Stage)
 
 Implemented (thin slice – see repo for exact handlers):
 
-- Static Web App (frontend + managed API)
-- Experimental separate `backend/` Functions app (health + ping)
+- Static Web App (frontend only)
+- Backend `backend/` Functions App (HTTP endpoints + world event queue processors)
 - Repository abstraction (memory adapters) for Rooms & Players
 - In‑memory traversal (2 rooms, movement + fetch handlers)
 - Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
@@ -58,8 +58,7 @@ Stage Roadmap (Milestones):
 ## Separation of Concerns (Future State)
 
 - `frontend/` – Presentation + minimal command dispatch
-- `frontend/api/` – Lightweight synchronous request handlers
-- `backend/` – Asynchronous world simulation (queue-triggered world event processors + NPC ticks), heavier domain logic
+- `backend/` – All HTTP endpoints + asynchronous world simulation (queue-triggered world event processors + NPC ticks), heavier domain logic
 - `shared/` (expanding) – Currently exports telemetry events + dual entry points; will accrete graph helpers, validation schemas, and MCP tool type definitions
 
 ### Shared Package Entry Points (Browser vs Backend)

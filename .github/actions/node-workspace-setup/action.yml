@@ -26,7 +26,6 @@ runs:
           package-lock.json
           backend/package.json
           frontend/package.json
-          frontend/api/package.json
           shared/package.json
 
     - name: Enable Corepack (npm@10)

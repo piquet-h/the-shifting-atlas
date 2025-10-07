@@ -10,7 +10,6 @@
     "workspaces": [
         "shared",
         "frontend",
-        "frontend/api",
         "backend"
     ],
     "scripts": {
@@ -19,7 +18,7 @@
         "swa:build": "swa build dev",
         "swa:deploy": "swa deploy dev",
         "validate:seed": "tsx shared/scripts/validateDirections.ts",
-        "build": "tsc -b tsconfig.refs.json && npm run sync:static -w frontend/api && npm run build -w frontend",
+        "build": "tsc -b tsconfig.refs.json && npm run build -w frontend",
         "build:fast": "tsc -b tsconfig.refs.json",
         "seed:world": "npm run build:fast && node scripts/seed-world.mjs",
         "verify:deployable": "node scripts/verify-deployable.mjs",
@@ -32,7 +31,7 @@
         "coverage": "c8 --reporter=text --reporter=lcov npm run test",
         "a11y": "npm run a11y -w frontend",
         "prelint": "node -e \"['@typescript-eslint/eslint-plugin','@typescript-eslint/parser'].forEach(m=>{try{require.resolve(m);console.log('found',m)}catch(e){console.error('MISSING',m);process.exitCode=1}})\"",
-        "lint": "npm run prelint && eslint 'shared/src' 'backend/src' 'frontend/src' 'frontend/api/src' --ext .ts,.tsx",
+        "lint": "npm run prelint && eslint 'shared/src' 'backend/src' 'frontend/src' --ext .ts,.tsx",
         "lint:fix": "npm run lint -- --fix",
         "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
         "format": "prettier . --write",

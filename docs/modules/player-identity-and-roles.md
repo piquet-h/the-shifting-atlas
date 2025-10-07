@@ -139,7 +139,7 @@ For production and realistic playtests we recommend using Microsoft Entra Extern
 Integration notes:
 
 - Use Entra for sign-up/sign-in and federation (Microsoft, Google, Apple, etc.) and keep the canonical player profile in Cosmos DB (linked by a stable external id such as the Entra `sub` claim or a custom claim).
-- Validate ID tokens server-side in your Managed API (Azure Functions). Verify issuer, audience, expiry, and signature.
+- Validate ID tokens server-side in the Backend Function App (Azure Functions). Verify issuer, audience, expiry, and signature.
 - Map Entra claims to minimal in-game attributes (displayName, email_verified) and store game-specific state separately (GUIDs, inventory, reputation) to avoid coupling game state to identity provider data.
 - For role-based or admin operations, use Entra groups or custom claims and enforce checks in Functions (do not trust client-side role flags).
 

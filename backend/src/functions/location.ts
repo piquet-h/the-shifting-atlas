@@ -1,10 +1,3 @@
-/**
- * Location & Movement Handlers (In-Memory Repository Backing)
- * ----------------------------------------------------------
- * Current State: Uses the shared `ILocationRepository` in-memory implementation
- * seeded from `shared/src/data/villageLocations.json` (a plain JSON world seed; formerly villageRooms.json pre-refactor).
- * Telemetry events (`Location.Get`, `Location.Move`) capture minimal fields.
- */
 import {
     CORRELATION_HEADER,
     extractCorrelationId,

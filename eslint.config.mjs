@@ -7,10 +7,10 @@ import jsxA11y from 'eslint-plugin-jsx-a11y'
 import prettierPlugin from 'eslint-plugin-prettier'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
+import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
-import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 
 export default [
     {
@@ -114,21 +114,6 @@ export default [
             '@typescript-eslint/no-explicit-any': 'warn'
         },
         settings: { react: { version: 'detect' } }
-    },
-    {
-        // Frontend public API Azure Functions (node env but may share some TS conventions)
-        files: ['frontend/api/src/**/*.ts'],
-        languageOptions: {
-            parser: tsParser,
-            ecmaVersion: 'latest',
-            sourceType: 'module',
-            globals: { process: 'readonly' }
-        },
-        plugins: { '@typescript-eslint': tsPlugin },
-        rules: {
-            ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn'
-        }
     },
     {
         // Backend Azure Functions (no React)

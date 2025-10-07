@@ -4,14 +4,13 @@ Player‑facing SPA prototype. Minimal health check call, simple navigation, Tai
 
 ## Scripts
 
-| Script               | Purpose                                                              |
-| -------------------- | -------------------------------------------------------------------- |
-| `npm run dev`        | Start Vite dev server (React Fast Refresh).                          |
-| `npm run typecheck`  | Run `tsc --noEmit` for full type safety.                             |
-| `npm run build`      | Create production build (Vite).                                      |
-| `npm run preview`    | Preview production build locally.                                    |
-| `npm run swa`        | Start SWA CLI (frontend + co‑located Functions) from this workspace. |
-| `npm run swa` (root) | Preferred unified emulator (alias defined at repo root).             |
+| Script              | Purpose                                                               |
+| ------------------- | --------------------------------------------------------------------- |
+| `npm run dev`       | Start Vite dev server (React Fast Refresh).                           |
+| `npm run typecheck` | Run `tsc --noEmit` for full type safety.                              |
+| `npm run build`     | Create production build (Vite).                                       |
+| `npm run preview`   | Preview production build locally.                                     |
+| (removed)           | Previous SWA CLI + co‑located Functions script (now unified backend). |
 
 ## TypeScript Conventions
 
@@ -22,7 +21,7 @@ Player‑facing SPA prototype. Minimal health check call, simple navigation, Tai
 
 ## API Integration
 
-Co‑located Azure Functions in `api/` expose routes like `/website/health` (available at `/api/website/health`) and `/website/player/actions`. During plain `npm run dev` they are not available; use `npm run swa` for integrated mode.
+All Azure Functions now live in the separate `backend/` workspace. During local development call them directly (default host `http://localhost:7071`). If you need same‑origin requests, configure Vite's `server.proxy` to forward `/api` → `http://localhost:7071`.
 
 ## Styling
 
@@ -64,9 +63,9 @@ npm run preview
 - `src/services/api.ts` – Minimal API wrapper (health check; extend for player actions)
 - `tailwind.config.ts` – Tailwind configuration (typed)
 
-## Co-Located API (`api/`)
+## Backend Functions
 
-Co-located Azure Functions (health + player action stubs). Served when using SWA CLI. For deeper debugging you can start the Functions host inside `api/`, but typically the root `npm run swa` is sufficient early on.
+Previously co‑located Functions have been migrated. See `backend/src/functions/` for handlers (player bootstrap, movement, location lookups, health). Keep frontend code presentation‑focused; invoke APIs through `src/services/api.ts`.
 
 Global styles: `src/tailwind.css` (single source). Typography + Forms plugins enabled.
 

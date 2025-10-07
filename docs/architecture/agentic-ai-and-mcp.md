@@ -21,7 +21,7 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 | Layer               | Responsibility                             | Implementation Substrate                                       |
 | ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
 | Presentation        | Player command UI, streaming output        | Static Web App (React)                                         |
-| Synchronous API     | Parse & validate player commands           | Managed API / HTTP Functions                                   |
+| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                         |
 | Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                     |
 | AI Orchestration    | Run agents, call MCP tools, emit proposals | Dedicated Functions (queue-trigger) or future durable workflow |
 | Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                       |

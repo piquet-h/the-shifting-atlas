@@ -1,6 +1,6 @@
-## CI/CD: Frontend + Co-Located API (Azure Static Web App)
+## CI/CD: Frontend Static Web App (Frontend Only)
 
-Automated deployment pipeline for the `frontend` (Vite + React) and its co-located Azure Functions in `frontend/api` using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews).
+Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews). All Azure Functions have migrated to the unified `backend/` Function App (deployed separately).
 
 ### Triggers
 
@@ -42,7 +42,7 @@ Previously a deployment token (`AZURE_STATIC_WEB_APPS_API_TOKEN`) was optional f
 
 1. Checkout & install dependencies across workspaces.
 2. Type check (`npm run typecheck -w frontend`).
-3. Build SPA and Functions.
+3. Build SPA.
 4. Azure OIDC login.
 5. Deploy with `swa deploy` to production environment.
 
@@ -60,8 +60,6 @@ Deterministic naming allows idempotent updates per PR. When a PR closes, a clean
 # From repo root
 npm install --workspaces
 npm run build -w frontend
-npm run build -w frontend/api
-npm run swa # optional integrated emulator
 ```
 
 ### Bicep Alignment
@@ -77,11 +75,11 @@ npm run swa # optional integrated emulator
 
 ### Troubleshooting
 
-| Symptom                | Cause                                               | Fix                                                                                          |
-| ---------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 403 during deploy      | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.                                            |
-| Preview not created    | OIDC identity lacks sufficient role                 | Ensure role assignment includes the Static Web App (e.g., Contributor / SWA Contributor).    |
-| Functions not updating | Stale build                                         | Ensure `frontend/api/dist` cleared—run `npm run build -w frontend/api` locally to reproduce. |
+| Symptom                          | Cause                                               | Fix                                                                                       |
+| -------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| 403 during deploy                | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.                                         |
+| Preview not created              | OIDC identity lacks sufficient role                 | Ensure role assignment includes the Static Web App (e.g., Contributor / SWA Contributor). |
+| (Removed) Functions not updating | N/A                                                 | Functions now deployed separately from `backend/`.                                        |
 
 ### Verification After Deploy
 
@@ -115,7 +113,7 @@ Runs on:
 | `accessibility`  | Axe scan for affected frontend / UX docs            | Only on PRs where UI changed (`changes.a11y`)  |
 | `summary`        | Human-readable run digest                           | Always runs (even on failures)                 |
 
-Previously a `build-artifacts` job produced distributable bundles (shared/API/frontend) for potential reuse. This has been removed: Azure Static Web Apps now performs authoritative builds for both the frontend and managed API. Any future optimization would shift to consuming SWA build outputs or adding selective caching, not re‑introducing artifact packaging here.
+Previously a `build-artifacts` job produced distributable bundles (shared/API/frontend) for potential reuse. This has been removed: Azure Static Web Apps now performs authoritative builds for the frontend, while the Backend Function App is built/deployed independently. Any future optimization would shift to consuming SWA build outputs or adding selective caching, not re‑introducing artifact packaging here.
 
 ### Failure Philosophy
 

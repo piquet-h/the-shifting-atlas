@@ -1,30 +1,36 @@
-# Backend (Azure Functions – future async world services)
+# Backend (Azure Functions – unified game API)
 
-This project is an intentionally thin placeholder. Only trivial health/echo handlers exist in `src/index.ts`. Player onboarding & traversal currently live in the co‑located Static Web Apps API under `frontend/api/`.
+This project now hosts ALL HTTP endpoints (player bootstrap, player CRUD/link, movement, location lookups, health) and will expand with queue‑triggered world simulation and NPC/economy processors.
 
-Why keep this now?
+Rationale for unification:
 
-- Establishes the separation point for when queue‑triggered world simulation and heavier domain logic outgrow the SWA managed API.
-- Lets infra (deploy, IaC, observability) evolve without a disruptive split later.
+- Consistent deployment & telemetry surface (no split between SWA managed API and standalone Functions).
+- Enables introduction of non‑HTTP triggers (Service Bus, Timer) without architectural migration later.
+- Simplifies local development (single Functions host for domain logic).
 
-Planned structure (activated once first queue/world feature lands):
+Planned additional structure (as async systems land):
 
 ```
 backend/
-  HttpPlayerActions/   # Direct HTTP verbs that truly need isolation
-  QueueWorldLogic/     # Queue-triggered world / NPC / economy events
-  shared/              # Gremlin client, validation, constants
+  src/functions/         # All HTTP + future trigger handlers
+  src/world/              # (Future) world event composition helpers
+  src/graph/              # (Future) Gremlin / SQL persistence adapters
+  shared/                 # Reusable validation & telemetry helpers
 ```
 
-## When To Add Code Here
+## Adding New Functions
 
-Add a function ONLY if it:
+Add a function when it:
 
-1. Requires a trigger type not supported in SWA (e.g. Service Bus Queue / Timer), or
-2. Performs work whose cold start / execution profile should not impact player‑facing latency, or
-3. Needs independent deployment cadence.
+1. Implements a new domain action (HTTP) with clear validation + telemetry, or
+2. Consumes a queue/event (Service Bus / Timer) to evolve world state, or
+3. Provides infrastructure/health/meta endpoints required by ops.
 
-Otherwise keep HTTP endpoints inside `frontend/api` to minimize cognitive & deployment overhead during MVP.
+Design constraints:
+
+- Must be stateless; all state persisted to Cosmos (Gremlin / SQL) or emitted as events.
+- Telemetry event names use the shared enumeration; do not inline literal strings.
+- Direction / movement validation must reuse shared validators (no ad‑hoc lists).
 
 ## Minimal Dev Loop
 
@@ -37,12 +43,13 @@ No additional docs for examples—refer to `src/index.ts` or copy patterns from 
 
 ## Roadmap Snapshot (High Level)
 
-| Area                 | Status  | First Addition in This App |
-| -------------------- | ------- | -------------------------- |
-| Queue world events   | Pending | NPC tick / movement queue  |
-| Cosmos integration   | Pending | Graph write helper module  |
-| Telemetry enrichment | Pending | Custom world event events  |
-| Auth propagation     | Pending | Principal claim validation |
+| Area                 | Status      | Notes                                    |
+| -------------------- | ----------- | ---------------------------------------- |
+| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)     |
+| Queue world events   | Pending     | Introduce Service Bus & processors       |
+| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories       |
+| Telemetry enrichment | Ongoing     | Add world event emission instrumentation |
+| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops  |
 
 ## Notes
 

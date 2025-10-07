@@ -1,6 +1,6 @@
 # MVP Azure Architecture
 
-> Status Accuracy (2025-10-03): Frontend shell plus managed API endpoints for ping, guest bootstrap/link, and early location + movement stubs exist. No Cosmos persistence, queues, AI integration, or backend‑app differentiation yet. This document reflects intent while keeping implementation details minimal to avoid drift.
+> Status Accuracy (2025-10-03, updated 2025-10-07): Frontend shell plus backend Function App HTTP endpoints (ping, guest bootstrap/link, location get/move) exist. Cosmos persistence, queues, and unified backend now in progress; this document reflects intent while keeping implementation details minimal to avoid drift.
 >
 > Temporary Constraint: **All persistence references in this document describe the _target_ asynchronous, event-driven model.** The _current_ MVP path will introduce **direct Cosmos writes from HTTP Functions** first, immediately followed by an enqueue + queue-triggered processor refactor (see `overview.md` and `world-event-contract.md`). Avoid embedding long-running logic in HTTP handlers; keep them thin so the cutover is mechanical.
 
@@ -9,7 +9,7 @@
 - **Get to playtesting quickly** with a persistent, navigable world.
 - **Keep costs near zero** using Azure free and consumption tiers.
 - **Ensure modularity** so systems can evolve without rewrites.
-- **Leverage Static Web Apps Managed API** for simplified backend hosting.
+- **Leverage a dedicated Azure Functions App** for gameplay HTTP + queue processing (SWA hosts static frontend only).
 
 ---
 
@@ -21,7 +21,7 @@
    v
 [Azure Static Web Apps]
    |        \
-   |         \---> [Managed API (Azure Functions in SWA)]
+   |         \---> [Backend Function App (Azure Functions)]
    |                   |
    |                   v
    |             [Azure Cosmos DB (Gremlin API and SQL API)]
@@ -45,10 +45,10 @@ Auto‑deploy from GitHub.
 
 Built‑in HTTPS and global CDN.
 
-Integrated with Managed API for backend calls.
+Front-end calls the dedicated Backend Function App for APIs.
 
-2. Managed API
-   Service: Azure Functions hosted inside Static Web Apps (Consumption Plan).
+2. Backend Function App
+   Service: Azure Functions (Consumption Plan) – separate from Static Web Apps.
 
 Purpose (Target State):
 
@@ -56,7 +56,7 @@ Purpose (Target State):
 - Query/update world state in Cosmos DB.
 - Call AI endpoints for dynamic descriptions or NPC dialogue.
 
-Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, location get/move) in the SWA managed API; experimental second Functions app with only health/ping placeholders.
+Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, location get/move) consolidated into a single backend Function App.
 
 Authentication (Planned – Not Implemented):
 
@@ -149,9 +149,9 @@ Low Risk: You’re not over‑investing in content that might get reworked after
 Extensible: Each system is modular, so you can swap in AI‑generated content, economy systems, or procedural generation later without rewriting the core.
 
 🚀 Deployment Flow
-Code Push → GitHub Actions → Deploy frontend + Managed API to Static Web Apps.
+Code Push → GitHub Actions → Deploy frontend to Static Web Apps & backend to Function App.
 
-Managed API functions (temporarily) connect directly to Cosmos DB (initial persistence milestone) before the enqueue + world event processor cutover. Optional AI services remain deferred.
+Backend HTTP functions (temporarily) connect directly to Cosmos DB (initial persistence milestone) before the enqueue + world event processor cutover. Optional AI services remain deferred.
 
 Cosmos DB pre‑seeded with starter zone (5–10 locations, 1–2 NPCs).
 
@@ -165,14 +165,14 @@ AI Keys stored in Azure App Settings (or Key Vault if added later).
 | Player movement between locations     | Not Implemented | Requires traversal model                         |
 | Basic interaction verbs               | Not Implemented | Only `ping` exists                               |
 | Minimal content seed                  | Not Implemented | No location data                                 |
-| Managed API baseline                  | Implemented     | Ping only                                        |
+| Backend HTTP baseline                 | Implemented     | Ping only                                        |
 | Optional AI descriptions/NPC dialogue | Not Implemented | Deferred                                         |
 | Action logging / telemetry events     | Partial         | App Insights bootstrap present, no custom events |
 
 💰 Cost Control Tips
 Use free tiers for Static Web Apps and Cosmos DB.
 
-Keep Managed API on Consumption Plan — pay only per execution.
+Keep Function App on Consumption Plan — pay only per execution.
 
 Limit AI calls during MVP; use static content for most locations.
 

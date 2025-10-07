@@ -1,18 +1,18 @@
 # Design Document: Player Interaction & Intent Parsing
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-10-02). No intent schema, parser, or Managed API ingestion is implemented yet. This document is a specification only. Implementation is intentionally deferred until traversal + baseline telemetry are stable.
+> STATUS: FUTURE / NOT IMPLEMENTED (2025-10-02, updated 2025-10-07). No intent schema, parser, or backend ingestion is implemented yet. This document is a specification only. Implementation is intentionally deferred until traversal + baseline telemetry are stable.
 >
 > Related: [Navigation & Traversal](navigation-and-traversal.md) · [AI Prompt Engineering](ai-prompt-engineering.md) · [Multiplayer Mechanics](multiplayer-mechanics.md) · [Quest & Dialogue Trees](quest-and-dialogue-trees.md) · [World Rules & Lore](world-rules-and-lore.md)
 
 ## Summary
 
-This module defines how free‑form player text commands ("Defend myself from the dragon while I back out of the cavern and throw a gold coin behind it") are transformed into a structured, ordered, and partially validated set of atomic **Intents**. These intents drive authoritative world actions via the **Managed API** (API Management fronting the game services) with minimal latency suitable for real‑time, conversational play reminiscent of a human Dungeon Master.
+This module defines how free‑form player text commands ("Defend myself from the dragon while I back out of the cavern and throw a gold coin behind it") are transformed into a structured, ordered, and partially validated set of atomic **Intents**. These intents drive authoritative world actions via the **Backend Function App** (optionally fronted by API Management) with minimal latency suitable for real‑time, conversational play reminiscent of a human Dungeon Master.
 
 Key principles:
 
 - **Freedom First:** Players can mix tactics, narration, humor, and multi‑step plans in one input.
 - **Deterministic Core:** Only validated, canonical intents are persisted as Event vertices; freeform text never directly changes world state.
-- **Edge‑Optimized:** Primary parsing runs client-side (browser model + heuristics) to reduce round trips; Managed API endpoint adjudicates, clarifies, or escalates.
+- **Edge‑Optimized:** Primary parsing runs client-side (browser model + heuristics) to reduce round trips; backend endpoint adjudicates, clarifies, or escalates.
 - **Progressive Enhancement:** Heuristic + minimal schema first; local LLM extraction and server refinement later.
 - **Auditability:** Every accepted command has a parse artifact (versioned schema + telemetry correlation IDs).
 
@@ -23,7 +23,7 @@ In Scope (Phase progression):
 - Text command ingestion → normalized structured Intents.
 - Ordering & concurrency grouping (e.g., defend + move concurrently, then throw).
 - Ambiguity detection + optional clarifying question generation.
-- Managed API contract for submission & clarification loop.
+- Backend contract for submission & clarification loop.
 - Telemetry events and evaluation metrics definitions.
 
 Out of Scope (initial phases):
@@ -38,7 +38,7 @@ Out of Scope (initial phases):
 ```
 Player Input → (Client Heuristics + Local LLM Extraction) → ParsedCommand Draft
    ↓ (POST /player/command)
-Managed API Intent Adjudicator → (Validation + Policy + Optional Server LLM Escalation) → Accepted Intents → Event Vertices / Queue
+Backend Intent Adjudicator → (Validation + Policy + Optional Server LLM Escalation) → Accepted Intents → Event Vertices / Queue
    ↘ (if ambiguities) Clarification Prompt (response cycles until resolved or timeout)
 ```
 
@@ -96,7 +96,7 @@ Each atomic **Intent** represents one actionable world operation.
 | `suggestions` | Candidate disambiguations or prompts.                                                                        |
 | `critical`    | If true, unresolved prevents execution of involved intents.                                                  |
 
-## Managed API Contract
+## Backend API Contract
 
 ### Endpoint
 
@@ -213,14 +213,14 @@ All events added centrally (extend `telemetryEvents.ts` before implementation; n
 
 ## Phased Roadmap
 
-| Phase | Goal                                     | Deliverables                                         |
-| ----- | ---------------------------------------- | ---------------------------------------------------- |
-| PI-0  | Baseline schema & heuristic only         | Intent spec, docs, telemetry stubs (no LLM)          |
-| PI-1  | Local LLM extraction                     | Grammar-constrained JSON output, confidence scoring  |
-| PI-2  | Managed API adjudication + clarification | Endpoint live, ambiguity loop                        |
-| PI-3  | Server escalation model                  | Larger model refinement path                         |
-| PI-4  | Contextual memory (short window)         | Pronoun / referent resolution across recent commands |
-| PI-5  | Strategic planning augmentation          | Multi-step optimization suggestions (advisory)       |
+| Phase | Goal                                 | Deliverables                                         |
+| ----- | ------------------------------------ | ---------------------------------------------------- |
+| PI-0  | Baseline schema & heuristic only     | Intent spec, docs, telemetry stubs (no LLM)          |
+| PI-1  | Local LLM extraction                 | Grammar-constrained JSON output, confidence scoring  |
+| PI-2  | Backend adjudication + clarification | Endpoint live, ambiguity loop                        |
+| PI-3  | Server escalation model              | Larger model refinement path                         |
+| PI-4  | Contextual memory (short window)     | Pronoun / referent resolution across recent commands |
+| PI-5  | Strategic planning augmentation      | Multi-step optimization suggestions (advisory)       |
 
 ## Cross-Module Integration Notes
 

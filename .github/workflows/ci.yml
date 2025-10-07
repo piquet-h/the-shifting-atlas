@@ -32,7 +32,6 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
-              - 'frontend/api/**'
             a11y:
               - 'frontend/**'
               - 'docs/ux/**'

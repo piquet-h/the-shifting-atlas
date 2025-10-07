@@ -31,8 +31,8 @@ Example preface:
 
 ## Local Development Aids
 
-- Use `npm run swa:dev` for realistic local environment (auth emulation + API proxy). This ensures Copilot context related to full-stack integration remains accurate.
-- For backend-only iterations, run the backend workspace separately then adapt prompts based on real logs.
+- Run frontend & backend separately (`npm run dev -w frontend` + `npm start -w backend`). If you need same‑origin behavior, configure a Vite proxy instead of relying on the deprecated co‑located API emulator.
+- Tailor prompts to the layer you are editing; include brief domain rule excerpts for movement, identity, or world events to guide generation.
 
 ## Style & Conventions
 
@@ -62,7 +62,7 @@ If you add major architecture components (e.g., Cosmos graph schema utilities), 
 
 | Command                     | Purpose                                       |
 | --------------------------- | --------------------------------------------- |
-| `npm run swa`               | Unified emulator (frontend + co-located API). |
+| (deprecated)                | Former unified SWA emulator script (removed). |
 | `npm run build -w frontend` | Build production bundle.                      |
 | `npm run typecheck`         | Monorepo TypeScript validation.               |
 

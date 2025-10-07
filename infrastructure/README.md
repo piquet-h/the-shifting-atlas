@@ -4,8 +4,8 @@ Provisioned resources:
 
 | Resource                       | Purpose                                                          | Notes                                                                                                                                            |
 | ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Azure Static Web App (SWA)     | Hosts frontend + managed API (`/frontend/api`).                  | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                         |
-| Azure Function App             | Backend queue processors (`/backend`).                           | Consumption (Y1) plan with Node.js 20 runtime. Processes world events from Service Bus queue.                                                    |
+| Azure Static Web App (SWA)     | Hosts frontend only (no embedded Functions).                     | Workflow auto‑gen disabled (`skipGithubActionWorkflowGeneration: true`).                                                                         |
+| Azure Function App             | All HTTP game endpoints + queue processors (`/backend`).         | Consumption (Y1) plan with Node.js 20 runtime. Handles synchronous HTTP + async world event processing.                                          |
 | Azure Service Bus              | Message queue for world events (async processing).               | Basic tier (free up to 1M operations/month). Queue: `world-events`.                                                                              |
 | Azure Storage Account          | Function App backend storage (required for consumption plan).    | Standard LRS tier.                                                                                                                               |
 | Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                             |
@@ -18,7 +18,7 @@ Files:
 - `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection
 - `parameters.json` – example / placeholder (not required; inline params acceptable)
 
-The backend Function App (consumption plan) handles async queue processing, while the SWA managed API handles synchronous HTTP endpoints.
+The backend Function App now handles ALL synchronous HTTP endpoints and async queue processing. The legacy SWA managed API (embedded Functions) has been retired; SWA serves static frontend assets only.
 
 ## Cosmos DB SQL API Containers (ADR-002 Dual Persistence)
 
@@ -198,7 +198,7 @@ az deployment group create \
 ## Alignment With Architecture
 
 - Matches architecture doc: Static Web App + Function App + Service Bus + Gremlin Cosmos DB.
-- Backend separated: SWA managed API for HTTP endpoints, dedicated Function App for queue processors.
+- Backend unified: Function App provides both HTTP endpoints and queue processors (simpler deployment, single telemetry surface).
 - Service Bus (Basic tier) handles async world event processing.
 
 ## Roadmap (Next Infrastructure Enhancements)

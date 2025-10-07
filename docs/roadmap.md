@@ -44,13 +44,13 @@ Source of truth: Project field 'Implementation order'
 | 38    | #26   | ✨ Set up Copilot instructions                                                    |           | scope:devx          | enhancement | Done   |
 | 39    | #21   | Remove text in logged in header                                                   |           | scope:devx          | enhancement | Done   |
 | 40    | #24   | "Create your explorer" fails                                                      |           | scope:world         | bug         | Done   |
-| 41    | #28   | Frontend Managed API not deploying properly                                       |           | scope:devx          | bug         | Done   |
+| 41    | #28   | Legacy embedded API (SWA) deployment issue (retired)                              |           | scope:devx          | bug         | Done   |
 | 42    | #30   | Ensure correct Issue board status in Projects                                     |           | scope:devx          | enhancement | Done   |
 | 43    | #17   | DI Suitability Report                                                             |           | scope:devx          | docs        | Done   |
 | 44    | #53   | Rooms discovered should be dynamic and renamed                                    |           | scope:traversal     | enhancement | Todo   |
 | 45    | #55   | Player Command Intent Schema & Validator (PI-0)                                   |           | scope:systems       | feature     | Todo   |
 | 46    | #56   | Heuristic Player Command Parser Design (PI-0)                                     |           | scope:systems       | feature     | Todo   |
-| 47    | #57   | Managed API Player Command Endpoint Contract (PI-2 Prep)                          |           | scope:systems       | feature     | Todo   |
+| 47    | #57   | Backend Player Command Endpoint Contract (PI-2 Prep)                              |           | scope:systems       | feature     | Todo   |
 | 48    | #58   | Clarification Loop Interaction Design (PI-2)                                      |           | scope:systems       | feature     | Todo   |
 | 49    | #59   | Player Command Telemetry & Evaluation Harness (PI-0/PI-1)                         |           | scope:observability | test        | Todo   |
 | 50    | #60   | Local LLM Intent Extraction Design (PI-1)                                         |           | scope:ai            | feature     | Todo   |

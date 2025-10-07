@@ -43,21 +43,6 @@ jobs:
       - name: Build shared (ensure shared dist for vendoring)
         run: npm run build -w shared
 
-      - name: Install API production deps locally
-        run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
-
-      - name: Vendor shared into API
-        run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
-
-      - name: Build backend (tsc + static sync)
-        run: npm run build -w frontend/api
-
-      - name: Verify host.json in api dist
-        run: |
-          if [ ! -f frontend/api/dist/host.json ]; then
-            echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
-          echo "Verified host.json present in api dist."
-
       - name: Build frontend (Vite last to ensure config)
         run: npm run build -w frontend
 
@@ -91,15 +76,12 @@ jobs:
         # Using az cli since we rely on OIDC; this avoids needing the deployment token.
         run: |
           npm install -g @azure/static-web-apps-cli@2
-          # Build output already produced: frontend/dist ; functions in frontend/api
+          # Build output already produced: frontend/dist (functions hosted separately in unified backend)
           swa deploy \
             --app-name "${{ vars.SWA_NAME }}" \
             --env production \
             --app-location frontend/dist \
             --output-location '' \
-            --api-location frontend/api \
-            --api-language node \
-            --api-version 20 \
             --verbose
 
   preview:
@@ -119,21 +101,6 @@ jobs:
 
       - name: Build shared (ensure shared dist for vendoring)
         run: npm run build -w shared
-
-      - name: Install API production deps locally
-        run: npm install --omit=dev --prefix frontend/api --no-audit --no-fund
-
-      - name: Vendor shared into API
-        run: node frontend/api/scripts/prepare-deploy.mjs --prefix frontend/api
-
-      - name: Build backend (tsc + static sync)
-        run: npm run build -w frontend/api
-
-      - name: Verify host.json in api dist
-        run: |
-          if [ ! -f frontend/api/dist/host.json ]; then
-            echo "host.json not found in frontend/api/dist after build" >&2; exit 1; fi
-          echo "Verified host.json present in api dist."
 
       - name: Build frontend (Vite last to ensure config)
         run: npm run build -w frontend
@@ -174,9 +141,6 @@ jobs:
             --env "$ENV_NAME" \
             --app-location frontend/dist \
             --output-location '' \
-            --api-location frontend/api \
-            --api-language node \
-            --api-version 20 \
             --verbose
 
   preview-cleanup:

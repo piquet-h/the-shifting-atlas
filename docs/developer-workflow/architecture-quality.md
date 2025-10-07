@@ -15,7 +15,7 @@ Workflow: `.github/workflows/di-suitability.yml`
 Runs:
 
 - Weekly (Monday 05:00 UTC) scheduled scan.
-- On PRs that modify significant source areas (`backend/src`, `frontend/src`, `frontend/api/src`, `shared/src`) or the analyzer script / root `package.json`.
+- On PRs that modify significant source areas (`backend/src`, `frontend/src`, `shared/src`) or the analyzer script / root `package.json`.
 - Manual `workflow_dispatch` for ad‑hoc review.
 
 The script (`scripts/di-suitability.mjs`) emits a machine‑readable JSON block delimited by markers used to extract metrics and (when threshold crossed) it opens/updates an issue titled "DI Suitability Report".

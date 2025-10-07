@@ -1,6 +1,6 @@
 # Local Development Setup
 
-This guide shows how to run the full stack (frontend + co-located Functions API) and, when needed, the standalone backend workspace.
+This guide shows how to run the frontend SPA and the unified backend Azure Functions app (Functions are no longer co‑located under the Static Web App).
 
 ## Prerequisites
 
@@ -15,38 +15,24 @@ From the repository root:
 npm install --workspaces
 ```
 
-This installs dependencies for `frontend`, `frontend/api`, and `backend`.
+This installs dependencies for `frontend` and `backend` (legacy `frontend/api` removed).
 
-## Run Unified Emulator (Recommended)
+## Run Frontend & Backend (Recommended)
+
+Use two terminals:
 
 ```bash
-npm run swa
+npm run dev -w frontend       # Vite dev server → http://localhost:5173
+npm start -w backend          # Functions host → http://localhost:7071
 ```
-
-What happens:
-
-- Vite dev server (http://localhost:5173)
-- Functions host for `frontend/api` (http://localhost:7071)
-- SWA emulator proxy (http://localhost:4280) combining both + auth emulation
-
-Auth emulation / local testing:
-
-- The SWA emulator can emulate authentication flows for development. For realistic end-to-end tests with Microsoft Entra External Identities, configure a test Entra application and use the emulator's auth features to simulate sign-in. When running functions locally, validate tokens against the test tenant's OIDC metadata or use short-lived developer tokens for integration tests.
-- The frontend `useAuth` hook simply fetches `/.auth/me`; in the emulator if no auth context is configured it resolves to anonymous without errors. To test transitions, manually trigger provider login via `/.auth/login/aad` in the browser.
 
 Test an API route (implemented `ping`):
 
 ```bash
-curl http://localhost:4280/api/ping
+curl http://localhost:7071/api/ping
 ```
 
-If you start the experimental separate backend Functions app and expose its routes through a local proxy, you may also have a `backend/health` endpoint (not required for normal SWA development).
-
-Verbose mode:
-
-```bash
-npm run swa:start:verbose
-```
+If you require same‑origin local auth flows, configure a Vite proxy that forwards `/api` → `http://localhost:7071` instead of relying on the SWA emulator.
 
 ## Frontend Only
 
@@ -55,9 +41,9 @@ cd frontend
 npm run dev
 ```
 
-## Standalone Backend (Experimental)
+## Backend
 
-Used once queue/world logic migrates to `backend/`.
+Queue/world logic (Service Bus, timers) will incrementally land here; HTTP endpoints already reside in this workspace.
 
 ```bash
 cd backend
@@ -102,11 +88,11 @@ If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` o
 
 ## Common Troubleshooting
 
-| Symptom                                        | Fix                                                                        |
-| ---------------------------------------------- | -------------------------------------------------------------------------- |
-| Port 5173 in use                               | Close previous Vite instance or set a custom port via `--port`.            |
-| Functions host fails to start                  | Remove `node_modules` in `frontend/api` and reinstall, or ensure Node 20+. |
-| 404 on `/api/...` while using plain `vite dev` | Use `npm run swa` – plain Vite does not proxy Functions.                   |
+| Symptom                                        | Fix                                                             |
+| ---------------------------------------------- | --------------------------------------------------------------- |
+| Port 5173 in use                               | Close previous Vite instance or set a custom port via `--port`. |
+| Functions host fails to start                  | Reinstall dependencies or ensure Node 20+.                      |
+| 404 on `/api/...` while using plain `vite dev` | Configure Vite proxy to backend (see `vite.config.ts`).         |
 
 ## Next Steps
 

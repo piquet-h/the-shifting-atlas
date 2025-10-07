@@ -7,11 +7,7 @@ import { resolve } from 'node:path'
 
 const checks = [
     { path: 'frontend/dist/index.html', required: true, desc: 'Frontend bundle (index.html)' },
-    { path: 'frontend/dist/staticwebapp.config.json', required: true, desc: 'Static Web App config' },
-    { path: 'frontend/api/host.json', required: true, desc: 'Functions host.json (api root deployment)' },
-    { path: 'frontend/api/node_modules/@atlas/shared/dist/index.js', required: true, desc: 'Vendored shared package' },
-    { path: 'frontend/api/node_modules/@azure/functions/package.json', required: true, desc: 'Azure Functions runtime dependency' },
-    { path: 'frontend/api/node_modules/applicationinsights/package.json', required: true, desc: 'App Insights SDK dependency' }
+    { path: 'frontend/dist/staticwebapp.config.json', required: true, desc: 'Static Web App config' }
 ]
 
 let failed = false
@@ -28,18 +24,7 @@ for (const c of checks) {
             process.stderr.write(`[verify-deployable] NOT A FILE: ${c.path}\n`)
             failed = true
         } else {
-            // Extra symlink guard for vendored shared
-            if (c.path.includes('@atlas/shared')) {
-                const dirStat = statSync(resolve(process.cwd(), 'frontend/api/node_modules/@atlas/shared'))
-                if (dirStat.isSymbolicLink()) {
-                    process.stderr.write('[verify-deployable] Vendored shared is still a symlink!\n')
-                    failed = true
-                } else {
-                    process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
-                }
-            } else {
-                process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
-            }
+            process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
         }
     } catch (e) {
         process.stderr.write(`[verify-deployable] ERROR reading ${c.path}: ${e.message}\n`)
