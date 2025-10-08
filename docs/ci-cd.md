@@ -1,6 +1,6 @@
-## CI/CD: Frontend Static Web App (Frontend Only)
+## CI/CD: Frontend Static Web App
 
-Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews). All Azure Functions have migrated to the unified `backend/` Function App (deployed separately).
+Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews).
 
 ### Triggers
 
@@ -24,7 +24,7 @@ Runs on:
 
 ### Removed Token Requirement
 
-Previously a deployment token (`AZURE_STATIC_WEB_APPS_API_TOKEN`) was optional for PR previews. The workflow now uses **OIDC exclusively** for both production and preview deployments. No token secrets are required. Remove any stale secret to reduce attack surface.
+The workflow uses **OIDC exclusively** for both production and preview deployments. No deployment tokens are required.
 
 ### OIDC Setup (Summary)
 
@@ -113,7 +113,7 @@ Runs on:
 | `accessibility`  | Axe scan for affected frontend / UX docs            | Only on PRs where UI changed (`changes.a11y`)  |
 | `summary`        | Human-readable run digest                           | Always runs (even on failures)                 |
 
-Previously a `build-artifacts` job produced distributable bundles (shared/API/frontend) for potential reuse. This has been removed: Azure Static Web Apps now performs authoritative builds for the frontend, while the Backend Function App is built/deployed independently. Any future optimization would shift to consuming SWA build outputs or adding selective caching, not re‑introducing artifact packaging here.
+The prior `build-artifacts` packaging job has been replaced by direct builds in the deploy and CI workflows. Further optimization can explore caching or artifact reuse if build time increases.
 
 ### Failure Philosophy
 

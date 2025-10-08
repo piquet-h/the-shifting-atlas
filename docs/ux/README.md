@@ -6,10 +6,9 @@ This directory centralizes player experience artifacts: wireframes, user flows, 
 
 ## Goals
 
-1. Provide a lightweight, versioned trail of UX decisions aligned with gameplay modules.
+1. Provide clear UX decision artifacts aligned with gameplay modules.
 2. Keep artifacts diff‑friendly (Markdown + Mermaid) – no external binary design sources required.
-3. Enable rapid iteration without losing historical context.
-4. Encode accessibility from inception (see `accessibility-guidelines.md`).
+3. Encode accessibility from inception (see `accessibility-guidelines.md`).
 
 ## Structure
 
@@ -30,7 +29,7 @@ Use kebab-case file names that start with a semantic scope and end with version 
 Examples:
 
 - `entry-page-wireframe.md`
-- `inventory-management-wireframe.v2.md` (deprecated or superseded version kept for history)
+- `inventory-management-wireframe.v2.md` (superseded version retained only if still informative)
 - `entry-onboarding-flow.md`
 
 Avoid dates in filenames; rely on Git history + internal metadata front matter for dating.
@@ -42,7 +41,7 @@ Each artifact begins with a YAML block:
 ```
 ---
 title: Entry Onboarding Flow
-status: draft            # draft | review | approved | deprecated
+status: draft            # draft | review | approved
 version: 1.0.0
 authors: ["@your-handle"]
 updated: 2025-09-15
@@ -62,7 +61,7 @@ Minor visual refinements normally update the `updated` date only. Bump `version`
 - Player decision branches are added/removed
 - Layout shift that impacts component contracts
 
-If a major conceptual change occurs, keep the old file, set its `status: deprecated`, and create a new file with incremented major version (e.g., 2.0.0).
+If a major conceptual change occurs, create a new file with an incremented major version (e.g., 2.0.0). Keep the prior file only if still needed for reference.
 
 ## Iteration Log Block
 
@@ -139,7 +138,7 @@ sequenceDiagram
 
 ## Housekeeping
 
-- Prune `deprecated` artifacts quarterly.
+- Prune superseded artifacts regularly (remove those no longer adding value).
 - Ensure every approved user flow maps to at least one QA test scenario (future automation hook).
 - Validate against accessibility checklist (landmarks, focus order, keyboard traversal) before status moves to `review`.
 

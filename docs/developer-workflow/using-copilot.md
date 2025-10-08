@@ -31,14 +31,12 @@ Example preface:
 
 ## Local Development Aids
 
-- Run frontend & backend separately (`npm run dev -w frontend` + `npm start -w backend`). If you need same‑origin behavior, configure a Vite proxy instead of relying on the deprecated co‑located API emulator.
-- Tailor prompts to the layer you are editing; include brief domain rule excerpts for movement, identity, or world events to guide generation.
+Run frontend & backend separately (`npm run dev -w frontend` + `npm start -w backend`). Configure a Vite proxy for same‑origin behavior when needed. Tailor prompts to the layer you are editing; include brief domain rule excerpts for movement, identity, or world events to guide generation.
 
 ## Style & Conventions
 
 - ES Modules only.
 - Async/await I/O, no nested promise chains.
-- Prefer explicit return types on exported functions in TypeScript.
 - Short, intention‑revealing function names: `enqueueWorldEvent`, `validateExitDirection`.
 
 ## Rejecting Low-Quality Suggestions
@@ -60,11 +58,11 @@ If you add major architecture components (e.g., Cosmos graph schema utilities), 
 
 ## Helpful Aliases
 
-| Command                     | Purpose                                       |
-| --------------------------- | --------------------------------------------- |
-| (deprecated)                | Former unified SWA emulator script (removed). |
-| `npm run build -w frontend` | Build production bundle.                      |
-| `npm run typecheck`         | Monorepo TypeScript validation.               |
+| Command                     | Purpose                             |
+| --------------------------- | ----------------------------------- |
+| (removed)                   | Former unified SWA emulator script. |
+| `npm run build -w frontend` | Build production bundle.            |
+| `npm run typecheck`         | Monorepo TypeScript validation.     |
 
 ## Next Improvements
 

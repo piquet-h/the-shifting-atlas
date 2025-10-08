@@ -18,7 +18,7 @@ Files:
 - `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection
 - `parameters.json` – example / placeholder (not required; inline params acceptable)
 
-The backend Function App now handles ALL synchronous HTTP endpoints and async queue processing. The legacy SWA managed API (embedded Functions) has been retired; SWA serves static frontend assets only.
+The backend Function App handles all synchronous HTTP endpoints and async queue processing; the Static Web App serves only static frontend assets.
 
 ## Cosmos DB SQL API Containers (ADR-002 Dual Persistence)
 

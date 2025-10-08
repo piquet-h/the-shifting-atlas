@@ -1,6 +1,4 @@
-# Issue Taxonomy (Unified)
-
-> Last updated: 2025-09-27 – Simplified from legacy `area:*`, `phase-*`, extended `priority:*` sets and ad‑hoc milestone naming.
+# Issue Taxonomy
 
 This project uses a **minimal, opinionated label + milestone scheme** to keep boards scannable, automation simple, and cognitive load low. Only four axes exist; resist adding more.
 
@@ -20,17 +18,6 @@ Guidelines:
 - Implementation Order is managed as a numeric Project custom field (NOT a label). Lower number = earlier execution; gaps allowed for later insertion.
 - Stages are GitHub Milestones, not labels.
 - No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
-
-## Legacy Mapping
-
-| Legacy                | New                                        |
-| --------------------- | ------------------------------------------ |
-| `phase-0` / "Phase 0" | Milestone `M3 AI Read`                     |
-| `phase-1`             | `M4 AI Enrich`                             |
-| `phase-2` proposals   | `M5 Systems` (or future `M6` if needed)    |
-| `area:telemetry`      | `scope:observability`                      |
-| `area:persistence`    | `scope:world`                              |
-| `priority:P3`, `P4`   | (Removed) – use Implementation Order field |
 
 ## Examples
 
@@ -56,25 +43,16 @@ Milestone: M1 Traversal
 Internal Sub-Phase: N1 (do NOT label) – basic lexical normalization.
 ```
 
-Historical Notes:
-
-- 2025-09-27: All labels previously prefixed with `kind:` (e.g. `kind:feature`, `kind:test`) were renamed to bare forms (`feature`, `test`).
-- 2025-09-27 (later): Removed `priority:` axis; replaced with Project numeric field "Implementation Order" (lower=earlier). Existing `priority:P0` items assigned initial contiguous order seeds.
-- 2025-09-28: Added `bug` to allowed type set (previously used implicitly) and documented usage boundary.
-- 2025-10-02: Consolidated legacy `documentation` label into canonical `docs` (one-off via GitHub API; no ongoing script logic required).
-
 ## Internal Sub-Phases
 
 Module documents may still reference internal sub-phase codes (e.g., traversal normalization N1..N5). These are **documentation constructs only** and never appear as labels.
 
-## Migration Checklist
+## Maintenance Checklist
 
-1. Delete deprecated labels (`area:*`, `type:*`, `phase:*`, `status:*`, `priority:*`).
-2. Ensure bare type labels (`feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`) exist (run `npm run sync:labels`).
-3. Bulk remove all `priority:*` labels from issues.
-4. Add/Populate Project field "Implementation Order" with initial sequence (e.g. order existing foundation work 1..N).
-5. Assign milestones only to actively planned work (avoid parking lot milestones).
-6. Merge or close duplicate long-tail items; prefer fewer, clearer tickets.
+1. Keep exactly one `scope:` and one type label per issue.
+2. Ensure each non-draft issue has an Implementation Order value.
+3. Use milestones only for actively planned work.
+4. Consolidate or close duplicate long-tail items promptly.
 
 ## Automation (Future)
 
@@ -124,7 +102,7 @@ Automated validation (script / Action) SHOULD fail an issue when:
 
 1. Not exactly one `scope:` label.
 2. Not exactly one allowed `type` label.
-3. Uses any deprecated axis (`phase:*`, `area:*`, `priority:*`, `status:*`).
+3. Uses any non-standard axis labels (anything outside the defined scope/type sets).
 
 ### Skip / Allow List (Non-Enforcing Cases)
 
@@ -144,7 +122,7 @@ Pseudo-Validation Outline:
 if (isSkip(issue)) return PASS (informational);
 assert exactlyOne(scopeLabels);
 assert exactlyOne(typeLabels ∩ ALLOWED_TYPES);
-assert noDeprecatedLabels();
+assert noUnexpectedLabels();
 ```
 
 > Faceted / secondary labels (e.g. `facet:security`) are intentionally **not** introduced until a sustained filtering need emerges; premature facets reduce signal density.

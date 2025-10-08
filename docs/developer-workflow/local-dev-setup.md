@@ -1,6 +1,6 @@
 # Local Development Setup
 
-This guide shows how to run the frontend SPA and the unified backend Azure Functions app (Functions are no longer co‑located under the Static Web App).
+This guide shows how to run the frontend SPA and the unified backend Azure Functions app.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ From the repository root:
 npm install --workspaces
 ```
 
-This installs dependencies for `frontend` and `backend` (legacy `frontend/api` removed).
+This installs dependencies for `frontend` and `backend`.
 
 ## Run Frontend & Backend (Recommended)
 
