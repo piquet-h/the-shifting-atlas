@@ -25,8 +25,10 @@ concurrency:
 
 env:
   NODE_VERSION: '20'
-  # Expect these as repository variables (Settings > Variables > Actions):
-  # AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME
+  # Repository Variables expected:
+  #   AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME (optional; derived from last infra deployment output if absent)
+  # Required Secrets:
+  #   AZURE_CLIENT_ID, AZURE_TENANT_ID (OIDC federated credentials configured in Azure AD)
 
 jobs:
   build-and-deploy:
@@ -40,56 +42,77 @@ jobs:
       - name: Setup workspace (composite)
         uses: ./.github/actions/node-workspace-setup
 
-      - name: Build shared (ensure shared dist for vendoring)
+      - name: Build shared
         run: npm run build -w shared
 
-      - name: Build frontend (Vite last to ensure config)
+      - name: Build frontend (Vite)
         run: npm run build -w frontend
 
-      - name: Verify SWA config & artifacts
+      - name: Verify build artifacts
         run: |
+          if [ ! -f frontend/dist/index.html ]; then
+            echo "Expected Vite build output at frontend/dist missing." >&2; exit 1; fi
           if [ ! -f frontend/dist/staticwebapp.config.json ]; then
             echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
           node scripts/verify-deployable.mjs
-          echo "Verified deployable artifacts."
+          echo "Artifacts validated."
 
-      - name: Azure login (OIDC)
+      - name: Azure login (OIDC) for appsettings
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Configure SWA AAD app settings
+      - name: Derive SWA name from infra deployment output (if SWA_NAME unset)
+        if: vars.SWA_NAME == ''
         env:
-          AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID }}
-          AAD_TENANT_ID: ${{ secrets.CUSTOMER_TENANT_ID }}
-          AAD_CLIENT_SECRET: ${{ secrets.CUSTOMER_SECRET }}
+          RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          DEPLOY_NAME=$(az deployment group list --resource-group "$RG" --query "[?starts_with(name,'infra-')]|[-1].name" -o tsv 2>/dev/null || true)
+          if [ -z "$DEPLOY_NAME" ]; then
+            echo "No infra deployment (infra-*) found in resource group '$RG'. Run infrastructure workflow or set SWA_NAME variable." >&2; exit 1; fi
+            echo "Found latest infra deployment: $DEPLOY_NAME"
+          SWA=$(az deployment group show --resource-group "$RG" --name "$DEPLOY_NAME" --query "properties.outputs.staticWebAppName.value" -o tsv 2>/dev/null || true)
+          if [ -z "$SWA" ]; then
+            echo "Deployment $DEPLOY_NAME has no staticWebAppName output. Ensure Bicep outputs staticWebAppName or set SWA_NAME variable." >&2; exit 1; fi
+          echo "Resolved SWA name from infra outputs: $SWA"
+          echo "SWA_NAME=$SWA" >> $GITHUB_ENV
+
+      - name: Validate Static Web App exists (fail-fast)
+        run: |
+          NAME="${{ vars.SWA_NAME }}"; if [ -n "$SWA_NAME" ]; then NAME="$SWA_NAME"; fi
+          if ! az staticwebapp show --name "$NAME" >/dev/null 2>&1; then
+            echo "Static Web App '$NAME' not found in subscription '${{ secrets.AZURE_SUBSCRIPTION_ID }}'." >&2
+            az staticwebapp list -o table || true
+            exit 1
+          fi
+          echo "Using Static Web App: $NAME"
+          echo "SWA_NAME=$NAME" >> $GITHUB_ENV
+
+      - name: Configure SWA AAD app settings (optional)
+        env:
+          AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID || secrets.AZURE_CLIENT_ID }}
+          AAD_TENANT_ID: ${{ secrets.CUSTOMER_TENANT_ID || secrets.AZURE_TENANT_ID }}
+          AAD_CLIENT_SECRET: ${{ secrets.CUSTOMER_SECRET || secrets.AZURE_CLIENT_SECRET }}
         run: |
           ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
-          if [ -n "$AAD_CLIENT_SECRET" ]; then
-            ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
-          fi
+            if [ -n "$AAD_CLIENT_SECRET" ]; then
+              ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
+            fi
           az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
 
-      - name: Upload to Static Web App (production)
-        # Using az cli since we rely on OIDC; this avoids needing the deployment token.
+      - name: Deploy (production via Azure CLI)
         run: |
-          npm install -g @azure/static-web-apps-cli@2
-          # Build output already produced: frontend/dist (functions hosted separately in unified backend)
-          swa deploy \
-            --app-name "${{ vars.SWA_NAME }}" \
-            --env production \
-            --app-location frontend/dist \
-            --output-location '' \
-            --verbose
+          echo "Uploading production build for '$SWA_NAME'..."
+          if ! az staticwebapp upload --name "$SWA_NAME" --source frontend/dist --verbose; then
+            echo "az staticwebapp upload failed." >&2; exit 1; fi
 
   preview:
     name: Preview Environment (PR)
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
     steps:
@@ -99,17 +122,16 @@ jobs:
       - name: Setup workspace (composite)
         uses: ./.github/actions/node-workspace-setup
 
-      - name: Build shared (ensure shared dist for vendoring)
+      - name: Build shared
         run: npm run build -w shared
 
-      - name: Build frontend (Vite last to ensure config)
+      - name: Build frontend (Vite)
         run: npm run build -w frontend
 
-      - name: Verify SWA config present
+      - name: Verify preview artifacts
         run: |
-          if [ ! -f frontend/dist/staticwebapp.config.json ]; then
-            echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
-          echo "Verified staticwebapp.config.json present in dist."
+          if [ ! -f frontend/dist/index.html ]; then echo "Missing build output" >&2; exit 1; fi
+          if [ ! -f frontend/dist/staticwebapp.config.json ]; then echo "Missing staticwebapp.config.json" >&2; exit 1; fi
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -118,30 +140,23 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Configure SWA AAD app settings
-        env:
-          AAD_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AAD_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AAD_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - name: Validate Static Web App exists (fail-fast)
         run: |
-          ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
-          if [ -n "$AAD_CLIENT_SECRET" ]; then
-            ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
+          NAME="${{ vars.SWA_NAME }}"; if [ -n "$SWA_NAME" ]; then NAME="$SWA_NAME"; fi
+          if ! az staticwebapp show --name "$NAME" >/dev/null 2>&1; then
+            echo "Static Web App '$NAME' not found (preview)." >&2
+            az staticwebapp list -o table || true
+            exit 1
           fi
-          az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
+          echo "Using Static Web App: $NAME"
+          echo "SWA_NAME=$NAME" >> $GITHUB_ENV
 
-      - name: Deploy Preview (OIDC only)
+      - name: Deploy Preview (Azure CLI)
         run: |
-          npm install -g @azure/static-web-apps-cli@2
-          # Use PR number to create deterministic preview environment name.
           ENV_NAME="pr${{ github.event.number }}"
-          echo "Deploying preview environment: $ENV_NAME"
-          swa deploy \
-            --app-name "${{ vars.SWA_NAME }}" \
-            --env "$ENV_NAME" \
-            --app-location frontend/dist \
-            --output-location '' \
-            --verbose
+          echo "Uploading preview build to environment $ENV_NAME for '$SWA_NAME'..."
+          if ! az staticwebapp upload --name "$SWA_NAME" --source frontend/dist --deployment-environment "$ENV_NAME" --verbose; then
+            echo "Preview upload failed." >&2; exit 1; fi
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
