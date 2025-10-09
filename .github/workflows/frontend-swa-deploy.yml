@@ -110,16 +110,23 @@ jobs:
           az staticwebapp appsettings set --name "$SWA_NAME" --setting-names $ARGS
 
       - name: Deploy (production via Azure CLI)
+        # Switch to SWA CLI (swa deploy) replicating previously successful run; Azure CLI extension lacked stable deploy verbs.
         run: |
-          echo "Ensuring Static Web Apps CLI extension present..."
-          if ! az extension show --name staticwebapp >/dev/null 2>&1; then
-            az extension add --name staticwebapp --yes
-          else
-            az extension update --name staticwebapp || true
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then
+            echo "SWA_NAME not set before deploy step" >&2; exit 1; fi
+          echo "Installing Azure Static Web Apps CLI (pinned major) ..."
+          npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
+          if ! swa --version 2>/dev/null | grep -q '^2\.'; then
+            echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
+          APP_ARGS=(--app-name "$SWA_NAME" --env production --app-location frontend/dist --output-location "" --verbose)
+          # Include API only if present (optional)
+          if [ -d frontend/api ]; then
+            APP_ARGS+=(--api-location frontend/api --api-language node --api-version 20)
           fi
-          echo "Deploying production build for '$SWA_NAME' using 'az staticwebapp deploy'..."
-          if ! az staticwebapp deploy --name "$SWA_NAME" --source frontend/dist --verbose; then
-            echo "az staticwebapp deploy failed." >&2; exit 1; fi
+          echo "Executing: swa deploy ${APP_ARGS[*]}"
+          if ! swa deploy "${APP_ARGS[@]}"; then
+            echo "swa deploy failed" >&2; exit 1; fi
 
   preview:
     name: Preview Environment (PR)
@@ -166,16 +173,21 @@ jobs:
 
       - name: Deploy Preview (Azure CLI)
         run: |
-          echo "Ensuring Static Web Apps CLI extension present (preview)..."
-          if ! az extension show --name staticwebapp >/dev/null 2>&1; then
-            az extension add --name staticwebapp --yes
-          else
-            az extension update --name staticwebapp || true
-          fi
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then
+            echo "SWA_NAME not set before preview deploy" >&2; exit 1; fi
           ENV_NAME="pr${{ github.event.number }}"
-          echo "Deploying preview build to environment $ENV_NAME for '$SWA_NAME'..."
-          if ! az staticwebapp deploy --name "$SWA_NAME" --source frontend/dist --deployment-environment "$ENV_NAME" --verbose; then
-            echo "Preview deploy failed." >&2; exit 1; fi
+          echo "Installing Azure Static Web Apps CLI (pinned major) for preview ..."
+          npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
+          if ! swa --version 2>/dev/null | grep -q '^2\.'; then
+            echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
+          ARGS=(--app-name "$SWA_NAME" --env "$ENV_NAME" --app-location frontend/dist --output-location "" --verbose)
+          if [ -d frontend/api ]; then
+            ARGS+=(--api-location frontend/api --api-language node --api-version 20)
+          fi
+          echo "Executing preview deploy: swa deploy ${ARGS[*]}"
+          if ! swa deploy "${ARGS[@]}"; then
+            echo "Preview swa deploy failed" >&2; exit 1; fi
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
