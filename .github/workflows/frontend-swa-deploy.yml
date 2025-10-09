@@ -3,8 +3,8 @@ name: Frontend Static Web App Deploy
 on:
   push:
     branches: [main]
-    # Removed path filter so infra/workflow-only changes (like this file) still trigger a deploy when desired.
-    # If you want to restrict later, include both frontend/** and this workflow path explicitly.
+    paths:
+      - 'frontend/**'
   pull_request:
     branches: [main]
     paths:
@@ -115,12 +115,15 @@ jobs:
           set -euo pipefail
           if [ -z "${SWA_NAME:-}" ]; then
             echo "SWA_NAME not set before deploy step" >&2; exit 1; fi
-          RG="rg-atlas"
+          # Prefer repo variable if present; fallback remains the historical hard-coded value for backward compatibility.
+          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
+          if [ -z "$RG" ]; then RG="rg-atlas"; fi
           echo "Installing Azure Static Web Apps CLI (pinned major) ..."
           npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
           if ! swa --version 2>/dev/null | grep -q '^2\.'; then
             echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
-          APP_ARGS=(--app-name "$SWA_NAME" --resource-group "$RG" --env production --app-location frontend/dist --output-location "" --verbose)
+          # Option B: Deploy pre-built artifacts directly from dist with --skip-build to avoid framework detection ambiguity.
+          APP_ARGS=(--app-name "$SWA_NAME" --resource-group "$RG" --env production --app-location frontend/dist --skip-build --verbose)
           # Include API only if present (optional)
           if [ -d frontend/api ]; then
             APP_ARGS+=(--api-location frontend/api --api-language node --api-version 20)
@@ -136,6 +139,22 @@ jobs:
           if echo "$DEPLOY_OUTPUT" | grep -q "No matching Static Web App was found"; then
             echo "Deployment content rejection (no matching app) detected." >&2; exit 1; fi
           echo "Deployment step completed without detected errors."
+
+      - name: Post-deploy validation (production)
+        run: |
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then echo "SWA_NAME missing for validation" >&2; exit 1; fi
+          HOST=$(az staticwebapp show --name "$SWA_NAME" --query "defaultHostname" -o tsv 2>/dev/null || true)
+          if [ -z "$HOST" ]; then echo "Unable to resolve defaultHostname for $SWA_NAME" >&2; exit 1; fi
+          echo "Resolved production hostname: $HOST"
+          STATUS=$(curl -Is https://$HOST/ | head -n1 | awk '{print $2}') || true
+          if [ "$STATUS" != "200" ]; then echo "Unexpected HTTP status $STATUS for root page" >&2; exit 1; fi
+          CONTENT=$(curl -fsS https://$HOST/ | head -n 50)
+          echo "--- First lines of deployed index.html ---"
+          echo "$CONTENT" | sed -e 's/<title>.*<\/title>/<title>(redacted)<\/title>/'
+          echo "--- End snippet ---"
+          echo "$CONTENT" | grep -qi '<html' || { echo "Root content missing <html> tag – deploy may be empty" >&2; exit 1; }
+          echo "Production deployment content validated."
 
   preview:
     name: Preview Environment (PR)
@@ -190,13 +209,37 @@ jobs:
           npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
           if ! swa --version 2>/dev/null | grep -q '^2\.'; then
             echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
-          ARGS=(--app-name "$SWA_NAME" --env "$ENV_NAME" --app-location frontend/dist --output-location "" --verbose)
+          # Option B (preview): deploy pre-built artifacts from dist without rebuild.
+          ARGS=(--app-name "$SWA_NAME" --env "$ENV_NAME" --app-location frontend/dist --skip-build --verbose)
           if [ -d frontend/api ]; then
             ARGS+=(--api-location frontend/api --api-language node --api-version 20)
           fi
           echo "Executing preview deploy: swa deploy ${ARGS[*]}"
           if ! swa deploy "${ARGS[@]}"; then
             echo "Preview swa deploy failed" >&2; exit 1; fi
+
+      - name: Post-deploy validation (preview)
+        run: |
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then echo "SWA_NAME missing for validation" >&2; exit 1; fi
+          ENV_NAME="pr${{ github.event.number }}"
+          # The preview hostname pattern: <env>-<defaultHostname> (SWA service composes this). Retrieve base hostname first.
+          BASE_HOST=$(az staticwebapp show --name "$SWA_NAME" --query "defaultHostname" -o tsv 2>/dev/null || true)
+          if [ -z "$BASE_HOST" ]; then echo "Unable to resolve base hostname for $SWA_NAME" >&2; exit 1; fi
+          HOST="$ENV_NAME.$BASE_HOST"
+            # Fallback: some older SWA patterns may use ENV_NAME--BASE_HOST; attempt if first form fails.
+          STATUS=$(curl -Is https://$HOST/ | head -n1 | awk '{print $2}' || true)
+          if [ "$STATUS" != "200" ]; then
+            ALT_HOST="$ENV_NAME--$BASE_HOST"
+            STATUS=$(curl -Is https://$ALT_HOST/ | head -n1 | awk '{print $2}' || true)
+            if [ "$STATUS" != "200" ]; then
+              echo "Preview root not reachable at either $HOST or $ALT_HOST (status $STATUS)" >&2; exit 1; fi
+            HOST="$ALT_HOST"
+          fi
+          echo "Resolved preview hostname: $HOST"
+          CONTENT=$(curl -fsS https://$HOST/ | head -n 40)
+          echo "$CONTENT" | grep -qi '<html' || { echo "Preview root content missing <html> tag" >&2; exit 1; }
+          echo "Preview deployment content validated."
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
