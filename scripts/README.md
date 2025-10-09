@@ -1,6 +1,6 @@
 # Scripts Directory
 
-Automation scripts currently retained (legacy ordering / scheduling / variance / DI suitability tooling has been removed or stubbed).
+Automation scripts currently retained. All former predictive scheduling, ordering, provisional date, and variance tooling has been permanently removed (stubs kept only for historical provenance).
 
 ## Active Scripts
 
@@ -27,20 +27,20 @@ Automation scripts currently retained (legacy ordering / scheduling / variance /
     npm run seed:world
     ```
 
-## Deprecated (Historical) Modules
+## Retired Automation (Historical)
 
-The following historical modules/scripts are deprecated and retained only as stubs for provenance: ordering assignment, integrity / override detection, scheduling (provisional, variance), doc drift analysis, DI suitability, and related telemetry helpers.
+Legacy modules (ordering assignment, provisional scheduling & variance, integrity / override detection, doc drift analysis, DI suitability, related telemetry helpers) are retired. They MUST NOT be reinstated without a new ADR explicitly approving a fresh design.
 
-They MUST NOT be reactivated without an updated architectural decision and documentation refresh.
+Rationale: Manual milestone + scope based prioritization proved simpler, clearer, and cheaper to maintain than predictive heuristics.
 
 ## Telemetry Separation Rules (Still Active)
 
 **CRITICAL**: Never mix build and game telemetry.
 
-- **Build telemetry**: `shared/build-telemetry.mjs`
-    - Events: `build.*` (e.g., `build.ordering_applied`)
+- **Build telemetry**: `shared/build-telemetry.mjs` (minimal — no scheduling / ordering / variance events emitted)
+    - Prefix reserved: `build.*` (introduce new events only after review; do NOT restore deprecated names)
     - Destination: GitHub artifacts
-    - Use in: `scripts/` folder only
+    - Scope: `scripts/` folder only
 
 - **Game telemetry**: `../../shared/src/telemetry.ts`
     - Events: `Domain.Subject.Action` (e.g., `Player.Get`)

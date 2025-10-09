@@ -221,7 +221,7 @@ Current gaps:
 
 ### 10.1 Issue Taxonomy (Simplified)
 
-Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist:
+Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist (former numeric implementation ordering / predictive scheduling removed):
 
 - `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
 - Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
@@ -235,7 +235,7 @@ Rules:
 
 Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` respectively. Remove deprecated labels during triage.
 Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
-Migration (2025-09-27 final): Removed `priority:` axis (ordering automation since deprecated).
+Migration (2025-09-27 final): Removed `priority:` axis (ordering automation since deprecated). Subsequent cleanup (2025-10-09): removed legacy predictive scheduling / numeric ordering artifacts.
 
 ### Coding Conventions (Early)
 

@@ -108,9 +108,9 @@ Avoid reflowing long narrative strings; prefer template literals only when inter
 | JSON / YAML      | Enabled             | Structural key/value scaffolding helpful            |
 | Shell            | Enabled             | Quick command snippet generation                    |
 
-## (Deprecated) Implementation Order Automation
+## Removed Predictive Ordering / Scheduling
 
-Legacy implementation ordering automation has been removed. Do not reference or attempt to regenerate ordering metrics or commands; prioritize issues manually based on scope impact and dependencies.
+All former implementation ordering, predictive scheduling, and variance mechanisms are retired. Do not attempt to recreate numeric ordering fields or provisional schedule heuristics. Prioritize manually using milestone, dependency, and scope impact.
 
 ## Anti-Patterns (Reject Suggestions That)
 

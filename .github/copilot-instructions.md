@@ -182,8 +182,8 @@ Partition key patterns:
 ### Build Telemetry (CI/Automation)
 
 - **Module**: `scripts/shared/build-telemetry.mjs`
-- **Purpose**: CI/automation workflows (ordering, scheduling, variance)
-- **Event prefix**: `build.` (e.g., `build.ordering_applied`)
+- **Purpose**: Minimal CI/automation signals (legacy ordering / scheduling / variance events removed)
+- **Event prefix**: `build.` (introduce new events only after review; deprecated names must not return)
 - **Destination**: GitHub Actions logs + artifacts (NOT Application Insights)
 - **Location**: `scripts/` folder ONLY
 
@@ -230,16 +230,22 @@ Epics: exactly 1 scope label + the coordination label `epic` (no type label appl
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
-Status field: `Todo|In progress|Done`. Legacy ordering automation & numeric sequencing removed; manage priority manually.
+Status field: `Todo|In progress|Done`. Legacy predictive scheduling / numeric ordering automation removed; prioritize manually by milestone, dependency readiness, and scope impact.
 Never use legacy `area:*`, `phase-*`, `priority:*` (still deprecated).
 
 **Automated Assignment**: (Deprecated) Implementation order automation removed — ignore historical references.
 
 ---
 
-## 9. (Deprecated) Implementation Order Commands
+## 9. Manual Prioritization
 
-All prior ordering / scheduling commands removed. Use labels + milestone context for manual prioritization.
+All former ordering / scheduling commands and numeric sequencing fields are retired. Use:
+
+1. Milestone narrative progression (M0→M5)
+2. Dependency readiness (unblock critical chains first)
+3. Scope impact (`core`, `world`, `systems`, etc.)
+
+No automated provisional ordering or predictive scheduling should be reintroduced without a new ADR.
 
 ---
 
@@ -289,7 +295,7 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 Exit: directional traversal edge.
 Event vertex: persisted world action for timeline queries.
-Implementation order: (Deprecated) historical sequencing concept removed.
+Implementation order: (Removed) replaced by manual milestone + dependency assessment.
 Scope label: high-level functional grouping.
 Status: lightweight progress state powering “Next Up”.
 Risk tags: LOW (simple), DATA-MODEL (schema/partition), RUNTIME-BEHAVIOR (flow change), BUILD-SCRIPT (CI/tooling), INFRA (deployment/IaC).
@@ -462,27 +468,27 @@ This codifies a “logs-first, patch-second” discipline prompted by prior wast
 
 Purpose: Provide the agent with a canonical list of currently open follow-up issues created to close gaps discovered in the closed-issue audit (2025-10-05). Do NOT duplicate scope or create variants; extend or close these in place.
 
-| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                             | Dependencies / References                       |
-| ----- | --------------------------------------------------- | ----------------------- | ----------------------------------------- | ----------------------------------------------- |
-| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                     | Refs closed #4; enables richer traversal & look |
-| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                     | Contract doc, precursor to AI events            |
-| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness             | ADR-002; closed #76 gap                         |
-| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert   | Depends on #100 (locations)                     |
-| #104  | Stage 1 Ordering Telemetry & Metrics                | devx / enhancement      | Automation observability                  | Builds on closed #82; before #106               |
-| #105  | Ordering Assignment Hardening                       | devx / enhancement      | Concurrency & artifact integrity          | Complements #104, precursor to #106             |
-| #106  | (Deprecated) Predictive Scheduling Execution        | devx / enhancement      | Removed provisional scheduling & variance | Originally built on #104/#105 (removed)         |
-| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness            | Closed #49 baseline                             |
-| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals         | Historical #17 #18 #19                          |
-| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                      | Closed #34 implementation                       |
-| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                      | Closed #24; relates #7 (#103)                   |
-| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                    | Closed #28                                      |
+| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                              | Dependencies / References                       |
+| ----- | --------------------------------------------------- | ----------------------- | ------------------------------------------ | ----------------------------------------------- |
+| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                      | Refs closed #4; enables richer traversal & look |
+| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                      | Contract doc, precursor to AI events            |
+| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness              | ADR-002; closed #76 gap                         |
+| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert    | Depends on #100 (locations)                     |
+| #104  | (Retired) Ordering Telemetry & Metrics              | devx / enhancement      | Removed — predictive automation deprecated | Superseded by manual prioritization             |
+| #105  | (Retired) Ordering Assignment Hardening             | devx / enhancement      | Removed — automation path discontinued     | Superseded by manual prioritization             |
+| #106  | (Retired) Predictive Scheduling Execution           | devx / enhancement      | Removed provisional scheduling & variance  | Not to be reinstated                            |
+| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness             | Closed #49 baseline                             |
+| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals          | Historical #17 #18 #19                          |
+| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                       | Closed #34 implementation                       |
+| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                       | Closed #24; relates #7 (#103)                   |
+| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                     | Closed #28                                      |
 
-Prioritization Guidance (apply when selecting “Next Up” beyond ordering field):
+Prioritization Guidance:
 
-1. Developer acceleration / automation hardening (#104, #105, #106, #108, #111).
-2. Core world data foundations (#100, #103) then asynchronous evolution (#101).
-3. Infrastructure correctness (#102) before higher-level event processing (#101).
-4. Security & reliability (#107) followed by analytics/telemetry enhancements (#109, #110).
+1. Core world data foundations (#100, #103) then asynchronous evolution (#101).
+2. Infrastructure correctness (#102) before higher-level event processing (#101).
+3. Security & reliability (#107) followed by analytics/telemetry enhancements (#109, #110).
+4. Developer experience & quality signals (#108, #111) as capacity allows.
 
 Rules:
 
@@ -490,7 +496,7 @@ Rules:
 - When closing one, ensure acceptance criteria are mirrored in PR description & tests.
 - Update this section only when adding or fully retiring a follow-up; keep minimal diff.
 
-NOTE: Former implementation order numeric field & scheduling automation removed; sequencing now curated manually.
+NOTE: Former numeric ordering & predictive scheduling systems are removed; sequencing curated manually.
 
 ---
 
@@ -567,10 +573,11 @@ else:
 - Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
 - Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
 
-### 20.7 Ordering Guidance
+### 20.7 Prioritization Guidance
 
-- If user does not specify ordering, assign children sequential provisional ordering after current max, preserving logical build order: core data → logic → instrumentation → docs → optimization.
-- Avoid resequencing existing issues unless dependency requires (see Section 9).
+- If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
+- Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
+- Avoid reshuffling active work unless a dependency block emerges.
 
 ### 20.8 Telemetry & Security Separation When Splitting
 
@@ -610,7 +617,7 @@ If implemented, a script may scan new issues and comment when atomicity rules ar
 
 ### 20.13 Rationale
 
-Consistent small slices shorten review cycles, reduce merge conflict surface, and keep telemetry noise isolated without relying on legacy ordering automation.
+Consistent small slices shorten review cycles, reduce merge conflict surface, and keep telemetry noise isolated without any predictive or numeric ordering automation.
 
 ### 20.14 Examples
 

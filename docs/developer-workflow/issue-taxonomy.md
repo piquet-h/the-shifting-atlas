@@ -4,18 +4,18 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 
 ## Axes
 
-| Axis       | Label Prefix             | Allowed Values                                                                                  | Purpose                              |
-| ---------- | ------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Scope      | `scope:`                 | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High-level functional grouping (≤9). |
-| Type       | (none)                   | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                   | Nature of work & WIP policy.         |
-| Stage      | Milestone (no label)     | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Delivery sequence narrative.         |
-| Impl Order | Project Field (no label) | Positive integers (1,2,3,...) assigned in Project                                               | Explicit execution sequence.         |
+| Axis       | Label Prefix         | Allowed Values                                                                                  | Purpose                              |
+| ---------- | -------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Scope      | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High-level functional grouping (≤9). |
+| Type       | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                   | Nature of work & WIP policy.         |
+| Stage      | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Delivery sequence narrative.         |
+| Impl Order | (Removed)            | (Former numeric field retired)                                                                  | — (superseded by manual criteria).   |
 
 Guidelines:
 
 - Exactly one `scope:` and one `type` label per issue.
 - `bug` is allowed but should be used only for defects in existing behavior (regressions or incorrect results) – NOT for missing planned features (use `feature` or `enhancement` instead).
-- Implementation Order is managed as a numeric Project custom field (NOT a label). Lower number = earlier execution; gaps allowed for later insertion.
+- (Removed) Implementation Order numeric field — use milestone + dependency + scope impact instead.
 - Stages are GitHub Milestones, not labels.
 - No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
 
@@ -24,21 +24,21 @@ Guidelines:
 ```text
 Title: Implement Cosmos Gremlin Location Upsert
 Labels: scope:world, feature
-Implementation Order: 1
+Priority Basis: Milestone (M0) + dependency (blocks player traversal)
 Milestone: M0 Foundation
 ```
 
 ```text
 Title: MCP Read-Only Servers (world-query, prompt-template, telemetry)
 Labels: scope:mcp, feature
-Implementation Order: 7
+Priority Basis: Milestone (M3) + enables AI read capabilities
 Milestone: M3 AI Read
 ```
 
 ```text
 Title: Direction Normalization Utility (N1)
 Labels: scope:traversal, feature
-Implementation Order: 3
+Priority Basis: Milestone (M1) + foundational normalization utility
 Milestone: M1 Traversal
 Internal Sub-Phase: N1 (do NOT label) – basic lexical normalization.
 ```
@@ -50,14 +50,13 @@ Module documents may still reference internal sub-phase codes (e.g., traversal n
 ## Maintenance Checklist
 
 1. Keep exactly one `scope:` and one type label per issue.
-2. Ensure each non-draft issue has an Implementation Order value.
-3. Use milestones only for actively planned work.
-4. Consolidate or close duplicate long-tail items promptly.
+2. Use milestones only for actively planned work.
+3. Consolidate or close duplicate long-tail items promptly.
 
 ## Automation (Future)
 
-- Lightweight Action validation: exactly one `scope:` + one type label present; Implementation Order field defined (non-empty) for non-draft issues.
-- Changelog grouping: order by Milestone then by Implementation Order then by `scope:`.
+- Lightweight Action validation: exactly one `scope:` + one type label present.
+- Changelog grouping: order by Milestone then by `scope:` (no numeric ordering field).
 
 ## Rationale
 

@@ -83,7 +83,7 @@ If DI layer increases complexity without reducing signals over 3 consecutive wee
 
 ### Roadmap Hooks
 
-When a DI review issue is opened, link it in the roadmap Project and apply labels: `scope:devx` + `enhancement`. Implementation order should NOT automatically jump ahead of core gameplay unless refactor blocks feature velocity (manually adjust if blocking).
+When a DI review issue is opened, link it in the roadmap Project and apply labels: `scope:devx` + `enhancement`. Do not promote refactors ahead of core gameplay unless they block feature velocity (evaluate milestone impact & dependencies explicitly).
 
 ### Future Enhancements
 
@@ -93,4 +93,4 @@ When a DI review issue is opened, link it in the roadmap Project and apply label
 
 ---
 
-_Last updated: Consolidation of implementation order workflows & formalization of DI policy (2025-10-03)._
+_Last updated: Removed legacy numeric ordering concept; clarified DI prioritization policy (2025-10-09)._

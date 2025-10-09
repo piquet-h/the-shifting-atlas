@@ -2,190 +2,18 @@
 
 Most automation related to implementation ordering, provisional scheduling, variance calculation, and DI suitability has been deprecated and the underlying scripts stubbed. This README now serves only as a historical pointer; active gameplay / platform code no longer depends on these modules.
 
-## Modules
+## Retired Legacy Modules
 
-### Duration Estimation
+All legacy build / planning automation modules have been fully retired and their prior source files remain only as minimal stubs (or have been removed) to avoid accidental resurrection:
 
-**File:** `duration-estimation.mjs`
+- `duration-estimation.mjs` (duration sampling / estimation)
+- `provisional-comment.mjs` (automated provisional schedule comments)
+- `provisional-storage.mjs` (GitHub Project field upserts for provisional data)
+- `build-telemetry.mjs` (scheduler & variance event emission)
 
-Historical duration analysis and estimation for provisional scheduling.
+These mechanisms supported predictive / provisional scheduling, ordering, and variance tracking. The project now relies solely on manual, lightweight milestone + scope based prioritization. No automated ordering, provisional dates, or variance metrics are produced.
 
-**Exports:**
-
-- `buildHistoricalDurations(projectItems, startFieldName, targetFieldName)` - Build duration samples from closed issues
-- `computeMedians(historicalDurations)` - Calculate median durations by grouping
-- `chooseDuration(medians, scope, type, fallback)` - Select duration using fallback hierarchy
-- `estimateDuration(projectItems, scope, type, options)` - Complete estimation with confidence
-- `DEFAULT_DURATION_DAYS` - Fallback duration constant (2 days)
-- `MIN_SAMPLE_SIZE` - Sample thresholds for confidence levels
-
-**Confidence Thresholds:**
-
-- High: ≥5 samples for exact scope|type
-- Medium: ≥3 samples for scope OR ≥10 global
-- Low: Fallback to DEFAULT_DURATION_DAYS
-
-**Usage:**
-
-```javascript
-import { estimateDuration } from './shared/duration-estimation.mjs'
-
-const estimation = estimateDuration(projectItems, 'scope:core', 'feature')
-// => { duration: 4, confidence: 'high', basis: 'scope-type', sampleSize: 7, metadata: {...} }
-```
-
----
-
-### (Deprecated) Provisional Comments
-
-**File:** `provisional-comment.mjs`
-
-Generate and manage provisional schedule comments on issues.
-
-**Exports:**
-
-- `generateProvisionalComment(data)` - Generate comment markdown with all substitutions
-- `findProvisionalComment(comments)` - Find existing provisional comment by marker
-- `shouldPostProvisionalComment(confidence, state)` - Determine if comment should be posted
-- `generateBasisDescription(...)` - Format estimation basis for comment
-- `PROVISIONAL_MARKER` - Canonical marker `<!-- PROVISIONAL_SCHEDULE:v1 -->`
-
-**Comment Format:**
-
-```markdown
-<!-- PROVISIONAL_SCHEDULE:v1 -->
-
-## 📅 Provisional Schedule (Automated)
-
-**Estimated Start:** 2025-01-15
-**Estimated Finish:** 2025-01-18
-**Duration:** 4 days
-**Implementation Order:** #42
-
-### Estimation Basis
-
-- **Confidence:** High
-- **Sample Size:** 7 similar issues
-- **Basis:** Median of 7 scope:core+feature issues (4 days)
-  ...
-```
-
-**Usage:**
-
-```javascript
-import { generateProvisionalComment, shouldPostProvisionalComment } from './shared/provisional-comment.mjs'
-
-if (shouldPostProvisionalComment(confidence, issueState)) {
-    const commentBody = generateProvisionalComment({
-        startDate: '2025-01-15',
-        finishDate: '2025-01-18',
-        duration: 4,
-        order: 42,
-        confidence: 'high',
-        sampleSize: 7,
-        basis: 'scope-type',
-        scope: 'scope:core',
-        type: 'feature'
-    })
-    // Post or update comment...
-}
-```
-
----
-
-### (Deprecated) Provisional Storage
-
-**File:** `provisional-storage.mjs`
-
-GitHub Projects v2 custom field operations for provisional schedule data.
-
-**Exports:**
-
-- `getProjectId(owner, projectNumber, ownerType)` - Get project ID
-- `getProjectFields(projectId)` - Fetch all project fields
-- `setDateField(projectId, itemId, fieldId, date)` - Set date field value
-- `setSingleSelectField(projectId, itemId, fieldId, optionId)` - Set single select value
-- `setTextField(projectId, itemId, fieldId, text)` - Set text field value
-- `updateProvisionalSchedule(projectId, itemId, scheduleData)` - Update all provisional fields
-- `getProvisionalSchedule(itemId)` - Get provisional schedule for an item
-
-**Custom Fields:**
-
-- `Provisional Start` (Date)
-- `Provisional Finish` (Date)
-- `Provisional Confidence` (Single select: High/Medium/Low)
-- `Estimation Basis` (Text)
-
-**Usage:**
-
-```javascript
-import { getProjectId, updateProvisionalSchedule } from './shared/provisional-storage.mjs'
-
-const projectId = await getProjectId('piquet-h', 3, 'user')
-await updateProvisionalSchedule(projectId, itemId, {
-    start: '2025-01-15',
-    finish: '2025-01-18',
-    confidence: 'high',
-    basis: 'Median of 7 scope:core+feature issues'
-})
-```
-
----
-
-### (Scoped) Build Telemetry
-
-**File:** `build-telemetry.mjs`
-
-Telemetry for build automation events (separate from game telemetry).
-
-**Exports:**
-
-- `initBuildTelemetry()` - Initialize build telemetry (GitHub artifacts mode)
-- `trackScheduleVariance(data)` - Track variance between provisional and actual
-- `trackProvisionalCreated(data)` - Track provisional schedule creation
-- `trackVarianceAlert(data)` - Track variance alert events
-- `isBuildTelemetryEnabled()` - Check if telemetry is active (always true)
-- `getBufferedEvents()` - Get event buffer (for artifacts)
-- `flushBuildTelemetry(artifactPath)` - Flush events to artifact file
-
-**Event Names:**
-
-- `build.schedule_variance` - Variance comparison
-- `build.provisional_schedule_created` - Provisional created
-- `build.variance_alert` - Alert created/updated/closed
-
-**Separation from Game Telemetry:**
-
-- Build events use `build.` prefix
-- Custom dimension: `telemetrySource: 'build-automation'`
-- Module located in `scripts/` (not `shared/src/`)
-- **Application Insights is ONLY for game telemetry**
-- Build telemetry stays within GitHub ecosystem (logs + artifacts)
-- Game telemetry: `shared/src/telemetry.ts` (domain events only)
-
-**Usage:**
-
-```javascript
-import { initBuildTelemetry, trackProvisionalCreated, flushBuildTelemetry } from './shared/build-telemetry.mjs'
-
-initBuildTelemetry() // Call once at startup
-
-trackProvisionalCreated({
-    issueNumber: 123,
-    implementationOrder: 42,
-    provisionalStart: '2025-01-15',
-    provisionalFinish: '2025-01-18',
-    duration: 4,
-    confidence: 'high',
-    sampleSize: 7,
-    basis: 'scope-type'
-})
-
-// At end of script, optionally flush to artifact
-await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
-```
-
----
+If historical context is required, consult repository history (git blame / earlier commits) rather than reintroducing the patterns. Re‑implementation attempts should undergo a fresh design review and MUST avoid coupling build automation telemetry with game domain events.
 
 ## Architecture Principles (Updated)
 
@@ -193,18 +21,18 @@ await flushBuildTelemetry(process.env.TELEMETRY_ARTIFACT)
 
 **Critical Rule:** Build automation and game domain telemetry are strictly separated.
 
-- **Build telemetry:** `scripts/shared/build-telemetry.mjs`
-    - Purpose: CI/automation events (limited — legacy scheduler/ordering/variance events no longer produced)
-    - Prefix: `build.`
-    - Destination: GitHub Actions logs + artifacts
-    - **Does NOT use Application Insights**
+- **Build telemetry (minimal):** `scripts/shared/build-telemetry.mjs`
+    - Purpose: Occasional CI/automation signals (currently no active scheduling/ordering events)
+    - Prefix convention reserved: `build.` (avoid introducing high‑cardinality events without review)
+    - Destination: GitHub Actions logs + artifacts only
+    - Never emits legacy scheduling / provisional / variance events (permanent removal)
 
 - **Game telemetry:** `shared/src/telemetry.ts`
     - Purpose: Game domain events (player, world, navigation)
     - Destination: Application Insights
     - Location: `shared/` folder (exclusively for game code)
 
-**Rationale:** Prevents mixing infrastructure and domain concerns, ensures clean separation of build and runtime telemetry. Application Insights is reserved exclusively for game events.
+**Rationale:** Maintains strict separation of infrastructure vs. game domain concerns; Application Insights remains exclusive to game events.
 
 ### Module Design
 
@@ -234,7 +62,7 @@ Modules are designed for testability:
 3. **Artifact export:** Use `--artifact` to save decision data
 4. **Console fallback:** Telemetry falls back to console if AppInsights unavailable
 
-Historical usage examples removed; associated scripts are deprecated.
+Historical usage examples removed; associated automation is deprecated and should not be reinstated without a new ADR.
 
 ## Related Documentation
 
@@ -242,4 +70,4 @@ Legacy Stage 2 scheduling documentation references retained in version control h
 
 ---
 
-_Last updated: 2025-10-06 – legacy automation deprecated_
+_Last updated: 2025-10-08 – legacy automation removed (predictive scheduling / ordering / variance)_

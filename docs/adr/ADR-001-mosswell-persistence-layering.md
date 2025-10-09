@@ -29,7 +29,7 @@ Persist Mosswell anchor Locations & Exits immediately (Cosmos Gremlin) using imm
 
 P1: Interfaces + Location repository + bootstrap seeding.
 P2: Composer + validator (immutability, length, contradiction).
-P3: Ambient registry & ordering.
+P3: Ambient registry & composition sequence (formerly referred to as ordering — numeric/predictive sequencing removed).
 P4: Telemetry + integrity hashing.
 P5: AI on-ramp (ambient generation, structural proposals with approval).
 
