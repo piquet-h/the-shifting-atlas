@@ -15,7 +15,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
  *  - Context hydration from a server-rendered bootstrap object
  *  - Silent token refresh / backend API token proxying
  *  - Role / claim based helpers (hasRole, hasAnyRole)
- */ 
+ */
 
 export interface ClientPrincipal {
     identityProvider: string
