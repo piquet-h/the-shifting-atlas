@@ -109,24 +109,33 @@ jobs:
           echo "Applying app settings to $SWA_NAME"
           az staticwebapp appsettings set --name "$SWA_NAME" --setting-names $ARGS
 
-      - name: Deploy (production via Azure CLI)
-        # Switch to SWA CLI (swa deploy) replicating previously successful run; Azure CLI extension lacked stable deploy verbs.
+      - name: Deploy (production via SWA CLI OIDC)
+        # Pure OIDC: no deployment token, rely on azure/login session. Hard-coded resource group per request.
         run: |
           set -euo pipefail
           if [ -z "${SWA_NAME:-}" ]; then
             echo "SWA_NAME not set before deploy step" >&2; exit 1; fi
+          RG="rg-atlas"
           echo "Installing Azure Static Web Apps CLI (pinned major) ..."
           npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
           if ! swa --version 2>/dev/null | grep -q '^2\.'; then
             echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
-          APP_ARGS=(--app-name "$SWA_NAME" --env production --app-location frontend/dist --output-location "" --verbose)
+          APP_ARGS=(--app-name "$SWA_NAME" --resource-group "$RG" --env production --app-location frontend/dist --output-location "" --verbose)
           # Include API only if present (optional)
           if [ -d frontend/api ]; then
             APP_ARGS+=(--api-location frontend/api --api-language node --api-version 20)
           fi
           echo "Executing: swa deploy ${APP_ARGS[*]}"
-          if ! swa deploy "${APP_ARGS[@]}"; then
-            echo "swa deploy failed" >&2; exit 1; fi
+          set +e
+          DEPLOY_OUTPUT=$(swa deploy "${APP_ARGS[@]}" 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$DEPLOY_OUTPUT"
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "swa deploy exited with code $EXIT_CODE" >&2; exit $EXIT_CODE; fi
+          if echo "$DEPLOY_OUTPUT" | grep -q "No matching Static Web App was found"; then
+            echo "Deployment content rejection (no matching app) detected." >&2; exit 1; fi
+          echo "Deployment step completed without detected errors."
 
   preview:
     name: Preview Environment (PR)
