@@ -3,8 +3,8 @@ name: Frontend Static Web App Deploy
 on:
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
+    # Removed path filter so infra/workflow-only changes (like this file) still trigger a deploy when desired.
+    # If you want to restrict later, include both frontend/** and this workflow path explicitly.
   pull_request:
     branches: [main]
     paths:
