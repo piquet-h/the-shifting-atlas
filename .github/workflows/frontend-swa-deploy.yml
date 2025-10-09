@@ -96,17 +96,30 @@ jobs:
           AAD_TENANT_ID: ${{ secrets.CUSTOMER_TENANT_ID || secrets.AZURE_TENANT_ID }}
           AAD_CLIENT_SECRET: ${{ secrets.CUSTOMER_SECRET || secrets.AZURE_CLIENT_SECRET }}
         run: |
+          if [ -z "${SWA_NAME}" ] && [ -n "${{ vars.SWA_NAME }}" ]; then
+            # Fallback to repository variable if env not yet exported
+            SWA_NAME="${{ vars.SWA_NAME }}"
+          fi
+          if [ -z "$SWA_NAME" ]; then
+            echo "SWA_NAME not resolved prior to app settings step." >&2; exit 1; fi
           ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
-            if [ -n "$AAD_CLIENT_SECRET" ]; then
-              ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
-            fi
-          az staticwebapp appsettings set --name "${{ vars.SWA_NAME }}" --setting-names $ARGS
+          if [ -n "$AAD_CLIENT_SECRET" ]; then
+            ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
+          fi
+          echo "Applying app settings to $SWA_NAME"
+          az staticwebapp appsettings set --name "$SWA_NAME" --setting-names $ARGS
 
       - name: Deploy (production via Azure CLI)
         run: |
-          echo "Uploading production build for '$SWA_NAME'..."
-          if ! az staticwebapp upload --name "$SWA_NAME" --source frontend/dist --verbose; then
-            echo "az staticwebapp upload failed." >&2; exit 1; fi
+          echo "Ensuring Static Web Apps CLI extension present..."
+          if ! az extension show --name staticwebapp >/dev/null 2>&1; then
+            az extension add --name staticwebapp --yes
+          else
+            az extension update --name staticwebapp || true
+          fi
+          echo "Deploying production build for '$SWA_NAME' using 'az staticwebapp deploy'..."
+          if ! az staticwebapp deploy --name "$SWA_NAME" --source frontend/dist --verbose; then
+            echo "az staticwebapp deploy failed." >&2; exit 1; fi
 
   preview:
     name: Preview Environment (PR)
@@ -153,10 +166,16 @@ jobs:
 
       - name: Deploy Preview (Azure CLI)
         run: |
+          echo "Ensuring Static Web Apps CLI extension present (preview)..."
+          if ! az extension show --name staticwebapp >/dev/null 2>&1; then
+            az extension add --name staticwebapp --yes
+          else
+            az extension update --name staticwebapp || true
+          fi
           ENV_NAME="pr${{ github.event.number }}"
-          echo "Uploading preview build to environment $ENV_NAME for '$SWA_NAME'..."
-          if ! az staticwebapp upload --name "$SWA_NAME" --source frontend/dist --deployment-environment "$ENV_NAME" --verbose; then
-            echo "Preview upload failed." >&2; exit 1; fi
+          echo "Deploying preview build to environment $ENV_NAME for '$SWA_NAME'..."
+          if ! az staticwebapp deploy --name "$SWA_NAME" --source frontend/dist --deployment-environment "$ENV_NAME" --verbose; then
+            echo "Preview deploy failed." >&2; exit 1; fi
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
