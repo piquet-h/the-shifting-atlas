@@ -30,7 +30,7 @@ export default function App(): React.ReactElement {
                 href="#main"
                 className="skip-link sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-slate-800 text-white px-4 py-2 rounded"
             >
-                Skip to main content
+                Skip to the main content
             </a>
             <div className="app-root min-h-screen flex flex-col lg:gap-4">
                 <Nav />
