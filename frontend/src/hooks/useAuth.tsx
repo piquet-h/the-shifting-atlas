@@ -10,7 +10,6 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
  *
  * Sign-out: redirect to `/.auth/logout?post_logout_redirect_uri=/` which clears the
  * server session / provider cookie (where applicable) and then returns to home.
- *
  */
 
 export interface ClientPrincipal {
