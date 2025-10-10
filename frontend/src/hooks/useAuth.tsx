@@ -11,10 +11,6 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
  * Sign-out: redirect to `/.auth/logout?post_logout_redirect_uri=/` which clears the
  * server session / provider cookie (where applicable) and then returns to home.
  *
- * Future enhancements could include:
- *  - Context hydration from a server-rendered bootstrap object
- *  - Silent token refresh / backend API token proxying
- *  - Role / claim based helpers (hasRole, hasAnyRole)
  */
 
 export interface ClientPrincipal {
