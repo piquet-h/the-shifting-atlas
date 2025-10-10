@@ -50,6 +50,14 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build -w frontend
 
+      - name: Verify build artifact exists
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "::error title=Missing build artifact::Directory frontend/dist not found. Check prior build step output.";
+            ls -R frontend || true
+            exit 1
+          fi
+
       - name: Resolve SWA Name
         id: swa_name
         run: |
@@ -89,7 +97,7 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           app_location: 'frontend'
-          output_location: 'frontend/dist'
+          app_artifact_location: 'frontend/dist'
           skip_app_build: true
           skip_api_build: true
           production_branch: 'main'
@@ -112,11 +120,19 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build -w frontend
 
+      - name: Verify build artifact exists
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "::error title=Missing build artifact::Directory frontend/dist not found. Check prior build step output.";
+            ls -R frontend || true
+            exit 1
+          fi
+
       - name: Deploy to Azure Static Web Apps (Preview)
         uses: Azure/static-web-apps-deploy@v1
         with:
           app_location: 'frontend'
-          output_location: 'frontend/dist'
+          app_artifact_location: 'frontend/dist'
           skip_app_build: true
           skip_api_build: true
           production_branch: 'main'
