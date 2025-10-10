@@ -13,7 +13,6 @@ interface UsePingState {
     lastAt?: number
 }
 
-// Simple client-side polling hook for lightweight liveness indication.
 export function usePing(opts: UsePingOptions = {}): UsePingState {
     const { intervalMs = 30000, immediate = true } = opts
     const [state, setState] = React.useState<UsePingState>({ loading: true })
