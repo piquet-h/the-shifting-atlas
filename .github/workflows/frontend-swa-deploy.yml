@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/**'
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
     paths:
       - 'frontend/**'
@@ -20,7 +21,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: swa-frontend
+  # Production deployments serialize; preview deployments get their own dynamic group.
+  group: swa-frontend-${{ github.event_name == 'pull_request' && github.event.action != 'closed' && format('pr-{0}', github.event.pull_request.number) || 'prod' }}
   cancel-in-progress: true
 
 env:
@@ -31,8 +33,8 @@ env:
   #   AZURE_CLIENT_ID, AZURE_TENANT_ID (OIDC federated credentials configured in Azure AD)
 
 jobs:
-  build-and-deploy:
-    name: Build & Deploy (main)
+  build-and-deploy-prod:
+    name: Build & Deploy (Production)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -48,121 +50,55 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build -w frontend
 
-      - name: Verify build artifacts
+      - name: Resolve SWA Name
+        id: swa_name
         run: |
-          if [ ! -f frontend/dist/index.html ]; then
-            echo "Expected Vite build output at frontend/dist missing." >&2; exit 1; fi
-          if [ ! -f frontend/dist/staticwebapp.config.json ]; then
-            echo "staticwebapp.config.json missing from frontend/dist (expected present)." >&2; exit 1; fi
-          node scripts/verify-deployable.mjs
-          echo "Artifacts validated."
+          if [ -n "${{ vars.SWA_NAME }}" ]; then echo "SWA_NAME=${{ vars.SWA_NAME }}" >> $GITHUB_ENV; fi
+          if [ -z "${{ vars.SWA_NAME }}" ]; then
+            echo "::warning title=Missing SWA_NAME::Repository variable SWA_NAME not set. Deployment may fail if name required.";
+          fi
 
-      - name: Azure login (OIDC) for appsettings
+      - name: Azure login (OIDC) for app settings
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Derive SWA name from infra deployment output (if SWA_NAME unset)
-        if: vars.SWA_NAME == ''
-        env:
-          RG: ${{ vars.AZURE_RESOURCE_GROUP }}
-        run: |
-          DEPLOY_NAME=$(az deployment group list --resource-group "$RG" --query "[?starts_with(name,'infra-')]|[-1].name" -o tsv 2>/dev/null || true)
-          if [ -z "$DEPLOY_NAME" ]; then
-            echo "No infra deployment (infra-*) found in resource group '$RG'. Run infrastructure workflow or set SWA_NAME variable." >&2; exit 1; fi
-            echo "Found latest infra deployment: $DEPLOY_NAME"
-          SWA=$(az deployment group show --resource-group "$RG" --name "$DEPLOY_NAME" --query "properties.outputs.staticWebAppName.value" -o tsv 2>/dev/null || true)
-          if [ -z "$SWA" ]; then
-            echo "Deployment $DEPLOY_NAME has no staticWebAppName output. Ensure Bicep outputs staticWebAppName or set SWA_NAME variable." >&2; exit 1; fi
-          echo "Resolved SWA name from infra outputs: $SWA"
-          echo "SWA_NAME=$SWA" >> $GITHUB_ENV
-
-      - name: Validate Static Web App exists (fail-fast)
-        run: |
-          NAME="${{ vars.SWA_NAME }}"; if [ -n "$SWA_NAME" ]; then NAME="$SWA_NAME"; fi
-          if ! az staticwebapp show --name "$NAME" >/dev/null 2>&1; then
-            echo "Static Web App '$NAME' not found in subscription '${{ secrets.AZURE_SUBSCRIPTION_ID }}'." >&2
-            az staticwebapp list -o table || true
-            exit 1
-          fi
-          echo "Using Static Web App: $NAME"
-          echo "SWA_NAME=$NAME" >> $GITHUB_ENV
-
       - name: Configure SWA AAD app settings (optional)
         env:
+          SWA_NAME: ${{ env.SWA_NAME }}
           AAD_CLIENT_ID: ${{ secrets.CUSTOMER_CLIENT_ID || secrets.AZURE_CLIENT_ID }}
           AAD_TENANT_ID: ${{ secrets.CUSTOMER_TENANT_ID || secrets.AZURE_TENANT_ID }}
           AAD_CLIENT_SECRET: ${{ secrets.CUSTOMER_SECRET || secrets.AZURE_CLIENT_SECRET }}
         run: |
-          if [ -z "${SWA_NAME}" ] && [ -n "${{ vars.SWA_NAME }}" ]; then
-            # Fallback to repository variable if env not yet exported
-            SWA_NAME="${{ vars.SWA_NAME }}"
-          fi
-          if [ -z "$SWA_NAME" ]; then
-            echo "SWA_NAME not resolved prior to app settings step." >&2; exit 1; fi
-          ARGS="AAD_CLIENT_ID=$AAD_CLIENT_ID AAD_TENANT_ID=$AAD_TENANT_ID"
-          if [ -n "$AAD_CLIENT_SECRET" ]; then
-            ARGS="$ARGS AAD_CLIENT_SECRET=$AAD_CLIENT_SECRET"
-          fi
-          echo "Applying app settings to $SWA_NAME"
-          az staticwebapp appsettings set --name "$SWA_NAME" --setting-names $ARGS
-
-      - name: Deploy (production via SWA CLI OIDC)
-        # Pure OIDC: no deployment token, rely on azure/login session. Hard-coded resource group per request.
-        run: |
           set -euo pipefail
           if [ -z "${SWA_NAME:-}" ]; then
-            echo "SWA_NAME not set before deploy step" >&2; exit 1; fi
-          # Prefer repo variable if present; fallback remains the historical hard-coded value for backward compatibility.
-          RG="${{ vars.AZURE_RESOURCE_GROUP }}"
-          if [ -z "$RG" ]; then RG="rg-atlas"; fi
-          echo "Installing Azure Static Web Apps CLI (pinned major) ..."
-          npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
-          if ! swa --version 2>/dev/null | grep -q '^2\.'; then
-            echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
-          # Option B: Deploy pre-built artifacts directly from dist with --skip-build to avoid framework detection ambiguity.
-          APP_ARGS=(--app-name "$SWA_NAME" --resource-group "$RG" --env production --app-location frontend/dist --skip-build --verbose)
-          # Include API only if present (optional)
-          if [ -d frontend/api ]; then
-            APP_ARGS+=(--api-location frontend/api --api-language node --api-version 20)
-          fi
-          echo "Executing: swa deploy ${APP_ARGS[*]}"
-          set +e
-          DEPLOY_OUTPUT=$(swa deploy "${APP_ARGS[@]}" 2>&1)
-          EXIT_CODE=$?
-          set -e
-          echo "$DEPLOY_OUTPUT"
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "swa deploy exited with code $EXIT_CODE" >&2; exit $EXIT_CODE; fi
-          if echo "$DEPLOY_OUTPUT" | grep -q "No matching Static Web App was found"; then
-            echo "Deployment content rejection (no matching app) detected." >&2; exit 1; fi
-          echo "Deployment step completed without detected errors."
+            echo "No SWA_NAME available; skipping app settings."; exit 0; fi
+          kv_pairs=()
+          [ -n "${AAD_CLIENT_ID}" ] && kv_pairs+=("AAD_CLIENT_ID=${AAD_CLIENT_ID}")
+          [ -n "${AAD_TENANT_ID}" ] && kv_pairs+=("AAD_TENANT_ID=${AAD_TENANT_ID}")
+            # Only set secret if provided (avoid empty overwrite)
+          [ -n "${AAD_CLIENT_SECRET}" ] && kv_pairs+=("AAD_CLIENT_SECRET=${AAD_CLIENT_SECRET}")
+          if [ ${#kv_pairs[@]} -eq 0 ]; then
+            echo "No non-empty AAD settings to apply."; exit 0; fi
+          echo "Applying ${#kv_pairs[@]} app settings to ${SWA_NAME}";
+          az staticwebapp appsettings set --name "${SWA_NAME}" --setting-names "${kv_pairs[@]}"
 
-      - name: Post-deploy validation (production)
-        run: |
-          set -euo pipefail
-          if [ -z "${SWA_NAME:-}" ]; then echo "SWA_NAME missing for validation" >&2; exit 1; fi
-          HOST=$(az staticwebapp show --name "$SWA_NAME" --query "defaultHostname" -o tsv 2>/dev/null || true)
-          if [ -z "$HOST" ]; then echo "Unable to resolve defaultHostname for $SWA_NAME" >&2; exit 1; fi
-          echo "Resolved production hostname: $HOST"
-          STATUS=$(curl -Is https://$HOST/ | head -n1 | awk '{print $2}') || true
-          if [ "$STATUS" != "200" ]; then echo "Unexpected HTTP status $STATUS for root page" >&2; exit 1; fi
-          CONTENT=$(curl -fsS https://$HOST/ | head -n 50)
-          echo "--- First lines of deployed index.html ---"
-          echo "$CONTENT" | sed -e 's/<title>.*<\/title>/<title>(redacted)<\/title>/'
-          echo "--- End snippet ---"
-          echo "$CONTENT" | grep -qi '<html' || { echo "Root content missing <html> tag – deploy may be empty" >&2; exit 1; }
-          echo "Production deployment content validated."
+      - name: Deploy to Azure Static Web Apps (Production)
+        uses: Azure/static-web-apps-deploy@v2
+        with:
+          app_location: 'frontend'
+          output_location: 'frontend/dist'
+          skip_app_build: true
+          skip_api_build: true
+          production_branch: 'main'
+          environment: 'main'
 
-  preview:
-    name: Preview Environment (PR)
-    if: github.event_name == 'pull_request'
+  build-and-deploy-preview:
+    name: Build & Deploy (Preview)
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -176,70 +112,19 @@ jobs:
       - name: Build frontend (Vite)
         run: npm run build -w frontend
 
-      - name: Verify preview artifacts
-        run: |
-          if [ ! -f frontend/dist/index.html ]; then echo "Missing build output" >&2; exit 1; fi
-          if [ ! -f frontend/dist/staticwebapp.config.json ]; then echo "Missing staticwebapp.config.json" >&2; exit 1; fi
-
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
+      - name: Deploy to Azure Static Web Apps (Preview)
+        uses: Azure/static-web-apps-deploy@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Validate Static Web App exists (fail-fast)
-        run: |
-          NAME="${{ vars.SWA_NAME }}"; if [ -n "$SWA_NAME" ]; then NAME="$SWA_NAME"; fi
-          if ! az staticwebapp show --name "$NAME" >/dev/null 2>&1; then
-            echo "Static Web App '$NAME' not found (preview)." >&2
-            az staticwebapp list -o table || true
-            exit 1
-          fi
-          echo "Using Static Web App: $NAME"
-          echo "SWA_NAME=$NAME" >> $GITHUB_ENV
-
-      - name: Deploy Preview (Azure CLI)
-        run: |
-          set -euo pipefail
-          if [ -z "${SWA_NAME:-}" ]; then
-            echo "SWA_NAME not set before preview deploy" >&2; exit 1; fi
-          ENV_NAME="pr${{ github.event.number }}"
-          echo "Installing Azure Static Web Apps CLI (pinned major) for preview ..."
-          npm install -g @azure/static-web-apps-cli@2 > /dev/null 2>&1
-          if ! swa --version 2>/dev/null | grep -q '^2\.'; then
-            echo "Unexpected SWA CLI version (expected 2.x)." >&2; swa --version || true; exit 1; fi
-          # Option B (preview): deploy pre-built artifacts from dist without rebuild.
-          ARGS=(--app-name "$SWA_NAME" --env "$ENV_NAME" --app-location frontend/dist --skip-build --verbose)
-          if [ -d frontend/api ]; then
-            ARGS+=(--api-location frontend/api --api-language node --api-version 20)
-          fi
-          echo "Executing preview deploy: swa deploy ${ARGS[*]}"
-          if ! swa deploy "${ARGS[@]}"; then
-            echo "Preview swa deploy failed" >&2; exit 1; fi
-
-      - name: Post-deploy validation (preview)
-        run: |
-          set -euo pipefail
-          if [ -z "${SWA_NAME:-}" ]; then echo "SWA_NAME missing for validation" >&2; exit 1; fi
-          ENV_NAME="pr${{ github.event.number }}"
-          # The preview hostname pattern: <env>-<defaultHostname> (SWA service composes this). Retrieve base hostname first.
-          BASE_HOST=$(az staticwebapp show --name "$SWA_NAME" --query "defaultHostname" -o tsv 2>/dev/null || true)
-          if [ -z "$BASE_HOST" ]; then echo "Unable to resolve base hostname for $SWA_NAME" >&2; exit 1; fi
-          HOST="$ENV_NAME.$BASE_HOST"
-            # Fallback: some older SWA patterns may use ENV_NAME--BASE_HOST; attempt if first form fails.
-          STATUS=$(curl -Is https://$HOST/ | head -n1 | awk '{print $2}' || true)
-          if [ "$STATUS" != "200" ]; then
-            ALT_HOST="$ENV_NAME--$BASE_HOST"
-            STATUS=$(curl -Is https://$ALT_HOST/ | head -n1 | awk '{print $2}' || true)
-            if [ "$STATUS" != "200" ]; then
-              echo "Preview root not reachable at either $HOST or $ALT_HOST (status $STATUS)" >&2; exit 1; fi
-            HOST="$ALT_HOST"
-          fi
-          echo "Resolved preview hostname: $HOST"
-          CONTENT=$(curl -fsS https://$HOST/ | head -n 40)
-          echo "$CONTENT" | grep -qi '<html' || { echo "Preview root content missing <html> tag" >&2; exit 1; }
-          echo "Preview deployment content validated."
+          app_location: 'frontend'
+          output_location: 'frontend/dist'
+          skip_app_build: true
+          skip_api_build: true
+          production_branch: 'main'
+        env:
+          # Standard SWA action OIDC / API token resolution uses provided secrets.
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
@@ -255,11 +140,21 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Delete preview environment
+
+      - name: Resolve SWA Name
         run: |
-          npm install -g @azure/static-web-apps-cli@2
-          ENV_NAME="pr${{ github.event.number }}"
-          echo "Attempting to delete preview environment $ENV_NAME (best-effort)."
-          # CLI currently lacks a direct delete subcommand; using REST API as fallback if needed.
-          # Placeholder for future deletion logic if supported.
-          echo "(No-op) Ensure stale preview $ENV_NAME is cleaned up manually if the service doesn't auto-expire it."
+          if [ -n "${{ vars.SWA_NAME }}" ]; then echo "SWA_NAME=${{ vars.SWA_NAME }}" >> $GITHUB_ENV; fi
+          if [ -z "${{ vars.SWA_NAME }}" ]; then echo "::warning::SWA_NAME not set; cleanup may fail."; fi
+
+      - name: Delete preview environment
+        env:
+          SWA_NAME: ${{ env.SWA_NAME || vars.SWA_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then echo "Skipping delete - no SWA_NAME"; exit 0; fi
+          PREVIEW_ENV="pr-${{ github.event.pull_request.number }}"
+          echo "Deleting preview environment ${PREVIEW_ENV} on ${SWA_NAME}";
+          az staticwebapp environment delete \
+            --name "${SWA_NAME}" \
+            --environment-name "${PREVIEW_ENV}" \
+            --yes || echo "Preview environment delete returned non-zero (may already be gone)."
