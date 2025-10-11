@@ -87,13 +87,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     name: 'appsettings'
 
     properties: {
-      FUNCTIONS_WORKER_RUNTIME: 'node'
-      FUNCTIONS_EXTENSION_VERSION: '~4'
-
-      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
-      WEBSITE_CONTENTSHARE: toLower(backendFunctionApp.name)
-      WEBSITE_NODE_DEFAULT_VERSION: '~20'
-      WEBSITE_RUN_FROM_PACKAGE: '1'
       AzureWebJobsStorage__accountName: storageAccount.name
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
