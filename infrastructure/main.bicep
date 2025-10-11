@@ -68,6 +68,10 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
           }
         }
       }
+      runtime: {
+        name: 'node'
+        version: 'node:20'
+      }
     }
   }
 
