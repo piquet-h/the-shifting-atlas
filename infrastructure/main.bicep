@@ -228,7 +228,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
 
 resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
   name: 'stapp-atlas'
-  location: location
+  location: 'westus2'
   sku: {
     name: 'Standard'
     tier: 'Standard'
