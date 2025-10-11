@@ -22,56 +22,22 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource backendPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
+resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: 'plan-${name}'
   location: location
   sku: {
     name: 'Y1'
     tier: 'Dynamic'
-    size: 'Y1'
-    family: 'Y'
-  }
-  properties: {
-    reserved: true
   }
 }
 
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
-  kind: 'functionapp,linux'
+  kind: 'functionapp'
   properties: {
-    reserved: true
     serverFarmId: backendPlan.id
-    siteConfig: {
-      linuxFxVersion: 'node|20'
-      appSettings: [
-        {
-          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
-          value: reference(resourceId('Microsoft.Insights/components', 'func-${name}'), '2020-02-02').InstrumentationKey
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: 'DefaultEndpointsProtocol=https;AccountName=${storageName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
-        }
-        {
-          name: 'WEBSITE_CONTENTSHARE'
-          value: toLower('func-${name}')
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'node'
-        }
-      ]
-    }
+    httpsOnly: true
   }
 
   identity: {
@@ -273,11 +239,16 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
   }
 
   properties: {
-    allowConfigFileUpdates: false
+    buildProperties: {
+      apiLocation: ''
+      // skipGithubActionWorkflowGeneration retained to suppress auto workflow suggestions
+      skipGithubActionWorkflowGeneration: true
+    }
   }
 
   resource userProvidedFunctionApp 'userProvidedFunctionApps' = {
     name: 'backend'
+    kind:
     properties: {
       functionAppRegion: backendFunctionApp.location
       functionAppResourceId: backendFunctionApp.id
