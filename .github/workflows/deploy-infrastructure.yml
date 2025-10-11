@@ -42,7 +42,7 @@ jobs:
           echo "Using resource group: $RG"
 
       - name: Ensure resource group exists
-        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location francecentral
+        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus
 
       - name: What-if (Full JSON)
         run: |
@@ -81,7 +81,7 @@ jobs:
           echo "RESOURCE_GROUP_NAME=$RG" >> $GITHUB_OUTPUT
 
       - name: Ensure resource group exists
-        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location francecentral
+        run: az group create --name "${{ steps.compute.outputs.RESOURCE_GROUP_NAME }}" --location westus
 
       - name: Deploy (Cosmos + Static Web App)
         run: |
