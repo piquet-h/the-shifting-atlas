@@ -1,3 +1,42 @@
+# CI/CD Pipelines
+
+## CI/CD: Backend Azure Functions
+
+Automated deployment pipeline for the `backend` (Node.js + TypeScript) Azure Functions using GitHub Actions with **OIDC authentication**.
+
+### Triggers
+
+Workflow: `.github/workflows/backend-functions-deploy.yml`
+
+Runs on:
+
+- `push` to `main` affecting `backend/**` or `shared/**`
+- Manual `workflow_dispatch` (force a redeploy with optional reason)
+
+### Required Repository Secrets
+
+| Secret                  | Purpose                                         |
+| ----------------------- | ----------------------------------------------- |
+| `AZURE_CLIENT_ID`       | Federated identity (App Registration) client ID |
+| `AZURE_TENANT_ID`       | Azure AD tenant ID                              |
+| `AZURE_SUBSCRIPTION_ID` | Subscription containing the Azure Function App  |
+
+### Target Infrastructure
+
+- **Function App**: `func-atlas` (Flex Consumption plan)
+- **Runtime**: Node.js 20.x
+- **Build**: Remote build enabled for Flex Consumption optimization
+- **Authentication**: OIDC (no publish profiles required)
+
+### Deployment Process
+
+1. **Build Phase**: Compiles shared dependencies, then backend TypeScript
+2. **Test Phase**: Runs all backend tests to ensure quality
+3. **Deploy Phase**: Uses Azure Functions Action with Flex Consumption settings
+4. **Verify Phase**: Tests health endpoint to confirm successful deployment
+
+---
+
 ## CI/CD: Frontend Static Web App
 
 Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews).

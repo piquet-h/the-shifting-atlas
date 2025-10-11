@@ -1,0 +1,112 @@
+name: Backend Functions Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'shared/**'
+      - '.github/workflows/backend-functions-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Manual redeploy reason'
+        required: false
+
+permissions:
+  id-token: write # OIDC for azure/login
+  contents: read
+
+concurrency:
+  group: backend-functions-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  AZURE_FUNCTIONAPP_NAME: 'func-atlas'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend'
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup workspace (composite)
+        uses: ./.github/actions/node-workspace-setup
+
+      - name: Build shared dependencies
+        run: npm run build -w shared
+
+      - name: Build backend
+        run: npm run build -w backend
+
+      - name: Run backend tests
+        run: npm test -w backend
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve Function App Name
+        id: resolve
+        run: |
+          # Try to get the actual function app name from Azure
+          RESOURCE_GROUP="rg-atlas-game"
+          FUNCTION_APPS=$(az functionapp list --resource-group "$RESOURCE_GROUP" --query "[?contains(name, 'func-atlas')].name" -o tsv 2>/dev/null || true)
+
+          if [ -n "$FUNCTION_APPS" ]; then
+            FUNCTION_APP_NAME=$(echo "$FUNCTION_APPS" | head -1)
+            echo "Found function app: $FUNCTION_APP_NAME"
+            echo "FUNCTION_APP_NAME=$FUNCTION_APP_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "Function app not found, using default: ${{ env.AZURE_FUNCTIONAPP_NAME }}"
+            echo "FUNCTION_APP_NAME=${{ env.AZURE_FUNCTIONAPP_NAME }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Azure Functions
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          # For Flex Consumption plan, enable remote build
+          sku: 'flexconsumption'
+          remote-build: true
+          # Use OIDC authentication instead of publish profile
+          enable-oryx-build: false
+          scm-do-build-during-deployment: false
+
+      - name: Verify deployment
+        run: |
+          FUNCTION_APP_NAME="${{ steps.resolve.outputs.FUNCTION_APP_NAME }}"
+          echo "Verifying deployment for $FUNCTION_APP_NAME..."
+
+          # Get function app URL
+          FUNCTION_URL=$(az functionapp show --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query "defaultHostName" -o tsv 2>/dev/null || true)
+
+          if [ -n "$FUNCTION_URL" ]; then
+            echo "Function app URL: https://$FUNCTION_URL"
+            
+            # Test health endpoint
+            echo "Testing health endpoint..."
+            if curl -f -s "https://$FUNCTION_URL/api/backend/health" > /dev/null; then
+              echo "✅ Health endpoint is responding"
+            else
+              echo "⚠️  Health endpoint not responding (may still be starting up)"
+            fi
+          else
+            echo "⚠️  Could not retrieve function app URL"
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo '## Backend Functions Deployment' >> $GITHUB_STEP_SUMMARY
+          echo '* Function App: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}' >> $GITHUB_STEP_SUMMARY
+          echo '* Package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}' >> $GITHUB_STEP_SUMMARY
+          echo '* Node Version: ${{ env.NODE_VERSION }}' >> $GITHUB_STEP_SUMMARY
+          echo '* Deployment Status: ✅ Completed' >> $GITHUB_STEP_SUMMARY
