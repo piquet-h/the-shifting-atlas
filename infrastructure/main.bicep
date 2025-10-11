@@ -258,43 +258,42 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   }
 }
 
-// resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
-//   name: 'stapp-atlas'
-//   location: location
-//   sku: {
-//     name: 'Standard'
-//     tier: 'Standard'
-//   }
+resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
+  name: 'stapp-atlas'
+  kind: 'app,linux'
+  location: location
+  sku: {
+    name: 'Standard'
+    tier: 'Standard'
+  }
 
-//   identity: {
-//     type: 'SystemAssigned'
-//   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 
-//   properties: {
-//     buildProperties: {
-//       apiLocation: ''
-//       // skipGithubActionWorkflowGeneration retained to suppress auto workflow suggestions
-//       skipGithubActionWorkflowGeneration: true
-//     }
-//   }
+  properties: {
+    allowConfigFileUpdates: false
+    buildProperties: {
+      skipGithubActionWorkflowGeneration: true
+    }
+  }
 
-//   resource userProvidedFunctionApp 'userProvidedFunctionApps' = {
-//     name: 'backend'
-//     kind:
-//     properties: {
-//       functionAppRegion: backendFunctionApp.location
-//       functionAppResourceId: backendFunctionApp.id
-//     }
-//   }
+  resource userProvidedFunctionApp 'userProvidedFunctionApps' = {
+    name: 'backend'
+    properties: {
+      functionAppRegion: backendFunctionApp.location
+      functionAppResourceId: backendFunctionApp.id
+    }
+  }
 
-//   resource backend 'linkedBackends' = {
-//     name: 'default'
-//     properties: {
-//       backendResourceId: backendFunctionApp.id
-//       region: backendFunctionApp.location
-//     }
-//   }
-// }
+  resource backend 'linkedBackends' = {
+    name: 'default'
+    properties: {
+      backendResourceId: backendFunctionApp.id
+      region: backendFunctionApp.location
+    }
+  }
+}
 
 // Role assignments granting the Function App managed identity data access to Cosmos (Gremlin + SQL) and Service Bus send/receive.
 // Using Built-in Data Contributor for Cosmos (read/write) and Service Bus Data Sender/Receiver.
