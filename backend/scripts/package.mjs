@@ -79,7 +79,12 @@ async function main() {
         delete deployPkg.dependencies['@atlas/shared']
     }
     // Preserve the main entry point pattern for Azure Functions discovery
-    // Original: "dist/src/**/*.js" becomes "src/**/*.js" in deployment context
+    // IMPORTANT: This transformation is intentional and correct (not drift):
+    // - Development (backend/package.json): "main": "dist/src/**/*.js"
+    //   Functions are at: backend/dist/src/functions/*.js
+    // - Deployment (dist-deploy/package.json): "main": "src/**/*.js"
+    //   Functions are at: dist-deploy/src/functions/*.js (no nested dist/)
+    // We strip "dist/" because the deployment artifact has a flatter structure.
     if (deployPkg.main && deployPkg.main.startsWith('dist/')) {
         deployPkg.main = deployPkg.main.substring(5) // Remove "dist/" prefix
     }
