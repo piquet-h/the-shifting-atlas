@@ -64,7 +64,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
           type: 'blobContainer'
           value: storageAccount::blobService::container.name
           authentication: {
-            type: 'ManagedIdentity'
+            type: 'SystemAssignedIdentity'
           }
         }
       }
