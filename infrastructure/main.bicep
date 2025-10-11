@@ -89,7 +89,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     properties: {
       AzureWebJobsStorage__accountName: storageAccount.name
 
-      APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'AAD'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
 
       ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
@@ -360,19 +360,6 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
       'Microsoft.Authorization/roleDefinitions',
       'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     ) // Storage Blob Data Contributor
-    principalId: backendFunctionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource appInsightsContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(applicationInsights.id, backendFunctionApp.id, 'app-insights-contributor')
-  scope: applicationInsights
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      'e27754c5-29e8-4b9b-8c2e-93c3a5aa7c33'
-    ) // Application Insights Component Contributor
     principalId: backendFunctionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
