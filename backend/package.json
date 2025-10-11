@@ -12,7 +12,8 @@
         "test": "node --test --import=tsx test/*.test.ts",
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
-        "start": "npm run build && func start"
+        "start": "npm run build && func start",
+        "package:deploy": "node ./scripts/package.mjs"
     },
     "engines": {
         "node": "20.x",

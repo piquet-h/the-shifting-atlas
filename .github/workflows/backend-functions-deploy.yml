@@ -24,7 +24,8 @@ concurrency:
 env:
   NODE_VERSION: '20'
   AZURE_FUNCTIONAPP_NAME: 'func-atlas'
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend'
+  # Deploy the prepared dist folder containing only production assets
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend/dist'
 
 jobs:
   build-and-deploy:
@@ -40,8 +41,11 @@ jobs:
       - name: Build shared dependencies
         run: npm run build -w shared
 
-      - name: Build backend
+      - name: Build backend (tsc)
         run: npm run build -w backend
+
+      - name: Package backend for deployment (trim deps)
+        run: npm run package:deploy -w backend
 
       - name: Run backend tests
         run: npm test -w backend
@@ -69,7 +73,7 @@ jobs:
             echo "FUNCTION_APP_NAME=${{ env.AZURE_FUNCTIONAPP_NAME }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Deploy to Azure Functions
+      - name: Deploy to Azure Functions (dist artifact)
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
