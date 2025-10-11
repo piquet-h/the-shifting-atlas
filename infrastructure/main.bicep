@@ -272,7 +272,7 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
   }
 
   properties: {
-    allowConfigFileUpdates: false
+    allowConfigFileUpdates: true
     buildProperties: {
       skipGithubActionWorkflowGeneration: true
     }
