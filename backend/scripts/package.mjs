@@ -22,7 +22,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const backendRoot = path.resolve(__dirname, '..')
 const sharedRoot = path.resolve(backendRoot, '..', 'shared')
-const distRoot = path.join(backendRoot, 'dist')
+const deployRoot = path.join(backendRoot, 'dist-deploy') // Separate deploy directory
 
 async function exists(p) {
     try {
@@ -41,25 +41,48 @@ async function run(cmd, args, cwd) {
 }
 
 async function main() {
-    // Preconditions: shared & backend already built (tsc). We assert dist/src exists.
-    const backendSrcOut = path.join(distRoot, 'src')
-    if (!(await exists(backendSrcOut))) {
+    // Ensure completely clean deploy directory for npm ci (with retry for stubborn files)
+    if (await exists(deployRoot)) {
+        try {
+            await fs.rm(deployRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+        } catch (err) {
+            console.warn(`Warning: Could not fully clean ${deployRoot}: ${err.message}. Attempting to continue...`)
+            // Try to at least clear the main contents we care about
+            try {
+                await fs.rm(path.join(deployRoot, 'node_modules'), { recursive: true, force: true })
+                await fs.rm(path.join(deployRoot, 'package.json'), { force: true })
+                await fs.rm(path.join(deployRoot, 'package-lock.json'), { force: true })
+            } catch {
+                // If we still can't clean, fail fast
+                console.error('Failed to clean deployment directory. Please manually remove backend/dist-deploy/')
+                process.exit(1)
+            }
+        }
+    }
+    await fs.mkdir(deployRoot, { recursive: true })
+
+    // Preconditions: shared & backend already built (tsc). Check original build output exists.
+    const originalBuildOutput = path.join(backendRoot, 'dist', 'src')
+    if (!(await exists(originalBuildOutput))) {
         console.error('Expected compiled backend output at dist/src. Did you run `npm run build -w backend`?')
         process.exit(1)
     }
+    // Copy compiled output to clean deploy directory
+    await fs.cp(originalBuildOutput, path.join(deployRoot, 'src'), { recursive: true })
 
-    // 1. Copy host.json → dist/host.json
-    await fs.copyFile(path.join(backendRoot, 'host.json'), path.join(distRoot, 'host.json'))
-
-    // 2. Create deployment package.json derived from backend/package.json
+    // 1. Copy host.json → deploy/host.json
+    await fs.copyFile(path.join(backendRoot, 'host.json'), path.join(deployRoot, 'host.json')) // 2. Create deployment package.json derived from backend/package.json
     const backendPkg = JSON.parse(await fs.readFile(path.join(backendRoot, 'package.json'), 'utf8'))
     const deployPkg = { ...backendPkg }
     // Remove workspace/file reference to shared (we vendor it)
     if (deployPkg.dependencies && deployPkg.dependencies['@atlas/shared']) {
         delete deployPkg.dependencies['@atlas/shared']
     }
-    // Adjust main to point inside dist structure (optional but clearer)
-    deployPkg.main = 'src/index.js'
+    // Preserve the main entry point pattern for Azure Functions discovery
+    // Original: "dist/src/**/*.js" becomes "src/**/*.js" in deployment context
+    if (deployPkg.main && deployPkg.main.startsWith('dist/')) {
+        deployPkg.main = deployPkg.main.substring(5) // Remove "dist/" prefix
+    }
     // Remove dev scripts not needed at runtime
     delete deployPkg.devDependencies
     // Slim scripts to only what might help in Kudu console
@@ -67,19 +90,28 @@ async function main() {
         start: 'func start',
         diagnostics: 'node -e "console.log(\'Diagnostics OK\')"'
     }
-    await fs.writeFile(path.join(distRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
+    await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
 
-    // 3. Install production dependencies inside dist (excluding vendored shared)
-    console.log('Installing production dependencies in dist...')
-    await run('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], distRoot)
+    // 3. Copy workspace package-lock.json for deterministic npm ci
+    const workspaceRoot = path.resolve(backendRoot, '..')
+    const workspaceLockFile = path.join(workspaceRoot, 'package-lock.json')
+    if (await exists(workspaceLockFile)) {
+        await fs.copyFile(workspaceLockFile, path.join(deployRoot, 'package-lock.json'))
+    } else {
+        console.warn('Warning: No package-lock.json found in workspace root. Using npm install instead of npm ci.')
+    }
 
-    // 4. Vendor @atlas/shared AFTER npm install so it is not pruned
+    // 4. Install production dependencies inside deploy directory (deterministic with npm ci)
+    const hasLock = await exists(path.join(deployRoot, 'package-lock.json'))
+    const installCmd = hasLock ? 'ci' : 'install'
+    console.log(`Installing production dependencies in deploy directory using: npm ${installCmd}...`)
+    await run('npm', [installCmd, '--omit=dev', '--no-audit', '--no-fund'], deployRoot) // 5. Vendor @atlas/shared AFTER npm install so it is not pruned
     const sharedDist = path.join(sharedRoot, 'dist')
     if (!(await exists(sharedDist))) {
         console.error('Expected shared build output at shared/dist. Did you run `npm run build -w shared`?')
         process.exit(1)
     }
-    const vendoredSharedRoot = path.join(distRoot, 'node_modules', '@atlas', 'shared')
+    const vendoredSharedRoot = path.join(deployRoot, 'node_modules', '@atlas', 'shared')
     await fs.mkdir(vendoredSharedRoot, { recursive: true })
     const sharedPkgRaw = JSON.parse(await fs.readFile(path.join(sharedRoot, 'package.json'), 'utf8'))
     const { name, version, type, main, types, exports: exp, browser, files } = sharedPkgRaw
@@ -87,8 +119,8 @@ async function main() {
     await fs.writeFile(path.join(vendoredSharedRoot, 'package.json'), JSON.stringify(sharedPkg, null, 2) + '\n', 'utf8')
     await fs.cp(sharedDist, path.join(vendoredSharedRoot, 'dist'), { recursive: true })
 
-    // 5. Sanity check for @azure/functions presence & vendored shared
-    const functionsLib = path.join(distRoot, 'node_modules', '@azure', 'functions')
+    // 6. Sanity check for @azure/functions presence & vendored shared
+    const functionsLib = path.join(deployRoot, 'node_modules', '@azure', 'functions')
     if (!(await exists(functionsLib))) {
         console.error('Packaging failed: @azure/functions not installed in dist.')
         process.exit(1)
@@ -98,7 +130,7 @@ async function main() {
         process.exit(1)
     }
 
-    console.log('✅ Backend package prepared at dist/. Contents:')
+    console.log('✅ Backend package prepared at dist-deploy/. Contents:')
     console.log('- host.json')
     console.log('- package.json (production only)')
     console.log('- node_modules (production deps + vendored @atlas/shared)')

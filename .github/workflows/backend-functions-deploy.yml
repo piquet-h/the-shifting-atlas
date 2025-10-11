@@ -24,8 +24,8 @@ concurrency:
 env:
   NODE_VERSION: '20'
   AZURE_FUNCTIONAPP_NAME: 'func-atlas'
-  # Deploy the prepared dist folder containing only production assets
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend/dist'
+  # Deploy the prepared dist-deploy folder containing only production assets
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend/dist-deploy'
 
 jobs:
   build-and-deploy:
