@@ -7,7 +7,7 @@ import { usePlayerGuid } from './usePlayerGuid'
  * useLinkGuestOnAuth
  * When a user signs in (SWA auth) and we have a locally persisted guest GUID,
  * call the linking endpoint to promote that guest to a regular profile.
- * Idempotent: stores localStorage flag to avoid duplicate POSTs.
+ * Idempotent: stores localStorage flag to avoid duplicate POSTs
  */
 export function useLinkGuestOnAuth() {
     const { isAuthenticated } = useAuth()
