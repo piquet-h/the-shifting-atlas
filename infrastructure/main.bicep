@@ -22,19 +22,24 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+resource backendPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: 'plan-${name}'
+  kind: 'functionapp'
   location: location
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'FC1'
+    tier: 'FlexConsumption'
+  }
+  properties: {
+    perSiteScaling: false
+    reserved: true
   }
 }
 
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
-  kind: 'functionapp'
+  kind: 'functionapp,linux'
   properties: {
     serverFarmId: backendPlan.id
     httpsOnly: true
