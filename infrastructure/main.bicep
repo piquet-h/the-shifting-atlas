@@ -34,40 +34,40 @@ resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   }
 }
 
-// resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
-//   name: 'func-${name}'
-//   location: location
-//   kind: 'functionapp'
-//   properties: {
-//     serverFarmId: backendPlan.id
-//     httpsOnly: true
-//   }
+resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
+  name: 'func-${name}'
+  location: location
+  kind: 'functionapp,linux'
+  properties: {
+    serverFarmId: backendPlan.id
+    httpsOnly: true
+  }
 
-//   identity: {
-//     type: 'SystemAssigned'
-//   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 
-//   resource appSettings 'config' = {
-//     name: 'appsettings'
+  resource appSettings 'config' = {
+    name: 'appsettings'
 
-//     properties: {
-//       FUNCTIONS_WORKER_RUNTIME: 'node'
-//       FUNCTIONS_EXTENSION_VERSION: '~4'
+    properties: {
+      FUNCTIONS_WORKER_RUNTIME: 'node'
+      FUNCTIONS_EXTENSION_VERSION: '~4'
 
-//       WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
-//       WEBSITE_CONTENTSHARE: toLower(backendFunctionApp.name)
-//       WEBSITE_NODE_DEFAULT_VERSION: '~20'
-//       WEBSITE_RUN_FROM_PACKAGE: '1'
-//       AzureWebJobsStorage__accountName: storageAccount.name
+      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+      WEBSITE_CONTENTSHARE: toLower(backendFunctionApp.name)
+      WEBSITE_NODE_DEFAULT_VERSION: '~20'
+      WEBSITE_RUN_FROM_PACKAGE: '1'
+      AzureWebJobsStorage__accountName: storageAccount.name
 
-//       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
+      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
 
-//       ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
-//       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
-//       ServiceBusAtlas__fullyQualifiedNamespace: '${serviceBusNamespace.name}.servicebus.windows.net'
-//     }
-//   }
-// }
+      ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
+      CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
+      ServiceBusAtlas__fullyQualifiedNamespace: '${serviceBusNamespace.name}.servicebus.windows.net'
+    }
+  }
+}
 
 resource cosmosGraphAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
   name: 'cosmosgraph-${name}'
