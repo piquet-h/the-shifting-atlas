@@ -55,4 +55,3 @@ app.http('playerBootstrap', {
     authLevel: 'anonymous',
     handler: playerBootstrap
 })
-// end
