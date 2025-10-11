@@ -9,7 +9,7 @@ export interface CommandInputProps {
 
 /**
  * CommandInput
- * Accessible single-line command entry with inline status messaging.
+ * Accessible single-line command entry with inline status messaging
  * Responsibilities:
  *  - Capture raw command string
  *  - Provide a11y semantics for busy / error states (parent supplies via props)
