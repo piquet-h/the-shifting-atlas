@@ -321,6 +321,6 @@ resource sbDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-output functionAppHost string = 'https://${backendFunctionApp.name}.azurewebsites.net'
-output staticWebAppName string = staticSite.name
-output staticWebAppHostname string = staticSite.properties.defaultHostname
+// output functionAppHost string = 'https://${backendFunctionApp.name}.azurewebsites.net'
+// output staticWebAppName string = staticSite.name
+// output staticWebAppHostname string = staticSite.properties.defaultHostname
