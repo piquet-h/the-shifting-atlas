@@ -149,12 +149,18 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: 'upload'
-          app_location: 'frontend/dist'
-          output_location: ''
+          app_location: 'frontend'
+          output_location: 'frontend/dist'
           skip_app_build: true
           skip_api_build: true
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          DEBUG: true
+          SWA_NAME: ${{ env.SWA_NAME }}
+      - name: Diagnostic - Show SWA properties (post-action)
+        run: |
+          echo "Fetching properties for ${SWA_NAME} after deployment attempt..."
+          az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties."
 
   build-and-deploy-preview:
     name: Build & Deploy (Preview)
@@ -237,15 +243,18 @@ jobs:
         with:
           action: 'upload'
           app_location: 'frontend'
-          app_artifact_location: 'frontend/dist'
+          output_location: 'frontend/dist'
           skip_app_build: true
           skip_api_build: true
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         env:
-          # Standard SWA action OIDC / API token resolution uses provided secrets.
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          DEBUG: true
+          SWA_NAME: ${{ vars.SWA_NAME }}
+      - name: Diagnostic - Show SWA properties (preview post-action)
+        if: ${{ always() && vars.SWA_NAME != '' }}
+        run: |
+          echo "Fetching properties for ${SWA_NAME} after preview deployment attempt..."
+          az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties (preview)."
 
   preview-cleanup:
     name: Cleanup Preview (PR Closed)
