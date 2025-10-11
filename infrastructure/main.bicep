@@ -72,6 +72,10 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
         name: 'node'
         version: '20'
       }
+      scaleAndConcurrency: {
+        instanceMemoryMB: 512
+        maximumInstanceCount: 40
+      }
     }
   }
 
