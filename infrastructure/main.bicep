@@ -228,7 +228,7 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
 
 resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
   name: 'stapp-atlas'
-  location: 'westus2'
+  location: location
   sku: {
     name: 'Standard'
     tier: 'Standard'
@@ -238,16 +238,15 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
     type: 'SystemAssigned'
   }
 
-  // Deployment unlink: removed GitHub provider/repository/branch so that
-  // the Static Web App operates in manual (unlinked) mode and is deployed
-  // exclusively via our custom GitHub Action using the SWA CLI + OIDC.
-  // Keeping buildProperties minimal (apiLocation empty for now). If an API
-  // directory is added later, update buildProperties or rely solely on CLI args.
   properties: {
-    buildProperties: {
-      apiLocation: ''
-      // skipGithubActionWorkflowGeneration retained to suppress auto workflow suggestions
-      skipGithubActionWorkflowGeneration: true
+    allowConfigFileUpdates: false
+  }
+
+  resource userProvidedFunctionApp 'userProvidedFunctionApps' = {
+    name: 'backend'
+    properties: {
+      functionAppRegion: backendFunctionApp.location
+      functionAppResourceId: backendFunctionApp.id
     }
   }
 
