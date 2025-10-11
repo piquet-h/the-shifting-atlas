@@ -89,7 +89,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     properties: {
       AzureWebJobsStorage__accountName: storageAccount.name
 
-      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
+      APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'AAD'
 
       ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
