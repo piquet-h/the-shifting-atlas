@@ -11,6 +11,20 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
+
+  resource blobService 'blobServices' = {
+    name: 'default'
+    properties: {
+      deleteRetentionPolicy: {}
+    }
+
+    resource container 'containers' = {
+      name: 'function-releases'
+      properties: {
+        publicAccess: 'None'
+      }
+    }
+  }
 }
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
@@ -41,6 +55,20 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   properties: {
     serverFarmId: backendPlan.id
     httpsOnly: true
+    siteConfig: {
+      minTlsVersion: '1.2'
+    }
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: storageAccount::blobService::container.name
+          authentication: {
+            type: 'ManagedIdentity'
+          }
+        }
+      }
+    }
   }
 
   identity: {
