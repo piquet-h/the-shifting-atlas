@@ -101,6 +101,29 @@ jobs:
           fi
           echo "Deployment token appears configured (redacted, length > 0)."
 
+      - name: Preflight - Verify Static Web App exists
+        if: env.SWA_NAME != ''
+        env:
+          SWA_NAME: ${{ env.SWA_NAME }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          echo "Verifying Static Web App '${SWA_NAME}' in subscription ${AZURE_SUBSCRIPTION_ID}..."
+          # Try targeted RG first if provided, fallback to subscription-wide lookup.
+          if [ -n "${AZURE_RESOURCE_GROUP:-}" ]; then
+            if ! az staticwebapp show --name "${SWA_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
+              echo "::warning title=SWA not found in specified resource group::Did not find ${SWA_NAME} in ${AZURE_RESOURCE_GROUP}. Falling back to subscription search.";
+            else
+              echo "Found ${SWA_NAME} in resource group ${AZURE_RESOURCE_GROUP}.";
+            fi
+          fi
+          if ! az staticwebapp show --name "${SWA_NAME}" >/dev/null 2>&1; then
+            echo "::error title=Static Web App not found::No Static Web App named ${SWA_NAME} was found in the current subscription. Check SWA_NAME repo variable or provision the resource.";
+            exit 1
+          fi
+          echo "SWA existence verified. Proceeding to deploy."
+
       - name: Deploy to Azure Static Web Apps (Production)
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -143,6 +166,23 @@ jobs:
             exit 1;
           fi
           echo "Deployment token appears configured (redacted, length > 0)."
+
+      - name: Preflight - Verify Static Web App exists (Preview)
+        env:
+          SWA_NAME: ${{ vars.SWA_NAME }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then
+            echo "::warning title=Missing SWA_NAME::Skipping existence check (no SWA_NAME set)."; exit 0; fi
+          echo "Verifying Static Web App '${SWA_NAME}' for preview deploy..."
+          if [ -n "${AZURE_RESOURCE_GROUP:-}" ]; then
+            az staticwebapp show --name "${SWA_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1 || true
+          fi
+          if ! az staticwebapp show --name "${SWA_NAME}" >/dev/null 2>&1; then
+            echo "::error title=Static Web App not found (Preview)::No Static Web App named ${SWA_NAME} accessible. Preview deploy aborted."; exit 1; fi
+          echo "SWA existence verified (preview)."
 
       - name: Deploy to Azure Static Web Apps (Preview)
         uses: Azure/static-web-apps-deploy@v1
