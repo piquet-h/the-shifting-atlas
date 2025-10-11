@@ -62,7 +62,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       deployment: {
         storage: {
           type: 'blobContainer'
-          value: storageAccount::blobService::container.name
+          value: '${storageAccount.properties.primaryEndpoints.blob}${storageAccount::blobService::container.name}'
           authentication: {
             type: 'SystemAssignedIdentity'
           }
@@ -297,58 +297,83 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
 
 // Role assignments granting the Function App managed identity data access to Cosmos (Gremlin + SQL) and Service Bus send/receive.
 // Using Built-in Data Contributor for Cosmos (read/write) and Service Bus Data Sender/Receiver.
-// resource cosmosGraphDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(cosmosGraphAccount.id, backendFunctionApp.id, 'cosmos-graph-data-contrib')
-//   scope: cosmosGraphAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '5bd9cd88-fe45-4216-938b-f97437e15450'
-//     ) // Cosmos DB Built-in Data Contributor
-//     principalId: backendFunctionApp.identity.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+resource cosmosGraphDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(cosmosGraphAccount.id, backendFunctionApp.id, 'cosmos-graph-data-contrib')
+  scope: cosmosGraphAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5bd9cd88-fe45-4216-938b-f97437e15450'
+    ) // Cosmos DB Built-in Data Contributor
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
-// resource cosmosSqlDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(cosmosSqlAccount.id, backendFunctionApp.id, 'cosmos-sql-data-contrib')
-//   scope: cosmosSqlAccount
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '5bd9cd88-fe45-4216-938b-f97437e15450'
-//     )
-//     principalId: backendFunctionApp.identity.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+resource cosmosSqlDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(cosmosSqlAccount.id, backendFunctionApp.id, 'cosmos-sql-data-contrib')
+  scope: cosmosSqlAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5bd9cd88-fe45-4216-938b-f97437e15450'
+    )
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
-// resource sbDataSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(serviceBusNamespace.id, backendFunctionApp.id, 'sb-data-sender')
-//   scope: serviceBusNamespace
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
-//     ) // Service Bus Data Sender
-//     principalId: backendFunctionApp.identity.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+resource sbDataSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(serviceBusNamespace.id, backendFunctionApp.id, 'sb-data-sender')
+  scope: serviceBusNamespace
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
+    ) // Service Bus Data Sender
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
-// resource sbDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(serviceBusNamespace.id, backendFunctionApp.id, 'sb-data-receiver')
-//   scope: serviceBusNamespace
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId(
-//       'Microsoft.Authorization/roleDefinitions',
-//       '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
-//     ) // Service Bus Data Receiver
-//     principalId: backendFunctionApp.identity.principalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+resource sbDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(serviceBusNamespace.id, backendFunctionApp.id, 'sb-data-receiver')
+  scope: serviceBusNamespace
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
+    ) // Service Bus Data Receiver
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // output functionAppHost string = 'https://${backendFunctionApp.name}.azurewebsites.net'
 // output staticWebAppName string = staticSite.name
 // output staticWebAppHostname string = staticSite.properties.defaultHostname
+resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, backendFunctionApp.id, 'storage-blob-contributor')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    ) // Storage Blob Data Contributor
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource appInsightsContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(applicationInsights.id, backendFunctionApp.id, 'app-insights-contributor')
+  scope: applicationInsights
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'e27754c5-29e8-4b9b-8c2e-93c3a5aa7c33'
+    ) // Application Insights Component Contributor
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
