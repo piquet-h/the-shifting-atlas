@@ -22,16 +22,16 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource backendPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+resource backendPlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: 'plan-${name}'
-  kind: 'functionapp'
   location: location
   sku: {
-    name: 'FC1'
-    tier: 'FlexConsumption'
+    name: 'Y1'
+    tier: 'Dynamic'
+    size: 'Y1'
+    family: 'Y'
   }
   properties: {
-    perSiteScaling: false
     reserved: true
   }
 }
@@ -41,8 +41,37 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   location: location
   kind: 'functionapp,linux'
   properties: {
+    reserved: true
     serverFarmId: backendPlan.id
-    httpsOnly: true
+    siteConfig: {
+      linuxFxVersion: 'node|20'
+      appSettings: [
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: reference(resourceId('Microsoft.Insights/components', 'func-${name}'), '2020-02-02').InstrumentationKey
+        }
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageName};EndpointSuffix=${environment().suffixes.storage};AccountKey=${storageAccount.listKeys().keys[0].value}'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower('func-${name}')
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'node'
+        }
+      ]
+    }
   }
 
   identity: {
