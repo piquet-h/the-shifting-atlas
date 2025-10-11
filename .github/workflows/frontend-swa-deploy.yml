@@ -124,6 +124,27 @@ jobs:
           fi
           echo "SWA existence verified. Proceeding to deploy."
 
+      - name: Preflight - Verify deployment token matches portal (Production)
+        if: env.SWA_NAME != ''
+        env:
+          SWA_NAME: ${{ env.SWA_NAME }}
+          PROVIDED_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Comparing provided deployment token with portal token for ${SWA_NAME}..."
+          # Retrieve current portal token (apiKey). This requires appropriate RBAC (Contributor or Static Web App role).
+          portal_token=$(az staticwebapp secrets list --name "${SWA_NAME}" --query properties.apiKey -o tsv 2>/dev/null || true)
+          if [ -z "${portal_token}" ]; then
+            echo "::warning title=Portal token retrieval failed::Could not retrieve current portal token via CLI (insufficient permissions or unsupported). Skipping comparison."; exit 0; fi
+          if [ "${portal_token}" != "${PROVIDED_TOKEN}" ]; then
+            echo "::error title=Deployment token mismatch::The secret AZURE_STATIC_WEB_APPS_API_TOKEN does not match the current portal deployment token. Regenerate (Azure Portal > Static Web App > Manage deployment token) and update the secret, or rotate both.";
+            # Show hashes (truncated) for audit without leaking tokens.
+            echo "Portal token hash:   $(echo -n "${portal_token}" | sha256sum | cut -c1-12)";
+            echo "Provided token hash: $(echo -n "${PROVIDED_TOKEN}" | sha256sum | cut -c1-12)";
+            exit 1;
+          fi
+          echo "Deployment token matches portal (hash: $(echo -n "${portal_token}" | sha256sum | cut -c1-12))."
+
       - name: Deploy to Azure Static Web Apps (Production)
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -167,6 +188,13 @@ jobs:
           fi
           echo "Deployment token appears configured (redacted, length > 0)."
 
+      - name: Azure login (OIDC) for preview checks
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Preflight - Verify Static Web App exists (Preview)
         env:
           SWA_NAME: ${{ vars.SWA_NAME }}
@@ -183,6 +211,25 @@ jobs:
           if ! az staticwebapp show --name "${SWA_NAME}" >/dev/null 2>&1; then
             echo "::error title=Static Web App not found (Preview)::No Static Web App named ${SWA_NAME} accessible. Preview deploy aborted."; exit 1; fi
           echo "SWA existence verified (preview)."
+
+      - name: Preflight - Verify deployment token matches portal (Preview)
+        if: vars.SWA_NAME != ''
+        env:
+          SWA_NAME: ${{ vars.SWA_NAME }}
+          PROVIDED_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Comparing provided deployment token with portal token for ${SWA_NAME} (preview)..."
+          portal_token=$(az staticwebapp secrets list --name "${SWA_NAME}" --query properties.apiKey -o tsv 2>/dev/null || true)
+          if [ -z "${portal_token}" ]; then
+            echo "::warning title=Portal token retrieval failed::Could not retrieve current portal token via CLI (insufficient permissions or unsupported). Skipping comparison."; exit 0; fi
+          if [ "${portal_token}" != "${PROVIDED_TOKEN}" ]; then
+            echo "::error title=Deployment token mismatch (Preview)::Secret AZURE_STATIC_WEB_APPS_API_TOKEN does not match portal token. Update or regenerate.";
+            echo "Portal token hash:   $(echo -n "${portal_token}" | sha256sum | cut -c1-12)";
+            echo "Provided token hash: $(echo -n "${PROVIDED_TOKEN}" | sha256sum | cut -c1-12)";
+            exit 1;
+          fi
+          echo "Deployment token matches portal (hash: $(echo -n "${portal_token}" | sha256sum | cut -c1-12))."
 
       - name: Deploy to Azure Static Web Apps (Preview)
         uses: Azure/static-web-apps-deploy@v1
