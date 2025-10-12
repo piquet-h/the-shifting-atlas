@@ -118,7 +118,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     properties: {
       AzureWebJobsStorage__accountName: storageAccount.name
 
-      FUNCTIONS_WORKER_RUNTIME: 'node'
       FUNCTIONS_EXTENSION_VERSION: '~4'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
