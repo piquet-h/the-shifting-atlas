@@ -45,9 +45,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
 
     resource container 'containers' = {
       name: 'function-releases'
-      properties: {
-        publicAccess: 'Container'
-      }
     }
   }
 }
@@ -74,29 +71,24 @@ resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   }
 }
 
-resource consumptionPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
-  name: 'plan-${name}-consumption'
-  location: location
-  sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
-  }
-}
-
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
-  tags: {
-    'azd-service-name': 'api'
-  }
   kind: 'functionapp,linux'
+  tags: {
+    'hidden-link: /app-insights-resource-id': '/subscriptions/1dae96f3-103a-4036-8b81-17bc0c87c3c8/resourceGroups/rg-atlas-game/providers/microsoft.insights/components/appi-atlas'
+  }
   properties: {
+    enabled: true
     serverFarmId: backendPlan.id
     httpsOnly: true
+
     siteConfig: {
-      minTlsVersion: '1.2'
+      minTlsVersion: '1.3'
+      http20Enabled: true 
       alwaysOn: false
     }
+
     functionAppConfig: {
       deployment: {
         storage: {
@@ -132,7 +124,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR: 'true'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
-      APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'Authorization=AAD'
 
       ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
@@ -392,9 +383,6 @@ resource sbDataReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-// output functionAppHost string = 'https://${backendFunctionApp.name}.azurewebsites.net'
-// output staticWebAppName string = staticSite.name
-// output staticWebAppHostname string = staticSite.properties.defaultHostname
 resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, backendFunctionApp.id, 'storage-blob-contributor')
   scope: storageAccount
