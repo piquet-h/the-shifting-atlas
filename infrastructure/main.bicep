@@ -46,7 +46,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
     resource container 'containers' = {
       name: 'function-releases'
       properties: {
-        publicAccess: 'None'
+        publicAccess: 'Container'
       }
     }
   }
