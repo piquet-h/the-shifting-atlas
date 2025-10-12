@@ -7,6 +7,30 @@ var storageName = 'st${name}${substring(uniqueString(subscription().id, resource
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   name: storageName
   location: location
+
+  properties: {
+    accessTier: 'Hot'
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    encryption: {
+      services: {
+        blob: {
+          enabled: true
+        }
+        file: {
+          enabled: true
+        }
+      }
+      keySource: 'Microsoft.Storage'
+    }
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: 'Allow'
+    }
+  }
+
   sku: {
     name: 'Standard_LRS'
   }
@@ -51,12 +75,16 @@ resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
+  tags: {
+    'azd-service-name': 'api'
+  }
   kind: 'functionapp,linux'
   properties: {
     serverFarmId: backendPlan.id
     httpsOnly: true
     siteConfig: {
       minTlsVersion: '1.2'
+      alwaysOn: false
     }
     functionAppConfig: {
       deployment: {
@@ -90,6 +118,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       AzureWebJobsStorage__accountName: storageAccount.name
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
+      APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'Authorization=AAD'
 
       ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint

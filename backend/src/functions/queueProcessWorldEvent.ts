@@ -9,10 +9,10 @@
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
  * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
-import { app, InvocationContext } from '@azure/functions'
+import { trackGameEventStrict } from '@atlas/shared'
 import type { WorldEventEnvelope } from '@atlas/shared/events'
 import { safeValidateWorldEventEnvelope } from '@atlas/shared/events'
-import { trackGameEventStrict } from '@atlas/shared'
+import { InvocationContext } from '@azure/functions'
 
 // --- Configuration -----------------------------------------------------------
 
@@ -185,8 +185,8 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
     })
 }
 
-app.serviceBusQueue('QueueProcessWorldEvent', {
-    connection: 'ServiceBusConnection',
-    queueName: 'world-events',
-    handler: queueProcessWorldEvent
-})
+// app.serviceBusQueue('QueueProcessWorldEvent', {
+//     connection: 'ServiceBusConnection',
+//     queueName: 'world-events',
+//     handler: queueProcessWorldEvent
+// })

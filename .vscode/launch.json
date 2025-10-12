@@ -8,6 +8,44 @@
             "restart": true,
             "port": 9229,
             "preLaunchTask": "func: host start"
+        },
+        {
+            "name": "Frontend: Launch Vite (Chrome)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5173",
+            "preLaunchTask": "npm:dev:frontend",
+            "webRoot": "${workspaceFolder}/frontend/src",
+            "sourceMaps": true
+        },
+        {
+            "name": "Backend: Start (npm dev:backend)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run",
+                "dev:backend"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Full Stack (Functions + Frontend)",
+            "configurations": [
+                "Attach to Node Functions",
+                "Frontend: Launch Vite (Chrome)"
+            ]
+        },
+        {
+            "name": "Full Stack (Start Scripts)",
+            "configurations": [
+                "Backend: Start (npm dev:backend)",
+                "Frontend: Launch Vite (Chrome)"
+            ]
         }
     ]
 }

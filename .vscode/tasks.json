@@ -54,6 +54,21 @@
             "options": {
                 "cwd": "${workspaceFolder}/backend"
             }
+        },
+        // Frontend & composite dev tasks
+        {
+            "type": "npm",
+            "label": "npm:dev:frontend",
+            "script": "dev:frontend",
+            "path": "${workspaceFolder}",
+            "problemMatcher": []
+        },
+        {
+            "type": "npm",
+            "label": "npm:dev:backend",
+            "script": "dev:backend",
+            "path": "${workspaceFolder}",
+            "problemMatcher": []
         }
     ]
 }
