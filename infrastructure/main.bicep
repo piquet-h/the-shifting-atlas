@@ -2,9 +2,10 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
-var storageName = 'st${name}${unique}'
+var storageName = toLower('st${name}${unique}')
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
+  #disable-next-line BCP334
   name: storageName
   location: location
 
