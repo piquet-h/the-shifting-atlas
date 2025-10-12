@@ -78,12 +78,7 @@ jobs:
         with:
           app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          # For Flex Consumption plan, enable remote build
-          sku: 'flexconsumption'
-          remote-build: false
-          # Use OIDC authentication instead of publish profile
-          enable-oryx-build: false
-          scm-do-build-during-deployment: false
+          slot-name: 'Production'
 
       - name: Verify deployment
         run: |
