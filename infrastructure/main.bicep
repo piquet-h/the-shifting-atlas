@@ -62,6 +62,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
 
 resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: 'plan-${name}'
+  kind: 'linux'
   location: location
   sku: {
     name: 'FC1'
