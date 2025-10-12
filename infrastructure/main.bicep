@@ -74,6 +74,15 @@ resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   }
 }
 
+resource consumptionPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
+  name: 'plan-${name}-consumption'
+  location: location
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+}
+
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
