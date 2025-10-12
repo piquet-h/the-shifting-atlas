@@ -2,7 +2,7 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
-var storageName = 'st${name}${substring(uniqueString(subscription().id, resourceGroup().id), 0, 4)}'
+var storageName = 'st${name}${unique}'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   name: storageName
@@ -117,6 +117,9 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
     properties: {
       AzureWebJobsStorage__accountName: storageAccount.name
+
+      FUNCTIONS_WORKER_RUNTIME: 'node'
+      FUNCTIONS_EXTENSION_VERSION: '~4'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
       APPLICATIONINSIGHTS_AUTHENTICATION_STRING: 'Authorization=AAD'
