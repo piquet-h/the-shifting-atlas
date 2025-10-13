@@ -58,6 +58,7 @@ Design principles:
 ```
 frontend/         React SPA
 backend/          Azure Functions App (HTTP + world / player endpoints, future queues)
+shared/           Shared domain models, telemetry, utilities (consumed by backend & frontend)
 infrastructure/   Bicep (SWA, Cosmos, Key Vault)
 docs/             Architecture & domain design modules
 ```
@@ -198,9 +199,9 @@ Key starting points:
 - MVP Azure Architecture: `docs/architecture/mvp-azure-architecture.md`
 - CI/CD Pipelines: `docs/ci-cd.md`
 - **Backend Build System:**
-  - Quick Reference: `docs/backend-build-quickref.md` ⭐
-  - Full Walkthrough: `docs/backend-build-walkthrough.md`
-  - GitHub Packages Migration: `docs/github-packages-migration-checklist.md`
+    - Quick Reference: `docs/backend-build-quickref.md` ⭐
+    - Full Walkthrough: `docs/backend-build-walkthrough.md`
+    - GitHub Packages Migration: `docs/github-packages-migration-checklist.md`
 - World Rules & Lore: `docs/modules/world-rules-and-lore.md`
 - Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
 - Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
