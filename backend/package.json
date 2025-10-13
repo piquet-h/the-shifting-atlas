@@ -26,6 +26,7 @@
         "zod": "^4.1.11"
     },
     "devDependencies": {
-        "concurrently": "^9.2.1"
+        "concurrently": "^9.2.1",
+        "tsx": "^4.19.1"
     }
 }
