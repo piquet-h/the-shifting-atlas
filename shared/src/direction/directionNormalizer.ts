@@ -19,7 +19,7 @@ export function isRelativeDirection(value: string): value is RelativeDirection {
 }
 
 /**
- * Resolve relative direction to canonical direction using lastHeading context.
+ * Resolve relative direction to canonical direction using lastHeading context..
  * Based on standard compass navigation where:
  * - Forward continues in the same direction
  * - Back reverses direction (180° turn)
