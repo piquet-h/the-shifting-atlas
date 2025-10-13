@@ -8,13 +8,11 @@
         "npm": ">=10.0.0"
     },
     "workspaces": [
-        "shared",
         "frontend",
         "backend"
     ],
     "scripts": {
-        "dev": "concurrently -n shared,backend,frontend -c cyan,magenta,green \"npm:watch:shared\" \"npm:dev:backend\" \"npm:dev:frontend\"",
-        "watch:shared": "npm run watch -w shared",
+        "dev": "concurrently -n backend,frontend -c magenta,green \"npm:dev:backend\" \"npm:dev:frontend\"",
         "dev:backend": "npm run dev -w backend",
         "dev:frontend": "npm run dev -w frontend",
         "build": "tsc -b tsconfig.refs.json && npm run build -w frontend",

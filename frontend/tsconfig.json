@@ -14,5 +14,5 @@
         "tsBuildInfoFile": "./.cache/tsbuildinfo"
     },
     "include": ["src"],
-    "references": [{ "path": "../shared" }]
+    "references": []
 }
