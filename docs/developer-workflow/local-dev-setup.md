@@ -17,6 +17,30 @@ npm install --workspaces
 
 This installs dependencies for `frontend` and `backend`.
 
+### Accessing Internal GitHub Packages
+
+The project consumes the `@piquet-h/shared` package from GitHub Packages. The committed root `.npmrc` only declares registry mappings; **it does not include credentials**.
+
+Authentication paths:
+
+1. CI / GitHub Actions: `actions/setup-node` injects auth automatically via `NODE_AUTH_TOKEN` (no action required).
+2. Local (recommended): create or update your user-level `~/.npmrc`:
+
+    ```bash
+    @piquet-h:registry=https://npm.pkg.github.com
+    //npm.pkg.github.com/:_authToken=<YOUR_GH_PAT_WITH_read:packages>
+    ```
+
+3. Local (ephemeral): export an environment variable for this shell session:
+
+    ```bash
+    export NODE_AUTH_TOKEN=<YOUR_GH_PAT_WITH_read:packages>
+    ```
+
+PAT Scope Requirements: `read:packages` (and `write:packages` only if you intend to publish). Avoid committing any auth line to the repository `.npmrc`—it’s intentionally absent for security.
+
+If you see `401 Unauthorized` while installing, verify the token scope and that you’re not behind a proxy stripping headers.
+
 ## Run Frontend & Backend (Recommended)
 
 Use two terminals:

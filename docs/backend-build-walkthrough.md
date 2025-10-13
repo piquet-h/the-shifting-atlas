@@ -27,12 +27,12 @@ The Shifting Atlas uses an **npm workspace monorepo**:
 the-shifting-atlas/
 ├── package.json              # Root workspace config
 ├── package-lock.json         # Shared lockfile
-├── shared/                   # @piquet-h/shared package (renamed from @atlas/shared)
+├── shared/                   # @piquet-h/shared package
 │   ├── package.json
 │   ├── src/                  # TypeScript source
 │   └── dist/                 # Compiled JS (after build)
 ├── backend/                  # Azure Functions app
-│   ├── package.json          # Depends on @piquet-h/shared via "file:../shared" (previously @atlas/shared)
+│   ├── package.json          # Depends on @piquet-h/shared via "file:../shared"
 │   ├── src/                  # TypeScript source
 │   ├── dist/                 # Compiled JS (after build)
 │   ├── dist-deploy/          # Production deployment artifact (created by package.mjs)
@@ -45,27 +45,31 @@ the-shifting-atlas/
 
 ### Key Dependencies
 
-- **Backend depends on Shared**: Via `"@piquet-h/shared": "file:../shared"` in `backend/package.json` (renamed from @atlas/shared)
+- **Backend depends on Shared**: Via `"@piquet-h/shared": "file:../shared"` in `backend/package.json`
 - **Workspace Dependencies**: Managed automatically by npm workspaces
 - **TypeScript Build**: Uses project references (`tsconfig.refs.json`)
 
 ### Current Package.json Entry Points
 
 **backend/package.json:**
+
 ```json
 {
-  "main": "dist/src/**/*.js"
+    "main": "dist/src/**/*.js"
 }
 ```
+
 - This pattern works for **local development** (Azure Functions Core Tools discovers functions)
 - Points to the TypeScript build output directory structure
 
 **backend/dist-deploy/package.json (generated):**
+
 ```json
 {
-  "main": "src/**/*.js"
+    "main": "src/**/*.js"
 }
 ```
+
 - The packaging script **correctly strips** the `dist/` prefix
 - This is necessary because `dist-deploy/` doesn't have a nested `dist/` folder
 - Functions are at `dist-deploy/src/functions/*.js`
@@ -79,11 +83,13 @@ the-shifting-atlas/
 **Command:** `npm run build -w backend` (or `tsc -b tsconfig.refs.json`)
 
 **What happens:**
+
 1. Shared package compiles: `shared/src/*.ts` → `shared/dist/*.js`
 2. Backend compiles: `backend/src/*.ts` → `backend/dist/src/*.js`
 3. Type definitions (`.d.ts`) and source maps (`.js.map`) generated
 
 **Output structure:**
+
 ```
 backend/dist/
 └── src/
@@ -108,24 +114,30 @@ backend/dist/
 3. **Copy compiled code**: `backend/dist/src` → `backend/dist-deploy/src`
 4. **Copy host.json**: Required Azure Functions configuration
 5. **Generate production package.json**:
-   - Starts with `backend/package.json`
-  - **Removes** `@piquet-h/shared` dependency (renamed from `@atlas/shared`) (will be vendored)
-   - **Removes** `devDependencies`
-   - **Strips** `dist/` prefix from `main` field
-   - **Simplifies** scripts to just `start` and `diagnostics`
+    - Starts with `backend/package.json`
+
+- **Removes** `@piquet-h/shared` dependency (will be vendored)
+- **Removes** `devDependencies`
+- **Strips** `dist/` prefix from `main` field
+- **Simplifies** scripts to just `start` and `diagnostics`
+
 6. **Copy workspace package-lock.json**: For deterministic `npm ci`
 7. **Install production dependencies**: `npm ci --omit=dev --no-audit --no-fund`
-   - Installs into `dist-deploy/node_modules/`
-   - Only production dependencies (@azure/functions, applicationinsights, zod)
+    - Installs into `dist-deploy/node_modules/`
+    - Only production dependencies (@azure/functions, applicationinsights, zod)
 8. **Vendor @piquet-h/shared AFTER npm install**:
-  - Copies `shared/dist/` → `dist-deploy/node_modules/@piquet-h/shared/dist/`
-  - Creates minimal `package.json` for @piquet-h/shared
-   - Done **after** npm install so it's not pruned
+
+- Copies `shared/dist/` → `dist-deploy/node_modules/@piquet-h/shared/dist/`
+- Creates minimal `package.json` for @piquet-h/shared
+- Done **after** npm install so it's not pruned
+
 9. **Sanity checks**:
-   - Verifies `@azure/functions` was installed
-  - Verifies vendored `@piquet-h/shared` exists
+    - Verifies `@azure/functions` was installed
+
+- Verifies vendored `@piquet-h/shared` exists
 
 **Result:**
+
 ```
 backend/dist-deploy/           # 75MB total
 ├── host.json
@@ -149,6 +161,7 @@ backend/dist-deploy/           # 75MB total
 **Workflow:** `.github/workflows/backend-functions-deploy.yml`
 
 **Steps:**
+
 1. Checkout code
 2. Install all workspace dependencies (`npm install`)
 3. Build shared: `npm run build -w shared`
@@ -159,6 +172,7 @@ backend/dist-deploy/           # 75MB total
 8. Deploy `backend/dist-deploy/` to Azure Functions
 
 **Key setting:**
+
 ```yaml
 AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend/dist-deploy'
 ```
@@ -171,16 +185,19 @@ Based on the problem statement and code analysis:
 
 ### 1. ✅ **Entry Point Drift (RESOLVED)**
 
-**Original Concern:** 
+**Original Concern:**
+
 > "The entry point in the package.json in dist has drifted from the one in backend"
 
 **Analysis:**
+
 - This is **intentional and correct**, not drift
 - `backend/package.json`: `"main": "dist/src/**/*.js"` (for local dev)
 - `dist-deploy/package.json`: `"main": "src/**/*.js"` (for deployment)
 - The packaging script correctly handles this transformation (line 83-85)
 
 **Why it's needed:**
+
 - Local dev: Functions are at `backend/dist/src/functions/*.js`
 - Deployment: Functions are at `dist-deploy/src/functions/*.js` (no nested `dist/`)
 - Azure Functions runtime needs the correct path
@@ -189,7 +206,8 @@ Based on the problem statement and code analysis:
 
 ### 2. 🟡 **Complexity**
 
-**Concern:** 
+**Concern:**
+
 > "This seems an incredibly complex build system for the whole solution"
 
 **Analysis:**
@@ -197,22 +215,24 @@ The complexity comes from several factors:
 
 1. **Monorepo with file: dependencies** requires special handling
 2. **Vendoring @piquet-h/shared** is necessary because:
-   - Azure Functions deployment doesn't support workspace protocols
-   - Can't use `file:../shared` in production
+    - Azure Functions deployment doesn't support workspace protocols
+    - Can't use `file:../shared` in production
 3. **Custom packaging script** handles:
-   - Transformation of package.json
-   - Deterministic dependency installation
-   - Vendoring of internal packages
+    - Transformation of package.json
+    - Deterministic dependency installation
+    - Vendoring of internal packages
 
 **Where complexity can be reduced:**
+
 - ✅ Already using `npm ci --omit=dev` (correct approach)
 - ✅ Already minimizing package.json for deployment
-- 🟡 Could potentially use GitHub Packages to publish @piquet-h/shared (original intent for @atlas/shared; org scope may be created later)
+- 🟡 Could potentially use GitHub Packages to publish @piquet-h/shared
 - 🟡 Could explore Azure Functions' built-in build options (Oryx)
 
 ### 3. 🟡 **Development vs Production Inconsistency**
 
 **Areas of friction:**
+
 - **Different package.json**: Source vs deployment have different `main` fields
 - **Manual vendoring**: Requires custom script to copy shared package
 - **Two build steps**: `npm run build` then `npm run package:deploy`
@@ -223,9 +243,10 @@ The complexity comes from several factors:
 
 ### Option 1: GitHub Packages as Private Registry (RECOMMENDED)
 
-**Concept:** Publish `@piquet-h/shared` to GitHub Packages (renamed from `@atlas/shared`), treat it as a real npm package. Potential future migration to an `@atlas` org scope.
+**Concept:** Publish `@piquet-h/shared` to GitHub Packages, treat it as a real npm package.
 
 **Pros:**
+
 - ✅ Eliminates vendoring logic
 - ✅ Standard npm workflow
 - ✅ No custom packaging script needed (or much simpler)
@@ -234,11 +255,13 @@ The complexity comes from several factors:
 - ✅ Same package.json structure in dev and prod
 
 **Cons:**
+
 - ⚠️ Requires authentication setup (`.npmrc` config)
-- ⚠️ Need to publish @piquet-h/shared (renamed from @atlas/shared) before deploying backend
+- ⚠️ Need to publish @piquet-h/shared before deploying backend
 - ⚠️ Adds a publish step to CI/CD
 
 **When this works best:**
+
 - Medium to large projects (you're getting there)
 - When shared package has stable-ish API
 - When team wants standard npm workflows
@@ -252,6 +275,7 @@ The complexity comes from several factors:
 **Concept:** Keep vendoring approach but streamline the packaging script.
 
 **Improvements:**
+
 ```javascript
 // Current approach is already pretty good!
 // Minor improvements:
@@ -261,11 +285,13 @@ The complexity comes from several factors:
 ```
 
 **Pros:**
+
 - ✅ Already working
 - ✅ No external dependencies
 - ✅ No authentication complexity
 
 **Cons:**
+
 - ⚠️ Custom build logic to maintain
 - ⚠️ Different package.json in dev vs prod
 
@@ -278,6 +304,7 @@ The complexity comes from several factors:
 **Concept:** Let Azure handle the build during deployment.
 
 **Changes:**
+
 ```yaml
 # In backend-functions-deploy.yml
 remote-build: true
@@ -286,10 +313,12 @@ scm-do-build-during-deployment: true
 ```
 
 **Pros:**
+
 - ✅ Simpler CI/CD (just zip and upload source)
 - ✅ Azure handles npm install
 
 **Cons:**
+
 - ⚠️ Slower deployments (build happens on Azure)
 - ⚠️ Less control over build process
 - ⚠️ Still need to handle workspace dependencies somehow
@@ -301,14 +330,16 @@ scm-do-build-during-deployment: true
 
 ### Option 4: Separate Shared Package Repository
 
-**Concept:** Move @piquet-h/shared (renamed from @atlas/shared) to its own repo, publish to npm/GitHub Packages.
+**Concept:** Move @piquet-h/shared to its own repo, publish to npm/GitHub Packages.
 
 **Pros:**
+
 - ✅ True package independence
 - ✅ Can version independently
 - ✅ Standard npm workflow
 
 **Cons:**
+
 - ⚠️ Overhead of managing multiple repos
 - ⚠️ Cross-repo changes become harder
 - ⚠️ May be premature for project size
@@ -324,6 +355,7 @@ scm-do-build-during-deployment: true
 GitHub Packages provides free private npm hosting for GitHub repositories.
 
 **Key benefits:**
+
 - Free for private repos (with usage limits)
 - Integrated with GitHub Actions (easy authentication)
 - Standard npm workflow
@@ -335,57 +367,62 @@ GitHub Packages provides free private npm hosting for GitHub repositories.
 #### For Local Development
 
 Create `.npmrc` in repo root:
+
 ```ini
 @atlas:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
 Then set environment variable:
+
 ```bash
 export GITHUB_TOKEN=ghp_your_personal_access_token
 ```
 
 **PAT Requirements:**
+
 - Scope: `read:packages` (to install)
 - Scope: `write:packages` (to publish)
 
 #### For GitHub Actions
 
 GitHub automatically provides `GITHUB_TOKEN` with correct permissions:
+
 ```yaml
 - name: Setup npm auth
   run: |
-    echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
-    echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+      echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
+      echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
 ```
 
-### Publishing @piquet-h/shared (renamed from @atlas/shared)
+### Publishing @piquet-h/shared
 
 #### 1. Update shared/package.json
 
 ```json
 {
-  "name": "@piquet-h/shared", // renamed from @atlas/shared
-  "version": "0.1.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/piquet-h/the-shifting-atlas.git",
-    "directory": "shared"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  }
+    "name": "@piquet-h/shared",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/piquet-h/the-shifting-atlas.git",
+        "directory": "shared"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    }
 }
 ```
 
 #### 2. Add publish script
 
 In `shared/package.json`:
+
 ```json
 {
-  "scripts": {
-    "publish:pkg": "npm publish"
-  }
+    "scripts": {
+        "publish:pkg": "npm publish"
+    }
 }
 ```
 
@@ -399,29 +436,31 @@ Add a publish step **before** building backend:
 
 - name: Publish shared to GitHub Packages
   run: |
-    cd shared
-    npm publish
+      cd shared
+      npm publish
   env:
-    NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 #### 4. Update backend/package.json
 
 Change from:
+
 ```json
 {
-  "dependencies": {
-  "@piquet-h/shared": "file:../shared" // renamed from @atlas/shared
-  }
+    "dependencies": {
+        "@piquet-h/shared": "file:../shared"
+    }
 }
 ```
 
 To:
+
 ```json
 {
-  "dependencies": {
-  "@piquet-h/shared": "^0.1.0" // renamed from @atlas/shared
-  }
+    "dependencies": {
+        "@piquet-h/shared": "^0.1.0"
+    }
 }
 ```
 
@@ -493,7 +532,7 @@ async function main() {
             diagnostics: 'node -e "console.log(\'Diagnostics OK\')"'
         },
         engines: backendPkg.engines,
-  dependencies: backendPkg.dependencies // @piquet-h/shared will come from GitHub Packages (renamed from @atlas/shared)
+        dependencies: backendPkg.dependencies // @piquet-h/shared will come from GitHub Packages
     }
     await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
 
@@ -510,14 +549,14 @@ async function main() {
         await fs.copyFile(npmrc, path.join(deployRoot, '.npmrc'))
     }
 
-  // Install production dependencies (including @piquet-h/shared from GitHub Packages)
+    // Install production dependencies (including @piquet-h/shared from GitHub Packages)
     console.log('Installing production dependencies...')
     await run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], deployRoot)
 
-  // Verify @piquet-h/shared was installed
-  const sharedPkg = path.join(deployRoot, 'node_modules', '@piquet-h', 'shared')
+    // Verify @piquet-h/shared was installed
+    const sharedPkg = path.join(deployRoot, 'node_modules', '@piquet-h', 'shared')
     if (!(await exists(sharedPkg))) {
-  console.error('Packaging failed: @piquet-h/shared (renamed from @atlas/shared) not installed from GitHub Packages.')
+        console.error('Packaging failed: @piquet-h/shared not installed from GitHub Packages.')
         process.exit(1)
     }
 
@@ -531,6 +570,7 @@ main().catch((err) => {
 ```
 
 **Key simplifications:**
+
 - ❌ No vendoring logic
 - ❌ No manual copying of @piquet-h/shared
 - ❌ No custom package.json manipulation for shared
@@ -546,18 +586,19 @@ main().catch((err) => {
 **What to do now:**
 
 1. ✅ **Document the entry point transformation**
-   - Add comments to `package.mjs` explaining why `main` field changes
-   - Update this walkthrough document
+    - Add comments to `package.mjs` explaining why `main` field changes
+    - Update this walkthrough document
 
 2. ✅ **No changes needed to packaging script**
-   - Current script is well-written and handles edge cases
-   - Entry point transformation is correct
+    - Current script is well-written and handles edge cases
+    - Entry point transformation is correct
 
 3. ✅ **Add validation to CI/CD**
-   - Verify `dist-deploy/package.json` has correct `main` field
-   - Test function discovery in deployed environment
+    - Verify `dist-deploy/package.json` has correct `main` field
+    - Test function discovery in deployed environment
 
 **Action items:**
+
 ```bash
 # Nothing to change - system is working correctly!
 # Just add documentation:
@@ -570,14 +611,16 @@ main().catch((err) => {
 ### Medium-term (Consider GitHub Packages)
 
 **When to migrate:**
-- When @piquet-h/shared API stabilizes (renamed from @atlas/shared)
+
+- When @piquet-h/shared API stabilizes
 - When you want to introduce versioning for shared package
 - When team is comfortable with publish workflows
 
 **Migration checklist:**
+
 - [ ] Set up `.npmrc` for GitHub Packages
 - [ ] Add `publishConfig` to `shared/package.json`
-- [ ] Create publish workflow for @piquet-h/shared (renamed from @atlas/shared)
+- [ ] Create publish workflow for @piquet-h/shared
 - [ ] Test publishing @piquet-h/shared
 - [ ] Update `backend/package.json` to use version instead of `file:`
 - [ ] Update packaging script (simplified version above)
@@ -592,7 +635,7 @@ main().catch((err) => {
 
 ### If you decide to use GitHub Packages:
 
-#### Step 1: Prepare @piquet-h/shared (renamed from @atlas/shared)
+#### Step 1: Prepare @piquet-h/shared
 
 ```bash
 cd shared
@@ -619,6 +662,7 @@ echo ".npmrc" >> .gitignore  # Optional: only if storing actual tokens
 ```
 
 **OR** commit `.npmrc` with environment variable reference (safer):
+
 ```ini
 @atlas:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
@@ -631,10 +675,10 @@ echo ".npmrc" >> .gitignore  # Optional: only if storing actual tokens
 3. Scopes: `read:packages`, `write:packages`
 4. Copy token
 5. Add to your environment:
-   ```bash
-   export GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
-   # Add to ~/.bashrc or ~/.zshrc for persistence
-   ```
+    ```bash
+    export GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
+    # Add to ~/.bashrc or ~/.zshrc for persistence
+    ```
 
 #### Step 4: Test Publishing Locally
 
@@ -653,7 +697,7 @@ Verify at: `https://github.com/piquet-h/the-shifting-atlas/packages`
 cd backend
 
 # Change package.json dependency
-npm pkg set dependencies.@piquet-h/shared='^0.1.0' # renamed from @atlas/shared
+npm pkg set dependencies.@piquet-h/shared='^0.1.0'
 
 # Test installation
 rm -rf node_modules
@@ -671,27 +715,27 @@ Edit `.github/workflows/backend-functions-deploy.yml`:
 
 ```yaml
 jobs:
-  build-and-deploy:
-    steps:
-      # ... existing checkout and setup ...
+    build-and-deploy:
+        steps:
+            # ... existing checkout and setup ...
 
-      - name: Setup npm auth for GitHub Packages
-        run: |
-          echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+            - name: Setup npm auth for GitHub Packages
+              run: |
+                  echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
+                  echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
 
-      - name: Build and publish shared package
-        run: |
-          npm run build -w shared
-          cd shared
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Build and publish shared package
+              run: |
+                  npm run build -w shared
+                  cd shared
+                  npm publish
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build backend
-        run: npm run build -w backend
+            - name: Build backend
+              run: npm run build -w backend
 
-      # ... rest stays the same ...
+            # ... rest stays the same ...
 ```
 
 #### Step 8: Test Deployment
@@ -699,24 +743,25 @@ jobs:
 1. Push to a test branch
 2. Trigger workflow manually
 3. Verify:
-  - @piquet-h/shared publishes successfully (renamed from @atlas/shared)
-  - Backend installs @piquet-h/shared from GitHub Packages
-   - Deployment succeeds
-   - Functions work in Azure
+
+- @piquet-h/shared publishes successfully
+- Backend installs @piquet-h/shared from GitHub Packages
+- Deployment succeeds
+- Functions work in Azure
 
 ---
 
 ## Comparison Table
 
-| Aspect | Current System | GitHub Packages |
-|--------|---------------|-----------------|
-| **Complexity** | Medium (custom vendoring) | Low (standard npm) |
-| **Dev/Prod Consistency** | Different package.json | Same package.json |
-| **Authentication** | None needed | `.npmrc` + PAT |
-| **Versioning** | Git-based | Semantic versioning |
-| **Build Steps** | Build → Package → Deploy | Build → Publish → Deploy |
-| **Maintenance** | Custom script to maintain | Standard npm workflow |
-| **Best For** | Rapid iteration | Stable packages |
+| Aspect                   | Current System            | GitHub Packages          |
+| ------------------------ | ------------------------- | ------------------------ |
+| **Complexity**           | Medium (custom vendoring) | Low (standard npm)       |
+| **Dev/Prod Consistency** | Different package.json    | Same package.json        |
+| **Authentication**       | None needed               | `.npmrc` + PAT           |
+| **Versioning**           | Git-based                 | Semantic versioning      |
+| **Build Steps**          | Build → Package → Deploy  | Build → Publish → Deploy |
+| **Maintenance**          | Custom script to maintain | Standard npm workflow    |
+| **Best For**             | Rapid iteration           | Stable packages          |
 
 ---
 
@@ -725,6 +770,7 @@ jobs:
 ### Current System: ✅ Working Well
 
 Your current system is **well-designed** for a workspace monorepo:
+
 - Entry point transformation is correct (not a bug)
 - Vendoring approach is appropriate
 - Script handles edge cases properly
@@ -733,7 +779,8 @@ Your current system is **well-designed** for a workspace monorepo:
 ### When to Consider Migration
 
 Move to GitHub Packages when:
-1. @piquet-h/shared becomes more stable (renamed from @atlas/shared)
+
+1. @piquet-h/shared becomes more stable
 2. You want semantic versioning
 3. Team prefers standard npm workflows
 4. You're comfortable adding a publish step
@@ -741,6 +788,7 @@ Move to GitHub Packages when:
 ### Don't Over-Engineer
 
 For current project size and stage:
+
 - ✅ Current system is fine
 - ✅ Already using best practices (`npm ci`, production-only deps)
 - 🟡 GitHub Packages is optional, not necessary
@@ -751,6 +799,7 @@ For current project size and stage:
 ## Quick Reference Commands
 
 ### Current System
+
 ```bash
 # Build everything
 npm run build
@@ -762,6 +811,7 @@ npm run package:deploy -w backend
 ```
 
 ### With GitHub Packages
+
 ```bash
 # Build shared
 npm run build -w shared
@@ -769,7 +819,7 @@ npm run build -w shared
 # Publish shared
 cd shared && npm publish
 
-# Build backend (will fetch @piquet-h/shared from registry; renamed from @atlas/shared)
+# Build backend (will fetch @piquet-h/shared from registry)
 npm run build -w backend
 
 # Package backend (simplified script)
@@ -788,6 +838,7 @@ npm run package:deploy -w backend
 ---
 
 **Next Step:** Review this document and decide whether to:
+
 - A) Keep current system (document and move on)
 - B) Migrate to GitHub Packages (follow Step-by-Step guide)
 
