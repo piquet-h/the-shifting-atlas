@@ -3,25 +3,25 @@
 /* global console, process */
 /**
  * ALTERNATIVE: Simplified Backend Packaging Script for GitHub Packages
- * 
+ *
  * This is a reference implementation showing how the packaging script could be simplified
- * if @atlas/shared is published to GitHub Packages instead of being vendored.
- * 
+ * if @piquet-h/shared is published to GitHub Packages instead of being vendored (renamed from @atlas/shared).
+ *
  * DO NOT USE THIS FILE YET - This is for future migration reference only.
  * Current production script: package.mjs
- * 
+ *
  * Benefits over current approach:
  * - ~50 lines shorter
  * - No manual vendoring logic
  * - Standard npm workflow
  * - Same package.json structure in dev and production
- * 
+ *
  * Requirements before switching:
  * 1. Set up .npmrc with GitHub Packages authentication
- * 2. Publish @atlas/shared to GitHub Packages
- * 3. Update backend/package.json to use version instead of file:
+ * 2. Publish @piquet-h/shared to GitHub Packages (package previously named @atlas/shared)
+ * 3. Update backend/package.json to use version instead of file: (now referencing @piquet-h/shared)
  * 4. Update CI/CD workflow to publish shared before building backend
- * 
+ *
  * See docs/backend-build-walkthrough.md for complete migration guide.
  */
 import { spawn } from 'node:child_process'
@@ -89,7 +89,7 @@ async function main() {
             diagnostics: 'node -e "console.log(\'Diagnostics OK\')"'
         },
         engines: backendPkg.engines,
-        // @atlas/shared will be installed from GitHub Packages as a normal dependency
+        // @piquet-h/shared will be installed from GitHub Packages as a normal dependency
         dependencies: backendPkg.dependencies
     }
     await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
@@ -112,18 +112,18 @@ async function main() {
     }
 
     // Install production dependencies
-    // With GitHub Packages, @atlas/shared is installed like any other npm package
+    // With GitHub Packages, @piquet-h/shared is installed like any other npm package (renamed from @atlas/shared)
     const hasLock = await exists(path.join(deployRoot, 'package-lock.json'))
     const installCmd = hasLock ? 'ci' : 'install'
     console.log(`Installing production dependencies using: npm ${installCmd}...`)
     await run('npm', [installCmd, '--omit=dev', '--no-audit', '--no-fund'], deployRoot)
 
-    // Verify @atlas/shared was installed from GitHub Packages
-    const sharedPkg = path.join(deployRoot, 'node_modules', '@atlas', 'shared')
+    // Verify @piquet-h/shared was installed from GitHub Packages
+    const sharedPkg = path.join(deployRoot, 'node_modules', '@piquet-h', 'shared')
     if (!(await exists(sharedPkg))) {
-        console.error('Packaging failed: @atlas/shared not installed from GitHub Packages.')
+        console.error('Packaging failed: @piquet-h/shared not installed from GitHub Packages.')
         console.error('Make sure:')
-        console.error('  1. @atlas/shared is published to GitHub Packages')
+        console.error('  1. @piquet-h/shared is published to GitHub Packages (renamed from @atlas/shared)')
         console.error('  2. .npmrc is configured with proper authentication')
         console.error('  3. backend/package.json uses version (e.g., "^0.1.0") not file:')
         process.exit(1)
@@ -139,7 +139,7 @@ async function main() {
     console.log('✅ Backend package prepared at dist-deploy/. Contents:')
     console.log('- host.json')
     console.log('- package.json (production only)')
-    console.log('- node_modules (production deps including @atlas/shared from GitHub Packages)')
+    console.log('- node_modules (production deps including @piquet-h/shared from GitHub Packages)')
     console.log('- src/ (compiled functions)')
 }
 

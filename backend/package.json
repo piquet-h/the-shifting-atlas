@@ -20,7 +20,7 @@
         "npm": ">=10.0.0"
     },
     "dependencies": {
-        "@atlas/shared": "file:../shared",
+        "@piquet-h/shared": "^0.1.0",
         "@azure/functions": "^4.8.0",
         "applicationinsights": "^2.9.5",
         "zod": "^4.1.11"

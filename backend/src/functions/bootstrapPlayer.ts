@@ -1,5 +1,5 @@
-import { CORRELATION_HEADER, extractCorrelationId, getPlayerRepository, trackGameEventStrict } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { CORRELATION_HEADER, extractCorrelationId, getPlayerRepository, trackGameEventStrict } from '@piquet-h/shared'
 
 /**
  * Player Bootstrap (migrated from legacy SWA managed API)

@@ -1,3 +1,4 @@
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 import {
     CORRELATION_HEADER,
     ensurePlayerForRequest,
@@ -5,8 +6,7 @@ import {
     getPlayerRepository,
     ok,
     trackGameEventStrict
-} from '@atlas/shared'
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+} from '@piquet-h/shared'
 
 app.http('PlayerCreate', {
     route: 'player/create',

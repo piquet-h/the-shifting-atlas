@@ -174,7 +174,7 @@ az deployment group create \
     - `cosmos-primary-key` (Gremlin API)
     - `cosmos-sql-primary-key` (SQL/Core API)
     - Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
-- **Runtime Access**: Via `@atlas/shared` `secretsHelper` with:
+- **Runtime Access**: Via `@piquet-h/shared` `secretsHelper` (renamed from `@atlas/shared`) with:
     - Lazy caching (5-minute TTL)
     - Exponential backoff retry (3 attempts)
     - Telemetry (cache hit/miss, fetch success/failure)

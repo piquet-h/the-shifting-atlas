@@ -1,5 +1,5 @@
-import { CORRELATION_HEADER, err, extractCorrelationId, getPlayerRepository, ok, trackGameEventStrict } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { CORRELATION_HEADER, err, extractCorrelationId, getPlayerRepository, ok, trackGameEventStrict } from '@piquet-h/shared'
 
 app.http('PlayerGet', {
     route: 'player/get',

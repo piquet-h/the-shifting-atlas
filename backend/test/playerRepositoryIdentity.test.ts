@@ -1,4 +1,4 @@
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '@atlas/shared'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
 

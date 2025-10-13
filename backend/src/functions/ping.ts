@@ -1,5 +1,5 @@
-import { CORRELATION_HEADER, extractCorrelationId, SERVICE_BACKEND, trackGameEventStrict } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { CORRELATION_HEADER, extractCorrelationId, SERVICE_BACKEND, trackGameEventStrict } from '@piquet-h/shared'
 
 interface PingPayload {
     ok: true

@@ -4,8 +4,8 @@
  * Gracefully no-ops if not supplied (e.g., local dev without telemetry).
  */
 /* global localStorage */
-import { GAME_EVENT_NAMES } from '@atlas/shared'
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
+import { GAME_EVENT_NAMES } from '@piquet-h/shared'
 
 let appInsights: ApplicationInsights | undefined
 

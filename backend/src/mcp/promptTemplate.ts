@@ -1,5 +1,5 @@
-import { getTemplate, listTemplates } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { getTemplate, listTemplates } from '@piquet-h/shared'
 
 /*
  * MCP Server: prompt-template (Phase 0 Stub)

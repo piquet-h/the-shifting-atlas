@@ -1,5 +1,5 @@
-import type { PlayerRecord } from '@atlas/shared'
-import { __resetPlayerRepositoryForTests, getPlayerRepository, STARTER_LOCATION_ID } from '@atlas/shared'
+import type { PlayerRecord } from '@piquet-h/shared'
+import { __resetPlayerRepositoryForTests, getPlayerRepository, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
 

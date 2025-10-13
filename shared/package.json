@@ -1,7 +1,17 @@
 {
-    "name": "@atlas/shared",
+    "name": "@piquet-h/shared",
     "version": "0.1.0",
-    "private": true,
+    "private": false,
+    "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
+    "license": "MIT",
+    "keywords": [
+        "game",
+        "cosmosdb",
+        "gremlin",
+        "telemetry",
+        "azure",
+        "atlas"
+    ],
     "type": "module",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -31,7 +41,8 @@
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
         "typecheck": "tsc -p tsconfig.json --noEmit",
-        "test": "node --test --import=tsx test/*.test.ts"
+        "test": "node --test --import=tsx test/*.test.ts",
+        "prepublishOnly": "npm run build && npm run test"
     },
     "dependencies": {
         "@azure/identity": "^4.12.0",
@@ -42,5 +53,13 @@
     "devDependencies": {
         "@types/gremlin": "^3.6.5",
         "typescript": "^5.9.2"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/piquet-h/the-shifting-atlas.git",
+        "directory": "shared"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
     }
 }

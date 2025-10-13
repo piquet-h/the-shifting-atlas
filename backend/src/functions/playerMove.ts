@@ -1,3 +1,4 @@
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
 import {
     CORRELATION_HEADER,
     err,
@@ -9,8 +10,7 @@ import {
     ok,
     STARTER_LOCATION_ID,
     trackGameEventStrict
-} from '@atlas/shared'
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+} from '@piquet-h/shared'
 
 const repoPromise = getLocationRepository()
 const headingStore = getPlayerHeadingStore()

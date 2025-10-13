@@ -1,5 +1,5 @@
-import { getPlayerRepository, trackGameEventStrict } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { getPlayerRepository, trackGameEventStrict } from '@piquet-h/shared'
 
 interface LinkRequestBody {
     playerGuid?: string

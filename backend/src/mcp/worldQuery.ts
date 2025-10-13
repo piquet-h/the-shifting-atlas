@@ -1,5 +1,5 @@
-import { getLocationRepository, STARTER_LOCATION_ID } from '@atlas/shared'
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { getLocationRepository, STARTER_LOCATION_ID } from '@piquet-h/shared'
 
 /*
  * MCP Server: world-query (Phase 0 Stub)

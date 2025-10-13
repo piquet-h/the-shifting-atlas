@@ -1,0 +1,91 @@
+name: Publish Shared Package
+
+on:
+  push:
+    paths:
+      - 'shared/**'
+      - '.github/workflows/publish-shared.yml'
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: 'semver bump (patch|minor|major) or explicit version (e.g. 0.2.0)'
+        required: false
+        default: 'patch'
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+jobs:
+  version-and-publish:
+    name: Version & Publish @piquet-h/shared
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+
+      - name: Install (workspace root)
+        run: npm ci
+
+      - name: Run shared tests
+        run: npm test -w shared
+
+      - name: Ensure working tree clean (no pre-existing version bump)
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo 'Working tree not clean before version bump:'
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Determine target version
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./shared/package.json').version")
+          INPUT='${{ github.event.inputs.releaseType }}'
+          if [ -z "$INPUT" ] || [[ "$INPUT" == patch || "$INPUT" == minor || "$INPUT" == major ]]; then
+            npm version ${INPUT:-patch} --workspace shared --no-git-tag-version
+          else
+            npm version "$INPUT" --workspace shared --no-git-tag-version
+          fi
+          NEW=$(node -p "require('./shared/package.json').version")
+          echo "newVersion=$NEW" >> $GITHUB_OUTPUT
+          echo "Bumped version $CURRENT -> $NEW"
+
+      - name: Commit version bump
+        run: |
+          NEW_VERSION='${{ steps.version.outputs.newVersion }}'
+          git config user.name 'github-actions'
+            
+          git config user.email 'github-actions@github.com'
+          git add shared/package.json
+          git commit -m "chore(shared): release $NEW_VERSION"
+
+      - name: Publish @piquet-h/shared
+        run: npm publish -w shared
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Git tag
+        run: |
+          NEW_VERSION='${{ steps.version.outputs.newVersion }}'
+          git tag "shared-v$NEW_VERSION"
+          git push origin HEAD:main --tags
+
+      - name: Summary
+        run: |
+          echo "Published @piquet-h/shared@${{ steps.version.outputs.newVersion }}" >> $GITHUB_STEP_SUMMARY

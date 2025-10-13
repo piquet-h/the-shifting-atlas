@@ -9,10 +9,10 @@
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
  * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
-import { trackGameEventStrict } from '@atlas/shared'
-import type { WorldEventEnvelope } from '@atlas/shared/events'
-import { safeValidateWorldEventEnvelope } from '@atlas/shared/events'
 import { InvocationContext } from '@azure/functions'
+import { trackGameEventStrict } from '@piquet-h/shared'
+import type { WorldEventEnvelope } from '@piquet-h/shared/events'
+import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
 
 // --- Configuration -----------------------------------------------------------
 

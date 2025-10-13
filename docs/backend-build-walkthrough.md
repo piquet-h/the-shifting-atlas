@@ -27,12 +27,12 @@ The Shifting Atlas uses an **npm workspace monorepo**:
 the-shifting-atlas/
 ├── package.json              # Root workspace config
 ├── package-lock.json         # Shared lockfile
-├── shared/                   # @atlas/shared package
+├── shared/                   # @piquet-h/shared package (renamed from @atlas/shared)
 │   ├── package.json
 │   ├── src/                  # TypeScript source
 │   └── dist/                 # Compiled JS (after build)
 ├── backend/                  # Azure Functions app
-│   ├── package.json          # Depends on @atlas/shared via "file:../shared"
+│   ├── package.json          # Depends on @piquet-h/shared via "file:../shared" (previously @atlas/shared)
 │   ├── src/                  # TypeScript source
 │   ├── dist/                 # Compiled JS (after build)
 │   ├── dist-deploy/          # Production deployment artifact (created by package.mjs)
@@ -45,7 +45,7 @@ the-shifting-atlas/
 
 ### Key Dependencies
 
-- **Backend depends on Shared**: Via `"@atlas/shared": "file:../shared"` in `backend/package.json`
+- **Backend depends on Shared**: Via `"@piquet-h/shared": "file:../shared"` in `backend/package.json` (renamed from @atlas/shared)
 - **Workspace Dependencies**: Managed automatically by npm workspaces
 - **TypeScript Build**: Uses project references (`tsconfig.refs.json`)
 
@@ -109,7 +109,7 @@ backend/dist/
 4. **Copy host.json**: Required Azure Functions configuration
 5. **Generate production package.json**:
    - Starts with `backend/package.json`
-   - **Removes** `@atlas/shared` dependency (will be vendored)
+  - **Removes** `@piquet-h/shared` dependency (renamed from `@atlas/shared`) (will be vendored)
    - **Removes** `devDependencies`
    - **Strips** `dist/` prefix from `main` field
    - **Simplifies** scripts to just `start` and `diagnostics`
@@ -117,13 +117,13 @@ backend/dist/
 7. **Install production dependencies**: `npm ci --omit=dev --no-audit --no-fund`
    - Installs into `dist-deploy/node_modules/`
    - Only production dependencies (@azure/functions, applicationinsights, zod)
-8. **Vendor @atlas/shared AFTER npm install**:
-   - Copies `shared/dist/` → `dist-deploy/node_modules/@atlas/shared/dist/`
-   - Creates minimal `package.json` for @atlas/shared
+8. **Vendor @piquet-h/shared AFTER npm install**:
+  - Copies `shared/dist/` → `dist-deploy/node_modules/@piquet-h/shared/dist/`
+  - Creates minimal `package.json` for @piquet-h/shared
    - Done **after** npm install so it's not pruned
 9. **Sanity checks**:
    - Verifies `@azure/functions` was installed
-   - Verifies vendored `@atlas/shared` exists
+  - Verifies vendored `@piquet-h/shared` exists
 
 **Result:**
 ```
@@ -133,7 +133,7 @@ backend/dist-deploy/           # 75MB total
 ├── package-lock.json
 ├── node_modules/              # 75MB
 │   ├── @azure/functions/
-│   ├── @atlas/shared/         # VENDORED
+│   ├── @piquet-h/shared/         # VENDORED (renamed scope)
 │   │   ├── package.json
 │   │   └── dist/
 │   ├── applicationinsights/
@@ -196,7 +196,7 @@ Based on the problem statement and code analysis:
 The complexity comes from several factors:
 
 1. **Monorepo with file: dependencies** requires special handling
-2. **Vendoring @atlas/shared** is necessary because:
+2. **Vendoring @piquet-h/shared** is necessary because:
    - Azure Functions deployment doesn't support workspace protocols
    - Can't use `file:../shared` in production
 3. **Custom packaging script** handles:
@@ -207,7 +207,7 @@ The complexity comes from several factors:
 **Where complexity can be reduced:**
 - ✅ Already using `npm ci --omit=dev` (correct approach)
 - ✅ Already minimizing package.json for deployment
-- 🟡 Could potentially use GitHub Packages to publish @atlas/shared
+- 🟡 Could potentially use GitHub Packages to publish @piquet-h/shared (original intent for @atlas/shared; org scope may be created later)
 - 🟡 Could explore Azure Functions' built-in build options (Oryx)
 
 ### 3. 🟡 **Development vs Production Inconsistency**
@@ -223,7 +223,7 @@ The complexity comes from several factors:
 
 ### Option 1: GitHub Packages as Private Registry (RECOMMENDED)
 
-**Concept:** Publish `@atlas/shared` to GitHub Packages, treat it as a real npm package.
+**Concept:** Publish `@piquet-h/shared` to GitHub Packages (renamed from `@atlas/shared`), treat it as a real npm package. Potential future migration to an `@atlas` org scope.
 
 **Pros:**
 - ✅ Eliminates vendoring logic
@@ -235,7 +235,7 @@ The complexity comes from several factors:
 
 **Cons:**
 - ⚠️ Requires authentication setup (`.npmrc` config)
-- ⚠️ Need to publish @atlas/shared before deploying backend
+- ⚠️ Need to publish @piquet-h/shared (renamed from @atlas/shared) before deploying backend
 - ⚠️ Adds a publish step to CI/CD
 
 **When this works best:**
@@ -301,7 +301,7 @@ scm-do-build-during-deployment: true
 
 ### Option 4: Separate Shared Package Repository
 
-**Concept:** Move @atlas/shared to its own repo, publish to npm/GitHub Packages.
+**Concept:** Move @piquet-h/shared (renamed from @atlas/shared) to its own repo, publish to npm/GitHub Packages.
 
 **Pros:**
 - ✅ True package independence
@@ -359,13 +359,13 @@ GitHub automatically provides `GITHUB_TOKEN` with correct permissions:
     echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
 ```
 
-### Publishing @atlas/shared
+### Publishing @piquet-h/shared (renamed from @atlas/shared)
 
 #### 1. Update shared/package.json
 
 ```json
 {
-  "name": "@atlas/shared",
+  "name": "@piquet-h/shared", // renamed from @atlas/shared
   "version": "0.1.0",
   "repository": {
     "type": "git",
@@ -411,7 +411,7 @@ Change from:
 ```json
 {
   "dependencies": {
-    "@atlas/shared": "file:../shared"
+  "@piquet-h/shared": "file:../shared" // renamed from @atlas/shared
   }
 }
 ```
@@ -420,7 +420,7 @@ To:
 ```json
 {
   "dependencies": {
-    "@atlas/shared": "^0.1.0"
+  "@piquet-h/shared": "^0.1.0" // renamed from @atlas/shared
   }
 }
 ```
@@ -493,7 +493,7 @@ async function main() {
             diagnostics: 'node -e "console.log(\'Diagnostics OK\')"'
         },
         engines: backendPkg.engines,
-        dependencies: backendPkg.dependencies // @atlas/shared will come from GitHub Packages
+  dependencies: backendPkg.dependencies // @piquet-h/shared will come from GitHub Packages (renamed from @atlas/shared)
     }
     await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
 
@@ -510,14 +510,14 @@ async function main() {
         await fs.copyFile(npmrc, path.join(deployRoot, '.npmrc'))
     }
 
-    // Install production dependencies (including @atlas/shared from GitHub Packages)
+  // Install production dependencies (including @piquet-h/shared from GitHub Packages)
     console.log('Installing production dependencies...')
     await run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], deployRoot)
 
-    // Verify @atlas/shared was installed
-    const sharedPkg = path.join(deployRoot, 'node_modules', '@atlas', 'shared')
+  // Verify @piquet-h/shared was installed
+  const sharedPkg = path.join(deployRoot, 'node_modules', '@piquet-h', 'shared')
     if (!(await exists(sharedPkg))) {
-        console.error('Packaging failed: @atlas/shared not installed from GitHub Packages.')
+  console.error('Packaging failed: @piquet-h/shared (renamed from @atlas/shared) not installed from GitHub Packages.')
         process.exit(1)
     }
 
@@ -532,7 +532,7 @@ main().catch((err) => {
 
 **Key simplifications:**
 - ❌ No vendoring logic
-- ❌ No manual copying of @atlas/shared
+- ❌ No manual copying of @piquet-h/shared
 - ❌ No custom package.json manipulation for shared
 - ✅ Standard npm install handles everything
 - ✅ ~50 lines shorter
@@ -570,15 +570,15 @@ main().catch((err) => {
 ### Medium-term (Consider GitHub Packages)
 
 **When to migrate:**
-- When @atlas/shared API stabilizes
+- When @piquet-h/shared API stabilizes (renamed from @atlas/shared)
 - When you want to introduce versioning for shared package
 - When team is comfortable with publish workflows
 
 **Migration checklist:**
 - [ ] Set up `.npmrc` for GitHub Packages
 - [ ] Add `publishConfig` to `shared/package.json`
-- [ ] Create publish workflow for @atlas/shared
-- [ ] Test publishing @atlas/shared
+- [ ] Create publish workflow for @piquet-h/shared (renamed from @atlas/shared)
+- [ ] Test publishing @piquet-h/shared
 - [ ] Update `backend/package.json` to use version instead of `file:`
 - [ ] Update packaging script (simplified version above)
 - [ ] Update CI/CD workflow to publish before backend build
@@ -592,7 +592,7 @@ main().catch((err) => {
 
 ### If you decide to use GitHub Packages:
 
-#### Step 1: Prepare @atlas/shared
+#### Step 1: Prepare @piquet-h/shared (renamed from @atlas/shared)
 
 ```bash
 cd shared
@@ -653,7 +653,7 @@ Verify at: `https://github.com/piquet-h/the-shifting-atlas/packages`
 cd backend
 
 # Change package.json dependency
-npm pkg set dependencies.@atlas/shared='^0.1.0'
+npm pkg set dependencies.@piquet-h/shared='^0.1.0' # renamed from @atlas/shared
 
 # Test installation
 rm -rf node_modules
@@ -699,8 +699,8 @@ jobs:
 1. Push to a test branch
 2. Trigger workflow manually
 3. Verify:
-   - @atlas/shared publishes successfully
-   - Backend installs @atlas/shared from GitHub Packages
+  - @piquet-h/shared publishes successfully (renamed from @atlas/shared)
+  - Backend installs @piquet-h/shared from GitHub Packages
    - Deployment succeeds
    - Functions work in Azure
 
@@ -733,7 +733,7 @@ Your current system is **well-designed** for a workspace monorepo:
 ### When to Consider Migration
 
 Move to GitHub Packages when:
-1. @atlas/shared becomes more stable
+1. @piquet-h/shared becomes more stable (renamed from @atlas/shared)
 2. You want semantic versioning
 3. Team prefers standard npm workflows
 4. You're comfortable adding a publish step
@@ -769,7 +769,7 @@ npm run build -w shared
 # Publish shared
 cd shared && npm publish
 
-# Build backend (will fetch @atlas/shared from registry)
+# Build backend (will fetch @piquet-h/shared from registry; renamed from @atlas/shared)
 npm run build -w backend
 
 # Package backend (simplified script)

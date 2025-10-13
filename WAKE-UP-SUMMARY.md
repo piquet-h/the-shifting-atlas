@@ -116,7 +116,7 @@ The packaging script **correctly strips** the `dist/` prefix because the deploym
 
 ### Option 2: Migrate to GitHub Packages
 **Effort:** 2-4 hours  
-**Best for:** When @atlas/shared stabilizes
+**Best for:** When @piquet-h/shared stabilizes (renamed from @atlas/shared)
 
 **What you get:**
 - Simpler packaging script (~50 lines shorter)
@@ -125,7 +125,7 @@ The packaging script **correctly strips** the `dist/` prefix because the deploym
 - No manual vendoring
 
 **When to do this:**
-- When @atlas/shared API is stable
+- When @piquet-h/shared API is stable
 - When you want semantic versioning
 - When team prefers standard workflows
 
@@ -250,7 +250,7 @@ The CI/CD orchestrates the correct order.
 - 🤔 Decide if/when to migrate to GitHub Packages
 - 🚀 Get back to building features
 
-### Future (when @atlas/shared stabilizes):
+### Future (when @piquet-h/shared stabilizes):
 - 📋 Follow migration checklist
 - 🎯 Simplify to GitHub Packages
 - ⏱️ 2-4 hours investment

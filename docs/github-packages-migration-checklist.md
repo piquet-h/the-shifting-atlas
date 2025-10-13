@@ -9,7 +9,7 @@
 ## Prerequisites
 
 Before starting, ensure:
-- [ ] @atlas/shared API is relatively stable (not changing every commit)
+- [ ] @piquet-h/shared API is relatively stable (renamed from @atlas/shared; original org scope not yet available)
 - [ ] You have admin access to the GitHub repository
 - [ ] You understand npm package publishing workflows
 - [ ] You've read [`backend-build-walkthrough.md`](./backend-build-walkthrough.md)
@@ -139,7 +139,7 @@ Before starting, ensure:
 
 - [ ] Verify on GitHub:
   - [ ] Go to: https://github.com/piquet-h/the-shifting-atlas/packages
-  - [ ] See `@atlas/shared` package listed
+  - [ ] See `@piquet-h/shared` package listed (renamed from @atlas/shared)
   - [ ] Version matches (should be 0.1.0)
 
 ### 2.4 Test installation
@@ -158,12 +158,12 @@ Before starting, ensure:
 
 - [ ] Install from GitHub Packages:
   ```bash
-  npm install @atlas/shared@0.1.0
+  npm install @piquet-h/shared@0.1.0
   ```
 
 - [ ] Verify:
   ```bash
-  ls -la node_modules/@atlas/shared/
+  ls -la node_modules/@piquet-h/shared/
   # Should see dist/ folder and package.json
   ```
 
@@ -182,13 +182,13 @@ Before starting, ensure:
 - [ ] Change dependency from file: to version:
   ```bash
   cd backend
-  npm pkg set dependencies.@atlas/shared='^0.1.0'
+  npm pkg set dependencies.@piquet-h/shared='^0.1.0'
   ```
 
 - [ ] Verify:
   ```bash
-  cat package.json | grep @atlas/shared
-  # Should show: "@atlas/shared": "^0.1.0"
+  cat package.json | grep @piquet-h/shared
+  # Should show: "@piquet-h/shared": "^0.1.0"
   ```
 
 ### 3.2 Test backend installation
@@ -200,9 +200,9 @@ Before starting, ensure:
   npm install
   ```
 
-- [ ] Verify @atlas/shared came from GitHub Packages:
+- [ ] Verify @piquet-h/shared came from GitHub Packages:
   ```bash
-  ls -la backend/node_modules/@atlas/shared/
+  ls -la backend/node_modules/@piquet-h/shared/
   # Should NOT be a symlink
   # Should be real package from registry
   ```
@@ -239,7 +239,7 @@ Before starting, ensure:
 
 - [ ] Or manually update:
   - [ ] Remove vendoring section (lines ~109-120)
-  - [ ] Remove `@atlas/shared` deletion from dependencies
+  - [ ] Remove `@piquet-h/shared` deletion from dependencies
   - [ ] Add .npmrc copy step
   - [ ] Update verification to check npm install worked
 
@@ -258,8 +258,8 @@ Before starting, ensure:
 
 - [ ] Verify output:
   - [ ] No errors
-  - [ ] `dist-deploy/node_modules/@atlas/shared` exists
-  - [ ] @atlas/shared is NOT a vendored copy (should have full package metadata)
+  - [ ] `dist-deploy/node_modules/@piquet-h/shared` exists
+  - [ ] @piquet-h/shared is NOT a vendored copy (should have full package metadata)
 
 - [ ] Check size:
   ```bash
@@ -327,7 +327,7 @@ Before starting, ensure:
 - [ ] Commit all changes:
   ```bash
   git add .
-  git commit -m "feat: migrate to GitHub Packages for @atlas/shared"
+  git commit -m "feat: migrate to GitHub Packages for @piquet-h/shared (rename from @atlas/shared)"
   ```
 
 - [ ] Push:
@@ -420,7 +420,7 @@ If something goes wrong:
 2. [ ] Restore backend dependency:
    ```bash
    cd backend
-   npm pkg set dependencies.@atlas/shared='file:../shared'
+  npm pkg set dependencies.@piquet-h/shared='file:../shared'
    ```
 
 3. [ ] Restore packaging script:
@@ -439,7 +439,7 @@ If something goes wrong:
 
 - [ ] Delete published packages:
   - Go to: https://github.com/piquet-h/the-shifting-atlas/packages
-  - Click @atlas/shared → Package settings → Delete package
+  - Click @piquet-h/shared → Package settings → Delete package
 
 - [ ] Revert all commits:
   ```bash
@@ -478,7 +478,7 @@ If something goes wrong:
 ### "npm ERR! 404 Not Found - GET https://npm.pkg.github.com/@atlas%2fshared"
 
 **Solution:**
-- Verify @atlas/shared is published
+- Verify @piquet-h/shared is published
 - Check .npmrc authentication
 - Verify GITHUB_TOKEN has read:packages scope
 
@@ -489,10 +489,10 @@ If something goes wrong:
 - Check GitHub Actions permissions
 - Verify token hasn't expired
 
-### "Error: Cannot find module '@atlas/shared'"
+### "Error: Cannot find module '@piquet-h/shared'"
 
 **Solution:**
-- @atlas/shared not installed
+- @piquet-h/shared not installed
 - Check package.json has correct version
 - Run `npm install` again
 
@@ -509,8 +509,8 @@ If something goes wrong:
 
 Migration is successful when:
 
-- [x] @atlas/shared publishes to GitHub Packages
-- [x] Backend installs @atlas/shared from registry (not vendored)
+- [x] @piquet-h/shared publishes to GitHub Packages
+- [x] Backend installs @piquet-h/shared from registry (not vendored)
 - [x] Packaging script simplified (no vendoring logic)
 - [x] CI/CD publishes then deploys successfully
 - [x] Azure Functions work in production
