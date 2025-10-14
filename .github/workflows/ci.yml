@@ -71,6 +71,9 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && npm ci
       
+      - name: Build shared (required for typecheck)
+        run: cd shared && npm run build
+      
       - name: Prelint dependency sanity
         run: npm run prelint
       
