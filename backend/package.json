@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "main": "dist/src/**/*.js",
+    "main": "dist/src/entry.js",
     "scripts": {
         "clean": "node ../scripts/clean.mjs --here",
         "build": "tsc",
