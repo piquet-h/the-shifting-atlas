@@ -93,20 +93,37 @@ async function main() {
     }
     await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
 
-    // 3. Copy workspace package-lock.json for deterministic npm ci
-    const workspaceRoot = path.resolve(backendRoot, '..')
-    const workspaceLockFile = path.join(workspaceRoot, 'package-lock.json')
-    if (await exists(workspaceLockFile)) {
-        await fs.copyFile(workspaceLockFile, path.join(deployRoot, 'package-lock.json'))
-    } else {
-        console.warn('Warning: No package-lock.json found in workspace root. Using npm install instead of npm ci.')
+    // 3. Install other production dependencies first (excluding @piquet-h/shared)
+    // The workspace package-lock.json contains workspace links which would cause issues.
+
+    // Temporarily remove @piquet-h/shared from dependencies to avoid registry fetch
+    const tempPkgJson = JSON.parse(await fs.readFile(path.join(deployRoot, 'package.json'), 'utf8'))
+    delete tempPkgJson.dependencies['@piquet-h/shared']
+    await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(tempPkgJson, null, 2), 'utf8')
+
+    console.log('Installing production dependencies (excluding @piquet-h/shared)...')
+    await run('npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], deployRoot)
+
+    // Now manually vendor the shared package since it's not available in public npm registry
+    const sharedBuildOutput = path.resolve(backendRoot, '..', 'shared', 'dist')
+    if (!(await exists(sharedBuildOutput))) {
+        console.error('Expected built shared package at ../shared/dist. Did you run `npm run build -w shared`?')
+        process.exit(1)
     }
 
-    // 4. Install production dependencies inside deploy directory (deterministic with npm ci)
-    const hasLock = await exists(path.join(deployRoot, 'package-lock.json'))
-    const installCmd = hasLock ? 'ci' : 'install'
-    console.log(`Installing production dependencies in deploy directory using: npm ${installCmd}...`)
-    await run('npm', [installCmd, '--omit=dev', '--no-audit', '--no-fund'], deployRoot)
+    // Create a local node_modules/@piquet-h/shared with the built content
+    const deploySharedDir = path.join(deployRoot, 'node_modules', '@piquet-h', 'shared')
+    await fs.mkdir(deploySharedDir, { recursive: true })
+
+    // Copy the built dist content to the deployed shared package
+    await fs.cp(sharedBuildOutput, path.join(deploySharedDir, 'dist'), { recursive: true })
+
+    // Copy the package.json for the shared package
+    const sharedPkgJson = path.resolve(backendRoot, '..', 'shared', 'package.json')
+    await fs.copyFile(sharedPkgJson, path.join(deploySharedDir, 'package.json'))
+
+    // Restore the original package.json with @piquet-h/shared dependency
+    await fs.writeFile(path.join(deployRoot, 'package.json'), JSON.stringify(deployPkg, null, 2) + '\n', 'utf8')
 
     // 6. Sanity check for @azure/functions presence & vendored shared
     const functionsLib = path.join(deployRoot, 'node_modules', '@azure', 'functions')
