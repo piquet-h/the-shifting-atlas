@@ -66,23 +66,18 @@ async function main() {
         console.error('Expected compiled backend output at dist/src. Did you run `npm run build -w backend`?')
         process.exit(1)
     }
-    // Copy compiled output to clean deploy directory
+    // Copy compiled output to clean deploy directory (functions will be loaded directly via glob main pattern)
     await fs.cp(originalBuildOutput, path.join(deployRoot, 'src'), { recursive: true })
 
     // 1. Copy host.json → deploy/host.json
     await fs.copyFile(path.join(backendRoot, 'host.json'), path.join(deployRoot, 'host.json')) // 2. Create deployment package.json derived from backend/package.json
     const backendPkg = JSON.parse(await fs.readFile(path.join(backendRoot, 'package.json'), 'utf8'))
     const deployPkg = { ...backendPkg }
-    // Retain @piquet-h/shared dependency so npm ci installs it from GitHub Packages
-    // Preserve the main entry point pattern for Azure Functions discovery
-    // IMPORTANT: This transformation is intentional and correct (not drift):
-    // - Development (backend/package.json): "main": "dist/src/**/*.js"
-    //   Functions are at: backend/dist/src/functions/*.js
-    // - Deployment (dist-deploy/package.json): "main": "src/**/*.js"
-    //   Functions are at: dist-deploy/src/functions/*.js (no nested dist/)
-    // We strip "dist/" because the deployment artifact has a flatter structure.
-    if (deployPkg.main && deployPkg.main.startsWith('dist/')) {
-        deployPkg.main = deployPkg.main.substring(5) // Remove "dist/" prefix
+    // Retain @piquet-h/shared dependency; transform main from dev form (dist/src/functions/*.js) to deploy form (src/functions/*.js)
+    if (deployPkg.main === 'dist/src/functions/*.js') {
+        deployPkg.main = 'src/functions/*.js'
+    } else if (deployPkg.main && deployPkg.main.startsWith('dist/')) {
+        deployPkg.main = deployPkg.main.substring(5)
     }
     // Remove dev scripts not needed at runtime
     delete deployPkg.devDependencies
