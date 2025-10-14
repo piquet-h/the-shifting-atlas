@@ -3,16 +3,13 @@
     "compilerOptions": {
         "jsx": "react-jsx",
         "allowJs": false,
-        "composite": true,
         "emitDeclarationOnly": true,
         "declaration": true,
         "declarationDir": "dist/types",
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "lib": ["ESNext", "DOM"],
-        "types": ["vite/client", "node"],
-        "tsBuildInfoFile": "./.cache/tsbuildinfo"
+        "types": ["vite/client", "node"]
     },
-    "include": ["src"],
-    "references": []
+    "include": ["src"]
 }

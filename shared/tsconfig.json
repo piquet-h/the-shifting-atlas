@@ -5,9 +5,7 @@
         "declarationMap": true,
         "outDir": "dist",
         "rootDir": "src",
-        "moduleResolution": "bundler",
-        "composite": true,
-        "tsBuildInfoFile": "./.cache/tsbuildinfo"
+        "moduleResolution": "bundler"
     },
     "include": ["src", "src/**/*.ts", "src/**/*.json"]
 }
