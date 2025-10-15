@@ -5,11 +5,6 @@ on:
     branches: [main]
     paths:
       - 'frontend/**'
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches: [main]
-    paths:
-      - 'frontend/**'
   workflow_dispatch:
     inputs:
       reason:
@@ -21,8 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  # Production deployments serialize; preview deployments get their own dynamic group.
-  group: swa-frontend-${{ github.event_name == 'pull_request' && github.event.action != 'closed' && format('pr-{0}', github.event.pull_request.number) || 'prod' }}
+  group: swa-frontend-prod
   cancel-in-progress: true
 
 env:
@@ -35,7 +29,6 @@ env:
 jobs:
   build-and-deploy-prod:
     name: Build & Deploy (Production)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -173,142 +166,3 @@ jobs:
         run: |
           echo "Fetching properties for ${SWA_NAME} after deployment attempt..."
           az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties."
-
-  build-and-deploy-preview:
-    name: Build & Deploy (Preview)
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            frontend/package-lock.json
-
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build shared
-        run: cd shared && npm run build
-
-      - name: Build frontend (Vite)
-        run: cd frontend && npm run build
-
-      - name: Verify build artifact exists
-        run: |
-          if [ ! -d "frontend/dist" ]; then
-            echo "::error title=Missing build artifact::Directory frontend/dist not found. Check prior build step output.";
-            ls -R frontend || true
-            exit 1
-          fi
-
-      - name: Preflight - Validate deployment token (Preview)
-        run: |
-          if [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
-            echo "::error title=Missing AZURE_STATIC_WEB_APPS_API_TOKEN::Secret not set. Obtain it from the Static Web App portal (Deployment token) and add to repository secrets.";
-            exit 1;
-          fi
-          echo "Deployment token appears configured (redacted, length > 0)."
-
-      - name: Azure login (OIDC) for preview checks
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Preflight - Verify Static Web App exists (Preview)
-        env:
-          SWA_NAME: ${{ vars.SWA_NAME }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
-        run: |
-          set -euo pipefail
-          if [ -z "${SWA_NAME:-}" ]; then
-            echo "::warning title=Missing SWA_NAME::Skipping existence check (no SWA_NAME set)."; exit 0; fi
-          echo "Verifying Static Web App '${SWA_NAME}' for preview deploy..."
-          if [ -n "${AZURE_RESOURCE_GROUP:-}" ]; then
-            az staticwebapp show --name "${SWA_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1 || true
-          fi
-          if ! az staticwebapp show --name "${SWA_NAME}" >/dev/null 2>&1; then
-            echo "::error title=Static Web App not found (Preview)::No Static Web App named ${SWA_NAME} accessible. Preview deploy aborted."; exit 1; fi
-          echo "SWA existence verified (preview)."
-
-      - name: Preflight - Verify deployment token matches portal (Preview)
-        if: vars.SWA_NAME != ''
-        env:
-          SWA_NAME: ${{ vars.SWA_NAME }}
-          PROVIDED_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "Comparing provided deployment token with portal token for ${SWA_NAME} (preview)..."
-          portal_token=$(az staticwebapp secrets list --name "${SWA_NAME}" --query properties.apiKey -o tsv 2>/dev/null || true)
-          if [ -z "${portal_token}" ]; then
-            echo "::warning title=Portal token retrieval failed::Could not retrieve current portal token via CLI (insufficient permissions or unsupported). Skipping comparison."; exit 0; fi
-          if [ "${portal_token}" != "${PROVIDED_TOKEN}" ]; then
-            echo "::error title=Deployment token mismatch (Preview)::Secret AZURE_STATIC_WEB_APPS_API_TOKEN does not match portal token. Update or regenerate.";
-            echo "Portal token hash:   $(echo -n "${portal_token}" | sha256sum | cut -c1-12)";
-            echo "Provided token hash: $(echo -n "${PROVIDED_TOKEN}" | sha256sum | cut -c1-12)";
-            exit 1;
-          fi
-          echo "Deployment token matches portal (hash: $(echo -n "${portal_token}" | sha256sum | cut -c1-12))."
-
-      - name: Deploy to Azure Static Web Apps (Preview)
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          action: 'upload'
-          app_location: 'frontend'
-          output_location: 'frontend/dist'
-          skip_app_build: true
-          skip_api_build: true
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-        env:
-          DEBUG: true
-          SWA_NAME: ${{ vars.SWA_NAME }}
-      - name: Diagnostic - Show SWA properties (preview post-action)
-        if: ${{ always() && vars.SWA_NAME != '' }}
-        run: |
-          echo "Fetching properties for ${SWA_NAME} after preview deployment attempt..."
-          az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties (preview)."
-
-  preview-cleanup:
-    name: Cleanup Preview (PR Closed)
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Azure login (OIDC)
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Resolve SWA Name
-        run: |
-          if [ -n "${{ vars.SWA_NAME }}" ]; then echo "SWA_NAME=${{ vars.SWA_NAME }}" >> $GITHUB_ENV; fi
-          if [ -z "${{ vars.SWA_NAME }}" ]; then echo "::warning::SWA_NAME not set; cleanup may fail."; fi
-
-      - name: Delete preview environment
-        env:
-          SWA_NAME: ${{ env.SWA_NAME || vars.SWA_NAME }}
-        run: |
-          set -euo pipefail
-          if [ -z "${SWA_NAME:-}" ]; then echo "Skipping delete - no SWA_NAME"; exit 0; fi
-          PREVIEW_ENV="pr-${{ github.event.pull_request.number }}"
-          echo "Deleting preview environment ${PREVIEW_ENV} on ${SWA_NAME}";
-          az staticwebapp environment delete \
-            --name "${SWA_NAME}" \
-            --environment-name "${PREVIEW_ENV}" \
-            --yes || echo "Preview environment delete returned non-zero (may already be gone)."

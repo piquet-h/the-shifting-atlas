@@ -39,7 +39,7 @@ Runs on:
 
 ## CI/CD: Frontend Static Web App
 
-Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with **OIDC only** (no deployment tokens at all: production + previews).
+Automated deployment pipeline for the `frontend` (Vite + React) Static Web App using GitHub Actions with deployment token authentication for production deployments only.
 
 ### Triggers
 
@@ -48,7 +48,6 @@ Workflow: `.github/workflows/frontend-swa-deploy.yml`
 Runs on:
 
 - `push` to `main` affecting `frontend/**`
-- `pull_request` targeting `main` with changes in `frontend/**` (preview environment)
 - Manual `workflow_dispatch` (force a redeploy)
 
 ### Required Repository Variables (Actions > Variables)
@@ -63,14 +62,14 @@ Runs on:
 
 ### Removed Token Requirement
 
-The workflow uses **OIDC exclusively** for both production and preview deployments. No deployment tokens are required.
+The workflow uses **OIDC** for Azure authentication and **deployment token** for the Static Web App deployment to production only. Preview environments have been removed.
 
 ### OIDC Setup (Summary)
 
 1. Create an Azure AD App Registration (or use existing) and federated credential for your repo (`<org>/<repo>`), branch `main`. (Portal: App Registration > Federated credentials.)
 2. Assign the identity the required role to the Static Web App (e.g., `Contributor` or `Static Web App Contributor`). Minimum necessary principle applies—reduce later to a scoped custom role if desired.
 3. Add the four variables above to the GitHub repository.
-4. (Optional) Retrieve deployment token from Static Web App (Portal > Overview > Manage deployment token) and store as `AZURE_STATIC_WEB_APPS_API_TOKEN` if you want token-based PR previews.
+4. Retrieve deployment token from Static Web App (Portal > Overview > Manage deployment token) and store as `AZURE_STATIC_WEB_APPS_API_TOKEN` for production deployments.
 
 ### Caching
 
@@ -83,15 +82,7 @@ The workflow uses **OIDC exclusively** for both production and preview deploymen
 2. Type check (`npm run typecheck -w frontend`).
 3. Build SPA.
 4. Azure OIDC login.
-5. Deploy with `swa deploy` to production environment.
-
-### Job Flow (Pull Request)
-
-1. Checkout & build (same as main).
-2. OIDC login.
-3. Deploy deterministic preview environment named `pr<PR_NUMBER>` via `swa deploy --env pr<PR_NUMBER>`.
-
-Deterministic naming allows idempotent updates per PR. When a PR closes, a cleanup job runs (currently no-op if the service auto-expires previews; placeholder for future explicit deletion when CLI/REST supports it directly).
+5. Deploy with Static Web Apps action to production environment.
 
 ### Local Verification Before Commit
 
@@ -117,14 +108,12 @@ npm run build -w frontend
 | Symptom                          | Cause                                               | Fix                                                                                       |
 | -------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | 403 during deploy                | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.                                         |
-| Preview not created              | OIDC identity lacks sufficient role                 | Ensure role assignment includes the Static Web App (e.g., Contributor / SWA Contributor). |
 | (Removed) Functions not updating | N/A                                                 | Functions now deployed separately from `backend/`.                                        |
 
 ### Verification After Deploy
 
 1. Visit production URL (Azure Portal > Static Web App). Confirm updated assets hash.
 2. Hit `/api/website/health` endpoint and check new build time or version marker (add one if needed).
-3. (PR) Validate preview URL (named environment `pr<PR_NUMBER>`) appears in PR conversation or Portal.
 
 ---
 
