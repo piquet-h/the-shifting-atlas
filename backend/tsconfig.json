@@ -2,14 +2,12 @@
     "extends": "../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "dist",
+        "rootDir": "src",
         "module": "ESNext",
         "moduleResolution": "bundler",
         "strict": true,
         "sourceMap": true,
-        "noEmitOnError": true,
-        "composite": true,
-        "tsBuildInfoFile": "./.cache/tsbuildinfo"
+        "noEmitOnError": true
     },
-    "references": [],
     "include": ["src"]
 }

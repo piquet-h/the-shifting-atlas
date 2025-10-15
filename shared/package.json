@@ -18,12 +18,14 @@
     "exports": {
         ".": {
             "import": "./dist/index.js",
-            "types": "./dist/index.d.ts"
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
         },
         "./events": {
             "import": "./dist/events/worldEventSchema.js",
             "types": "./dist/events/worldEventSchema.d.ts",
-            "require": "./dist/events/worldEventSchema.js"
+            "require": "./dist/events/worldEventSchema.js",
+            "default": "./dist/events/worldEventSchema.js"
         }
     },
     "browser": {
@@ -37,7 +39,7 @@
         "npm": ">=10.0.0"
     },
     "scripts": {
-        "clean": "node ../scripts/clean.mjs --here",
+        "clean": "rm -rf dist .cache coverage",
         "build": "tsc -p tsconfig.json",
         "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
         "typecheck": "tsc -p tsconfig.json --noEmit",

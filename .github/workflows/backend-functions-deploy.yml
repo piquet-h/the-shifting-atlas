@@ -35,20 +35,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup workspace (composite)
-        uses: ./.github/actions/node-workspace-setup
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            shared/package-lock.json
+            backend/package-lock.json
+
+      - name: Install shared dependencies
+        run: cd shared && npm ci
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
 
       - name: Build shared dependencies
-        run: npm run build -w shared
+        run: cd shared && npm run build
 
       - name: Build backend (tsc)
-        run: npm run build -w backend
+        run: cd backend && npm run build
 
-      - name: Package backend for deployment (trim deps)
-        run: npm run package:deploy -w backend
+      - name: Package backend for deployment
+        run: cd backend && npm run package
 
       - name: Run backend tests
-        run: npm test -w backend
+        run: cd backend && npm test
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2

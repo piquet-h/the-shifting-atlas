@@ -1,8 +1,0 @@
-{
-    "compilerOptions": {
-        "forceConsistentCasingInFileNames": true,
-        "strict": true
-    },
-    "files": [],
-    "references": [{ "path": "backend" }, { "path": "frontend" }]
-}
