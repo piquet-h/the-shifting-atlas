@@ -10,5 +10,7 @@ test('player repository assigns starting location', async () => {
     assert.ok(created, 'expected new record')
     const currentLocationId = (record as PlayerRecord).currentLocationId
     assert.ok(currentLocationId, 'currentLocationId should be set')
-    assert.strictEqual(currentLocationId, STARTER_LOCATION_ID)
+    // Accept either STARTER_LOCATION_ID or process.env.START_LOCATION_ID
+    const expectedLocationId = process.env.START_LOCATION_ID || STARTER_LOCATION_ID
+    assert.strictEqual(currentLocationId, expectedLocationId)
 })

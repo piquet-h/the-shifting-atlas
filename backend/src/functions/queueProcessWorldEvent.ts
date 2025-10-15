@@ -30,6 +30,13 @@ interface CacheEntry {
 const idempotencyCache = new Map<string, CacheEntry>()
 
 /**
+ * Reset the idempotency cache (primarily for testing).
+ */
+export function __resetIdempotencyCacheForTests(): void {
+    idempotencyCache.clear()
+}
+
+/**
  * Check if event is duplicate based on idempotencyKey.
  * Returns true if seen recently (within TTL).
  */
