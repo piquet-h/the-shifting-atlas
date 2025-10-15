@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 import { SERVICE_BACKEND, SERVICE_SWA_API } from './serviceConstants.js'
 import { GameEventName, isGameEventName } from './telemetryEvents.js'
 
-if (!appInsights.defaultClient) {
+if (appInsights && !appInsights.defaultClient) {
     const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
     if (connectionString) {
         appInsights
@@ -31,7 +31,7 @@ interface AppInsightsClient {
     trackException(args: { exception: Error; properties?: Record<string, unknown> }): void
 }
 
-const aiClient = (appInsights as unknown as { defaultClient?: AppInsightsClient }).defaultClient
+const aiClient = appInsights ? (appInsights as unknown as { defaultClient?: AppInsightsClient }).defaultClient : undefined
 
 export const telemetryClient: AppInsightsClient =
     aiClient ||
