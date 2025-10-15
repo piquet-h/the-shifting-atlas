@@ -3,7 +3,7 @@
 /* global console, process */
 /**
  * Simplified Backend Packaging Script
- * 
+ *
  * Creates a deployment artifact in dist-deploy/ containing:
  *  - Compiled JS from dist/
  *  - host.json

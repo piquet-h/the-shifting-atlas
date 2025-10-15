@@ -47,7 +47,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -58,31 +58,31 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-      
+
       - name: Install root dependencies
         run: npm ci
-      
+
       - name: Install shared dependencies
         run: cd shared && npm ci
-      
+
       - name: Install backend dependencies
         run: cd backend && npm ci
-      
+
       - name: Install frontend dependencies
         run: cd frontend && npm ci
-      
+
       - name: Build shared (required for typecheck)
         run: cd shared && npm run build
-      
+
       - name: Prelint dependency sanity
         run: npm run prelint
-      
+
       - name: Lint
         run: npm run lint
-      
+
       - name: Typecheck
         run: npm run typecheck
-      
+
       - name: (Optional) Upload ESLint report placeholder
         if: failure()
         run: echo "Add ESLint report upload here if desired."
@@ -94,7 +94,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -105,31 +105,31 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-      
+
       - name: Install root dependencies
         run: npm ci
-      
+
       - name: Install shared dependencies
         run: cd shared && npm ci
-      
+
       - name: Install backend dependencies
         run: cd backend && npm ci
-      
+
       - name: Install frontend dependencies
         run: cd frontend && npm ci
-      
+
       - name: Build shared
         run: cd shared && npm run build
-      
+
       - name: Build backend
         run: cd backend && npm run build
-      
+
       - name: Build frontend
         run: cd frontend && npm run build
-      
+
       - name: Run tests
         run: npm test
-      
+
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -146,7 +146,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -157,22 +157,22 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-      
+
       - name: Install shared dependencies
         run: cd shared && npm ci
-      
+
       - name: Install frontend dependencies
         run: cd frontend && npm ci
-      
+
       - name: Build shared
         run: cd shared && npm run build
-      
+
       - name: Build frontend
         run: cd frontend && npm run build
-      
+
       - name: Axe scan
         run: cd frontend && npm run a11y
-      
+
       - name: Upload axe report
         if: always()
         uses: actions/upload-artifact@v4

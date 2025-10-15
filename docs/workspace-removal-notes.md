@@ -19,7 +19,7 @@ The repository has been simplified by removing npm workspaces. Each package (sha
 ```bash
 # Install dependencies for all packages
 cd shared && npm ci
-cd backend && npm ci  
+cd backend && npm ci
 cd frontend && npm ci
 
 # Build all packages
@@ -34,6 +34,7 @@ npm run build  # Runs build in sequence: shared -> backend -> frontend
 ## CI/CD Changes
 
 All GitHub Actions workflows now:
+
 - Install dependencies per package independently
 - Don't use the `node-workspace-setup` action
 - Use standard `cd` and `npm ci` commands

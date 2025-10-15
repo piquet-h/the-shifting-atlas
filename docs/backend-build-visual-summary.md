@@ -143,6 +143,7 @@ backend/package.json:
 ```
 
 Azure Functions deployment:
+
 - ❌ Doesn't have `../shared` directory
 - ❌ Can't resolve `file:` dependencies
 - ❌ Workspace structure doesn't exist in cloud
@@ -217,12 +218,14 @@ dist-deploy/node_modules/
 ```
 
 Benefits:
+
 - ✅ ~50 lines shorter script
 - ✅ No manual vendoring
 - ✅ Standard npm workflow
 - ✅ Semantic versioning
 
 Cost:
+
 - ⚠️ Publish step required
 - ⚠️ Authentication setup
 
@@ -232,58 +235,58 @@ Cost:
 
 ```yaml
 jobs:
-  build-and-deploy:
-    steps:
-      - Checkout code
-      - Setup Node.js
-      - Install workspace dependencies
-      
-      - Build shared (tsc)
-      - Build backend (tsc)
-      - Package backend (custom script)
-        └─→ Vendors @atlas/shared
-      
-      - Run tests
-      - Azure login
-      - Deploy dist-deploy/ to Azure Functions
+    build-and-deploy:
+        steps:
+            - Checkout code
+            - Setup Node.js
+            - Install workspace dependencies
+
+            - Build shared (tsc)
+            - Build backend (tsc)
+            - Package backend (custom script)
+              └─→ Vendors @atlas/shared
+
+            - Run tests
+            - Azure login
+            - Deploy dist-deploy/ to Azure Functions
 ```
 
 ### With GitHub Packages (Future)
 
 ```yaml
 jobs:
-  build-and-deploy:
-    steps:
-      - Checkout code
-      - Setup Node.js
-      - Install workspace dependencies
-      - Setup npm auth for GitHub Packages
-      
-      - Build shared (tsc)
-      - Publish @atlas/shared to GitHub Packages  ← NEW
-      
-      - Build backend (tsc)
-      - Package backend (simplified script)
-        └─→ npm install gets @atlas/shared from registry
-      
-      - Run tests
-      - Azure login
-      - Deploy dist-deploy/ to Azure Functions
+    build-and-deploy:
+        steps:
+            - Checkout code
+            - Setup Node.js
+            - Install workspace dependencies
+            - Setup npm auth for GitHub Packages
+
+            - Build shared (tsc)
+            - Publish @atlas/shared to GitHub Packages  ← NEW
+
+            - Build backend (tsc)
+            - Package backend (simplified script)
+              └─→ npm install gets @atlas/shared from registry
+
+            - Run tests
+            - Azure login
+            - Deploy dist-deploy/ to Azure Functions
 ```
 
 ## Decision Matrix
 
-| Aspect | Current (Vendoring) | GitHub Packages |
-|--------|---------------------|-----------------|
-| **Complexity** | Medium | Low |
-| **Lines of code** | ~140 | ~90 |
-| **Dev/Prod consistency** | Different package.json | Same package.json |
-| **Authentication** | None needed | .npmrc + token |
-| **Versioning** | Git-based | Semantic versioning |
-| **Build steps** | Build → Package → Deploy | Build → Publish → Deploy |
-| **Maintenance** | Custom script | Standard npm |
-| **Best for** | Rapid iteration | Stable packages |
-| **Migration time** | N/A (current) | 2-4 hours |
+| Aspect                   | Current (Vendoring)      | GitHub Packages          |
+| ------------------------ | ------------------------ | ------------------------ |
+| **Complexity**           | Medium                   | Low                      |
+| **Lines of code**        | ~140                     | ~90                      |
+| **Dev/Prod consistency** | Different package.json   | Same package.json        |
+| **Authentication**       | None needed              | .npmrc + token           |
+| **Versioning**           | Git-based                | Semantic versioning      |
+| **Build steps**          | Build → Package → Deploy | Build → Publish → Deploy |
+| **Maintenance**          | Custom script            | Standard npm             |
+| **Best for**             | Rapid iteration          | Stable packages          |
+| **Migration time**       | N/A (current)            | 2-4 hours                |
 
 ## Quick Commands Reference
 
@@ -331,29 +334,32 @@ ls -la backend/dist-deploy/node_modules/@atlas/shared/dist/
 
 ## File Locations
 
-| File | Purpose |
-|------|---------|
-| `backend/scripts/package.mjs` | Current packaging script |
+| File                                          | Purpose                           |
+| --------------------------------------------- | --------------------------------- |
+| `backend/scripts/package.mjs`                 | Current packaging script          |
 | `backend/scripts/package-github-packages.mjs` | Reference implementation (future) |
-| `backend/dist-deploy/` | Generated deployment artifact |
-| `docs/backend-build-quickref.md` | Quick reference guide |
-| `docs/backend-build-walkthrough.md` | Comprehensive guide |
-| `docs/github-packages-migration-checklist.md` | Migration guide |
-| `WAKE-UP-SUMMARY.md` | Executive summary |
+| `backend/dist-deploy/`                        | Generated deployment artifact     |
+| `docs/backend-build-quickref.md`              | Quick reference guide             |
+| `docs/backend-build-walkthrough.md`           | Comprehensive guide               |
+| `docs/github-packages-migration-checklist.md` | Migration guide                   |
+| `WAKE-UP-SUMMARY.md`                          | Executive summary                 |
 
 ## The Bottom Line
 
 ✅ **Current system is working correctly**
+
 - Entry point "drift" is intentional
 - Already using best practices
 - Well-suited for workspace monorepos
 
 🟡 **GitHub Packages is optional**
+
 - Would simplify the packaging script
 - Not urgent - consider when @atlas/shared stabilizes
 - Complete migration guide available
 
 🚀 **Recommendation**
+
 - Keep current system for now
 - Focus on building features
 - Revisit GitHub Packages later when beneficial
@@ -361,6 +367,7 @@ ls -la backend/dist-deploy/node_modules/@atlas/shared/dist/
 ---
 
 **Read more:**
+
 - Quick start: `docs/backend-build-quickref.md`
 - Deep dive: `docs/backend-build-walkthrough.md`
 - Migration: `docs/github-packages-migration-checklist.md`
