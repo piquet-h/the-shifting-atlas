@@ -65,6 +65,13 @@ jobs:
           scope: '@piquet-h'
           always-auth: true
 
+      - name: Configure npm authentication
+        run: |
+          cat > $NPM_CONFIG_USERCONFIG << EOF
+          @piquet-h:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
+          EOF
+
       - name: Install root dependencies
         run: npm ci
 
@@ -116,6 +123,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@piquet-h'
           always-auth: true
+
+      - name: Configure npm authentication
+        run: |
+          cat > $NPM_CONFIG_USERCONFIG << EOF
+          @piquet-h:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
+          EOF
 
       - name: Install root dependencies
         run: npm ci
@@ -173,6 +187,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@piquet-h'
           always-auth: true
+
+      - name: Configure npm authentication
+        run: |
+          cat > $NPM_CONFIG_USERCONFIG << EOF
+          @piquet-h:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
+          EOF
 
       - name: Install shared dependencies
         run: cd shared && npm ci
