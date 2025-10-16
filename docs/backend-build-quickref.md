@@ -36,20 +36,21 @@ npm test -w backend
 **Source:** `backend/dist-deploy/` (~75MB)
 
 **Contents:**
+
 - ✅ `src/` - Compiled JavaScript functions (192KB)
 - ✅ `host.json` - Azure Functions config
 - ✅ `package.json` - Production-only (no devDeps)
 - ✅ `node_modules/` - Production dependencies (~75MB)
-  - Includes vendored `@atlas/shared` package
+    - Includes vendored `@atlas/shared` package
 
 ---
 
 ## Entry Point Transformation (Why Different?)
 
-| Location | Entry Point | Why? |
-|----------|-------------|------|
-| **backend/package.json** | `dist/src/**/*.js` | For local dev - functions at `backend/dist/src/functions/*.js` |
-| **dist-deploy/package.json** | `src/**/*.js` | For deployment - functions at `dist-deploy/src/functions/*.js` |
+| Location                     | Entry Point        | Why?                                                           |
+| ---------------------------- | ------------------ | -------------------------------------------------------------- |
+| **backend/package.json**     | `dist/src/**/*.js` | For local dev - functions at `backend/dist/src/functions/*.js` |
+| **dist-deploy/package.json** | `src/**/*.js`      | For deployment - functions at `dist-deploy/src/functions/*.js` |
 
 **This is intentional!** The packaging script correctly handles this at line 81-90.
 
@@ -72,11 +73,11 @@ npm test -w backend
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `backend/scripts/package.mjs` | Packaging script (vendoring + trimming) |
-| `backend/dist-deploy/` | Generated deployment artifact |
-| `.github/workflows/backend-functions-deploy.yml` | CI/CD workflow |
+| File                                             | Purpose                                 |
+| ------------------------------------------------ | --------------------------------------- |
+| `backend/scripts/package.mjs`                    | Packaging script (vendoring + trimming) |
+| `backend/dist-deploy/`                           | Generated deployment artifact           |
+| `.github/workflows/backend-functions-deploy.yml` | CI/CD workflow                          |
 
 ---
 
@@ -89,6 +90,7 @@ npm test -w backend
 ### Q: Why not use `npm install --production`?
 
 **A:** We do use the modern equivalent: `npm ci --omit=dev`. This gives us:
+
 - ✅ Deterministic installs (from package-lock.json)
 - ✅ Production dependencies only
 - ✅ Faster than `npm install`
@@ -108,20 +110,23 @@ npm test -w backend
 ### Functions not discovered after deploy
 
 Check `dist-deploy/package.json` has:
+
 ```json
 {
-  "main": "src/**/*.js"  // NO "dist/" prefix!
+    "main": "src/**/*.js" // NO "dist/" prefix!
 }
 ```
 
 ### @atlas/shared not found
 
 Run packaging script again:
+
 ```bash
 npm run package:deploy -w backend
 ```
 
 Verify:
+
 ```bash
 ls backend/dist-deploy/node_modules/@atlas/shared/dist/
 ```
@@ -129,6 +134,7 @@ ls backend/dist-deploy/node_modules/@atlas/shared/dist/
 ### Build fails
 
 Ensure dependencies installed:
+
 ```bash
 npm install
 npm run build -w shared

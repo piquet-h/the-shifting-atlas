@@ -105,10 +105,10 @@ npm run build -w frontend
 
 ### Troubleshooting
 
-| Symptom                          | Cause                                               | Fix                                                                                       |
-| -------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 403 during deploy                | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.                                         |
-| (Removed) Functions not updating | N/A                                                 | Functions now deployed separately from `backend/`.                                        |
+| Symptom                          | Cause                                               | Fix                                                |
+| -------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
+| 403 during deploy                | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.  |
+| (Removed) Functions not updating | N/A                                                 | Functions now deployed separately from `backend/`. |
 
 ### Verification After Deploy
 

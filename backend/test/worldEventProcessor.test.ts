@@ -4,7 +4,7 @@
 import assert from 'node:assert'
 import { describe, test, beforeEach } from 'node:test'
 import type { InvocationContext } from '@azure/functions'
-import { queueProcessWorldEvent } from '../src/functions/queueProcessWorldEvent.js'
+import { queueProcessWorldEvent, __resetIdempotencyCacheForTests } from '../src/functions/queueProcessWorldEvent.js'
 
 // Mock InvocationContext for testing
 function createMockContext(): InvocationContext {
@@ -183,8 +183,10 @@ describe('World Event Queue Processor', () => {
     })
 
     describe('Idempotency', () => {
-        // Reset idempotency cache between tests in this suite
-        // Note: In production, cache is module-level, so we test behavior within single invocation context
+        // Reset idempotency cache between tests in this suite to ensure clean state
+        beforeEach(() => {
+            __resetIdempotencyCacheForTests()
+        })
 
         test('should detect duplicate events with same idempotencyKey', async () => {
             const ctx1 = createMockContext()

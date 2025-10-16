@@ -7,7 +7,8 @@ export default {
         },
         schema: [],
         messages: {
-            forbidden: 'Direct access to secret "{{secretName}}" via process.env is forbidden. Use getSecret() from @piquet-h/shared instead.',
+            forbidden:
+                'Direct access to secret "{{secretName}}" via process.env is forbidden. Use getSecret() from @piquet-h/shared instead.',
             deprecatedFunction: 'Secret access in deprecated function "{{functionName}}". Use loadPersistenceConfigAsync() for new code.'
         }
     },

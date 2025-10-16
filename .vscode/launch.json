@@ -23,10 +23,7 @@
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "run",
-                "dev:backend"
-            ],
+            "runtimeArgs": ["run", "dev:backend"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen"
@@ -35,17 +32,11 @@
     "compounds": [
         {
             "name": "Full Stack (Functions + Frontend)",
-            "configurations": [
-                "Attach to Node Functions",
-                "Frontend: Launch Vite (Chrome)"
-            ]
+            "configurations": ["Attach to Node Functions", "Frontend: Launch Vite (Chrome)"]
         },
         {
             "name": "Full Stack (Start Scripts)",
-            "configurations": [
-                "Backend: Start (npm dev:backend)",
-                "Frontend: Launch Vite (Chrome)"
-            ]
+            "configurations": ["Backend: Start (npm dev:backend)", "Frontend: Launch Vite (Chrome)"]
         }
     ]
 }
