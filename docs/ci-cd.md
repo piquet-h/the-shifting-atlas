@@ -37,7 +37,7 @@ Runs on:
 
 ### npm Authentication
 
-The workflow automatically configures npm authentication for GitHub Packages using `GITHUB_TOKEN` with `packages: read` permission. This enables access to private packages like `@piquet-h/shared` during the build process without requiring custom tokens.
+The workflow automatically configures npm authentication for GitHub Packages using the `NODE_AUTH_TOKEN` environment variable set to `GITHUB_TOKEN`, combined with `setup-node` configured for the GitHub Packages registry. The `packages: read` permission enables access to private packages like `@piquet-h/shared` during the build process without requiring custom tokens.
 
 ---
 
@@ -82,13 +82,12 @@ The workflow uses **OIDC** for Azure authentication and **deployment token** for
 
 ### npm Authentication for GitHub Packages
 
-The workflow automatically configures npm authentication for GitHub Packages using `GITHUB_TOKEN` with `packages: read` permission. This enables access to private packages like `@piquet-h/shared` during the build process without requiring custom tokens.
+The workflow automatically configures npm authentication for GitHub Packages using the `NODE_AUTH_TOKEN` environment variable set to `GITHUB_TOKEN`, combined with `setup-node` configured for the GitHub Packages registry. The `packages: read` permission enables access to private packages like `@piquet-h/shared` during the build process without requiring custom tokens.
 
 ### Job Flow (Push to main)
 
 1. Checkout & install dependencies across workspaces.
-2. Configure npm authentication for GitHub Packages.
-3. Type check (`npm run typecheck -w frontend`).
+2. Type check (`npm run typecheck -w frontend`).
 4. Build SPA.
 5. Azure OIDC login.
 6. Deploy with Static Web Apps action to production environment.
@@ -155,13 +154,15 @@ Runs on:
 All jobs that install npm packages now automatically configure authentication for GitHub Packages using the workflow's `GITHUB_TOKEN`. This is accomplished through:
 
 1. **Permissions**: The `packages: read` permission is added to the workflow's permissions block
-2. **Auth Step**: A step that configures npm authentication is added after checkout and before any npm install/ci commands:
+2. **Environment variable**: `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` is set at the job level
+3. **setup-node configuration**: The `setup-node` action is configured with:
    ```yaml
-   - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-     run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+   registry-url: 'https://npm.pkg.github.com'
+   scope: '@piquet-h'
+   always-auth: true
    ```
 
-This enables seamless access to private packages like `@piquet-h/shared` without requiring custom tokens.
+This configuration pattern matches the `publish-shared.yml` workflow and enables seamless access to private packages like `@piquet-h/shared` without requiring custom tokens. The `setup-node` action automatically creates the proper `.npmrc` configuration using the `NODE_AUTH_TOKEN` environment variable.
 
 The prior `build-artifacts` packaging job has been replaced by direct builds in the deploy and CI workflows. Further optimization can explore caching or artifact reuse if build time increases.
 

@@ -294,18 +294,23 @@ Before starting, ensure:
 
 ### 5.1 Update workflow file
 
-**Note:** npm authentication for GitHub Packages is now automatically configured in all workflow files. The following step has been added to all jobs that install npm packages:
+**Note:** npm authentication for GitHub Packages is now automatically configured in all workflow files using the same pattern as `publish-shared.yml`:
 
-```yaml
-- name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-  run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-```
+1. **`NODE_AUTH_TOKEN` environment variable** set to `${{ secrets.GITHUB_TOKEN }}` at the job level
+2. **`setup-node` action** configured with:
+   ```yaml
+   registry-url: 'https://npm.pkg.github.com'
+   scope: '@piquet-h'
+   always-auth: true
+   ```
 
-This step is placed after checkout and before any npm install/ci commands in:
-- `.github/workflows/ci.yml` (all jobs)
-- `.github/workflows/backend-functions-deploy.yml`
-- `.github/workflows/frontend-swa-deploy.yml`
-- `.github/workflows/publish-shared.yml`
+This configuration is applied to all jobs that install npm packages in:
+- `.github/workflows/ci.yml` (lint-typecheck, tests, accessibility jobs)
+- `.github/workflows/backend-functions-deploy.yml` (build-and-deploy job)
+- `.github/workflows/frontend-swa-deploy.yml` (build-and-deploy-prod job)
+- `.github/workflows/publish-shared.yml` (version-and-publish job)
+
+The `setup-node` action with these settings automatically creates the proper `.npmrc` configuration using the `NODE_AUTH_TOKEN` environment variable.
 
 - [ ] If you need to add a publish step (after build shared, before build backend):
 

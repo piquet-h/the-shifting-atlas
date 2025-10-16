@@ -45,6 +45,8 @@ jobs:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,9 +61,9 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
       - name: Install root dependencies
         run: npm ci
@@ -95,6 +97,8 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: lint-typecheck
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,9 +113,9 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
       - name: Install root dependencies
         run: npm ci
@@ -150,6 +154,8 @@ jobs:
     needs: [lint-typecheck, changes]
     if: ${{ needs.changes.outputs.a11y_changed == 'true' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -164,9 +170,9 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
-
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
       - name: Install shared dependencies
         run: cd shared && npm ci

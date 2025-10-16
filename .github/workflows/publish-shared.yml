@@ -39,9 +39,6 @@ jobs:
           scope: '@piquet-h'
           always-auth: true
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
-
       - name: Install shared dependencies only
         working-directory: ./shared
         run: npm ci

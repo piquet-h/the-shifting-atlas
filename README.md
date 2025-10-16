@@ -87,6 +87,37 @@ Prerequisites:
 
 - Node.js >= 20
 - (Optional) Azure Functions Core Tools v4 (for direct Functions host runs)
+- **GitHub Personal Access Token** with `read:packages` scope (for accessing `@piquet-h/shared` from GitHub Packages)
+
+### GitHub Packages Authentication (Required)
+
+The project uses the private `@piquet-h/shared` package from GitHub Packages. Before installing dependencies, you need to authenticate:
+
+1. **Create a Personal Access Token (PAT)**:
+   - Go to: https://github.com/settings/tokens
+   - Click "Generate new token (classic)"
+   - Select scopes: `read:packages` (and `write:packages` if you need to publish)
+   - Generate and copy the token
+
+2. **Configure npm authentication** (choose one method):
+
+   **Option A: Environment variable (recommended)**
+   ```bash
+   export NODE_AUTH_TOKEN=ghp_your_token_here
+   ```
+   
+   Add to your shell profile (`~/.bashrc`, `~/.zshrc`) to make it permanent:
+   ```bash
+   echo 'export NODE_AUTH_TOKEN=ghp_your_token_here' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+   **Option B: User-level .npmrc** (alternative)
+   ```bash
+   echo "//npm.pkg.github.com/:_authToken=ghp_your_token_here" >> ~/.npmrc
+   ```
+
+The repository `.npmrc` file already contains the scope mapping (`@piquet-h:registry=https://npm.pkg.github.com`), so you only need to provide authentication.
 
 ### Option A: Frontend Only
 
