@@ -2,7 +2,7 @@
     "name": "the-shifting-atlas-backend",
     "version": "0.1.0",
     "private": true,
-    "main": "dist/functions/*.js",
+    "main": "dist/src/functions/*.js",
     "scripts": {
         "clean": "rm -rf dist .cache coverage",
         "build": "tsc",
@@ -12,16 +12,18 @@
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
         "start": "npm run build && func start",
-        "package": "node ./scripts/package-simple.mjs"
+        "package": "cp -r package.json package-lock.json node_modules dist"
     },
     "engines": {
         "node": "20.x",
         "npm": ">=10.0.0"
     },
     "dependencies": {
-        "@piquet-h/shared": "file:../shared",
         "@azure/functions": "^4.8.0",
+        "@azure/identity": "^4.13.0",
+        "@piquet-h/shared": "^0.2.3",
         "applicationinsights": "^2.9.5",
+        "ci": "^2.3.0",
         "zod": "^4.1.11"
     },
     "devDependencies": {
