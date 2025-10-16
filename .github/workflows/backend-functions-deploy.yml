@@ -32,8 +32,6 @@ jobs:
   build-and-deploy:
     name: Build & Deploy Functions
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,16 +44,9 @@ jobs:
           cache-dependency-path: |
             shared/package-lock.json
             backend/package-lock.json
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
 
-      - name: Configure npm authentication
-        run: |
-          cat > $NPM_CONFIG_USERCONFIG << EOF
-          @piquet-h:registry=https://npm.pkg.github.com
-          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
-          EOF
+      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install shared dependencies
         run: cd shared && npm ci
