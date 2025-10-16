@@ -294,18 +294,20 @@ Before starting, ensure:
 
 ### 5.1 Update workflow file
 
-- [ ] Open: `.github/workflows/backend-functions-deploy.yml`
+**Note:** npm authentication for GitHub Packages is now automatically configured in all workflow files. The following step has been added to all jobs that install npm packages:
 
-- [ ] Add npm auth step (after checkout, before builds):
+```yaml
+- name: Configure npm for GitHub Packages (GITHUB_TOKEN)
+  run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > ~/.npmrc
+```
 
-    ```yaml
-    - name: Setup npm auth for GitHub Packages
-      run: |
-          echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
-    ```
+This step is placed after checkout and before any npm install/ci commands in:
+- `.github/workflows/ci.yml` (all jobs)
+- `.github/workflows/backend-functions-deploy.yml`
+- `.github/workflows/frontend-swa-deploy.yml`
+- `.github/workflows/publish-shared.yml`
 
-- [ ] Add publish step (after build shared, before build backend):
+- [ ] If you need to add a publish step (after build shared, before build backend):
 
     ```yaml
     - name: Publish shared to GitHub Packages
@@ -330,11 +332,14 @@ Before starting, ensure:
 
 ### 5.2 Verify GitHub Actions permissions
 
-- [ ] Go to: Repository Settings → Actions → General
+**Note:** Workflow permissions have been automatically configured in all workflow files. Each workflow now includes `packages: read` (or `packages: write` for publish workflows) in its permissions block.
+
+- [ ] For publishing packages, verify: Repository Settings → Actions → General
 - [ ] Scroll to "Workflow permissions"
-- [ ] Ensure "Read and write permissions" is selected
-    - Needed for `secrets.GITHUB_TOKEN` to publish packages
+- [ ] Ensure "Read and write permissions" is selected (needed for `secrets.GITHUB_TOKEN` to publish packages)
 - [ ] Save if changed
+
+For read-only access (installing packages), the `packages: read` permission in the workflow file is sufficient.
 
 ---
 
