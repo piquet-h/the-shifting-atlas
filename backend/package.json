@@ -22,21 +22,21 @@
     "dependencies": {
         "@azure/functions": "^4.8.0",
         "@azure/identity": "^4.13.0",
-        "@piquet-h/shared": "^0.2.3",
+        "@piquet-h/shared": "file:../shared/piquet-h-shared-0.2.5.tgz",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
         "zod": "^4.1.11"
     },
     "devDependencies": {
         "@types/node": "^24.4.0",
-        "concurrently": "^9.2.1",
-        "tsx": "^4.19.1",
-        "typescript": "^5.9.2",
-        "eslint": "^9.35.0",
         "@typescript-eslint/eslint-plugin": "^8.44.0",
         "@typescript-eslint/parser": "^8.44.0",
-        "prettier": "^3.3.3",
+        "c8": "^10.1.2",
+        "concurrently": "^9.2.1",
+        "eslint": "^9.35.0",
         "eslint-plugin-prettier": "^5.2.1",
-        "c8": "^10.1.2"
+        "prettier": "^3.3.3",
+        "tsx": "^4.19.1",
+        "typescript": "^5.9.2"
     }
 }
