@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'shared/**'
       - '.github/workflows/backend-functions-deploy.yml'
   workflow_dispatch:
     inputs:
@@ -25,13 +24,15 @@ concurrency:
 env:
   NODE_VERSION: '20'
   AZURE_FUNCTIONAPP_NAME: 'func-atlas'
-  # Deploy the prepared dist-deploy folder containing only production assets
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'backend/dist-deploy'
 
 jobs:
   build-and-deploy:
     name: Build & Deploy Functions
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,27 +45,29 @@ jobs:
           cache-dependency-path: |
             shared/package-lock.json
             backend/package-lock.json
+          always-auth: true
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      - name: Configure npm authentication
+        run: |
+          cat > $NPM_CONFIG_USERCONFIG << EOF
+          @piquet-h:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
+          EOF
 
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install backend dependencies
-        run: cd backend && npm ci
-
-      - name: Build shared dependencies
-        run: cd shared && npm run build
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build backend (tsc)
-        run: cd backend && npm run build
-
-      - name: Package backend for deployment
-        run: cd backend && npm run package
+        run:  npm run build
 
       - name: Run backend tests
-        run: cd backend && npm test
+        run: npm test
+
+      - name: Prepare modules
+        run: npm ci --omit=dev
+
+      - name: Package backend for deployment
+        run: npm run package
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2
@@ -93,7 +96,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          package: 'dist.zip'
           slot-name: 'Production'
 
       - name: Verify deployment
