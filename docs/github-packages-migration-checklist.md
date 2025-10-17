@@ -294,18 +294,25 @@ Before starting, ensure:
 
 ### 5.1 Update workflow file
 
-- [ ] Open: `.github/workflows/backend-functions-deploy.yml`
+**Note:** npm authentication for GitHub Packages is now automatically configured in all workflow files using the same pattern as `publish-shared.yml`:
 
-- [ ] Add npm auth step (after checkout, before builds):
+1. **`NODE_AUTH_TOKEN` environment variable** set to `${{ secrets.GITHUB_TOKEN }}` at the job level
+2. **`setup-node` action** configured with:
+   ```yaml
+   registry-url: 'https://npm.pkg.github.com'
+   scope: '@piquet-h'
+   always-auth: true
+   ```
 
-    ```yaml
-    - name: Setup npm auth for GitHub Packages
-      run: |
-          echo "@atlas:registry=https://npm.pkg.github.com" >> .npmrc
-          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
-    ```
+This configuration is applied to all jobs that install npm packages in:
+- `.github/workflows/ci.yml` (lint-typecheck, tests, accessibility jobs)
+- `.github/workflows/backend-functions-deploy.yml` (build-and-deploy job)
+- `.github/workflows/frontend-swa-deploy.yml` (build-and-deploy-prod job)
+- `.github/workflows/publish-shared.yml` (version-and-publish job)
 
-- [ ] Add publish step (after build shared, before build backend):
+The `setup-node` action with these settings automatically creates the proper `.npmrc` configuration using the `NODE_AUTH_TOKEN` environment variable.
+
+- [ ] If you need to add a publish step (after build shared, before build backend):
 
     ```yaml
     - name: Publish shared to GitHub Packages
@@ -330,11 +337,14 @@ Before starting, ensure:
 
 ### 5.2 Verify GitHub Actions permissions
 
-- [ ] Go to: Repository Settings → Actions → General
+**Note:** Workflow permissions have been automatically configured in all workflow files. Each workflow now includes `packages: read` (or `packages: write` for publish workflows) in its permissions block.
+
+- [ ] For publishing packages, verify: Repository Settings → Actions → General
 - [ ] Scroll to "Workflow permissions"
-- [ ] Ensure "Read and write permissions" is selected
-    - Needed for `secrets.GITHUB_TOKEN` to publish packages
+- [ ] Ensure "Read and write permissions" is selected (needed for `secrets.GITHUB_TOKEN` to publish packages)
 - [ ] Save if changed
+
+For read-only access (installing packages), the `packages: read` permission in the workflow file is sufficient.
 
 ---
 

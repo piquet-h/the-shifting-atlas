@@ -16,6 +16,7 @@ on:
 permissions:
   id-token: write # OIDC for azure/login
   contents: read
+  packages: read
 
 concurrency:
   group: backend-functions-${{ github.ref }}
@@ -43,6 +44,9 @@ jobs:
           cache-dependency-path: |
             shared/package-lock.json
             backend/package-lock.json
+
+      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
+        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
 
       - name: Install shared dependencies
         run: cd shared && npm ci
