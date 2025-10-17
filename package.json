@@ -7,43 +7,5 @@
         "node": "20.x",
         "npm": ">=10.0.0"
     },
-    "scripts": {
-        "dev": "concurrently -n backend,frontend -c magenta,green \"npm:dev:backend\" \"npm:dev:frontend\"",
-        "dev:backend": "cd backend && npm run dev",
-        "dev:frontend": "cd frontend && npm run dev",
-        "build": "cd shared && npm run build && cd ../backend && npm run build && cd ../frontend && npm run build",
-        "build:shared": "cd shared && npm run build",
-        "build:backend": "cd backend && npm run build",
-        "build:frontend": "cd frontend && npm run build",
-        "typecheck": "cd shared && npm run typecheck && cd ../backend && npm run typecheck && cd ../frontend && npm run typecheck",
-        "clean": "cd shared && npm run clean && cd ../backend && npm run clean && cd ../frontend && npm run clean",
-        "test": "cd shared && npm test && cd ../backend && npm test && cd ../frontend && npm test",
-        "coverage": "c8 --reporter=text --reporter=lcov npm run test",
-        "a11y": "cd frontend && npm run a11y",
-        "prelint": "node -e \"['@typescript-eslint/eslint-plugin','@typescript-eslint/parser'].forEach(m=>{try{require.resolve(m);console.log('found',m)}catch(e){console.error('MISSING',m);process.exitCode=1}})\"",
-        "lint": "npm run prelint && eslint 'shared/src' 'backend/src' 'frontend/src' --ext .ts,.tsx",
-        "lint:fix": "npm run lint -- --fix",
-        "lint:changed": "git diff --name-only --diff-filter=ACMRT origin/main...HEAD | grep -E '\\.(ts|tsx)$' | xargs -r eslint",
-        "format": "prettier . --write",
-        "format:check": "prettier . --check",
-        "test:build-telemetry-guard": "node scripts/test-build-telemetry-guard.mjs",
-        "validate:telemetry-separation": "node scripts/validate-telemetry-separation.mjs",
-        "scan:graph-consistency": "node scripts/scan-graph-consistency.mjs"
-    },
-    "devDependencies": {
-        "@types/node": "^24.4.0",
-        "@typescript-eslint/eslint-plugin": "^8.44.0",
-        "@typescript-eslint/parser": "^8.44.0",
-        "c8": "^10.1.2",
-        "concurrently": "^9.0.0",
-        "eslint": "^9.35.0",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-jsx-a11y": "^6.9.0",
-        "eslint-plugin-prettier": "^5.2.1",
-        "eslint-plugin-react": "^7.37.5",
-        "eslint-plugin-react-hooks": "^5.2.0",
-        "prettier": "^3.3.3",
-        "tsx": "^4.20.5",
-        "typescript": "^5.9.2"
-    }
+    "scripts": {}
 }

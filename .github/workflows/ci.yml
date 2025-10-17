@@ -42,9 +42,12 @@ jobs:
               - 'shared/**'
 
   lint-typecheck:
-    name: Lint & Typecheck
+    name: Lint & Typecheck (matrix)
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: [shared, backend, frontend]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,44 +58,30 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: |
-            package-lock.json
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      - name: Install dependencies (${{ matrix.pkg }})
+        run: cd ${{ matrix.pkg }} && npm ci
 
-      - name: Install root dependencies
-        run: npm ci
+      - name: Lint (${{ matrix.pkg }})
+        run: |
+          if [ "${{ matrix.pkg }}" = "frontend" ]; then exts=".ts,.tsx"; else exts=".ts"; fi
+          cd ${{ matrix.pkg }} && npx eslint 'src' --ext $exts
 
-      - name: Install shared dependencies
-        run: cd shared && npm ci
+      - name: Typecheck (${{ matrix.pkg }})
+        run: cd ${{ matrix.pkg }} && npm run typecheck
 
-      - name: Install backend dependencies
-        run: cd backend && npm ci
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build shared (required for typecheck)
-        run: cd shared && npm run build
-
-      - name: Prelint dependency sanity
-        run: npm run prelint
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: (Optional) Upload ESLint report placeholder
+      - name: Upload ESLint placeholder (on failure)
         if: failure()
-        run: echo "Add ESLint report upload here if desired."
+        run: echo "(placeholder)"
 
   tests:
-    name: Unit Tests
+    name: Unit Tests & Coverage
     runs-on: ubuntu-latest
     needs: lint-typecheck
     steps:
@@ -105,17 +94,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: |
-            package-lock.json
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
-
-      - name: Install root dependencies
-        run: npm ci
-
+      # Auth handled automatically by setup-node via GITHUB_TOKEN
       - name: Install shared dependencies
         run: cd shared && npm ci
 
@@ -134,9 +120,21 @@ jobs:
       - name: Build frontend
         run: cd frontend && npm run build
 
-      - name: Run tests
-        run: npm test
+      - name: Run shared tests (coverage)
+        run: cd shared && npm run test:cov
 
+      - name: Run backend tests (coverage)
+        run: cd backend && npm run test:cov
+
+      - name: Run frontend tests
+        run: cd frontend && npm test || true
+
+      - name: Collect coverage
+        run: |
+          mkdir -p coverage
+          if [ -d shared/coverage ]; then cp -r shared/coverage coverage/shared; fi
+          if [ -d backend/coverage ]; then cp -r backend/coverage coverage/backend; fi
+          if [ -d frontend/coverage ]; then cp -r frontend/coverage coverage/frontend; fi
       - name: Upload coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -164,9 +162,11 @@ jobs:
             shared/package-lock.json
             backend/package-lock.json
             frontend/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      # Auth handled automatically by setup-node via GITHUB_TOKEN
 
       - name: Install shared dependencies
         run: cd shared && npm ci

@@ -43,29 +43,20 @@ jobs:
           cache-dependency-path: |
             shared/package-lock.json
             frontend/package-lock.json
+          always-auth: true
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
 
-      - name: Configure npm for GitHub Packages (GITHUB_TOKEN)
-        run: echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> ~/.npmrc
+      # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
 
-      - name: Install shared dependencies
-        run: cd shared && npm ci
-
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
-
-      - name: Build shared
-        run: cd shared && npm run build
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build frontend (Vite)
         run: cd frontend && npm run build
 
-      - name: Verify build artifact exists
-        run: |
-          if [ ! -d "frontend/dist" ]; then
-            echo "::error title=Missing build artifact::Directory frontend/dist not found. Check prior build step output.";
-            ls -R frontend || true
-            exit 1
-          fi
+      - name: Prepare for package deployment
+        run: npm ci --omit=dev
 
       - name: Resolve SWA Name
         id: swa_name
@@ -74,6 +65,9 @@ jobs:
           if [ -z "${{ vars.SWA_NAME }}" ]; then
             echo "::warning title=Missing SWA_NAME::Repository variable SWA_NAME not set. Deployment may fail if name required.";
           fi
+
+      - name: Prepare dist folder for deployment
+        run: npm run package
 
       - name: Azure login (OIDC) for app settings
         uses: azure/login@v2

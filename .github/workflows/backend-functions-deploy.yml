@@ -42,16 +42,18 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            backend/package-lock.json
+          # Only cache backend dependencies. Removing shared lock reference to ensure
+          # backend build is fully independent of the local shared source tree.
+          cache-dependency-path: backend/package-lock.json
           always-auth: true
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build backend (tsc)
-        run:  npm run build
+        run: npm run build
 
       - name: Run backend tests
         run: npm test
