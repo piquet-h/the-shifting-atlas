@@ -44,6 +44,8 @@ jobs:
   lint-typecheck:
     name: Lint & Typecheck (matrix)
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -83,6 +85,8 @@ jobs:
   tests:
     name: Unit Tests & Coverage
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     needs: lint-typecheck
     steps:
       - name: Checkout
@@ -148,6 +152,8 @@ jobs:
     needs: [lint-typecheck, changes]
     if: ${{ needs.changes.outputs.a11y_changed == 'true' && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
