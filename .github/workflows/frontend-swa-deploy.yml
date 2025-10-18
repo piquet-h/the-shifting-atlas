@@ -49,8 +49,14 @@ jobs:
 
       # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install shared dependencies
+        run: cd shared && npm ci
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build shared
+        run: cd shared && npm run build
 
       - name: Build frontend (Vite)
         run: cd frontend && npm run build
