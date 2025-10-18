@@ -42,14 +42,26 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
           always-auth: true
           registry-url: 'https://npm.pkg.github.com'
           scope: '@piquet-h'
 
-      # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
+      # Auth configured via NODE_AUTH_TOKEN and .npmrc
+
+      - name: Build shared package
+        run: cd shared && npm ci && npm run build
+
+      - name: Publish shared package (if needed)
+        run: |
+          cd shared
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if npm view @piquet-h/shared@$CURRENT_VERSION version 2>/dev/null; then
+            echo "Version $CURRENT_VERSION already published, skipping"
+          else
+            echo "Publishing version $CURRENT_VERSION"
+            npm publish
+          fi
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
