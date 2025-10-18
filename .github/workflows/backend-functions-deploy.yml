@@ -61,8 +61,13 @@ jobs:
       - name: Prepare modules
         run: npm ci --omit=dev
 
-      - name: Package backend for deployment
-        run: npm run package
+      - name: Copy and zip for deployment
+        run: |
+          mkdir -p temp
+          cp -r dist node_modules host.json package.json temp/
+          cd temp
+          zip -r ../dist.zip ./*
+          cd ..
 
       - name: Azure Login (OIDC)
         uses: azure/login@v2

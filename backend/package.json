@@ -2,7 +2,7 @@
     "name": "the-shifting-atlas-backend",
     "version": "0.1.0",
     "private": true,
-    "main": "**/functions/*.js",
+    "main": "dist/src/functions/*.js",
     "scripts": {
         "clean": "rm -rf dist .cache coverage",
         "build": "tsc",
@@ -12,8 +12,7 @@
         "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
-        "start": "npm run build && func start",
-        "package": "cp -r package.json package-lock.json host.json node_modules dist && cd dist && zip -r ../dist.zip ."
+        "start": "npm run build && func start"
     },
     "engines": {
         "node": "20.x",
