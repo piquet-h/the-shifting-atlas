@@ -325,14 +325,6 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
       functionAppResourceId: backendFunctionApp.id
     }
   }
-
-  resource backend 'linkedBackends' = {
-    name: 'default'
-    properties: {
-      backendResourceId: backendFunctionApp.id
-      region: backendFunctionApp.location
-    }
-  }
 }
 
 output staticWebAppOrigin string = format('https://{0}', staticSite.properties.defaultHostname)
