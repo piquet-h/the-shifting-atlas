@@ -31,6 +31,8 @@ jobs:
   build-and-deploy-prod:
     name: Build & Deploy (Production)
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,14 +42,12 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            shared/package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
           always-auth: true
           registry-url: 'https://npm.pkg.github.com'
           scope: '@piquet-h'
 
-      # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
+      # Auth configured via NODE_AUTH_TOKEN and .npmrc
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
