@@ -89,8 +89,9 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       alwaysOn: false
       cors: {
         allowedOrigins: [
-          'https://${staticSite.properties.defaultHostname}'
+          format('https://{0}', staticSite.properties.defaultHostname)
         ]
+        supportCredentials: false
       }
     }
 
@@ -333,6 +334,8 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
     }
   }
 }
+
+output staticWebAppOrigin string = format('https://{0}', staticSite.properties.defaultHostname)
 
 // Role assignments granting the Function App managed identity data access to Cosmos (Gremlin + SQL) and Service Bus send/receive.
 // Using Built-in Data Contributor for Cosmos (read/write) and Service Bus Data Sender/Receiver.
