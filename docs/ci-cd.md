@@ -113,10 +113,50 @@ npm run build -w frontend
 
 ### Troubleshooting
 
-| Symptom                          | Cause                                               | Fix                                                |
-| -------------------------------- | --------------------------------------------------- | -------------------------------------------------- |
-| 403 during deploy                | OIDC federated credential missing or wrong audience | Recreate federated credential with repo + branch.  |
-| (Removed) Functions not updating | N/A                                                 | Functions now deployed separately from `backend/`. |
+| Symptom                                         | Cause                                                      | Fix                                                                                  |
+| ----------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 403 during deploy                               | OIDC federated credential missing or wrong audience        | Recreate federated credential with repo + branch.                                    |
+| (Removed) Functions not updating                | N/A                                                        | Functions now deployed separately from `backend/`.                                   |
+| npm 401 Unauthorized (GitHub Packages)          | Incorrect .npmrc auth configuration or missing permissions | See "GitHub Packages Authentication" section below.                                  |
+| `@piquet-h/shared` package not found during npm ci | Missing packages: read permission or wrong registry URL    | Ensure workflow has `packages: read` permission and setup-node uses correct registry |
+
+#### GitHub Packages Authentication
+
+The frontend and backend workflows authenticate to GitHub Packages (for `@piquet-h/shared`) using the following pattern:
+
+**Workflow Configuration (Required):**
+```yaml
+permissions:
+  packages: read  # Required for accessing private packages
+
+jobs:
+  build:
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          always-auth: true
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+      # setup-node automatically configures auth using GITHUB_TOKEN
+```
+
+**What NOT to do:**
+- ❌ DO NOT add `.npmrc` files in workspace folders (frontend/, backend/) with auth tokens
+- ❌ DO NOT reference `${GITHUB_PACKAGES_TOKEN}` - this variable doesn't exist
+- ❌ DO NOT manually run `npm config set` commands in workflows
+- ❌ DO NOT add `//npm.pkg.github.com/:_authToken=` lines to committed .npmrc files
+
+**How it works:**
+1. `actions/setup-node` with `always-auth: true` automatically creates a user-level `.npmrc` with authentication
+2. The `GITHUB_TOKEN` secret is automatically used (via `NODE_AUTH_TOKEN` environment variable)
+3. The `packages: read` permission grants access to private packages in the same organization
+
+**Local Development:**
+To install packages locally, create a user-level `~/.npmrc` (not in the repository) with:
+```
+//npm.pkg.github.com/:_authToken=ghp_yourPersonalAccessToken
+```
+Your PAT needs the `read:packages` scope. Generate one at: GitHub Settings → Developer settings → Personal access tokens.
 
 ### Verification After Deploy
 
