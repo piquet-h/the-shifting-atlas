@@ -49,18 +49,20 @@ jobs:
 
       # Auth configured via NODE_AUTH_TOKEN and .npmrc
 
-      - name: Build shared package
-        run: cd shared && npm ci && npm run build
-
-      - name: Publish shared package (if needed)
+      - name: Build and publish shared package (if needed)
         run: |
           cd shared
           CURRENT_VERSION=$(node -p "require('./package.json').version")
+          
+          # Check if version already published
           if npm view @piquet-h/shared@$CURRENT_VERSION version 2>/dev/null; then
-            echo "Version $CURRENT_VERSION already published, skipping"
+            echo "✓ Version $CURRENT_VERSION already published, skipping build and publish"
           else
-            echo "Publishing version $CURRENT_VERSION"
+            echo "Building and publishing version $CURRENT_VERSION..."
+            npm ci
+            npm run build
             npm publish
+            echo "✓ Successfully published version $CURRENT_VERSION"
           fi
 
       - name: Install frontend dependencies
