@@ -91,7 +91,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ steps.resolve.outputs.FUNCTION_APP_NAME }}
-          package: 'dist.zip'
+          package: 'backend/dist.zip'
           slot-name: 'Production'
 
       - name: Verify deployment
