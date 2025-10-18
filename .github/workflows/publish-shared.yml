@@ -39,6 +39,8 @@ jobs:
           scope: '@piquet-h'
           always-auth: true
 
+      # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
+
       - name: Install shared dependencies only
         working-directory: ./shared
         run: npm ci

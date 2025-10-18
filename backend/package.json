@@ -9,10 +9,11 @@
         "watch": "tsc --watch --preserveWatchOutput",
         "typecheck": "tsc --noEmit",
         "test": "node --test --import=tsx test/*.test.ts",
+        "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
         "start": "npm run build && func start",
-        "package": "cp -r package.json package-lock.json host.json node_modules dist"
+        "package": "cp -r package.json package-lock.json host.json node_modules dist && cd dist && zip -r ../dist.zip ."
     },
     "engines": {
         "node": "20.x",
@@ -21,14 +22,21 @@
     "dependencies": {
         "@azure/functions": "^4.8.0",
         "@azure/identity": "^4.13.0",
-        "@piquet-h/shared": "^0.2.3",
+        "@piquet-h/shared": "file:../shared/piquet-h-shared-0.2.5.tgz",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
         "zod": "^4.1.11"
     },
     "devDependencies": {
         "@types/node": "^24.4.0",
+        "@typescript-eslint/eslint-plugin": "^8.44.0",
+        "@typescript-eslint/parser": "^8.44.0",
+        "c8": "^10.1.2",
         "concurrently": "^9.2.1",
-        "tsx": "^4.19.1"
+        "eslint": "^9.35.0",
+        "eslint-plugin-prettier": "^5.2.1",
+        "prettier": "^3.3.3",
+        "tsx": "^4.19.1",
+        "typescript": "^5.9.2"
     }
 }
