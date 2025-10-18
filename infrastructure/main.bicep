@@ -85,8 +85,13 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
     siteConfig: {
       minTlsVersion: '1.3'
-      http20Enabled: true 
+      http20Enabled: true
       alwaysOn: false
+      cors: {
+        allowedOrigins: [
+          'https://${staticSite.properties.defaultHostname}'
+        ]
+      }
     }
 
     functionAppConfig: {
@@ -335,7 +340,10 @@ resource cosmosGraphDataContrib 'Microsoft.Authorization/roleAssignments@2022-04
   name: guid(cosmosGraphAccount.id, backendFunctionApp.id, 'cosmos-graph-data-contrib')
   scope: cosmosGraphAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions','5bd9cd88-fe45-4216-938b-f97437e15450') // Cosmos DB Built-in Data Contributor
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5bd9cd88-fe45-4216-938b-f97437e15450'
+    ) // Cosmos DB Built-in Data Contributor
     principalId: backendFunctionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
