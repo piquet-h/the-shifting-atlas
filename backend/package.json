@@ -2,7 +2,7 @@
     "name": "the-shifting-atlas-backend",
     "version": "0.1.0",
     "private": true,
-    "main": "dist/src/{index.js,functions/*.js}",
+    "main": "dist/functions/*.js",
     "scripts": {
         "clean": "rm -rf dist .cache coverage",
         "build": "tsc",
