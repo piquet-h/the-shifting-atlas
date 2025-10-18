@@ -90,6 +90,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       cors: {
         allowedOrigins: [
           format('https://{0}', staticSite.properties.defaultHostname)
+          'https://portal.azure.com'
         ]
         supportCredentials: false
       }
@@ -328,6 +329,20 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
 }
 
 output staticWebAppOrigin string = format('https://{0}', staticSite.properties.defaultHostname)
+
+// Role assignment to grant the static web app access to the backend function app
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(staticSite.id, backendFunctionApp.id, 'WebsiteContributor')
+  scope: backendFunctionApp
+  properties: {
+    principalId: staticSite.identity.principalId
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      'de139f84-1756-47ae-9be6-808fbbe84772'
+    ) // Website Contributor
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // Role assignments granting the Function App managed identity data access to Cosmos (Gremlin + SQL) and Service Bus send/receive.
 // Using Built-in Data Contributor for Cosmos (read/write) and Service Bus Data Sender/Receiver.
