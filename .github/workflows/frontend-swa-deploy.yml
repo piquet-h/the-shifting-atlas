@@ -66,9 +66,6 @@ jobs:
             echo "::warning title=Missing SWA_NAME::Repository variable SWA_NAME not set. Deployment may fail if name required.";
           fi
 
-      - name: Prepare dist folder for deployment
-        run: npm run package
-
       - name: Azure login (OIDC) for app settings
         uses: azure/login@v2
         with:
