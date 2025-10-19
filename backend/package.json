@@ -21,7 +21,7 @@
     "dependencies": {
         "@azure/functions": "^4.8.0",
         "@azure/identity": "^4.13.0",
-        "@piquet-h/shared": "^0.2.7",
+        "@piquet-h/shared": "^0.2.14",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
         "zod": "^4.1.11"
