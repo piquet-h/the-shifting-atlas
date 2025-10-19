@@ -125,3 +125,77 @@ test('normalizeDirection: multi-token ambiguous (empty/whitespace)', () => {
     const resultWhitespace = normalizeDirection('   ')
     assert.equal(resultWhitespace.status, 'unknown')
 })
+
+// Stage 1: Shortcut tests
+test('normalizeDirection: shortcut expansion - cardinal directions', () => {
+    assert.deepEqual(normalizeDirection('n'), { status: 'ok', canonical: 'north' })
+    assert.deepEqual(normalizeDirection('s'), { status: 'ok', canonical: 'south' })
+    assert.deepEqual(normalizeDirection('e'), { status: 'ok', canonical: 'east' })
+    assert.deepEqual(normalizeDirection('w'), { status: 'ok', canonical: 'west' })
+})
+
+test('normalizeDirection: shortcut expansion - diagonal directions', () => {
+    assert.deepEqual(normalizeDirection('ne'), { status: 'ok', canonical: 'northeast' })
+    assert.deepEqual(normalizeDirection('nw'), { status: 'ok', canonical: 'northwest' })
+    assert.deepEqual(normalizeDirection('se'), { status: 'ok', canonical: 'southeast' })
+    assert.deepEqual(normalizeDirection('sw'), { status: 'ok', canonical: 'southwest' })
+})
+
+test('normalizeDirection: shortcut expansion - vertical and portal', () => {
+    assert.deepEqual(normalizeDirection('u'), { status: 'ok', canonical: 'up' })
+    assert.deepEqual(normalizeDirection('d'), { status: 'ok', canonical: 'down' })
+    assert.deepEqual(normalizeDirection('i'), { status: 'ok', canonical: 'in' })
+    assert.deepEqual(normalizeDirection('o'), { status: 'ok', canonical: 'out' })
+})
+
+test('normalizeDirection: shortcut case insensitive', () => {
+    assert.equal(normalizeDirection('N').canonical, 'north')
+    assert.equal(normalizeDirection('NE').canonical, 'northeast')
+    assert.equal(normalizeDirection('U').canonical, 'up')
+})
+
+// Stage 1: Typo tolerance tests
+test('normalizeDirection: typo tolerance - edit distance 1', () => {
+    // One character off
+    const result = normalizeDirection('nort')
+    assert.equal(result.status, 'ok')
+    assert.equal(result.canonical, 'north')
+    assert.ok(result.clarification?.includes('nort'))
+    assert.ok(result.clarification?.includes('north'))
+})
+
+test('normalizeDirection: typo tolerance - substitution', () => {
+    const result = normalizeDirection('sooth')
+    assert.equal(result.status, 'ok')
+    assert.equal(result.canonical, 'south')
+})
+
+test('normalizeDirection: typo tolerance - insertion', () => {
+    const result = normalizeDirection('norrth')
+    assert.equal(result.status, 'ok')
+    assert.equal(result.canonical, 'north')
+})
+
+test('normalizeDirection: typo tolerance - deletion', () => {
+    const result = normalizeDirection('dwn')
+    assert.equal(result.status, 'ok')
+    assert.equal(result.canonical, 'down')
+})
+
+test('normalizeDirection: no match beyond edit distance 1', () => {
+    const result = normalizeDirection('xyz')
+    assert.equal(result.status, 'unknown')
+    assert.equal(result.canonical, undefined)
+})
+
+test('normalizeDirection: ambiguous typo matches multiple directions', () => {
+    // "est" could be "east" or "west" (both edit distance 1)
+    const result = normalizeDirection('est')
+    assert.equal(result.status, 'unknown')
+    assert.equal(result.canonical, undefined)
+    
+    // "weast" could also be "east" or "west"
+    const result2 = normalizeDirection('weast')
+    assert.equal(result2.status, 'unknown')
+    assert.equal(result2.canonical, undefined)
+})
