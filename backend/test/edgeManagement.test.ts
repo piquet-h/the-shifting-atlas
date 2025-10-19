@@ -1,6 +1,6 @@
+import { getOppositeDirection } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { getOppositeDirection } from '../src/domainModels.js'
 import { CosmosLocationRepository } from '../src/repos/locationRepository.cosmos.js'
 
 type VertexMap = Record<string, Record<string, unknown>>

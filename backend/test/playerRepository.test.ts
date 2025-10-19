@@ -1,7 +1,8 @@
-import type { PlayerRecord } from '@piquet-h/shared'
-import { __resetPlayerRepositoryForTests, getPlayerRepository, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import type { PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import assert from 'node:assert'
 import { test } from 'node:test'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
 
 test('player repository assigns starting location', async () => {
     __resetPlayerRepositoryForTests()
