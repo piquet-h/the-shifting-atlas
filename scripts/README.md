@@ -8,6 +8,21 @@ Automation scripts currently retained. All former predictive scheduling, orderin
 
 - **`validate-telemetry-separation.mjs`** – Enforces build vs game telemetry boundary.
 
+### Testing
+
+- **`smoke-traversal.mjs`** - Smoke test for traversal movement loop
+
+    Tests the basic game flow: bootstrap → look → move → look
+    Verifies at least 2 distinct location IDs are reachable
+    
+    ```bash
+    npm run smoke:traversal
+    ```
+    
+    Exit codes:
+    - 0: Success (all steps passed)
+    - 1: Failure (any step failed)
+
 ### Build & Deploy
 
 - **`clean.mjs`** - Clean build artifacts
