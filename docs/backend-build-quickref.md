@@ -1,4 +1,8 @@
-# Backend Build Quick Reference
+## Deprecated: Backend Build Quick Reference
+
+This document is deprecated. Build & deploy behavior should be read directly from workflow YAML under `.github/workflows/` and the scripts in `backend/scripts/`. The legacy content is retained below temporarily and will be removed after consumers confirm no reliance.
+
+<!-- LEGACY BUILD DOC (deprecated) -->
 
 **See full details in:** [`backend-build-walkthrough.md`](./backend-build-walkthrough.md)
 
@@ -37,11 +41,11 @@ npm test -w backend
 
 **Contents:**
 
-- ✅ `src/` - Compiled JavaScript functions (192KB)
-- ✅ `host.json` - Azure Functions config
-- ✅ `package.json` - Production-only (no devDeps)
-- ✅ `node_modules/` - Production dependencies (~75MB)
-    - Includes vendored `@atlas/shared` package
+-   ✅ `src/` - Compiled JavaScript functions (192KB)
+-   ✅ `host.json` - Azure Functions config
+-   ✅ `package.json` - Production-only (no devDeps)
+-   ✅ `node_modules/` - Production dependencies (~75MB)
+    -   Includes vendored `@atlas/shared` package
 
 ---
 
@@ -91,9 +95,9 @@ npm test -w backend
 
 **A:** We do use the modern equivalent: `npm ci --omit=dev`. This gives us:
 
-- ✅ Deterministic installs (from package-lock.json)
-- ✅ Production dependencies only
-- ✅ Faster than `npm install`
+-   ✅ Deterministic installs (from package-lock.json)
+-   ✅ Production dependencies only
+-   ✅ Faster than `npm install`
 
 ### Q: Why not use remote build?
 
@@ -151,4 +155,6 @@ npm run build -w backend
 
 ---
 
-**Questions?** See [`backend-build-walkthrough.md`](./backend-build-walkthrough.md) for comprehensive guide.
+**Questions?** Read the workflow files instead. Legacy appendix ends here.
+
+<!-- END LEGACY BUILD DOC -->

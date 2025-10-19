@@ -15,8 +15,8 @@ Provisioned resources:
 
 Files:
 
-- `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection
-- `parameters.json` – example / placeholder (not required; inline params acceptable)
+-   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection
+-   `parameters.json` – example / placeholder (not required; inline params acceptable)
 
 The backend Function App handles all synchronous HTTP endpoints and async queue processing; the Static Web App serves only static frontend assets.
 
@@ -35,19 +35,19 @@ The SQL/Core API account (`cosmosdoc*`) implements the document side of the dual
 
 **Key Design Decisions** (from ADR-002):
 
-- Player/inventory moved off graph to reduce hot partition risk
-- Location description layers stored separately to enable AI enrichment workflow
-- Event log scoped by entity for efficient timeline queries
-- Graph remains authoritative for world structure (locations, exits, spatial relationships)
+-   Player/inventory moved off graph to reduce hot partition risk
+-   Location description layers stored separately to enable AI enrichment workflow
+-   Event log scoped by entity for efficient timeline queries
+-   Graph remains authoritative for world structure (locations, exits, spatial relationships)
 
 ## Cosmos DB Gremlin Partition Key
 
 The Gremlin graph uses `/partitionKey` as the partition key property. **Important constraints**:
 
-- Gremlin API reserves `/id` and `/label` properties; they cannot be used as partition keys
-- All vertices must include a `partitionKey` property when created
-- Common strategies: use vertex type (e.g., `"Location"`, `"Player"`) or a domain-specific identifier (e.g., region, zone)
-- For small-to-medium graphs, a single partition value (e.g., `"world"`) is acceptable during development
+-   Gremlin API reserves `/id` and `/label` properties; they cannot be used as partition keys
+-   All vertices must include a `partitionKey` property when created
+-   Common strategies: use vertex type (e.g., `"Location"`, `"Player"`) or a domain-specific identifier (e.g., region, zone)
+-   For small-to-medium graphs, a single partition value (e.g., `"world"`) is acceptable during development
 
 **Example vertex creation**:
 
@@ -159,7 +159,7 @@ az deployment group create \
 | Observability      | Application Insights connected.                                                                                                                    | Add sampling & dependency tracking tuning.           |
 | Messaging          | ✅ Service Bus namespace + queue for world events (Basic tier).                                                                                    | Add dead-letter queue handling and monitoring.       |
 | Identity / RBAC    | System-assigned Managed Identity for SWA and Function App with Key Vault access policies. Function App uses identity-based Service Bus connection. | Migrate to RBAC authorization for Cosmos data plane. |
-| CI/CD              | Workflow not auto-generated.                                                                                                                       | Author Function App deployment GitHub Action.        |
+| CI/CD              | Defined in `.github/workflows/*.yml` (source of truth).                                                                                            | Modify workflows directly; no duplicate docs.        |
 
 ## Secret Management Baseline
 
@@ -169,17 +169,17 @@ az deployment group create \
 
 ### Architecture
 
-- **Key Vault**: Standard tier, access policy-based (SWA system identity has `get`, `list` permissions)
-- **Secrets Stored**:
-    - `cosmos-primary-key` (Gremlin API)
-    - `cosmos-sql-primary-key` (SQL/Core API)
-    - Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
-- **Runtime Access**: Via `@piquet-h/shared` `secretsHelper` (renamed from `@atlas/shared`) with:
-    - Lazy caching (5-minute TTL)
-    - Exponential backoff retry (3 attempts)
-    - Telemetry (cache hit/miss, fetch success/failure)
-    - Allowlisted secret keys
-    - Local dev fallback to environment variables (`.env.development`)
+-   **Key Vault**: Standard tier, access policy-based (SWA system identity has `get`, `list` permissions)
+-   **Secrets Stored**:
+    -   `cosmos-primary-key` (Gremlin API)
+    -   `cosmos-sql-primary-key` (SQL/Core API)
+    -   Placeholders for future: `service-bus-connection-string`, `model-provider-api-key`, `signing-secret`
+-   **Runtime Access**: Via `@piquet-h/shared` `secretsHelper` (renamed from `@atlas/shared`) with:
+    -   Lazy caching (5-minute TTL)
+    -   Exponential backoff retry (3 attempts)
+    -   Telemetry (cache hit/miss, fetch success/failure)
+    -   Allowlisted secret keys
+    -   Local dev fallback to environment variables (`.env.development`)
 
 ### Local Development
 
@@ -190,26 +190,26 @@ az deployment group create \
 
 ### Security Notes
 
-- Never commit `.env.development` (excluded in `.gitignore`)
-- Direct access to secrets outside helper is prevented by allowlist validation
-- Managed Identity eliminates need for connection strings in app settings
-- Consider enabling soft-delete and purge protection for production
+-   Never commit `.env.development` (excluded in `.gitignore`)
+-   Direct access to secrets outside helper is prevented by allowlist validation
+-   Managed Identity eliminates need for connection strings in app settings
+-   Consider enabling soft-delete and purge protection for production
 
 ## Alignment With Architecture
 
-- Matches architecture doc: Static Web App + Function App + Service Bus + Gremlin Cosmos DB.
-- Backend unified: Function App provides both HTTP endpoints and queue processors (simpler deployment, single telemetry surface).
-- Service Bus (Basic tier) handles async world event processing.
+-   Matches architecture doc: Static Web App + Function App + Service Bus + Gremlin Cosmos DB.
+-   Backend unified: Function App provides both HTTP endpoints and queue processors (simpler deployment, single telemetry surface).
+-   Service Bus (Basic tier) handles async world event processing.
 
 ## Roadmap (Next Infrastructure Enhancements)
 
-- ✅ Service Bus namespace + queue (world events / async NPC processing)
-- ✅ Function App (consumption plan) for queue processors
-- Application Insights advanced configuration (sampling, custom metrics)
-- Managed identity RBAC assignments for Cosmos data plane roles
-- Optional Azure OpenAI / AI service (low usage prototype)
-- Tagging strategy (`env`, `project`, `costCenter`)
-- Dead-letter queue monitoring and alerting
+-   ✅ Service Bus namespace + queue (world events / async NPC processing)
+-   ✅ Function App (consumption plan) for queue processors
+-   Application Insights advanced configuration (sampling, custom metrics)
+-   Managed identity RBAC assignments for Cosmos data plane roles
+-   Optional Azure OpenAI / AI service (low usage prototype)
+-   Tagging strategy (`env`, `project`, `costCenter`)
+-   Dead-letter queue monitoring and alerting
 
 ## Changelog
 
@@ -226,9 +226,9 @@ If you add a new resource: (1) update `main.bicep`, (2) document parameters/outp
 
 ## Future Improvements (Optional Ideas)
 
-- Add Bicep modules for logical grouping (e.g., `cosmos.bicep`, `swa.bicep`).
-- Introduce `azuredeploy.*` naming & versioning for production promotion paths.
-- Provide a seeding script (Node/TypeScript) for initial Gremlin vertices/edges.
+-   Add Bicep modules for logical grouping (e.g., `cosmos.bicep`, `swa.bicep`).
+-   Introduce `azuredeploy.*` naming & versioning for production promotion paths.
+-   Provide a seeding script (Node/TypeScript) for initial Gremlin vertices/edges.
 
 ---
 

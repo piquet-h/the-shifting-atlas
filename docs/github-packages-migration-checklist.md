@@ -10,10 +10,10 @@
 
 Before starting, ensure:
 
-- [ ] @piquet-h/shared API is relatively stable (renamed from @atlas/shared; original org scope not yet available)
-- [ ] You have admin access to the GitHub repository
-- [ ] You understand npm package publishing workflows
-- [ ] You've read [`backend-build-walkthrough.md`](./backend-build-walkthrough.md)
+-   [ ] @piquet-h/shared API is relatively stable (renamed from @atlas/shared; original org scope not yet available)
+-   [ ] You have admin access to the GitHub repository
+-   [ ] You understand npm package publishing workflows
+<!-- Removed prerequisite referencing deprecated build walkthrough doc. -->
 
 ---
 
@@ -21,7 +21,7 @@ Before starting, ensure:
 
 ### 1.1 Update shared/package.json
 
-- [ ] Add repository information:
+-   [ ] Add repository information:
 
     ```bash
     cd shared
@@ -30,13 +30,13 @@ Before starting, ensure:
     npm pkg set repository.directory='shared'
     ```
 
-- [ ] Add publishConfig:
+-   [ ] Add publishConfig:
 
     ```bash
     npm pkg set publishConfig.registry='https://npm.pkg.github.com'
     ```
 
-- [ ] Verify changes:
+-   [ ] Verify changes:
     ```bash
     cat package.json | grep -A 5 repository
     cat package.json | grep -A 2 publishConfig
@@ -44,7 +44,7 @@ Before starting, ensure:
 
 ### 1.2 Create .npmrc at repository root
 
-- [ ] Create file:
+-   [ ] Create file:
 
     ```bash
     cd /path/to/the-shifting-atlas
@@ -54,17 +54,18 @@ Before starting, ensure:
     EOF
     ```
 
-- [ ] Decide: Commit .npmrc or add to .gitignore?
-    - ✅ **Commit** if using `${GITHUB_TOKEN}` placeholder (recommended)
-    - ⚠️ **Ignore** if storing actual tokens (less secure)
+-   [ ] Decide: Commit .npmrc or add to .gitignore?
 
-- [ ] If committing:
+    -   ✅ **Commit** if using `${GITHUB_TOKEN}` placeholder (recommended)
+    -   ⚠️ **Ignore** if storing actual tokens (less secure)
+
+-   [ ] If committing:
 
     ```bash
     git add .npmrc
     ```
 
-- [ ] If ignoring:
+-   [ ] If ignoring:
     ```bash
     echo ".npmrc" >> .gitignore
     # You'll need to recreate locally and in CI
@@ -72,27 +73,27 @@ Before starting, ensure:
 
 ### 1.3 Create Personal Access Token
 
-- [ ] Go to: https://github.com/settings/tokens
-- [ ] Click "Generate new token (classic)"
-- [ ] Token settings:
-    - [ ] Name: "The Shifting Atlas - Package Management"
-    - [ ] Expiration: 90 days (or longer)
-    - [ ] Scopes:
-        - [x] `read:packages`
-        - [x] `write:packages`
-        - [x] `repo` (if private repository)
-- [ ] Generate and copy token
-- [ ] Save securely (you won't see it again!)
+-   [ ] Go to: https://github.com/settings/tokens
+-   [ ] Click "Generate new token (classic)"
+-   [ ] Token settings:
+    -   [ ] Name: "The Shifting Atlas - Package Management"
+    -   [ ] Expiration: 90 days (or longer)
+    -   [ ] Scopes:
+        -   [x] `read:packages`
+        -   [x] `write:packages`
+        -   [x] `repo` (if private repository)
+-   [ ] Generate and copy token
+-   [ ] Save securely (you won't see it again!)
 
 ### 1.4 Configure Local Environment
 
-- [ ] Set environment variable (temporary):
+-   [ ] Set environment variable (temporary):
 
     ```bash
     export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     ```
 
-- [ ] Make permanent (add to shell profile):
+-   [ ] Make permanent (add to shell profile):
 
     ```bash
     echo 'export GITHUB_TOKEN=ghp_xxxxx' >> ~/.bashrc
@@ -100,7 +101,7 @@ Before starting, ensure:
     source ~/.bashrc
     ```
 
-- [ ] Verify:
+-   [ ] Verify:
     ```bash
     echo $GITHUB_TOKEN
     # Should show your token
@@ -112,7 +113,7 @@ Before starting, ensure:
 
 ### 2.1 Build shared package
 
-- [ ] Clean build:
+-   [ ] Clean build:
 
     ```bash
     cd shared
@@ -120,7 +121,7 @@ Before starting, ensure:
     npm run build
     ```
 
-- [ ] Verify build output:
+-   [ ] Verify build output:
     ```bash
     ls -la dist/
     # Should see compiled JS files
@@ -128,33 +129,33 @@ Before starting, ensure:
 
 ### 2.2 Test publish (dry-run)
 
-- [ ] Dry run:
+-   [ ] Dry run:
 
     ```bash
     npm publish --dry-run
     ```
 
-- [ ] Review output:
-    - [ ] No errors
-    - [ ] Files list looks correct
-    - [ ] Registry shows GitHub Packages URL
+-   [ ] Review output:
+    -   [ ] No errors
+    -   [ ] Files list looks correct
+    -   [ ] Registry shows GitHub Packages URL
 
 ### 2.3 Publish for real
 
-- [ ] Publish:
+-   [ ] Publish:
 
     ```bash
     npm publish
     ```
 
-- [ ] Verify on GitHub:
-    - [ ] Go to: https://github.com/piquet-h/the-shifting-atlas/packages
-    - [ ] See `@piquet-h/shared` package listed (renamed from @atlas/shared)
-    - [ ] Version matches (should be 0.1.0)
+-   [ ] Verify on GitHub:
+    -   [ ] Go to: https://github.com/piquet-h/the-shifting-atlas/packages
+    -   [ ] See `@piquet-h/shared` package listed (renamed from @atlas/shared)
+    -   [ ] Version matches (should be 0.1.0)
 
 ### 2.4 Test installation
 
-- [ ] Create test directory:
+-   [ ] Create test directory:
 
     ```bash
     mkdir -p /tmp/test-atlas-shared
@@ -162,26 +163,26 @@ Before starting, ensure:
     npm init -y
     ```
 
-- [ ] Copy .npmrc:
+-   [ ] Copy .npmrc:
 
     ```bash
     cp /path/to/the-shifting-atlas/.npmrc .
     ```
 
-- [ ] Install from GitHub Packages:
+-   [ ] Install from GitHub Packages:
 
     ```bash
     npm install @piquet-h/shared@0.1.0
     ```
 
-- [ ] Verify:
+-   [ ] Verify:
 
     ```bash
     ls -la node_modules/@piquet-h/shared/
     # Should see dist/ folder and package.json
     ```
 
-- [ ] Clean up:
+-   [ ] Clean up:
     ```bash
     cd /tmp
     rm -rf test-atlas-shared
@@ -193,14 +194,14 @@ Before starting, ensure:
 
 ### 3.1 Update backend/package.json
 
-- [ ] Change dependency from file: to version:
+-   [ ] Change dependency from file: to version:
 
     ```bash
     cd backend
     npm pkg set dependencies.@piquet-h/shared='^0.1.0'
     ```
 
-- [ ] Verify:
+-   [ ] Verify:
     ```bash
     cat package.json | grep @piquet-h/shared
     # Should show: "@piquet-h/shared": "^0.1.0"
@@ -208,7 +209,7 @@ Before starting, ensure:
 
 ### 3.2 Test backend installation
 
-- [ ] Clean and reinstall:
+-   [ ] Clean and reinstall:
 
     ```bash
     cd /path/to/the-shifting-atlas
@@ -216,7 +217,7 @@ Before starting, ensure:
     npm install
     ```
 
-- [ ] Verify @piquet-h/shared came from GitHub Packages:
+-   [ ] Verify @piquet-h/shared came from GitHub Packages:
 
     ```bash
     ls -la backend/node_modules/@piquet-h/shared/
@@ -224,13 +225,13 @@ Before starting, ensure:
     # Should be real package from registry
     ```
 
-- [ ] Test build:
+-   [ ] Test build:
 
     ```bash
     npm run build -w backend
     ```
 
-- [ ] Test run:
+-   [ ] Test run:
     ```bash
     npm run dev -w backend
     # Press Ctrl+C after Functions start successfully
@@ -242,7 +243,7 @@ Before starting, ensure:
 
 ### 4.1 Backup current script
 
-- [ ] Backup:
+-   [ ] Backup:
     ```bash
     cd backend/scripts
     cp package.mjs package.mjs.backup
@@ -250,39 +251,40 @@ Before starting, ensure:
 
 ### 4.2 Replace with simplified version
 
-- [ ] Copy reference implementation:
+-   [ ] Copy reference implementation:
 
     ```bash
     cp package-github-packages.mjs package.mjs
     ```
 
-- [ ] Or manually update:
-    - [ ] Remove vendoring section (lines ~109-120)
-    - [ ] Remove `@piquet-h/shared` deletion from dependencies
-    - [ ] Add .npmrc copy step
-    - [ ] Update verification to check npm install worked
+-   [ ] Or manually update:
+    -   [ ] Remove vendoring section (lines ~109-120)
+    -   [ ] Remove `@piquet-h/shared` deletion from dependencies
+    -   [ ] Add .npmrc copy step
+    -   [ ] Update verification to check npm install worked
 
 ### 4.3 Test new packaging script
 
-- [ ] Clean previous deployment:
+-   [ ] Clean previous deployment:
 
     ```bash
     rm -rf backend/dist-deploy
     ```
 
-- [ ] Run packaging:
+-   [ ] Run packaging:
 
     ```bash
     cd /path/to/the-shifting-atlas
     npm run package:deploy -w backend
     ```
 
-- [ ] Verify output:
-    - [ ] No errors
-    - [ ] `dist-deploy/node_modules/@piquet-h/shared` exists
-    - [ ] @piquet-h/shared is NOT a vendored copy (should have full package metadata)
+-   [ ] Verify output:
 
-- [ ] Check size:
+    -   [ ] No errors
+    -   [ ] `dist-deploy/node_modules/@piquet-h/shared` exists
+    -   [ ] @piquet-h/shared is NOT a vendored copy (should have full package metadata)
+
+-   [ ] Check size:
     ```bash
     du -sh backend/dist-deploy
     # Should be similar to before (~75MB)
@@ -290,7 +292,7 @@ Before starting, ensure:
 
 ---
 
-## Phase 5: Update CI/CD
+<!-- Phase 5 (CI/CD workflow update) removed – workflows should be read/edited directly in .github/workflows. -->
 
 ### 5.1 Update workflow file
 
@@ -298,21 +300,22 @@ Before starting, ensure:
 
 1. **`NODE_AUTH_TOKEN` environment variable** set to `${{ secrets.GITHUB_TOKEN }}` at the job level
 2. **`setup-node` action** configured with:
-   ```yaml
-   registry-url: 'https://npm.pkg.github.com'
-   scope: '@piquet-h'
-   always-auth: true
-   ```
+    ```yaml
+    registry-url: 'https://npm.pkg.github.com'
+    scope: '@piquet-h'
+    always-auth: true
+    ```
 
 This configuration is applied to all jobs that install npm packages in:
-- `.github/workflows/ci.yml` (lint-typecheck, tests, accessibility jobs)
-- `.github/workflows/backend-functions-deploy.yml` (build-and-deploy job)
-- `.github/workflows/frontend-swa-deploy.yml` (build-and-deploy-prod job)
-- `.github/workflows/publish-shared.yml` (version-and-publish job)
+
+-   `.github/workflows/ci.yml` (lint-typecheck, tests, accessibility jobs)
+-   `.github/workflows/backend-functions-deploy.yml` (build-and-deploy job)
+-   `.github/workflows/frontend-swa-deploy.yml` (build-and-deploy-prod job)
+-   `.github/workflows/publish-shared.yml` (version-and-publish job)
 
 The `setup-node` action with these settings automatically creates the proper `.npmrc` configuration using the `NODE_AUTH_TOKEN` environment variable.
 
-- [ ] If you need to add a publish step (after build shared, before build backend):
+-   [ ] If you need to add a publish step (after build shared, before build backend):
 
     ```yaml
     - name: Publish shared to GitHub Packages
@@ -323,7 +326,7 @@ The `setup-node` action with these settings automatically creates the proper `.n
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     ```
 
-- [ ] Verify step order:
+-   [ ] Verify step order:
     1. Checkout
     2. Setup Node
     3. Install dependencies
@@ -339,64 +342,64 @@ The `setup-node` action with these settings automatically creates the proper `.n
 
 **Note:** Workflow permissions have been automatically configured in all workflow files. Each workflow now includes `packages: read` (or `packages: write` for publish workflows) in its permissions block.
 
-- [ ] For publishing packages, verify: Repository Settings → Actions → General
-- [ ] Scroll to "Workflow permissions"
-- [ ] Ensure "Read and write permissions" is selected (needed for `secrets.GITHUB_TOKEN` to publish packages)
-- [ ] Save if changed
+-   [ ] For publishing packages, verify: Repository Settings → Actions → General
+-   [ ] Scroll to "Workflow permissions"
+-   [ ] Ensure "Read and write permissions" is selected (needed for `secrets.GITHUB_TOKEN` to publish packages)
+-   [ ] Save if changed
 
 For read-only access (installing packages), the `packages: read` permission in the workflow file is sufficient.
 
 ---
 
-## Phase 6: Test CI/CD
+<!-- Phase 6 (CI/CD testing instructions) removed – rely on standard PR + workflow runs. -->
 
 ### 6.1 Create test branch
 
-- [ ] Create branch:
+-   [ ] Create branch:
 
     ```bash
     git checkout -b test/github-packages-migration
     ```
 
-- [ ] Commit all changes:
+-   [ ] Commit all changes:
 
     ```bash
     git add .
     git commit -m "feat: migrate to GitHub Packages for @piquet-h/shared (rename from @atlas/shared)"
     ```
 
-- [ ] Push:
+-   [ ] Push:
     ```bash
     git push -u origin test/github-packages-migration
     ```
 
 ### 6.2 Trigger workflow manually
 
-- [ ] Go to: Actions → Backend Functions Deploy
-- [ ] Click "Run workflow"
-- [ ] Select: `test/github-packages-migration` branch
-- [ ] Click "Run workflow"
+-   [ ] Go to: Actions → Backend Functions Deploy
+-   [ ] Click "Run workflow"
+-   [ ] Select: `test/github-packages-migration` branch
+-   [ ] Click "Run workflow"
 
 ### 6.3 Monitor workflow
 
-- [ ] Watch workflow execution
-- [ ] Check each step passes:
-    - [ ] Setup npm auth
-    - [ ] Build shared
-    - [ ] Publish shared
-    - [ ] Build backend
-    - [ ] Package backend
-    - [ ] Tests pass
-    - [ ] Deploy succeeds
+-   [ ] Watch workflow execution
+-   [ ] Check each step passes:
+    -   [ ] Setup npm auth
+    -   [ ] Build shared
+    -   [ ] Publish shared
+    -   [ ] Build backend
+    -   [ ] Package backend
+    -   [ ] Tests pass
+    -   [ ] Deploy succeeds
 
 ### 6.4 Verify deployment
 
-- [ ] Check Azure Functions portal
-- [ ] Test health endpoint:
+-   [ ] Check Azure Functions portal
+-   [ ] Test health endpoint:
     ```bash
     curl https://func-atlas-xxxxx.azurewebsites.net/api/backend/health
     ```
-- [ ] Test a function:
+-   [ ] Test a function:
     ```bash
     curl https://func-atlas-xxxxx.azurewebsites.net/api/ping
     ```
@@ -407,37 +410,27 @@ For read-only access (installing packages), the `packages: read` permission in t
 
 ### 7.1 Remove backup files
 
-- [ ] Remove backup script:
+-   [ ] Remove backup script:
 
     ```bash
     rm backend/scripts/package.mjs.backup
     ```
 
-- [ ] Remove reference script (if copied):
+-   [ ] Remove reference script (if copied):
     ```bash
     rm backend/scripts/package-github-packages.mjs
     ```
 
-### 7.2 Update documentation
+### 7.2 Documentation
 
-- [ ] Update `docs/backend-build-walkthrough.md`:
-    - [ ] Add note that migration is complete
-    - [ ] Update "Current System" section
-
-- [ ] Update `docs/backend-build-quickref.md`:
-    - [ ] Remove vendoring references
-    - [ ] Add GitHub Packages auth step
-
-- [ ] Update `docs/ci-cd.md`:
-    - [ ] Document publish step
-    - [ ] Add troubleshooting for package auth
+Workflow & build documentation lives in workflow YAML and code. No separate build walkthrough/quickref to update. If package auth changes, update comments in the workflow that performs the publish.
 
 ### 7.3 Merge to main
 
-- [ ] Create PR from test branch
-- [ ] Review changes one more time
-- [ ] Merge to main
-- [ ] Verify production deployment
+-   [ ] Create PR from test branch
+-   [ ] Review changes one more time
+-   [ ] Merge to main
+-   [ ] Verify production deployment
 
 ---
 
@@ -476,11 +469,12 @@ If something goes wrong:
 
 ### Full Rollback
 
-- [ ] Delete published packages:
-    - Go to: https://github.com/piquet-h/the-shifting-atlas/packages
-    - Click @piquet-h/shared → Package settings → Delete package
+-   [ ] Delete published packages:
 
-- [ ] Revert all commits:
+    -   Go to: https://github.com/piquet-h/the-shifting-atlas/packages
+    -   Click @piquet-h/shared → Package settings → Delete package
+
+-   [ ] Revert all commits:
     ```bash
     git revert <range>
     ```
@@ -491,24 +485,25 @@ If something goes wrong:
 
 ### Versioning Strategy
 
-- [ ] Decide on versioning approach:
-    - **Option A:** Manual versions (bump when stable)
-    - **Option B:** Automated versions (CI increments)
-    - **Option C:** Git hash versions (development)
+-   [ ] Decide on versioning approach:
 
-- [ ] Document in CONTRIBUTING.md
+    -   **Option A:** Manual versions (bump when stable)
+    -   **Option B:** Automated versions (CI increments)
+    -   **Option C:** Git hash versions (development)
+
+-   [ ] Document in CONTRIBUTING.md
 
 ### Publishing Workflow
 
-- [ ] Document when to publish new versions
-- [ ] Create version bump script if needed
-- [ ] Add to release checklist
+-   [ ] Document when to publish new versions
+-   [ ] Create version bump script if needed
+-   [ ] Add to release checklist
 
 ### Monitoring
 
-- [ ] Set up alerts for failed publishes
-- [ ] Monitor package download metrics
-- [ ] Track deployment sizes
+-   [ ] Set up alerts for failed publishes
+-   [ ] Monitor package download metrics
+-   [ ] Track deployment sizes
 
 ---
 
@@ -518,33 +513,33 @@ If something goes wrong:
 
 **Solution:**
 
-- Verify @piquet-h/shared is published
-- Check .npmrc authentication
-- Verify GITHUB_TOKEN has read:packages scope
+-   Verify @piquet-h/shared is published
+-   Check .npmrc authentication
+-   Verify GITHUB_TOKEN has read:packages scope
 
 ### "npm ERR! 403 Forbidden"
 
 **Solution:**
 
-- GITHUB_TOKEN lacks write:packages scope
-- Check GitHub Actions permissions
-- Verify token hasn't expired
+-   GITHUB_TOKEN lacks write:packages scope
+-   Check GitHub Actions permissions
+-   Verify token hasn't expired
 
 ### "Error: Cannot find module '@piquet-h/shared'"
 
 **Solution:**
 
-- @piquet-h/shared not installed
-- Check package.json has correct version
-- Run `npm install` again
+-   @piquet-h/shared not installed
+-   Check package.json has correct version
+-   Run `npm install` again
 
 ### Build works locally but fails in CI
 
 **Solution:**
 
-- .npmrc not set up in CI
-- Add setup npm auth step to workflow
-- Verify secrets.GITHUB_TOKEN is available
+-   .npmrc not set up in CI
+-   Add setup npm auth step to workflow
+-   Verify secrets.GITHUB_TOKEN is available
 
 ---
 
@@ -552,13 +547,13 @@ If something goes wrong:
 
 Migration is successful when:
 
-- [x] @piquet-h/shared publishes to GitHub Packages
-- [x] Backend installs @piquet-h/shared from registry (not vendored)
-- [x] Packaging script simplified (no vendoring logic)
-- [x] CI/CD publishes then deploys successfully
-- [x] Azure Functions work in production
-- [x] No increase in deployment size
-- [x] No decrease in deployment speed
+-   [x] @piquet-h/shared publishes to GitHub Packages
+-   [x] Backend installs @piquet-h/shared from registry (not vendored)
+-   [x] Packaging script simplified (no vendoring logic)
+-   [x] CI/CD publishes then deploys successfully
+-   [x] Azure Functions work in production
+-   [x] No increase in deployment size
+-   [x] No decrease in deployment speed
 
 ---
 
@@ -566,10 +561,8 @@ Migration is successful when:
 
 Review these resources:
 
-1. Full walkthrough: `docs/backend-build-walkthrough.md`
-2. Quick reference: `docs/backend-build-quickref.md`
-3. GitHub Packages docs: https://docs.github.com/en/packages
-4. npm scopes: https://docs.npmjs.com/cli/v9/using-npm/scope
+1. GitHub Packages docs: https://docs.github.com/en/packages
+2. npm scopes: https://docs.npmjs.com/cli/v9/using-npm/scope
 
 ---
 

@@ -4,8 +4,8 @@ This guide shows how to run the frontend SPA and the unified backend Azure Funct
 
 ## Prerequisites
 
-- Node.js >= 20
-- (Optional) Azure Functions Core Tools v4 (the SWA CLI will auto‑install if missing)
+-   Node.js >= 20
+-   (Optional) Azure Functions Core Tools v4 (the SWA CLI will auto‑install if missing)
 
 ## Install Dependencies (Monorepo)
 
@@ -94,9 +94,9 @@ npm run build -w frontend
 
 Code formatting (indentation, quotes, commas, semicolons) is fully automated:
 
-- Run `npm run format` before committing to apply Prettier.
-- CI will fail if formatting drifts—no need to memorize specific style rules.
-- Configure your editor for “Format on Save” with Prettier + EditorConfig enabled.
+-   Run `npm run format` before committing to apply Prettier.
+-   CI will fail if formatting drifts—no need to memorize specific style rules.
+-   Configure your editor for “Format on Save” with Prettier + EditorConfig enabled.
 
 ## Cosmos (Gremlin + SQL) via Managed Identity
 
@@ -120,7 +120,7 @@ If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` o
 
 ## Next Steps
 
-- Add Service Bus + Cosmos integration (see architecture docs) once APIs are stable.
-- Introduce GitHub Actions to automate build/typecheck + deployment.
+-   Add Service Bus + Cosmos integration (see architecture docs) once APIs are stable.
+<!-- Removed forward-looking note about introducing GitHub Actions automation (workflows already exist; YAML is source of truth). -->
 
 See also: `branching-strategy.md` for workflow guidance.

@@ -36,22 +36,22 @@ Current implemented slice + planned extensions (details in `docs/architecture/mv
 
 Implemented now:
 
-- Static Web App (SWA) hosting the React (Vite) frontend only (no co‑located Functions; all server logic lives in the unified `backend/` Function App).
-- Bicep template provisioning SWA + Cosmos DB (Gremlin + SQL) using Managed Identity (AAD) – no runtime Cosmos keys.
+-   Static Web App (SWA) hosting the React (Vite) frontend only (no co‑located Functions; all server logic lives in the unified `backend/` Function App).
+-   Bicep template provisioning SWA + Cosmos DB (Gremlin + SQL) using Managed Identity (AAD) – no runtime Cosmos keys.
 
 Planned (not yet in code):
 
-- Service Bus (world + NPC event queue).
-- Queue‑triggered Functions for world simulation & NPC behaviors (likely moved to `backend/`).
-- Application Insights telemetry (player actions, world mutations).
-- Managed identity / RBAC graph access (remove raw key usage entirely).
+-   Service Bus (world + NPC event queue).
+-   Queue‑triggered Functions for world simulation & NPC behaviors (likely moved to `backend/`).
+-   Application Insights telemetry (player actions, world mutations).
+-   Managed identity / RBAC graph access (remove raw key usage entirely).
 
 Design principles:
 
-- Stateless Functions; authoritative world state lives in the graph + event stream.
-- Event emission drives progression (avoid tight loops / cron ticks).
-- Small, modular additions matched to a design doc before coding.
-- Start co‑located, then separate concerns when complexity warrants.
+-   Stateless Functions; authoritative world state lives in the graph + event stream.
+-   Event emission drives progression (avoid tight loops / cron ticks).
+-   Small, modular additions matched to a design doc before coding.
+-   Start co‑located, then separate concerns when complexity warrants.
 
 ## 3. Repository Layout
 
@@ -65,57 +65,61 @@ docs/             Architecture & domain design modules
 
 Notable:
 
-- `backend/src/functions/*` – unified HTTP endpoints (player, location, movement, bootstrap, health).
-- `docs/modules/*` – domain design (future mechanics, keep as roadmap references).
+-   `backend/src/functions/*` – unified HTTP endpoints (player, location, movement, bootstrap, health).
+-   `docs/modules/*` – domain design (future mechanics, keep as roadmap references).
 
 ## 4. Current Implementation Status
 
-| Area                           | Status                      | Notes                                                |
-| ------------------------------ | --------------------------- | ---------------------------------------------------- |
-| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)                |
-| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA)  |
-| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App             |
-| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                 |
-| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place            |
-| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated      |
-| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                             |
-| CI/CD                          | Partial                     | SWA + infra workflows present; test pipeline missing |
+| Area                           | Status                      | Notes                                               |
+| ------------------------------ | --------------------------- | --------------------------------------------------- |
+| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)               |
+| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA) |
+| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App            |
+| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                |
+| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place           |
+| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated     |
+| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                            |
+| CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)  |
 
 ## 5. Quick Start (Local Dev)
 
 Prerequisites:
 
-- Node.js >= 20
-- (Optional) Azure Functions Core Tools v4 (for direct Functions host runs)
-- **GitHub Personal Access Token** with `read:packages` scope (for accessing `@piquet-h/shared` from GitHub Packages)
+-   Node.js >= 20
+-   (Optional) Azure Functions Core Tools v4 (for direct Functions host runs)
+-   **GitHub Personal Access Token** with `read:packages` scope (for accessing `@piquet-h/shared` from GitHub Packages)
 
 ### GitHub Packages Authentication (Required)
 
 The project uses the private `@piquet-h/shared` package from GitHub Packages. Before installing dependencies, you need to authenticate:
 
 1. **Create a Personal Access Token (PAT)**:
-   - Go to: https://github.com/settings/tokens
-   - Click "Generate new token (classic)"
-   - Select scopes: `read:packages` (and `write:packages` if you need to publish)
-   - Generate and copy the token
+
+    - Go to: https://github.com/settings/tokens
+    - Click "Generate new token (classic)"
+    - Select scopes: `read:packages` (and `write:packages` if you need to publish)
+    - Generate and copy the token
 
 2. **Configure npm authentication** (choose one method):
 
-   **Option A: Environment variable (recommended)**
-   ```bash
-   export NODE_AUTH_TOKEN=ghp_your_token_here
-   ```
-   
-   Add to your shell profile (`~/.bashrc`, `~/.zshrc`) to make it permanent:
-   ```bash
-   echo 'export NODE_AUTH_TOKEN=ghp_your_token_here' >> ~/.bashrc
-   source ~/.bashrc
-   ```
+    **Option A: Environment variable (recommended)**
 
-   **Option B: User-level .npmrc** (alternative)
-   ```bash
-   echo "//npm.pkg.github.com/:_authToken=ghp_your_token_here" >> ~/.npmrc
-   ```
+    ```bash
+    export NODE_AUTH_TOKEN=ghp_your_token_here
+    ```
+
+    Add to your shell profile (`~/.bashrc`, `~/.zshrc`) to make it permanent:
+
+    ```bash
+    echo 'export NODE_AUTH_TOKEN=ghp_your_token_here' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+
+    **Option B: User-level .npmrc** (alternative)
+
+    ```bash
+    echo "//npm.pkg.github.com/:_authToken=ghp_your_token_here" >> ~/.npmrc
+    ```
 
 The repository `.npmrc` file already contains the scope mapping (`@piquet-h:registry=https://npm.pkg.github.com`), so you only need to provide authentication.
 
@@ -190,34 +194,34 @@ SWA App Settings populated (mapped in workflow):
 
 Security notes:
 
-- The workflow never echoes secret values; only key names are shown.
-- Rotating the client secret requires updating the GitHub secret; the next deploy overwrites the SWA setting.
-- If you adopt certificate-based credentials later, remove `AZURE_CLIENT_SECRET` and rely on federated credentials.
+-   The workflow never echoes secret values; only key names are shown.
+-   Rotating the client secret requires updating the GitHub secret; the next deploy overwrites the SWA setting.
+-   If you adopt certificate-based credentials later, remove `AZURE_CLIENT_SECRET` and rely on federated credentials.
 
 Local emulator:
 
-- The SWA CLI local auth emulator is used; if you need to test provider redirects locally you can configure a dev app registration redirect URI pointing to `http://localhost:4280/.auth/login/aad/callback`.
+-   The SWA CLI local auth emulator is used; if you need to test provider redirects locally you can configure a dev app registration redirect URI pointing to `http://localhost:4280/.auth/login/aad/callback`.
 
 Local auth convenience:
 
-- Run the whole stack via two terminals (frontend + backend). Add a lightweight proxy later if same-origin local testing is required.
-- Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions in the frontend.
-- For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
-- The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
+-   Run the whole stack via two terminals (frontend + backend). Add a lightweight proxy later if same-origin local testing is required.
+-   Missing `AAD_CLIENT_ID` will simply result in anonymous local sessions in the frontend.
+-   For pure public client (PKCE) local usage you may omit `AAD_CLIENT_SECRET`.
+-   The SPA includes a lightweight `useAuth` hook which fetches `/.auth/me` and drives conditional UI (loading spinner, unauthenticated hero CTA -> provider login, authenticated personalized panel). Sign-out redirects to `/.auth/logout` and broadcasts a cross-tab refresh.
 
 Next steps (future hardening):
 
-- Optional: revert to placeholder + dynamic substitution for multi‑environment builds.
-- Manage Entra app via IaC (Bicep/Terraform) and output identifiers automatically.
-- Add a preflight script validating required app settings before deploy.
+-   Optional: revert to placeholder + dynamic substitution for multi‑environment builds.
+-   Manage Entra app via IaC (Bicep/Terraform) and output identifiers automatically.
+-   Add a preflight script validating required app settings before deploy.
 
 ## 6. Development Workflow
 
 See `docs/developer-workflow/local-dev-setup.md` for environment setup. Guidelines:
 
-- Keep handlers small & stateless; extract shared helpers once they appear twice.
-- Link a design doc section when opening a feature PR.
-- Prefer enqueueing a world event over cascading direct mutations.
+-   Keep handlers small & stateless; extract shared helpers once they appear twice.
+-   Link a design doc section when opening a feature PR.
+-   Prefer enqueueing a world event over cascading direct mutations.
 
 ## 7. Roadmap (Near / Mid Term)
 
@@ -227,27 +231,23 @@ See `docs/developer-workflow/local-dev-setup.md` for environment setup. Guidelin
 
 Key starting points:
 
-- MVP Azure Architecture: `docs/architecture/mvp-azure-architecture.md`
-- CI/CD Pipelines: `docs/ci-cd.md`
-- **Backend Build System:**
-    - Quick Reference: `docs/backend-build-quickref.md` ⭐
-    - Full Walkthrough: `docs/backend-build-walkthrough.md`
-    - GitHub Packages Migration: `docs/github-packages-migration-checklist.md`
-- World Rules & Lore: `docs/modules/world-rules-and-lore.md`
-- Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
-- Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
-- Quests & Dialogue: `docs/modules/quest-and-dialogue-trees.md`
-- Economy & Trade: `docs/modules/economy-and-trade-systems.md`
+-   MVP Azure Architecture: `docs/architecture/mvp-azure-architecture.md`
+-   CI/CD: inspect `.github/workflows/*.yml` directly (no separate prose)
+-   World Rules & Lore: `docs/modules/world-rules-and-lore.md`
+-   Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
+-   Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
+-   Quests & Dialogue: `docs/modules/quest-and-dialogue-trees.md`
+-   Economy & Trade: `docs/modules/economy-and-trade-systems.md`
 
 ## 9. Known Gaps & Technical Debt
 
 Current gaps:
 
-- No Service Bus or queue processors.
-- No runtime Cosmos DB integration code (graph client, schema bootstrap).
-- Minimal test coverage (none checked in yet).
-- No managed identity consumption in Functions (uses key secret placeholder only).
-- Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
+-   No Service Bus or queue processors.
+-   No runtime Cosmos DB integration code (graph client, schema bootstrap).
+-   Minimal test coverage (none checked in yet).
+-   No managed identity consumption in Functions (uses key secret placeholder only).
+-   Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
 
 ## 10. Contributing Guidelines
 
@@ -260,15 +260,15 @@ Current gaps:
 
 Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist (former numeric implementation ordering / predictive scheduling removed):
 
-- `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
-- Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
-- Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems`
+-   `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
+-   Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
+-   Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems`
 
 Rules:
 
-- Exactly one of each labeled axis (`scope:`, Type). No `priority:` labels.
-- No `area:*`, `phase-*`, `status:*`, or `priority:*` labels—remove if encountered.
-- Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
+-   Exactly one of each labeled axis (`scope:`, Type). No `priority:` labels.
+-   No `area:*`, `phase-*`, `status:*`, or `priority:*` labels—remove if encountered.
+-   Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
 
 Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` respectively. Remove deprecated labels during triage.
 Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
@@ -276,10 +276,10 @@ Migration (2025-09-27 final): Removed `priority:` axis (ordering automation sinc
 
 ### Coding Conventions (Early)
 
-- ES Modules everywhere (`"type": "module"`).
-- Async/await for all I/O.
-- Avoid premature framework additions; keep dependencies lean.
-- Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing.
+-   ES Modules everywhere (`"type": "module"`).
+-   Async/await for all I/O.
+-   Avoid premature framework additions; keep dependencies lean.
+-   Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing.
 
 ## 11. License
 
@@ -289,10 +289,10 @@ MIT – see `LICENSE`.
 
 Accessibility is treated as a first‑class requirement (not a polish phase). Refer to `docs/ux/accessibility-guidelines.md` for:
 
-- WCAG 2.2 AA mapping to game concerns
-- Required skip link, landmarks, focus management
-- Live announcement strategy for world events
-- Definition of Done checklist additions
+-   WCAG 2.2 AA mapping to game concerns
+-   Required skip link, landmarks, focus management
+-   Live announcement strategy for world events
+-   Definition of Done checklist additions
 
 ### Automated Axe Scan
 

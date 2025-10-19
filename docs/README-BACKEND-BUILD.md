@@ -1,4 +1,8 @@
-# Backend Build System Documentation Index
+## Deprecated: Backend Build Documentation Index
+
+All build system prose deprecated. Use code + workflows as canonical reference.
+
+<!-- LEGACY BUILD DOC (deprecated) -->
 
 **Last Updated:** 2025-10-11  
 **Status:** ✅ Complete and Ready
@@ -11,25 +15,25 @@
 
 **Read:** [`WAKE-UP-SUMMARY.md`](../WAKE-UP-SUMMARY.md) (5 min)
 
-- Executive summary
-- Quick answers to common questions
-- Immediate recommendations
+-   Executive summary
+-   Quick answers to common questions
+-   Immediate recommendations
 
 ### ⚡ Need Quick Help?
 
 **Read:** [`backend-build-quickref.md`](./backend-build-quickref.md) (5 min)
 
-- Common commands
-- Entry point explanation
-- FAQs & troubleshooting
+-   Common commands
+-   Entry point explanation
+-   FAQs & troubleshooting
 
 ### 🎨 Want Visual Overview?
 
 **Read:** [`backend-build-visual-summary.md`](./backend-build-visual-summary.md) (10 min)
 
-- Flow diagrams
-- Side-by-side comparisons
-- Decision matrices
+-   Flow diagrams
+-   Side-by-side comparisons
+-   Decision matrices
 
 ---
 
@@ -39,20 +43,20 @@
 
 **Read:** [`backend-build-walkthrough.md`](./backend-build-walkthrough.md) (30-45 min)
 
-- Comprehensive deep dive
-- Current system explanation
-- All simplification options
-- GitHub Packages setup guide
-- Pros/cons analysis
+-   Comprehensive deep dive
+-   Current system explanation
+-   All simplification options
+-   GitHub Packages setup guide
+-   Pros/cons analysis
 
 ### ✅ Ready to Migrate?
 
 **Read:** [`github-packages-migration-checklist.md`](./github-packages-migration-checklist.md) (2-4 hours to execute)
 
-- Step-by-step migration guide
-- Complete rollback plan
-- Troubleshooting
-- Success criteria
+-   Step-by-step migration guide
+-   Complete rollback plan
+-   Troubleshooting
+-   Success criteria
 
 ---
 
@@ -81,26 +85,26 @@
 
 **Strengths:**
 
-- ✅ Works reliably
-- ✅ Handles edge cases
-- ✅ Best practices
-- ✅ Tests passing
+-   ✅ Works reliably
+-   ✅ Handles edge cases
+-   ✅ Best practices
+-   ✅ Tests passing
 
 **Complexity Sources:**
 
-- Monorepo workspace structure
-- Vendoring @atlas/shared (necessary)
-- Entry point transformation (intentional)
+-   Monorepo workspace structure
+-   Vendoring @atlas/shared (necessary)
+-   Entry point transformation (intentional)
 
 ### 🟡 Optional Improvements
 
 **GitHub Packages Migration:**
 
-- Would simplify packaging script (~50 lines shorter)
-- Provides semantic versioning
-- Standard npm workflow
-- Time investment: 2-4 hours
-- **When:** When @atlas/shared stabilizes
+-   Would simplify packaging script (~50 lines shorter)
+-   Provides semantic versioning
+-   Standard npm workflow
+-   Time investment: 2-4 hours
+-   **When:** When @atlas/shared stabilizes
 
 ---
 
@@ -151,19 +155,19 @@
 
 ### Scripts
 
-- `backend/scripts/package.mjs` - Current packaging script
-- `backend/scripts/package-github-packages.mjs` - Reference implementation (future)
+-   `backend/scripts/package.mjs` - Current packaging script
+-   `backend/scripts/package-github-packages.mjs` - Reference implementation (future)
 
 ### Build Outputs
 
-- `backend/dist/` - TypeScript compilation output
-- `backend/dist-deploy/` - Deployment artifact (generated)
+-   `backend/dist/` - TypeScript compilation output
+-   `backend/dist-deploy/` - Deployment artifact (generated)
 
 ### Configuration
 
-- `backend/package.json` - Backend package config
-- `backend/host.json` - Azure Functions config
-- `package-lock.json` - Workspace lockfile
+-   `backend/package.json` - Backend package config
+-   `backend/host.json` - Azure Functions config
+-   `package-lock.json` - Workspace lockfile
 
 ---
 
@@ -173,26 +177,26 @@
 
 Your build system is:
 
-- Working correctly (no bugs)
-- Well-designed for monorepo structure
-- Already following best practices
-- Fully documented now
+-   Working correctly (no bugs)
+-   Well-designed for monorepo structure
+-   Already following best practices
+-   Fully documented now
 
 ### Immediate Action: None Required
 
 **Recommendation:** Keep current system
 
-- No changes needed
-- Focus on features
-- Revisit GitHub Packages later (optional)
+-   No changes needed
+-   Focus on features
+-   Revisit GitHub Packages later (optional)
 
 ### Future Option: GitHub Packages
 
 **When beneficial:**
 
-- @atlas/shared API stabilizes
-- Want semantic versioning
-- Prefer standard npm workflows
+-   @atlas/shared API stabilizes
+-   Want semantic versioning
+-   Prefer standard npm workflows
 
 **Time investment:** 2-4 hours (complete guide available)
 
@@ -202,20 +206,20 @@ Your build system is:
 
 ### Documentation Issues?
 
-- Check the troubleshooting sections in each guide
-- All common scenarios covered
+-   Check the troubleshooting sections in each guide
+-   All common scenarios covered
 
 ### Build Failures?
 
-- See [`backend-build-quickref.md#troubleshooting`](./backend-build-quickref.md#troubleshooting)
-- Verify dependencies installed
-- Check build output exists
+-   See [`backend-build-quickref.md#troubleshooting`](./backend-build-quickref.md#troubleshooting)
+-   Verify dependencies installed
+-   Check build output exists
 
 ### Migration Questions?
 
-- Full guide with rollback plan available
-- Step-by-step instructions
-- Success criteria defined
+-   Full guide with rollback plan available
+-   Step-by-step instructions
+-   Success criteria defined
 
 ---
 
@@ -223,17 +227,17 @@ Your build system is:
 
 This documentation suite is:
 
-- ✅ Complete
-- ✅ Current as of 2025-10-11
-- ✅ Tested and verified
-- ✅ Ready for production use
+-   ✅ Complete
+-   ✅ Current as of 2025-10-11
+-   ✅ Tested and verified
+-   ✅ Ready for production use
 
 **Update triggers:**
 
-- Major changes to build system
-- Migration to GitHub Packages
-- New simplification options discovered
-- User feedback
+-   Major changes to build system
+-   Migration to GitHub Packages
+-   New simplification options discovered
+-   User feedback
 
 ---
 
@@ -241,4 +245,6 @@ This documentation suite is:
 
 **Need help now?** [`backend-build-quickref.md`](./backend-build-quickref.md) ⚡
 
-**Want full story?** [`backend-build-walkthrough.md`](./backend-build-walkthrough.md) 📖
+**Want full story?** Read the workflows directly; this index is deprecated. 📖
+
+<!-- END LEGACY BUILD DOC -->

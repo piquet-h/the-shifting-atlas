@@ -41,31 +41,7 @@ npm start   # builds then starts the Functions host
 
 ## Deployment
 
-The backend Functions app deploys automatically via GitHub Actions when code is pushed to `main` branch and changes are detected in `backend/**` or `shared/**` paths.
-
-**Workflow**: `.github/workflows/backend-functions-deploy.yml`
-
-**Target**: Azure Function App `func-atlas` (Flex Consumption plan)
-
-**Manual deployment**: Can be triggered via workflow_dispatch in GitHub Actions with an optional reason.
-
-**Prerequisites**:
-
-- Azure Function App must exist (provisioned via `infrastructure/main.bicep`)
-- GitHub repository secrets must be configured for OIDC authentication:
-    - `AZURE_CLIENT_ID`
-    - `AZURE_TENANT_ID`
-    - `AZURE_SUBSCRIPTION_ID`
-
-**Deployment process**:
-
-1. Builds shared dependencies
-2. Builds backend TypeScript
-3. Runs tests
-4. Deploys to Azure using remote build (Flex Consumption optimized)
-5. Verifies deployment via health endpoint
-
-No additional docs for examples—refer to `src/index.ts` or copy patterns from the SWA API. Avoid adding provisional onboarding examples here (they were removed to prevent drift).
+Deployment details live exclusively in the workflow YAML under `.github/workflows/backend-functions-deploy.yml`. Read that file for triggers, required permissions, and steps. Required Azure resources are provisioned via Bicep in `infrastructure/`. No duplicated narrative here to avoid drift.
 
 ## Roadmap Snapshot (High Level)
 

@@ -1,4 +1,8 @@
-# Backend Build System: Complete Walkthrough
+## Deprecated: Backend Build System Walkthrough
+
+This walkthrough is deprecated. Consult actual workflow YAML & scripts; prose retained only temporarily.
+
+<!-- LEGACY BUILD DOC (deprecated) -->
 
 **Created:** 2025-10-11  
 **Purpose:** Comprehensive guide to understanding, simplifying, and potentially migrating the backend build/deployment process.
@@ -45,9 +49,9 @@ the-shifting-atlas/
 
 ### Key Dependencies
 
-- **Backend depends on Shared**: Via `"@piquet-h/shared": "file:../shared"` in `backend/package.json`
-- **Workspace Dependencies**: Managed automatically by npm workspaces
-- **TypeScript Build**: Uses project references (`tsconfig.refs.json`)
+-   **Backend depends on Shared**: Via `"@piquet-h/shared": "file:../shared"` in `backend/package.json`
+-   **Workspace Dependencies**: Managed automatically by npm workspaces
+-   **TypeScript Build**: Uses project references (`tsconfig.refs.json`)
 
 ### Current Package.json Entry Points
 
@@ -59,8 +63,8 @@ the-shifting-atlas/
 }
 ```
 
-- This pattern works for **local development** (Azure Functions Core Tools discovers functions)
-- Points to the TypeScript build output directory structure
+-   This pattern works for **local development** (Azure Functions Core Tools discovers functions)
+-   Points to the TypeScript build output directory structure
 
 **backend/dist-deploy/package.json (generated):**
 
@@ -70,9 +74,9 @@ the-shifting-atlas/
 }
 ```
 
-- The packaging script **correctly strips** the `dist/` prefix
-- This is necessary because `dist-deploy/` doesn't have a nested `dist/` folder
-- Functions are at `dist-deploy/src/functions/*.js`
+-   The packaging script **correctly strips** the `dist/` prefix
+-   This is necessary because `dist-deploy/` doesn't have a nested `dist/` folder
+-   Functions are at `dist-deploy/src/functions/*.js`
 
 ---
 
@@ -116,10 +120,10 @@ backend/dist/
 5. **Generate production package.json**:
     - Starts with `backend/package.json`
 
-- **Removes** `@piquet-h/shared` dependency (will be vendored)
-- **Removes** `devDependencies`
-- **Strips** `dist/` prefix from `main` field
-- **Simplifies** scripts to just `start` and `diagnostics`
+-   **Removes** `@piquet-h/shared` dependency (will be vendored)
+-   **Removes** `devDependencies`
+-   **Strips** `dist/` prefix from `main` field
+-   **Simplifies** scripts to just `start` and `diagnostics`
 
 6. **Copy workspace package-lock.json**: For deterministic `npm ci`
 7. **Install production dependencies**: `npm ci --omit=dev --no-audit --no-fund`
@@ -127,14 +131,14 @@ backend/dist/
     - Only production dependencies (@azure/functions, applicationinsights, zod)
 8. **Vendor @piquet-h/shared AFTER npm install**:
 
-- Copies `shared/dist/` → `dist-deploy/node_modules/@piquet-h/shared/dist/`
-- Creates minimal `package.json` for @piquet-h/shared
-- Done **after** npm install so it's not pruned
+-   Copies `shared/dist/` → `dist-deploy/node_modules/@piquet-h/shared/dist/`
+-   Creates minimal `package.json` for @piquet-h/shared
+-   Done **after** npm install so it's not pruned
 
 9. **Sanity checks**:
     - Verifies `@azure/functions` was installed
 
-- Verifies vendored `@piquet-h/shared` exists
+-   Verifies vendored `@piquet-h/shared` exists
 
 **Result:**
 
@@ -191,16 +195,16 @@ Based on the problem statement and code analysis:
 
 **Analysis:**
 
-- This is **intentional and correct**, not drift
-- `backend/package.json`: `"main": "dist/src/**/*.js"` (for local dev)
-- `dist-deploy/package.json`: `"main": "src/**/*.js"` (for deployment)
-- The packaging script correctly handles this transformation (line 83-85)
+-   This is **intentional and correct**, not drift
+-   `backend/package.json`: `"main": "dist/src/**/*.js"` (for local dev)
+-   `dist-deploy/package.json`: `"main": "src/**/*.js"` (for deployment)
+-   The packaging script correctly handles this transformation (line 83-85)
 
 **Why it's needed:**
 
-- Local dev: Functions are at `backend/dist/src/functions/*.js`
-- Deployment: Functions are at `dist-deploy/src/functions/*.js` (no nested `dist/`)
-- Azure Functions runtime needs the correct path
+-   Local dev: Functions are at `backend/dist/src/functions/*.js`
+-   Deployment: Functions are at `dist-deploy/src/functions/*.js` (no nested `dist/`)
+-   Azure Functions runtime needs the correct path
 
 **Verdict:** Working as designed ✅
 
@@ -224,18 +228,18 @@ The complexity comes from several factors:
 
 **Where complexity can be reduced:**
 
-- ✅ Already using `npm ci --omit=dev` (correct approach)
-- ✅ Already minimizing package.json for deployment
-- 🟡 Could potentially use GitHub Packages to publish @piquet-h/shared
-- 🟡 Could explore Azure Functions' built-in build options (Oryx)
+-   ✅ Already using `npm ci --omit=dev` (correct approach)
+-   ✅ Already minimizing package.json for deployment
+-   🟡 Could potentially use GitHub Packages to publish @piquet-h/shared
+-   🟡 Could explore Azure Functions' built-in build options (Oryx)
 
 ### 3. 🟡 **Development vs Production Inconsistency**
 
 **Areas of friction:**
 
-- **Different package.json**: Source vs deployment have different `main` fields
-- **Manual vendoring**: Requires custom script to copy shared package
-- **Two build steps**: `npm run build` then `npm run package:deploy`
+-   **Different package.json**: Source vs deployment have different `main` fields
+-   **Manual vendoring**: Requires custom script to copy shared package
+-   **Two build steps**: `npm run build` then `npm run package:deploy`
 
 ---
 
@@ -247,24 +251,24 @@ The complexity comes from several factors:
 
 **Pros:**
 
-- ✅ Eliminates vendoring logic
-- ✅ Standard npm workflow
-- ✅ No custom packaging script needed (or much simpler)
-- ✅ Versioning control for shared package
-- ✅ Can use standard `npm ci --omit=dev`
-- ✅ Same package.json structure in dev and prod
+-   ✅ Eliminates vendoring logic
+-   ✅ Standard npm workflow
+-   ✅ No custom packaging script needed (or much simpler)
+-   ✅ Versioning control for shared package
+-   ✅ Can use standard `npm ci --omit=dev`
+-   ✅ Same package.json structure in dev and prod
 
 **Cons:**
 
-- ⚠️ Requires authentication setup (`.npmrc` config)
-- ⚠️ Need to publish @piquet-h/shared before deploying backend
-- ⚠️ Adds a publish step to CI/CD
+-   ⚠️ Requires authentication setup (`.npmrc` config)
+-   ⚠️ Need to publish @piquet-h/shared before deploying backend
+-   ⚠️ Adds a publish step to CI/CD
 
 **When this works best:**
 
-- Medium to large projects (you're getting there)
-- When shared package has stable-ish API
-- When team wants standard npm workflows
+-   Medium to large projects (you're getting there)
+-   When shared package has stable-ish API
+-   When team wants standard npm workflows
 
 **Implementation complexity:** Medium (see detailed guide below)
 
@@ -286,14 +290,14 @@ The complexity comes from several factors:
 
 **Pros:**
 
-- ✅ Already working
-- ✅ No external dependencies
-- ✅ No authentication complexity
+-   ✅ Already working
+-   ✅ No external dependencies
+-   ✅ No authentication complexity
 
 **Cons:**
 
-- ⚠️ Custom build logic to maintain
-- ⚠️ Different package.json in dev vs prod
+-   ⚠️ Custom build logic to maintain
+-   ⚠️ Different package.json in dev vs prod
 
 **Verdict:** Current system is **already well-optimized** for this approach.
 
@@ -314,15 +318,15 @@ scm-do-build-during-deployment: true
 
 **Pros:**
 
-- ✅ Simpler CI/CD (just zip and upload source)
-- ✅ Azure handles npm install
+-   ✅ Simpler CI/CD (just zip and upload source)
+-   ✅ Azure handles npm install
 
 **Cons:**
 
-- ⚠️ Slower deployments (build happens on Azure)
-- ⚠️ Less control over build process
-- ⚠️ Still need to handle workspace dependencies somehow
-- ⚠️ May not work well with monorepo structure
+-   ⚠️ Slower deployments (build happens on Azure)
+-   ⚠️ Less control over build process
+-   ⚠️ Still need to handle workspace dependencies somehow
+-   ⚠️ May not work well with monorepo structure
 
 **Verdict:** Not ideal for workspace monorepos.
 
@@ -334,15 +338,15 @@ scm-do-build-during-deployment: true
 
 **Pros:**
 
-- ✅ True package independence
-- ✅ Can version independently
-- ✅ Standard npm workflow
+-   ✅ True package independence
+-   ✅ Can version independently
+-   ✅ Standard npm workflow
 
 **Cons:**
 
-- ⚠️ Overhead of managing multiple repos
-- ⚠️ Cross-repo changes become harder
-- ⚠️ May be premature for project size
+-   ⚠️ Overhead of managing multiple repos
+-   ⚠️ Cross-repo changes become harder
+-   ⚠️ May be premature for project size
 
 **Verdict:** Overkill for current stage.
 
@@ -356,11 +360,11 @@ GitHub Packages provides free private npm hosting for GitHub repositories.
 
 **Key benefits:**
 
-- Free for private repos (with usage limits)
-- Integrated with GitHub Actions (easy authentication)
-- Standard npm workflow
-- Package versioning
-- Scoped to your organization/user
+-   Free for private repos (with usage limits)
+-   Integrated with GitHub Actions (easy authentication)
+-   Standard npm workflow
+-   Package versioning
+-   Scoped to your organization/user
 
 ### Authentication Setup
 
@@ -381,8 +385,8 @@ export GITHUB_TOKEN=ghp_your_personal_access_token
 
 **PAT Requirements:**
 
-- Scope: `read:packages` (to install)
-- Scope: `write:packages` (to publish)
+-   Scope: `read:packages` (to install)
+-   Scope: `write:packages` (to publish)
 
 #### For GitHub Actions
 
@@ -571,11 +575,11 @@ main().catch((err) => {
 
 **Key simplifications:**
 
-- ❌ No vendoring logic
-- ❌ No manual copying of @piquet-h/shared
-- ❌ No custom package.json manipulation for shared
-- ✅ Standard npm install handles everything
-- ✅ ~50 lines shorter
+-   ❌ No vendoring logic
+-   ❌ No manual copying of @piquet-h/shared
+-   ❌ No custom package.json manipulation for shared
+-   ✅ Standard npm install handles everything
+-   ✅ ~50 lines shorter
 
 ---
 
@@ -586,10 +590,12 @@ main().catch((err) => {
 **What to do now:**
 
 1. ✅ **Document the entry point transformation**
+
     - Add comments to `package.mjs` explaining why `main` field changes
     - Update this walkthrough document
 
 2. ✅ **No changes needed to packaging script**
+
     - Current script is well-written and handles edge cases
     - Entry point transformation is correct
 
@@ -612,20 +618,20 @@ main().catch((err) => {
 
 **When to migrate:**
 
-- When @piquet-h/shared API stabilizes
-- When you want to introduce versioning for shared package
-- When team is comfortable with publish workflows
+-   When @piquet-h/shared API stabilizes
+-   When you want to introduce versioning for shared package
+-   When team is comfortable with publish workflows
 
 **Migration checklist:**
 
-- [ ] Set up `.npmrc` for GitHub Packages
-- [ ] Add `publishConfig` to `shared/package.json`
-- [ ] Create publish workflow for @piquet-h/shared
-- [ ] Test publishing @piquet-h/shared
-- [ ] Update `backend/package.json` to use version instead of `file:`
-- [ ] Update packaging script (simplified version above)
-- [ ] Update CI/CD workflow to publish before backend build
-- [ ] Test end-to-end deployment
+-   [ ] Set up `.npmrc` for GitHub Packages
+-   [ ] Add `publishConfig` to `shared/package.json`
+-   [ ] Create publish workflow for @piquet-h/shared
+-   [ ] Test publishing @piquet-h/shared
+-   [ ] Update `backend/package.json` to use version instead of `file:`
+-   [ ] Update packaging script (simplified version above)
+-   [ ] Update CI/CD workflow to publish before backend build
+-   [ ] Test end-to-end deployment
 
 **Estimated effort:** 2-4 hours
 
@@ -744,10 +750,10 @@ jobs:
 2. Trigger workflow manually
 3. Verify:
 
-- @piquet-h/shared publishes successfully
-- Backend installs @piquet-h/shared from GitHub Packages
-- Deployment succeeds
-- Functions work in Azure
+-   @piquet-h/shared publishes successfully
+-   Backend installs @piquet-h/shared from GitHub Packages
+-   Deployment succeeds
+-   Functions work in Azure
 
 ---
 
@@ -771,10 +777,10 @@ jobs:
 
 Your current system is **well-designed** for a workspace monorepo:
 
-- Entry point transformation is correct (not a bug)
-- Vendoring approach is appropriate
-- Script handles edge cases properly
-- `npm ci --omit=dev` is the right choice
+-   Entry point transformation is correct (not a bug)
+-   Vendoring approach is appropriate
+-   Script handles edge cases properly
+-   `npm ci --omit=dev` is the right choice
 
 ### When to Consider Migration
 
@@ -789,10 +795,10 @@ Move to GitHub Packages when:
 
 For current project size and stage:
 
-- ✅ Current system is fine
-- ✅ Already using best practices (`npm ci`, production-only deps)
-- 🟡 GitHub Packages is optional, not necessary
-- ❌ Separate repos would be premature
+-   ✅ Current system is fine
+-   ✅ Already using best practices (`npm ci`, production-only deps)
+-   🟡 GitHub Packages is optional, not necessary
+-   ❌ Separate repos would be premature
 
 ---
 
@@ -830,16 +836,18 @@ npm run package:deploy -w backend
 
 ## Getting Help
 
-- **Current script:** `backend/scripts/package.mjs`
-- **CI/CD workflow:** `.github/workflows/backend-functions-deploy.yml`
-- **GitHub Packages docs:** https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry
-- **Azure Functions deployment:** `docs/ci-cd.md`
+-   **Current script:** `backend/scripts/package.mjs`
+-   **CI/CD workflow:** `.github/workflows/backend-functions-deploy.yml`
+-   **GitHub Packages docs:** https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry
+-   **Azure Functions deployment:** `docs/ci-cd.md`
 
 ---
 
 **Next Step:** Review this document and decide whether to:
 
-- A) Keep current system (document and move on)
-- B) Migrate to GitHub Packages (follow Step-by-Step guide)
+-   A) Keep current system (document and move on)
+-   B) Migrate to GitHub Packages (follow Step-by-Step guide)
 
-Both are valid choices! 🚀
+Both were formerly valid choices. Current guidance: inspect workflows; do not rely on this legacy narrative. 🚀
+
+<!-- END LEGACY BUILD DOC -->

@@ -35,31 +35,28 @@ npm run build  # Runs build in sequence: shared -> backend -> frontend
 
 All GitHub Actions workflows now:
 
-- Install dependencies per package independently
-- Don't use the `node-workspace-setup` action
-- Use standard `cd` and `npm ci` commands
+-   Install dependencies per package independently
+-   Don't use the `node-workspace-setup` action
+-   Use standard `cd` and `npm ci` commands
 
 ## Files Changed
 
-- `package.json` (root) - Removed `workspaces` field
-- `shared/package.json` - Added clean script using `rm -rf`
-- `backend/package.json` - Changed dependency to `file:../shared`, updated scripts
-- `frontend/package.json` - Changed dependency to `file:../shared`, updated scripts
-- `backend/scripts/package-simple.mjs` - New simplified packaging script
-- `tsconfig.json` files - Removed `composite` and `references`
-- All `.github/workflows/*.yml` - Updated to install deps independently
+-   `package.json` (root) - Removed `workspaces` field
+-   `shared/package.json` - Added clean script using `rm -rf`
+-   `backend/package.json` - Changed dependency to `file:../shared`, updated scripts
+-   `frontend/package.json` - Changed dependency to `file:../shared`, updated scripts
+-   `backend/scripts/package-simple.mjs` - New simplified packaging script
+-   `tsconfig.json` files - Removed `composite` and `references`
+-   All `.github/workflows/*.yml` - Updated to install deps independently
 
 ## Documentation To Update
 
 The following docs need updating to reflect the workspace removal:
 
-- [ ] `docs/backend-build-walkthrough.md`
-- [ ] `docs/backend-build-visual-summary.md`
-- [ ] `docs/backend-build-quickref.md`
-- [ ] `docs/README-BACKEND-BUILD.md`
-- [ ] `docs/ci-cd.md`
-- [ ] `docs/architecture/overview.md`
-- [ ] `docs/developer-workflow/local-dev-setup.md`
+-   [ ] `docs/ci-cd.md`
+-   [ ] `docs/architecture/overview.md`
+-   [ ] `docs/developer-workflow/local-dev-setup.md`
+<!-- Removed checklist items for deleted build documentation files (walkthrough, visual summary, quickref, index). -->
 
 ## Benefits
 

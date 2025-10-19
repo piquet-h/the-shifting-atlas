@@ -49,9 +49,9 @@ const result = await repo.removeExit('location-a', 'north')
 
 **Behavior:**
 
-- Returns `removed: true` only if exit existed and was deleted
-- Returns `removed: false` if exit didn't exist (idempotent)
-- Emits `World.Exit.Removed` telemetry only on actual removal
+-   Returns `removed: true` only if exit existed and was deleted
+-   Returns `removed: false` if exit didn't exist (idempotent)
+-   Emits `World.Exit.Removed` telemetry only on actual removal
 
 ### 3. Batch Exit Provisioning
 
@@ -84,8 +84,8 @@ npm run scan:graph-consistency -- --output=report.json
 
 **Detects:**
 
-- **Dangling exits**: Exit edges pointing to non-existent locations
-- **Orphan locations**: Locations with no inbound or outbound exits
+-   **Dangling exits**: Exit edges pointing to non-existent locations
+-   **Orphan locations**: Locations with no inbound or outbound exits
 
 **Output:**
 
@@ -123,12 +123,12 @@ const opposite = getOppositeDirection('in') // 'out'
 
 **Full Mapping:**
 
-- `north` ↔ `south`
-- `east` ↔ `west`
-- `northeast` ↔ `southwest`
-- `northwest` ↔ `southeast`
-- `up` ↔ `down`
-- `in` ↔ `out`
+-   `north` ↔ `south`
+-   `east` ↔ `west`
+-   `northeast` ↔ `southwest`
+-   `northwest` ↔ `southeast`
+-   `up` ↔ `down`
+-   `in` ↔ `out`
 
 ## Telemetry Events
 
@@ -166,10 +166,10 @@ Emitted only when an exit is actually deleted:
 
 Rationale:
 
-- `version` tracks **content changes** (name, description, tags)
-- Exit edges are **structural relationships** separate from content
-- Optimistic concurrency is for content conflicts, not edge conflicts
-- Exit changes tracked via dedicated telemetry events
+-   `version` tracks **content changes** (name, description, tags)
+-   Exit edges are **structural relationships** separate from content
+-   Optimistic concurrency is for content conflicts, not edge conflicts
+-   Exit changes tracked via dedicated telemetry events
 
 See: [`docs/architecture/location-version-policy.md`](./location-version-policy.md)
 
@@ -177,10 +177,10 @@ See: [`docs/architecture/location-version-policy.md`](./location-version-policy.
 
 All edge operations are idempotent:
 
-- `ensureExit`: Creating an existing exit returns `created: false`, no telemetry
-- `ensureExitBidirectional`: Both forward and reverse checked independently
-- `removeExit`: Removing non-existent exit returns `removed: false`, no telemetry
-- `applyExits`: Metrics separate created vs skipped counts
+-   `ensureExit`: Creating an existing exit returns `created: false`, no telemetry
+-   `ensureExitBidirectional`: Both forward and reverse checked independently
+-   `removeExit`: Removing non-existent exit returns `removed: false`, no telemetry
+-   `applyExits`: Metrics separate created vs skipped counts
 
 ## Usage Patterns
 
@@ -229,13 +229,13 @@ await repo.ensureExitBidirectional('broken-location', 'northeast', 'correct-targ
 
 Comprehensive test coverage in `shared/test/edgeManagement.test.ts`:
 
-- Opposite direction mapping for all 12 directions
-- Exit creation with `created` status detection
-- Idempotent re-creation (no duplicate telemetry)
-- Bidirectional creation with reciprocal tracking
-- Exit removal with proper return values
-- Batch provisioning with accurate metrics
-- Version policy verification (version unchanged on exit changes)
+-   Opposite direction mapping for all 12 directions
+-   Exit creation with `created` status detection
+-   Idempotent re-creation (no duplicate telemetry)
+-   Bidirectional creation with reciprocal tracking
+-   Exit removal with proper return values
+-   Batch provisioning with accurate metrics
+-   Version policy verification (version unchanged on exit changes)
 
 Run tests:
 
@@ -253,26 +253,27 @@ Future work will add `(player)-[:in]->(location)` edges alongside scalar `curren
 
 Potential extensions:
 
-- `blocked` status (doors, keys, conditions)
-- `cost` for pathfinding weights
-- `requiredSkill` for traversal gating
-- `description` layers for dynamic flavor text
+-   `blocked` status (doors, keys, conditions)
+-   `cost` for pathfinding weights
+-   `requiredSkill` for traversal gating
+-   `description` layers for dynamic flavor text
 
 ### Consistency Enforcement
 
 Future automated checks:
 
-- Scheduled validation (CI/CD)
-- Alert on dangling exit rate > threshold
-- Auto-cleanup of orphan locations (with approval workflow)
+<!-- Removed scheduled CI/CD validation bullet (avoid duplicating workflow intent). -->
+
+-   Alert on dangling exit rate > threshold
+-   Auto-cleanup of orphan locations (with approval workflow)
 
 ## References
 
-- ADR-002: Graph Partition Strategy
-- ADR-003: Player-Location Edge Groundwork
-- Issue #100: Location Persistence
-- Issue #103: Player Persistence Enhancement
-- Issue #112: Location Edge Management (this document)
+-   ADR-002: Graph Partition Strategy
+-   ADR-003: Player-Location Edge Groundwork
+-   Issue #100: Location Persistence
+-   Issue #103: Player Persistence Enhancement
+-   Issue #112: Location Edge Management (this document)
 
 ---
 

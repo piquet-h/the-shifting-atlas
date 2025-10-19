@@ -1,4 +1,8 @@
-# Backend Build System - Visual Summary
+## Deprecated: Backend Build System Visual Summary
+
+Source of truth is workflow YAML. Diagrammatic summary retained only temporarily.
+
+<!-- LEGACY BUILD DOC (deprecated) -->
 
 ## Current Build Flow
 
@@ -144,9 +148,9 @@ backend/package.json:
 
 Azure Functions deployment:
 
-- ❌ Doesn't have `../shared` directory
-- ❌ Can't resolve `file:` dependencies
-- ❌ Workspace structure doesn't exist in cloud
+-   ❌ Doesn't have `../shared` directory
+-   ❌ Can't resolve `file:` dependencies
+-   ❌ Workspace structure doesn't exist in cloud
 
 ### Solution
 
@@ -219,15 +223,15 @@ dist-deploy/node_modules/
 
 Benefits:
 
-- ✅ ~50 lines shorter script
-- ✅ No manual vendoring
-- ✅ Standard npm workflow
-- ✅ Semantic versioning
+-   ✅ ~50 lines shorter script
+-   ✅ No manual vendoring
+-   ✅ Standard npm workflow
+-   ✅ Semantic versioning
 
 Cost:
 
-- ⚠️ Publish step required
-- ⚠️ Authentication setup
+-   ⚠️ Publish step required
+-   ⚠️ Authentication setup
 
 ## CI/CD Workflow
 
@@ -348,26 +352,28 @@ ls -la backend/dist-deploy/node_modules/@atlas/shared/dist/
 
 ✅ **Current system is working correctly**
 
-- Entry point "drift" is intentional
-- Already using best practices
-- Well-suited for workspace monorepos
+-   Entry point "drift" is intentional
+-   Already using best practices
+-   Well-suited for workspace monorepos
 
 🟡 **GitHub Packages is optional**
 
-- Would simplify the packaging script
-- Not urgent - consider when @atlas/shared stabilizes
-- Complete migration guide available
+-   Would simplify the packaging script
+-   Not urgent - consider when @atlas/shared stabilizes
+-   Complete migration guide available
 
 🚀 **Recommendation**
 
-- Keep current system for now
-- Focus on building features
-- Revisit GitHub Packages later when beneficial
+-   Keep current system for now
+-   Focus on building features
+-   Revisit GitHub Packages later when beneficial
 
 ---
 
 **Read more:**
 
-- Quick start: `docs/backend-build-quickref.md`
-- Deep dive: `docs/backend-build-walkthrough.md`
-- Migration: `docs/github-packages-migration-checklist.md`
+-   Quick start: `docs/backend-build-quickref.md`
+-   Deep dive: `docs/backend-build-walkthrough.md`
+-   Migration: `docs/github-packages-migration-checklist.md` (checklist only; no build prose)
+
+<!-- END LEGACY BUILD DOC -->
