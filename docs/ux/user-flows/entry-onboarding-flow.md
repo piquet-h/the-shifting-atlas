@@ -369,14 +369,17 @@ onClick={() => {
 
 **Vision**: The "Create Your Explorer" button will eventually expand beyond simple authentication to provide a rich character creation experience similar to D&D character builders.
 
-**Planned Features** (not yet implemented):
+**See Full Documentation**: For complete details on the planned D&D-style explorer creation system, including class selection, attributes, backgrounds, equipment, and phased rollout plan, refer to:
+- **`docs/modules/explorer-creation-future.md`** - Comprehensive future vision for explorer creation
 
-- Character class selection (Cartographer, Wanderer, Scout, etc.)
-- Starting attributes and skills
-- Background story prompts
-- Starting location preference
-- Equipment/inventory customization
-- Faction affiliation choices
+**Quick Summary** (see full doc for details):
+
+- Character class selection (Cartographer, Wanderer, Scout, Chronicler, Pathfinder, Emissary)
+- D&D-style attributes (Perception, Endurance, Intellect, Charisma, Agility, Wisdom)
+- Rich backgrounds with narrative hooks and starting bonuses
+- Equipment packs and optional heirloom items
+- Personal goal setting for AI-personalized content
+- Quick start option for immediate gameplay
 
 **Technical Considerations**:
 
