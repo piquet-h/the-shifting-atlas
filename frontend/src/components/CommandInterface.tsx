@@ -96,13 +96,14 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
                     const fromParam = currentLocationId ? `&from=${encodeURIComponent(currentLocationId)}` : ''
-                    const res = await fetch(`/api/location/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
+                    const res = await fetch(`/api/player/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
                         headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
                     })
                     const json = await res.json()
                     latencyMs = Math.round(performance.now() - start)
-                    if (!res.ok) error = json?.error || `Cannot move ${dir}`
-                    else {
+                    if (!res.ok) {
+                        error = json?.error || `Cannot move ${dir}`
+                    } else {
                         setCurrentLocationId(json.id)
                         const exits: string | undefined = Array.isArray(json.exits)
                             ? (json.exits as { direction: string }[]).map((e) => e.direction).join(', ')
