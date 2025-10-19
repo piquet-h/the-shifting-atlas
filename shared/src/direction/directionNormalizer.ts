@@ -1,4 +1,4 @@
-import { Direction, isDirection } from '../domainModels.js'
+import { Direction, DIRECTIONS, isDirection } from '../domainModels.js'
 
 /** Relative direction tokens that require lastHeading for resolution */
 export type RelativeDirection = 'left' | 'right' | 'forward' | 'back'
@@ -79,23 +79,8 @@ function editDistance(a: string, b: string): number {
 function findTypoMatch(input: string): Direction | undefined {
     const candidates: Direction[] = []
 
-    // Check all canonical directions from domainModels
-    const allCanonicalDirections: Direction[] = [
-        'north',
-        'south',
-        'east',
-        'west',
-        'northeast',
-        'northwest',
-        'southeast',
-        'southwest',
-        'up',
-        'down',
-        'in',
-        'out'
-    ]
-
-    for (const dir of allCanonicalDirections) {
+    // Check all canonical directions from domainModels.DIRECTIONS
+    for (const dir of DIRECTIONS) {
         if (editDistance(input, dir) <= 1) {
             candidates.push(dir)
         }
