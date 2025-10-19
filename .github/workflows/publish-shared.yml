@@ -30,20 +30,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # Combined setup + install using composite action (low-risk dedupe)
+      - name: Setup Node & Install shared
+        uses: ./.github/actions/setup-node-install
         with:
-          node-version: 20
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-          always-auth: true
-
-      # Auth handled automatically by setup-node via GITHUB_TOKEN; manual npmrc removed
-
-      - name: Install shared dependencies only
-        working-directory: ./shared
-        run: npm ci
+          working-directory: shared
+          cache-dependency-path: shared/package-lock.json
 
       - name: Build & test shared
         working-directory: ./shared

@@ -38,21 +38,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Consolidated via local composite action to reduce duplication with other workflows.
+      - name: Setup Node & Install
+        uses: ./.github/actions/setup-node-install
         with:
-          node-version: '20'
-          cache: 'npm'
-          # Only cache backend dependencies. Removing shared lock reference to ensure
-          # backend build is fully independent of the local shared source tree.
+          working-directory: backend
           cache-dependency-path: backend/package-lock.json
-          always-auth: true
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@piquet-h'
-
-      - name: Install dependencies
-        run: npm ci
 
       - name: Build backend (tsc)
         run: npm run build

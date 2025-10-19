@@ -1,0 +1,37 @@
+name: 'Setup Node and Install'
+description: 'Sets up Node.js with GitHub Packages auth & installs dependencies in the given working directory (low‑risk consolidation of repeated steps).'
+inputs:
+  working-directory:
+    description: 'Directory (package root) in which to run npm ci'
+    required: true
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '20'
+  cache-dependency-path:
+    description: 'Path(s) to lockfile(s) for caching (newline or comma separated).'
+    required: true
+  registry-url:
+    description: 'Registry URL (defaults to GitHub Packages)'
+    required: false
+    default: 'https://npm.pkg.github.com'
+  scope:
+    description: 'Package scope for auth (scoped registry)'
+    required: false
+    default: '@piquet-h'
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+        always-auth: true
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci

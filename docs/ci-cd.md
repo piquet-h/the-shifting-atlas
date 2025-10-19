@@ -10,8 +10,8 @@ Workflow: `.github/workflows/backend-functions-deploy.yml`
 
 Runs on:
 
-- `push` to `main` affecting `backend/**` or `shared/**`
-- Manual `workflow_dispatch` (force a redeploy with optional reason)
+-   `push` to `main` affecting `backend/**` or `shared/**`
+-   Manual `workflow_dispatch` (force a redeploy with optional reason)
 
 ### Required Repository Secrets
 
@@ -23,10 +23,10 @@ Runs on:
 
 ### Target Infrastructure
 
-- **Function App**: `func-atlas` (Flex Consumption plan)
-- **Runtime**: Node.js 20.x
-- **Build**: Remote build enabled for Flex Consumption optimization
-- **Authentication**: OIDC (no publish profiles required)
+-   **Function App**: `func-atlas` (Flex Consumption plan)
+-   **Runtime**: Node.js 20.x
+-   **Build**: Remote build enabled for Flex Consumption optimization
+-   **Authentication**: OIDC (no publish profiles required)
 
 ### Deployment Process
 
@@ -51,8 +51,8 @@ Workflow: `.github/workflows/frontend-swa-deploy.yml`
 
 Runs on:
 
-- `push` to `main` affecting `frontend/**`
-- Manual `workflow_dispatch` (force a redeploy)
+-   `push` to `main` affecting `frontend/**`
+-   Manual `workflow_dispatch` (force a redeploy)
 
 ### Required Repository Variables (Actions > Variables)
 
@@ -77,8 +77,8 @@ The workflow uses **OIDC** for Azure authentication and **deployment token** for
 
 ### Caching
 
-- `actions/setup-node` with `cache: npm` for dependencies.
-- Build artifacts are not currently cached (they’re quick). Consider adding a separate build job with artifact upload if pipeline time increases significantly.
+-   `actions/setup-node` with `cache: npm` for dependencies.
+-   Build artifacts are not currently cached (they’re quick). Consider adding a separate build job with artifact upload if pipeline time increases significantly.
 
 ### npm Authentication for GitHub Packages
 
@@ -88,9 +88,9 @@ The workflow automatically configures npm authentication for GitHub Packages usi
 
 1. Checkout & install dependencies across workspaces.
 2. Type check (`npm run typecheck -w frontend`).
-4. Build SPA.
-5. Azure OIDC login.
-6. Deploy with Static Web Apps action to production environment.
+3. Build SPA.
+4. Azure OIDC login.
+5. Deploy with Static Web Apps action to production environment.
 
 ### Local Verification Before Commit
 
@@ -106,10 +106,10 @@ npm run build -w frontend
 
 ### Observability / Future Enhancements
 
-- Add Application Insights + instrumentation.
-- Add `actions/cache` layer for Vite cache if build time grows.
-- Introduce lint step (`eslint .`) once config present.
-- Add infrastructure workflow on changes under `infrastructure/**` with `what-if` preview.
+-   Add Application Insights + instrumentation.
+-   Add `actions/cache` layer for Vite cache if build time grows.
+-   Introduce lint step (`eslint .`) once config present.
+-   Add infrastructure workflow on changes under `infrastructure/**` with `what-if` preview.
 
 ### Troubleshooting
 
@@ -135,9 +135,9 @@ Workflow: `.github/workflows/ci.yml`
 
 Runs on:
 
-- `pull_request` → quality feedback prior to merge
-- `push` to `main` → produce distributable artifacts
-- `workflow_dispatch` for ad‑hoc re-runs
+-   `pull_request` → quality feedback prior to merge
+-   `push` to `main` → produce distributable artifacts
+-   `workflow_dispatch` for ad‑hoc re-runs
 
 ### Job Overview
 
@@ -156,11 +156,11 @@ All jobs that install npm packages now automatically configure authentication fo
 1. **Permissions**: The `packages: read` permission is added to the workflow's permissions block
 2. **Environment variable**: `NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` is set at the job level
 3. **setup-node configuration**: The `setup-node` action is configured with:
-   ```yaml
-   registry-url: 'https://npm.pkg.github.com'
-   scope: '@piquet-h'
-   always-auth: true
-   ```
+    ```yaml
+    registry-url: 'https://npm.pkg.github.com'
+    scope: '@piquet-h'
+    always-auth: true
+    ```
 
 This configuration pattern matches the `publish-shared.yml` workflow and enables seamless access to private packages like `@piquet-h/shared` without requiring custom tokens. The `setup-node` action automatically creates the proper `.npmrc` configuration using the `NODE_AUTH_TOKEN` environment variable.
 
@@ -172,10 +172,10 @@ CI is the single merging gate: _no merge without green lint/typecheck/tests_. Ac
 
 ### Future Enhancements
 
-- Parallel test matrix (Node LTS versions) once stability proven.
-- Coverage threshold enforcement.
-- Upload ESLint SARIF for code scanning.
-  -- (Removed) Reuse CI-built artifacts in deploy workflow (SWA now builds directly; revisit only if build duration becomes a bottleneck).
+-   Parallel test matrix (Node LTS versions) once stability proven.
+-   Coverage threshold enforcement.
+-   Upload ESLint SARIF for code scanning.
+    -- (Removed) Reuse CI-built artifacts in deploy workflow (SWA now builds directly; revisit only if build duration becomes a bottleneck).
 
 ---
 
@@ -189,8 +189,8 @@ Workflow: `.github/workflows/deploy-infrastructure.yml`
 
 Runs on:
 
-- `push` to `main` affecting `infrastructure/**` or its own workflow file
-- Manual `workflow_dispatch` (safe re-deploy / what-if inspection)
+-   `push` to `main` affecting `infrastructure/**` or its own workflow file
+-   Manual `workflow_dispatch` (safe re-deploy / what-if inspection)
 
 ### Job Flow
 
@@ -217,15 +217,15 @@ Runs on:
 
 ### Safety & Review
 
-- `what-if` artifact enables reviewing planned changes without deployment.
-- `--mode Complete` enforces drift removal (intentionally) — ensure no out‑of‑band resources live in the RG or they will be deleted; future enhancement: switch to `Incremental` for conservative runs or add input flag.
-- Consider adding conditional approval (environment protection rules) for destructive diffs once team grows.
+-   `what-if` artifact enables reviewing planned changes without deployment.
+-   `--mode Complete` enforces drift removal (intentionally) — ensure no out‑of‑band resources live in the RG or they will be deleted; future enhancement: switch to `Incremental` for conservative runs or add input flag.
+-   Consider adding conditional approval (environment protection rules) for destructive diffs once team grows.
 
 ### Future Enhancements
 
-- Promote `what-if` diff summary into PR comment (auto or on label).
-- Parameterize region for future multi‑region active/active design.
-- Integrate cost estimation (e.g., `az costmanagement` or third-party) as advisory step.
+-   Promote `what-if` diff summary into PR comment (auto or on label).
+-   Parameterize region for future multi‑region active/active design.
+-   Integrate cost estimation (e.g., `az costmanagement` or third-party) as advisory step.
 
 ---
 
@@ -237,5 +237,30 @@ Runs on:
 | Infra drift visibility | Manual inspection of what-if JSON | Summarize & comment on PR introducing infra change                     |
 | Security scanning      | Not yet integrated                | Add CodeQL / Dependabot security alerts (Dependabot config present)    |
 | Rollback strategy      | Manual redeploy of prior commit   | Publish infra deployment metadata artifact (template hash, parameters) |
+
+---
+
+## Workflow Consolidation (Low‑Risk Deduplication)
+
+To reduce repetition and improve readability, a local composite action (`.github/actions/setup-node-install`) now encapsulates the common pattern of setting up Node + installing dependencies. It currently applies to:
+
+-   `backend-functions-deploy.yml`
+-   `frontend-swa-deploy.yml`
+-   `publish-shared.yml`
+
+The main CI workflow (`ci.yml`) is intentionally left explicit (matrix logic & varied lint/test commands are clearer inlined). If further duplication emerges, consider a second phase introducing either:
+
+1. A build+test composite action, or
+2. A reusable workflow invoked via `workflow_call`.
+
+Risk mitigation: reverting is a two-line change per workflow (replace composite invocation with prior `setup-node` + `npm ci` steps). No behavior (Node version, cache settings, registry auth) was altered.
+
+Guardrails built into the composite action:
+
+-   Explicit `cache-dependency-path` required (prevents silent cache misses).
+-   Auth still driven by `GITHUB_TOKEN` + `packages: read` permission.
+-   No cross-workspace installs—each workflow remains responsible for additional build/test steps.
+
+This establishes a small, auditable pattern for future consolidation without over-abstracting early.
 
 ---
