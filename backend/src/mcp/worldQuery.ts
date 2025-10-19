@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { getLocationRepository, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { getLocationRepository } from '../repos/index.js'
 
 /*
  * MCP Server: world-query (Phase 0 Stub)

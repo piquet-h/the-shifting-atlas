@@ -1,7 +1,7 @@
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
-import { STARTER_LOCATION_ID } from '../location.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
-import { IPlayerRepository, PlayerRecord } from './playerRepository.js'
 
 export class CosmosPlayerRepository implements IPlayerRepository {
     constructor(private client: GremlinClient) {}

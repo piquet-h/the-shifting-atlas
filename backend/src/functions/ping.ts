@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { CORRELATION_HEADER, extractCorrelationId, SERVICE_BACKEND, trackGameEventStrict } from '@piquet-h/shared'
+import { SERVICE_BACKEND } from '@piquet-h/shared'
+import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '../telemetry.js'
 
 interface PingPayload {
     ok: true

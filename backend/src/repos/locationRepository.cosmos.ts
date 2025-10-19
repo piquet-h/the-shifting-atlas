@@ -1,7 +1,6 @@
+import { getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import crypto from 'crypto'
-import { isDirection } from '../domainModels.js'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
-import { Location } from '../location.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { ILocationRepository } from './locationRepository.js'
@@ -204,7 +203,6 @@ export class CosmosLocationRepository implements ILocationRepository {
             return result
         }
         // Create reciprocal exit
-        const { getOppositeDirection } = await import('../domainModels.js')
         const oppositeDir = getOppositeDirection(direction)
         const reciprocalResult = await this.ensureExit(toId, oppositeDir, fromId, opts?.reciprocalDescription)
         return { created: result.created, reciprocalCreated: reciprocalResult.created }

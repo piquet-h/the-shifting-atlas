@@ -10,9 +10,9 @@
  * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
 import { InvocationContext } from '@azure/functions'
-import { trackGameEventStrict } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
+import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------
 

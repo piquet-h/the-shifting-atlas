@@ -3,7 +3,7 @@
  * Registers initial HTTP functions. Extend using additional files or folders and update package.json main glob if needed.
  */
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '@piquet-h/shared'
+import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '../telemetry.js'
 
 app.http('BackendHealth', {
     route: 'backend/health',

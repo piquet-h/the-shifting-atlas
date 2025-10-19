@@ -3,10 +3,9 @@
  * Initializes the Application Insights SDK early so automatic collection (requests, dependencies, traces, exceptions)
  * is enabled for all function executions. Uses connection string via env var APPLICATIONINSIGHTS_CONNECTION_STRING.
  */
+import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
 import appInsights from 'applicationinsights'
 import { randomUUID } from 'node:crypto'
-import { SERVICE_BACKEND, SERVICE_SWA_API } from './serviceConstants.js'
-import { GameEventName, isGameEventName } from './telemetryEvents.js'
 
 if (appInsights && !appInsights.defaultClient) {
     const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING

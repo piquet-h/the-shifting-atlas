@@ -1,4 +1,4 @@
-import { IPlayerRepository } from '../repos/playerRepository.js'
+import { IPlayerRepository } from '../types/playerRepository.js'
 
 export interface ClientPrincipal {
     userId: string

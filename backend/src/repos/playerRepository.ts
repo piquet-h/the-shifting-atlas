@@ -1,8 +1,12 @@
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import crypto from 'crypto'
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
-import { STARTER_LOCATION_ID } from '../location.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosPlayerRepository } from './playerRepository.cosmos.js'
+
+// Re-export the interface and type for local use
+export type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 
 /**
  * Validates that a string is a valid UUID v4.
@@ -17,30 +21,6 @@ function isValidUuidV4(value: string | undefined): boolean {
     // where y is one of [8, 9, a, b] (variant bits)
     const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     return uuidV4Regex.test(trimmed)
-}
-
-export interface PlayerRecord {
-    id: string
-    createdUtc: string
-    /** ISO timestamp updated whenever mutable fields change. */
-    updatedUtc?: string
-    guest: boolean
-    /** Optional federated / external identity mapping (e.g., Entra sub). */
-    externalId?: string
-    /** Bootstrap-assigned or user chosen display name (temporary). */
-    name?: string
-    /** Player's current location anchor (mirrors planned (player)-[:in]->(location) edge). */
-    currentLocationId?: string
-}
-
-export interface IPlayerRepository {
-    get(id: string): Promise<PlayerRecord | undefined>
-    getOrCreate(id?: string): Promise<{ record: PlayerRecord; created: boolean }>
-    linkExternalId(
-        id: string,
-        externalId: string
-    ): Promise<{ updated: boolean; record?: PlayerRecord; conflict?: boolean; existingPlayerId?: string }>
-    findByExternalId(externalId: string): Promise<PlayerRecord | undefined>
 }
 
 class InMemoryPlayerRepository implements IPlayerRepository {

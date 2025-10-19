@@ -1,14 +1,7 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import {
-    CORRELATION_HEADER,
-    extractCorrelationId,
-    extractPlayerGuid,
-    getLocationRepository,
-    getPlayerHeadingStore,
-    normalizeDirection,
-    STARTER_LOCATION_ID,
-    trackGameEventStrict
-} from '@piquet-h/shared'
+import { getPlayerHeadingStore, normalizeDirection, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { getLocationRepository } from '../repos/index.js'
+import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
 const locationRepoPromise = getLocationRepository()
 const headingStore = getPlayerHeadingStore()

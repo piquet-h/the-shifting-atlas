@@ -1,14 +1,7 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import {
-    CORRELATION_HEADER,
-    err,
-    extractCorrelationId,
-    extractPlayerGuid,
-    getLocationRepository,
-    ok,
-    STARTER_LOCATION_ID,
-    trackGameEventStrict
-} from '@piquet-h/shared'
+import { err, ok, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { getLocationRepository } from '../repos/index.js'
+import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
 // Read-only wrapper returning envelope variant of LocationGet
 app.http('LocationLook', {

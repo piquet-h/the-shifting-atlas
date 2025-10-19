@@ -1,6 +1,6 @@
+import { buildExternalId, ensurePlayerForRequest, parseClientPrincipal } from '@piquet-h/shared/auth'
 import assert from 'node:assert'
 import test from 'node:test'
-import { buildExternalId, ensurePlayerForRequest, parseClientPrincipal } from '../src/auth/playerAuth.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
 
 class HeaderBag {

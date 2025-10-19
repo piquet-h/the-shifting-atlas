@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { CORRELATION_HEADER, extractCorrelationId, getPlayerRepository, trackGameEventStrict } from '@piquet-h/shared'
+import { getPlayerRepository } from '../repos/index.js'
+import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '../telemetry.js'
 
 /**
  * Player Bootstrap (migrated from legacy SWA managed API)

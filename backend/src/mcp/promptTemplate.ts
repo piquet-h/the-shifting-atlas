@@ -1,5 +1,5 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { getTemplate, listTemplates } from '@piquet-h/shared'
+import { getTemplate, listTemplates } from '../prompts/index.js'
 
 /*
  * MCP Server: prompt-template (Phase 0 Stub)

@@ -1,7 +1,6 @@
+import { getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
-import { isDirection } from '../domainModels.js'
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
-import { Location } from '../location.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosLocationRepository } from './locationRepository.cosmos.js'
 
@@ -116,7 +115,6 @@ class InMemoryLocationRepository implements ILocationRepository {
             return result
         }
         // Create reciprocal exit
-        const { getOppositeDirection } = await import('../domainModels.js')
         const oppositeDir = getOppositeDirection(direction)
         const reciprocalResult = await this.ensureExit(toId, oppositeDir, fromId, opts?.reciprocalDescription)
         return { created: result.created, reciprocalCreated: reciprocalResult.created }

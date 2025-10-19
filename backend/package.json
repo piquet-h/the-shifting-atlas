@@ -19,14 +19,18 @@
         "npm": ">=10.0.0"
     },
     "dependencies": {
+        "@azure/cosmos": "^4.3.0",
         "@azure/functions": "^4.8.0",
         "@azure/identity": "^4.13.0",
+        "@azure/keyvault-secrets": "^4.10.0",
         "@piquet-h/shared": "^0.2.14",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
+        "gremlin": "^3.7.0",
         "zod": "^4.1.11"
     },
     "devDependencies": {
+        "@types/gremlin": "^3.6.5",
         "@types/node": "^24.4.0",
         "@typescript-eslint/eslint-plugin": "^8.44.0",
         "@typescript-eslint/parser": "^8.44.0",

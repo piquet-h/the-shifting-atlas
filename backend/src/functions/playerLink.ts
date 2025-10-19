@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { getPlayerRepository, trackGameEventStrict } from '@piquet-h/shared'
+import { getPlayerRepository } from '../repos/index.js'
+import { trackGameEventStrict } from '../telemetry.js'
 
 interface LinkRequestBody {
     playerGuid?: string

@@ -1,5 +1,5 @@
+import { Location } from '@piquet-h/shared'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
-import { Location } from '../location.js'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../repos/playerRepository.js'
 

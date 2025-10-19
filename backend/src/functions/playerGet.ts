@@ -1,5 +1,7 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { CORRELATION_HEADER, err, extractCorrelationId, getPlayerRepository, ok, trackGameEventStrict } from '@piquet-h/shared'
+import { err, ok } from '@piquet-h/shared'
+import { getPlayerRepository } from '../repos/index.js'
+import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '../telemetry.js'
 
 app.http('PlayerGet', {
     route: 'player/get',
