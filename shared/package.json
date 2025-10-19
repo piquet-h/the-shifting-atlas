@@ -45,6 +45,7 @@
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "test": "node --test --import=tsx test/*.test.ts",
         "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
+        "smoke:traversal": "node --import=tsx scripts/smoke-traversal.ts",
         "prepublishOnly": "npm run build && npm run test"
     },
     "dependencies": {
