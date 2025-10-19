@@ -74,7 +74,7 @@ resource backendPlan 'Microsoft.Web/serverfarms@2023-01-01' = {
 resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
   name: 'func-${name}'
   location: location
-  kind: 'functionapp,linux'
+  kind: 'functionapp'
   tags: {
     'hidden-link: /app-insights-resource-id': '/subscriptions/1dae96f3-103a-4036-8b81-17bc0c87c3c8/resourceGroups/rg-atlas-game/providers/microsoft.insights/components/appi-atlas'
   }
@@ -319,11 +319,11 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
     }
   }
 
-  resource userProvidedFunctionApp 'userProvidedFunctionApps' = {
+  resource linkedBackend 'linkedBackends' = {
     name: 'backend'
     properties: {
-      functionAppRegion: backendFunctionApp.location
-      functionAppResourceId: backendFunctionApp.id
+      backendResourceId: backendFunctionApp.id
+      region: backendFunctionApp.location
     }
   }
 }
