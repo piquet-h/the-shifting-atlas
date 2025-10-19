@@ -4,6 +4,21 @@ import { STARTER_LOCATION_ID } from '../location.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosPlayerRepository } from './playerRepository.cosmos.js'
 
+/**
+ * Validates that a string is a valid UUID v4.
+ * Returns true only for properly formatted UUID v4 (version 4, variant 1).
+ */
+function isValidUuidV4(value: string | undefined): boolean {
+    if (!value || typeof value !== 'string') return false
+    // Trim whitespace and check if empty
+    const trimmed = value.trim()
+    if (trimmed.length === 0) return false
+    // UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+    // where y is one of [8, 9, a, b] (variant bits)
+    const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    return uuidV4Regex.test(trimmed)
+}
+
 export interface PlayerRecord {
     id: string
     createdUtc: string
@@ -35,16 +50,30 @@ class InMemoryPlayerRepository implements IPlayerRepository {
     }
     async getOrCreate(id?: string) {
         let created = false
-        let guid = id
-        if (guid && !this.players.has(guid)) {
-            created = true
-            this.players.set(guid, this.make(guid))
-        } else if (!guid) {
+        let guid: string | undefined = id
+
+        // Validate the provided ID
+        const hasValidId = isValidUuidV4(guid)
+
+        if (!hasValidId) {
+            // Invalid, empty, or no GUID provided - generate new UUID
             guid = crypto.randomUUID()
             created = true
             this.players.set(guid, this.make(guid))
+        } else {
+            // Valid UUID provided
+            guid = guid!.trim()
+            if (!this.players.has(guid)) {
+                // New player with this GUID
+                created = true
+                this.players.set(guid, this.make(guid))
+            } else {
+                // Existing player
+                created = false
+            }
         }
-        const rec = this.players.get(guid!)!
+
+        const rec = this.players.get(guid)!
         // Backfill any missing anchor fields (e.g., after interface extension) lazily.
         if (!rec.currentLocationId) {
             rec.currentLocationId = resolveStartLocationId()
