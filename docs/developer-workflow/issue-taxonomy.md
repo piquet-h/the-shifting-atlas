@@ -9,7 +9,6 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 | Scope      | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`       | High-level functional grouping (≤9). |
 | Type       | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                   | Nature of work & WIP policy.         |
 | Stage      | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` | Delivery sequence narrative.         |
-| Impl Order | (Removed)            | (Former numeric field retired)                                                                  | — (superseded by manual criteria).   |
 
 Guidelines:
 
