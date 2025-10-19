@@ -46,9 +46,6 @@ jobs:
       - name: Build frontend (Vite)
         run: cd frontend && npm run build
 
-      - name: Prepare for package deployment
-        run: npm ci --omit=dev
-
       - name: Resolve SWA Name
         id: swa_name
         run: |
