@@ -16,6 +16,20 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 6. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
 7. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
 
+### Mutation Admission Gates (Preview)
+
+No mutating MCP server (e.g., `world-mutation-mcp`) is enabled until ALL gates below are implementable and enforced:
+
+1. Schema Gate: Proposal payload validates against versioned JSON/Zod schema (strict: unknown fields rejected).
+2. Safety Gate: Moderation/classification pass returns non-blocking verdict (no disallowed categories).
+3. Invariant Gate: Domain validators confirm no structural contradiction (exits, attributes, faction rules).
+4. Duplication Gate: Similarity hash < threshold vs recent accepted proposals (prevents spam variations).
+5. Replay Gate: Deterministic context hash + prompt template version allow exact regeneration.
+6. Rate Gate: Proposal purpose within per-player + global budget windows (cost + griefing mitigation).
+7. Audit Gate: Telemetry event successfully emitted BEFORE persistence (write aborted if emission fails hard).
+
+Failure Handling: First failing gate stops evaluation; proposal returns a structured rejection (no partial passes). Retrying identical input without environmental change is discouraged unless failure reason was transient (rate or infrastructure).
+
 ## Layered Model
 
 | Layer               | Responsibility                             | Implementation Substrate                                       |
@@ -48,60 +62,60 @@ Read-only world access.
 
 Tools (draft):
 
-- `getRoom(roomId)` → { id, name, tags, exits[], occupants[], lastUpdatedUtc }
-- `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
-- `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
+-   `getRoom(roomId)` → { id, name, tags, exits[], occupants[], lastUpdatedUtc }
+-   `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
+-   `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
 
 ### prompt-template-mcp (Stage M3 – Read Only)
 
 Central registry & versioning for reusable prompt templates.
 
-- `getTemplate(name)`
-- `listTemplates(prefix?)`
-- `registerVersion(name, version, checksum, body)` (restricted / dev only)
+-   `getTemplate(name)`
+-   `listTemplates(prefix?)`
+-   `registerVersion(name, version, checksum, body)` (restricted / dev only)
 
 ### telemetry-mcp (Stage M3 – Read Only)
 
 Structured logging to App Insights / custom table.
 
-- `recordAIUsage(purpose, model, tokensIn, tokensOut, latencyMs, toolCalls)`
-- `logDecision(purpose, decisionType, hashRef, outcome)`
+-   `recordAIUsage(purpose, model, tokensIn, tokensOut, latencyMs, toolCalls)`
+-   `logDecision(purpose, decisionType, hashRef, outcome)`
 
 ### classification-mcp (Stage M4 – Enrichment)
 
 Safety & routing support.
 
-- `classifyIntent(utterance)` → { intent, confidence }
-- `moderateContent(text)` → { flagged, categories[] }
+-   `classifyIntent(utterance)` → { intent, confidence }
+-   `moderateContent(text)` → { flagged, categories[] }
 
 ### lore-memory-mcp (Stage M4 – Enrichment)
 
 Vector / semantic retrieval over curated lore, quests, factions.
 
-- `semanticSearchLore(query, k)` → [{ id, score, snippet }]
-- `getCanonicalFact(entityId)` → { id, type, fields }
+-   `semanticSearchLore(query, k)` → [{ id, score, snippet }]
+-   `getCanonicalFact(entityId)` → { id, type, fields }
 
 ### world-mutation-mcp (Stage M5 – Proposals)
 
 Proposal endpoints (never direct writes):
 
-- `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
-- `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
-- `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
+-   `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
+-   `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
+-   `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
 
 ### simulation-planner-mcp (Stage M6 – Planning)
 
 Higher-order narrative & faction simulation.
 
-- `simulateFactionTick(factionId, horizonSteps)`
-- `generateEventArc(seed, constraints)`
+-   `simulateFactionTick(factionId, horizonSteps)`
+-   `generateEventArc(seed, constraints)`
 
 ### economy-analytics-mcp (Stage M7 – Advisory)
 
 Advisory economic insights.
 
-- `detectAnomalies(range)`
-- `suggestPriceAdjustments(commodityId)`
+-   `detectAnomalies(range)`
+-   `suggestPriceAdjustments(commodityId)`
 
 ## Advisory vs Authoritative Flow
 
@@ -127,10 +141,10 @@ Advisory economic insights.
 
 Memory Tiers:
 
-- Canonical Graph: Gremlin (authoritative state)
-- Short-Term Interaction: Redis/Table (recent dialogue per NPC-player pair)
-- Long-Term Lore Embeddings: Curated subset (initially ≤ 200 facts) → lore-memory-mcp
-- Ephemeral Scratch: In-process agent scratchpads (never persisted)
+-   Canonical Graph: Gremlin (authoritative state)
+-   Short-Term Interaction: Redis/Table (recent dialogue per NPC-player pair)
+-   Long-Term Lore Embeddings: Curated subset (initially ≤ 200 facts) → lore-memory-mcp
+-   Ephemeral Scratch: In-process agent scratchpads (never persisted)
 
 Retrieval Pattern: Tools return _structured_ fact objects; agent composes minimal natural language only at the final step.
 
@@ -138,22 +152,22 @@ Retrieval Pattern: Tools return _structured_ fact objects; agent composes minima
 
 Mechanisms:
 
-- Context Hashing: (purpose + canonicalContextHash) → cache reuse
-- Model Tiering: Cheap model for ambience; richer model for narrative arcs
-- Tool Call Budget: Hard cap (e.g., 6) per task to prevent runaway loops
-- Proposal De-Duplication: Content hash stored; identical resubmissions skipped
+-   Context Hashing: (purpose + canonicalContextHash) → cache reuse
+-   Model Tiering: Cheap model for ambience; richer model for narrative arcs
+-   Tool Call Budget: Hard cap (e.g., 6) per task to prevent runaway loops
+-   Proposal De-Duplication: Content hash stored; identical resubmissions skipped
 
 ## Observability & Telemetry
 
 Minimum metrics per AI invocation:
 
-- `ai.purpose` (ambience | npc_dialogue | quest_seed | etc.)
-- `ai.model`
-- `ai.tokens.prompt` / `ai.tokens.completion`
-- `ai.latency.total_ms`
-- `ai.toolCalls.count`
-- `ai.validation.outcome` (accepted|rejected|modified)
-- `ai.moderation.flagged` (bool)
+-   `ai.purpose` (ambience | npc_dialogue | quest_seed | etc.)
+-   `ai.model`
+-   `ai.tokens.prompt` / `ai.tokens.completion`
+-   `ai.latency.total_ms`
+-   `ai.toolCalls.count`
+-   `ai.validation.outcome` (accepted|rejected|modified)
+-   `ai.moderation.flagged` (bool)
 
 Dashboards: Cost per purpose, rejection rate trend, latency percentiles, dialogue diversity (distinct n-grams), retrieval recall sampling.
 
@@ -165,19 +179,19 @@ Authoritative event name enumeration lives in `shared/src/telemetryEvents.ts` (i
 
 Required dimensions per AI invocation event (`Prompt.Genesis.Issued`, `Prompt.Genesis.Rejected`, etc.):
 
-- `ai.model` – exact model identifier
-- `ai.purpose` – controlled vocabulary (ambience|npc_dialogue|quest_seed|classification|retrieval)
-- `ai.tokens.prompt` / `ai.tokens.completion`
-- `ai.latency.total_ms`
-- `ai.toolCalls.count`
-- `ai.validation.outcome` – accepted|rejected|modified
-- `ai.moderation.flagged` – boolean
+-   `ai.model` – exact model identifier
+-   `ai.purpose` – controlled vocabulary (ambience|npc_dialogue|quest_seed|classification|retrieval)
+-   `ai.tokens.prompt` / `ai.tokens.completion`
+-   `ai.latency.total_ms`
+-   `ai.toolCalls.count`
+-   `ai.validation.outcome` – accepted|rejected|modified
+-   `ai.moderation.flagged` – boolean
 
 Optional (emit when present):
 
-- `ai.cache.hit` (bool) – context hash reuse
-- `ai.retry.count` – number of reprompts
-- `ai.version.template` – semantic version of prompt template
+-   `ai.cache.hit` (bool) – context hash reuse
+-   `ai.retry.count` – number of reprompts
+-   `ai.version.template` – semantic version of prompt template
 
 Sampling: None at Stage M3. Introduce selective sampling only if ingestion threatens budget; never sample rejection or moderation-flag events.
 
@@ -234,10 +248,10 @@ Committee Example (Stage M6+):
 
 ## Cross-References
 
-- `overview.md` – High-level architecture; this doc elaborates the AI layer.
-- `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
-- `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
-- `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
+-   `overview.md` – High-level architecture; this doc elaborates the AI layer.
+-   `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
+-   `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
+-   `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 
 ---
 

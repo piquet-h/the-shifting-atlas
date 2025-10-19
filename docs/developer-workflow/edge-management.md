@@ -1,5 +1,7 @@
 # Location Edge Management Guide
 
+> For a concise invariants-only summary see `../architecture/exits.md`. This guide retains operational examples and extended rationale.
+
 ## Overview
 
 The location edge management system provides structured creation, removal, and auditing of exit edges in the world graph. This ensures consistency, idempotency, and proper telemetry for all spatial relationships between locations.

@@ -1,138 +1,43 @@
-# A massive multiplayer online role playing game text adventure
+# Module Index (Essence)
 
-## Vision
+Single‑page index of active or planned gameplay and platform modules. Each entry captures: Purpose (why it exists), Core Invariants (what must remain true), and Current Phase (idea → design → scaffold → in‑progress → active).
 
-Similar to the early Legend of Zelda series of text adventures, this game will leverage the Dungeons & Dragons game mechanics and combine it with a free form generative AI based open world adventure, allowing players to drop into the game at any point and leave at any time.
+This page intentionally omits deep mechanics detail—see the linked module doc when you need full rationale. If a module doc becomes mostly historical or speculative, prune it there rather than expanding this index.
 
-There will be an overlaying historical concept (think Lord of the Rings or Dragonlance Chronicles) along with multiple side quests and distinct adventure locations.
+| Module                  | Purpose                                                                                                | Core Invariants                                                                                  | Phase       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ----------- |
+| Navigation & Traversal  | Enable movement & spatial reasoning over a graph of locations/exits.                                   | Exits are directional edges; movement validates existence & permissions; no hidden side effects. | in‑progress |
+| Description Layering    | Preserve immutable base prose; allow additive contextual variation (weather, ambience, faction marks). | Base never rewritten; layers validated; provenance recorded.                                     | design      |
+| Geospatial & Hydrology  | Multi‑scale biome & water context for traversal + prompt facts.                                        | Deterministic tiling; hydrology graph separate from traversal edges.                             | idea        |
+| AI Prompt Engineering   | Deterministic, hashable prompt templates enabling replay & cost control.                               | Templates versioned; inputs structured; no inline ad‑hoc prompts.                                | design      |
+| World Rules & Lore      | Cohesive thematic + systemic constraints.                                                              | Canonical codex; lore changes gated; no retconning base canon.                                   | design      |
+| Player Identity & Roles | Persist player capabilities, alignment, progression.                                                   | Stable GUID; alignment changes logged; role grants explicit.                                     | idea        |
+| Factions & Governance   | Model power blocs & reputation loops.                                                                  | Reputation bounded; faction effects explicit and reversible.                                     | idea        |
+| Multiplayer Mechanics   | Shared state & cooperative actions.                                                                    | Server authoritative; conflict resolution deterministic.                                         | idea        |
+| Quest & Dialogue Trees  | Branching narrative & NPC interaction scaffolding.                                                     | Branch state serializable; dialogue choices auditable.                                           | idea        |
+| Extension Framework     | Allow safe third‑party content & hooks.                                                                | Sandboxed; hook vetoes logged; versioned contract.                                               | idea        |
+| Economy & Trade         | Resource flows & pricing signals.                                                                      | No negative currency overflow; pricing deterministic per tick.                                   | idea        |
+| Inventory & Items       | Player/item ownership & equipment effects.                                                             | Item IDs stable; durability optional & bounded.                                                  | idea        |
 
-It is a completely immersive text world with its own currency, different fiefdoms and governing bodies, competing religions and beliefs and secret organisations with their own agenda.
+### Forward Consolidation
 
-Players will be free to create their own guilds and operate in this world in their own way.
+Some module docs are speculative (Economy, Factions, Multiplayer). They remain placeholders until a milestone promotes them to active design; at that point their standalone doc should shrink to: Problem → Invariants → Interfaces.
 
-Extension points will allow developers to create extensions to the world like unique quests, dungeons, or craft unique items.
+### Reading Order (MVP Focus)
 
-## Player Experience Pillars
+1. Navigation & Traversal
+2. Description Layering
+3. AI Prompt Engineering (scoped to read‑only MCP use)
+4. Extension Framework (only if integrating external tools)
 
-- Emergent storytelling through generative AI
-- Persistent world shaped by player actions
-- Deep roleplay via D&D mechanics and alignment
-- Collaborative exploration and guild dynamics
-- Rich lore and evolving political landscapes
-- Anti-griefing mechanics that reduce enjoyment for disruptive players  
-  Griefing—like sabotaging quests or harassing others—leads to lower success rates, fewer interactions, and less engaging stories. The system discourages disruptive play by making it unrewarding.
+### Related High‑Level Docs
 
-## Main modules
-
-Below each module name links to its dedicated design document (if present). Use these as entry points for deeper system details.
-
-- 🧭 **Navigation & Traversal** ([doc](modules/navigation-and-traversal.md)): Movement systems, terrain interaction, pathfinding
-    - Terrain types and modifiers
-    - Fast travel and teleportation systems
-    - Environmental hazards and traversal challenges
-    - Dynamic map generation and fog of war
-    - Traversal skill checks tied to D&D mechanics (e.g. climbing cliffs, swimming rivers)
-    - Semantic exits using natural language descriptions (e.g. "a narrow path through the mist")
-    - Environmental interactivity (e.g. burn vines, freeze rivers)
-    - Linked faction zones with terrain access restrictions
-    - Map injection API for developer-created regions and traversal puzzles
-
-- 🌍 **Geospatial & Hydrology Modeling** ([doc](modules/geospatial-and-hydrology.md)): Multi‑scale spatial tiling, regions, rivers, lakes, coastline context
-    - Deterministic spatial tiling & seeding
-    - Region hierarchy & biome aggregation
-    - River & lake (hydrology) graph (skeleton first, refinement later)
-    - Location hydrology context enrichment (distance to water, river order)
-    - Structured prompt fact block (biome, elevation, hydrology) feeding AI
-    - Lazy materialization to control RU & storage footprint
-    - Future: watersheds, sea level events, currents, erosion (deferred)
-
-- 📝 **Description Layering & Variation** ([doc](modules/description-layering-and-variation.md)): Tokenless immutable base + additive layers
-    - Immutable base description (no mid-life rewrites)
-    - Structural event layers (burn, collapse, faction banners)
-    - Ambient/time/weather snippet registry (deterministic selection)
-    - Enhancement & personalization overlays
-    - Attribute map + validators prevent retcon drift
-    - Telemetry & integrity hashing for audit
-
-- 🧠 **AI Prompt Engineering** ([doc](modules/ai-prompt-engineering.md)): Structuring inputs for consistent world generation
-    - Prompt templates for NPCs, quests, and locations
-    - Contextual memory and continuity enforcement
-    - Style and tone modulation
-    - Safety filters and content boundaries
-
-- 🏗️ **World Rules & Lore** ([doc](modules/world-rules-and-lore.md)): Biome transitions, danger scaling, thematic cohesion
-    - Biome classification and transitions
-    - Danger level scaling and encounter balancing
-    - Lore codex and historical timelines
-    - Environmental storytelling and world myths
-    - Time progression and seasonal cycles
-    - Time-based events and quest availability
-
-- 🧑‍🤝‍🧑 **Multiplayer Mechanics** ([doc](modules/multiplayer-mechanics.md)): Syncing player states, cooperative exploration
-    - Real-time state synchronization
-    - Party formation and shared objectives
-    - PvP and PvE mechanics
-    - Instance management and matchmaking
-
-- 🏛️ **Factions & Governance** ([doc](modules/factions-and-governance.md)): Religions, secret organisations, political systems
-    - Faction reputation systems
-    - Dynamic power structures and influence zones
-    - Religious belief trees and schisms
-    - Political elections, coups, and diplomacy
-
-- 🧩 **Extension Framework** ([doc](modules/extension-framework.md)): Developer APIs, modding, sandboxing
-    - Quest and dungeon creation tools
-    - Item and NPC injection interfaces
-    - World event scripting
-    - Versioning and sandbox isolation
-
-- 📜 **Quest & Dialogue Trees** ([doc](modules/quest-and-dialogue-trees.md)): NPC interactions, branching narratives
-    - Dialogue branching logic and emotional tone
-    - Quest types (fetch, escort, puzzle, etc.)
-    - Quest dependencies and chaining
-    - NPC memory and relationship tracking
-
-- 🎭 **Player Identity & Roles** ([doc](modules/player-identity-and-roles.md)): Guilds, classes, reputation, alignment
-    - Class-based skill trees and progression
-    - Guild creation, management, and alliances
-    - Alignment tracking and moral consequences
-    - Reputation systems across regions and factions
-
-- 🧳 **Inventory & Item Systems** (TBD doc): Ownership, usage, crafting
-    - Item categorization and rarity tiers
-    - Crafting recipes and material dependencies
-    - Equipment slots and stat modifiers
-    - Item degradation and repair mechanics
-
-- 📈 **Economy & Trade Systems** ([doc](modules/economy-and-trade-systems.md)): Currency, marketplaces, resource flow
-    - Dynamic pricing and supply-demand mechanics
-    - Crafting economies and resource harvesting
-    - Trade routes and merchant NPCs
-    - Black markets and smuggling systems
+-   `architecture/overview.md` – platform why
+-   `observability.md` – telemetry naming & dimensions
+-   `adr/ADR-002-graph-partition-strategy.md` – partition evolution
 
 ---
 
-### Additional High-Level Documents
+Changelog:
 
-- Architecture Overview: `architecture/overview.md`
-- MVP Azure Architecture: `architecture/mvp-azure-architecture.md`
-- Cost Optimisation: `architecture/cost-optimisation.md`
-- Developer Workflow: branching (`developer-workflow/branching-strategy.md`), local setup (`developer-workflow/local-dev-setup.md`), deployment (`developer-workflow/deployment-pipeline.md`), Copilot usage (`developer-workflow/using-copilot.md`)
-- Gameplay Foundations: Lore (`gameplay/lore.md`), Player Agency (`gameplay/player-agency.md`), Quests (`gameplay/quests.md`)
-
----
-
-### Suggested Reading Order
-
-1. Architecture Overview → MVP Azure Architecture
-2. World Rules & Lore → Navigation & Traversal → AI Prompt Engineering
-3. Player Identity & Roles → Factions & Governance → Multiplayer Mechanics
-4. Quest & Dialogue Trees → Economy & Trade Systems → Extension Framework
-
----
-
-### See Also
-
-- For implementation patterns see the Azure MVP doc: [MVP Azure Architecture](architecture/mvp-azure-architecture.md)
-- For world narrative grounding: [World Rules & Lore](modules/world-rules-and-lore.md)
-- For procedural generation prompts: [AI Prompt Engineering](modules/ai-prompt-engineering.md)
+-   2025-10-19: Rewritten to concise index; removed narrative vision & exhaustive bullet expansions (now covered across dedicated docs & ADRs).

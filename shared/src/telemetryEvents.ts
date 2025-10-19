@@ -42,6 +42,14 @@ export const GAME_EVENT_NAMES = [
     'Multiplayer.LayerDelta.Sent',
     'Multiplayer.LocationSnapshot.HashMismatch',
     'Multiplayer.Movement.Latency',
+    // Secrets / infrastructure (still game domain telemetry, not build telemetry)
+    'Secret.Fetch.Retry',
+    'Secret.Cache.Hit',
+    'Secret.Cache.Miss',
+    'Secret.Fetch.Success',
+    'Secret.Fetch.Failure',
+    'Secret.Fetch.Fallback',
+    'Secret.Cache.Clear',
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid'
 ] as const

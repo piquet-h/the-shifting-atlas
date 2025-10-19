@@ -10,6 +10,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
+import telemetryEventMembershipRule from './eslint-rules/telemetry-event-membership.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
 
 export default [
@@ -27,6 +28,7 @@ export default [
             internal: {
                 rules: {
                     'telemetry-event-name': telemetryEventRule,
+                    'telemetry-event-membership': telemetryEventMembershipRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-direct-secret-access': noDirectSecretAccessRule
@@ -72,6 +74,7 @@ export default [
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
             'internal/telemetry-event-name': 'error',
+            'internal/telemetry-event-membership': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'

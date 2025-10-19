@@ -72,9 +72,9 @@ Provide a stable envelope + minimal semantic fields for all asynchronous world e
 
 ## Idempotency Strategy
 
-- Maintain a processed key store (e.g., Cosmos container or table) keyed by `idempotencyKey` → `eventId` + status.
-- Time-to-live for keys depends on action semantics (movement may expire sooner than structural changes).
-- **Never** mutate or delete completed entries except via administrative repair tooling.
+-   Maintain a processed key store (e.g., Cosmos container or table) keyed by `idempotencyKey` → `eventId` + status.
+-   Time-to-live for keys depends on action semantics (movement may expire sooner than structural changes).
+-   **Never** mutate or delete completed entries except via administrative repair tooling.
 
 ## Error & Retry Semantics
 
@@ -88,23 +88,38 @@ Dead-letter payloads MUST include original envelope plus validation error summar
 
 ## Correlation & Tracing
 
-- `correlationId` links back to originating HTTP request or player session command.
-- Append `eventId` to telemetry dimensions of downstream AI or mutation proposals referencing the event.
+-   `correlationId` links back to originating HTTP request or player session command.
+-   Append `eventId` to telemetry dimensions of downstream AI or mutation proposals referencing the event.
 
 ## Versioning
 
-- Bump `version` only when envelope structure changes in a breaking way (field removal or semantic shift).
-- Additive payload fields within a `type` use separate **type schema versions** (maintained outside the envelope; optional `payloadVersion` can be added if needed later).
+-   Bump `version` only when envelope structure changes in a breaking way (field removal or semantic shift).
+-   Additive payload fields within a `type` use separate **type schema versions** (maintained outside the envelope; optional `payloadVersion` can be added if needed later).
 
 ## Security Considerations
 
-- All externally influenced fields (notably `payload`) must be revalidated server-side; never trust client-provided `idempotencyKey` if reconstructable.
-- Reject events where `occurredUtc` drifts excessively (> configurable threshold) from `ingestedUtc` to mitigate replay.
+-   All externally influenced fields (notably `payload`) must be revalidated server-side; never trust client-provided `idempotencyKey` if reconstructable.
+-   Reject events where `occurredUtc` drifts excessively (> configurable threshold) from `ingestedUtc` to mitigate replay.
 
 ## Open Questions
 
-- Should we encode shard / partition hints in the envelope for future horizontal scaling?
-- Need a policy for redaction of sensitive player data before dead-letter storage.
+## Queue Cutover Checklist (Direct Writes → Event Processing)
+
+Mechanical steps to transition from synchronous HTTP persistence to queued world event processing without semantic drift:
+
+1. Introduce envelope builder in HTTP handlers (produce full `WorldEvent` but still apply effects inline + persist event log record).
+2. Add idempotency key store writes (record key before mutation); on duplicate skip mutation branch.
+3. Stand up queue + processor Function(s) that consume events emitted by a feature‑flagged path (dual write: inline + enqueue).
+4. Enable processor in shadow mode (processor re-validates but does not persist) and compare telemetry (`World.Event.Duplicate` vs processed).
+5. Flip feature flag: HTTP handler stops applying mutation; only enqueues. Processor becomes authoritative.
+6. Remove inline mutation code + dual write branch after stability window (>= one full playtest day) passes with no divergence.
+
+Rollback: Re-enable inline apply path; processor continues (duplicate detection collapses replays).
+
+Success Criteria: Zero drift events (no mismatched mutations), latency impact acceptable (< predefined threshold), and idempotency duplicates below target rate.
+
+-   Should we encode shard / partition hints in the envelope for future horizontal scaling?
+-   Need a policy for redaction of sensitive player data before dead-letter storage.
 
 ---
 

@@ -1,12 +1,12 @@
-# Observability & Telemetry (MVP Framework)
+# Observability & Telemetry (Essentials)
 
-This document defines naming, dimensions, and evolution guidelines for telemetry so events stay consistent as features grow.
+Lean specification for game/domain telemetry. Focus: consistent event grammar + minimal dimension set. Historical migration notes & phased expansion tables removed to keep this doc stable and referenceable.
 
 ## Goals
 
-- Provide stable event names early to avoid churn in dashboards.
-- Capture enough context for debugging without exceeding free tier quotas.
-- Make persistence / mode transitions (in‑memory → Cosmos) visible.
+1. Consistent, low‑cardinality event names.
+2. Dimensions capture outcome & correlation—not narrative prose.
+3. Maintain cheap ingestion (free/low tier friendly) while enabling debugging.
 
 ## Event Naming Convention (Unified)
 
@@ -37,32 +37,32 @@ Approved Domains (initial):
 
 Examples (canonical):
 
-- `Onboarding.GuestGuid.Created`
-- `Onboarding.GuestGuid.Started`
-- `Auth.Player.Upgraded`
-- `Location.Get` (idempotent fetch)
-- `Location.Move` (attempted traversal; success/failure in `status`)
-- `Ping.Invoked`
+-   `Onboarding.GuestGuid.Created`
+-   `Onboarding.GuestGuid.Started`
+-   `Auth.Player.Upgraded`
+-   `Location.Get` (idempotent fetch)
+-   `Location.Move` (attempted traversal; success/failure in `status`)
+-   `Ping.Invoked`
 
 Reserved Suffixes:
 
-- `Started`, `Completed` for lifecycle flows.
-- `Get`, `List` for read-only operations.
-- `Created`, `Deleted`, `Updated` for CRUD writes.
-- `Move` (domain-specific action – movement attempt).
+-   `Started`, `Completed` for lifecycle flows.
+-   `Get`, `List` for read-only operations.
+-   `Created`, `Deleted`, `Updated` for CRUD writes.
+-   `Move` (domain-specific action – movement attempt).
 
 Anti-Patterns (DO NOT):
 
-- `room.get` (wrong casing)
-- `Room.Get.200` (status baked into name)
-- `OnboardingGuestGuidCreated` (no dots)
-- `AuthUpgradeSuccess` (no segmentation, inconsistent verb form)
+-   `room.get` (wrong casing)
+-   `Room.Get.200` (status baked into name)
+-   `OnboardingGuestGuidCreated` (no dots)
+-   `AuthUpgradeSuccess` (no segmentation, inconsistent verb form)
 
 Decision Matrix:
 
-- If action mutates: Past tense (`Created`, `Upgraded`).
-- If action queries: Base verb (`Get`, `List`).
-- If action may fail but we always want a single series: Keep one name; differentiate with `status` and optional `reason` dimension.
+-   If action mutates: Past tense (`Created`, `Upgraded`).
+-   If action queries: Base verb (`Get`, `List`).
+-   If action may fail but we always want a single series: Keep one name; differentiate with `status` and optional `reason` dimension.
 
 Event Name Grammar Quick Sheet:
 
@@ -73,7 +73,7 @@ Subject (optional): Specific entity category inside domain.
 Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 ```
 
-## Standard Dimensions (Keys)
+## Standard Dimensions
 
 | Key               | Purpose                                                   | Example   |
 | ----------------- | --------------------------------------------------------- | --------- |
@@ -89,7 +89,7 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 
 Add dimensions sparingly; prefer a single event with multiple dimensions over many granular events that fragment analysis.
 
-## Current Canonical Event Set (Week 1 Post-Refactor)
+## Canonical Event Set (Current)
 
 | Event Name                                  | Purpose                                           |
 | ------------------------------------------- | ------------------------------------------------- |
@@ -127,29 +127,13 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 
 ## Sampling & Quotas
 
-- Default: no sampling (MVP volume negligible).
-- Introduce probabilistic sampling (e.g., 0.5) only if monthly ingestion nears free tier.
-- NEVER sample security/audit events (future auth-critical events).
+-   Default: no sampling (MVP volume negligible).
+-   Introduce probabilistic sampling (e.g., 0.5) only if monthly ingestion nears free tier.
+-   NEVER sample security/audit events (future auth-critical events).
 
-## Partition Revisit Telemetry
+## Partition Signals (Reference)
 
-As the world graph scales, telemetry must track signals indicating when the single-partition MVP strategy (ADR-002) should migrate to region sharding:
-
-- **RU Utilization**: Sustained >70% RU consumption over 3 consecutive days.
-- **Throttling Events**: Repeated 429 responses on movement/look operations at <50 RPS.
-- **Hot Partition Concentration**: >40% of total RU consumed by a single logical partition.
-- **Vertex Count**: World vertices exceeding 50k.
-
-Recommended custom dimensions for future `Cosmos.PartitionMetrics` events:
-
-| Dimension      | Purpose                         | Example        |
-| -------------- | ------------------------------- | -------------- |
-| `partitionKey` | Logical partition value         | `world`        |
-| `ruConsumed`   | Request units for the operation | `23.5`         |
-| `throttled`    | Boolean indicating 429 response | `true`/`false` |
-| `vertexCount`  | Current vertex count estimate   | `12453`        |
-
-See **ADR-002: Graph Partition Strategy** for detailed thresholds and migration planning.
+Scaling thresholds live in `adr/ADR-002-graph-partition-strategy.md`. Emit partition health only if a decision boundary nears—do not pre‑emptively stream RU/vertex counts each request.
 
 ## Current Event Mapping (Old → New)
 
@@ -164,43 +148,29 @@ See **ADR-002: Graph Partition Strategy** for detailed thresholds and migration 
 
 All old names are to be replaced in a single refactor (no dual emission mandated).
 
-## Roadmap
+## Deferred Events
 
-| Phase | Additions                                                                                  |
-| ----- | ------------------------------------------------------------------------------------------ |
-| MVP+1 | Repository-backed Location events (`Location.Get`, `Location.Move`) with `persistenceMode` |
-| MVP+2 | NPC tick events (`NPC.TickStart`, `NPC.TickResult`)                                        |
-| MVP+3 | Economy transactions (`Economy.TradeExecuted`)                                             |
-| MVP+4 | Dialogue interactions (`Dialogue.BranchChosen`)                                            |
+Future domains (NPC, Economy, Dialogue, Multiplayer layers) are placeholders; add only when code ships. Avoid speculative enumeration—keeps dashboards noise‑free.
 
-## Migration Notes (Refactor Plan)
+## Enforcement
 
-Since backward compatibility is not required:
+Static source of truth: `shared/src/telemetryEvents.ts`. Any addition requires:
 
-1. Rename constants inline where passed to `trackEvent`.
-2. Run a global search for each old literal; replace with new form.
-3. Add a temporary type guard (optional) that rejects lowercase names during development (lint rule suggestion below).
-4. Rebuild & smoke-test telemetry emission locally (Application Insights ingestion optional).
+1. Justification in PR description (why needed, why existing name insufficient).
+2. Update to this doc (Event Set table) if not obviously derivative.
+3. Passing lint rule (planned regex check: `^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$`).
 
-Suggested ESLint Custom Rule (future): ensure event names match regex `^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$`.
+## Dashboards (Starter Ideas)
 
-Deprecated Names: none retained; removal is immediate.
+1. Movement success ratio (`Location.Move` grouped by `status`).
+2. Guest onboarding funnel (`Onboarding.GuestGuid.Started` → `Onboarding.GuestGuid.Created`).
+3. Command latency percentile (custom metric or derived from traces) – add only if latency becomes an issue.
 
-## Dashboards (Future)
+## Open Questions
 
-Proposed starter charts:
+Tracked externally in issues; keep this section empty or remove if stale.
 
-- Requests by status over time (split by event name)
-- Movement success rate (filter `Location.Move` where `status=200` vs others)
-- Top locations by visits (`Location.Get` count grouped by `locationId`)
-- Onboarding conversion (GuestGuidCreated → UpgradeSuccess funnel)
-
-## Open Questions (Track Before Expanding)
-
-- Do we need per-player rate limiting metrics or will Azure front-door metrics suffice?
-- Should movement latency be separated from overall request latency? (If queue handoff introduced.)
-
-_Last updated: 2025-09-25_
+_Last updated: 2025-10-19 (condensed; removed historical migration & roadmap sections)_
 
 ---
 
@@ -210,6 +180,6 @@ AI / MCP specific event emissions and required dimensions are defined in `archit
 
 Canonical enumeration source of truth:
 
-- `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
+-   `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.

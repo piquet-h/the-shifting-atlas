@@ -10,12 +10,25 @@ A **tokenless layered description system** preserves world continuity (no retcon
 
 ## Goals
 
-- Immutable **Base Description** for each Location
-- Additive **Structural Event Layers** (burned gate, collapsed bridge) without rewriting base
-- Reusable **Ambient / Weather / Time** snippets (short, ephemeral, cheap to generate)
-- Optional **Enhancement** layers (sensory flourish) and **Personalization** overlays (player‑specific) without polluting shared canon
-- Deterministic assembly order → reproducible view snapshots (auditable & testable)
-- Retain _machine understanding_ (attribute map) without embedding `{TOKENS}` in prose
+-   Immutable **Base Description** for each Location
+-   Additive **Structural Event Layers** (burned gate, collapsed bridge) without rewriting base
+-   Reusable **Ambient / Weather / Time** snippets (short, ephemeral, cheap to generate)
+-   Optional **Enhancement** layers (sensory flourish) and **Personalization** overlays (player‑specific) without polluting shared canon
+-   Deterministic assembly order → reproducible view snapshots (auditable & testable)
+-   Retain _machine understanding_ (attribute map) without embedding `{TOKENS}` in prose
+
+## Validator Summary (Quick Reference)
+
+Deterministic pipeline (fail-fast, no partial mutations):
+
+1. Safety: Reject disallowed content categories.
+2. Structural Consistency: Must not contradict attribute map unless layerType = structural_event.
+3. Base Integrity: Base hash unchanged (no mid-life rewrite attempts).
+4. Scope & Size: Ambient / enhancement layers <= configured word cap; personalization ephemeral.
+5. Redundancy & Similarity: Skip if cosine / Jaccard similarity exceeds threshold vs existing active layers.
+6. Drift Guard: Non-structural layers may not introduce new large permanent entities.
+
+On rejection: layer discarded; telemetry emits reason. No fallback auto-regeneration unless policy explicitly enables a bounded retry loop (future option).
 
 ## Layer Types
 
@@ -52,9 +65,9 @@ attributes: {
 
 Uses:
 
-- Validator: Reject ambient layer turning dirt road into cobbled without a Structural Event layer first.
-- Faction / Event logic: Upgrading integrity, adding banners, etc.
-- Future analytics & search: find all wooden palisades for decay event.
+-   Validator: Reject ambient layer turning dirt road into cobbled without a Structural Event layer first.
+-   Faction / Event logic: Upgrading integrity, adding banners, etc.
+-   Future analytics & search: find all wooden palisades for decay event.
 
 ## Layer Validation Pipeline
 
@@ -73,9 +86,9 @@ Deterministic hash of each accepted layer (`sha256(minifiedText + sortedFields)`
 
 Keyed by `(biome, weatherType, timeBucket)` and possibly `variantIndex`.
 
-- On first miss → AI generates **K** variants (default 3) under strict prompt: _"Return <=25 word ambient snippets; no structural changes; ephemeral effects only."_
-- Deterministic variant pick: `variant = hash(locationId + weatherType + timeBucket) % K`.
-- Reuse across Locations sharing biome & feature archetype (optional filter).
+-   On first miss → AI generates **K** variants (default 3) under strict prompt: _"Return <=25 word ambient snippets; no structural changes; ephemeral effects only."_
+-   Deterministic variant pick: `variant = hash(locationId + weatherType + timeBucket) % K`.
+-   Reuse across Locations sharing biome & feature archetype (optional filter).
 
 ## Structural Events & Faction Signals
 
@@ -91,10 +104,10 @@ Removal (banner taken down) is a new event layer marking banner inactive; histor
 
 Runtime context selects at most one active ambient layer per category:
 
-- `weather`: derived from world state (rain, clear, snow)
-- `time`: coarse buckets (dawn, day, dusk, night)
-- `season`: optional additive
-  Conflict resolution: priority order `structural > weather > season > time > enhancement` for conflicting semantic claims.
+-   `weather`: derived from world state (rain, clear, snow)
+-   `time`: coarse buckets (dawn, day, dusk, night)
+-   `season`: optional additive
+    Conflict resolution: priority order `structural > weather > season > time > enhancement` for conflicting semantic claims.
 
 ## Personalization Layer
 
@@ -123,20 +136,20 @@ A nightly integrity job re-hashes base + layers; mismatches raise alerts.
 
 ## Testing (Planned)
 
-- Unit: Composition order & supersede masking
-- Unit: Validator rejects contradictions (dirt→cobbled w/o structure layer)
-- Property: Idempotent render given same active context
-- Hash Integrity: Tampering simulation
-- Snapshot: Golden expected composite for fixed context/time
+-   Unit: Composition order & supersede masking
+-   Unit: Validator rejects contradictions (dirt→cobbled w/o structure layer)
+-   Property: Idempotent render given same active context
+-   Hash Integrity: Tampering simulation
+-   Snapshot: Golden expected composite for fixed context/time
 
 ## Telemetry (Planned Events)
 
 (All centralized—no inline literals.)
 
-- `Description.Layer.Generated` (layerType, kind?, latencyMs, model, length, rejectedReason?)
-- `Description.Composite.Rendered` (locationId, layersApplied, weatherType, timeBucket)
-- `Description.Structure.ContradictionRejected` (reason)
-- `Description.Registry.Miss` (category, biome)
+-   `Description.Layer.Generated` (layerType, kind?, latencyMs, model, length, rejectedReason?)
+-   `Description.Composite.Rendered` (locationId, layersApplied, weatherType, timeBucket)
+-   `Description.Structure.ContradictionRejected` (reason)
+-   `Description.Registry.Miss` (category, biome)
 
 ## Interactions With Other Modules
 
@@ -170,3 +183,76 @@ A nightly integrity job re-hashes base + layers; mismatches raise alerts.
 ---
 
 _Last updated: 2025-10-02 (initial creation)_
+
+## Structural Event Simulation (Usage & Flags)
+
+The initial structural event simulation script provides a safe, auditable path to test **structural_event** layering before broader AI or author tooling. It does not mutate the base description; it appends a new structural layer (idempotently) and relies on supersede masking to hide obsolete sentences.
+
+### Supported Flags
+
+| Flag                                     | Purpose                                                    | Notes                                                                                        |
+| ---------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------- |
+| `--slug <location-slug>`                 | Human-friendly location identifier                         | Mutually exclusive with `--location-id`; resolved to GUID (fails if ambiguous or not found). |
+| `--location-id <guid>`                   | Explicit target location GUID                              | Skips slug resolution. Validates GUID format.                                                |
+| `--supersedes "sentence A" "sentence B"` | Sentences in the base (or prior structural layers) to mask | Normalized (trim + collapse whitespace). Sentences not found are ignored with warning.       |
+| `--actor <script                         | ai                                                         | user>`                                                                                       | Provenance actor classification | Defaults to `script`. Invalid values rejected. |
+| `--dry-run`                              | Preview composite and metadata without persisting          | Can be combined with `--json`. No layer stored.                                              |
+| `--json`                                 | Emit machine‑readable result object                        | Shape documented below. Human output suppressed except errors.                               |
+
+### JSON Output Shape
+
+```
+{
+  "applied": boolean,          // false if dry-run or duplicate
+  "dryRun": boolean,
+  "provenanceId": string,      // deterministic layer id / hash fragment
+  "layerHash": string,         // hash over (locationId + normalized text + sorted supersedes)
+  "superseded": string[],      // subset actually matched
+  "addedChars": number,        // length of textAddendum (post-normalization)
+  "warnings": string[]         // unmatched supersedes, normalization notes
+}
+```
+
+### Idempotency & Duplicate Detection
+
+An idempotency key is computed over `(locationId + normalized structural text + sorted supersedes[])`. Attempting to apply an identical structural event returns a non-fatal duplicate response (`applied:false`) and **does not** create a second layer. This prevents layer proliferation and accidental repeated masking.
+
+### Supersede Behavior
+
+-   Sentences not present → collected in `warnings` (non-fatal).
+-   If **all** provided supersedes are missing, the layer can still apply (it may be an additive banner / display); masking count simply equals zero.
+-   Normalization: trim, collapse internal whitespace, exact sentence match (case sensitive except trailing punctuation trimmed). Future fuzzy match is an explicitly deferred enhancement.
+
+### Provenance Block
+
+Each persisted layer includes:
+
+```
+provenance: { actor: 'script'|'ai'|'user', actorId?: string, createdUtc: ISO8601 }
+```
+
+Existing layers lacking provenance (pre‑feature) should be backfilled with `actor:'script'` (test shim acceptable until a migration utility is formalized).
+
+### Dry-Run Composition
+
+`--dry-run` executes full supersede resolution and composite assembly (including diff metrics) but **skips persistence**. The output clearly indicates `dryRun:true`. Combine with `--json` for tooling pipelines or CI safety checks.
+
+### Diff Summary Metrics (Future)
+
+A subsequent enhancement outputs a concise summary: `{ supersededCount, addedChars }` even when zero to aid curation. Multi-byte characters count as Unicode code points (not raw bytes) for human relevance.
+
+### Safety & Validator Interaction
+
+The script assumes future validator stages (safety, structural consistency, redundancy) will run prior to persistence. Until then it performs minimal normalization only; any rejection logic MUST be added centrally to the validator pipeline (not bespoke here) to avoid divergence.
+
+### Telemetry (Planned)
+
+Telemetry emission for structural simulation is intentionally deferred until the validator + cost governance land; placeholder events (e.g., `Description.StructuralEvent.Added`) will be enumerated in the canonical telemetry registry first—never inline literals.
+
+### Documentation Scope
+
+This section satisfies the help/usage documentation acceptance criteria for the structural event simulation related issues (see #190 and child follow‑ups). Examples intentionally avoid embedding lore prose to prevent duplication; test fixtures carry concrete samples.
+
+---
+
+_Last updated: 2025-10-19 (added structural event simulation usage & flags)_

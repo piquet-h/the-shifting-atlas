@@ -1,188 +1,56 @@
-# MVP Azure Architecture
+# MVP Azure Architecture (Concise)
 
-> Status Accuracy (2025-10-03, updated 2025-10-07): Frontend shell plus backend Function App HTTP endpoints (ping, guest bootstrap/link, location get/move) exist. Cosmos persistence, queues, and unified backend now in progress; this document reflects intent while keeping implementation details minimal to avoid drift.
->
-> Temporary Constraint: **All persistence references in this document describe the _target_ asynchronous, event-driven model.** The _current_ MVP path will introduce **direct Cosmos writes from HTTP Functions** first, immediately followed by an enqueue + queue-triggered processor refactor (see `overview.md` and `world-event-contract.md`). Avoid embedding long-running logic in HTTP handlers; keep them thin so the cutover is mechanical.
+Status (2025-10-19): Frontend shell + backend Functions (ping, onboarding) exist. Persistence, exits, movement, and queue processors pending. This file intentionally minimal—strategic rationale now lives in `overview.md`; milestone intent lives in `../roadmap.md`.
 
-## 🎯 Goals
-
-- **Get to playtesting quickly** with a persistent, navigable world.
-- **Keep costs near zero** using Azure free and consumption tiers.
-- **Ensure modularity** so systems can evolve without rewrites.
-- **Leverage a dedicated Azure Functions App** for gameplay HTTP + queue processing (SWA hosts static frontend only).
-
----
-
-## 🗺 High-Level Overview
+## Core Shape
 
 ```plaintext
-[Player Client]
-   |
-   v
-[Azure Static Web Apps]
-   |        \
-   |         \---> [Backend Function App (Azure Functions)]
-   |                   |
-   |                   v
-   |             [Azure Cosmos DB (Gremlin API and SQL API)]
-   |                   |
-   |                   v
-   |             [Persistent World Graph: Locations, Exits, NPCs, Items, Player State]
-   |
-   \---> [Optional: Azure OpenAI Service] (AI-assisted content/NPCs)
+[Client] → [Azure Static Web Apps]
+                |
+                v
+         [Backend Function App]
+                |
+                v
+        [Cosmos DB (Gremlin + SQL)]
+                |
+        (future) Queue Processors
+                |
+        (optional) AI MCP Read Layer
 ```
 
-🧩 Core Components
+| Component               | Role                                               | Notes                                        |
+| ----------------------- | -------------------------------------------------- | -------------------------------------------- |
+| Static Web Apps         | Serve frontend + auth gateway (future)             | No embedded API; backend isolated            |
+| Functions App           | HTTP commands + (later) queue triggers             | Keep handlers thin for async cutover         |
+| Cosmos Gremlin          | World graph (locations, exits, NPC shell)          | Single logical partition initially (ADR-002) |
+| Cosmos SQL              | Mutable projections (players, inventories, events) | Added when dual persistence needed           |
+| Service Bus / Queues    | World + NPC evolution (future)                     | Introduced post synchronous persistence      |
+| MCP Servers (read-only) | Structured AI context & prompt templates           | No mutation until validation gates exist     |
 
-1. Frontend
-   Service: Azure Static Web Apps (Free Tier)
+## Early Principles
 
-Purpose: Serve the game client (text UI or lightweight web app).
+1. Ship traversal loop before AI enrichment.
+2. Direct writes first → event/queue refactor second (mechanical, not architectural rewrite).
+3. Immutable base descriptions; additive layers (see layering module) – informs persistence design early.
+4. Telemetry names stable before volume scaling (avoid dashboard churn).
 
-Notes:
+## Immediate Build Focus (M1 → M2 Bridge)
 
-Auto‑deploy from GitHub.
+-   Location persistence (Gremlin)
+-   Exit model + movement command
+-   Direction normalization & movement telemetry (`Location.Move` with status)
 
-Built‑in HTTPS and global CDN.
+## Pointers
 
-Front-end calls the dedicated Backend Function App for APIs.
+-   High‑level rationale: `overview.md`
+-   Event naming: `../observability.md`
+-   Partition evolution: `../adr/ADR-002-graph-partition-strategy.md`
+-   Layering model: `../modules/description-layering-and-variation.md`
 
-2. Backend Function App
-   Service: Azure Functions (Consumption Plan) – separate from Static Web Apps.
+## Deferments
 
-Purpose (Target State):
+-   AI mutation tools (proposal / generation) – after validation & replay infrastructure
+-   Region sharding – gate on RU/latency signals (ADR-002 thresholds)
+-   Multiplayer & economy – post stable layering + traversal analytics
 
-- Handle player commands (move, look, take, talk).
-- Query/update world state in Cosmos DB.
-- Call AI endpoints for dynamic descriptions or NPC dialogue.
-
-Current Reality (summarized): a handful of anonymous HTTP functions (ping, player bootstrap/link, location get/move) consolidated into a single backend Function App.
-
-Authentication (Planned – Not Implemented):
-
-- Use Microsoft Entra External Identities; map `sub` claim to internal Player GUID.
-- Enforce server-side role/claim checks inside Functions.
-
-3. Persistence Layer
-   Service:
-    - Azure Cosmos DB (Gremlin API) for Navigation and Traversal
-    - Azure Cosmos DB (SQL API) for Profile based entities (Like users and guilds)
-
-Purpose (Planned):
-
-- Store locations, exits, NPCs, items, and player state as a graph or JSON Entity.
-- Enable semantic navigation and relationship queries. Enable XP and attribute updates
-- Dual persistence strategy (see `../adr/ADR-002-graph-partition-strategy.md`): immutable world structure in Gremlin graph; mutable player data in SQL API documents.
-
-Current Reality:
-
-- No runtime code initializes Gremlin client or writes data yet.
-- Next concrete step: introduce a minimal `Location` vertex upsert in a new `/api/location` Function.
-- MVP uses single logical partition (`'world'`) for all Gremlin vertices; region sharding deferred (ADR-002).
-
-4. AI Integration
-   Service: Azure OpenAI Service (Future Optional)
-
-Status: Not implemented. All descriptions and dialogue will be static stubs until core traversal + persistence exist. This keeps early costs at zero.
-
-### Agentic AI & MCP (Stages M3–M4 Insertion Plan)
-
-Instead of directly embedding model calls inside gameplay Functions, initial AI adoption will surface through **MCP (Model Context Protocol) servers** providing strictly read‑only structured data. This ensures early content experiments do not entangle world mutation logic or require refactors later.
-
-Stage M3 (Read-Only AI):
-
-- `world-query-mcp` (location / player / recent event fetch)
-- `prompt-template-mcp` (versioned templates; hash governance)
-- `telemetry-mcp` (AI usage + decision logging)
-
-Stage M4 (Enrichment – Low-Risk Flavor):
-
-- `classification-mcp` (intent + moderation)
-- `lore-memory-mcp` (curated lore retrieval – capped dataset)
-
-Deferral: **No mutation tools** (quest generation, NPC dialogue proposals) until a validation module (schema + safety + invariants) is implemented. All early AI output is treated as advisory flavor (e.g., ambience line) and cached with a context hash to control cost.
-
-Cross-reference: `agentic-ai-and-mcp.md` (full roadmap) and `modules/ai-prompt-engineering.md` (prompt lifecycle).
-
-🏗 MVP Core Pillars (Planned → To Be Built)
-
-| Pillar                    | Why It’s Essential         | Status (2025-09-21) | First Increment                               |
-| ------------------------- | -------------------------- | ------------------- | --------------------------------------------- |
-| World State & Persistence | Continuity & emergent play | Not Implemented     | Single `Location` vertex & fetch endpoint     |
-| Navigation & Traversal    | Exploration loop           | Partial (in-memory) | Hardcoded 2-location adjacency in memory      |
-| Basic Interaction Loop    | Player agency test         | Not Implemented     | `look` command returning location description |
-| Session Context           | Consistent responses       | Not Implemented     | Temporary player GUID issuance (in-memory)    |
-| Minimal Content Seed      | Flow validation            | Not Implemented     | Handcrafted starter location + neighbor       |
-
-📜 Suggested Build Order
-Skeleton World Model
-
-Define your location schema (ID, description, exits, tags).
-
-Implement persistent storage + retrieval.
-
-Traversal Engine
-
-Wire up movement commands and exit logic.
-
-Confirm state updates are reflected across sessions.
-
-Interaction Commands
-
-Implement a minimal parser for core verbs.
-
-Hardcode a few interactions to prove the loop works.
-
-Basic NPC/AI Hook
-
-Even a single NPC with a fixed dialogue tree will let you test pacing and engagement.
-
-Test Harness
-
-Simple logging of player actions + state changes for debugging and feedback.
-
-🎮 Why This Works for Playtesting
-Fast Feedback: You’ll see if navigation feels intuitive before layering complexity.
-
-Low Risk: You’re not over‑investing in content that might get reworked after early feedback.
-
-Extensible: Each system is modular, so you can swap in AI‑generated content, economy systems, or procedural generation later without rewriting the core.
-
-🚀 Deployment Flow
-Code Push → GitHub Actions → Deploy frontend to Static Web Apps & backend to Function App.
-
-Backend HTTP functions (temporarily) connect directly to Cosmos DB (initial persistence milestone) before the enqueue + world event processor cutover. Optional AI services remain deferred.
-
-Cosmos DB pre‑seeded with starter zone (5–10 locations, 1–2 NPCs).
-
-AI Keys stored in Azure App Settings (or Key Vault if added later).
-
-📦 MVP Feature Checklist (Truthful Status)
-
-| Feature                               | Status          | Notes                                            |
-| ------------------------------------- | --------------- | ------------------------------------------------ |
-| Persistent world graph (Cosmos)       | Not Implemented | No Gremlin client yet                            |
-| Player movement between locations     | Not Implemented | Requires traversal model                         |
-| Basic interaction verbs               | Not Implemented | Only `ping` exists                               |
-| Minimal content seed                  | Not Implemented | No location data                                 |
-| Backend HTTP baseline                 | Implemented     | Ping only                                        |
-| Optional AI descriptions/NPC dialogue | Not Implemented | Deferred                                         |
-| Action logging / telemetry events     | Partial         | App Insights bootstrap present, no custom events |
-
-💰 Cost Control Tips
-Use free tiers for Static Web Apps and Cosmos DB.
-
-Keep Function App on Consumption Plan — pay only per execution.
-
-Limit AI calls during MVP; use static content for most locations.
-
-Monitor with Azure Cost Management.
-
-📈 Immediate Next Implementation Steps (Pre-MVP)
-
-1. Persist minimal Location schema (Cosmos) and adapt `/api/location` to read/write.
-2. Extend frontend command interface: `look` uses persisted fetch.
-3. Emit telemetry event per command (Location.Get, Location.Move already stubbed—expand for errors).
-4. Replace in-memory adjacency with persisted exits; add simple write/upsert admin script.
-
-Later (Post-Core Loop): economy, multi-agent NPC orchestration, procedural expansion, extension/modding API.
+_Last updated: 2025-10-19 (condensed; replaced detailed build tables with pointers)_

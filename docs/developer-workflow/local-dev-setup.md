@@ -7,15 +7,18 @@ This guide shows how to run the frontend SPA and the unified backend Azure Funct
 -   Node.js >= 20
 -   (Optional) Azure Functions Core Tools v4 (the SWA CLI will auto‑install if missing)
 
-## Install Dependencies (Monorepo)
+## Install Dependencies (Per Package)
 
-From the repository root:
+The repository previously used a single root workspaces install. That indirection has been removed to make dependency graphs explicit and speed up cold boot.
+
+Install each workspace directly (order does not matter):
 
 ```bash
-npm install --workspaces
+cd frontend && npm install
+cd ../backend && npm install
 ```
 
-This installs dependencies for `frontend` and `backend`.
+Why: keeping installs scoped prevents stale transitive locks from masking missing peer deps and reduces accidental cross‑package coupling. The root `package.json` now only carries shared scripts/metadata (no aggregate install step required).
 
 ### Accessing Internal GitHub Packages
 
@@ -43,11 +46,11 @@ If you see `401 Unauthorized` while installing, verify the token scope and that 
 
 ## Run Frontend & Backend (Recommended)
 
-Use two terminals:
+Use two terminals (after installing each package):
 
 ```bash
-npm run dev -w frontend       # Vite dev server → http://localhost:5173
-npm start -w backend          # Functions host → http://localhost:7071
+cd frontend && npm run dev        # Vite dev server → http://localhost:5173
+cd backend  && npm start          # Functions host → http://localhost:7071
 ```
 
 Test an API route (implemented `ping`):
@@ -87,7 +90,8 @@ npm run typecheck
 Build production frontend bundle:
 
 ```bash
-npm run build -w frontend
+cd frontend
+npm run build
 ```
 
 ## Code Style
@@ -124,3 +128,9 @@ If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` o
 <!-- Removed forward-looking note about introducing GitHub Actions automation (workflows already exist; YAML is source of truth). -->
 
 See also: `branching-strategy.md` for workflow guidance.
+
+---
+
+Changelog (doc only):
+
+-   2025-10-19: Converted from root workspaces install to per‑package explicit installs; removed `--workspaces` examples; clarified rationale.
