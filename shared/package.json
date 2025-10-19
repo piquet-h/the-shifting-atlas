@@ -26,6 +26,46 @@
             "types": "./dist/events/worldEventSchema.d.ts",
             "require": "./dist/events/worldEventSchema.js",
             "default": "./dist/events/worldEventSchema.js"
+        },
+        "./auth": {
+            "import": "./dist/auth/index.js",
+            "types": "./dist/auth/index.d.ts",
+            "default": "./dist/auth/index.js"
+        },
+        "./direction": {
+            "import": "./dist/direction/index.js",
+            "types": "./dist/direction/index.d.ts",
+            "default": "./dist/direction/index.js"
+        },
+        "./gremlin": {
+            "import": "./dist/gremlin/index.js",
+            "types": "./dist/gremlin/index.d.ts",
+            "default": "./dist/gremlin/index.js"
+        },
+        "./persistence": {
+            "import": "./dist/persistence/index.js",
+            "types": "./dist/persistence/index.d.ts",
+            "default": "./dist/persistence/index.js"
+        },
+        "./prompts": {
+            "import": "./dist/prompts/index.js",
+            "types": "./dist/prompts/index.d.ts",
+            "default": "./dist/prompts/index.js"
+        },
+        "./repos": {
+            "import": "./dist/repos/index.js",
+            "types": "./dist/repos/index.d.ts",
+            "default": "./dist/repos/index.js"
+        },
+        "./secrets": {
+            "import": "./dist/secrets/index.js",
+            "types": "./dist/secrets/index.d.ts",
+            "default": "./dist/secrets/index.js"
+        },
+        "./seeding": {
+            "import": "./dist/seeding/index.js",
+            "types": "./dist/seeding/index.d.ts",
+            "default": "./dist/seeding/index.js"
         }
     },
     "browser": {
@@ -40,7 +80,10 @@
     },
     "scripts": {
         "clean": "rm -rf dist .cache coverage",
+        "generate:barrels": "node scripts/generate-barrels.mjs",
+        "prebuild": "npm run generate:barrels",
         "build": "tsc -p tsconfig.json",
+        "prewatch": "npm run generate:barrels",
         "watch": "tsc -p tsconfig.json --watch --preserveWatchOutput",
         "typecheck": "tsc -p tsconfig.json --noEmit",
         "test": "node --test --import=tsx test/*.test.ts",

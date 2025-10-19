@@ -35,9 +35,32 @@ Stable entry points:
 ```ts
 import {} from /* domain types */ '@piquet-h/shared'
 import { worldEventSchema } from '@piquet-h/shared/events'
+// New granular (preferred) subpath barrels for better tree-shaking / clarity:
+import { ensurePlayerForRequest } from '@piquet-h/shared/auth'
+import { normalizeDirection } from '@piquet-h/shared/direction'
+import { graphPartitionForLocation } from '@piquet-h/shared/persistence'
+import { playerRepository } from '@piquet-h/shared/repos'
+import { seedWorld } from '@piquet-h/shared/seeding'
 ```
 
 Currently the package allows deep imports under `dist/`, but those paths are not part of the supported API surface and may change without a major version bump. Prefer top-level or documented subpath exports.
+
+### Subpath Barrels
+
+The following subpath barrels are now published via the `exports` map:
+
+| Subpath                        | Purpose                                                          |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `@piquet-h/shared/auth`        | Player auth helpers (SWA principal parsing, player provisioning) |
+| `@piquet-h/shared/direction`   | Direction normalization & heading store                          |
+| `@piquet-h/shared/gremlin`     | Gremlin client bootstrap utilities                               |
+| `@piquet-h/shared/persistence` | Partitioning & persistence helpers                               |
+| `@piquet-h/shared/prompts`     | Prompt template utilities (AI content generation)                |
+| `@piquet-h/shared/repos`       | Public repository abstractions (player/location)                 |
+| `@piquet-h/shared/secrets`     | Key Vault / secret resolution helpers                            |
+| `@piquet-h/shared/seeding`     | World seeding utilities                                          |
+
+Import only what you need to minimize bundle size (particularly in browser / edge contexts). The root export remains for convenience but may include additional modules over time.
 
 ## Features
 

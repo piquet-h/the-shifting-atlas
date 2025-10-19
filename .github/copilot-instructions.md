@@ -56,12 +56,12 @@ Low confidence assumptions require a guard (runtime check or test case).
 
 Use the highest applicable:
 
-- LOW – simple/internal edit
-- DATA-MODEL – schema, partition key, ID semantics
-- RUNTIME-BEHAVIOR – execution flow / side-effects change
-- BUILD-SCRIPT – CI / scripts / tooling logic
-- INFRA – Bicep, deployment, secret wiring
-  Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
+-   LOW – simple/internal edit
+-   DATA-MODEL – schema, partition key, ID semantics
+-   RUNTIME-BEHAVIOR – execution flow / side-effects change
+-   BUILD-SCRIPT – CI / scripts / tooling logic
+-   INFRA – Bicep, deployment, secret wiring
+    Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
 
 ### 0.6 Response Structure (Non‑Trivial)
 
@@ -81,8 +81,8 @@ Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Tests <x passed / y run> | Edge 
 
 ### 0.8 Hallucination Guardrails
 
-- Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
-- Never invent APIs; prefer searching codebase first.
+-   Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
+-   Never invent APIs; prefer searching codebase first.
 
 ### 0.9 Test Spec Pattern (Inline)
 
@@ -90,8 +90,8 @@ Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1
 
 ### 0.10 Fast Path vs Full Workflow
 
-- Fast Path (Trivial): direct patch → run tests → summarize
-- Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
+-   Fast Path (Trivial): direct patch → run tests → summarize
+-   Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
 
 ### 0.11 New Azure Function High‑Level Flow
 
@@ -106,25 +106,23 @@ Refactor only if directly enabling the goal OR reducing clear, measured complexi
 ## 1. Platform Architecture
 
 Frontend: Azure Static Web Apps (React + Vite + Tailwind)
-Backend: Azure Functions (HTTP player actions + queue world logic)
-API: Azure API Management
+Backend and API: Azure Functions (HTTP player actions + queue world logic)
 Messaging: Azure Service Bus
 Data: Dual persistence (ADR-002)
 
-- Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
-- Cosmos DB SQL API: Documents (players, inventory, description layers, events)
-  Observability: Application Insights
-  Principle: Event‑driven, stateless functions, no polling loops.
+-   Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
+-   Cosmos DB SQL API: Documents (players, inventory, description layers, events)
+    Observability: Application Insights
+    Principle: Event‑driven, stateless functions, no polling loops.
 
 ---
 
 ## 2. Repo Layout (Essentials)
 
-- `frontend/` SWA client
-- `backend/` Functions (`functions/`, `shared/` utilities)
-- `shared/` Cross‑package domain models + telemetry
-- `scripts/` Automation (labels, seed) — legacy ordering/scheduling automation removed
-- `docs/` Design & narrative sources
+-   `frontend/` SWA client
+-   `backend/` Functions
+-   `shared/` Cross‑package domain models + telemetry
+-   `docs/` Design & narrative sources
 
 ---
 
@@ -157,58 +155,31 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 Environment variables (wired in Bicep, available in Functions):
 
-- `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
-- `COSMOS_SQL_DATABASE` – Database name (`game-docs`)
-- `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
-- `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
-- `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
-- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
-- `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
+-   `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
+-   `COSMOS_SQL_DATABASE` – Database name (`game-docs`)
+-   `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
+-   `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
+-   `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
+-   `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
+-   `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
 
-Access pattern: Use `@azure/cosmos` SDK with Managed Identity or Key Vault secret.
+Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
 Partition key patterns:
 
-- Players: Use player GUID as PK value.
-- Inventory: Use player GUID to colocate all items for a player.
-- Layers: Use location GUID to colocate all layers for a location.
-- Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+-   Players: Use player GUID as PK value.
+-   Inventory: Use player GUID to colocate all items for a player.
+-   Layers: Use location GUID to colocate all layers for a location.
+-   Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
 
 ---
 
 ## 6. Telemetry
 
-**CRITICAL SEPARATION**: Build automation and game domain telemetry are strictly separated.
-
-### Build Telemetry (CI/Automation)
-
-- **Module**: `scripts/shared/build-telemetry.mjs`
-- **Purpose**: Minimal CI/automation signals (legacy ordering / scheduling / variance events removed)
-- **Event prefix**: `build.` (introduce new events only after review; deprecated names must not return)
-- **Destination**: GitHub Actions logs + artifacts (NOT Application Insights)
-- **Location**: `scripts/` folder ONLY
-
-### Game Telemetry (Domain Events)
-
-- **Module**: `shared/src/telemetry.ts`
-- **Purpose**: In-game events (player actions, world generation, navigation)
-- **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
-- **Destination**: Application Insights ONLY
-- **Location**: `shared/src/` folder ONLY
-
-### Separation Rules (Never Violate)
-
-1. ❌ NEVER add build events to `shared/src/telemetryEvents.ts` (game domain only)
-2. ❌ NEVER add game events to `scripts/shared/build-telemetry.mjs` (build automation only)
-3. ❌ NEVER use Application Insights for build telemetry (GitHub artifacts only)
-4. ❌ NEVER use `build.*` events or import `build-telemetry` in game domain code (backend/, frontend/, shared/src/)
-5. ✅ Always use `scripts/shared/build-telemetry.mjs` for ALL CI/automation events
-6. ✅ Always use `shared/src/telemetry.ts` for ALL game domain events
-
-**Enforcement**: Automated validation (`npm run validate:telemetry-separation`) runs in CI and scans the entire codebase for violations. The build telemetry guard ensures `build.*` events only appear in `scripts/` directory.
-
-**Rationale**: Prevents pollution of game analytics with infrastructure noise, enables clean separation of concerns, reduces Application Insights costs, allows independent evolution.
-
-See `docs/developer-workflow/build-telemetry.md` for complete documentation.
+-   **Module**: `shared/src/telemetry.ts`
+-   **Purpose**: In-game events (player actions, world generation, navigation)
+-   **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+-   **Destination**: Application Insights ONLY
+-   **Location**: `shared/src/` folder ONLY
 
 Include correlation IDs across chained events.
 Avoid noisy high‑cardinality ad‑hoc logs.
@@ -230,26 +201,11 @@ Epics: exactly 1 scope label + the coordination label `epic` (no type label appl
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
-Status field: `Todo|In progress|Done`. Legacy predictive scheduling / numeric ordering automation removed; prioritize manually by milestone, dependency readiness, and scope impact.
-Never use legacy `area:*`, `phase-*`, `priority:*` (still deprecated).
-
-**Automated Assignment**: (Deprecated) Implementation order automation removed — ignore historical references.
+Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readiness, and scope impact.
 
 ---
 
-## 9. Manual Prioritization
-
-All former ordering / scheduling commands and numeric sequencing fields are retired. Use:
-
-1. Milestone narrative progression (M0→M5)
-2. Dependency readiness (unblock critical chains first)
-3. Scope impact (`core`, `world`, `systems`, etc.)
-
-No automated provisional ordering or predictive scheduling should be reintroduced without a new ADR.
-
----
-
-## 10. Code Generation Heuristics
+## 9. Code Generation Heuristics
 
 1. Identify trigger (HTTP/Queue) → choose template.
 2. Import domain models (don’t redefine shapes).
@@ -261,14 +217,14 @@ Reference: For interaction workflow & templates see Section 0 (patterns) and App
 
 ---
 
-## 11. Testing Baseline
+## 10. Testing Baseline
 
 Provide tests for: happy path, invalid direction, missing player ID.
 Run lint + typecheck before commit; (ordering drift checks removed).
 
 ---
 
-## 12. Drift Control
+## 11. Drift Control
 
 Compact guide stable; long narrative stays in `docs/`.
 Any new scope/milestone: update labels + roadmap + this file (minimal diff) + reference ADR.
@@ -279,35 +235,27 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ---
 
-## 13. “Next Up” Algorithm
-
-Filter non-`Done` issues by milestone urgency, dependency readiness, then scope priority (`core > world > traversal > ai > others`). Parallel work minimal unless explicitly requested.
-
----
-
-## 14. Anti‑Patterns
+## 12. Anti‑Patterns
 
 Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation.
 
 ---
 
-## 15. Glossary (Micro)
+## 13. Glossary (Micro)
 
 Exit: directional traversal edge.
 Event vertex: persisted world action for timeline queries.
-Implementation order: (Removed) replaced by manual milestone + dependency assessment.
 Scope label: high-level functional grouping.
-Status: lightweight progress state powering “Next Up”.
 Risk tags: LOW (simple), DATA-MODEL (schema/partition), RUNTIME-BEHAVIOR (flow change), BUILD-SCRIPT (CI/tooling), INFRA (deployment/IaC).
 
 ---
 
-## 16. Update Checklist
+## 14. Update Checklist
 
 1. Change design / ADR.
 2. Amend this compact guide & quickref (minimal diff).
-3. Sync labels / regenerate roadmap.
-4. Note change in PR description.
+3. Note change in PR description.
+4. Update docs/roadmap.md if scope/milestone affected or new milestone added.
 
 ---
 
@@ -334,13 +282,13 @@ Assumptions allowed: <yes/no>
 
 ### A.2 Success Criteria / Definition of Done Checklist
 
-- All acceptance criteria checkboxes addressed (Done/Deferred noted)
-- Risk tag declared (non‑LOW has extra verification)
-- Assumptions block present (if any inference)
-- Tests: existing pass + new tests for new logic (happy + 1 edge)
-- No stray telemetry literals (only enum)
-- No roadmap manual edits (Section 12 guardrails)
-- Build + lint + typecheck clean
+-   All acceptance criteria checkboxes addressed (Done/Deferred noted)
+-   Risk tag declared (non‑LOW has extra verification)
+-   Assumptions block present (if any inference)
+-   Tests: existing pass + new tests for new logic (happy + 1 edge)
+-   No stray telemetry literals (only enum)
+-   No roadmap manual edits (Section 12 guardrails)
+-   Build + lint + typecheck clean
 
 ### A.3 Assumptions Block Pattern
 
@@ -359,14 +307,14 @@ Then it returns 400 (invalid: no starting location) and emits no world event
 
 ### A.5 New Azure Function Checklist
 
-- Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
-- Trigger binding & auth level appropriate
-- Input validation (shared validators) + clear 4xx vs 5xx handling
-- Telemetry: existing constants only; new constant added centrally if required
-- Cosmos operations idempotent / duplicate-safe
-- Queue/event emission includes correlation IDs
-- Tests: happy path + invalid input + (if side-effects) idempotency repeat
-- Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
+-   Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
+-   Trigger binding & auth level appropriate
+-   Input validation (shared validators) + clear 4xx vs 5xx handling
+-   Telemetry: existing constants only; new constant added centrally if required
+-   Cosmos operations idempotent / duplicate-safe
+-   Queue/event emission includes correlation IDs
+-   Tests: happy path + invalid input + (if side-effects) idempotency repeat
+-   Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
 
 ### A.6 Refactor Safety Sequence
 
@@ -388,7 +336,7 @@ LOW | DATA-MODEL | RUNTIME-BEHAVIOR | BUILD-SCRIPT | INFRA
 
 ---
 
-## 17. Agent Commit Policy
+## 15. Agent Commit Policy
 
 Default mode: PROPOSE ONLY.
 
@@ -396,8 +344,8 @@ The agent may read & edit files, run tests/lint, and present unified diffs; it m
 
 Approval signals (any of):
 
-- Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
-- User asks for a PR / pull request explicitly.
+-   Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
+-   User asks for a PR / pull request explicitly.
 
 Behavior by default (no approval present):
 
@@ -407,8 +355,8 @@ Behavior by default (no approval present):
 
 Escalation exceptions (still require explicit confirmation unless user inactive >1 interaction):
 
-- Hotfix: security/license violation or broken main build introduced by previous agent edit.
-- Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
+-   Hotfix: security/license violation or broken main build introduced by previous agent edit.
+-   Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
 
 Prohibited without approval: staging, committing, force-pushing, branch deletion.
 
@@ -424,7 +372,7 @@ Reminder heuristic: If same unapproved edits persist for >1 user response, inclu
 
 ---
 
-## 18. Diagnostics & Logs First Policy
+## 16. Diagnostics & Logs First Policy
 
 Purpose: Eliminate time lost to speculation. Always ground fixes in real, retrieved evidence before proposing or applying changes.
 
@@ -447,78 +395,42 @@ If logs are expired / inaccessible (e.g., artifact retention lapsed), explicitly
 
 Secrets / Tokens:
 
-- Never echo raw secret values.
-- Diagnostics must use only: source, preflight result, length (`${#TOK}`), and redacted first/last chars if absolutely necessary (avoid unless explicitly requested for debugging).
+-   Never echo raw secret values.
+-   Diagnostics must use only: source, preflight result, length (`${#TOK}`), and redacted first/last chars if absolutely necessary (avoid unless explicitly requested for debugging).
 
 Prohibited Without Logs:
 
-- Broad refactors presented as “likely” fixes.
-- Multi‑file edits addressing hypothetical causes.
+-   Broad refactors presented as “likely” fixes.
+-   Multi‑file edits addressing hypothetical causes.
 
 Fast Path Heuristic:
 
-- If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
+-   If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
 
 Rationale:
 This codifies a “logs-first, patch-second” discipline prompted by prior wasted cycles where guessing preceded log retrieval.
 
 ---
 
-## 19. Active Follow-Up Backlog (Automation & Persistence)
-
-Purpose: Provide the agent with a canonical list of currently open follow-up issues created to close gaps discovered in the closed-issue audit (2025-10-05). Do NOT duplicate scope or create variants; extend or close these in place.
-
-| Issue | Title (abridged)                                    | Scope/Type              | Primary Theme                              | Dependencies / References                       |
-| ----- | --------------------------------------------------- | ----------------------- | ------------------------------------------ | ----------------------------------------------- |
-| #100  | Location Persistence (Upsert + Revision)            | world / feature         | World data durability                      | Refs closed #4; enables richer traversal & look |
-| #101  | World Event Queue Processor                         | systems / feature       | Async world evolution                      | Contract doc, precursor to AI events            |
-| #102  | Add Remaining Cosmos SQL Containers                 | core / infra            | Dual persistence completeness              | ADR-002; closed #76 gap                         |
-| #103  | Player Persistence Enhancement                      | world / enhancement     | Stable player identity & Gremlin upsert    | Depends on #100 (locations)                     |
-| #104  | (Retired) Ordering Telemetry & Metrics              | devx / enhancement      | Removed — predictive automation deprecated | Superseded by manual prioritization             |
-| #105  | (Retired) Ordering Assignment Hardening             | devx / enhancement      | Removed — automation path discontinued     | Superseded by manual prioritization             |
-| #106  | (Retired) Predictive Scheduling Execution           | devx / enhancement      | Removed provisional scheduling & variance  | Not to be reinstated                            |
-| #107  | Secret Helper Tests & Telemetry Constants           | security / test         | Security baseline completeness             | Closed #49 baseline                             |
-| #108  | DI Suitability Gating Workflow                      | devx / enhancement      | Noise reduction & quality signals          | Historical #17 #18 #19                          |
-| #109  | Ambiguous Relative Direction Telemetry              | traversal / enhancement | Navigation analytics                       | Closed #34 implementation                       |
-| #110  | Explorer Bootstrap Regression & Future Creation Doc | world / test            | Onboarding stability                       | Closed #24; relates #7 (#103)                   |
-| #111  | Managed API Packaging Regression Test               | devx / test             | Deployment reliability                     | Closed #28                                      |
-
-Prioritization Guidance:
-
-1. Core world data foundations (#100, #103) then asynchronous evolution (#101).
-2. Infrastructure correctness (#102) before higher-level event processing (#101).
-3. Security & reliability (#107) followed by analytics/telemetry enhancements (#109, #110).
-4. Developer experience & quality signals (#108, #111) as capacity allows.
-
-Rules:
-
-- Do not open duplicate issues for the same gap; update these.
-- When closing one, ensure acceptance criteria are mirrored in PR description & tests.
-- Update this section only when adding or fully retiring a follow-up; keep minimal diff.
-
-NOTE: Former numeric ordering & predictive scheduling systems are removed; sequencing curated manually.
-
----
-
-## 20. Atomic Issue Generation & Splitting Policy
+## 17. Atomic Issue Generation & Splitting Policy
 
 Purpose: Guarantee every new implementation issue is a small, testable, reviewable unit; large feature requests become an EPIC (coordination shell) plus a generated set of atomic child issues. This section governs how Copilot must respond when the user asks to "create issues", "open an issue for X", or supplies a multi-part feature description.
 
-### 20.1 Definitions
+### 17.1 Definitions
 
 Atomic Issue: Delivers exactly one deployable increment (code, script, doc update, or test harness) with ≤10 acceptance criteria and one clear responsibility.
 Epic Issue: Organizational/coordination issue containing no implementation acceptance criteria; instead links to child atomic issues and tracks status.
 
-### 20.2 Atomicity Heuristics (Failing ≥2 ⇒ Split)
+### 17.2 Atomicity Heuristics (Failing ≥2 ⇒ Split)
 
-- Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
-- Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
-- Follow-up checklist >5 items or mixes runtime + infra + docs
-- Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
-- Requires more than one new Azure Function OR more than one new script
-- Adds both telemetry enumeration and feature logic simultaneously
+-   Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
+-   Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
+-   Follow-up checklist >5 items or mixes runtime + infra + docs
+-   Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
+-   Requires more than one new Azure Function OR more than one new script
+-   Adds both telemetry enumeration and feature logic simultaneously
 
-### 20.3 Required Fields (Atomic Issue Template)
+### 17.3 Required Fields (Atomic Issue Template)
 
 ```
 Summary: <one sentence outcome>
@@ -534,7 +446,7 @@ References: #<issue> docs/<path> (only directly relevant)
 
 No embedded “Follow-up Task Checklist” inside atomic issues (create new issues instead).
 
-### 20.4 Epic Issue Structure
+### 17.4 Epic Issue Structure
 
 ```
 Epic: <Feature / Stage Name>
@@ -548,7 +460,7 @@ Non-Goals: <bullets>
 
 Epic must NOT contain implementation acceptance criteria; it is closed only when all child issues closed (automation can verify via checklist).
 
-### 20.5 Splitting Algorithm (Pseudo)
+### 17.5 Splitting Algorithm (Pseudo)
 
 ```
 input = user feature description
@@ -566,25 +478,25 @@ else:
   map dependencies: order telemetry after core logic; docs can parallel if spec stable
 ```
 
-### 20.6 Labeling Rules for Generated Issues
+### 17.6 Labeling Rules for Generated Issues
 
-- Exactly one `scope:*` label (reuse existing taxonomy Section 8)
-- Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
-- Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
-- Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
+-   Exactly one `scope:*` label (reuse existing taxonomy Section 8)
+-   Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
+-   Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
+-   Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
 
-### 20.7 Prioritization Guidance
+### 17.7 Prioritization Guidance
 
-- If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
-- Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
-- Avoid reshuffling active work unless a dependency block emerges.
+-   If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
+-   Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
+-   Avoid reshuffling active work unless a dependency block emerges.
 
-### 20.8 Telemetry & Security Separation When Splitting
+### 17.8 Telemetry & Security Separation When Splitting
 
-- Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
-- Security hardening (rate limits, secret rules) separated from functional feature increments.
+-   Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
+-   Security hardening (rate limits, secret rules) separated from functional feature increments.
 
-### 20.9 DO / DO NOT
+### 17.9 DO / DO NOT
 
 DO: Split “create exit management with scanner + reciprocity + versioning + telemetry” into 4–5 child issues.
 DO: Keep a stress test harness separate from core repository implementation.
@@ -592,7 +504,7 @@ DO: Place future/optional tasks as new issues referenced from Epic — not a che
 DO NOT: Add large follow-up checklist items beneath Acceptance Criteria of an atomic issue.
 DO NOT: Mix infrastructure provisioning (Bicep) and runtime handler code in one issue unless trivial (≤5 LOC infra change).
 
-### 20.10 Response Behavior (Copilot)
+### 17.10 Response Behavior (Copilot)
 
 When the user requests issue creation for a broad feature:
 
@@ -601,25 +513,21 @@ When the user requests issue creation for a broad feature:
 3. Wait for user confirmation if ambiguity exists; otherwise proceed using existing taxonomy.
 4. Never create duplicate of any open issue title (case-insensitive); if near-duplicate found, propose augmentation instead.
 
-### 20.11 Quality Gate for Generated Atomic Issues
+### 17.11 Quality Gate for Generated Atomic Issues
 
 Each generated issue must:
 
-- Have ≤10 acceptance checkboxes
-- Contain ≤1 risk tag
-- Contain at least 1 edge case
-- Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
-- Not define more than one new function trigger or script
+-   Have ≤10 acceptance checkboxes
+-   Contain ≤1 risk tag
+-   Contain at least 1 edge case
+-   Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
+-   Not define more than one new function trigger or script
 
-### 20.12 Enforcement Automation (Future)
-
-If implemented, a script may scan new issues and comment when atomicity rules are violated. Until then, Copilot serves as the guardrail by applying this section.
-
-### 20.13 Rationale
+### 17.13 Rationale
 
 Consistent small slices shorten review cycles, reduce merge conflict surface, and keep telemetry noise isolated without any predictive or numeric ordering automation.
 
-### 20.14 Examples
+### 17.14 Examples
 
 User asks (historical example removed – scheduling & variance workflow deprecated).
 
