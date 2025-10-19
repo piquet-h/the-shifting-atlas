@@ -3,7 +3,7 @@
  * Regression tests ensuring explorer (player) bootstrap path works correctly.
  * Refs: issue #24 (bug fix), issue #110 (regression test suite)
  * 
- * Future: See docs/modules/player-identity-and-roles.md for planned D&D-style
+ * Future: See docs/modules/explorer-creation-future.md for planned D&D-style
  * character creation expansion (attributes, background, class selection).
  */
 import assert from 'node:assert'
