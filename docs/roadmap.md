@@ -38,6 +38,6 @@ Traversal persistence + direction normalization (bridging M1 → M2).
 
 ## Change Process
 
-Material roadmap shifts require updating: this file + affected ADR cross-links. Issue tables are intentionally omitted—source of truth for granular sequencing lives in the GitHub Project.
+Material roadmap shifts require updating: this file + affected ADR cross-links. Issue tables are intentionally omitted—source of truth for granular sequencing lives in the GitHub issues to milestone mappings.
 
 _Last updated: 2025-10-19 (converted from numbered table to milestone narrative)_
