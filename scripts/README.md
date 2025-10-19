@@ -8,6 +8,24 @@ Automation scripts currently retained. All former predictive scheduling, orderin
 
 - **`validate-telemetry-separation.mjs`** – Enforces build vs game telemetry boundary.
 
+### Testing
+
+- **Smoke test for traversal movement loop** - Located in `shared/scripts/smoke-traversal.ts`
+
+    Tests the basic game flow: bootstrap → look → move → look
+    Verifies at least 2 distinct location IDs are reachable
+    
+    ```bash
+    npm run smoke:traversal
+    ```
+    
+    This delegates to the shared package's script, avoiding workspace dependencies.
+    The script uses tsx to import TypeScript source directly.
+    
+    Exit codes:
+    - 0: Success (all steps passed)
+    - 1: Failure (any step failed)
+
 ### Build & Deploy
 
 - **`clean.mjs`** - Clean build artifacts
