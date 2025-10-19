@@ -328,8 +328,6 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
   }
 }
 
-output staticWebAppOrigin string = format('https://{0}', staticSite.properties.defaultHostname)
-
 // Role assignment to grant the static web app access to the backend function app
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(staticSite.id, backendFunctionApp.id, 'WebsiteContributor')
