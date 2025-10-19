@@ -76,16 +76,38 @@ If an `@atlas` GitHub organization is created:
 2. A new `@atlas/shared` package will publish the same content.
 3. A migration guide will be added to this README.
 
+## Scripts
+
+Available npm scripts:
+
+```bash
+# Build TypeScript to dist/
+npm run build
+
+# Run tests
+npm run test
+
+# Smoke test: traversal movement loop
+npm run smoke:traversal
+```
+
+The smoke test validates core game flow (bootstrap → look → move → look) and can be run from the repository root via `npm run smoke:traversal`.
+
 ## Contributing
 
 Internal contributors should:
 
 ```bash
+cd shared
+
 # Build
-npm run build -w shared
+npm run build
 
 # Test
-npm test -w shared
+npm test
+
+# Smoke test
+npm run smoke:traversal
 ```
 
 ## Publishing
