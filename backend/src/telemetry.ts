@@ -43,7 +43,12 @@ export const telemetryClient: AppInsightsClient =
         }
     } as AppInsightsClient)
 
-export function trackEvent(name: string, properties?: Record<string, unknown>) {
+/**
+ * Low-level event emission (no enrichment). Exposed for rare cases where domain
+ * enrichment is handled externally. Lint rule forbids direct use of the old
+ * trackEvent helper; use this or (preferably) trackGameEvent / trackGameEventStrict.
+ */
+export function trackGameEventClient(name: string, properties?: Record<string, unknown>) {
     telemetryClient?.trackEvent({ name, properties })
 }
 
@@ -79,7 +84,7 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
     if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId
-    trackEvent(name, finalProps)
+    trackGameEventClient(name, finalProps)
 }
 
 export interface EventPayloadMap {
@@ -160,7 +165,7 @@ export function trackGameEventStrict<E extends keyof EventPayloadMap & GameEvent
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
     if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId
-    trackEvent(name, finalProps)
+    trackGameEventClient(name, finalProps)
 }
 
 export function extractPlayerGuid(headers: { get(name: string): string | null | undefined } | undefined): string | undefined {
