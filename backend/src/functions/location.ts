@@ -21,18 +21,4 @@ export async function getLocationHandler(req: HttpRequest): Promise<HttpResponse
     return { status: 200, headers: { [CORRELATION_HEADER]: correlationId }, jsonBody: location }
 }
 
-export async function moveHandler(): Promise<HttpResponseInit> {
-    // DEPRECATED ENDPOINT: location/move
-    // This endpoint is deprecated. Please use player/move instead.
-    return {
-        status: 410,
-        jsonBody: {
-            error: 'This endpoint is deprecated. Use player/move instead.',
-            deprecated: true,
-            replacement: 'player/move'
-        }
-    }
-}
-
 app.http('LocationGet', { route: 'location', methods: ['GET'], authLevel: 'anonymous', handler: getLocationHandler })
-app.http('LocationMove', { route: 'location/move', methods: ['GET'], authLevel: 'anonymous', handler: moveHandler })
