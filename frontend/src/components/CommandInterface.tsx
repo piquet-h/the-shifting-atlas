@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
+import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 
@@ -75,23 +76,40 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                         },
                         body: JSON.stringify(payload)
                     })
-                    const json = await res.json()
+                    const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    if (!res.ok) error = json?.error || `HTTP ${res.status}`
-                    else response = json?.message || 'pong'
+                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                        const fallbackErr = (json as Record<string, unknown>)?.error
+                        error =
+                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `HTTP ${res.status}`
+                    } else {
+                        const data = unwrapped.data || {}
+                        response = (data.echo as string) || 'pong'
+                    }
                 } else if (lower === 'look') {
                     const res = await fetch(`/api/location${currentLocationId ? `?id=${encodeURIComponent(currentLocationId)}` : ''}`, {
                         headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
                     })
-                    const json = await res.json()
+                    const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    if (!res.ok) error = json?.error || `HTTP ${res.status}`
-                    else {
-                        setCurrentLocationId(json.id)
-                        const exits: string | undefined = Array.isArray(json.exits)
-                            ? (json.exits as { direction: string }[]).map((e) => e.direction).join(', ')
-                            : undefined
-                        response = `${json.name}: ${json.description}${exits ? `\nExits: ${exits}` : ''}`
+                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                        const fallbackErr = (json as Record<string, unknown>)?.error
+                        error =
+                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `HTTP ${res.status}`
+                    } else {
+                        const loc = unwrapped.data as Record<string, unknown> | undefined
+                        if (loc) {
+                            setCurrentLocationId(loc.id as string)
+                            const exitsArray = loc.exits as { direction: string }[] | undefined
+                            const exits: string | undefined = Array.isArray(exitsArray)
+                                ? exitsArray.map((e) => e.direction).join(', ')
+                                : undefined
+                            response = `${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
+                        } else {
+                            error = 'Malformed location response'
+                        }
                     }
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
@@ -99,16 +117,25 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                     const res = await fetch(`/api/player/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
                         headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
                     })
-                    const json = await res.json()
+                    const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    if (!res.ok) {
-                        error = json?.error || `Cannot move ${dir}`
+                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                        const fallbackErr = (json as Record<string, unknown>)?.error
+                        error =
+                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `Cannot move ${dir}`
                     } else {
-                        setCurrentLocationId(json.id)
-                        const exits: string | undefined = Array.isArray(json.exits)
-                            ? (json.exits as { direction: string }[]).map((e) => e.direction).join(', ')
-                            : undefined
-                        response = `Moved ${dir} -> ${json.name}: ${json.description}${exits ? `\nExits: ${exits}` : ''}`
+                        const loc = unwrapped.data as Record<string, unknown> | undefined
+                        if (loc) {
+                            setCurrentLocationId(loc.id as string)
+                            const exitsArray = loc.exits as { direction: string }[] | undefined
+                            const exits: string | undefined = Array.isArray(exitsArray)
+                                ? exitsArray.map((e) => e.direction).join(', ')
+                                : undefined
+                            response = `Moved ${dir} -> ${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
+                        } else {
+                            error = 'Malformed move response'
+                        }
                     }
                 } else {
                     response = `Unrecognized command: ${raw}`

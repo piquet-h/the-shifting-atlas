@@ -14,7 +14,7 @@
         "a11y:serve": "vite --port 5173",
         "a11y:scan": "node ./scripts/run-axe.mjs",
         "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan",
-        "test": "echo 'No frontend tests yet'"
+        "test": "vitest run"
     },
     "engines": {
         "node": "20.x",
@@ -47,6 +47,7 @@
         "start-server-and-test": "^2.0.8",
         "tailwindcss": "^3.4.0",
         "typescript": "^5.9.2",
-        "vite": "^7.1.5"
+        "vite": "^7.1.5",
+        "vitest": "^2.1.4"
     }
 }

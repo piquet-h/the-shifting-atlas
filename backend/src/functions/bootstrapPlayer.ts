@@ -1,4 +1,5 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { ok } from '@piquet-h/shared'
 import { getPlayerRepository } from '../repos/index.js'
 import { CORRELATION_HEADER, extractCorrelationId, trackGameEventStrict } from '../telemetry.js'
 
@@ -71,7 +72,7 @@ export async function playerBootstrap(request: HttpRequest): Promise<HttpRespons
             [CORRELATION_HEADER]: correlationId,
             'x-player-guid': record.id
         },
-        jsonBody: { ...body, latencyMs }
+        jsonBody: ok({ ...body, latencyMs }, correlationId)
     }
 }
 

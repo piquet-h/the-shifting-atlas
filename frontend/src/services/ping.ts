@@ -1,12 +1,16 @@
 const BASE: string = (import.meta.env.VITE_API_BASE as string) || '/api'
 
+import { unwrapEnvelope, UnwrappedEnvelope } from '../utils/envelope'
+
 export interface PingResponse {
     ok: boolean
     status: number
     /** Milliseconds between request start and first byte read */
     latencyMs: number
-    /** Parsed JSON when server returns JSON body */
+    /** Parsed JSON when server returns JSON body (raw parsed object) */
     json?: unknown
+    /** Unwrapped envelope (present when json matches ApiEnvelope contract) */
+    envelope?: UnwrappedEnvelope
     /** Raw text body (if non-JSON or JSON parse failed) */
     text?: string
     error?: string
@@ -40,6 +44,7 @@ export async function fetchPing(): Promise<PingResponse> {
             // Ignore body parse errors
         }
 
+        const envelope = json !== undefined ? unwrapEnvelope(json) : undefined
         if (!res.ok) {
             return {
                 ok: false,
@@ -47,11 +52,12 @@ export async function fetchPing(): Promise<PingResponse> {
                 latencyMs,
                 text,
                 json,
+                envelope,
                 error: `Ping failed (${status})`
             }
         }
 
-        return { ok: true, status, latencyMs, text, json }
+        return { ok: true, status, latencyMs, text, json, envelope }
     } catch (err) {
         return {
             ok: false,

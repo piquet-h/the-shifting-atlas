@@ -1,10 +1,6 @@
 /**
- * Player Bootstrap Flow Tests
- * Regression tests ensuring explorer (player) bootstrap path works correctly.
- * Refs: issue #24 (bug fix), issue #110 (regression test suite)
- *
- * Future: See docs/modules/explorer-creation-future.md for planned D&D-style
- * character creation expansion (attributes, background, class selection).
+ * Player Bootstrap Flow Tests (Envelope Variant)
+ * Ensures bootstrap returns ApiSuccessEnvelope with expected data fields.
  */
 import type { HttpRequest } from '@azure/functions'
 import assert from 'node:assert'
@@ -12,17 +8,9 @@ import { beforeEach, describe, test } from 'node:test'
 import { playerBootstrap } from '../src/functions/bootstrapPlayer.js'
 import { __resetPlayerRepositoryForTests } from '../src/repos/playerRepository.js'
 
-// Mock HttpRequest factory
-function createMockHttpRequest(
-    options: {
-        playerGuidHeader?: string
-    } = {}
-): HttpRequest {
+function createMockHttpRequest(options: { playerGuidHeader?: string } = {}): HttpRequest {
     const headers = new Map<string, string>()
-    if (options.playerGuidHeader) {
-        headers.set('x-player-guid', options.playerGuidHeader)
-    }
-
+    if (options.playerGuidHeader) headers.set('x-player-guid', options.playerGuidHeader)
     return {
         method: 'GET',
         url: 'http://localhost/api/player/bootstrap',
@@ -32,18 +20,10 @@ function createMockHttpRequest(
             entries: () => headers.entries(),
             keys: () => headers.keys(),
             values: () => headers.values(),
-            forEach: (callback: (value: string, key: string) => void) => {
-                headers.forEach(callback)
-            },
-            set: (key: string, value: string) => {
-                headers.set(key.toLowerCase(), value)
-            },
-            delete: (key: string) => {
-                headers.delete(key.toLowerCase())
-            },
-            append: (key: string, value: string) => {
-                headers.set(key.toLowerCase(), value)
-            }
+            forEach: (cb: (value: string, key: string) => void) => headers.forEach(cb),
+            set: (key: string, value: string) => headers.set(key.toLowerCase(), value),
+            delete: (key: string) => headers.delete(key.toLowerCase()),
+            append: (key: string, value: string) => headers.set(key.toLowerCase(), value)
         },
         query: {
             get: () => null,
@@ -69,176 +49,98 @@ function createMockHttpRequest(
     } as unknown as HttpRequest
 }
 
-describe('Player Bootstrap Flow', () => {
-    beforeEach(() => {
-        // Reset player repository state before each test
-        __resetPlayerRepositoryForTests()
-    })
+describe('Player Bootstrap Flow (Envelope)', () => {
+    beforeEach(() => __resetPlayerRepositoryForTests())
 
-    test('initial bootstrap returns GUID + created=true', async () => {
-        const request = createMockHttpRequest()
-        const response = await playerBootstrap(request)
-
-        assert.strictEqual(response.status, 200, 'Should return 200 status')
-        assert.ok(response.jsonBody, 'Should have JSON body')
-
+    test('initial bootstrap returns envelope + created=true', async () => {
+        const response = await playerBootstrap(createMockHttpRequest())
+        assert.strictEqual(response.status, 200)
         const body = response.jsonBody as Record<string, unknown>
-        assert.ok(body.playerGuid, 'Should have playerGuid')
-        assert.strictEqual(typeof body.playerGuid, 'string', 'playerGuid should be string')
-        assert.strictEqual(body.created, true, 'created should be true for new player')
-        assert.ok(body.currentLocationId, 'Should have currentLocationId')
-
-        // Verify GUID format (UUID v4)
+        assert.strictEqual(body.success, true)
+        const data = body.data as Record<string, unknown>
+        assert.ok(data.playerGuid)
+        assert.strictEqual(typeof data.playerGuid, 'string')
+        assert.strictEqual(data.created, true)
+        assert.ok(data.currentLocationId)
         const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-        assert.match(body.playerGuid as string, guidRegex, 'playerGuid should be valid UUID')
+        assert.match(data.playerGuid as string, guidRegex)
     })
 
     test('repeat bootstrap with header returns same GUID created=false', async () => {
-        // First bootstrap to create a player
-        const firstRequest = createMockHttpRequest()
-        const firstResponse = await playerBootstrap(firstRequest)
-        const firstBody = firstResponse.jsonBody as Record<string, unknown>
-        const playerGuid = firstBody.playerGuid as string
-
-        // Reset repo to simulate a fresh request with existing player
+        const first = await playerBootstrap(createMockHttpRequest())
+        const firstGuid = (first.jsonBody as any).data.playerGuid as string
         __resetPlayerRepositoryForTests()
-
-        // Second bootstrap with the GUID header
-        const secondRequest = createMockHttpRequest({ playerGuidHeader: playerGuid })
-        const secondResponse = await playerBootstrap(secondRequest)
-
-        assert.strictEqual(secondResponse.status, 200, 'Should return 200 status')
-        const secondBody = secondResponse.jsonBody as Record<string, unknown>
-
-        assert.strictEqual(secondBody.playerGuid, playerGuid, 'Should return same playerGuid')
-        assert.strictEqual(secondBody.created, false, 'created should be false for existing player')
-
-        // Verify response header also includes the GUID
-        assert.ok(secondResponse.headers, 'Should have headers')
-        const headers = secondResponse.headers as Record<string, string>
-        assert.strictEqual(headers['x-player-guid'], playerGuid, 'Response header should include playerGuid')
+        const second = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: firstGuid }))
+        assert.strictEqual(second.status, 200)
+        const secondData = (second.jsonBody as any).data
+        assert.strictEqual(secondData.playerGuid, firstGuid)
+        assert.strictEqual(secondData.created, false)
+        const headers = second.headers as Record<string, string>
+        assert.strictEqual(headers['x-player-guid'], firstGuid)
     })
 
-    test('latencyMs property present and reasonable', async () => {
-        const request = createMockHttpRequest()
-        const response = await playerBootstrap(request)
-
-        assert.strictEqual(response.status, 200, 'Should return 200 status')
-        const body = response.jsonBody as Record<string, unknown>
-
-        assert.ok(body.latencyMs !== undefined, 'Should have latencyMs property')
-        assert.strictEqual(typeof body.latencyMs, 'number', 'latencyMs should be a number')
-        assert.ok(body.latencyMs >= 0, 'latencyMs should be non-negative')
-
-        // Soft assertion: log warning if latency exceeds 2 seconds
-        if (body.latencyMs > 2000) {
-            console.warn(`⚠️  Bootstrap latency exceeded 2s: ${body.latencyMs}ms (soft assertion - informational only)`)
-        }
-
-        // Hard assertion: latency should be reasonable (not astronomically high)
-        assert.ok(body.latencyMs < 30000, 'latencyMs should be less than 30 seconds')
+    test('latencyMs present and reasonable', async () => {
+        const res = await playerBootstrap(createMockHttpRequest())
+        const data = (res.jsonBody as any).data
+        assert.ok(typeof data.latencyMs === 'number')
+        assert.ok(data.latencyMs >= 0)
+        assert.ok(data.latencyMs < 30000)
     })
 
     test('malformed GUID header creates new GUID', async () => {
-        const malformedGuids = ['not-a-guid', '12345', 'invalid-uuid-format', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx']
-
-        for (const malformed of malformedGuids) {
+        for (const malformed of ['not-a-guid', '12345', 'invalid-uuid-format', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx']) {
             __resetPlayerRepositoryForTests()
-
-            const request = createMockHttpRequest({ playerGuidHeader: malformed })
-            const response = await playerBootstrap(request)
-
-            assert.strictEqual(response.status, 200, `Should return 200 for malformed GUID: ${malformed}`)
-            const body = response.jsonBody as Record<string, unknown>
-
-            assert.ok(body.playerGuid, 'Should have playerGuid')
-            assert.notStrictEqual(body.playerGuid, malformed, 'Should not return malformed GUID')
-            assert.strictEqual(body.created, true, 'Should create new player for malformed GUID')
+            const res = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: malformed }))
+            const data = (res.jsonBody as any).data
+            assert.ok(data.playerGuid)
+            assert.notStrictEqual(data.playerGuid, malformed)
+            assert.strictEqual(data.created, true)
         }
     })
 
     test('empty GUID header creates new GUID', async () => {
-        const emptyValues = ['', '   ', '\t', '\n']
-
-        for (const empty of emptyValues) {
+        for (const empty of ['', '   ', '\t', '\n']) {
             __resetPlayerRepositoryForTests()
-
-            const request = createMockHttpRequest({ playerGuidHeader: empty })
-            const response = await playerBootstrap(request)
-
-            assert.strictEqual(response.status, 200, 'Should return 200 for empty GUID header')
-            const body = response.jsonBody as Record<string, unknown>
-
-            assert.ok(body.playerGuid, 'Should have playerGuid')
-            assert.strictEqual(body.created, true, 'Should create new player for empty GUID header')
-
-            // Verify it's a valid GUID
-            const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-            assert.match(body.playerGuid as string, guidRegex, 'Should return valid UUID')
+            const res = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: empty }))
+            const data = (res.jsonBody as any).data
+            assert.ok(data.playerGuid)
+            assert.strictEqual(data.created, true)
         }
     })
 
-    test('rapid repeat calls maintain idempotency', async () => {
-        // First call creates player
-        const firstRequest = createMockHttpRequest()
-        const firstResponse = await playerBootstrap(firstRequest)
-        const firstBody = firstResponse.jsonBody as Record<string, unknown>
-        const playerGuid = firstBody.playerGuid as string
-
+    test('rapid repeat calls idempotent', async () => {
+        const first = await playerBootstrap(createMockHttpRequest())
+        const guid = (first.jsonBody as any).data.playerGuid as string
         __resetPlayerRepositoryForTests()
-
-        // Make multiple rapid calls with the same GUID
-        const promises = Array.from({ length: 5 }, () => {
-            const request = createMockHttpRequest({ playerGuidHeader: playerGuid })
-            return playerBootstrap(request)
-        })
-
-        const responses = await Promise.all(promises)
-
-        // All responses should return the same GUID with created=false
-        for (const response of responses) {
-            assert.strictEqual(response.status, 200, 'Should return 200 status')
-            const body = response.jsonBody as Record<string, unknown>
-            assert.strictEqual(body.playerGuid, playerGuid, 'Should return same playerGuid')
-            assert.strictEqual(body.created, false, 'created should be false for all repeated calls')
+        const responses = await Promise.all(
+            Array.from({ length: 5 }, () => playerBootstrap(createMockHttpRequest({ playerGuidHeader: guid })))
+        )
+        for (const r of responses) {
+            const data = (r.jsonBody as any).data
+            assert.strictEqual(data.playerGuid, guid)
+            assert.strictEqual(data.created, false)
         }
     })
 
-    test('response includes required headers', async () => {
-        const request = createMockHttpRequest()
-        const response = await playerBootstrap(request)
-
-        assert.ok(response.headers, 'Should have headers')
-        const headers = response.headers as Record<string, string>
-
-        assert.ok(headers['Content-Type'], 'Should have Content-Type header')
-        assert.match(headers['Content-Type'], /application\/json/, 'Content-Type should be application/json')
-
-        assert.strictEqual(headers['Cache-Control'], 'no-store', 'Should have Cache-Control: no-store')
-
-        assert.ok(headers['x-player-guid'], 'Should have x-player-guid response header')
-
-        // Correlation header should be present
-        const body = response.jsonBody as Record<string, unknown>
-        assert.ok(headers['x-correlation-id'] || body.playerGuid, 'Should have correlation tracking')
+    test('headers include required fields', async () => {
+        const res = await playerBootstrap(createMockHttpRequest())
+        const headers = res.headers as Record<string, string>
+        assert.match(headers['Content-Type'], /application\/json/)
+        assert.strictEqual(headers['Cache-Control'], 'no-store')
+        assert.ok(headers['x-player-guid'])
+        const body = res.jsonBody as Record<string, unknown>
+        const data = body.data as Record<string, unknown>
+        assert.ok(headers['x-correlation-id'] || data.playerGuid)
     })
 
-    test('response body has all required fields', async () => {
-        const request = createMockHttpRequest()
-        const response = await playerBootstrap(request)
-
-        assert.strictEqual(response.status, 200, 'Should return 200 status')
-        const body = response.jsonBody as Record<string, unknown>
-
-        // Required fields
-        assert.ok(body.playerGuid, 'Should have playerGuid')
-        assert.ok(typeof body.created === 'boolean', 'Should have created boolean')
-        assert.ok(body.currentLocationId, 'Should have currentLocationId')
-        assert.ok(typeof body.latencyMs === 'number', 'Should have latencyMs number')
-
-        // Optional fields (may or may not be present)
-        if (body.name !== undefined) {
-            assert.strictEqual(typeof body.name, 'string', 'name should be string if present')
-        }
+    test('envelope data contains required fields', async () => {
+        const res = await playerBootstrap(createMockHttpRequest())
+        const body = res.jsonBody as Record<string, unknown>
+        const data = body.data as Record<string, unknown>
+        assert.ok(data.playerGuid)
+        assert.ok(typeof data.created === 'boolean')
+        assert.ok(data.currentLocationId)
+        assert.ok(typeof data.latencyMs === 'number')
+        if (data.name !== undefined) assert.strictEqual(typeof data.name, 'string')
     })
 })

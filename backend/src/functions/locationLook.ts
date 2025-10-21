@@ -20,7 +20,11 @@ app.http('LocationLook', {
             trackGameEventStrict('Location.Get', { id, status: 404, latencyMs }, { playerGuid, correlationId })
             return {
                 status: 404,
-                headers: { [CORRELATION_HEADER]: correlationId },
+                headers: {
+                    [CORRELATION_HEADER]: correlationId,
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'no-store'
+                },
                 jsonBody: err('NotFound', 'Location not found', correlationId)
             }
         }
@@ -28,7 +32,11 @@ app.http('LocationLook', {
         trackGameEventStrict('Location.Get', { id, status: 200, latencyMs }, { playerGuid, correlationId })
         return {
             status: 200,
-            headers: { [CORRELATION_HEADER]: correlationId },
+            headers: {
+                [CORRELATION_HEADER]: correlationId,
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store'
+            },
             jsonBody: ok(loc, correlationId)
         }
     }
