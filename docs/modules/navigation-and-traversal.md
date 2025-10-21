@@ -206,6 +206,8 @@ g.V().hasLabel('Location')
 ## Direction & Input Normalization Roadmap
 
 > Purpose: Convert messy, player-friendly freeform traversal input into a canonical movement or generation directive without losing semantic richness needed by AI, telemetry, gating, or future spatial reasoning.
+>
+> **Authoritative Reference:** For complete current implementation rules including ambiguous case handling, typo tolerance, and relative direction resolution, see `../architecture/direction-resolution-rules.md`. This section describes the aspirational roadmap for future enhancements.
 
 ### Definition
 

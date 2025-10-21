@@ -13,7 +13,7 @@ Guarantee traversal integrity, idempotent creation/removal, and clear semantics 
 3. Non-Versioned: Exit changes never increment the location content/version counter (content vs structure separation).
 4. Idempotent Operations: Re-creating an existing exit is a no‑op (no telemetry); removing a non‑existent exit returns `removed=false`.
 5. Telemetry Emission: `World.Exit.Created` only on new materialization; `World.Exit.Removed` only on actual deletion.
-6. Direction Normalization: Input directions canonicalized to the supported set (`north`, `south`, `east`, `west`, `up`, `down`, `in`, `out`, diagonals if enabled) before persistence.
+6. Direction Normalization: Input directions canonicalized to the supported set (`north`, `south`, `east`, `west`, `up`, `down`, `in`, `out`, diagonals if enabled) before persistence. For detailed rules on handling ambiguous cases, typo tolerance, and relative directions, see `direction-resolution-rules.md`.
 7. Graph Integrity: No dangling exit targets—creation validates destination existence; scanners surface anomalies only (they do not auto-fix).
 8. Independence From Descriptions: Exit addition/removal does not mutate description layers; view composition summarizes current exits separately.
 
