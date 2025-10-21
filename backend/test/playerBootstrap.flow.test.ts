@@ -2,58 +2,17 @@
  * Player Bootstrap Flow Tests (Envelope Variant)
  * Ensures bootstrap returns ApiSuccessEnvelope with expected data fields.
  */
-import type { HttpRequest } from '@azure/functions'
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
 import { playerBootstrap } from '../src/functions/bootstrapPlayer.js'
 import { __resetPlayerRepositoryForTests } from '../src/repos/playerRepository.js'
-
-function createMockHttpRequest(options: { playerGuidHeader?: string } = {}): HttpRequest {
-    const headers = new Map<string, string>()
-    if (options.playerGuidHeader) headers.set('x-player-guid', options.playerGuidHeader)
-    return {
-        method: 'GET',
-        url: 'http://localhost/api/player/bootstrap',
-        headers: {
-            get: (key: string) => headers.get(key.toLowerCase()) || null,
-            has: (key: string) => headers.has(key.toLowerCase()),
-            entries: () => headers.entries(),
-            keys: () => headers.keys(),
-            values: () => headers.values(),
-            forEach: (cb: (value: string, key: string) => void) => headers.forEach(cb),
-            set: (key: string, value: string) => headers.set(key.toLowerCase(), value),
-            delete: (key: string) => headers.delete(key.toLowerCase()),
-            append: (key: string, value: string) => headers.set(key.toLowerCase(), value)
-        },
-        query: {
-            get: () => null,
-            has: () => false,
-            entries: () => [][Symbol.iterator](),
-            keys: () => [][Symbol.iterator](),
-            values: () => [][Symbol.iterator](),
-            forEach: () => {},
-            set: () => {},
-            delete: () => false,
-            append: () => {}
-        },
-        params: {},
-        user: null,
-        body: undefined,
-        bodyUsed: false,
-        arrayBuffer: async () => new ArrayBuffer(0),
-        blob: async () => new Blob(),
-        formData: async () => new FormData(),
-        json: async () => ({}),
-        text: async () => '',
-        clone: () => createMockHttpRequest(options)
-    } as unknown as HttpRequest
-}
+import { makeHttpRequest } from './helpers/testUtils.js'
 
 describe('Player Bootstrap Flow (Envelope)', () => {
     beforeEach(() => __resetPlayerRepositoryForTests())
 
     test('initial bootstrap returns envelope + created=true', async () => {
-        const response = await playerBootstrap(createMockHttpRequest())
+        const response = await playerBootstrap(makeHttpRequest())
         assert.strictEqual(response.status, 200)
         const body = response.jsonBody as Record<string, unknown>
         assert.strictEqual(body.success, true)
@@ -67,10 +26,10 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     })
 
     test('repeat bootstrap with header returns same GUID created=false', async () => {
-        const first = await playerBootstrap(createMockHttpRequest())
+        const first = await playerBootstrap(makeHttpRequest())
         const firstGuid = (first.jsonBody as any).data.playerGuid as string
         __resetPlayerRepositoryForTests()
-        const second = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: firstGuid }))
+        const second = await playerBootstrap(makeHttpRequest({ playerGuidHeader: firstGuid }))
         assert.strictEqual(second.status, 200)
         const secondData = (second.jsonBody as any).data
         assert.strictEqual(secondData.playerGuid, firstGuid)
@@ -80,7 +39,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     })
 
     test('latencyMs present and reasonable', async () => {
-        const res = await playerBootstrap(createMockHttpRequest())
+        const res = await playerBootstrap(makeHttpRequest())
         const data = (res.jsonBody as any).data
         assert.ok(typeof data.latencyMs === 'number')
         assert.ok(data.latencyMs >= 0)
@@ -90,7 +49,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     test('malformed GUID header creates new GUID', async () => {
         for (const malformed of ['not-a-guid', '12345', 'invalid-uuid-format', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx']) {
             __resetPlayerRepositoryForTests()
-            const res = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: malformed }))
+            const res = await playerBootstrap(makeHttpRequest({ playerGuidHeader: malformed }))
             const data = (res.jsonBody as any).data
             assert.ok(data.playerGuid)
             assert.notStrictEqual(data.playerGuid, malformed)
@@ -101,7 +60,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     test('empty GUID header creates new GUID', async () => {
         for (const empty of ['', '   ', '\t', '\n']) {
             __resetPlayerRepositoryForTests()
-            const res = await playerBootstrap(createMockHttpRequest({ playerGuidHeader: empty }))
+            const res = await playerBootstrap(makeHttpRequest({ playerGuidHeader: empty }))
             const data = (res.jsonBody as any).data
             assert.ok(data.playerGuid)
             assert.strictEqual(data.created, true)
@@ -109,11 +68,11 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     })
 
     test('rapid repeat calls idempotent', async () => {
-        const first = await playerBootstrap(createMockHttpRequest())
+        const first = await playerBootstrap(makeHttpRequest())
         const guid = (first.jsonBody as any).data.playerGuid as string
         __resetPlayerRepositoryForTests()
         const responses = await Promise.all(
-            Array.from({ length: 5 }, () => playerBootstrap(createMockHttpRequest({ playerGuidHeader: guid })))
+            Array.from({ length: 5 }, () => playerBootstrap(makeHttpRequest({ playerGuidHeader: guid })))
         )
         for (const r of responses) {
             const data = (r.jsonBody as any).data
@@ -123,7 +82,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     })
 
     test('headers include required fields', async () => {
-        const res = await playerBootstrap(createMockHttpRequest())
+        const res = await playerBootstrap(makeHttpRequest())
         const headers = res.headers as Record<string, string>
         assert.match(headers['Content-Type'], /application\/json/)
         assert.strictEqual(headers['Cache-Control'], 'no-store')
@@ -134,7 +93,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     })
 
     test('envelope data contains required fields', async () => {
-        const res = await playerBootstrap(createMockHttpRequest())
+        const res = await playerBootstrap(makeHttpRequest())
         const body = res.jsonBody as Record<string, unknown>
         const data = body.data as Record<string, unknown>
         assert.ok(data.playerGuid)

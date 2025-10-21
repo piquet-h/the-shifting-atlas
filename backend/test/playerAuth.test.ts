@@ -2,33 +2,7 @@ import { buildExternalId, ensurePlayerForRequest, parseClientPrincipal } from '@
 import assert from 'node:assert'
 import test from 'node:test'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
-
-class HeaderBag {
-    private m: Record<string, string> = {}
-    set(k: string, v: string) {
-        this.m[k.toLowerCase()] = v
-    }
-    get(k: string) {
-        return this.m[k.toLowerCase()] || null
-    }
-}
-
-function makePrincipalPayload(
-    overrides: Partial<{ userId: string; userDetails: string; identityProvider: string; userRoles: string[] }> = {}
-) {
-    const base = {
-        userId: 'ABC123',
-        userDetails: 'user@example.com',
-        identityProvider: 'github',
-        userRoles: ['authenticated'],
-        ...overrides
-    }
-    const json = JSON.stringify(base)
-    const gbuf = (globalThis as { Buffer?: { from: (d: string, e: string) => { toString: (enc: string) => string } } }).Buffer
-    if (!gbuf) throw new Error('Buffer not available in test environment')
-    const b64 = gbuf.from(json, 'utf8').toString('base64')
-    return { json, b64 }
-}
+import { HeaderBag, makePrincipalPayload } from './helpers/testUtils.js'
 
 test('parseClientPrincipal returns object for valid header', () => {
     const { b64 } = makePrincipalPayload()
