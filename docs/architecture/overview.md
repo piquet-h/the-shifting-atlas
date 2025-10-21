@@ -141,6 +141,8 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 ## Related Docs
 
 -   `mvp-azure-architecture.md` – Concrete MVP resource layout & playtest priorities
+-   `direction-resolution-rules.md` – Authoritative rules for direction normalization (ambiguous cases, typo tolerance, relative directions)
+-   `exits.md` – Exit edge invariants and creation/removal flow
 -   `../modules/world-rules-and-lore.md` – Narrative & systemic framing
 -   `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
 -   `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
