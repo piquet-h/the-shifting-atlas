@@ -138,16 +138,38 @@ Queued evolution (post-MVP) relies on a `WorldEvent` envelope processed by queue
 
 Other documents (like `mvp-azure-architecture.md`) dive into concrete resource diagrams and playtest priorities. This page remains stable as a high‑level reference so links such as "Architecture Overview" do not break as tactical details shift.
 
+## Implementation to Design Mapping
+
+| Implementation File | Design Documentation | Notes |
+|---------------------|----------------------|-------|
+| `backend/src/functions/ping.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness) | Service liveness health check |
+| `backend/src/functions/bootstrapPlayer.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap) | Idempotent player creation |
+| `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md) | Queue-triggered event processor |
+| `backend/src/functions/playerMove.ts` | [Navigation & Traversal](../modules/navigation-and-traversal.md) | Movement command handler |
+| `backend/src/functions/locationLook.ts` | [Exits](./exits.md), [Direction Resolution](./direction-resolution-rules.md) | Location inspection command |
+| `backend/src/functions/linkRooms.ts` | [Exit Edge Management](../developer-workflow/edge-management.md) | Room connection utility |
+| `backend/src/functions/getExits.ts` | [Exits](./exits.md) | Exit retrieval endpoint |
+| `shared/src/telemetry.ts` | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold) | Canonical telemetry framework |
+| `shared/src/repositories/locationRepository.ts` | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md) | Location persistence abstraction |
+| `shared/src/repositories/playerRepository.ts` | [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) | Player persistence abstraction |
+| `shared/src/validation/` | [World Event Contract](./world-event-contract.md#validation-flow) | Event envelope validation |
+
 ## Related Docs
 
 -   `mvp-azure-architecture.md` – Concrete MVP resource layout & playtest priorities
+-   `world-event-contract.md` – World event envelope specification & queue cutover plan
+-   `location-version-policy.md` – Exit changes do not affect location version
 -   `direction-resolution-rules.md` – Authoritative rules for direction normalization (ambiguous cases, typo tolerance, relative directions)
 -   `exits.md` – Exit edge invariants and creation/removal flow
+-   `agentic-ai-and-mcp.md` – AI integration via Model Context Protocol
 -   `../modules/world-rules-and-lore.md` – Narrative & systemic framing
 -   `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
 -   `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
 -   `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
 -   `../adr/ADR-001-mosswell-persistence-layering.md` – Mosswell persistence (includes partition strategy appendix)
+-   `../adr/ADR-003-player-location-edge-groundwork.md` – Player-location edge migration design
+-   `../milestones/M0-closure-summary.md` – M0 Foundation milestone completion
+-   `../developer-workflow/edge-management.md` – Exit edge management workflow
 
 ---
 

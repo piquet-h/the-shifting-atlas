@@ -1,7 +1,7 @@
 ---
 status: Draft
 date: 2025-01-15
-relates: [ADR-002, Issue #103, Issue #100]
+relates: [ADR-002, Issue #103 (closed), Issue #100 (closed)]
 ---
 
 # Player-Location Edge Migration Groundwork
@@ -40,7 +40,9 @@ Maintain the current scalar `currentLocationId` for MVP while establishing groun
 - Real-time player-to-player pathfinding algorithms
 - Cross-player collision detection
 
-## Future Migration Path (Issue #103)
+## Future Migration Path (Issue #103 - Closed)
+
+Player persistence enhancement (issue #103) has been completed. This section documents the migration path that was planned.
 
 ### Phase 1: Dual Write (Groundwork - This Issue)
 
@@ -70,9 +72,9 @@ Maintain the current scalar `currentLocationId` for MVP while establishing groun
 - Update on edge changes
 - Eventual deprecation of scalar (breaking change)
 
-## Implementation Notes for Current Issue (#112)
+## Implementation Notes for Current Issue (#112 - Closed)
 
-This issue focuses on **exit edge management** and does NOT implement player-location edges yet. Relevant groundwork includes:
+Exit edge management (issue #112) has been completed. This issue focused on **exit edge management** and did NOT implement player-location edges yet. Relevant groundwork includes:
 
 - Telemetry events (`World.Exit.Created`, `World.Exit.Removed`) serve as templates for future `Player.Location.Updated` events
 - Bidirectional exit helpers (`ensureExitBidirectional`) demonstrate patterns applicable to player edge creation
@@ -119,9 +121,9 @@ trackGameEventStrict('Player.Location.Updated', {
 
 ## Related Issues
 
-- **#100**: Location Persistence (locations as graph vertices)
-- **#103**: Player Persistence Enhancement (will implement Phase 1 dual-write)
-- **#112**: Location Edge Management (this issue - exits only)
+- **#100** (closed): Location Persistence (locations as graph vertices)
+- **#103** (closed): Player Persistence Enhancement (implemented Phase 1 dual-write)
+- **#112** (closed): Location Edge Management (exit edges implementation)
 
 ## Risks
 
@@ -137,6 +139,15 @@ If graph edges prove problematic:
 2. Continue using scalar field only
 3. Drop existing player-location edges
 4. Reassess need for proximity queries
+
+## Related Documentation
+
+-   [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model
+-   [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Partition key design and dual persistence
+-   [Architecture Overview](../architecture/overview.md) – High-level architecture context
+-   [Location Version Policy](../architecture/location-version-policy.md) – Exit changes and version tracking
+-   [Edge Management](../developer-workflow/edge-management.md) – Player-location edge implementation workflow
+-   [M0 Closure Summary](../milestones/M0-closure-summary.md) – Player persistence implementation status
 
 ---
 

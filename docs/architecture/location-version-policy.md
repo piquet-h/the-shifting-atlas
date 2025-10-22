@@ -107,9 +107,11 @@ If we later introduce:
 
 ## Related
 
-- ADR-002: Dual persistence (graph vs SQL)
-- Issue #100: Location persistence with content hash versioning
-- Issue #112: Edge management (this policy documented here)
+- [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
+- [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Player edge migration design
+- Issue #100 (closed): Location persistence with content hash versioning
+- Issue #112 (closed): Edge management (this policy documented here)
 
 ---
 
