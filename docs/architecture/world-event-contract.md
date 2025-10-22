@@ -121,6 +121,13 @@ Success Criteria: Zero drift events (no mismatched mutations), latency impact ac
 -   Should we encode shard / partition hints in the envelope for future horizontal scaling?
 -   Need a policy for redaction of sensitive player data before dead-letter storage.
 
+## Related Documentation
+
+-   [Architecture Overview](./overview.md) – High-level event-driven architecture context
+-   [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) – AI proposal flow through world events
+-   [M0 Closure Summary](../milestones/M0-closure-summary.md) – World Event Queue Processor implementation (#101 closed)
+-   [Ambiguities](../ambiguities.md) – World Event Queue Cutover timeline and triggers
+
 ---
 
 This draft will graduate to STABLE once the first queue-triggered processor lands and at least two distinct `type` schemas are exercised end-to-end.
