@@ -237,7 +237,58 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ## 12. Anti‑Patterns
 
-Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation.
+Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**.
+
+---
+
+## 12.1. Package Dependency Rules (CRITICAL)
+
+**The shared package is published to GitHub Packages registry and MUST be referenced via registry, NOT via file path.**
+
+### Correct Pattern (backend/package.json):
+
+```json
+{
+    "dependencies": {
+        "@piquet-h/shared": "^0.3.x"
+    }
+}
+```
+
+### FORBIDDEN Pattern (breaks CI/CD):
+
+```json
+{
+    "dependencies": {
+        "@piquet-h/shared": "file:../shared"
+    }
+}
+```
+
+### Why This Matters:
+
+-   **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
+-   **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
+-   **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
+
+### Agent Rules:
+
+1. **NEVER** change `@piquet-h/shared` dependency in backend/package.json to `file:../shared`
+2. **ALWAYS** use semver range like `^0.3.x` to reference the published package from GitHub Packages
+3. When adding imports from `@piquet-h/shared` in backend code:
+    - Import the module normally: `import { Direction } from '@piquet-h/shared'`
+    - Do NOT modify backend/package.json unless bumping to a new version
+    - Verify the dependency already exists before assuming it needs to be added
+4. If you need a newer version of shared:
+    - Check shared/package.json for current version
+    - Update backend/package.json with the correct semver range (e.g., `^0.4.0`)
+    - Do NOT use file paths
+
+### Verification:
+
+-   CI validation script checks for `file:` patterns in backend/package.json
+-   Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
+-   Backend tests will fail if file-based reference is used in a clean CI environment
 
 ---
 

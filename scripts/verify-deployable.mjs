@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* eslint-env node */
 /* global process */
-// Verifies deployable artifacts exist for SWA + Functions.
-import { existsSync, statSync } from 'node:fs'
+// Verifies deployable artifacts exist for SWA + Functions AND validates package references.
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const checks = [
@@ -10,7 +10,46 @@ const checks = [
     { path: 'frontend/dist/staticwebapp.config.json', required: true, desc: 'Static Web App config' }
 ]
 
-let failed = false
+// Validate backend package.json for file-based references (forbidden pattern)
+function validateBackendPackageJson() {
+    const pkgPath = resolve(process.cwd(), 'backend/package.json')
+    if (!existsSync(pkgPath)) {
+        process.stderr.write('[verify-deployable] WARNING: backend/package.json not found, skipping validation\n')
+        return true
+    }
+
+    try {
+        const content = readFileSync(pkgPath, 'utf8')
+        const parsed = JSON.parse(content)
+        const dependencies = { ...(parsed.dependencies || {}), ...(parsed.devDependencies || {}) }
+
+        const violations = []
+        for (const [name, version] of Object.entries(dependencies)) {
+            if (typeof version === 'string' && version.startsWith('file:')) {
+                violations.push({ name, version })
+            }
+        }
+
+        if (violations.length > 0) {
+            process.stderr.write('[verify-deployable] FORBIDDEN: File-based package references detected:\n')
+            violations.forEach(({ name, version }) => {
+                process.stderr.write(`  ❌ ${name}: ${version}\n`)
+            })
+            process.stderr.write('  Use registry references instead (e.g., "@piquet-h/shared": "^0.3.5")\n')
+            process.stderr.write('  See .github/copilot-instructions.md Section 12.1\n')
+            return false
+        }
+
+        process.stdout.write('[verify-deployable] OK: Package references use registry (no file: patterns)\n')
+        return true
+    } catch (err) {
+        process.stderr.write(`[verify-deployable] ERROR validating backend/package.json: ${err.message}\n`)
+        return false
+    }
+}
+
+let failed = !validateBackendPackageJson()
+
 for (const c of checks) {
     const full = resolve(process.cwd(), c.path)
     if (!existsSync(full)) {
