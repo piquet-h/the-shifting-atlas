@@ -1,4 +1,4 @@
-import { getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { getOppositeDirection, isDirection, Location, ExitEdge, generateExitsSummary } from '@piquet-h/shared'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
@@ -39,6 +39,25 @@ class InMemoryLocationRepository implements ILocationRepository {
         const locs = starterLocationsData as Location[]
         this.locations = new Map(locs.map((r) => [r.id, r]))
     }
+
+    /** Helper: Regenerate exits summary cache for a location */
+    private regenerateExitsSummaryCache(locationId: string): void {
+        const location = this.locations.get(locationId)
+        if (!location) return
+
+        // Convert Location exits to ExitEdge format
+        const exits: ExitEdge[] =
+            location.exits?.map((e) => ({
+                fromLocationId: locationId,
+                toLocationId: e.to || '',
+                direction: e.direction as any,
+                description: e.description
+            })) || []
+
+        // Generate and update cache
+        location.exitsSummaryCache = generateExitsSummary(exits)
+    }
+
     async get(id: string): Promise<Location | undefined> {
         return this.locations.get(id)
     }
@@ -102,6 +121,8 @@ class InMemoryLocationRepository implements ILocationRepository {
             return { created: false }
         }
         from.exits.push({ direction, to: toId, description })
+        // Regenerate exits summary cache
+        this.regenerateExitsSummaryCache(fromId)
         return { created: true }
     }
 
@@ -129,6 +150,10 @@ class InMemoryLocationRepository implements ILocationRepository {
         const initialLength = from.exits.length
         from.exits = from.exits.filter((e) => !(e.direction === direction))
         const removed = from.exits.length < initialLength
+        if (removed) {
+            // Regenerate exits summary cache
+            this.regenerateExitsSummaryCache(fromId)
+        }
         return { removed }
     }
 

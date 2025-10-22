@@ -13,6 +13,29 @@ class FakeGremlinClient {
             const r = this.data.locations[id]
             return r ? [r as T] : []
         }
+        if (query.includes('.drop()')) {
+            // Remove exit edge (must be before other has('direction') checks)
+            const fromId = bindings?.fid as string
+            const dir = bindings?.dir as string
+            if (this.data.exits[fromId]) {
+                this.data.exits[fromId] = this.data.exits[fromId].filter((e) => e.direction !== dir)
+            }
+            return []
+        }
+        if (query.includes("has('direction'") && query.includes('.where(inV()')) {
+            // Check if edge exists (for ensureExit)
+            const fromId = bindings?.fid as string
+            const dir = bindings?.dir as string
+            const exits = this.data.exits[fromId] || []
+            return exits.filter((e) => e.direction === dir) as unknown as T[]
+        }
+        if (query.includes("has('direction'")) {
+            // Check edges for removal (without inV filter, for removeExit)
+            const fromId = bindings?.fid as string
+            const dir = bindings?.dir as string
+            const exits = this.data.exits[fromId] || []
+            return exits.filter((e) => e.direction === dir) as unknown as T[]
+        }
         if (query.includes("outE('exit')")) {
             const id = bindings?.locationId as string
             return (this.data.exits[id] || []) as unknown as T[]
@@ -32,6 +55,27 @@ class FakeGremlinClient {
                 version: ver,
                 ...(tags && tags.length > 0 ? { tags: tags } : {})
             }
+            return []
+        }
+        if (query.includes("property('exitsSummaryCache'")) {
+            // Update exitsSummaryCache
+            const id = bindings?.locationId as string
+            const cache = bindings?.cache as string
+            if (this.data.locations[id]) {
+                this.data.locations[id].exitsSummaryCache = [cache]
+            }
+            return []
+        }
+        if (query.includes("addE('exit')")) {
+            // Add exit edge
+            const fromId = bindings?.fid as string
+            const toId = bindings?.tid as string
+            const dir = bindings?.dir as string
+            const desc = bindings?.desc as string
+            if (!this.data.exits[fromId]) {
+                this.data.exits[fromId] = []
+            }
+            this.data.exits[fromId].push({ direction: dir, to: toId, description: desc })
             return []
         }
         throw new Error('Unexpected query: ' + query)
@@ -247,3 +291,61 @@ test('cosmos location repository upsert - validation error for missing fields', 
         assert.ok(error.message.includes('missing required fields'))
     }
 })
+
+test('cosmos location repository - exits summary cache invalidation on ensureExit', async () => {
+    const locA: Record<string, unknown> = { id: 'A', name: ['Alpha'], description: ['Location A'] }
+    const locB: Record<string, unknown> = { id: 'B', name: ['Beta'], description: ['Location B'] }
+    const fake = new FakeGremlinClient({ locations: { A: locA, B: locB }, exits: { A: [], B: [] } })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Add an exit
+    const result = await repo.ensureExit('A', 'north', 'B', 'north gate')
+    assert.equal(result.created, true)
+
+    // Verify cache was set
+    const retrieved = await repo.get('A')
+    assert.ok(retrieved)
+    assert.ok(retrieved.exitsSummaryCache)
+    assert.equal(retrieved.exitsSummaryCache, 'Exit: north (north gate)')
+})
+
+test('cosmos location repository - exits summary cache invalidation on removeExit', async () => {
+    const locA: Record<string, unknown> = { id: 'A', name: ['Alpha'], description: ['Location A'] }
+    const locB: Record<string, unknown> = { id: 'B', name: ['Beta'], description: ['Location B'] }
+    const exitsA = [
+        { direction: 'north', to: 'B', description: 'north gate' },
+        { direction: 'east', to: 'B', description: 'east door' }
+    ]
+    const fake = new FakeGremlinClient({ locations: { A: locA, B: locB }, exits: { A: exitsA as ExitArray, B: [] } })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Remove an exit
+    const result = await repo.removeExit('A', 'north')
+    assert.equal(result.removed, true)
+
+    // Verify cache was updated to reflect only remaining exit
+    const retrieved = await repo.get('A')
+    assert.ok(retrieved)
+    assert.ok(retrieved.exitsSummaryCache)
+    assert.equal(retrieved.exitsSummaryCache, 'Exit: east (east door)')
+})
+
+test('cosmos location repository - exits summary cache with multiple exits', async () => {
+    const locA: Record<string, unknown> = { id: 'A', name: ['Alpha'], description: ['Location A'] }
+    const locB: Record<string, unknown> = { id: 'B', name: ['Beta'], description: ['Location B'] }
+    const fake = new FakeGremlinClient({ locations: { A: locA, B: locB }, exits: { A: [], B: [] } })
+    const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+
+    // Add multiple exits
+    await repo.ensureExit('A', 'south', 'B', 'south door')
+    await repo.ensureExit('A', 'north', 'B', 'north gate')
+    await repo.ensureExit('A', 'east', 'B')
+
+    // Verify cache has correct deterministic order
+    const retrieved = await repo.get('A')
+    assert.ok(retrieved)
+    assert.ok(retrieved.exitsSummaryCache)
+    // Should be ordered: north, south, east
+    assert.equal(retrieved.exitsSummaryCache, 'Exits: north (north gate), south (south door), east')
+})
+
