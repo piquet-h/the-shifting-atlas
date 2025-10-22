@@ -203,6 +203,37 @@ Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
 Milestones: M0 Foundation → M5 Systems (narrative stages).
 Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readiness, and scope impact.
 
+### 8.1 Milestone ID vs Name Reference (IMPORTANT)
+
+**When searching/filtering issues by milestone, use the milestone ID number, not the name.**
+
+GitHub milestones have both a numeric ID and a display name. The GitHub MCP search tools require the ID.
+
+| Milestone Name           | Milestone ID | Search Example                                           |
+| ------------------------ | ------------ | -------------------------------------------------------- |
+| M0 Foundation            | 1            | `milestone:"M0 Foundation"` or filter by ID 1            |
+| M1 Traversal             | 2            | `milestone:"M1 Traversal"` or filter by ID 2             |
+| M2 Observability         | 3            | `milestone:"M2 Observability"` or filter by ID 3         |
+| M3 AI Read               | 4            | `milestone:"M3 AI Read"` or filter by ID 4               |
+| M4 Layering & Enrichment | 5            | `milestone:"M4 Layering & Enrichment"` or filter by ID 5 |
+| M5 Systems               | 7            | `milestone:"M5 Systems"` or filter by ID 7               |
+| M6 Dungeon Runs          | 8            | `milestone:"M6 Dungeon Runs"` or filter by ID 8          |
+
+**Example confusion to avoid:**
+
+-   ❌ "Search for M1 issues" → searching for literal string "M1" finds nothing
+-   ✅ "Search for M1 issues" → use `milestone:"M1 Traversal"` in GitHub search query
+
+**To find milestone ID from API response:**
+Milestone objects include both `number` (the ID) and `title` (the display name):
+
+```json
+"milestone": {
+  "number": 2,  // ← This is the ID
+  "title": "M1 Traversal"  // ← This is the display name
+}
+```
+
 ---
 
 ## 9. Code Generation Heuristics

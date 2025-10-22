@@ -6,13 +6,15 @@ Graph (Gremlin): Locations | NPCs (spatial edges). Documents (SQL): Players | In
 
 Function Naming: Http<VerbNoun>, Queue<ProcessThing>. Stateless, single purpose.
 
-Core Scripts (current): `npm run seed:world`, `npm run validate:telemetry-separation`, `npm run test:build-telemetry-guard`.
+Core Scripts: `npm run build`, `npm run test`, `npm run lint`, `npm run typecheck`. (Backend-specific scripts in `backend/package.json`).
 
 Labels:
 
-- Atomic issue: one `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`).
-- Epic: one `scope:*` + `epic` (no type label).
-  No legacy `area:*`, `phase-*`, `priority:*`.
+-   Atomic issue: one `scope:*` + one type (`feature|enhancement|refactor|infra|docs|spike|test`).
+-   Epic: one `scope:*` + `epic` (no type label).
+    No legacy `area:*`, `phase-*`, `priority:*`.
+
+Milestones: M0 (ID 1) | M1 (ID 2) | M2 (ID 3) | M3 (ID 4) | M4 (ID 5) | M5 (ID 7) | M6 (ID 8). Names: "M4 Layering & Enrichment", "M6 Dungeon Runs". **Search by full name (`milestone:"M1 Traversal"`) not shorthand ("M1").**
 
 Project implementation-order & scheduling automation has been removed (legacy docs referencing it are deprecated).
 
