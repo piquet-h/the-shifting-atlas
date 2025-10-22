@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> Status Accuracy (2025-10-03): Only a frontend shell and basic `ping` HTTP Functions exist. Cosmos DB is not yet accessed by code; no queues, no movement/room persistence, no AI integration, and only baseline Application Insights bootstrap (no custom events). This overview reflects intended direction—not current implementation depth.
+> Status Accuracy (2025-10-22): Basic traversal implemented: HTTP movement + look endpoints, direction normalization, and world event queue processor with envelope validation. Cosmos DB Gremlin used for location graph; Cosmos DB SQL API active for players, inventory, layers, and events. This overview reflects current implementation and planned direction.
 >
 > Terminology Note: _Status Accuracy_ captures the last date the factual implementation claims were manually audited. The footer _Last updated_ reflects the last structural/content edit (which may add future-looking sections without changing audited status lines).
 
@@ -26,21 +26,21 @@ Implemented (thin slice – see repo for exact handlers):
 
 -   Static Web App (frontend only)
 -   Backend `backend/` Functions App (HTTP endpoints + world event queue processors)
+-   World event queue processor with envelope validation (see [world-event-contract.md](world-event-contract.md))
 -   Repository abstraction (memory adapters) for Rooms & Players
--   In‑memory traversal (2 rooms, movement + fetch handlers)
+-   Persistent traversal via Cosmos DB Gremlin (locations, exits, movement)
 -   Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
 -   Canonical telemetry framework (`trackGameEventStrict`, event name governance)
+-   Direction normalization (shortcuts, typos, relative directions)
 -   Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry), `telemetry` (read-only AI usage & decision logging)
 
-Still provisioned but unused: Cosmos DB, Service Bus, Key Vault (no runtime bindings yet).
+Still provisioned but not yet fully integrated: Service Bus (queue processor operates without Service Bus binding), Key Vault (secret management planned for M2).
 
 Not yet implemented (planned):
 
--   Service Bus queue + queue‑triggered world/NPC processors
--   Runtime Gremlin client & schema bootstrap (Cosmos persistence adapters)
--   Runtime SQL API client (if needed for non-graph entities)
+-   Service Bus queue integration (processor currently triggered via HTTP)
+-   Runtime SQL API client for non-graph entities (containers provisioned; initial bootstrap pending)
 -   Managed identity graph access (replace key‑based secret)
--   Persistent traversal + exit normalization (current memory only)
 -   AI prompt integration & dynamic content (advisory then genesis)
 -   Telemetry MCP server + cost dashboards
 
@@ -82,9 +82,23 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 -   Exits encoded as edges with semantic direction labels (`north`, `up`, etc.)
 -   Events optionally stored as vertices or external log for replay/analytics
 -   Prefer idempotent mutations: processors verify current state before applying changes
+-   **Dual persistence pattern (ADR-002)**: Immutable world structure in Cosmos DB Gremlin (locations, exits, spatial relationships); mutable player data and events in Cosmos DB SQL API (players, inventory, description layers, world events).
 -   Planned multi‑scale spatial layer (see `../modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
 -   Tokenless description layering (see `../modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
 -   Partition key strategy: single logical partition during Mosswell bootstrap (MVP concession) with documented region sharding migration path (see `../adr/ADR-002-graph-partition-strategy.md` and Appendix in `../adr/ADR-001-mosswell-persistence-layering.md`).
+
+## Cosmos DB SQL API Containers
+
+The dual persistence pattern (ADR-002) uses Cosmos DB SQL API for mutable player data and event logs, complementing the Gremlin graph used for immutable world structure.
+
+**Containers:**
+
+-   **`players`** (PK: `/id`) – Player documents with GUID as partition key. Each player's mutable state (current location reference, session data) colocated by player ID.
+-   **`inventory`** (PK: `/playerId`) – Inventory items partitioned by player GUID. All items for a player colocated for efficient queries.
+-   **`descriptionLayers`** (PK: `/locationId`) – Description variation layers partitioned by location GUID. Weather, structural, and faction-specific overlays colocated with their location context.
+-   **`worldEvents`** (PK: `/scopeKey`) – World event log using scope pattern (`loc:<id>` or `player:<id>`) for efficient timeline queries. See [world-event-contract.md](world-event-contract.md) for envelope specification.
+
+**Access pattern:** Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret. Environment variables configured in Bicep (see `.github/copilot-instructions.md` Section 5 for complete configuration details).
 
 ## Security & Identity Roadmap
 
@@ -173,4 +187,4 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ---
 
-_Last updated: 2025-10-02 (added Shared Package entry point separation section)_
+_Last updated: 2025-10-22 (updated status accuracy date, added world event processor + Cosmos SQL API containers section, reflected dual persistence pattern)_
