@@ -106,6 +106,14 @@ export interface EventPayloadMap {
         latencyMs?: number
     }
     'Navigation.Input.Ambiguous': { from: string; input: string; reason: string }
+    'Navigation.Look.Issued': {
+        locationId?: string
+        id?: string
+        fromLocationId?: string
+        status: number
+        latencyMs?: number
+        cacheHit?: boolean
+    }
     'Command.Executed': { command: string; success: boolean; latencyMs?: number | null; error?: string; locationId?: string | null }
     'World.Location.Generated': { locationId: string; model?: string; latencyMs?: number; similarity?: number; safetyVerdict?: string }
     'World.Location.Rejected': { reasonCode: string; promptHash?: string; similarity?: number }
