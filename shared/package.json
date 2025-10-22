@@ -1,6 +1,6 @@
 {
     "name": "@piquet-h/shared",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "private": false,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
@@ -67,18 +67,18 @@
         "prepublishOnly": "npm run build && npm run test"
     },
     "dependencies": {
-        "zod": "^4.1.11"
+        "zod": "^4.1.12"
     },
     "devDependencies": {
-        "@types/node": "^20.14.10",
-        "tsx": "^4.20.5",
-        "typescript": "^5.9.2",
-        "eslint": "^9.35.0",
+        "@types/node": "^20.19.23",
         "@typescript-eslint/eslint-plugin": "^8.44.0",
         "@typescript-eslint/parser": "^8.44.0",
-        "prettier": "^3.3.3",
+        "c8": "^10.1.2",
+        "eslint": "^9.35.0",
         "eslint-plugin-prettier": "^5.2.1",
-        "c8": "^10.1.2"
+        "prettier": "^3.3.3",
+        "tsx": "^4.20.5",
+        "typescript": "^5.9.2"
     },
     "repository": {
         "type": "git",
