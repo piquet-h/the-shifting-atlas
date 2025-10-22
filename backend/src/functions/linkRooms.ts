@@ -34,43 +34,36 @@ export async function linkRoomsHandler(req: HttpRequest): Promise<HttpResponseIn
     const reciprocal = body.reciprocal === true
     const description = typeof body.description === 'string' ? body.description : undefined
 
-    if (typeof originId !== 'string' || !originId) {
+    // Validate with switch for readability
+    type ValidationError = { code: string; message: string } | null
+    const validationError: ValidationError = (() => {
+        switch (true) {
+            case typeof originId !== 'string' || !originId:
+                return { code: 'MissingOriginId', message: 'originId is required' }
+            case typeof destId !== 'string' || !destId:
+                return { code: 'MissingDestId', message: 'destId is required' }
+            case typeof dir !== 'string' || !isDirection(dir):
+                return { code: 'InvalidDirection', message: `dir must be a valid direction, got: ${dir}` }
+            default:
+                return null
+        }
+    })()
+
+    if (validationError) {
         return {
             status: 400,
             headers: {
                 [CORRELATION_HEADER]: correlationId,
                 'Content-Type': 'application/json; charset=utf-8'
             },
-            jsonBody: err('MissingOriginId', 'originId is required', correlationId)
+            jsonBody: err(validationError.code, validationError.message, correlationId)
         }
     }
 
-    if (typeof destId !== 'string' || !destId) {
-        return {
-            status: 400,
-            headers: {
-                [CORRELATION_HEADER]: correlationId,
-                'Content-Type': 'application/json; charset=utf-8'
-            },
-            jsonBody: err('MissingDestId', 'destId is required', correlationId)
-        }
-    }
-
-    if (typeof dir !== 'string' || !isDirection(dir)) {
-        return {
-            status: 400,
-            headers: {
-                [CORRELATION_HEADER]: correlationId,
-                'Content-Type': 'application/json; charset=utf-8'
-            },
-            jsonBody: err('InvalidDirection', `dir must be a valid direction, got: ${dir}`, correlationId)
-        }
-    }
-
-    // Link the rooms
+    // Link the rooms (type assertions safe after validation)
     try {
         const repo = await getLocationRepository()
-        const result = await repo.ensureExitBidirectional(originId, dir, destId, {
+        const result = await repo.ensureExitBidirectional(originId as string, dir as string, destId as string, {
             reciprocal,
             description,
             reciprocalDescription: description
