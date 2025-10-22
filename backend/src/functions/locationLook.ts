@@ -1,9 +1,10 @@
 import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { err, ok, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { err, ok, STARTER_LOCATION_ID, Direction } from '@piquet-h/shared'
 import { getLocationRepository } from '../repos/index.js'
+import { generateExitsSummaryCache, ExitEdgeResult } from '../repos/exitRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
-// Read-only wrapper returning envelope variant of LocationGet
+// LOOK command: Returns location description + exits summary cache (regenerates if missing)
 app.http('LocationLook', {
     route: 'location/look',
     methods: ['GET'],
@@ -14,10 +15,12 @@ app.http('LocationLook', {
         const playerGuid = extractPlayerGuid(req.headers)
         const repo = await getLocationRepository()
         const id = req.query.get('id') || STARTER_LOCATION_ID
+        const fromLocationId = req.query.get('fromLocationId') || undefined
+
         const loc = await repo.get(id)
         if (!loc) {
             const latencyMs = Date.now() - started
-            trackGameEventStrict('Location.Get', { id, status: 404, latencyMs }, { playerGuid, correlationId })
+            trackGameEventStrict('Navigation.Look.Issued', { id, status: 404, latencyMs, fromLocationId }, { playerGuid, correlationId })
             return {
                 status: 404,
                 headers: {
@@ -28,8 +31,36 @@ app.http('LocationLook', {
                 jsonBody: err('NotFound', 'Location not found', correlationId)
             }
         }
+
+        // Check if exitsSummaryCache exists; if not, generate and persist
+        let exitsSummaryCache = loc.exitsSummaryCache
+        if (!exitsSummaryCache) {
+            // Convert exits to ExitEdgeResult format
+            const exitEdges: ExitEdgeResult[] = (loc.exits || []).map((e) => ({
+                direction: e.direction as Direction,
+                toLocationId: e.to || '',
+                description: e.description
+            }))
+
+            exitsSummaryCache = generateExitsSummaryCache(exitEdges)
+
+            // Persist the generated cache
+            await repo.updateExitsSummaryCache(id, exitsSummaryCache)
+        }
+
         const latencyMs = Date.now() - started
-        trackGameEventStrict('Location.Get', { id, status: 200, latencyMs }, { playerGuid, correlationId })
+        trackGameEventStrict(
+            'Navigation.Look.Issued',
+            {
+                locationId: id,
+                fromLocationId,
+                status: 200,
+                latencyMs,
+                cacheHit: !!loc.exitsSummaryCache
+            },
+            { playerGuid, correlationId }
+        )
+
         return {
             status: 200,
             headers: {
@@ -37,7 +68,28 @@ app.http('LocationLook', {
                 'Content-Type': 'application/json; charset=utf-8',
                 'Cache-Control': 'no-store'
             },
-            jsonBody: ok(loc, correlationId)
+            jsonBody: ok(
+                {
+                    locationId: loc.id,
+                    name: loc.name,
+                    baseDescription: loc.description,
+                    exits: (loc.exits || []).reduce(
+                        (acc, e) => {
+                            if (e.direction && e.to) {
+                                acc[e.direction] = e.to
+                            }
+                            return acc
+                        },
+                        {} as Record<string, string>
+                    ),
+                    exitsSummaryCache,
+                    metadata: {
+                        tags: loc.tags
+                    },
+                    revision: loc.version
+                },
+                correlationId
+            )
         }
     }
 })

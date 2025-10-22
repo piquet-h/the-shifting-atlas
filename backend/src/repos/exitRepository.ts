@@ -55,6 +55,22 @@ export function sortExits(exits: ExitEdgeResult[]): ExitEdgeResult[] {
 }
 
 /**
+ * Generate a human-readable summary of exits from a list of exit edges.
+ * Format: "Exits: north, south, east" or "No exits available."
+ * @param exits - Array of exit edges
+ * @returns Human-readable exit summary string
+ */
+export function generateExitsSummaryCache(exits: ExitEdgeResult[]): string {
+    if (!exits || exits.length === 0) {
+        return 'No exits available.'
+    }
+
+    const sortedExits = sortExits(exits)
+    const directions = sortedExits.map((e) => e.direction).join(', ')
+    return `Exits: ${directions}`
+}
+
+/**
  * Repository for exit edge retrieval and ordering operations.
  * Creation operations remain in locationRepository (ensureExit, ensureExitBidirectional).
  */

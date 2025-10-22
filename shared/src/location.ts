@@ -12,6 +12,8 @@ export interface Location {
     /** Optional semantic / facet tags (e.g., 'settlement:mosswell', 'shop:smithy'). */
     tags?: string[]
     version?: number
+    /** Cached human-readable summary of exits (regenerated when exits change). */
+    exitsSummaryCache?: string
 }
 
 // Stable UUIDv4 seed location identifiers (formerly STARTER_ROOM_ID / SECOND_ROOM_ID).

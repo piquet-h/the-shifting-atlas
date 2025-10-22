@@ -22,6 +22,7 @@ export const GAME_EVENT_NAMES = [
     // Navigation & direction normalization
     'Navigation.Input.Parsed',
     'Navigation.Input.Ambiguous',
+    'Navigation.Look.Issued',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
     'World.Location.Generated',

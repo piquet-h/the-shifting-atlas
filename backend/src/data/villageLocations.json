@@ -23,6 +23,7 @@
             { "direction": "northwest", "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f", "description": "Low wall of the herb garden." },
             { "direction": "down", "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c", "description": "Steps descending to the lower jetty." }
         ],
+        "exitsSummaryCache": "Exits: north, south, east, west, northeast, northwest, southeast, southwest, down",
         "version": 3
     },
     {
