@@ -125,7 +125,7 @@ Success Criteria: Zero drift events (no mismatched mutations), latency impact ac
 
 -   [Architecture Overview](./overview.md) – High-level event-driven architecture context
 -   [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) – AI proposal flow through world events
--   [M0 Closure Summary](../milestones/M0-closure-summary.md) – World Event Queue Processor implementation (#101)
+-   [M0 Closure Summary](../milestones/M0-closure-summary.md) – World Event Queue Processor implementation (#101 closed)
 -   [Ambiguities](../ambiguities.md) – World Event Queue Cutover timeline and triggers
 
 ---
