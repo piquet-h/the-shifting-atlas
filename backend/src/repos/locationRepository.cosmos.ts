@@ -1,4 +1,4 @@
-import { getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import crypto from 'crypto'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
@@ -15,6 +15,30 @@ function computeLocationContentHash(name: string, description: string, tags?: st
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 export class CosmosLocationRepository implements ILocationRepository {
     constructor(private client: GremlinClient) {}
+
+    /** Helper: Regenerate and update exits summary cache for a location */
+    private async regenerateExitsSummaryCache(locationId: string): Promise<void> {
+        // Fetch current exits
+        const exitsRaw = await this.client.submit<Record<string, unknown>>(
+            "g.V(locationId).outE('exit').project('direction','to','description','blocked').by(values('direction')).by(inV().id()).by(values('description')).by(values('blocked'))",
+            { locationId }
+        )
+
+        // Convert to ExitEdge format
+        const exits: ExitEdge[] = (exitsRaw || []).map((e: Record<string, unknown>) => ({
+            fromLocationId: locationId,
+            toLocationId: String(e.to as string),
+            direction: String(e.direction as string) as any,
+            description: e.description ? String(e.description as string) : undefined,
+            blocked: e.blocked ? Boolean(e.blocked) : undefined
+        }))
+
+        // Generate summary
+        const summary = generateExitsSummary(exits)
+
+        // Update cache
+        await this.updateExitsSummaryCache(locationId, summary)
+    }
 
     async get(id: string): Promise<Location | undefined> {
         const vertices = await this.client.submit<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
@@ -179,6 +203,9 @@ export class CosmosLocationRepository implements ILocationRepository {
             desc: description || ''
         })
 
+        // Regenerate exits summary cache for the source location
+        await this.regenerateExitsSummaryCache(fromId)
+
         // Emit telemetry for actual creation
         trackGameEventStrict('World.Exit.Created', {
             fromLocationId: fromId,
@@ -228,6 +255,9 @@ export class CosmosLocationRepository implements ILocationRepository {
 
         // Drop the edges
         await this.client.submit("g.V(fid).outE('exit').has('direction', dir).drop()", { fid: fromId, dir: direction })
+
+        // Regenerate exits summary cache for the source location
+        await this.regenerateExitsSummaryCache(fromId)
 
         // Emit telemetry for actual removal
         trackGameEventStrict('World.Exit.Removed', {
