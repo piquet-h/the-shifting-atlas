@@ -1,8 +1,30 @@
 /**
  * World Event Envelope Schema (Zod validation)
  *
- * Validates the envelope shape defined in docs/architecture/world-event-contract.md.
+ * Authoritative envelope shape for async world evolution via Service Bus queues.
+ * Validates the envelope defined in docs/architecture/world-event-contract.md.
  * Ensures idempotency, traceability, and correlation across async world processors.
+ * 
+ * This is the primary contract for queue-based event processing, distinct from the
+ * legacy WorldEvent interface in domainModels.ts which is used for SQL persistence
+ * with status tracking. Key differences:
+ * 
+ * WorldEventEnvelope (this file):
+ * - Queue contract for async processing
+ * - Zod schema validation
+ * - Namespaced types ('Player.Move', 'World.Exit.Create')
+ * - Actor envelope (kind + id)
+ * - Idempotency keys for at-least-once delivery
+ * - Causation chains (causationId)
+ * - Versioned envelope structure
+ * 
+ * WorldEvent (domainModels.ts):
+ * - SQL persistence model for event history documents
+ * - Simple type strings ('PlayerMoved', 'LocationDiscovered')
+ * - Status tracking (Pending, Processing, Completed, Failed)
+ * - Retry counters and scheduled execution
+ * 
+ * See docs/architecture/world-event-contract.md for complete specification.
  */
 import { z } from 'zod'
 

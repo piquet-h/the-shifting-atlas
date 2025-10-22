@@ -132,7 +132,9 @@ See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
 
 ### World Event Contract (Preview)
 
-Queued evolution (post-MVP) relies on a `WorldEvent` envelope processed by queue-triggered Functions. A dedicated specification now lives in `world-event-contract.md`. Early HTTP handlers that _simulate_ events should shape objects to this contract to reduce refactor friction.
+Queued evolution (post-MVP) relies on a `WorldEventEnvelope` contract processed by queue-triggered Functions. A dedicated specification now lives in `world-event-contract.md`. Early HTTP handlers that _simulate_ events should shape objects to this contract to reduce refactor friction.
+
+Note: The legacy `WorldEvent` interface in `domainModels.ts` is for SQL persistence of event history; the queue contract uses `WorldEventEnvelope` with Zod validation. See `world-event-contract.md` for details on the intentional separation.
 
 ## Why This Document Exists
 

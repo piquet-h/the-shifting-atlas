@@ -102,6 +102,7 @@ Proposal endpoints (never direct writes):
 -   `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
 -   `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
 -   `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
+    -   Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
 
 ### simulation-planner-mcp (Stage M6 – Planning)
 
