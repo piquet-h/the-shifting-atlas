@@ -323,6 +323,120 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 ---
 
+## 12.2. Cross-Package PR Splitting (Shared + Backend Changes)
+
+**When changes affect both `shared/` and `backend/` packages, they MUST be split into sequential PRs.**
+
+### Problem
+
+Backend code cannot import from a shared package version that doesn't exist in GitHub Packages yet. If both are in one PR:
+- CI tries to `npm install` backend dependencies
+- Shared version X doesn't exist in registry yet
+- Build fails with "package not found"
+
+### Required Pattern: Two-Stage Merge
+
+#### Stage 1: Shared Package Changes Only
+
+1. **Create PR with ONLY shared/ changes:**
+   - New utilities, types, or functions
+   - Version bump in `shared/package.json`
+   - Tests in `shared/test/`
+   - NO backend integration code
+
+2. **Merge to main**
+   - CI automatically publishes new version to GitHub Packages
+   - Wait ~5 minutes for publish workflow to complete
+
+3. **Verify publication:**
+   ```bash
+   # Check that version exists in registry
+   npm view @piquet-h/shared@0.3.6
+   ```
+
+#### Stage 2: Backend Integration
+
+4. **Create follow-up PR with backend changes:**
+   - Update `backend/package.json` to reference new shared version
+   - Add backend code using new shared utilities
+   - Integration tests
+
+5. **Merge backend PR**
+   - Now backend can successfully install shared package from registry
+
+### Agent Automation Rules
+
+When the coding agent creates a PR that touches both `shared/` and `backend/`:
+
+1. **Detect cross-package change:**
+   ```bash
+   git diff main..HEAD --name-only | grep -q '^shared/' && \
+   git diff main..HEAD --name-only | grep -q '^backend/' && \
+   echo "CROSS-PACKAGE DETECTED"
+   ```
+
+2. **Automatically split into two branches:**
+   ```bash
+   # Stage 1: Shared-only branch (current PR)
+   git checkout <current-branch>
+   git reset --soft <first-shared-commit>
+   # Keep only shared/ changes
+   
+   # Stage 2: Backend integration branch
+   git checkout -b feat/<name>-backend-integration
+   # Rebase backend commits onto main
+   # Update backend/package.json to reference new shared version
+   ```
+
+3. **Update PR descriptions:**
+   - Stage 1 PR: Mark as "Part 1: Shared package changes"
+   - Add note: "Backend integration will follow in separate PR after publish"
+   - Stage 2 PR: Reference stage 1 PR number, note dependency on published version
+
+4. **Prevent merge until ready:**
+   - Stage 2 PR stays as draft until stage 1 is merged + published
+   - Add comment with command to verify publication
+
+### Manual Split Process (User-Initiated)
+
+If agent creates combined PR before automation:
+
+```bash
+# 1. Save backend work
+git checkout -b feat/<name>-backend-integration origin/<pr-branch>
+
+# 2. Reset original branch to remove backend
+git checkout <pr-branch>
+git reset --soft <last-shared-commit>
+git restore --staged backend/
+
+# 3. Force-push shared-only PR
+git push --force-with-lease
+
+# 4. Prepare backend branch
+git checkout feat/<name>-backend-integration
+git rebase --onto main <last-shared-commit>
+# Update backend/package.json version reference
+git add backend/package.json && git commit --amend --no-edit
+```
+
+### Exceptions
+
+Single PR acceptable only if:
+- Shared changes are trivial hotfix (typo, comment)
+- No version bump required
+- Backend already compatible with current shared version
+
+### Detection Heuristics
+
+Agent should split when PR includes:
+- ✅ New exports in `shared/src/index.ts`
+- ✅ Version bump in `shared/package.json`
+- ✅ New imports in backend from `@piquet-h/shared`
+- ✅ Backend code using newly-added shared functions
+
+---
+
 ## 13. Glossary (Micro)
 
 Exit: directional traversal edge.
