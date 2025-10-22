@@ -71,25 +71,53 @@ Import only what you need to minimize bundle size (particularly in browser / edg
 - Secrets helper (Key Vault + Managed Identity)
 - Telemetry event emission (Application Insights abstraction)
 
+## Package Contract & Boundary Rules
+
+This package is the **domain/core layer** for The Shifting Atlas. To maintain proper separation and enable reuse across multiple consumers (backend Functions, frontend, CLI tooling, MCP agents), the following contract MUST be enforced:
+
+### ✅ ALLOWED in `shared/src/`
+
+- Pure domain types & interfaces (players, locations, exits, items, events)
+- Constants & enumerations (service names, telemetry event names, directions)
+- Validation schemas (Zod schemas for world events, direction normalization)
+- Pure utility functions (direction resolution, edit distance, type guards)
+- Repository interface abstractions (IPlayerRepository) — **interfaces only, no implementations**
+- Auth helpers that operate on generic headers (no direct Azure SDK usage)
+- Minimal stateless in-memory stores for transient state (heading store singleton)
+
+### ❌ FORBIDDEN in `shared/src/`
+
+- Direct Azure SDK imports (`@azure/cosmos`, `@azure/keyvault-secrets`, `@azure/identity`, `@azure/functions`)
+- Persistence implementations (Cosmos clients, Gremlin traversals, repository concrete classes)
+- Secret access implementations (KeyVault clients, credential chains)
+- Azure Functions bindings or triggers
+- Application Insights direct telemetry emission (tracking calls)
+- Environment variable access (`process.env.*`)
+- Backend-specific infra concerns (Bicep, deployment, CI scripts)
+
+### Rationale
+
+This separation enables:
+
+1. **Frontend consumption**: Browser bundles can import domain types without pulling in Node.js/Azure dependencies
+2. **Test isolation**: Core logic tests run without mocking Azure services
+3. **Telemetry governance**: Centralized event naming prevents ad-hoc string proliferation
+4. **Future flexibility**: Alternative runtimes (workers, CLI, MCP agents) can reuse domain layer
+5. **Enforcement**: ESLint rules (`no-direct-secret-access`, `telemetry-event-membership`) back these boundaries
+
+### Verification
+
+A boundary test in `test/packageBoundary.test.ts` scans for disallowed imports. Run via:
+
+```bash
+npm test
+```
+
+Any violations will fail CI.
+
 ## Versioning
 
 Semantic Versioning (SemVer) will be followed beginning with the first tagged release after stabilization. Pre-1.0 minor versions may contain limited breaking changes; these will be noted in CHANGELOG (to be added when external consumption begins).
-
-## Migration from `@atlas/shared`
-
-If you previously imported:
-
-```ts
-import { something } from '@atlas/shared'
-```
-
-Update to:
-
-```ts
-import { something } from '@piquet-h/shared'
-```
-
-No other changes required. The code artifacts are identical for version `0.1.0`.
 
 ## Future Scope Migration
 
