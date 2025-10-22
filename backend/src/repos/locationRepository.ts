@@ -27,6 +27,8 @@ export interface ILocationRepository {
         exitsSkipped: number
         reciprocalApplied: number
     }>
+    /** Update the exits summary cache for a location. Returns whether the cache was updated. */
+    updateExitsSummaryCache(locationId: string, cache: string): Promise<{ updated: boolean }>
 }
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
@@ -147,6 +149,13 @@ class InMemoryLocationRepository implements ILocationRepository {
 
         return { exitsCreated, exitsSkipped, reciprocalApplied }
     }
+
+    async updateExitsSummaryCache(locationId: string, cache: string) {
+        const location = this.locations.get(locationId)
+        if (!location) return { updated: false }
+        location.exitsSummaryCache = cache
+        return { updated: true }
+    }
 }
 
 let singleton: ILocationRepository | undefined
@@ -188,6 +197,10 @@ export async function getLocationRepository(): Promise<ILocationRepository> {
                     async applyExits(exits) {
                         const repo = new CosmosLocationRepository(await pending)
                         return repo.applyExits(exits)
+                    },
+                    async updateExitsSummaryCache(locationId, cache) {
+                        const repo = new CosmosLocationRepository(await pending)
+                        return repo.updateExitsSummaryCache(locationId, cache)
                     }
                 }
                 singleton = proxy

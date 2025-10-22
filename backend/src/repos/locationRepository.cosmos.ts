@@ -35,7 +35,8 @@ export class CosmosLocationRepository implements ILocationRepository {
             description: firstScalar(v.description) || '',
             exits,
             tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
-            version: typeof v.version === 'number' ? v.version : undefined
+            version: typeof v.version === 'number' ? v.version : undefined,
+            exitsSummaryCache: firstScalar(v.exitsSummaryCache) as string | undefined
         }
     }
 
@@ -258,6 +259,15 @@ export class CosmosLocationRepository implements ILocationRepository {
         }
 
         return { exitsCreated, exitsSkipped, reciprocalApplied }
+    }
+
+    async updateExitsSummaryCache(locationId: string, cache: string): Promise<{ updated: boolean }> {
+        try {
+            await this.client.submit("g.V(locationId).property('exitsSummaryCache', cache)", { locationId, cache })
+            return { updated: true }
+        } catch {
+            return { updated: false }
+        }
     }
 }
 
