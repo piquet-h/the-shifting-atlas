@@ -173,7 +173,7 @@ Rationale:
 -   Optimistic concurrency is for content conflicts, not edge conflicts
 -   Exit changes tracked via dedicated telemetry events
 
-See: [`docs/architecture/location-version-policy.md`](./location-version-policy.md)
+See: [`docs/architecture/location-version-policy.md`](../architecture/location-version-policy.md)
 
 ## Idempotency Guarantees
 

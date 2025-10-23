@@ -153,7 +153,7 @@ These are **M1 Traversal** features, intentionally deferred:
 1. **Dual Persistence (Gremlin + SQL)** – Separates immutable world structure (graph) from mutable player state (documents). Reduces cross-partition traversal.
 2. **Telemetry Segregation** – Build automation events (`build.ordering.*`) kept separate from game telemetry to prevent noise and enable distinct audit trails.
 3. **Idempotency First** – Bootstrap, location upsert, and player linking all guarantee no duplicates on retry—critical for distributed system resilience.
-4. **Event-Driven Architecture** – World event queue processor (#101) established; future AI proposals flow through same queue.
+4. **Event-Driven Architecture** – World event queue processor (#101) established; future AI proposals flow through same queue. See [World Event Contract](../architecture/world-event-contract.md) for envelope specification and implementation details.
 
 ## Documentation Updated
 
