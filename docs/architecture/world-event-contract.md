@@ -145,6 +145,15 @@ Rollback: Re-enable inline apply path; processor continues (duplicate detection 
 
 Success Criteria: Zero drift events (no mismatched mutations), latency impact acceptable (< predefined threshold), and idempotency duplicates below target rate.
 
+## Related Documentation
+
+-   [Architecture Overview](./overview.md) – High-level architecture context and implementation mapping
+-   [Agentic AI & Model Context Protocol](./agentic-ai-and-mcp.md) – AI integration using MCP tooling with world events
+-   [M0 Closure Summary](../milestones/M0-closure-summary.md) – M0 Foundation milestone completion (world event infrastructure)
+-   [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
+-   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
+-   [Observability](../observability.md) – Telemetry framework and event tracking
+
 ---
 
 **Status Evolution**: This contract graduated from DRAFT to IMPLEMENTED (2025-10-22) with the landing of the queue-triggered processor supporting multiple event type validations (6 initial types in schema) and end-to-end processing with idempotency and telemetry.
