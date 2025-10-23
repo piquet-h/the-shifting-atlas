@@ -348,4 +348,3 @@ test('cosmos location repository - exits summary cache with multiple exits', asy
     // Should be ordered: north, south, east
     assert.equal(retrieved.exitsSummaryCache, 'Exits: north (north gate), south (south door), east')
 })
-

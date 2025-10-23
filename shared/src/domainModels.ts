@@ -161,11 +161,11 @@ export interface InventorySnapshot {
 
 /**
  * Legacy WorldEvent types for SQL API persistence.
- * 
+ *
  * These simple string types ('PlayerMoved', 'LocationDiscovered', etc.) are used for
  * storing event history documents in Cosmos SQL API worldEvents container. They track
  * processing status and support retry logic for persisted event records.
- * 
+ *
  * For async queue-based event processing, use WorldEventEnvelope from events/worldEventSchema.ts
  * which has namespaced types like 'Player.Move' and full idempotency/traceability support.
  */
@@ -179,14 +179,14 @@ export type WorldEventStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed'
 
 /**
  * Legacy WorldEvent interface for SQL API persistence.
- * 
+ *
  * This model is used for storing event history documents in Cosmos SQL API worldEvents container.
  * It tracks processing status, supports scheduled events, and maintains retry counters.
- * 
+ *
  * For async queue-based world evolution, use WorldEventEnvelope from events/worldEventSchema.ts
  * which provides Zod validation, idempotency keys, actor envelopes, and correlation/causation chains.
  * See docs/architecture/world-event-contract.md for the authoritative queue contract specification.
- * 
+ *
  * Key differences:
  * - WorldEvent: SQL persistence, status tracking, simple type strings ('PlayerMoved')
  * - WorldEventEnvelope: Queue contract, Zod validation, namespaced types ('Player.Move')
@@ -213,7 +213,7 @@ export interface WorldEvent<TPayload = unknown> {
 
 /**
  * Type guard for legacy SQL-persisted WorldEvent types.
- * 
+ *
  * Note: This checks simple types like 'PlayerMoved', 'LocationDiscovered'.
  * For queue envelope types like 'Player.Move', 'World.Exit.Create', use
  * WorldEventTypeSchema from events/worldEventSchema.ts instead.

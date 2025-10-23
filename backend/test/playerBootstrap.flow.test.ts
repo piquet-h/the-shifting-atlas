@@ -71,9 +71,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
         const first = await playerBootstrap(makeHttpRequest())
         const guid = (first.jsonBody as any).data.playerGuid as string
         __resetPlayerRepositoryForTests()
-        const responses = await Promise.all(
-            Array.from({ length: 5 }, () => playerBootstrap(makeHttpRequest({ playerGuidHeader: guid })))
-        )
+        const responses = await Promise.all(Array.from({ length: 5 }, () => playerBootstrap(makeHttpRequest({ playerGuidHeader: guid }))))
         for (const r of responses) {
             const data = (r.jsonBody as any).data
             assert.strictEqual(data.playerGuid, guid)

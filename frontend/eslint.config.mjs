@@ -45,5 +45,24 @@ export default [
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'
         }
+    },
+    {
+        files: ['test/**/*.{ts,tsx}'],
+        languageOptions: { parser: tsParser, ecmaVersion: 'latest', sourceType: 'module' },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+            react: reactPlugin,
+            prettier: prettierPlugin
+        },
+        settings: { react: { version: 'detect' } },
+        rules: {
+            ...tsPlugin.configs.recommended.rules,
+            ...reactPlugin.configs.recommended.rules,
+            'react/prop-types': 'off',
+            'react/react-in-jsx-scope': 'off',
+            'react/jsx-uses-react': 'off',
+            '@typescript-eslint/no-explicit-any': 'warn',
+            'prettier/prettier': 'error'
+        }
     }
 ]

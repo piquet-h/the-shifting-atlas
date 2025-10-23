@@ -1,23 +1,23 @@
 /* global process */
 /**
  * Mosswell Concurrency & Idempotency Tests
- * 
- * Test suite ensuring repository operations are concurrency-safe and idempotent to prevent 
+ *
+ * Test suite ensuring repository operations are concurrency-safe and idempotent to prevent
  * race conditions and duplicate data creation.
- * 
+ *
  * Test Strategy:
  * - Uses in-memory persistence mode for fast, isolated test execution
  * - Simulates concurrent operations using Promise.all with multiple parallel calls
  * - Validates idempotency: repeated operations should not create duplicates
  * - Tests high parallelism scenarios (20-100 concurrent operations)
  * - Covers location upserts, exit creation, player creation, and batch operations
- * 
+ *
  * Key Behaviors:
  * - In-memory implementation: Has inherent race conditions (check-then-set not atomic)
  * - Cosmos implementation: Would provide stronger transactional guarantees
  * - Tests document actual behavior vs. ideal transactional behavior
  * - Telemetry: Only emitted in Cosmos mode, not in-memory mode
- * 
+ *
  * Acceptance Criteria Met:
  * ✓ Concurrency test harness simulating parallel creates
  * ✓ Assertions for single entity persisted, no duplicates
@@ -25,7 +25,7 @@
  * ✓ Retry path scenarios included
  * ✓ High parallelism edge cases (>20 concurrent ops)
  * ✓ Transient failure handling
- * 
+ *
  * Related:
  * - Issue: piquet-h/the-shifting-atlas#168
  * - Epic: piquet-h/the-shifting-atlas#64
@@ -202,8 +202,14 @@ describe('Mosswell Concurrency - Exit Creation', () => {
         const locA = await locRepo.get('exit-bidir-a')
         const locB = await locRepo.get('exit-bidir-b')
 
-        assert.ok(locA?.exits?.some((e) => e.direction === 'north' && e.to === 'exit-bidir-b'), 'north exit from A to B exists')
-        assert.ok(locB?.exits?.some((e) => e.direction === 'south' && e.to === 'exit-bidir-a'), 'south exit from B to A exists')
+        assert.ok(
+            locA?.exits?.some((e) => e.direction === 'north' && e.to === 'exit-bidir-b'),
+            'north exit from A to B exists'
+        )
+        assert.ok(
+            locB?.exits?.some((e) => e.direction === 'south' && e.to === 'exit-bidir-a'),
+            'south exit from B to A exists'
+        )
     })
 
     test('concurrent different exit directions all succeed', async () => {
@@ -270,14 +276,17 @@ describe('Mosswell Concurrency - Player Creation', () => {
         // This test documents the actual behavior - in production Cosmos mode with proper
         // transactions, only one creation would succeed. In memory mode, all may report created
         // due to the check-then-set race.
-        
+
         const createdCount = results.filter((r) => r.created).length
         assert.ok(createdCount >= 1, 'at least one player creation should report created')
 
         // The key idempotency check: all returned player IDs should match the requested ID
         const ids = results.map((r) => r.record.id)
-        assert.ok(ids.every((id) => id === playerId), 'all returned ids should match the requested player id')
-        
+        assert.ok(
+            ids.every((id) => id === playerId),
+            'all returned ids should match the requested player id'
+        )
+
         // Final state check: the player exists in the repository
         const finalPlayer = await playerRepo.get(playerId)
         assert.ok(finalPlayer, 'player should exist in repository')
@@ -292,7 +301,9 @@ describe('Mosswell Concurrency - Player Creation', () => {
         const promises = Array.from({ length: 20 }, (_, i) => {
             // Generate valid UUID v4 with incrementing values
             const hex = i.toString(16).padStart(2, '0')
-            return playerRepo.getOrCreate(`${hex}${hex}${hex}${hex}-${hex}${hex}-4${hex}${hex}-8${hex}${hex}-${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}`)
+            return playerRepo.getOrCreate(
+                `${hex}${hex}${hex}${hex}-${hex}${hex}-4${hex}${hex}-8${hex}${hex}-${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}${hex}`
+            )
         })
         const results = await Promise.all(promises)
 
@@ -320,14 +331,17 @@ describe('Mosswell Concurrency - Player Creation', () => {
         // Note: In-memory implementation has a race condition for concurrent access
         // This test documents the actual behavior - in production with proper transactions,
         // only one creation would succeed.
-        
+
         const createdCount = results.filter((r) => r.created).length
         assert.ok(createdCount >= 1, 'at least one player creation should report created with high parallelism')
 
         // The key idempotency check: all returned player IDs should match the requested ID
         const ids = results.map((r) => r.record.id)
-        assert.ok(ids.every((id) => id === playerId), 'all returned ids should match the requested player id')
-        
+        assert.ok(
+            ids.every((id) => id === playerId),
+            'all returned ids should match the requested player id'
+        )
+
         // Final state check: the player exists
         const finalPlayer = await playerRepo.get(playerId)
         assert.ok(finalPlayer, 'player should exist')
@@ -393,7 +407,10 @@ describe('Mosswell Concurrency - Telemetry Verification', () => {
 
         // Verify all operations completed successfully
         assert.equal(results.length, 5, 'all 5 upsert operations completed')
-        assert.ok(results.every((r) => r.id === locationId), 'all operations returned the correct location id')
+        assert.ok(
+            results.every((r) => r.id === locationId),
+            'all operations returned the correct location id'
+        )
 
         // Verify exactly one reported created
         const createdCount = results.filter((r) => r.created).length
@@ -516,7 +533,10 @@ describe('Mosswell Concurrency - Edge Cases', () => {
         assert.ok(target, 'target location should exist')
 
         // Exit should exist (ensureExit creates vertices if needed)
-        assert.ok(loc.exits?.some((e) => e.direction === 'north'), 'exit should exist')
+        assert.ok(
+            loc.exits?.some((e) => e.direction === 'north'),
+            'exit should exist'
+        )
     })
 
     test('concurrent remove and create of same exit', async () => {

@@ -3,14 +3,14 @@ import { test } from 'node:test'
 
 /**
  * Tests for Exit Graph Consistency Scanner
- * 
+ *
  * Uses synthetic in-memory graph fixtures to verify scanner logic.
  */
 
 // Mock Gremlin client for testing
 class MockGremlinClient {
     constructor(private fixtures) {}
-    
+
     async submit(query) {
         if (query.includes("hasLabel('location')")) {
             return this.fixtures.locations
@@ -24,14 +24,8 @@ class MockGremlinClient {
 
 // Mock scanner function that works with fixtures
 async function scanGraphConsistencyWithMock(fixtures, seedLocations = []) {
-    const SEED_LOCATION_IDS = new Set([
-        'village-square',
-        'spawn',
-        'start',
-        'entrance',
-        ...seedLocations
-    ])
-    
+    const SEED_LOCATION_IDS = new Set(['village-square', 'spawn', 'start', 'entrance', ...seedLocations])
+
     const scannedAt = new Date().toISOString()
     const results = {
         scannedAt,
@@ -44,28 +38,28 @@ async function scanGraphConsistencyWithMock(fixtures, seedLocations = []) {
         danglingExits: [],
         orphanLocations: []
     }
-    
+
     const locations = fixtures.locations
     results.summary.totalLocations = locations.length
-    
+
     if (locations.length === 0) {
         return results
     }
-    
-    const locationIds = new Set(locations.map(loc => String(loc.id)))
+
+    const locationIds = new Set(locations.map((loc) => String(loc.id)))
     const locationsWithConnections = new Set()
-    
+
     const exits = fixtures.exits
     results.summary.totalExits = exits.length
-    
+
     for (const exit of exits) {
         const fromId = String(exit.from)
         const toId = String(exit.to)
         const direction = String(exit.direction)
-        
+
         locationsWithConnections.add(fromId)
         locationsWithConnections.add(toId)
-        
+
         if (!locationIds.has(toId)) {
             results.danglingExits.push({
                 fromLocationId: fromId,
@@ -75,12 +69,12 @@ async function scanGraphConsistencyWithMock(fixtures, seedLocations = []) {
             })
         }
     }
-    
+
     results.summary.danglingExitsCount = results.danglingExits.length
-    
+
     for (const loc of locations) {
         const locationId = String(loc.id)
-        
+
         if (!locationsWithConnections.has(locationId) && !SEED_LOCATION_IDS.has(locationId)) {
             results.orphanLocations.push({
                 id: locationId,
@@ -89,9 +83,9 @@ async function scanGraphConsistencyWithMock(fixtures, seedLocations = []) {
             })
         }
     }
-    
+
     results.summary.orphanLocationsCount = results.orphanLocations.length
-    
+
     return results
 }
 
@@ -100,9 +94,9 @@ test('scanner - empty graph returns zero counts', async () => {
         locations: [],
         exits: []
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.totalLocations, 0)
     assert.equal(results.summary.totalExits, 0)
     assert.equal(results.summary.danglingExitsCount, 0)
@@ -113,16 +107,14 @@ test('scanner - empty graph returns zero counts', async () => {
 
 test('scanner - detects dangling exit to non-existent location', async () => {
     const fixtures = {
-        locations: [
-            { id: 'A', name: ['Location A'], tags: [] }
-        ],
+        locations: [{ id: 'A', name: ['Location A'], tags: [] }],
         exits: [
             { id: 'edge1', from: 'A', to: 'B', direction: 'north' } // B doesn't exist
         ]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.danglingExitsCount, 1)
     assert.equal(results.danglingExits.length, 1)
     assert.equal(results.danglingExits[0].fromLocationId, 'A')
@@ -141,9 +133,9 @@ test('scanner - all reciprocal exits produce no false positives', async () => {
             { id: 'edge2', from: 'B', to: 'A', direction: 'south' }
         ]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.danglingExitsCount, 0)
     assert.equal(results.danglingExits.length, 0)
 })
@@ -155,13 +147,11 @@ test('scanner - detects orphan location not in seed list', async () => {
             { id: 'B', name: ['Location B'], tags: [] },
             { id: 'orphan', name: ['Orphaned Room'], tags: ['isolated'] }
         ],
-        exits: [
-            { id: 'edge1', from: 'A', to: 'B', direction: 'north' }
-        ]
+        exits: [{ id: 'edge1', from: 'A', to: 'B', direction: 'north' }]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.orphanLocationsCount, 1)
     assert.equal(results.orphanLocations.length, 1)
     assert.equal(results.orphanLocations[0].id, 'orphan')
@@ -176,9 +166,9 @@ test('scanner - seed locations not flagged as orphans', async () => {
         ],
         exits: []
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     // spawn is in default seed list, A is not
     assert.equal(results.summary.orphanLocationsCount, 1)
     assert.equal(results.orphanLocations[0].id, 'A')
@@ -186,32 +176,28 @@ test('scanner - seed locations not flagged as orphans', async () => {
 
 test('scanner - custom seed locations respected', async () => {
     const fixtures = {
-        locations: [
-            { id: 'custom-start', name: ['Custom Start'], tags: [] }
-        ],
+        locations: [{ id: 'custom-start', name: ['Custom Start'], tags: [] }],
         exits: []
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures, ['custom-start'])
-    
+
     // Should not be flagged as orphan
     assert.equal(results.summary.orphanLocationsCount, 0)
 })
 
 test('scanner - multiple dangling exits detected', async () => {
     const fixtures = {
-        locations: [
-            { id: 'A', name: ['Location A'], tags: [] }
-        ],
+        locations: [{ id: 'A', name: ['Location A'], tags: [] }],
         exits: [
             { id: 'edge1', from: 'A', to: 'B', direction: 'north' },
             { id: 'edge2', from: 'A', to: 'C', direction: 'east' },
             { id: 'edge3', from: 'A', to: 'D', direction: 'south' }
         ]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.danglingExitsCount, 3)
     assert.equal(results.danglingExits.length, 3)
 })
@@ -223,14 +209,14 @@ test('scanner - mixed valid and dangling exits', async () => {
             { id: 'B', name: ['Location B'], tags: [] }
         ],
         exits: [
-            { id: 'edge1', from: 'A', to: 'B', direction: 'north' },  // Valid
-            { id: 'edge2', from: 'A', to: 'C', direction: 'east' },   // Dangling
-            { id: 'edge3', from: 'B', to: 'A', direction: 'south' }   // Valid
+            { id: 'edge1', from: 'A', to: 'B', direction: 'north' }, // Valid
+            { id: 'edge2', from: 'A', to: 'C', direction: 'east' }, // Dangling
+            { id: 'edge3', from: 'B', to: 'A', direction: 'south' } // Valid
         ]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.totalExits, 3)
     assert.equal(results.summary.danglingExitsCount, 1)
     assert.equal(results.danglingExits[0].toLocationId, 'C')
@@ -242,13 +228,11 @@ test('scanner - locations with only outbound connections not orphans', async () 
             { id: 'A', name: ['Location A'], tags: [] },
             { id: 'B', name: ['Location B'], tags: [] }
         ],
-        exits: [
-            { id: 'edge1', from: 'A', to: 'B', direction: 'north' }
-        ]
+        exits: [{ id: 'edge1', from: 'A', to: 'B', direction: 'north' }]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     // Both A and B have connections (A outbound, B inbound)
     assert.equal(results.summary.orphanLocationsCount, 0)
 })
@@ -265,9 +249,9 @@ test('scanner - summary counts match detail arrays', async () => {
             { id: 'edge2', from: 'A', to: 'missing2', direction: 'east' }
         ]
     }
-    
+
     const results = await scanGraphConsistencyWithMock(fixtures)
-    
+
     assert.equal(results.summary.danglingExitsCount, results.danglingExits.length)
     assert.equal(results.summary.orphanLocationsCount, results.orphanLocations.length)
     assert.equal(results.danglingExits.length, 2)

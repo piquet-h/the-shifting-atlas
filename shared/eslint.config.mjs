@@ -34,5 +34,18 @@ export default [
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'
         }
+    },
+    {
+        files: ['test/**/*.ts'],
+        languageOptions: { parser: tsParser, ecmaVersion: 'latest', sourceType: 'module' },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+            prettier: prettierPlugin
+        },
+        rules: {
+            ...tsPlugin.configs.recommended.rules,
+            '@typescript-eslint/no-explicit-any': 'warn',
+            'prettier/prettier': 'error'
+        }
     }
 ]

@@ -164,7 +164,7 @@ describe('Mosswell Bootstrap - Data Integrity', () => {
         // This test verifies the version is processed and not lost during seeding
         // We use a location from the default dataset to avoid reset issues
         __resetSeedWorldTestState()
-        
+
         const blueprint: Location[] = [
             {
                 id: 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21', // Mosswell River Jetty
@@ -176,11 +176,11 @@ describe('Mosswell Bootstrap - Data Integrity', () => {
         ]
 
         await seedWorld({ blueprint, demoPlayerId: 'iiiiiiii-iiii-4iii-8iii-iiiiiiiiiiii' })
-        
+
         const { getLocationRepository } = await import('../src/repos/locationRepository.js')
         const locRepo = await getLocationRepository()
         const loc = await locRepo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
-        
+
         assert.ok(loc, 'location exists')
         assert.ok(loc.version !== undefined, 'version is preserved')
         // Note: version might be incremented by upsert logic, but it should exist
