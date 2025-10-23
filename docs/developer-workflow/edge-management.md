@@ -247,9 +247,14 @@ npm test
 
 ## Future Enhancements
 
-### Player-Location Edges (Issue #103 - Closed)
+### Player-Location Edges
 
-Player persistence enhancement has been implemented. Future work will add `(player)-[:in]->(location)` edges alongside scalar `currentLocationId` field. See: [`docs/adr/ADR-003-player-location-edge-groundwork.md`](../adr/ADR-003-player-location-edge-groundwork.md)
+Player position migration from scalar `currentLocationId` to graph edges `(player)-[:in]->(location)` is fully designed. Implementation will follow the four-phase strategy documented in [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md), leveraging the same patterns established for exit edge management.
+
+**Key documents:**
+
+-   [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md) – Complete migration strategy
+-   [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Historical context (superseded)
 
 ### Exit Metadata
 
@@ -264,19 +269,18 @@ Potential extensions:
 
 Future automated checks:
 
-<!-- Removed scheduled CI/CD validation bullet (avoid duplicating workflow intent). -->
-
 -   Alert on dangling exit rate > threshold
 -   Auto-cleanup of orphan locations (with approval workflow)
 
 ## References
 
--   ADR-002: Graph Partition Strategy
--   ADR-003: Player-Location Edge Groundwork
--   Issue #100 (closed): Location Persistence
--   Issue #103 (closed): Player Persistence Enhancement
--   Issue #112 (closed): Location Edge Management (this document)
+-   [Exit Edge Invariants](../architecture/exits.md) – Concise invariants reference
+-   [Player-Location Edge Migration](../architecture/player-location-edge-migration.md) – Future player edge strategy
+-   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
+-   [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) (superseded)
+-   Issue #117: Epic - Location Edge Management
+-   Issue #131: Player-Location Edge Migration Design
 
 ---
 
-Last Updated: 2025-01-15
+Last Updated: 2025-10-23

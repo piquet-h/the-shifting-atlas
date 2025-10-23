@@ -161,19 +161,19 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ## Implementation to Design Mapping
 
-| Implementation File | Design Documentation | Notes |
-|---------------------|----------------------|-------|
-| `backend/src/functions/ping.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness) | Service liveness health check |
-| `backend/src/functions/bootstrapPlayer.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap) | Idempotent player creation |
-| `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md) | Queue-triggered event processor |
-| `backend/src/functions/playerMove.ts` | [Navigation & Traversal](../modules/navigation-and-traversal.md) | Movement command handler |
-| `backend/src/functions/locationLook.ts` | [Exits](./exits.md), [Direction Resolution](./direction-resolution-rules.md) | Location inspection command |
-| `backend/src/functions/linkRooms.ts` | [Exit Edge Management](../developer-workflow/edge-management.md) | Room connection utility |
-| `backend/src/functions/getExits.ts` | [Exits](./exits.md) | Exit retrieval endpoint |
-| `shared/src/telemetry.ts` | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold) | Canonical telemetry framework |
-| `backend/src/repos/locationRepository.ts` | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md) | Location persistence abstraction |
-| `backend/src/repos/playerRepository.ts` | [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) | Player persistence abstraction |
-| `backend/src/repos/exitRepository.ts` | [Exits](./exits.md), [Edge Management](../developer-workflow/edge-management.md) | Exit edge persistence |
+| Implementation File                               | Design Documentation                                                                                                                             | Notes                            |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| `backend/src/functions/ping.ts`                   | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness)                                                                  | Service liveness health check    |
+| `backend/src/functions/bootstrapPlayer.ts`        | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap)                                                                   | Idempotent player creation       |
+| `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md)                                                                                                | Queue-triggered event processor  |
+| `backend/src/functions/playerMove.ts`             | [Navigation & Traversal](../modules/navigation-and-traversal.md)                                                                                 | Movement command handler         |
+| `backend/src/functions/locationLook.ts`           | [Exits](./exits.md), [Direction Resolution](./direction-resolution-rules.md)                                                                     | Location inspection command      |
+| `backend/src/functions/linkRooms.ts`              | [Exit Edge Management](../developer-workflow/edge-management.md)                                                                                 | Room connection utility          |
+| `backend/src/functions/getExits.ts`               | [Exits](./exits.md)                                                                                                                              | Exit retrieval endpoint          |
+| `shared/src/telemetry.ts`                         | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold)                                       | Canonical telemetry framework    |
+| `backend/src/repos/locationRepository.ts`         | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md)                              | Location persistence abstraction |
+| `backend/src/repos/playerRepository.ts`           | [Player-Location Edge Migration](./player-location-edge-migration.md), [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) (superseded) | Player persistence abstraction   |
+| `backend/src/repos/exitRepository.ts`             | [Exits](./exits.md), [Edge Management](../developer-workflow/edge-management.md)                                                                 | Exit edge persistence            |
 
 ## Related Docs
 
@@ -188,7 +188,8 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 -   `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
 -   `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
 -   `../adr/ADR-001-mosswell-persistence-layering.md` – Mosswell persistence (includes partition strategy appendix)
--   `../adr/ADR-003-player-location-edge-groundwork.md` – Player-location edge migration design
+-   `../adr/ADR-003-player-location-edge-groundwork.md` – Historical player edge groundwork (superseded by player-location-edge-migration.md)
+-   `./player-location-edge-migration.md` – Complete player-location edge migration strategy
 -   `../milestones/M0-closure-summary.md` – M0 Foundation milestone completion
 -   `../developer-workflow/edge-management.md` – Exit edge management workflow
 
