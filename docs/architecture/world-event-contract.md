@@ -1,28 +1,27 @@
-# World Event Contract (Draft Spec)
+# World Event Contract
 
-> Status (2025-10-03): DRAFT. No queue-triggered processors exist yet. This contract SHOULD guide any interim HTTP-based simulations so the eventual queue cutover is mechanical.
+> Status (2025-10-22): IMPLEMENTED. Queue-triggered processor, envelope validation, and idempotency handling are now operational. See Implementation section below for code references.
 
 ## Purpose
 
 Provide a stable envelope + minimal semantic fields for all asynchronous world evolution operations (player actions, NPC ticks, system timers, AI proposals accepted after validation). Ensures idempotency, traceability, and correlation across processors.
 
-## Relationship to WorldEvent Interface
+## Implementation
 
-This document defines **WorldEventEnvelope** (implemented in `shared/src/events/worldEventSchema.ts`), the authoritative contract for queue-based async world evolution.
+The World Event Contract is now implemented with full queue processing capabilities:
 
-There is a separate **WorldEvent** interface in `shared/src/domainModels.ts` used for SQL persistence of event history documents. These models serve different purposes:
+-   **Schema Validation**: [`shared/src/events/worldEventSchema.ts`](../../shared/src/events/worldEventSchema.ts) — Zod schemas for envelope validation, actor types, and event type namespace
+-   **Queue Processor**: [`backend/src/functions/queueProcessWorldEvent.ts`](../../backend/src/functions/queueProcessWorldEvent.ts) — Async world event processor with idempotency enforcement and telemetry
+-   **Test Coverage**: [`backend/test/worldEventProcessor.test.ts`](../../backend/test/worldEventProcessor.test.ts) — Comprehensive tests covering valid events, schema validation, idempotency, and edge cases
 
-| Aspect | WorldEventEnvelope (this spec) | WorldEvent (domainModels.ts) |
-|--------|-------------------------------|------------------------------|
-| Purpose | Queue contract for async processing | SQL persistence of event history |
-| Validation | Zod schema | TypeScript types only |
-| Type Format | Namespaced ('Player.Move', 'World.Exit.Create') | Simple strings ('PlayerMoved', 'LocationDiscovered') |
-| Status Tracking | Not included (queue delivery guarantees) | Explicit status (Pending, Processing, Completed, Failed) |
-| Idempotency | idempotencyKey field + processor cache | Retry attempt counter |
-| Actor Model | Actor envelope (kind + id) | Implicit in payload |
-| Causation | causationId for event chains | Not supported |
+**Telemetry Events Emitted:**
 
-Both models may coexist: WorldEventEnvelope for queue processing, WorldEvent documents for persisting completed event history to Cosmos SQL API worldEvents container.
+-   `World.Event.Processed` — Emitted when event is successfully processed (includes latency, correlation/causation IDs)
+-   `World.Event.Duplicate` — Emitted when duplicate event is detected via idempotency key (skip processing)
+
+See [`shared/src/telemetryEvents.ts`](../../shared/src/telemetryEvents.ts) for canonical event name definitions.
+
+**M0 Foundation Milestone**: This implementation completed the core event processing infrastructure, documented in the M0 closure summary (Epic [#89](https://github.com/piquet-h/the-shifting-atlas/issues/89)).
 
 ## Envelope Shape
 
@@ -121,6 +120,16 @@ Dead-letter payloads MUST include original envelope plus validation error summar
 
 ## Open Questions
 
+-   Should we encode shard / partition hints in the envelope for future horizontal scaling?
+-   Need a policy for redaction of sensitive player data before dead-letter storage.
+
+**Resolved (implemented in current code):**
+
+-   ✅ Envelope structure — Now defined in Zod schema (`worldEventSchema.ts`)
+-   ✅ Idempotency strategy — In-memory cache with TTL and FIFO eviction implemented
+-   ✅ Error handling — Validation failures logged; placeholder for future dead-letter mode
+-   ✅ Telemetry correlation — `correlationId` and `causationId` propagated through processing
+
 ## Queue Cutover Checklist (Direct Writes → Event Processing)
 
 Mechanical steps to transition from synchronous HTTP persistence to queued world event processing without semantic drift:
@@ -136,16 +145,6 @@ Rollback: Re-enable inline apply path; processor continues (duplicate detection 
 
 Success Criteria: Zero drift events (no mismatched mutations), latency impact acceptable (< predefined threshold), and idempotency duplicates below target rate.
 
--   Should we encode shard / partition hints in the envelope for future horizontal scaling?
--   Need a policy for redaction of sensitive player data before dead-letter storage.
-
-## Related Documentation
-
--   [Architecture Overview](./overview.md) – High-level event-driven architecture context
--   [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) – AI proposal flow through world events
--   [M0 Closure Summary](../milestones/M0-closure-summary.md) – World Event Queue Processor implementation (#101 closed)
--   [Ambiguities](../ambiguities.md) – World Event Queue Cutover timeline and triggers
-
 ---
 
-This draft will graduate to STABLE once the first queue-triggered processor lands and at least two distinct `type` schemas are exercised end-to-end.
+**Status Evolution**: This contract graduated from DRAFT to IMPLEMENTED (2025-10-22) with the landing of the queue-triggered processor supporting multiple event type validations (6 initial types in schema) and end-to-end processing with idempotency and telemetry.
