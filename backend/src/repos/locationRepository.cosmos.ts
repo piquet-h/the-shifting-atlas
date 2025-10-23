@@ -1,4 +1,4 @@
-import { ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import crypto from 'crypto'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
@@ -28,7 +28,7 @@ export class CosmosLocationRepository implements ILocationRepository {
         const exits: ExitEdge[] = (exitsRaw || []).map((e: Record<string, unknown>) => ({
             fromLocationId: locationId,
             toLocationId: String(e.to as string),
-            direction: String(e.direction as string) as any,
+            direction: String(e.direction as string) as Direction,
             description: e.description ? String(e.description as string) : undefined,
             blocked: e.blocked ? Boolean(e.blocked) : undefined
         }))

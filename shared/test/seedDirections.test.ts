@@ -42,6 +42,7 @@ test('seedDirections: all exits use canonical directions', () => {
 
 test('seedDirections: direction list includes expected baseline', () => {
     for (const d of ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out']) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         assert.ok(DIRECTIONS.includes(d as any), `Missing baseline direction ${d}`)
     }
 })

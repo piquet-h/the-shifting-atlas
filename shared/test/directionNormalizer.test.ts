@@ -47,6 +47,7 @@ const relativeMatrix: RelativeExpectation[] = [
 for (const { heading, expected } of relativeMatrix) {
     for (const rel of Object.keys(expected) as (keyof typeof expected)[]) {
         test(`resolveRelativeDirection: ${rel} from ${heading}`, () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             assert.equal(resolveRelativeDirection(rel, heading as any), expected[rel])
         })
     }

@@ -7,27 +7,55 @@ import { test } from 'node:test'
  * Uses synthetic in-memory graph fixtures to verify scanner logic.
  */
 
-// Mock Gremlin client for testing
-class MockGremlinClient {
-    constructor(private fixtures) {}
+interface Location {
+    id: string
+    name: string | string[]
+    tags?: string[]
+}
 
-    async submit(query) {
-        if (query.includes("hasLabel('location')")) {
-            return this.fixtures.locations
-        }
-        if (query.includes("hasLabel('exit')")) {
-            return this.fixtures.exits
-        }
-        return []
+interface Exit {
+    id: string
+    from: string
+    to: string
+    direction: string
+}
+
+interface GraphFixtures {
+    locations: Location[]
+    exits: Exit[]
+}
+
+interface DanglingExit {
+    fromLocationId: string
+    toLocationId: string
+    direction: string
+    edgeId: string
+}
+
+interface OrphanLocation {
+    id: string
+    name: string
+    tags: string[]
+}
+
+interface ScanResults {
+    scannedAt: string
+    summary: {
+        totalLocations: number
+        totalExits: number
+        danglingExitsCount: number
+        orphanLocationsCount: number
     }
+    danglingExits: DanglingExit[]
+    orphanLocations: OrphanLocation[]
 }
 
 // Mock scanner function that works with fixtures
-async function scanGraphConsistencyWithMock(fixtures, seedLocations = []) {
+async function scanGraphConsistencyWithMock(fixtures: GraphFixtures, seedLocations: string[] = []): Promise<ScanResults> {
     const SEED_LOCATION_IDS = new Set(['village-square', 'spawn', 'start', 'entrance', ...seedLocations])
 
     const scannedAt = new Date().toISOString()
-    const results = {
+    const results: ScanResults = {
         scannedAt,
         summary: {
             totalLocations: 0,

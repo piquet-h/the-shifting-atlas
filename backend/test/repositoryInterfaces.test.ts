@@ -4,11 +4,10 @@ import { describe, test } from 'node:test'
 import {
     __resetDescriptionRepositoryForTests,
     getDescriptionRepository,
-    type IDescriptionRepository,
     type DescriptionLayer
 } from '../src/repos/descriptionRepository.js'
-import { __resetLocationRepositoryForTests, getLocationRepository, type ILocationRepository } from '../src/repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository, type IPlayerRepository } from '../src/repos/playerRepository.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
 
 process.env.PERSISTENCE_MODE = 'memory'
 

@@ -138,11 +138,13 @@ test('generateExitsSummary: single unblocked exit among blocked', () => {
 // Edge cases
 // ---------------------------------------------------------------------------
 test('generateExitsSummary: undefined exits array', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = generateExitsSummary(undefined as any)
     assert.equal(result, 'No visible exits')
 })
 
 test('generateExitsSummary: null exits array', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = generateExitsSummary(null as any)
     assert.equal(result, 'No visible exits')
 })

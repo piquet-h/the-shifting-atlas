@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Player Bootstrap Flow Tests (Envelope Variant)
  * Ensures bootstrap returns ApiSuccessEnvelope with expected data fields.

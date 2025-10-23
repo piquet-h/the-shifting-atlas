@@ -1,4 +1,4 @@
-import { getOppositeDirection, isDirection, Location, ExitEdge, generateExitsSummary } from '@piquet-h/shared'
+import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { createGremlinClient } from '../gremlin/gremlinClient.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
@@ -50,7 +50,7 @@ class InMemoryLocationRepository implements ILocationRepository {
             location.exits?.map((e) => ({
                 fromLocationId: locationId,
                 toLocationId: e.to || '',
-                direction: e.direction as any,
+                direction: e.direction as Direction,
                 description: e.description
             })) || []
 

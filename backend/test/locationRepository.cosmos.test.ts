@@ -284,6 +284,7 @@ test('cosmos location repository upsert - validation error for missing fields', 
     }
 
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await repo.upsert(invalidLocation as any)
         assert.fail('Should have thrown validation error')
     } catch (error) {

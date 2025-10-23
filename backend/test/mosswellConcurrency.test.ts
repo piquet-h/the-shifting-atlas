@@ -31,11 +31,11 @@
  * - Epic: piquet-h/the-shifting-atlas#64
  * - ADR-001: Mosswell Persistence & Tokenless Description Layering
  */
+import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
-import type { Location } from '@piquet-h/shared'
 
 process.env.PERSISTENCE_MODE = 'memory'
 
@@ -559,7 +559,6 @@ describe('Mosswell Concurrency - Edge Cases', () => {
 
         // Exit should exist (at least one creation should have succeeded)
         const loc = await locRepo.get('edge-rm-from')
-        const hasExit = loc?.exits?.some((e) => e.direction === 'up')
 
         // Either 0 or 1 exit is acceptable depending on operation order
         assert.ok(loc?.exits !== undefined, 'exits array should exist')

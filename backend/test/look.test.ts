@@ -1,7 +1,7 @@
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { generateExitsSummaryCache, ExitEdgeResult } from '../src/repos/exitRepository.js'
+import { ExitEdgeResult, generateExitsSummaryCache } from '../src/repos/exitRepository.js'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
 
 test('generateExitsSummaryCache - with multiple exits', () => {
@@ -91,11 +91,10 @@ test('LOOK command flow - cache miss and regeneration', async () => {
 
     // Get fresh copy without cache
     const locationWithoutCache = await repo.get(STARTER_LOCATION_ID)
-    const hadNoCache = !locationWithoutCache?.exitsSummaryCache
 
     // Generate cache from exits
     const exitEdges: ExitEdgeResult[] = (locationWithoutCache?.exits || []).map((e) => ({
-        direction: e.direction as any,
+        direction: e.direction as Direction,
         toLocationId: e.to || '',
         description: e.description
     }))
@@ -119,7 +118,7 @@ test('LOOK command flow - repeated LOOK returns cache', async () => {
     assert.ok(location1, 'Location should exist')
 
     const exitEdges: ExitEdgeResult[] = (location1.exits || []).map((e) => ({
-        direction: e.direction as any,
+        direction: e.direction as Direction,
         toLocationId: e.to || '',
         description: e.description
     }))

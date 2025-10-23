@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Tests for World Event Queue Processor
  */
 import assert from 'node:assert'
-import { describe, test, beforeEach } from 'node:test'
-import { queueProcessWorldEvent, __resetIdempotencyCacheForTests } from '../src/functions/queueProcessWorldEvent.js'
+import { beforeEach, describe, test } from 'node:test'
+import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../src/functions/queueProcessWorldEvent.js'
 import { mockInvocationContext } from './helpers/testUtils.js'
 
 // Helper to create valid world event envelope

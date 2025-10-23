@@ -1,8 +1,8 @@
 /* global process */
+import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { __resetSeedWorldTestState, seedWorld, type SeedWorldOptions } from '../src/seeding/seedWorld.js'
-import type { Location } from '@piquet-h/shared'
+import { __resetSeedWorldTestState, seedWorld } from '../src/seeding/seedWorld.js'
 
 process.env.PERSISTENCE_MODE = 'memory'
 
@@ -96,7 +96,7 @@ describe('Mosswell Bootstrap - Partial Seed Edge Cases', () => {
         const playerId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
 
         // First seed creates player
-        const first = await seedWorld({ demoPlayerId: playerId, blueprint: [] })
+        await seedWorld({ demoPlayerId: playerId, blueprint: [] })
 
         // Second seed with same player id should not recreate
         const second = await seedWorld({ demoPlayerId: playerId, blueprint: [] })
@@ -151,7 +151,7 @@ describe('Mosswell Bootstrap - Data Integrity', () => {
 
     test('seedWorld creates exits for interconnected locations', async () => {
         __resetSeedWorldTestState()
-        const result = await seedWorld({ demoPlayerId: 'hhhhhhhh-hhhh-4hhh-8hhh-hhhhhhhhhhhh' })
+        await seedWorld({ demoPlayerId: 'hhhhhhhh-hhhh-4hhh-8hhh-hhhhhhhhhhhh' })
 
         const { getLocationRepository } = await import('../src/repos/locationRepository.js')
         const locRepo = await getLocationRepository()

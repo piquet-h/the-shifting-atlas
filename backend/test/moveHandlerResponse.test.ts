@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import assert from 'node:assert'
 import { test } from 'node:test'
 import type { MoveResult } from '../src/functions/moveHandlerCore.js'

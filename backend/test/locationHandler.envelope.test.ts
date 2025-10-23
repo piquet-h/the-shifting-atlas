@@ -1,4 +1,5 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import assert from 'node:assert'
 import { test } from 'node:test'
 import { getLocationHandler } from '../src/functions/location.handler.js'

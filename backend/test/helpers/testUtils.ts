@@ -28,7 +28,7 @@ export function makePrincipalPayload(
 }
 
 /** Build a move request-like object used by move handler core tests */
-export function makeMoveRequest(query: Record<string, string>, headers?: Record<string, string>): any {
+export function makeMoveRequest(query: Record<string, string>, headers?: Record<string, string>): unknown {
     return {
         method: 'GET',
         url: 'http://localhost/api/player/move',
@@ -38,7 +38,7 @@ export function makeMoveRequest(query: Record<string, string>, headers?: Record<
 }
 
 /** Build a location request-like object used by location handler tests */
-export function makeLocationRequest(id?: string): any {
+export function makeLocationRequest(id?: string): unknown {
     return {
         method: 'GET',
         url: 'http://localhost/api/location',
@@ -64,25 +64,29 @@ export interface TestInvocationContext {
     getErrors: () => unknown[][]
 }
 
+interface MockCall {
+    arguments: unknown[]
+}
+
 export function mockInvocationContext(): TestInvocationContext {
-    const logFn = mock.fn((..._args: unknown[]) => {})
-    const errorFn = mock.fn((..._args: unknown[]) => {})
-    const warnFn = mock.fn((..._args: unknown[]) => {})
-    const infoFn = mock.fn((..._args: unknown[]) => {})
-    const debugFn = mock.fn((..._args: unknown[]) => {})
-    const traceFn = mock.fn((..._args: unknown[]) => {})
+    const logFn = mock.fn(() => {})
+    const errorFn = mock.fn(() => {})
+    const warnFn = mock.fn(() => {})
+    const infoFn = mock.fn(() => {})
+    const debugFn = mock.fn(() => {})
+    const traceFn = mock.fn(() => {})
 
     return {
-        log: (...args: unknown[]) => logFn(...args),
-        error: (...args: unknown[]) => errorFn(...args),
-        warn: (...args: unknown[]) => warnFn(...args),
-        info: (...args: unknown[]) => infoFn(...args),
-        debug: (...args: unknown[]) => debugFn(...args),
-        trace: (...args: unknown[]) => traceFn(...args),
+        log: logFn,
+        error: errorFn,
+        warn: warnFn,
+        info: infoFn,
+        debug: debugFn,
+        trace: traceFn,
         invocationId: 'test-invocation-id',
         functionName: 'QueueProcessWorldEvent',
-        getLogs: () => logFn.mock.calls.map((c: any) => c.arguments as unknown[]),
-        getErrors: () => errorFn.mock.calls.map((c: any) => c.arguments as unknown[])
+        getLogs: () => logFn.mock.calls.map((c: MockCall) => c.arguments),
+        getErrors: () => errorFn.mock.calls.map((c: MockCall) => c.arguments)
     }
 }
 
@@ -117,7 +121,7 @@ export function mockTelemetry(client: { trackEvent: (payload: { name: string; pr
 }
 
 /** Create a minimal HttpRequest mock for Azure Functions handler testing */
-export function makeHttpRequest(options: { playerGuidHeader?: string; headers?: Map<string, string> } = {}): any {
+export function makeHttpRequest(options: { playerGuidHeader?: string; headers?: Map<string, string> } = {}): unknown {
     const headers = options.headers || new Map<string, string>()
     if (options.playerGuidHeader) headers.set('x-player-guid', options.playerGuidHeader)
     return {
