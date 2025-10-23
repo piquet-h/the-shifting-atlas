@@ -68,6 +68,14 @@ Negative: Known scalability ceiling until migration; potential cross-partition e
 
 Revert constant usage to prior literal `'world'`; no data shape changes required.
 
+## Related Documentation
+
+-   [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model (includes partition strategy appendix)
+-   [ADR-003: Player-Location Edge Groundwork](./ADR-003-player-location-edge-groundwork.md) – Player edge migration design
+-   [Architecture Overview](../architecture/overview.md) – High-level architecture context
+-   [Location Version Policy](../architecture/location-version-policy.md) – Location content versioning rules
+-   [MVP Azure Architecture](../architecture/mvp-azure-architecture.md) – Resource layout and partition strategy references
+
 ---
 
 Accepted 2025-10-03.

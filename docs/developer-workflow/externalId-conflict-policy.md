@@ -110,6 +110,6 @@ Re-linking the same externalId to the same player is treated as a no-op:
 
 ## Related
 
-- Issue #103: Player Persistence Enhancement (foundation)
-- Issue #121: Player Persistence Hardening (this implementation)
+- Issue #103 (closed): Player Persistence Enhancement (foundation)
+- Issue #121 (closed): Player Persistence Hardening (this implementation)
 - ADR-002: Dual Persistence (Cosmos SQL + Gremlin)

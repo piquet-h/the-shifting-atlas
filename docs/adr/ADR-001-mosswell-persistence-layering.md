@@ -73,6 +73,14 @@ Migration steps (export, region mapping, reingest, edge recreation, flip) are de
 
 For the full, living decision record and thresholds, see **ADR-002: Graph Partition Strategy**. This appendix exists to anchor Mosswell persistence documentation and avoid ambiguity for early contributors reviewing only ADR-001.
 
+## Related Documentation
+
+-   [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Detailed partition key decision & thresholds
+-   [ADR-003: Player-Location Edge Groundwork](./ADR-003-player-location-edge-groundwork.md) – Player edge migration design
+-   [Architecture Overview](../architecture/overview.md) – High-level architecture context
+-   [Location Version Policy](../architecture/location-version-policy.md) – Location content versioning rules
+-   [World Event Contract](../architecture/world-event-contract.md) – Event envelope specification
+
 ---
 
 This condensed ADR intentionally omits narrative detail; see archive for full context.
