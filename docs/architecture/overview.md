@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> Status Accuracy (2025-10-03): Only a frontend shell and basic `ping` HTTP Functions exist. Cosmos DB is not yet accessed by code; no queues, no movement/room persistence, no AI integration, and only baseline Application Insights bootstrap (no custom events). This overview reflects intended direction—not current implementation depth.
+> Status Accuracy (2025-10-22): Basic traversal implemented: HTTP movement + look endpoints, direction normalization, and world event queue processor with envelope validation. Cosmos DB Gremlin used for location graph; Cosmos DB SQL API active for players, inventory, layers, and events. This overview reflects current implementation and planned direction.
 >
 > Terminology Note: _Status Accuracy_ captures the last date the factual implementation claims were manually audited. The footer _Last updated_ reflects the last structural/content edit (which may add future-looking sections without changing audited status lines).
 
@@ -26,21 +26,21 @@ Implemented (thin slice – see repo for exact handlers):
 
 -   Static Web App (frontend only)
 -   Backend `backend/` Functions App (HTTP endpoints + world event queue processors)
+-   World event queue processor with envelope validation (see [world-event-contract.md](world-event-contract.md))
 -   Repository abstraction (memory adapters) for Rooms & Players
--   In‑memory traversal (2 rooms, movement + fetch handlers)
+-   Persistent traversal via Cosmos DB Gremlin (locations, exits, movement)
 -   Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
 -   Canonical telemetry framework (`trackGameEventStrict`, event name governance)
+-   Direction normalization (shortcuts, typos, relative directions)
 -   Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry), `telemetry` (read-only AI usage & decision logging)
 
-Still provisioned but unused: Cosmos DB, Service Bus, Key Vault (no runtime bindings yet).
+Still provisioned but not yet fully integrated: Service Bus (queue processor operates without Service Bus binding), Key Vault (secret management planned for M2).
 
 Not yet implemented (planned):
 
--   Service Bus queue + queue‑triggered world/NPC processors
--   Runtime Gremlin client & schema bootstrap (Cosmos persistence adapters)
--   Runtime SQL API client (if needed for non-graph entities)
+-   Service Bus queue integration (processor currently triggered via HTTP)
+-   Runtime SQL API client for non-graph entities (containers provisioned; initial bootstrap pending)
 -   Managed identity graph access (replace key‑based secret)
--   Persistent traversal + exit normalization (current memory only)
 -   AI prompt integration & dynamic content (advisory then genesis)
 -   Telemetry MCP server + cost dashboards
 
@@ -82,9 +82,23 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 -   Exits encoded as edges with semantic direction labels (`north`, `up`, etc.)
 -   Events optionally stored as vertices or external log for replay/analytics
 -   Prefer idempotent mutations: processors verify current state before applying changes
+-   **Dual persistence pattern (ADR-002)**: Immutable world structure in Cosmos DB Gremlin (locations, exits, spatial relationships); mutable player data and events in Cosmos DB SQL API (players, inventory, description layers, world events).
 -   Planned multi‑scale spatial layer (see `../modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
 -   Tokenless description layering (see `../modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
 -   Partition key strategy: single logical partition during Mosswell bootstrap (MVP concession) with documented region sharding migration path (see `../adr/ADR-002-graph-partition-strategy.md` and Appendix in `../adr/ADR-001-mosswell-persistence-layering.md`).
+
+## Cosmos DB SQL API Containers
+
+The dual persistence pattern (ADR-002) uses Cosmos DB SQL API for mutable player data and event logs, complementing the Gremlin graph used for immutable world structure.
+
+**Containers:**
+
+-   **`players`** (PK: `/id`) – Player documents with GUID as partition key. Each player's mutable state (current location reference, session data) colocated by player ID.
+-   **`inventory`** (PK: `/playerId`) – Inventory items partitioned by player GUID. All items for a player colocated for efficient queries.
+-   **`descriptionLayers`** (PK: `/locationId`) – Description variation layers partitioned by location GUID. Weather, structural, and faction-specific overlays colocated with their location context.
+-   **`worldEvents`** (PK: `/scopeKey`) – World event log using scope pattern (`loc:<id>` or `player:<id>`) for efficient timeline queries. See [world-event-contract.md](world-event-contract.md) for envelope specification.
+
+**Access pattern:** Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret. Environment variables configured in Bicep (see `.github/copilot-instructions.md` Section 5 for complete configuration details).
 
 ## Security & Identity Roadmap
 
@@ -145,17 +159,39 @@ See the contract doc for envelope structure, type namespace, validation flow, an
 
 Other documents (like `mvp-azure-architecture.md`) dive into concrete resource diagrams and playtest priorities. This page remains stable as a high‑level reference so links such as "Architecture Overview" do not break as tactical details shift.
 
+## Implementation to Design Mapping
+
+| Implementation File | Design Documentation | Notes |
+|---------------------|----------------------|-------|
+| `backend/src/functions/ping.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness) | Service liveness health check |
+| `backend/src/functions/bootstrapPlayer.ts` | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap) | Idempotent player creation |
+| `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md) | Queue-triggered event processor |
+| `backend/src/functions/playerMove.ts` | [Navigation & Traversal](../modules/navigation-and-traversal.md) | Movement command handler |
+| `backend/src/functions/locationLook.ts` | [Exits](./exits.md), [Direction Resolution](./direction-resolution-rules.md) | Location inspection command |
+| `backend/src/functions/linkRooms.ts` | [Exit Edge Management](../developer-workflow/edge-management.md) | Room connection utility |
+| `backend/src/functions/getExits.ts` | [Exits](./exits.md) | Exit retrieval endpoint |
+| `shared/src/telemetry.ts` | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold) | Canonical telemetry framework |
+| `backend/src/repos/locationRepository.ts` | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md) | Location persistence abstraction |
+| `backend/src/repos/playerRepository.ts` | [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) | Player persistence abstraction |
+| `backend/src/repos/exitRepository.ts` | [Exits](./exits.md), [Edge Management](../developer-workflow/edge-management.md) | Exit edge persistence |
+
 ## Related Docs
 
 -   `mvp-azure-architecture.md` – Concrete MVP resource layout & playtest priorities
+-   `world-event-contract.md` – World event envelope specification & queue cutover plan
+-   `location-version-policy.md` – Exit changes do not affect location version
 -   `direction-resolution-rules.md` – Authoritative rules for direction normalization (ambiguous cases, typo tolerance, relative directions)
 -   `exits.md` – Exit edge invariants and creation/removal flow
+-   `agentic-ai-and-mcp.md` – AI integration via Model Context Protocol
 -   `../modules/world-rules-and-lore.md` – Narrative & systemic framing
 -   `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
 -   `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
 -   `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
 -   `../adr/ADR-001-mosswell-persistence-layering.md` – Mosswell persistence (includes partition strategy appendix)
+-   `../adr/ADR-003-player-location-edge-groundwork.md` – Player-location edge migration design
+-   `../milestones/M0-closure-summary.md` – M0 Foundation milestone completion
+-   `../developer-workflow/edge-management.md` – Exit edge management workflow
 
 ---
 
-_Last updated: 2025-10-02 (added Shared Package entry point separation section)_
+_Last updated: 2025-10-22 (updated status accuracy date, added world event processor + Cosmos SQL API containers section, reflected dual persistence pattern)_

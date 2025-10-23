@@ -2,7 +2,7 @@
 
 **Date**: 2025 (Implementation)  
 **Status**: Implemented  
-**Related Issue**: #45 - Managed Identity & Key Vault Secret Management Baseline
+**Related Issue**: #49 - Managed Identity & Key Vault Secret Management Baseline
 
 ## Context
 
@@ -14,7 +14,7 @@ The project requires secure secret management for:
 
 The implementation needed to decide between reusing an existing Key Vault or provisioning a dedicated new vault.
 
-## Evaluation Criteria (from Issue #45)
+## Evaluation Criteria (from Issue #49)
 
 The issue specified these criteria for Key Vault reuse:
 

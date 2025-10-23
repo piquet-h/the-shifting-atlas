@@ -10,6 +10,14 @@
  *
  * IDs: All IDs are GUID/UUID style strings (runtime generation not enforced here).
  * Time fields are ISO 8601 strings (UTC) to stay serialization friendly across Functions & frontend.
+ *
+ * WorldEvent vs WorldEventEnvelope:
+ * - WorldEvent interface (below): Legacy/planned SQL API persistence model with status tracking.
+ *   Simple type strings like 'PlayerMoved', 'LocationDiscovered'. Used for storing event history
+ *   in Cosmos SQL API worldEvents container.
+ * - WorldEventEnvelope (events/worldEventSchema.ts): Authoritative queue contract for async
+ *   world evolution. Zod-validated envelope with namespaced types like 'Player.Move', 'World.Exit.Create'.
+ *   See docs/architecture/world-event-contract.md for full specification.
  */
 
 // --- Direction & movement ----------------------------------------------------
@@ -151,10 +159,38 @@ export interface InventorySnapshot {
 
 // --- World Events ------------------------------------------------------------
 
+/**
+ * Legacy WorldEvent types for SQL API persistence.
+ * 
+ * These simple string types ('PlayerMoved', 'LocationDiscovered', etc.) are used for
+ * storing event history documents in Cosmos SQL API worldEvents container. They track
+ * processing status and support retry logic for persisted event records.
+ * 
+ * For async queue-based event processing, use WorldEventEnvelope from events/worldEventSchema.ts
+ * which has namespaced types like 'Player.Move' and full idempotency/traceability support.
+ */
 export type WorldEventType = 'LocationDiscovered' | 'PlayerMoved' | 'NPCSpawn' | 'ItemSpawn' | 'ItemPickup' | 'ItemDrop' | 'Tick' | 'Custom'
 
+/**
+ * Processing status for SQL-persisted event documents.
+ * Tracks lifecycle state for retry and completion logic.
+ */
 export type WorldEventStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed' | 'DeadLettered'
 
+/**
+ * Legacy WorldEvent interface for SQL API persistence.
+ * 
+ * This model is used for storing event history documents in Cosmos SQL API worldEvents container.
+ * It tracks processing status, supports scheduled events, and maintains retry counters.
+ * 
+ * For async queue-based world evolution, use WorldEventEnvelope from events/worldEventSchema.ts
+ * which provides Zod validation, idempotency keys, actor envelopes, and correlation/causation chains.
+ * See docs/architecture/world-event-contract.md for the authoritative queue contract specification.
+ * 
+ * Key differences:
+ * - WorldEvent: SQL persistence, status tracking, simple type strings ('PlayerMoved')
+ * - WorldEventEnvelope: Queue contract, Zod validation, namespaced types ('Player.Move')
+ */
 export interface WorldEvent<TPayload = unknown> {
     id: string
     type: WorldEventType
@@ -175,10 +211,20 @@ export interface WorldEvent<TPayload = unknown> {
 
 // --- Type Guards / Helpers ---------------------------------------------------
 
+/**
+ * Type guard for legacy SQL-persisted WorldEvent types.
+ * 
+ * Note: This checks simple types like 'PlayerMoved', 'LocationDiscovered'.
+ * For queue envelope types like 'Player.Move', 'World.Exit.Create', use
+ * WorldEventTypeSchema from events/worldEventSchema.ts instead.
+ */
 export function isWorldEventType(t: string): t is WorldEventType {
     return ['LocationDiscovered', 'PlayerMoved', 'NPCSpawn', 'ItemSpawn', 'ItemPickup', 'ItemDrop', 'Tick', 'Custom'].includes(t)
 }
 
+/**
+ * Type guard for SQL-persisted WorldEvent status values.
+ */
 export function isWorldEventStatus(s: string): s is WorldEventStatus {
     return ['Pending', 'Processing', 'Completed', 'Failed', 'DeadLettered'].includes(s)
 }

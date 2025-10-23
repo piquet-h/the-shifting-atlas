@@ -102,6 +102,7 @@ Proposal endpoints (never direct writes):
 -   `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
 -   `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
 -   `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
+    -   Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
 
 ### simulation-planner-mcp (Stage M6 – Planning)
 
@@ -250,6 +251,7 @@ Committee Example (Stage M6+):
 
 -   `overview.md` – High-level architecture; this doc elaborates the AI layer.
 -   `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
+-   `location-version-policy.md` – Exit changes do not affect location version
 -   `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
 -   `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 

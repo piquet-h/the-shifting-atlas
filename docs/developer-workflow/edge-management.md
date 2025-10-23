@@ -247,9 +247,9 @@ npm test
 
 ## Future Enhancements
 
-### Player-Location Edges (Issue #103)
+### Player-Location Edges (Issue #103 - Closed)
 
-Future work will add `(player)-[:in]->(location)` edges alongside scalar `currentLocationId` field. See: [`docs/adr/ADR-003-player-location-edge-groundwork.md`](../adr/ADR-003-player-location-edge-groundwork.md)
+Player persistence enhancement has been implemented. Future work will add `(player)-[:in]->(location)` edges alongside scalar `currentLocationId` field. See: [`docs/adr/ADR-003-player-location-edge-groundwork.md`](../adr/ADR-003-player-location-edge-groundwork.md)
 
 ### Exit Metadata
 
@@ -273,9 +273,9 @@ Future automated checks:
 
 -   ADR-002: Graph Partition Strategy
 -   ADR-003: Player-Location Edge Groundwork
--   Issue #100: Location Persistence
--   Issue #103: Player Persistence Enhancement
--   Issue #112: Location Edge Management (this document)
+-   Issue #100 (closed): Location Persistence
+-   Issue #103 (closed): Player Persistence Enhancement
+-   Issue #112 (closed): Location Edge Management (this document)
 
 ---
 
