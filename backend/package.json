@@ -11,6 +11,7 @@
         "lint": "eslint --ext .ts,.tsx src",
         "test": "node --test --import=tsx test/*.test.ts",
         "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
+        "scan:graph-consistency": "node ../scripts/scan-exits-consistency.mjs",
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
         "start": "npm run build && func start"
