@@ -39,7 +39,6 @@ Still provisioned but not yet fully integrated: Service Bus (queue processor ope
 Not yet implemented (planned):
 
 -   Service Bus queue integration (processor currently triggered via HTTP)
--   Runtime SQL API client for non-graph entities (containers provisioned; initial bootstrap pending)
 -   Managed identity graph access (replace key‑based secret)
 -   AI prompt integration & dynamic content (advisory then genesis)
 -   Telemetry MCP server + cost dashboards
