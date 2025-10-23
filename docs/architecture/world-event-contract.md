@@ -6,6 +6,24 @@
 
 Provide a stable envelope + minimal semantic fields for all asynchronous world evolution operations (player actions, NPC ticks, system timers, AI proposals accepted after validation). Ensures idempotency, traceability, and correlation across processors.
 
+## Relationship to WorldEvent Interface
+
+This document defines **WorldEventEnvelope** (implemented in `shared/src/events/worldEventSchema.ts`), the authoritative contract for queue-based async world evolution.
+
+There is a separate **WorldEvent** interface in `shared/src/domainModels.ts` used for SQL persistence of event history documents. These models serve different purposes:
+
+| Aspect | WorldEventEnvelope (this spec) | WorldEvent (domainModels.ts) |
+|--------|-------------------------------|------------------------------|
+| Purpose | Queue contract for async processing | SQL persistence of event history |
+| Validation | Zod schema | TypeScript types only |
+| Type Format | Namespaced ('Player.Move', 'World.Exit.Create') | Simple strings ('PlayerMoved', 'LocationDiscovered') |
+| Status Tracking | Not included (queue delivery guarantees) | Explicit status (Pending, Processing, Completed, Failed) |
+| Idempotency | idempotencyKey field + processor cache | Retry attempt counter |
+| Actor Model | Actor envelope (kind + id) | Implicit in payload |
+| Causation | causationId for event chains | Not supported |
+
+Both models may coexist: WorldEventEnvelope for queue processing, WorldEvent documents for persisting completed event history to Cosmos SQL API worldEvents container.
+
 ## Envelope Shape
 
 ```jsonc
