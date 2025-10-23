@@ -2,6 +2,8 @@
 
 > Status (2025-10-22): IMPLEMENTED. Queue-triggered processor, envelope validation, and idempotency handling are now operational. See Implementation section below for code references.
 
+> **Note**: This document specifies the **WorldEventEnvelope** contract for queue-based async processing (Service Bus). For the planned SQL API persistence model (WorldEvent interface with status tracking), see `shared/src/domainModels.ts` — that implementation is deferred, but the container is provisioned.
+
 ## Purpose
 
 Provide a stable envelope + minimal semantic fields for all asynchronous world evolution operations (player actions, NPC ticks, system timers, AI proposals accepted after validation). Ensures idempotency, traceability, and correlation across processors.
@@ -144,6 +146,15 @@ Mechanical steps to transition from synchronous HTTP persistence to queued world
 Rollback: Re-enable inline apply path; processor continues (duplicate detection collapses replays).
 
 Success Criteria: Zero drift events (no mismatched mutations), latency impact acceptable (< predefined threshold), and idempotency duplicates below target rate.
+
+## Related Documentation
+
+-   [Architecture Overview](./overview.md) – High-level architecture context and implementation mapping
+-   [Agentic AI & Model Context Protocol](./agentic-ai-and-mcp.md) – AI integration using MCP tooling with world events
+-   [M0 Closure Summary](../milestones/M0-closure-summary.md) – M0 Foundation milestone completion (world event infrastructure)
+-   [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
+-   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
+-   [Observability](../observability.md) – Telemetry framework and event tracking
 
 ---
 

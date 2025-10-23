@@ -47,7 +47,7 @@ This ADR is retained for historical reference to show the evolution from early g
 -   [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model
 -   [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Partition key design and dual persistence
 -   [Edge Management Guide](../developer-workflow/edge-management.md) – Exit edge patterns (template for player edges)
--   [Epic #117 Completion Summary](../milestones/epic-117-completion-summary.md) – Exit edge management completion
+-   [Exit Edge Invariants](../architecture/exits.md) – Exit edge specification (Epic #117)
 
 ---
 

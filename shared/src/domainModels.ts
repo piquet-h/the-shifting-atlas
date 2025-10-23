@@ -11,13 +11,26 @@
  * IDs: All IDs are GUID/UUID style strings (runtime generation not enforced here).
  * Time fields are ISO 8601 strings (UTC) to stay serialization friendly across Functions & frontend.
  *
- * WorldEvent vs WorldEventEnvelope:
- * - WorldEvent interface (below): Legacy/planned SQL API persistence model with status tracking.
- *   Simple type strings like 'PlayerMoved', 'LocationDiscovered'. Used for storing event history
- *   in Cosmos SQL API worldEvents container.
- * - WorldEventEnvelope (events/worldEventSchema.ts): Authoritative queue contract for async
- *   world evolution. Zod-validated envelope with namespaced types like 'Player.Move', 'World.Exit.Create'.
- *   See docs/architecture/world-event-contract.md for full specification.
+ * ## Dual WorldEvent Models (Intentional Separation)
+ *
+ * Two distinct WorldEvent-related models exist for different persistence patterns:
+ *
+ * 1. **WorldEvent interface (this file)**: PLANNED SQL API persistence model for event history audit/replay.
+ *    - Purpose: Long-term event log storage in Cosmos SQL API worldEvents container (not yet implemented)
+ *    - Type system: Simple strings ('PlayerMoved', 'LocationDiscovered')
+ *    - Features: Status tracking (Pending/Processing/Completed/Failed), retry counters, scheduled execution
+ *    - Use case: Future audit log, replay scenarios, compliance/debugging
+ *    - Status: Container provisioned in infrastructure, implementation deferred
+ *
+ * 2. **WorldEventEnvelope (events/worldEventSchema.ts)**: ACTIVE queue contract for async world evolution.
+ *    - Purpose: Real-time event processing via Service Bus queues (fully implemented)
+ *    - Type system: Namespaced types ('Player.Move', 'World.Exit.Create')
+ *    - Features: Zod validation, idempotency keys, actor envelopes, causation chains
+ *    - Use case: Async processors, AI/NPC event ingestion, world state mutations
+ *    - Status: Operational with queue processor at backend/src/functions/queueProcessWorldEvent.ts
+ *
+ * See docs/architecture/world-event-contract.md for complete WorldEventEnvelope specification.
+ * See docs/ambiguities.md for detailed rationale on dual-model separation.
  */
 
 // --- Direction & movement ----------------------------------------------------
