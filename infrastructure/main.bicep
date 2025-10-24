@@ -132,9 +132,24 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
 
-      ComsosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
+      CosmosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
       ServiceBusAtlas__fullyQualifiedNamespace: '${serviceBusNamespace.name}.servicebus.windows.net'
+
+      // Cosmos DB Gremlin API Configuration
+      PERSISTENCE_MODE: 'cosmos'
+      PERSISTENCE_STRICT: '1'
+      COSMOS_GREMLIN_ENDPOINT: cosmosGraphAccount.properties.documentEndpoint
+      COSMOS_GREMLIN_DATABASE: 'game'
+      COSMOS_GREMLIN_GRAPH: 'world'
+
+      // Cosmos DB SQL API Configuration
+      COSMOS_SQL_ENDPOINT: cosmosSqlAccount.properties.documentEndpoint
+      COSMOS_SQL_DATABASE: 'game'
+      COSMOS_SQL_CONTAINER_PLAYERS: 'players'
+      COSMOS_SQL_CONTAINER_INVENTORY: 'inventory'
+      COSMOS_SQL_CONTAINER_LAYERS: 'descriptionLayers'
+      COSMOS_SQL_CONTAINER_EVENTS: 'worldEvents'
     }
   }
 }
