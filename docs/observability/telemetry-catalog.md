@@ -1,0 +1,477 @@
+# Telemetry Event Catalog
+
+> **Implementation**: `shared/src/telemetryEvents.ts`  
+> **Destination**: Application Insights  
+> **Naming Convention**: `Domain.Subject.Action` (2-3 PascalCase segments)
+
+## Purpose
+
+Central registry documenting all game domain telemetry events, including when they fire, what dimensions are tracked, and their operational significance.
+
+## Event Categories
+
+### Core Service / Utility
+
+#### `Ping.Invoked`
+
+**Trigger:** HTTP GET `/api/ping`  
+**Dimensions:** `timestamp`, `latency_ms`  
+**Severity:** Informational  
+**Purpose:** Health check; validate service availability and response time  
+**Retention:** 30 days
+
+---
+
+### Onboarding & Auth
+
+#### `Onboarding.GuestGuid.Started`
+
+**Trigger:** Player bootstrap initiated  
+**Dimensions:** `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track bootstrap funnel start  
+**Retention:** 90 days
+
+#### `Onboarding.GuestGuid.Created`
+
+**Trigger:** Player GUID generated successfully  
+**Dimensions:** `player_id`, `display_name`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track player creation success rate  
+**Retention:** 90 days
+
+#### `Onboarding.GuestGuid.Completed`
+
+**Trigger:** Bootstrap response sent to client  
+**Dimensions:** `player_id`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Measure end-to-end bootstrap latency  
+**Alert:** >500ms (p95) for 5 consecutive minutes  
+**Retention:** 90 days
+
+#### `Auth.Player.Upgraded`
+
+**Trigger:** Guest account linked to OAuth2 identity (future)  
+**Dimensions:** `player_id`, `provider`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track auth upgrade adoption  
+**Retention:** 365 days
+
+---
+
+### Player Lifecycle
+
+#### `Player.Get`
+
+**Trigger:** HTTP GET `/api/player/{id}`  
+**Dimensions:** `player_id`, `location_assigned` (boolean), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track player fetch patterns; identify first-time vs returning players  
+**Alert:** >200ms (p95) for Cosmos SQL reads  
+**Retention:** 90 days
+
+#### `Player.Created`
+
+**Trigger:** Player document persisted to Cosmos SQL (deprecated — use `Onboarding.GuestGuid.Created`)  
+**Dimensions:** `player_id`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Legacy event; superseded by onboarding funnel events  
+**Retention:** 30 days
+
+---
+
+### Player Traversal & Location Access
+
+#### `Location.Get`
+
+**Trigger:** Location vertex fetched from Gremlin graph  
+**Dimensions:** `location_id`, `player_id`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track location access patterns; measure Gremlin query performance  
+**Alert:** >300ms (p95) for single vertex queries  
+**Retention:** 90 days
+
+#### `Location.Move`
+
+**Trigger:** Player movement attempt (successful or blocked)  
+**Dimensions:** `player_id`, `from_location_id`, `to_location_id`, `direction`, `status` (success|blocked|invalid), `reason`, `latency_ms`, `correlation_id`  
+**Severity:** Informational (success); Warning (blocked/invalid)  
+**Purpose:** Core traversal metric; track movement success rate and failure reasons  
+**Alert:** Success rate <95% sustained for 10 minutes  
+**Retention:** 180 days
+
+---
+
+### Navigation & Direction Normalization
+
+#### `Navigation.Input.Parsed`
+
+**Trigger:** Direction input normalized (success or failure)  
+**Dimensions:** `raw_input`, `status` (ok|ambiguous|unknown), `direction` (if ok), `candidates` (if ambiguous), `latency_ms`, `correlation_id`  
+**Severity:** Informational (ok); Warning (unknown)  
+**Purpose:** Track normalization accuracy; identify common typos; tune edit distance threshold  
+**Alert:** Unknown rate >10% sustained  
+**Retention:** 90 days
+
+#### `Navigation.Input.Ambiguous`
+
+**Trigger:** Direction input matches multiple semantic candidates (N2 feature)  
+**Dimensions:** `raw_input`, `candidates`, `player_id`, `location_id`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Identify ambiguous exit configurations requiring clarification  
+**Alert:** >5% of normalization attempts ambiguous  
+**Retention:** 90 days
+
+#### `Navigation.Look.Issued`
+
+**Trigger:** HTTP GET `/api/location/look`  
+**Dimensions:** `player_id`, `location_id`, `exit_count`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track location inspection patterns; measure LOOK query performance  
+**Alert:** >200ms (p95) for location + exits query  
+**Retention:** 90 days
+
+---
+
+### Command Layer
+
+#### `Command.Executed`
+
+**Trigger:** Client-side command parser executed (frontend)  
+**Dimensions:** `command`, `args`, `status`, `latency_ms`, `session_id`  
+**Severity:** Informational  
+**Purpose:** Track command usage patterns; identify parsing failures  
+**Retention:** 30 days
+
+---
+
+### World State & Generation
+
+#### `World.Location.Generated`
+
+**Trigger:** New location vertex created via AI or script  
+**Dimensions:** `location_id`, `external_id`, `kind`, `source` (ai|seed|manual), `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track world expansion rate; measure generation source distribution  
+**Retention:** 365 days
+
+#### `World.Location.Rejected`
+
+**Trigger:** AI-generated location failed validation  
+**Dimensions:** `reason`, `validation_error`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track AI generation quality; tune validation rules  
+**Alert:** Rejection rate >20% sustained  
+**Retention:** 90 days
+
+#### `World.Location.Upsert`
+
+**Trigger:** Location vertex upserted (idempotent create/update)  
+**Dimensions:** `location_id`, `operation` (created|updated), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track persistence operations; measure Gremlin write performance  
+**Alert:** >500ms (p95) for upserts  
+**Retention:** 90 days
+
+#### `World.Layer.Added`
+
+**Trigger:** Description layer added to location (M4 feature)  
+**Dimensions:** `location_id`, `layer_id`, `layer_type`, `source` (ai|manual), `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track layering adoption; measure AI layer generation rate  
+**Retention:** 180 days
+
+#### `World.Exit.Created`
+
+**Trigger:** Exit edge added between locations  
+**Dimensions:** `from_location_id`, `to_location_id`, `direction`, `reciprocal` (boolean), `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track world connectivity growth; validate reciprocal exits  
+**Retention:** 365 days
+
+#### `World.Exit.Removed`
+
+**Trigger:** Exit edge deleted (cleanup or retcon)  
+**Dimensions:** `from_location_id`, `to_location_id`, `direction`, `reason`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track world structure changes; investigate unexpected removals  
+**Alert:** >10 removals/hour (potential bug or abuse)  
+**Retention:** 365 days
+
+---
+
+### World Event Processing
+
+#### `World.Event.Processed`
+
+**Trigger:** World event successfully consumed from queue  
+**Dimensions:** `event_id`, `event_type`, `actor_kind`, `idempotency_key_hash`, `latency_ms`, `correlation_id`, `causation_id`  
+**Severity:** Informational  
+**Purpose:** Track async event processing rate; measure queue latency  
+**Alert:** Latency >5s (p95)  
+**Retention:** 90 days
+
+#### `World.Event.Duplicate`
+
+**Trigger:** Idempotency key matched existing processed event  
+**Dimensions:** `event_id`, `idempotency_key_hash`, `original_event_id`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Validate idempotency logic; detect duplicate submissions  
+**Alert:** Duplicate rate >5% (potential upstream issue)  
+**Retention:** 30 days
+
+---
+
+### AI Prompt & Generation
+
+#### `Prompt.Genesis.Issued`
+
+**Trigger:** AI prompt sent for world genesis (initial location generation)  
+**Dimensions:** `prompt_id`, `model`, `token_count`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track AI generation requests; measure prompt token usage  
+**Retention:** 90 days
+
+#### `Prompt.Genesis.Rejected`
+
+**Trigger:** Genesis prompt response failed validation  
+**Dimensions:** `prompt_id`, `rejection_reason`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track AI output quality; identify validation gaps  
+**Alert:** Rejection rate >15%  
+**Retention:** 90 days
+
+#### `Prompt.Genesis.Crystallized`
+
+**Trigger:** Genesis prompt result persisted to world graph  
+**Dimensions:** `prompt_id`, `location_id`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track successful AI contributions to world state  
+**Retention:** 180 days
+
+#### `Prompt.Layer.Generated`
+
+**Trigger:** AI-generated description layer created (M4 feature)  
+**Dimensions:** `location_id`, `layer_id`, `model`, `token_count`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track layer generation patterns; measure AI token costs  
+**Retention:** 90 days
+
+#### `Prompt.Cost.BudgetThreshold`
+
+**Trigger:** AI operation exceeded cost/token budget  
+**Dimensions:** `operation`, `cost_usd`, `threshold_usd`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Cost governance; prevent runaway AI spending  
+**Alert:** Triggered >3 times/hour  
+**Retention:** 365 days
+
+---
+
+### Extension Hooks (M5 Systems)
+
+#### `Extension.Hook.Invoked`
+
+**Trigger:** Extension hook called by core system  
+**Dimensions:** `hook_name`, `extension_id`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track extension usage; measure hook invocation patterns  
+**Retention:** 90 days
+
+#### `Extension.Hook.Veto`
+
+**Trigger:** Extension vetoed proposed action  
+**Dimensions:** `hook_name`, `extension_id`, `veto_reason`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track extension policy enforcement; identify veto patterns  
+**Retention:** 90 days
+
+#### `Extension.Hook.Mutation`
+
+**Trigger:** Extension modified core system behavior  
+**Dimensions:** `hook_name`, `extension_id`, `mutation_type`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track extension impact on gameplay; audit mutations  
+**Retention:** 180 days
+
+---
+
+### Multiplayer (Future)
+
+#### `Multiplayer.LayerDelta.Sent`
+
+**Trigger:** Layer delta broadcasted to party members  
+**Dimensions:** `location_id`, `layer_id`, `party_size`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track layer sync performance; measure broadcast latency  
+**Retention:** 30 days
+
+#### `Multiplayer.LocationSnapshot.HashMismatch`
+
+**Trigger:** Client/server snapshot divergence detected  
+**Dimensions:** `player_id`, `location_id`, `client_hash`, `server_hash`, `correlation_id`  
+**Severity:** Error  
+**Purpose:** Detect sync bugs; trigger reconciliation  
+**Alert:** Any occurrence (critical consistency issue)  
+**Retention:** 180 days
+
+#### `Multiplayer.Movement.Latency`
+
+**Trigger:** Player movement round-trip measured  
+**Dimensions:** `player_id`, `direction`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track movement responsiveness; identify network issues  
+**Alert:** >1000ms (p95)  
+**Retention:** 30 days
+
+---
+
+### Secrets & Infrastructure
+
+#### `Secret.Fetch.Retry`
+
+**Trigger:** Key Vault fetch retry attempted  
+**Dimensions:** `secret_name`, `attempt`, `reason`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track transient Key Vault failures  
+**Alert:** >10 retries/minute  
+**Retention:** 30 days
+
+#### `Secret.Cache.Hit`
+
+**Trigger:** Secret retrieved from in-memory cache  
+**Dimensions:** `secret_name`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Validate caching effectiveness  
+**Retention:** 7 days
+
+#### `Secret.Cache.Miss`
+
+**Trigger:** Secret not in cache (fetch required)  
+**Dimensions:** `secret_name`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track cache miss rate; tune TTL  
+**Retention:** 7 days
+
+#### `Secret.Fetch.Success`
+
+**Trigger:** Secret successfully fetched from Key Vault  
+**Dimensions:** `secret_name`, `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track Key Vault operation success rate  
+**Retention:** 30 days
+
+#### `Secret.Fetch.Failure`
+
+**Trigger:** Key Vault fetch failed permanently  
+**Dimensions:** `secret_name`, `error_code`, `correlation_id`  
+**Severity:** Error  
+**Purpose:** Critical: secret unavailability blocks operations  
+**Alert:** Any occurrence (immediate escalation)  
+**Retention:** 90 days
+
+#### `Secret.Fetch.Fallback`
+
+**Trigger:** Fallback to environment variable after Key Vault failure  
+**Dimensions:** `secret_name`, `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track degraded secret access mode  
+**Alert:** Sustained fallback >10 minutes  
+**Retention:** 30 days
+
+#### `Secret.Cache.Clear`
+
+**Trigger:** In-memory cache manually cleared  
+**Dimensions:** `reason`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track cache invalidation events  
+**Retention:** 30 days
+
+---
+
+### Internal / Diagnostics
+
+#### `Telemetry.EventName.Invalid`
+
+**Trigger:** Telemetry call with non-canonical event name  
+**Dimensions:** `invalid_name`, `callsite`, `correlation_id`  
+**Severity:** Error  
+**Purpose:** Detect telemetry misuse; enforce naming convention  
+**Alert:** Any occurrence (breaks observability)  
+**Retention:** 90 days
+
+---
+
+## Adding New Events
+
+### Process
+
+1. Choose canonical name following `Domain.Subject.Action` pattern (2-3 PascalCase segments)
+2. Add to `GAME_EVENT_NAMES` array in `shared/src/telemetryEvents.ts`
+3. Document in this catalog (copy template below)
+4. Update tests in `shared/test/telemetryEvents.test.ts`
+5. Verify ESLint rule passes (`no-direct-track-event`)
+
+### Template
+
+```markdown
+#### `New.Event.Name`
+
+**Trigger:** When does this fire?  
+**Dimensions:** `dimension1`, `dimension2`, `correlation_id`  
+**Severity:** Informational | Warning | Error  
+**Purpose:** Why do we track this?  
+**Alert:** Alert threshold (if any)  
+**Retention:** Days to keep data
+```
+
+---
+
+## Querying in Application Insights
+
+### Example: Movement Success Rate (Last 24h)
+
+```kusto
+customEvents
+| where timestamp > ago(24h)
+| where name == "Location.Move"
+| summarize Total = count(),
+            Success = countif(customDimensions.status == "success"),
+            SuccessRate = 100.0 * countif(customDimensions.status == "success") / count()
+```
+
+### Example: Direction Normalization Failures
+
+```kusto
+customEvents
+| where timestamp > ago(7d)
+| where name == "Navigation.Input.Parsed"
+| where customDimensions.status == "unknown"
+| summarize Count = count() by tostring(customDimensions.raw_input)
+| order by Count desc
+| take 20
+```
+
+### Example: P95 Latency by Operation
+
+```kusto
+customEvents
+| where timestamp > ago(1h)
+| where name in ("Player.Get", "Location.Move", "Navigation.Look.Issued")
+| extend latency = todouble(customDimensions.latency_ms)
+| summarize P95 = percentile(latency, 95) by name
+```
+
+---
+
+## Related Documentation
+
+-   [Observability Overview](../observability.md) — High-level monitoring strategy
+-   [Telemetry Implementation](../../shared/src/telemetryEvents.ts) — Event name registry
+-   [ESLint Telemetry Rules](../../eslint-rules/telemetry-event-name.mjs) — Naming convention enforcement
+-   [Application Insights Setup](./application-insights.md) — Azure configuration
+
+---
+
+**Last Updated:** 2025-10-24  
+**Event Count:** 43 canonical events

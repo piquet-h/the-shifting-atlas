@@ -118,7 +118,8 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             errors,
             deadLetterMode: DEADLETTER_MODE
         })
-        // TODO: Future hook for dead-letter storage with redacted payload
+        // TODO (#257): Implement dead-letter storage with payload redaction
+        // See: https://github.com/piquet-h/the-shifting-atlas/issues/257
         // Invalid schema - skip (no retry)
         return
     }
@@ -183,7 +184,8 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         { correlationId: event.correlationId }
     )
 
-    // TODO: Future type-specific payload processing and side effects
+    // TODO (#258): Implement type-specific payload handlers
+    // See: https://github.com/piquet-h/the-shifting-atlas/issues/258
     // For now, this is a foundation processor that validates and tracks events
     context.log('World event processed successfully', {
         eventId: event.eventId,
