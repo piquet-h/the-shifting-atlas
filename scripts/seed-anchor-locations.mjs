@@ -19,7 +19,8 @@
  */
 
 import { readFile } from 'fs/promises'
-import { resolve } from 'path'
+import { resolve, normalize } from 'path'
+import { fileURLToPath } from 'url'
 
 /**
  * Main entry point for the seed script
@@ -32,7 +33,14 @@ async function main() {
     // Parse command line arguments
     for (const arg of args) {
         if (arg.startsWith('--mode=')) {
-            mode = arg.substring('--mode='.length)
+            const providedMode = arg.substring('--mode='.length)
+            // Validate mode to prevent injection
+            if (providedMode === 'memory' || providedMode === 'cosmos') {
+                mode = providedMode
+            } else {
+                console.error(`❌ Error: Invalid mode '${providedMode}'. Must be 'memory' or 'cosmos'.`)
+                process.exit(1)
+            }
         } else if (arg.startsWith('--data=')) {
             dataPath = arg.substring('--data='.length)
         } else if (arg === '--help' || arg === '-h') {
@@ -44,7 +52,7 @@ Usage:
 
 Options:
   --mode=memory|cosmos    Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
-  --data=path            Path to locations JSON file (default: backend/src/data/villageLocations.json)
+  --data=path            Path to locations JSON file relative to project root (default: backend/src/data/villageLocations.json)
   --help, -h             Show this help message
 
 Environment Variables (for cosmos mode):
@@ -80,10 +88,25 @@ Examples:
         console.log()
 
         // Determine data file path
+        const scriptDir = fileURLToPath(new URL('.', import.meta.url))
+        const projectRoot = resolve(scriptDir, '..')
+        
         if (!dataPath) {
             // Default to villageLocations.json in backend
-            const scriptDir = new URL('.', import.meta.url).pathname
-            dataPath = resolve(scriptDir, '../backend/src/data/villageLocations.json')
+            dataPath = resolve(projectRoot, 'backend/src/data/villageLocations.json')
+        } else {
+            // Resolve and normalize user-provided path
+            dataPath = resolve(projectRoot, dataPath)
+            
+            // Security: Ensure the resolved path is within the project directory
+            const normalizedPath = normalize(dataPath)
+            const normalizedRoot = normalize(projectRoot) + '/'
+            
+            if (!normalizedPath.startsWith(normalizedRoot) && normalizedPath !== normalize(projectRoot)) {
+                console.error(`❌ Error: Path '${dataPath}' is outside the project directory`)
+                console.error(`   For security reasons, only files within the project can be loaded.`)
+                process.exit(1)
+            }
         }
 
         console.log(`Loading location data from: ${dataPath}`)

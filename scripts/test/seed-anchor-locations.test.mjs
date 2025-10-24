@@ -110,6 +110,44 @@ describe('seed-anchor-locations.mjs CLI', () => {
         }
     })
 
+    test('rejects invalid mode values', async () => {
+        try {
+            await execAsync(`node ${SCRIPT_PATH} --mode=invalid`, {
+                env: { ...process.env, PERSISTENCE_MODE: 'memory' }
+            })
+            assert.fail('Should have thrown an error')
+        } catch (error) {
+            assert.ok(error.stdout.includes('❌ Error: Invalid mode'), 'shows invalid mode error')
+            assert.ok(error.stdout.includes("Must be 'memory' or 'cosmos'"), 'explains valid modes')
+            assert.equal(error.code, 1, 'exits with code 1')
+        }
+    })
+
+    test('prevents path traversal attacks', async () => {
+        try {
+            await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=../../../etc/passwd`, {
+                env: { ...process.env, PERSISTENCE_MODE: 'memory' }
+            })
+            assert.fail('Should have thrown an error')
+        } catch (error) {
+            assert.ok(error.stdout.includes('outside the project directory'), 'shows security error')
+            assert.ok(error.stdout.includes('security reasons'), 'explains security concern')
+            assert.equal(error.code, 1, 'exits with code 1')
+        }
+    })
+
+    test('prevents absolute paths outside project', async () => {
+        try {
+            await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=/etc/passwd`, {
+                env: { ...process.env, PERSISTENCE_MODE: 'memory' }
+            })
+            assert.fail('Should have thrown an error')
+        } catch (error) {
+            assert.ok(error.stdout.includes('outside the project directory'), 'shows security error')
+            assert.equal(error.code, 1, 'exits with code 1')
+        }
+    })
+
     test('shows idempotency note in output', async () => {
         const { stdout } = await execAsync(`node ${SCRIPT_PATH} --mode=memory`, {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }

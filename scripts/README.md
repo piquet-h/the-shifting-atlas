@@ -15,7 +15,7 @@ node scripts/seed-anchor-locations.mjs [options]
 
 **Options:**
 - `--mode=memory|cosmos` - Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
-- `--data=path` - Path to locations JSON file (default: backend/src/data/villageLocations.json)
+- `--data=path` - Path to locations JSON file relative to project root (default: backend/src/data/villageLocations.json). For security, only files within the project directory can be loaded.
 - `--help, -h` - Show help message
 
 **Examples:**
