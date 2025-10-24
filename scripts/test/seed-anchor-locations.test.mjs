@@ -4,19 +4,19 @@
  */
 
 import assert from 'node:assert'
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, test } from 'node:test'
 import { promisify } from 'node:util'
 
-const execAsync = promisify(exec)
+const execAsync = promisify(execFile)
 
 const SCRIPT_PATH = resolve(new URL('..', import.meta.url).pathname, 'seed-anchor-locations.mjs')
 
 describe('seed-anchor-locations.mjs CLI', () => {
     test('--help flag shows usage information', async () => {
-        const { stdout, stderr } = await execAsync(`node ${SCRIPT_PATH} --help`)
+        const { stdout, stderr } = await execAsync('node', [SCRIPT_PATH, '--help'])
         
         assert.ok(stdout.includes('Seed Script: Anchor Locations & Exits'), 'shows title')
         assert.ok(stdout.includes('Usage:'), 'shows usage')
@@ -26,7 +26,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
     })
 
     test('runs successfully in memory mode with default data', async () => {
-        const { stdout, stderr } = await execAsync(`node ${SCRIPT_PATH} --mode=memory`, {
+        const { stdout, stderr } = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }
         })
 
@@ -45,7 +45,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         const env = { ...process.env, PERSISTENCE_MODE: 'memory' }
 
         // First run
-        const firstRun = await execAsync(`node ${SCRIPT_PATH} --mode=memory`, { env })
+        const firstRun = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], { env })
         assert.ok(firstRun.stdout.includes('✅ Seed operation completed successfully'), 'first run succeeds')
 
         // Extract counts from first run (basic parsing)
@@ -58,7 +58,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         // Note: In memory mode with fresh process, each run starts fresh
         // For true idempotency testing, would need persistent storage or same process
         // This test validates the script runs twice without error
-        const secondRun = await execAsync(`node ${SCRIPT_PATH} --mode=memory`, { env })
+        const secondRun = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], { env })
         assert.ok(secondRun.stdout.includes('✅ Seed operation completed successfully'), 'second run succeeds')
     })
 
@@ -89,7 +89,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         await writeFile(testDataPath, JSON.stringify(testData, null, 2))
 
         // Run with custom data file
-        const { stdout } = await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=${testDataPath}`, {
+        const { stdout } = await execAsync('node', [SCRIPT_PATH, '--mode=memory', `--data=${testDataPath}`], {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }
         })
 
