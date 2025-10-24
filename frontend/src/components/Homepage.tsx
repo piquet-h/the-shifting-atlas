@@ -25,7 +25,7 @@ import CommandInterface from './CommandInterface'
  */
 export default function Homepage(): React.ReactElement {
     const { isNewUser, acknowledge } = useVisitState()
-    const { playerGuid, loading: guidLoading } = usePlayerGuid()
+    const { loading: guidLoading } = usePlayerGuid()
     const { isAuthenticated, loading, user, signIn } = useAuth()
     const { linking, linked, error: linkError } = useLinkGuestOnAuth()
 
@@ -195,7 +195,7 @@ export default function Homepage(): React.ReactElement {
                             <h2 id="command-interface-title" className="text-sm font-semibold tracking-wide mb-3">
                                 Try a Command
                             </h2>
-                            <CommandInterface playerGuid={playerGuid || undefined} />
+                            <CommandInterface />
                         </section>
                     </div>
                     {/* Desktop side panel (progressive enhancement) */}
@@ -235,7 +235,7 @@ export default function Homepage(): React.ReactElement {
                             <h2 id="auth-command-interface-title" className="text-lg font-semibold tracking-wide mb-4">
                                 Command Interface
                             </h2>
-                            <CommandInterface playerGuid={playerGuid || user?.userId} />
+                            <CommandInterface />
                         </section>
 
                         <section className="grid gap-3 sm:grid-cols-3" aria-label="Game pillars">

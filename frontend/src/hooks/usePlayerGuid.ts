@@ -5,10 +5,10 @@ import { trackGameEventClient } from '../services/telemetry'
 /**
  * usePlayerGuid
  * Responsible for obtaining and persisting a stable player GUID for guest users.
- * MVP (PR1):
+ * Behavior:
  *  - Stores guid in localStorage under key `tsa.playerGuid`.
- *  - Calls GET /api/player (alias to bootstrap) to allocate or confirm a GUID.
- *  - Emits simple console telemetry placeholders (future: dedicated telemetry endpoint).
+ *  - Calls GET /api/player to allocate or confirm a GUID.
+ *  - Emits telemetry events to Application Insights via trackGameEventClient.
  */
 export interface PlayerGuidState {
     playerGuid: string | null
@@ -53,7 +53,7 @@ export function usePlayerGuid(): PlayerGuidState {
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
                 trackGameEventClient('Onboarding.GuestGuid.Started')
-                const res = await fetch('/api/player/bootstrap', {
+                const res = await fetch('/api/player', {
                     method: 'GET',
                     headers: existing ? { 'x-player-guid': existing } : undefined
                 })

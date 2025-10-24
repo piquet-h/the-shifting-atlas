@@ -8,8 +8,6 @@ import CommandOutput, { CommandRecord } from './CommandOutput'
 
 interface CommandInterfaceProps {
     className?: string
-    // playerGuid prop deprecated; auto-bootstrap handled internally. If provided it overrides internal hook.
-    playerGuid?: string | null
 }
 
 /**
@@ -18,9 +16,8 @@ interface CommandInterfaceProps {
  * MVP Implementation: supports a single built-in `ping` command invoking `/api/ping`.
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
-export default function CommandInterface({ className, playerGuid: overrideGuid }: CommandInterfaceProps): React.ReactElement {
+export default function CommandInterface({ className }: CommandInterfaceProps): React.ReactElement {
     const { playerGuid, loading: guidLoading } = usePlayerGuid()
-    const effectiveGuid = overrideGuid ?? playerGuid
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
@@ -61,18 +58,18 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
             let response: string | undefined
             let latencyMs: number | undefined
             try {
-                if (!effectiveGuid && raw !== 'clear') {
+                if (!playerGuid && raw !== 'clear') {
                     throw new Error('Player not ready yet')
                 }
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
                 if (lower.startsWith('ping')) {
-                    const payload = { playerGuid: effectiveGuid, message: raw.replace(/^ping\s*/, '') || 'ping' }
+                    const payload = { playerGuid: playerGuid, message: raw.replace(/^ping\s*/, '') || 'ping' }
                     const res = await fetch('/api/ping', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(effectiveGuid ? { 'x-player-guid': effectiveGuid } : {})
+                            ...(playerGuid ? { 'x-player-guid': playerGuid } : {})
                         },
                         body: JSON.stringify(payload)
                     })
@@ -89,7 +86,7 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                     }
                 } else if (lower === 'look') {
                     const res = await fetch(`/api/location${currentLocationId ? `?id=${encodeURIComponent(currentLocationId)}` : ''}`, {
-                        headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
+                        headers: playerGuid ? { 'x-player-guid': playerGuid } : undefined
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
@@ -115,7 +112,7 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                     const dir = lower.split(/\s+/)[1]
                     const fromParam = currentLocationId ? `&from=${encodeURIComponent(currentLocationId)}` : ''
                     const res = await fetch(`/api/player/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
-                        headers: effectiveGuid ? { 'x-player-guid': effectiveGuid } : undefined
+                        headers: playerGuid ? { 'x-player-guid': playerGuid } : undefined
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
@@ -155,13 +152,13 @@ export default function CommandInterface({ className, playerGuid: overrideGuid }
                 })
             }
         },
-        [effectiveGuid, currentLocationId]
+        [playerGuid, currentLocationId]
     )
 
     return (
         <div className={className}>
             <CommandOutput items={history} className="mb-4" />
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={!effectiveGuid || guidLoading} />
+            <CommandInput onSubmit={runCommand} busy={busy} disabled={!playerGuid || guidLoading} />
             <p className="mt-2 text-[11px] text-slate-300">
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
