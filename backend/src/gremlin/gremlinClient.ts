@@ -45,9 +45,24 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
                 auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => unknown }
             }
         }
-        // Handle ESM default export (gremlin v3.7.x uses default export in ESM)
+        // Handle ESM default export (gremlin v3.7.x uses CommonJS but when dynamically imported in ESM context, structure can vary)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const gremlinModule = (gremlin as any).default || gremlin
+        const gremlinAny = gremlin as any
+
+        // Try multiple access patterns to find the driver
+        let gremlinModule = gremlinAny
+        if (gremlinAny.default) {
+            gremlinModule = gremlinAny.default
+        }
+
+        // Verify we have the driver property before proceeding
+        if (!gremlinModule.driver || !gremlinModule.driver.DriverRemoteConnection) {
+            throw new Error(
+                `Gremlin module structure unexpected. Found keys: ${Object.keys(gremlinModule).join(', ')}. ` +
+                    `Driver keys: ${gremlinModule.driver ? Object.keys(gremlinModule.driver).join(', ') : 'driver is undefined'}`
+            )
+        }
+
         const gmod = gremlinModule as unknown as GremlinModuleShape
         const DriverRemoteConnection = gmod.driver.DriverRemoteConnection
         // Always use Azure AD (Managed Identity) now; legacy key mode removed.
