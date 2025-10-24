@@ -2,25 +2,62 @@
  * Application Insights Telemetry Initialization (Azure Functions)
  * Initializes the Application Insights SDK early so automatic collection (requests, dependencies, traces, exceptions)
  * is enabled for all function executions. Uses connection string via env var APPLICATIONINSIGHTS_CONNECTION_STRING.
+ * 
+ * In test mode (NODE_ENV=test), Application Insights is completely disabled to avoid slow initialization and network timeouts.
  */
 import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
-import appInsights from 'applicationinsights'
 import { randomUUID } from 'node:crypto'
 
-if (appInsights && !appInsights.defaultClient) {
-    const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-    if (connectionString) {
-        appInsights
-            .setup(connectionString)
-            .setAutoCollectRequests(true)
-            .setAutoCollectDependencies(true)
-            .setAutoCollectExceptions(true)
-            .setAutoCollectPerformance(true, true)
-            .setAutoCollectConsole(true)
-            .setSendLiveMetrics(false)
-            .setUseDiskRetryCaching(true)
-            .setAutoDependencyCorrelation(true)
-            .start()
+// Check if we're in test mode - if so, skip all Application Insights initialization
+const isTestMode = process.env.NODE_ENV === 'test'
+
+if (isTestMode) {
+    console.log('[Telemetry] Test mode detected - skipping Application Insights initialization')
+}
+
+// Conditionally import and initialize Application Insights (only in non-test mode)
+let aiClient: { trackEvent(args: { name: string; properties?: Record<string, unknown> }): void; trackException(args: { exception: Error; properties?: Record<string, unknown> }): void } | undefined
+
+// Only attempt to load Application Insights if NOT in test mode
+// This completely avoids loading the module and its background network activity
+if (!isTestMode) {
+    console.log('[Telemetry] Loading Application Insights...')
+    try {
+        // Lazy-load Application Insights to avoid it being loaded in test scenarios
+        const appInsightsModule = require('applicationinsights')
+        const appInsights = appInsightsModule.default || appInsightsModule
+        
+        if (appInsights && !appInsights.defaultClient) {
+            const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
+            if (connectionString) {
+                appInsights
+                    .setup(connectionString)
+                    .setAutoCollectRequests(true)
+                    .setAutoCollectDependencies(true)
+                    .setAutoCollectExceptions(true)
+                    .setAutoCollectPerformance(true, true)
+                    .setAutoCollectConsole(true)
+                    .setSendLiveMetrics(false)
+                    .setUseDiskRetryCaching(true)
+                    .setAutoDependencyCorrelation(true)
+                    .start()
+            } else {
+                // No connection string - set up with very short timeout to avoid hanging in tests
+                appInsights
+                    .setup()
+                    .setInternalLogging(false, false)
+                
+                // Set short timeout for operations (1 second instead of default 30+)
+                if (appInsights.defaultClient && appInsights.defaultClient.config) {
+                    appInsights.defaultClient.config.maxBatchIntervalMs = 100
+                }
+            }
+        }
+        
+        aiClient = appInsights ? appInsights.defaultClient : undefined
+    } catch (err) {
+        // If Application Insights fails to load, continue without it
+        console.warn('Failed to initialize Application Insights:', err)
     }
 }
 
@@ -29,8 +66,6 @@ interface AppInsightsClient {
     trackEvent(args: { name: string; properties?: Record<string, unknown> }): void
     trackException(args: { exception: Error; properties?: Record<string, unknown> }): void
 }
-
-const aiClient = appInsights ? (appInsights as unknown as { defaultClient?: AppInsightsClient }).defaultClient : undefined
 
 export const telemetryClient: AppInsightsClient =
     aiClient ||

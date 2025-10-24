@@ -8,6 +8,12 @@ type ExitArray = Array<Record<string, unknown>>
 class FakeGremlinClient {
     constructor(private data: { locations: VertexMap; exits: Record<string, ExitArray> }) {}
     async submit<T>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
+        // Log all queries for debugging
+        if (process.env.DEBUG_FAKE_CLIENT) {
+            console.log('[FakeGremlinClient] Query:', query.substring(0, 100))
+            console.log('[FakeGremlinClient] Bindings:', bindings)
+        }
+        
         if (query.startsWith('g.V') && query.includes('valueMap(true)')) {
             const id = bindings?.locationId || (bindings?.lid as string)
             const r = this.data.locations[id]
@@ -46,14 +52,26 @@ class FakeGremlinClient {
             const name = bindings?.name as string
             const desc = bindings?.desc as string
             const ver = bindings?.ver as number
-            const tags = bindings?.tags as string[] | undefined
+            
+            // Extract tags from tag0, tag1, tag2, etc. bindings
+            const tags: string[] = []
+            if (bindings) {
+                for (let i = 0; ; i++) {
+                    const tagKey = `tag${i}`
+                    if (tagKey in bindings) {
+                        tags.push(bindings[tagKey] as string)
+                    } else {
+                        break
+                    }
+                }
+            }
 
             this.data.locations[id] = {
                 id: id,
                 name: [name],
                 description: [desc],
                 version: ver,
-                ...(tags && tags.length > 0 ? { tags: tags } : {})
+                ...(tags.length > 0 ? { tags: tags } : {})
             }
             return []
         }
@@ -99,6 +117,7 @@ test('cosmos location repository get + move', async () => {
 })
 
 test('cosmos location repository upsert - create new location', async () => {
+    console.log(`[TEST START] ${Date.now()}`)
     const fake = new FakeGremlinClient({ locations: {}, exits: {} })
     const repo = new CosmosLocationRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
 
@@ -109,17 +128,24 @@ test('cosmos location repository upsert - create new location', async () => {
         tags: ['test', 'unit-test']
     }
 
+    console.log(`[TEST BEFORE UPSERT] ${Date.now()}`)
     const result = await repo.upsert(newLocation)
+    console.log(`[TEST AFTER UPSERT] ${Date.now()}`)
+    console.log('[TEST] Upsert result:', result)
     assert.equal(result.created, true)
     assert.equal(result.id, 'test-123')
     assert.equal(result.updatedRevision, 1) // New location should return updatedRevision = 1
 
     // Verify it was stored correctly
+    console.log(`[TEST BEFORE GET] ${Date.now()}`)
     const retrieved = await repo.get('test-123')
+    console.log(`[TEST AFTER GET] ${Date.now()}`)
+    console.log('[TEST] Retrieved:', retrieved)
     assert.ok(retrieved)
     assert.equal(retrieved.name, 'Test Location')
     assert.equal(retrieved.description, 'A test location for unit tests')
     assert.equal(retrieved.version, 1)
+    console.log(`[TEST END] ${Date.now()}`)
 })
 
 test('cosmos location repository upsert - update existing location (revision increment)', async () => {
