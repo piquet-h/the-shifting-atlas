@@ -127,7 +127,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     properties: {
       AzureWebJobsStorage__accountName: storageAccount.name
 
-      FUNCTIONS_EXTENSION_VERSION: '~4'
       FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR: 'true'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
