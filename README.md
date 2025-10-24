@@ -223,6 +223,16 @@ See `docs/developer-workflow/local-dev-setup.md` for environment setup. Guidelin
 -   Link a design doc section when opening a feature PR.
 -   Prefer enqueueing a world event over cascading direct mutations.
 
+### Seeding World Data
+
+An idempotent seed script is available for initializing anchor locations and exits:
+
+```bash
+node scripts/seed-anchor-locations.mjs
+```
+
+The script is safe to re-run and outputs a summary of locations and exits processed. See `docs/developer-workflow/local-dev-setup.md` for detailed usage.
+
 ## 7. Roadmap (Near / Mid Term)
 
 (Roadmap retained; see design docs for fuller detail.)
