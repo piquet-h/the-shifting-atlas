@@ -149,9 +149,10 @@ describe('E2E Integration Test Suite', () => {
 
             const playerRepo = await getPlayerRepository()
             // The player was already created by seedTestWorld, so we're just getting it
-            const { record } = await playerRepo.getOrCreate('00000000-0000-4000-a000-000000000003')
+            const { record, created } = await playerRepo.getOrCreate('00000000-0000-4000-a000-000000000003')
 
             // Since seedWorld already created this player, created=false on this call
+            assert.equal(created, false, 'player already exists from seedWorld')
             assert.equal(record.id, '00000000-0000-4000-a000-000000000003', 'correct player id')
             assert.ok(record.currentLocationId, 'player has starting location')
             assert.equal(typeof record.guest, 'boolean', 'guest flag is boolean')
