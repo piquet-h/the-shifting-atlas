@@ -114,6 +114,56 @@ Local steps:
 
 If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` or verify your account has the Cosmos DB Data Contributor role in the target subscription.
 
+## Seeding the World Graph
+
+An idempotent seed script is provided for initializing anchor locations and exits in the world graph. The script is safe to re-run and will not create duplicate vertices or edges.
+
+### Quick Start
+
+```bash
+# Seed to in-memory store (default)
+node scripts/seed-anchor-locations.mjs
+
+# Seed to Cosmos DB (requires Cosmos configuration)
+PERSISTENCE_MODE=cosmos node scripts/seed-anchor-locations.mjs
+```
+
+### Usage
+
+```bash
+node scripts/seed-anchor-locations.mjs [options]
+
+Options:
+  --mode=memory|cosmos    Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
+  --data=path            Path to locations JSON file (default: backend/src/data/villageLocations.json)
+  --help, -h             Show this help message
+```
+
+### Output
+
+The script outputs a summary including:
+- Number of locations processed
+- Number of location vertices created (new only)
+- Number of exits created (new only)
+- Demo player creation status
+- Elapsed time
+
+### Prerequisites
+
+- Backend dependencies must be installed: `cd backend && npm install`
+- For `cosmos` mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables
+
+### Idempotency
+
+The script uses the existing `seedWorld` function which leverages:
+- `locationRepository.upsert()` - Creates or updates location vertices without duplicates
+- `locationRepository.ensureExit()` - Creates exits only if they don't already exist
+
+Re-running the script will:
+- Update existing location metadata if changed
+- Skip creating exits that already exist
+- Not create duplicate vertices or edges
+
 ## Common Troubleshooting
 
 | Symptom                                        | Fix                                                             |
