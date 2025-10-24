@@ -1,9 +1,8 @@
-/* global process */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { __resetSeedWorldTestState, seedWorld } from '../src/seeding/seedWorld.js'
 
-process.env.PERSISTENCE_MODE = 'memory'
+// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 describe('world seeding', () => {
     test('idempotent seedWorld', async () => {

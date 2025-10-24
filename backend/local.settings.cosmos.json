@@ -1,0 +1,19 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "FUNCTIONS_WORKER_RUNTIME": "node",
+        "AzureWebJobsStorage": "",
+        "PERSISTENCE_MODE": "cosmos",
+        "PERSISTENCE_STRICT": "1",
+        "COSMOS_GREMLIN_ENDPOINT": "https://cosmosgraph-atlas.documents.azure.com:443/",
+        "COSMOS_GREMLIN_DATABASE": "game",
+        "COSMOS_GREMLIN_GRAPH": "world",
+        "COSMOS_SQL_ENDPOINT": "https://cosmossql-atlas.documents.azure.com:443/",
+        "COSMOS_SQL_DATABASE": "game-docs",
+        "COSMOS_SQL_KEY_SECRET_NAME": "cosmos-sql-primary-key",
+        "COSMOS_SQL_CONTAINER_PLAYERS": "players",
+        "COSMOS_SQL_CONTAINER_INVENTORY": "inventory",
+        "COSMOS_SQL_CONTAINER_LAYERS": "descriptionLayers",
+        "COSMOS_SQL_CONTAINER_EVENTS": "worldEvents"
+    }
+}

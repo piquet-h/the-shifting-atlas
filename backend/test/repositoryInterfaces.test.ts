@@ -1,4 +1,3 @@
-/* global process */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import {
@@ -9,7 +8,7 @@ import {
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
 
-process.env.PERSISTENCE_MODE = 'memory'
+// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 describe('Repository Interface Contracts', () => {
     test('IPlayerRepository - has required methods', async () => {

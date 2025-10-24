@@ -1,7 +1,7 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import crypto from 'crypto'
 import { GremlinClient } from '../gremlin/gremlinClient.js'
-import { WORLD_GRAPH_PARTITION_KEY_PROP, WORLD_GRAPH_PARTITION_VALUE } from '../persistence/graphPartition.js'
+import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { ILocationRepository } from './locationRepository.js'
 
@@ -18,9 +18,12 @@ export class CosmosLocationRepository implements ILocationRepository {
 
     /** Helper: Regenerate and update exits summary cache for a location */
     private async regenerateExitsSummaryCache(locationId: string): Promise<void> {
-        // Fetch current exits
+        // Fetch current exits (use coalesce to handle missing optional properties)
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
-            "g.V(locationId).outE('exit').project('direction','to','description','blocked').by(values('direction')).by(inV().id()).by(values('description')).by(values('blocked'))",
+            "g.V(locationId).outE('exit').project('direction','to','description','blocked')" +
+                ".by(values('direction')).by(inV().id())" +
+                ".by(coalesce(values('description'), constant('')))" +
+                ".by(coalesce(values('blocked'), constant(false)))",
             { locationId }
         )
 
@@ -137,18 +140,28 @@ export class CosmosLocationRepository implements ILocationRepository {
                 name: location.name,
                 desc: location.description || '',
                 ver: newVersion,
-                pk: WORLD_GRAPH_PARTITION_VALUE // Partition key required by Cosmos Gremlin API
-            }
-            if (location.tags) {
-                bindings.tags = location.tags
+                pk: resolveGraphPartitionKey() // Partition key: "world" (prod) or "test" (tests)
             }
 
-            await this.client.submit(
+            // Build the query: for tags, we need to add each tag individually (Cosmos Gremlin doesn't support array properties)
+            let query =
                 `g.V(lid).fold().coalesce(unfold(), addV('location').property('id', lid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))` +
-                    ".property('name', name).property('description', desc).property('version', ver)" +
-                    (location.tags ? ".property('tags', tags)" : ''),
-                bindings
-            )
+                ".property('name', name).property('description', desc).property('version', ver)"
+
+            // Drop existing tags first if location has tags (to replace them)
+            if (location.tags) {
+                query = query + ".sideEffect(properties('tags').drop())"
+            }
+
+            // Add each tag as a separate property call
+            if (location.tags && location.tags.length > 0) {
+                for (let i = 0; i < location.tags.length; i++) {
+                    bindings[`tag${i}`] = location.tags[i]
+                    query = query + `.property('tags', tag${i})`
+                }
+            }
+
+            await this.client.submit(query, bindings)
 
             success = true
             updatedRevision = shouldIncrementRevision ? newVersion : undefined
@@ -174,14 +187,15 @@ export class CosmosLocationRepository implements ILocationRepository {
     /** Ensure an exit edge with direction exists between fromId and toId */
     async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }> {
         if (!isDirection(direction)) return { created: false }
+        const partitionKey = resolveGraphPartitionKey()
         // Ensure both vertices exist (no-op if present); include partitionKey for Cosmos Gremlin API requirement
         await this.client.submit(
             `g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
-            { fid: fromId, pk: WORLD_GRAPH_PARTITION_VALUE }
+            { fid: fromId, pk: partitionKey }
         )
         await this.client.submit(
             `g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
-            { tid: toId, pk: WORLD_GRAPH_PARTITION_VALUE }
+            { tid: toId, pk: partitionKey }
         )
 
         // Check if edge already exists
@@ -195,8 +209,8 @@ export class CosmosLocationRepository implements ILocationRepository {
             return { created: false }
         }
 
-        // Create new edge
-        await this.client.submit("g.V(fid).as('a').addE('exit').to(V(tid)).property('direction', dir).property('description', desc)", {
+        // Create new edge (use addE().from().to() pattern for Cosmos Gremlin)
+        await this.client.submit("g.V(fid).addE('exit').to(g.V(tid)).property('direction', dir).property('description', desc)", {
             fid: fromId,
             tid: toId,
             dir: direction,

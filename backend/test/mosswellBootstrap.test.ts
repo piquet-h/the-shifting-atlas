@@ -1,10 +1,9 @@
-/* global process */
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { __resetSeedWorldTestState, seedWorld } from '../src/seeding/seedWorld.js'
 
-process.env.PERSISTENCE_MODE = 'memory'
+// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 describe('Mosswell Bootstrap - Idempotency', () => {
     test('seedWorld is idempotent on repeated calls with same data', async () => {

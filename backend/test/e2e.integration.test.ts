@@ -13,14 +13,14 @@
  *
  * Environment: PERSISTENCE_MODE=memory (tests work with both memory and cosmos)
  */
+import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import type { Location } from '@piquet-h/shared'
-import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../src/seeding/seedWorld.js'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
+import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../src/seeding/seedWorld.js'
 
-process.env.PERSISTENCE_MODE = 'memory'
+// PERSISTENCE_MODE is now controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 // Test fixtures: Create a small test world with ≥5 locations for traversal
 const createTestWorldBlueprint = (): Location[] => [
@@ -138,8 +138,9 @@ describe('E2E Integration Test Suite', () => {
             assert.equal(locAfter, undefined, 'location cleaned up after reset')
         })
 
-        test('test uses correct persistence mode', () => {
-            assert.equal(process.env.PERSISTENCE_MODE, 'memory', 'running in memory mode')
+        test('test uses configured persistence mode', () => {
+            const mode = process.env.PERSISTENCE_MODE || 'memory'
+            assert.ok(['memory', 'cosmos'].includes(mode), `valid persistence mode: ${mode}`)
         })
     })
 

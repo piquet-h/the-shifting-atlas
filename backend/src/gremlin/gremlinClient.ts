@@ -45,7 +45,10 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
                 auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => unknown }
             }
         }
-        const gmod = gremlin as unknown as GremlinModuleShape
+        // Handle ESM default export (gremlin v3.7.x uses default export in ESM)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gremlinModule = (gremlin as any).default || gremlin
+        const gmod = gremlinModule as unknown as GremlinModuleShape
         const DriverRemoteConnection = gmod.driver.DriverRemoteConnection
         // Always use Azure AD (Managed Identity) now; legacy key mode removed.
         const { DefaultAzureCredential } = await import('@azure/identity')
@@ -55,9 +58,21 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
         if (!token?.token) throw new Error('Failed to acquire AAD token for Cosmos Gremlin.')
         const password = token.token
         const authenticator = new gmod.driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, password)
-        const connection: DriverRemoteConnectionLike = new DriverRemoteConnection(`${config.endpoint}`, {
+
+        // Convert HTTPS endpoint to WebSocket format for Gremlin
+        let wsEndpoint = config.endpoint
+        if (wsEndpoint.startsWith('https://')) {
+            wsEndpoint = wsEndpoint.replace('https://', 'wss://').replace('.documents.azure.com', '.gremlin.cosmos.azure.com')
+        }
+
+        const connection: DriverRemoteConnectionLike = new DriverRemoteConnection(wsEndpoint, {
             authenticator,
-            traversalsource: 'g'
+            traversalsource: 'g',
+            mimeType: 'application/vnd.gremlin-v2.0+json' // Azure Cosmos DB requires GraphSON v2
+        } as {
+            authenticator: unknown
+            traversalsource: string
+            mimeType?: string
         })
         return {
             async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {

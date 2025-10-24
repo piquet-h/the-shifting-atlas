@@ -28,14 +28,6 @@ export function resolvePersistenceMode(): PersistenceMode {
 }
 
 /**
- * Load persistence configuration (synchronous, for backwards compatibility)
- * Note: This function reads the key from environment variables for local dev.
- * For production, use loadPersistenceConfigAsync which fetches from Key Vault.
- * @deprecated Use loadPersistenceConfigAsync for production workloads
- */
-// Deprecated synchronous loader removed (previously loadPersistenceConfig). All code paths
-// should migrate to the async variant below which sources secrets via Key Vault helper.
-/**
  * Load persistence configuration asynchronously, fetching secrets from Key Vault via managed identity
  * Falls back to environment variables for local development
  */
