@@ -1,10 +1,10 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
-import { GremlinClient } from '../gremlin/gremlinClient.js'
+import { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 
 export class CosmosPlayerRepository implements IPlayerRepository {
-    constructor(private client: GremlinClient) {}
+    constructor(private client: IGremlinClient) {}
 
     async get(id: string): Promise<PlayerRecord | undefined> {
         const rows = await this.client.submit<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", { playerId: id })

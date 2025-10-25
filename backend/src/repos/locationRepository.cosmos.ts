@@ -1,6 +1,6 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import crypto from 'crypto'
-import { GremlinClient } from '../gremlin/gremlinClient.js'
+import { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { ILocationRepository } from './locationRepository.js'
@@ -14,7 +14,7 @@ function computeLocationContentHash(name: string, description: string, tags?: st
 
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 export class CosmosLocationRepository implements ILocationRepository {
-    constructor(private client: GremlinClient) {}
+    constructor(private client: IGremlinClient) {}
 
     /** Helper: Regenerate and update exits summary cache for a location */
     private async regenerateExitsSummaryCache(locationId: string): Promise<void> {

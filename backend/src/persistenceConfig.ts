@@ -2,7 +2,7 @@
 
 export type PersistenceMode = 'memory' | 'cosmos'
 
-export interface PersistenceConfig {
+export interface IPersistenceConfig {
     mode: PersistenceMode
     cosmos?: {
         endpoint: string
@@ -31,7 +31,7 @@ export function resolvePersistenceMode(): PersistenceMode {
  * Load persistence configuration asynchronously, fetching secrets from Key Vault via managed identity
  * Falls back to environment variables for local development
  */
-export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
+export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> {
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
         const endpoint = process.env.COSMOS_GREMLIN_ENDPOINT || process.env.COSMOS_ENDPOINT
@@ -65,7 +65,7 @@ export async function loadPersistenceConfigAsync(): Promise<PersistenceConfig> {
             console.warn('Cosmos SQL API configuration incomplete. Some features may not be available.')
         }
 
-        const config: PersistenceConfig = {
+        const config: IPersistenceConfig = {
             mode,
             cosmos: { endpoint, database, graph }
         }

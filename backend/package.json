@@ -38,6 +38,8 @@
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
         "gremlin": "^3.7.0",
+        "inversify": "^7.10.3",
+        "reflect-metadata": "^0.2.2",
         "zod": "^4.1.11"
     },
     "devDependencies": {

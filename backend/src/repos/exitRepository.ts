@@ -1,5 +1,6 @@
 import { Direction } from '@piquet-h/shared'
-import { GremlinClient } from '../gremlin/gremlinClient.js'
+import { injectable } from 'inversify'
+import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 
 /** Exit edge representation from Gremlin query */
 export interface ExitEdgeResult {
@@ -74,8 +75,9 @@ export function generateExitsSummaryCache(exits: ExitEdgeResult[]): string {
  * Repository for exit edge retrieval and ordering operations.
  * Creation operations remain in locationRepository (ensureExit, ensureExitBidirectional).
  */
+@injectable()
 export class ExitRepository {
-    constructor(private client: GremlinClient) {}
+    constructor(private client: IGremlinClient) {}
 
     /**
      * Get all exits from a location, ordered canonically.

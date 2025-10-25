@@ -1,4 +1,7 @@
-/** Lightweight Gremlin client abstraction so shared code does not hard depend on the gremlin driver until cosmos mode is enabled. */
+import { DefaultAzureCredential } from '@azure/identity'
+import { driver } from 'gremlin'
+import { inject, injectable } from 'inversify'
+import 'reflect-metadata'
 
 export interface GremlinClientConfig {
     endpoint: string
@@ -6,100 +9,96 @@ export interface GremlinClientConfig {
     graph: string
 }
 
-export interface GremlinClient {
+/**
+ * Interface for executing Gremlin queries against Cosmos DB Gremlin API.
+ * Automatically handles Azure AD authentication and connection management.
+ */
+export interface IGremlinClient {
+    /**
+     * Submits a Gremlin query and returns the results.
+     * @param query - The Gremlin query string to execute
+     * @param bindings - Optional parameter bindings for the query
+     * @returns Array of query results
+     */
     submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]>
 }
 
-/** Dynamic factory. Only loads the real gremlin driver when available; otherwise throws if cosmos mode is requested. */
-export async function createGremlinClient(config: GremlinClientConfig): Promise<GremlinClient> {
-    try {
-        // Dynamic import keeps dev install light when only using memory mode.
-        const gremlin = await import('gremlin')
-        /**
-         * Internal lightweight facades below intentionally mirror only the tiny slice of the Gremlin
-         * driver surface we use. Rationale:
-         *  - Avoid pulling full gremlin types into consuming (especially frontend) bundles when
-         *    cosmos mode is not enabled (tree‑shaking friendliness + smaller install surface).
-         *  - Preserve an optional / dynamic boundary so packages that never touch Cosmos Gremlin
-         *    don’t acquire an unnecessary hard dependency.
-         *  - Minimize blast radius if the upstream driver’s internal structures change; we adapt
-         *    a single narrow shim instead of propagating types across the codebase.
-         * If new capabilities are required, extend these minimal interfaces rather than importing
-         * external driver types directly.
-         */
-        // Minimal internal type surface to avoid explicit any & keep optional dependency boundary small.
-        type InternalRemoteResult<T = unknown> = { _items: T[] }
-        interface InternalRemoteClient {
-            submit<T = unknown>(q: string, b?: Record<string, unknown>): Promise<InternalRemoteResult<T>>
-        }
-        interface DriverRemoteConnectionLike {
-            _client: InternalRemoteClient
-        }
-        type DriverRemoteConnectionCtor = new (
-            url: string,
-            opts: { authenticator: unknown; traversalsource: string }
-        ) => DriverRemoteConnectionLike
-        interface GremlinModuleShape {
-            driver: {
-                DriverRemoteConnection: DriverRemoteConnectionCtor
-                auth: { PlainTextSaslAuthenticator: new (a: string, b: string | undefined) => unknown }
-            }
-        }
-        // Handle ESM default export (gremlin v3.7.x uses CommonJS but when dynamically imported in ESM context, structure can vary)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const gremlinAny = gremlin as any
+/**
+ * Internal structure of the Gremlin driver's remote connection.
+ * The public types don't expose _client, but we need it for query submission.
+ */
+interface GremlinInternalClient<T = unknown> {
+    _client: {
+        submit: (query: string, bindings?: Record<string, unknown>) => Promise<{ _items: T[] }>
+    }
+}
 
-        // Try multiple access patterns to find the driver
-        let gremlinModule = gremlinAny
-        if (gremlinAny.default) {
-            gremlinModule = gremlinAny.default
+@injectable()
+export class GremlinClient implements IGremlinClient {
+    private connection: driver.DriverRemoteConnection | undefined
+
+    constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {}
+
+    async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
+        if (!this.connection) {
+            await this.initialize()
         }
 
-        // Verify we have the driver property before proceeding
-        if (!gremlinModule.driver || !gremlinModule.driver.DriverRemoteConnection) {
-            throw new Error(
-                `Gremlin module structure unexpected. Found keys: ${Object.keys(gremlinModule).join(', ')}. ` +
-                    `Driver keys: ${gremlinModule.driver ? Object.keys(gremlinModule.driver).join(', ') : 'driver is undefined'}`
-            )
-        }
+        // Access the internal _client that's not exposed in the public type definitions
+        const internalClient = this.connection as unknown as GremlinInternalClient<T>
+        const raw = await internalClient._client.submit(query, bindings)
+        return raw._items
+    }
 
-        const gmod = gremlinModule as unknown as GremlinModuleShape
-        const DriverRemoteConnection = gmod.driver.DriverRemoteConnection
-        // Always use Azure AD (Managed Identity) now; legacy key mode removed.
-        const { DefaultAzureCredential } = await import('@azure/identity')
-        const credential = new DefaultAzureCredential()
-        const scope = 'https://cosmos.azure.com/.default'
-        const token = await credential.getToken(scope)
-        if (!token?.token) throw new Error('Failed to acquire AAD token for Cosmos Gremlin.')
-        const password = token.token
-        const authenticator = new gmod.driver.auth.PlainTextSaslAuthenticator(`/dbs/${config.database}/colls/${config.graph}`, password)
+    private async initialize(): Promise<void> {
+        const token = await this.getAzureADToken()
+        const authenticator = this.createAuthenticator(token)
+        const wsEndpoint = this.convertToWebSocketEndpoint(this.config.endpoint)
 
-        // Convert HTTPS endpoint to WebSocket format for Gremlin
-        let wsEndpoint = config.endpoint
-        if (wsEndpoint.startsWith('https://')) {
-            wsEndpoint = wsEndpoint.replace('https://', 'wss://').replace('.documents.azure.com', '.gremlin.cosmos.azure.com')
-        }
-
-        const connection: DriverRemoteConnectionLike = new DriverRemoteConnection(wsEndpoint, {
+        this.connection = new driver.DriverRemoteConnection(wsEndpoint, {
             authenticator,
             traversalsource: 'g',
             mimeType: 'application/vnd.gremlin-v2.0+json' // Azure Cosmos DB requires GraphSON v2
-        } as {
-            authenticator: unknown
-            traversalsource: string
-            mimeType?: string
         })
-        return {
-            async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
-                // Use underlying internal client. If gremlin driver internal API changes, adjust here.
-                const raw = await connection._client.submit<T>(query, bindings)
-                return raw._items
-            }
-        }
-    } catch (err) {
-        throw new Error(
-            'Gremlin driver not available or failed to initialize. Install "gremlin" and ensure Cosmos DB Gremlin endpoint env vars are set. Original error: ' +
-                (err as Error).message
-        )
     }
+
+    private async getAzureADToken(): Promise<string> {
+        const credential = new DefaultAzureCredential()
+        const scope = 'https://cosmos.azure.com/.default'
+        const token = await credential.getToken(scope)
+
+        if (!token?.token) {
+            throw new Error('Failed to acquire Azure AD token for Cosmos DB Gremlin API. Ensure Managed Identity is configured.')
+        }
+
+        return token.token
+    }
+
+    private createAuthenticator(token: string): driver.auth.PlainTextSaslAuthenticator {
+        const resourcePath = `/dbs/${this.config.database}/colls/${this.config.graph}`
+        return new driver.auth.PlainTextSaslAuthenticator(resourcePath, token)
+    }
+
+    /**
+     * Converts an HTTPS Cosmos DB endpoint to the WebSocket format required by Gremlin.
+     * Example: https://account.documents.azure.com -> wss://account.gremlin.cosmos.azure.com
+     */
+    private convertToWebSocketEndpoint(endpoint: string): string {
+        if (endpoint.startsWith('https://')) {
+            return endpoint.replace('https://', 'wss://').replace('.documents.azure.com', '.gremlin.cosmos.azure.com')
+        }
+        return endpoint
+    }
+}
+
+/**
+ * Factory function for creating GremlinClient instances (legacy compatibility).
+ * @deprecated Use InversifyJS container to inject IGremlinClient instead.
+ * This factory exists for backward compatibility with code not yet migrated to DI.
+ */
+export async function createGremlinClient(config: GremlinClientConfig): Promise<IGremlinClient> {
+    const client = new GremlinClient(config)
+    // Initialize the connection eagerly to ensure it's ready
+    await client.submit('g.V().limit(1)')
+    return client
 }
