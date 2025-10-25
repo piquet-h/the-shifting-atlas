@@ -42,7 +42,7 @@ class FakeGremlinClient {
             const name = bindings?.name as string
             const desc = bindings?.desc as string
             const ver = bindings?.ver as number
-            
+
             const tags: string[] = []
             if (bindings) {
                 for (let i = 0; ; i++) {

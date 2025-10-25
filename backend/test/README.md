@@ -6,7 +6,9 @@
 test/
 ├── unit/           # Fast, isolated tests (no external dependencies)
 │   ├── edgeManagement.test.ts
+│   ├── exitRepository.test.ts      # Uses mocked IGremlinClient
 │   ├── moveHandlerResponse.test.ts
+│   ├── ping.envelope.test.ts
 │   ├── secretsHelper.test.ts
 │   └── telemetryCorrelation.test.ts
 ├── integration/    # Tests with Cosmos/memory persistence
@@ -14,6 +16,8 @@ test/
 │   ├── *Repository.test.ts
 │   └── (other integration tests)
 ├── helpers/        # Shared test utilities
+│   ├── containerHelpers.ts        # DI mocking utilities
+│   └── testUtils.ts
 └── setup/          # Test environment configuration
 ```
 
@@ -59,12 +63,36 @@ Add to `test/unit/` if:
 - Testing pure functions
 - No repository/database calls
 - Fully mocked dependencies
+- Using Inversify with mocked service implementations
 
 Add to `test/integration/` if:
 
 - Testing repository implementations
 - Requires persistence layer (memory or Cosmos)
 - Tests cross-service interactions
+
+### Using Inversify for Unit Tests
+
+For tests that need dependency injection with mocked services:
+
+```typescript
+import { createTestContainer, createMockGremlinClient } from '../helpers/containerHelpers.js'
+import { ExitRepository } from '../../src/repos/exitRepository.js'
+
+// Create a mock Gremlin client
+const mockClient = createMockGremlinClient({
+    "outE('exit')": [{ direction: 'north', toLocationId: 'loc-2' }]
+})
+
+// Create test container with mocked dependencies
+const container = createTestContainer({ gremlinClient: mockClient })
+const exitRepo = container.get(ExitRepository)
+
+// Test the repository logic without real persistence
+const exits = await exitRepo.getExits('loc-1')
+```
+
+This approach allows testing business logic in isolation while still using the real DI container structure.
 
 ## Performance Targets
 
