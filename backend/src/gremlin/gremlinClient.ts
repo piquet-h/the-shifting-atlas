@@ -1,7 +1,12 @@
 import { DefaultAzureCredential } from '@azure/identity'
-import { driver } from 'gremlin'
+import gremlin from 'gremlin'
 import { inject, injectable } from 'inversify'
 import 'reflect-metadata'
+
+// Gremlin is CommonJS, extract what we need
+const driver = gremlin.driver
+type DriverRemoteConnection = InstanceType<typeof driver.DriverRemoteConnection>
+type PlainTextSaslAuthenticator = InstanceType<typeof driver.auth.PlainTextSaslAuthenticator>
 
 export interface GremlinClientConfig {
     endpoint: string
@@ -35,7 +40,7 @@ interface GremlinInternalClient<T = unknown> {
 
 @injectable()
 export class GremlinClient implements IGremlinClient {
-    private connection: driver.DriverRemoteConnection | undefined
+    private connection: DriverRemoteConnection | undefined
 
     constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {}
 
@@ -74,7 +79,7 @@ export class GremlinClient implements IGremlinClient {
         return token.token
     }
 
-    private createAuthenticator(token: string): driver.auth.PlainTextSaslAuthenticator {
+    private createAuthenticator(token: string): PlainTextSaslAuthenticator {
         const resourcePath = `/dbs/${this.config.database}/colls/${this.config.graph}`
         return new driver.auth.PlainTextSaslAuthenticator(resourcePath, token)
     }
