@@ -448,7 +448,7 @@ The container is already set up in `backend/src/index.ts` from Step 1.6, so no a
 
 ### Step 2.4: Update Test for ExitRepository
 
-Edit `backend/test/exitRepository.test.ts`:
+Edit `backend/test/unit/exitRepository.test.ts` (moved from integration tests since it uses fully mocked dependencies):
 
 ```typescript
 import { Direction } from '@piquet-h/shared'
@@ -482,14 +482,14 @@ test('should get exits for location', async () => {
 })
 ```
 
-**Note:** Use the class as the service identifier, and bind it explicitly in the test if needed.
+**Note:** Since ExitRepository tests use only mocked `IGremlinClient` with no real persistence, they belong in `test/unit/` rather than `test/integration/`.
 
 ### Step 2.5: Test the Migration
 
 ```bash
 cd backend
 npm run build
-npm test -- exitRepository.test.ts
+npm run test:unit  # Unit tests run faster and don't require configuration
 ```
 
 Should pass. If successful, proceed to next repository.

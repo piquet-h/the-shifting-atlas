@@ -1,11 +1,13 @@
 import { Direction } from '@piquet-h/shared'
+import { Container } from 'inversify'
 import assert from 'node:assert'
-import { test } from 'node:test'
+import { suite, test } from 'node:test'
+import type { IGremlinClient } from '../../src/gremlin/index.js'
 import { ExitRepository, sortExits } from '../../src/repos/exitRepository.js'
 
 type ExitData = { direction: string; toLocationId: string; description?: string; kind?: string; state?: string }
 
-class FakeGremlinClient {
+class FakeGremlinClient implements IGremlinClient {
     constructor(private exits: Record<string, ExitData[]>) {}
     async submit<T>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
         const locationId = bindings?.locationId as string
@@ -109,50 +111,69 @@ test('sortExits - single exit', () => {
     assert.equal(sorted[0].direction, 'north')
 })
 
-test('ExitRepository.getExits - returns ordered exits', async () => {
-    const fake = new FakeGremlinClient({
-        loc1: [
-            { direction: 'south', toLocationId: 'B' },
-            { direction: 'north', toLocationId: 'A' },
-            { direction: 'east', toLocationId: 'C' }
-        ]
+suite('ExitRepository with Inversify', () => {
+    let container: Container
+
+    test('getExits - returns ordered exits', async () => {
+        const fakeClient = new FakeGremlinClient({
+            loc1: [
+                { direction: 'south', toLocationId: 'B' },
+                { direction: 'north', toLocationId: 'A' },
+                { direction: 'east', toLocationId: 'C' }
+            ]
+        })
+
+        container = new Container()
+        container.bind<IGremlinClient>('GremlinClient').toConstantValue(fakeClient)
+        container.bind(ExitRepository).toSelf()
+
+        const repo = container.get(ExitRepository)
+        const exits = await repo.getExits('loc1')
+
+        assert.equal(exits.length, 3)
+        assert.equal(exits[0].direction, 'north')
+        assert.equal(exits[1].direction, 'south')
+        assert.equal(exits[2].direction, 'east')
     })
-    const repo = new ExitRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
 
-    const exits = await repo.getExits('loc1')
-    assert.equal(exits.length, 3)
-    assert.equal(exits[0].direction, 'north')
-    assert.equal(exits[1].direction, 'south')
-    assert.equal(exits[2].direction, 'east')
-})
+    test('getExits - returns empty array for location with no exits', async () => {
+        const fakeClient = new FakeGremlinClient({ loc1: [] })
 
-test('ExitRepository.getExits - returns empty array for location with no exits', async () => {
-    const fake = new FakeGremlinClient({ loc1: [] })
-    const repo = new ExitRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
+        container = new Container()
+        container.bind<IGremlinClient>('GremlinClient').toConstantValue(fakeClient)
+        container.bind(ExitRepository).toSelf()
 
-    const exits = await repo.getExits('loc1')
-    assert.equal(exits.length, 0)
-})
+        const repo = container.get(ExitRepository)
+        const exits = await repo.getExits('loc1')
 
-test('ExitRepository.getExits - includes optional properties', async () => {
-    const fake = new FakeGremlinClient({
-        loc1: [
-            {
-                direction: 'north',
-                toLocationId: 'A',
-                description: 'A wooden door',
-                kind: 'cardinal',
-                state: 'open'
-            }
-        ]
+        assert.equal(exits.length, 0)
     })
-    const repo = new ExitRepository(fake as unknown as { submit: <T>(q: string, b?: Record<string, unknown>) => Promise<T[]> })
 
-    const exits = await repo.getExits('loc1')
-    assert.equal(exits.length, 1)
-    assert.equal(exits[0].direction, 'north')
-    assert.equal(exits[0].toLocationId, 'A')
-    assert.equal(exits[0].description, 'A wooden door')
-    assert.equal(exits[0].kind, 'cardinal')
-    assert.equal(exits[0].state, 'open')
+    test('getExits - includes optional properties', async () => {
+        const fakeClient = new FakeGremlinClient({
+            loc1: [
+                {
+                    direction: 'north',
+                    toLocationId: 'A',
+                    description: 'A wooden door',
+                    kind: 'cardinal',
+                    state: 'open'
+                }
+            ]
+        })
+
+        container = new Container()
+        container.bind<IGremlinClient>('GremlinClient').toConstantValue(fakeClient)
+        container.bind(ExitRepository).toSelf()
+
+        const repo = container.get(ExitRepository)
+        const exits = await repo.getExits('loc1')
+
+        assert.equal(exits.length, 1)
+        assert.equal(exits[0].direction, 'north')
+        assert.equal(exits[0].toLocationId, 'A')
+        assert.equal(exits[0].description, 'A wooden door')
+        assert.equal(exits[0].kind, 'cardinal')
+        assert.equal(exits[0].state, 'open')
+    })
 })
