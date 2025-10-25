@@ -39,6 +39,49 @@ npm install
 npm start   # builds then starts the Functions host
 ```
 
+## Running Tests
+
+Tests support both in-memory and Cosmos DB persistence modes:
+
+```bash
+# Run tests (defaults to memory mode)
+npm test
+
+# Explicitly use memory mode (fast, no external dependencies)
+npm run test:memory
+
+# Use Cosmos DB mode (requires valid Azure credentials)
+npm run test:cosmos
+```
+
+**Important:** The test runner automatically loads configuration from `local.settings.json`. If this file doesn't exist, tests will default to memory mode.
+
+### Why Tests Might Run Slowly
+
+If your tests are running slowly when you expect memory mode:
+
+1. Check if `local.settings.json` exists:
+   ```bash
+   cat local.settings.json
+   ```
+
+2. If it shows `"PERSISTENCE_MODE": "cosmos"`, switch to memory mode:
+   ```bash
+   npm run use:memory
+   ```
+
+3. Verify tests are using memory mode by checking the test output:
+   ```
+   ✓ Loaded local.settings.json: PERSISTENCE_MODE=memory
+   ```
+
+The `local.settings.json` file is created by:
+- `npm run use:memory` - copies `local.settings.memory.json` to `local.settings.json`
+- `npm run use:cosmos` - copies `local.settings.cosmos.json` to `local.settings.json`
+- `func start` (Azure Functions CLI) - may create it based on your environment
+
+**Tip:** Run `npm run use:memory` before running tests to ensure fast execution.
+
 ## Deployment
 
 Deployment details live exclusively in the workflow YAML under `.github/workflows/backend-functions-deploy.yml`. Read that file for triggers, required permissions, and steps. Required Azure resources are provisioned via Bicep in `infrastructure/`. No duplicated narrative here to avoid drift.
