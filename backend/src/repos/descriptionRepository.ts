@@ -109,5 +109,4 @@ export async function getDescriptionRepository(): Promise<IDescriptionRepository
 }
 
 export function __resetDescriptionRepositoryForTests() {
-    singleton = undefined
 }

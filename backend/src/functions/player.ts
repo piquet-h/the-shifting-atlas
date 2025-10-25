@@ -1,9 +1,9 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { playerBootstrap } from './bootstrapPlayer.js'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { bootstrapPlayerHandler } from './bootstrapPlayer.handler.js'
 
 // Thin alias endpoint to provide a canonical /api/player entry point for session GUID retrieval.
-export async function playerHandler(req: HttpRequest): Promise<HttpResponseInit> {
-    return playerBootstrap(req)
+export async function playerHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    return bootstrapPlayerHandler(req, context)
 }
 
 app.http('player', {
