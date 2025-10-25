@@ -8,7 +8,6 @@ import {
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
 
-// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 describe('Repository Interface Contracts', () => {
     test('IPlayerRepository - has required methods', async () => {

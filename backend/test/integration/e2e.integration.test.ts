@@ -20,7 +20,6 @@ import { __resetLocationRepositoryForTests, getLocationRepository } from '../../
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
 import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../../src/seeding/seedWorld.js'
 
-// PERSISTENCE_MODE is now controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 // Test fixtures: Create a small test world with ≥5 locations for traversal
 const createTestWorldBlueprint = (): Location[] => [

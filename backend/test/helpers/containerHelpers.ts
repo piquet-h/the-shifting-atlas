@@ -2,7 +2,9 @@
  * Test helpers for creating Inversify containers with mocked dependencies
  */
 
+import type appInsights from 'applicationinsights'
 import { Container } from 'inversify'
+import { mock } from 'node:test'
 import type { IGremlinClient } from '../../src/gremlin/index.js'
 import type { IPersistenceConfig } from '../../src/persistenceConfig.js'
 
@@ -22,7 +24,11 @@ import type { IPersistenceConfig } from '../../src/persistenceConfig.js'
  * const exitRepo = container.get(ExitRepository)
  * ```
  */
-export function createTestContainer(options?: { gremlinClient?: IGremlinClient; persistenceMode?: 'memory' | 'cosmos' }): Container {
+export function createTestContainer(options?: {
+    gremlinClient?: IGremlinClient
+    telemetryClient?: appInsights.TelemetryClient
+    persistenceMode?: 'memory' | 'cosmos'
+}): Container {
     const container = new Container()
 
     // Mock persistence config
@@ -34,6 +40,11 @@ export function createTestContainer(options?: { gremlinClient?: IGremlinClient; 
     // If a mock Gremlin client is provided, bind it
     if (options?.gremlinClient) {
         container.bind<IGremlinClient>('GremlinClient').toConstantValue(options.gremlinClient)
+    }
+
+    // If a mock TelemetryClient is provided, bind it
+    if (options?.telemetryClient) {
+        container.bind<appInsights.TelemetryClient>('TelemetryClient').toConstantValue(options.telemetryClient)
     }
 
     return container
@@ -52,7 +63,7 @@ export function createTestContainer(options?: { gremlinClient?: IGremlinClient; 
  */
 export function createMockGremlinClient(data: Record<string, unknown[]>): IGremlinClient {
     return {
-        submit: async <T>(query: string, _bindings?: Record<string, unknown>): Promise<T[]> => {
+        submit: async <T>(query: string): Promise<T[]> => {
             for (const [pattern, response] of Object.entries(data)) {
                 if (query.includes(pattern)) {
                     return response as T[]
@@ -60,5 +71,48 @@ export function createMockGremlinClient(data: Record<string, unknown[]>): IGreml
             }
             return []
         }
+    }
+}
+
+/**
+ * Creates a mock TelemetryClient that captures telemetry calls for testing
+ *
+ * @example
+ * ```typescript
+ * const { client, getEvents, getExceptions } = createMockTelemetryClient()
+ * const container = createTestContainer({ telemetryClient: client })
+ *
+ * // ... run tests ...
+ *
+ * const events = getEvents()
+ * assert.ok(events.find(e => e.name === 'Location.Move'))
+ * ```
+ */
+export function createMockTelemetryClient(): {
+    client: appInsights.TelemetryClient
+    getEvents: () => Array<{ name: string; properties?: Record<string, unknown> }>
+    getExceptions: () => Array<{ exception: Error; properties?: Record<string, unknown> }>
+} {
+    const events: Array<{ name: string; properties?: Record<string, unknown> }> = []
+    const exceptions: Array<{ exception: Error; properties?: Record<string, unknown> }> = []
+
+    const client = {
+        trackEvent: mock.fn((payload: { name: string; properties?: Record<string, unknown> }) => {
+            events.push(payload)
+        }),
+        trackException: mock.fn((payload: { exception: Error; properties?: Record<string, unknown> }) => {
+            exceptions.push(payload)
+        }),
+        trackMetric: mock.fn(),
+        trackTrace: mock.fn(),
+        trackDependency: mock.fn(),
+        trackRequest: mock.fn(),
+        flush: mock.fn()
+    } as unknown as appInsights.TelemetryClient
+
+    return {
+        client,
+        getEvents: () => events,
+        getExceptions: () => exceptions
     }
 }

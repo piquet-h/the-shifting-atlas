@@ -36,7 +36,6 @@ import { describe, test } from 'node:test'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
 
-// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 describe('Mosswell Concurrency - Location Upsert', () => {
     test('concurrent location upserts create single vertex', async () => {

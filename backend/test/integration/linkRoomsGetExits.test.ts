@@ -5,7 +5,6 @@ import { getExitsHandler } from '../../src/functions/getExits.js'
 import { linkRoomsHandler } from '../../src/functions/linkRooms.js'
 import { __resetLocationRepositoryForTests } from '../../src/repos/locationRepository.js'
 
-// PERSISTENCE_MODE controlled by local.settings.json (use npm run test:memory or test:cosmos)
 
 /** Helper to create a mock HttpRequest with JSON body */
 function makePostRequest(body: Record<string, unknown>): any {
