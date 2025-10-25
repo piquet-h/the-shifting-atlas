@@ -30,6 +30,5 @@ export async function getPlayerRepositoryForTest(): Promise<IPlayerRepository> {
     return await getPlayerRepository()
 }
 
-// Re-export for backward compatibility
+// Re-export reset functions for backward compatibility
 export { __resetPlayerRepositoryForTests } from '../../src/repos/playerRepository.js'
-export { __resetLocationRepositoryForTests } from '../../src/repos/locationRepository.js'

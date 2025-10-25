@@ -141,7 +141,7 @@ describe('E2E Integration Test Suite', () => {
         test('player bootstrap creates new player with starting location', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000003')
 
-            const playerRepo = await getPlayerRepository()
+            const playerRepo = await getPlayerRepositoryForTest()
             // The player was already created by seedTestWorld, so we're just getting it
             const { record, created } = await playerRepo.getOrCreate('00000000-0000-4000-a000-000000000003')
 
@@ -358,7 +358,7 @@ describe('E2E Integration Test Suite', () => {
         test('two players move simultaneously without corruption', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000010')
 
-            const playerRepo = await getPlayerRepository()
+            const playerRepo = await getPlayerRepositoryForTest()
             const locRepo = await getLocationRepository()
 
             // Create two players
@@ -509,7 +509,7 @@ describe('E2E Integration Test Suite', () => {
         test('player bootstrap is idempotent', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000019')
 
-            const playerRepo = await getPlayerRepository()
+            const playerRepo = await getPlayerRepositoryForTest()
             // Use a different player ID that wasn't created by seedWorld
             const playerId = '00000000-0000-4000-a000-00000000001b'
 

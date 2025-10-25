@@ -5,8 +5,8 @@ import {
     getDescriptionRepository,
     type DescriptionLayer
 } from '../../src/repos/descriptionRepository.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
+import { __resetPlayerRepositoryForTests } from '../helpers/testContainer.js'
+import { getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
 
 
 describe('Repository Interface Contracts', () => {
