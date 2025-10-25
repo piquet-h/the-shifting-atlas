@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
 
 test('player repository stable identity upsert semantics', async () => {
     __resetPlayerRepositoryForTests()

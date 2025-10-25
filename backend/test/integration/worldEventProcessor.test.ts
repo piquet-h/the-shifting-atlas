@@ -4,8 +4,8 @@
  */
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
-import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../src/functions/queueProcessWorldEvent.js'
-import { mockInvocationContext } from './helpers/testUtils.js'
+import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/functions/queueProcessWorldEvent.js'
+import { mockInvocationContext } from '../helpers/testUtils.js'
 
 // Helper to create valid world event envelope
 function createValidEvent(overrides?: Partial<Record<string, unknown>>): Record<string, unknown> {

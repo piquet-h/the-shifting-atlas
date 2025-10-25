@@ -1,8 +1,8 @@
 import { buildExternalId, ensurePlayerForRequest, parseClientPrincipal } from '@piquet-h/shared/auth'
 import assert from 'node:assert'
 import test from 'node:test'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
-import { HeaderBag, makePrincipalPayload } from './helpers/testUtils.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
+import { HeaderBag, makePrincipalPayload } from '../helpers/testUtils.js'
 
 test('parseClientPrincipal returns object for valid header', () => {
     const { b64 } = makePrincipalPayload()

@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import process from 'node:process'
 import { beforeEach, describe, test } from 'node:test'
-import { ALLOWED_SECRET_KEYS, clearSecretCache, getSecret, getSecretCacheStats } from '../src/secrets/secretsHelper.js'
+import { ALLOWED_SECRET_KEYS, clearSecretCache, getSecret, getSecretCacheStats } from '../../src/secrets/secretsHelper.js'
 
 describe('secretsHelper', () => {
     beforeEach(() => {

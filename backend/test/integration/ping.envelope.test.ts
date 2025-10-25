@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { backendHealth } from '../src/functions/health.js'
-import { ping } from '../src/functions/ping.js'
+import { backendHealth } from '../../src/functions/health.js'
+import { ping } from '../../src/functions/ping.js'
 
 function makeHeaders() {
     return { get: () => null }

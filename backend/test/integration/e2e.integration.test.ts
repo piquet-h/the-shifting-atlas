@@ -16,9 +16,9 @@
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../src/repos/playerRepository.js'
-import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../src/seeding/seedWorld.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
+import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../../src/seeding/seedWorld.js'
 
 // PERSISTENCE_MODE is now controlled by local.settings.json (use npm run test:memory or test:cosmos)
 

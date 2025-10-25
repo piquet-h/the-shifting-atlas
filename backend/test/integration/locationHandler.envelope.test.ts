@@ -2,8 +2,8 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { getLocationHandler } from '../src/functions/location.handler.js'
-import { makeLocationRequest } from './helpers/testUtils.js'
+import { getLocationHandler } from '../../src/functions/location.handler.js'
+import { makeLocationRequest } from '../helpers/testUtils.js'
 
 test('getLocationHandler returns ok envelope for starter location', async () => {
     const req = makeLocationRequest(STARTER_LOCATION_ID)

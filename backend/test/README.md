@@ -1,147 +1,74 @@
 # Backend Test Suite
 
-Comprehensive test coverage for The Shifting Atlas backend services.
+## Structure
 
-## Test Categories
-
-### Unit Tests
-Fast, isolated tests for individual components and functions:
-- Repository interfaces (`repositoryInterfaces.test.ts`)
-- Edge management (`edgeManagement.test.ts`, `exitRepository.test.ts`)
-- Player authentication and identity (`playerAuth.test.ts`, `playerRepositoryIdentity.test.ts`)
-- Telemetry correlation (`telemetryCorrelation.test.ts`)
-- Secrets handling (`secretsHelper.test.ts`)
-
-### Integration Tests
-Tests that validate interactions between components:
-- Location repository with Cosmos (`locationRepository.cosmos.test.ts`)
-- Player repository (`playerRepository.test.ts`)
-- World seeding (`worldSeed.test.ts`, `mosswellBootstrap.test.ts`)
-- Handler envelopes (`locationHandler.envelope.test.ts`, `ping.envelope.test.ts`)
-- Move operations (`performMove.core.test.ts`, `performMove.telemetry.test.ts`)
-
-### End-to-End Tests
-Comprehensive E2E tests validating full workflows (`e2e.integration.test.ts`):
-- Player bootstrap → LOOK → first location
-- Multi-hop traversal (3+ moves)
-- Exit validation (blocked/missing exits)
-- Concurrent player movements
-- Performance baselines (move <500ms, LOOK <200ms)
+```
+test/
+├── unit/           # Fast, isolated tests (no external dependencies)
+│   ├── edgeManagement.test.ts
+│   ├── moveHandlerResponse.test.ts
+│   ├── secretsHelper.test.ts
+│   └── telemetryCorrelation.test.ts
+├── integration/    # Tests with Cosmos/memory persistence
+│   ├── e2e.integration.test.ts
+│   ├── *Repository.test.ts
+│   └── (other integration tests)
+├── helpers/        # Shared test utilities
+└── setup/          # Test environment configuration
+```
 
 ## Running Tests
 
-### Run All Tests
 ```bash
-npm test
+npm test                    # Run all tests (unit + integration)
+npm run test:unit          # Unit tests only (fast, no config needed)
+npm run test:integration   # Integration tests (needs local.settings.json)
+npm run test:cov           # All tests with coverage
 ```
 
-### Run Specific Test File
+### Persistence Mode
+
+Integration tests support two modes via `local.settings.json`:
+
 ```bash
-npm test -- test/e2e.integration.test.ts
+npm run test:memory        # Use in-memory storage (default, fast)
+npm run test:cosmos        # Use real Cosmos DB (requires credentials)
 ```
 
-### Run Tests with Coverage
-```bash
-npm run test:cov
-```
+## Key Differences
 
-## E2E Integration Test Suite
+**Unit Tests (`test/unit/`)**
 
-### Purpose
-The E2E test suite (`e2e.integration.test.ts`) provides high-confidence integration testing that catches regressions in persistence interactions, data model assumptions, and cross-service workflows before deployment.
+- ✅ No `local.settings.json` required
+- ✅ No `PERSISTENCE_MODE` environment variable needed
+- ✅ Fast (<2s total)
+- ✅ No external service dependencies
+- Test: pure logic, validators, response formatting
 
-### Test Coverage
-- **Test Fixture**: Automated world seed with 7 test locations (≥5 required)
-- **Cleanup**: Teardown removes all test data after suite completes
-- **Persistence Mode**: Works with both `memory` and `cosmos` modes
-- **Core Scenarios**:
-  - Player bootstrap with starting location assignment
-  - Location lookup (LOOK) with cold start
-  - Multi-hop traversal (3+ consecutive moves)
-  - Exit validation (invalid/missing/blocked exits)
-  - Concurrent moves (2+ players, no state corruption)
-  - Idempotency verification
+**Integration Tests (`test/integration/`)**
 
-### Performance Targets
-- Full E2E suite: <90s (p95) ✓
-- Single move operation: <500ms (p95) ✓
-- LOOK query: <200ms (p95) ✓
+- Loads configuration from `local.settings.json` via `test/setup.ts`
+- Requires `PERSISTENCE_MODE=memory` or `cosmos`
+- Tests real repository implementations
+- Uses state reset helpers between tests
 
-Current results (memory mode):
-- Full suite: ~35ms (well under 90s target)
-- Move operations: <1ms average
-- LOOK queries: <1ms average
+## Writing New Tests
 
-### Environment Setup
+Add to `test/unit/` if:
 
-#### Memory Mode (Default)
-```bash
-export PERSISTENCE_MODE=memory
-npm test -- test/e2e.integration.test.ts
-```
+- Testing pure functions
+- No repository/database calls
+- Fully mocked dependencies
 
-#### Cosmos Mode (Future)
-```bash
-export PERSISTENCE_MODE=cosmos
-export COSMOS_GREMLIN_ENDPOINT_TEST=<endpoint>
-export COSMOS_SQL_ENDPOINT_TEST=<endpoint>
-export COSMOS_DATABASE_TEST=game-test
-npm test -- test/e2e.integration.test.ts
-```
+Add to `test/integration/` if:
 
-### Test Fixtures
-The E2E suite uses a dedicated test world blueprint with 7 locations:
-- `e2e-start`: Starting point with 3 exits (north, east, west)
-- `e2e-north`: Northern chamber (2-hop chain to far north)
-- `e2e-far-north`: Far northern room
-- `e2e-east`: Eastern wing (2-hop chain to far east)
-- `e2e-far-east`: Far eastern chamber
-- `e2e-west`: Western hall
-- `e2e-blocked`: Dead-end room with no exits (for exit validation tests)
+- Testing repository implementations
+- Requires persistence layer (memory or Cosmos)
+- Tests cross-service interactions
 
-### CI Integration Policy
-- **On PR**: Run unit tests only (fast feedback)
-- **On merge to main**: Run full test suite including E2E (post-merge validation)
-- **Nightly**: Run E2E + extended scenarios (cost-optimized)
+## Performance Targets
 
-## Test Helpers
-
-### State Reset Functions
-```typescript
-import { __resetSeedWorldTestState } from '../src/seeding/seedWorld.js'
-import { __resetLocationRepositoryForTests } from '../src/repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests } from '../src/repos/playerRepository.js'
-
-// Reset all test state
-__resetSeedWorldTestState()
-```
-
-### Test World Seeding
-```typescript
-import { seedWorld } from '../src/seeding/seedWorld.js'
-
-const result = await seedWorld({
-    blueprint: testLocations,
-    demoPlayerId: 'test-player-id'
-})
-```
-
-## Continuous Improvement
-
-### Adding New Tests
-1. Follow existing test patterns (describe/test blocks)
-2. Use descriptive test names (Given/When/Then style)
-3. Reset state between tests (`__reset*ForTests()`)
-4. Verify both happy paths and edge cases
-5. Include performance assertions where relevant
-
-### Test Maintenance
-- Keep tests focused and independent
-- Avoid test interdependencies
-- Update test fixtures when data model changes
-- Monitor test execution time (flag tests >1s)
-
-## References
-- [Local Dev Setup](../../docs/developer-workflow/local-dev-setup.md)
-- [ADR-002: Graph Partition Strategy](../../docs/adr/002-graph-partition-strategy.md)
-- [World Seed Script](../src/seeding/seedWorld.ts)
+- Unit tests: <2s total
+- Single move operation: <500ms (p95)
+- LOOK query: <200ms (p95)
+- Full test suite: <90s (p95)

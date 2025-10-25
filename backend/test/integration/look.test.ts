@@ -1,8 +1,8 @@
 import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { ExitEdgeResult, generateExitsSummaryCache } from '../src/repos/exitRepository.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
+import { ExitEdgeResult, generateExitsSummaryCache } from '../../src/repos/exitRepository.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
 
 test('generateExitsSummaryCache - with multiple exits', () => {
     const exits: ExitEdgeResult[] = [

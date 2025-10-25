@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import process from 'node:process'
 import { beforeEach, describe, test } from 'node:test'
-import { loadPersistenceConfigAsync } from '../src/persistenceConfig.js'
+import { loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 
 /**
  * Verifies that Gremlin configuration always uses AAD (Managed Identity) and never requires a key.

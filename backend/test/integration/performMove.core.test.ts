@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { performMove } from '../src/functions/moveHandlerCore.js'
-import { makeMoveRequest } from './helpers/testUtils.js'
+import { performMove } from '../../src/functions/moveHandlerCore.js'
+import { makeMoveRequest } from '../helpers/testUtils.js'
 
 test('performMove returns ambiguous for relative direction without heading', async () => {
     const req = makeMoveRequest({ dir: 'forward' })

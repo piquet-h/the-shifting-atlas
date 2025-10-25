@@ -5,9 +5,9 @@
  */
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
-import { playerBootstrap } from '../src/functions/bootstrapPlayer.js'
-import { __resetPlayerRepositoryForTests } from '../src/repos/playerRepository.js'
-import { makeHttpRequest } from './helpers/testUtils.js'
+import { playerBootstrap } from '../../src/functions/bootstrapPlayer.js'
+import { __resetPlayerRepositoryForTests } from '../../src/repos/playerRepository.js'
+import { makeHttpRequest } from '../helpers/testUtils.js'
 
 describe('Player Bootstrap Flow (Envelope)', () => {
     beforeEach(() => __resetPlayerRepositoryForTests())

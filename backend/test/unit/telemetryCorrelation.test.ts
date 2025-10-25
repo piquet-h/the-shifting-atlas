@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import { telemetryClient, trackGameEventStrict } from '../src/telemetry.js'
-import { mockTelemetry } from './helpers/testUtils.js'
+import { telemetryClient, trackGameEventStrict } from '../../src/telemetry.js'
+import { mockTelemetry } from '../helpers/testUtils.js'
 
 test('trackGameEventStrict includes correlationId when provided', async () => {
     const { getEvents, restore } = mockTelemetry(telemetryClient)

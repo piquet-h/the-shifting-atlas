@@ -1,7 +1,7 @@
 import { Direction } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { ExitRepository, sortExits } from '../src/repos/exitRepository.js'
+import { ExitRepository, sortExits } from '../../src/repos/exitRepository.js'
 
 type ExitData = { direction: string; toLocationId: string; description?: string; kind?: string; state?: string }
 

@@ -1,9 +1,9 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { performMove } from '../src/functions/moveHandlerCore.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../src/repos/locationRepository.js'
-import { telemetryClient } from '../src/telemetry.js'
-import { makeMoveRequest, mockTelemetry } from './helpers/testUtils.js'
+import { performMove } from '../../src/functions/moveHandlerCore.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
+import { telemetryClient } from '../../src/telemetry.js'
+import { makeMoveRequest, mockTelemetry } from '../helpers/testUtils.js'
 
 test('telemetry emitted for ambiguous relative direction', async () => {
     const { getEvents, restore } = mockTelemetry(telemetryClient)
