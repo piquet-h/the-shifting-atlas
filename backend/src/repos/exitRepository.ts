@@ -72,18 +72,25 @@ export function generateExitsSummaryCache(exits: ExitEdgeResult[]): string {
 }
 
 /**
- * Repository for exit edge retrieval and ordering operations.
+ * Repository interface for exit edge retrieval and ordering operations.
  * Creation operations remain in locationRepository (ensureExit, ensureExitBidirectional).
  */
-@injectable()
-export class ExitRepository {
-    constructor(@inject('GremlinClient') private client: IGremlinClient) {}
-
+export interface IExitRepository {
     /**
      * Get all exits from a location, ordered canonically.
      * @param locationId - Source location ID
      * @returns Ordered array of exit edges
      */
+    getExits(locationId: string): Promise<ExitEdgeResult[]>
+}
+
+/**
+ * Cosmos/Gremlin implementation of exit repository operations.
+ */
+@injectable()
+export class CosmosExitRepository implements IExitRepository {
+    constructor(@inject('GremlinClient') private client: IGremlinClient) {}
+
     async getExits(locationId: string): Promise<ExitEdgeResult[]> {
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
             "g.V(locationId).outE('exit').project('direction','toLocationId','description','kind','state')" +

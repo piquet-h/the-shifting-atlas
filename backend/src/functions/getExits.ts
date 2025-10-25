@@ -1,15 +1,14 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { err, ok } from '@piquet-h/shared'
-import { createGremlinClient } from '../gremlin/gremlinClient.js'
-import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
-import { ExitRepository } from '../repos/exitRepository.js'
+import type { Container } from 'inversify'
+import { IExitRepository } from '../repos/exitRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId } from '../telemetry.js'
 
 /**
  * Handler to get all exits from a location.
  * Returns: { exits: Array<{ direction, toLocationId, description?, kind?, state? }> }
  */
-export async function getExitsHandler(req: HttpRequest): Promise<HttpResponseInit> {
+export async function getExitsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const correlationId = extractCorrelationId(req.headers)
 
     const locationId = req.query.get('locationId')
@@ -25,24 +24,9 @@ export async function getExitsHandler(req: HttpRequest): Promise<HttpResponseIni
     }
 
     try {
-        const mode = resolvePersistenceMode()
-        let exits: unknown[] = []
-
-        if (mode === 'cosmos') {
-            const cfg = await loadPersistenceConfigAsync()
-            if (cfg.mode === 'cosmos' && cfg.cosmos) {
-                const client = await createGremlinClient(cfg.cosmos)
-                const repo = new ExitRepository(client)
-                exits = await repo.getExits(locationId)
-            } else {
-                // Fallback to in-memory (no exits in static data)
-                exits = []
-            }
-        } else {
-            // In-memory mode: no exit repository, return empty for now
-            // (In-memory exits are handled via Location.exits array in locationRepository)
-            exits = []
-        }
+        const container = context.extraInputs.get('container') as Container
+        const exitRepo = container.get<IExitRepository>('IExitRepository')
+        const exits = await exitRepo.getExits(locationId)
 
         return {
             status: 200,
