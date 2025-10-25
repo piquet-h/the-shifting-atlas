@@ -111,7 +111,7 @@ describe('E2E Integration Test Suite', () => {
             assert.ok(result.locationVerticesCreated >= 5, 'at least 5 locations created')
             // Note: exits are stored in location records, not as separate edges in memory mode
             // Verify exits exist by checking a location
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const startLoc = await locRepo.get('e2e-start')
             assert.ok(startLoc && startLoc.exits && startLoc.exits.length > 0, 'locations have exits')
             assert.ok(result.playerCreated, 'demo player created')
@@ -121,12 +121,12 @@ describe('E2E Integration Test Suite', () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000002')
 
             // Verify data exists
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const loc = await locRepo.get('e2e-start')
             assert.ok(loc, 'location exists after seed')
 
             // Reset (cleanup)            // Verify cleanup worked (new repo instance has clean slate)
-            const locRepoAfter = await getLocationRepository()
+            const locRepoAfter = await getLocationRepositoryForTest()
             const locAfter = await locRepoAfter.get('e2e-start')
             assert.equal(locAfter, undefined, 'location cleaned up after reset')
         })
@@ -156,7 +156,7 @@ describe('E2E Integration Test Suite', () => {
         test('LOOK at starting location returns location data', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000004')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const startLoc = await locRepo.get('e2e-start')
 
             assert.ok(startLoc, 'starting location found')
@@ -168,7 +168,7 @@ describe('E2E Integration Test Suite', () => {
         test('LOOK performance baseline: query completes quickly', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000005')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const start = Date.now()
             await locRepo.get('e2e-start')
             const duration = Date.now() - start
@@ -180,7 +180,7 @@ describe('E2E Integration Test Suite', () => {
         test('LOOK returns exits summary for navigation', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000006')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const startLoc = await locRepo.get('e2e-start')
 
             assert.ok(startLoc, 'location exists')
@@ -199,7 +199,7 @@ describe('E2E Integration Test Suite', () => {
         test('move north 3 times updates location each time', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000007')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Move 1: start → north
             const move1 = await locRepo.move('e2e-start', 'north')
@@ -226,7 +226,7 @@ describe('E2E Integration Test Suite', () => {
         test('move east 2 times traverses eastern wing', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000008')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Move 1: start → east
             const move1 = await locRepo.move('e2e-start', 'east')
@@ -246,7 +246,7 @@ describe('E2E Integration Test Suite', () => {
         test('move performance baseline: operations complete quickly', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000009')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const start = Date.now()
             await locRepo.move('e2e-start', 'north')
             const duration = Date.now() - start
@@ -258,7 +258,7 @@ describe('E2E Integration Test Suite', () => {
         test('multi-hop round trip: start → north → far north → back', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000a')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             let currentLoc = 'e2e-start'
 
             // Forward journey
@@ -287,7 +287,7 @@ describe('E2E Integration Test Suite', () => {
         test('missing exit returns error with reason', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000b')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const result = await locRepo.move('e2e-start', 'south')
 
             assert.equal(result.status, 'error', 'move to non-existent exit fails')
@@ -299,7 +299,7 @@ describe('E2E Integration Test Suite', () => {
         test('invalid direction returns error', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000c')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const result = await locRepo.move('e2e-start', 'invalid-direction')
 
             assert.equal(result.status, 'error', 'invalid direction fails')
@@ -311,7 +311,7 @@ describe('E2E Integration Test Suite', () => {
         test('move from non-existent location returns error', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000d')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const result = await locRepo.move('non-existent-location', 'north')
 
             assert.equal(result.status, 'error', 'move from missing location fails')
@@ -324,7 +324,7 @@ describe('E2E Integration Test Suite', () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000e')
 
             // Manually create a location with exit to non-existent target
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             await locRepo.upsert({
                 id: 'e2e-broken',
                 name: 'Broken Exit Location',
@@ -343,7 +343,7 @@ describe('E2E Integration Test Suite', () => {
         test('blocked room (no exits) prevents movement', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000000f')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const blockedLoc = await locRepo.get('e2e-blocked')
             assert.ok(blockedLoc, 'blocked location exists')
             assert.equal(blockedLoc.exits?.length || 0, 0, 'blocked location has no exits')
@@ -359,7 +359,7 @@ describe('E2E Integration Test Suite', () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000010')
 
             const playerRepo = await getPlayerRepositoryForTest()
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Create two players
             const player1Id = '00000000-0000-4000-a000-000000000010'
@@ -387,7 +387,7 @@ describe('E2E Integration Test Suite', () => {
         test('multiple players move from different locations simultaneously', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000012')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Three concurrent moves from different starting points
             const [move1, move2, move3] = await Promise.all([
@@ -404,7 +404,7 @@ describe('E2E Integration Test Suite', () => {
         test('same player multiple rapid moves (race condition)', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000013')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Simulate rapid-fire moves (should all succeed independently)
             const moves = await Promise.all([
@@ -428,7 +428,7 @@ describe('E2E Integration Test Suite', () => {
             // Run a mini version of full suite
             await seedTestWorld('00000000-0000-4000-a000-000000000014')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             await locRepo.get('e2e-start')
             await locRepo.move('e2e-start', 'north')
             await locRepo.move('e2e-north', 'south')
@@ -442,7 +442,7 @@ describe('E2E Integration Test Suite', () => {
         test('batch operations maintain performance', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000015')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
             const start = Date.now()
 
             // Perform 10 operations
@@ -459,7 +459,7 @@ describe('E2E Integration Test Suite', () => {
         test('location lookup is idempotent and consistent', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000016')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Look up same location multiple times
             const loc1 = await locRepo.get('e2e-start')
@@ -480,7 +480,7 @@ describe('E2E Integration Test Suite', () => {
         test('repeated LOOK operations are idempotent', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000017')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             for (let i = 0; i < 5; i++) {
                 const loc = await locRepo.get('e2e-start')
@@ -492,7 +492,7 @@ describe('E2E Integration Test Suite', () => {
         test('move then LOOK shows updated location', async () => {
             await seedTestWorld('00000000-0000-4000-a000-000000000018')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             // Move north
             const move = await locRepo.move('e2e-start', 'north')
@@ -524,7 +524,7 @@ describe('E2E Integration Test Suite', () => {
         test('upsert location is idempotent', async () => {
             await seedTestWorld('00000000-0000-4000-a000-00000000001a')
 
-            const locRepo = await getLocationRepository()
+            const locRepo = await getLocationRepositoryForTest()
 
             const loc: Location = {
                 id: 'e2e-upsert-test',
