@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
 import { performMove } from '../../src/functions/moveHandlerCore.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
 import { telemetryClient } from '../../src/telemetry.js'
 import { makeMoveRequest, mockTelemetry } from '../helpers/testUtils.js'
 
@@ -25,8 +25,8 @@ test('telemetry emitted for successful movement (Location.Move status=200)', asy
     const { getEvents, restore } = mockTelemetry(telemetryClient)
     try {
         // Reset repo to ensure fresh in-memory state
-        __resetLocationRepositoryForTests()
-        const repo = await getLocationRepository()
+        
+        const repo = await getLocationRepositoryForTest()
         // Two locations with an exit north from A to B
         const fromId = '00000000-0000-0000-0000-000000000001'
         const toId = '00000000-0000-0000-0000-000000000002'

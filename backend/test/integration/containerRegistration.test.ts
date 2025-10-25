@@ -1,13 +1,15 @@
 import { Container } from 'inversify'
 import assert from 'node:assert'
 import { suite, test } from 'node:test'
-import { GremlinClient } from '../../src/gremlin/gremlinClient.js'
 import { setupContainer } from '../../src/inversify.config.js'
+import { ILocationRepository } from '../../src/repos/locationRepository.js'
 
-suite('testContainerRegistration', async (t) => {
+suite('testContainerRegistration', async () => {
     const testContainer = new Container()
-    setupContainer(testContainer)
-    await test('BlueskyHandler should be registered', async () => {
-        assert.ok(testContainer.get(GremlinClient))
+    await setupContainer(testContainer)
+
+    await test('ILocationRepository should be registered', async () => {
+        const repo = testContainer.get<ILocationRepository>('ILocationRepository')
+        assert.ok(repo, 'LocationRepository should be available')
     })
 })

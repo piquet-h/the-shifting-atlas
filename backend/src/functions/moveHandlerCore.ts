@@ -1,6 +1,7 @@
-import type { HttpRequest } from '@azure/functions'
+import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { getPlayerHeadingStore, normalizeDirection, STARTER_LOCATION_ID } from '@piquet-h/shared'
-import { getLocationRepository } from '../repos/index.js'
+import { Container } from 'inversify'
+import { ILocationRepository } from '../repos/locationRepository.js'
 import { extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
 export interface MoveValidationError {
@@ -17,7 +18,7 @@ export interface MoveResult {
     latencyMs: number
 }
 
-export async function performMove(req: HttpRequest): Promise<MoveResult> {
+export async function performMove(req: HttpRequest, context: InvocationContext): Promise<MoveResult> {
     const started = Date.now()
     const correlationId = extractCorrelationId(req.headers)
     const playerGuid = extractPlayerGuid(req.headers)
@@ -67,7 +68,9 @@ export async function performMove(req: HttpRequest): Promise<MoveResult> {
     const dir = normalizationResult.canonical
 
     // Fetch starting location
-    const repo = await getLocationRepository()
+    const container = context.extraInputs.get('container') as Container
+    const repo = container.get<ILocationRepository>('ILocationRepository')
+
     const from = await repo.get(fromId)
     if (!from) {
         trackGameEventStrict(

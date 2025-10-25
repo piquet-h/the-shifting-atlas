@@ -6,11 +6,11 @@
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
 import { playerBootstrap } from '../../src/functions/bootstrapPlayer.js'
-import { __resetPlayerRepositoryForTests } from '../../src/repos/playerRepository.js'
+import { __resetPlayerRepositoryForTests } from '../helpers/testContainer.js'
 import { makeHttpRequest } from '../helpers/testUtils.js'
 
 describe('Player Bootstrap Flow (Envelope)', () => {
-    beforeEach(() => __resetPlayerRepositoryForTests())
+    beforeEach(() => )
 
     test('initial bootstrap returns envelope + created=true', async () => {
         const response = await playerBootstrap(makeHttpRequest())
@@ -29,7 +29,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     test('repeat bootstrap with header returns same GUID created=false', async () => {
         const first = await playerBootstrap(makeHttpRequest())
         const firstGuid = (first.jsonBody as any).data.playerGuid as string
-        __resetPlayerRepositoryForTests()
+        
         const second = await playerBootstrap(makeHttpRequest({ playerGuidHeader: firstGuid }))
         assert.strictEqual(second.status, 200)
         const secondData = (second.jsonBody as any).data
@@ -49,7 +49,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
 
     test('malformed GUID header creates new GUID', async () => {
         for (const malformed of ['not-a-guid', '12345', 'invalid-uuid-format', 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx']) {
-            __resetPlayerRepositoryForTests()
+            
             const res = await playerBootstrap(makeHttpRequest({ playerGuidHeader: malformed }))
             const data = (res.jsonBody as any).data
             assert.ok(data.playerGuid)
@@ -60,7 +60,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
 
     test('empty GUID header creates new GUID', async () => {
         for (const empty of ['', '   ', '\t', '\n']) {
-            __resetPlayerRepositoryForTests()
+            
             const res = await playerBootstrap(makeHttpRequest({ playerGuidHeader: empty }))
             const data = (res.jsonBody as any).data
             assert.ok(data.playerGuid)
@@ -71,7 +71,7 @@ describe('Player Bootstrap Flow (Envelope)', () => {
     test('rapid repeat calls idempotent', async () => {
         const first = await playerBootstrap(makeHttpRequest())
         const guid = (first.jsonBody as any).data.playerGuid as string
-        __resetPlayerRepositoryForTests()
+        
         const responses = await Promise.all(Array.from({ length: 5 }, () => playerBootstrap(makeHttpRequest({ playerGuidHeader: guid }))))
         for (const r of responses) {
             const data = (r.jsonBody as any).data

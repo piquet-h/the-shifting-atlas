@@ -1,7 +1,8 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-import { err, ok, STARTER_LOCATION_ID, Direction } from '@piquet-h/shared'
-import { getLocationRepository } from '../repos/index.js'
-import { generateExitsSummaryCache, ExitEdgeResult } from '../repos/exitRepository.js'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { Direction, err, ok, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { Container } from 'inversify'
+import { ExitEdgeResult, generateExitsSummaryCache } from '../repos/exitRepository.js'
+import { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
 // LOOK command: Returns location description + exits summary cache (regenerates if missing)
@@ -9,11 +10,14 @@ app.http('LocationLook', {
     route: 'location/look',
     methods: ['GET'],
     authLevel: 'anonymous',
-    handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+    handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
         const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const playerGuid = extractPlayerGuid(req.headers)
-        const repo = await getLocationRepository()
+
+        const container = context.extraInputs.get('container') as Container
+        const repo = container.get<ILocationRepository>('ILocationRepository')
+
         const id = req.query.get('id') || STARTER_LOCATION_ID
         const fromLocationId = req.query.get('fromLocationId') || undefined
 

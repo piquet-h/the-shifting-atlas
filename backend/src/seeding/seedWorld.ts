@@ -1,12 +1,14 @@
 import { Location } from '@piquet-h/shared'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../repos/playerRepository.js'
+import { ILocationRepository } from '../repos/locationRepository.js'
+import { IPlayerRepository } from '../repos/playerRepository.js'
 
 export interface SeedWorldOptions {
     demoPlayerId?: string
     blueprint?: Location[]
     log?: (...args: unknown[]) => void
+    locationRepository: ILocationRepository
+    playerRepository: IPlayerRepository
 }
 
 export interface SeedWorldResult {
@@ -21,11 +23,11 @@ export interface SeedWorldResult {
  * Idempotent world seeding. Safe to run multiple times. Adds/updates locations and exits
  * and ensures a demo player record exists for early traversal & UI testing.
  */
-export async function seedWorld(opts: SeedWorldOptions = {}): Promise<SeedWorldResult> {
+export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult> {
     const blueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({ ...l }))
     const log = opts.log || (() => {})
-    const locRepo = await getLocationRepository()
-    const playerRepo = await getPlayerRepository()
+    const locRepo = opts.locationRepository
+    const playerRepo = opts.playerRepository
 
     let locationVerticesCreated = 0
     let exitsCreated = 0
@@ -53,10 +55,4 @@ export async function seedWorld(opts: SeedWorldOptions = {}): Promise<SeedWorldR
         playerCreated: created,
         demoPlayerId: record.id
     }
-}
-
-// Test helpers (explicit export for test hygiene)
-export function __resetSeedWorldTestState() {
-    __resetLocationRepositoryForTests()
-    __resetPlayerRepositoryForTests()
 }

@@ -1,14 +1,17 @@
-import type { HttpRequest, HttpResponseInit } from '@azure/functions'
+import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { app } from '@azure/functions'
 import { STARTER_LOCATION_ID, err, ok } from '@piquet-h/shared'
-import { getLocationRepository } from '../repos/index.js'
+import { Container } from 'inversify'
+import { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 
-const locationRepoPromise = getLocationRepository()
-
-export async function getLocationHandler(req: HttpRequest): Promise<HttpResponseInit> {
+export async function getLocationHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const started = Date.now()
     const id = req.query.get('id') || STARTER_LOCATION_ID
-    const locationRepo = await locationRepoPromise
+
+    const container = context.extraInputs.get('container') as Container
+    const locationRepo = container.get<ILocationRepository>('ILocationRepository')
+
     const location = await locationRepo.get(id)
     const playerGuid = extractPlayerGuid(req.headers)
     const correlationId = extractCorrelationId(req.headers)
@@ -37,3 +40,10 @@ export async function getLocationHandler(req: HttpRequest): Promise<HttpResponse
         jsonBody: ok(location, correlationId)
     }
 }
+
+app.http('HttpGetLocation', {
+    route: 'location',
+    methods: ['GET'],
+    authLevel: 'anonymous',
+    handler: getLocationHandler
+})

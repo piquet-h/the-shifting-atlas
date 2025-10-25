@@ -5,13 +5,13 @@ import {
     getDescriptionRepository,
     type DescriptionLayer
 } from '../../src/repos/descriptionRepository.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
 
 describe('Repository Interface Contracts', () => {
     test('IPlayerRepository - has required methods', async () => {
-        const repo = await getPlayerRepository()
+        const repo = await getPlayerRepositoryForTest()
         assert.ok(typeof repo.get === 'function', 'get method exists')
         assert.ok(typeof repo.getOrCreate === 'function', 'getOrCreate method exists')
         assert.ok(typeof repo.linkExternalId === 'function', 'linkExternalId method exists')
@@ -19,8 +19,8 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('IPlayerRepository - getOrCreate returns expected shape', async () => {
-        __resetPlayerRepositoryForTests()
-        const repo = await getPlayerRepository()
+        
+        const repo = await getPlayerRepositoryForTest()
         const result = await repo.getOrCreate()
         assert.ok(result.record, 'record present')
         assert.ok(typeof result.created === 'boolean', 'created is boolean')
@@ -30,7 +30,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - has required methods', async () => {
-        const repo = await getLocationRepository()
+        const repo = await getLocationRepositoryForTest()
         assert.ok(typeof repo.get === 'function', 'get method exists')
         assert.ok(typeof repo.move === 'function', 'move method exists')
         assert.ok(typeof repo.upsert === 'function', 'upsert method exists')
@@ -41,8 +41,8 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - upsert returns expected shape', async () => {
-        __resetLocationRepositoryForTests()
-        const repo = await getLocationRepository()
+        
+        const repo = await getLocationRepositoryForTest()
         const result = await repo.upsert({
             id: 'test-loc-1',
             name: 'Test Location',
@@ -54,8 +54,8 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - move returns expected union types', async () => {
-        __resetLocationRepositoryForTests()
-        const repo = await getLocationRepository()
+        
+        const repo = await getLocationRepositoryForTest()
         const loc = {
             id: 'test-from',
             name: 'From',
@@ -114,8 +114,8 @@ describe('Repository Interface Contracts', () => {
 
 describe('Repository Interface Type Contracts (TypeScript)', () => {
     test('PlayerRecord has expected properties', async () => {
-        __resetPlayerRepositoryForTests()
-        const repo = await getPlayerRepository()
+        
+        const repo = await getPlayerRepositoryForTest()
         const { record } = await repo.getOrCreate()
 
         // Required fields
@@ -139,8 +139,8 @@ describe('Repository Interface Type Contracts (TypeScript)', () => {
     })
 
     test('Location has expected structure', async () => {
-        __resetLocationRepositoryForTests()
-        const repo = await getLocationRepository()
+        
+        const repo = await getLocationRepositoryForTest()
         const loc = await repo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
         if (loc) {
             assert.ok(typeof loc.id === 'string', 'id is string')

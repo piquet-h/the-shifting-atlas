@@ -1,6 +1,7 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
-import { getLocationRepository } from '../repos/index.js'
+import { Container } from 'inversify'
+import { ILocationRepository } from '../repos/locationRepository.js'
 
 /*
  * MCP Server: world-query (Phase 0 Stub)
@@ -10,18 +11,18 @@ import { getLocationRepository } from '../repos/index.js'
  *  - op=getStarter (shorthand) returns starter location
  * Future: listRecentEvents, getPlayerState
  */
-const locationRepoPromise = getLocationRepository()
 
-export async function worldQueryHandler(req: HttpRequest): Promise<HttpResponseInit> {
+export async function worldQueryHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+    const container = context.extraInputs.get('container') as Container
+    const locationRepo = container.get<ILocationRepository>('ILocationRepository')
+
     const op = req.query.get('op') || 'getStarter'
     if (op === 'getStarter') {
-        const locationRepo = await locationRepoPromise
         const location = await locationRepo.get(STARTER_LOCATION_ID)
         return json(200, { location })
     }
     if (op === 'getLocation') {
         const id = req.query.get('id') || STARTER_LOCATION_ID
-        const locationRepo = await locationRepoPromise
         const location = await locationRepo.get(id)
         if (!location) return json(404, { error: 'Location not found', id })
         return json(200, { location })

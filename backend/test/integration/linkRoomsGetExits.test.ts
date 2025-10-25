@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import { test } from 'node:test'
 import { getExitsHandler } from '../../src/functions/getExits.js'
 import { linkRoomsHandler } from '../../src/functions/linkRooms.js'
-import { __resetLocationRepositoryForTests } from '../../src/repos/locationRepository.js'
+import { __resetLocationRepositoryForTests } from '../helpers/testContainer.js'
 
 
 /** Helper to create a mock HttpRequest with JSON body */
@@ -87,7 +87,7 @@ function makeGetRequest(queryParams: Record<string, string>): any {
 }
 
 test('HttpLinkRooms - missing originId returns 400', async () => {
-    __resetLocationRepositoryForTests()
+    
     const req = makePostRequest({ destId: 'B', dir: 'north' })
     const res = await linkRoomsHandler(req)
     assert.equal(res.status, 400)
@@ -97,7 +97,7 @@ test('HttpLinkRooms - missing originId returns 400', async () => {
 })
 
 test('HttpLinkRooms - missing destId returns 400', async () => {
-    __resetLocationRepositoryForTests()
+    
     const req = makePostRequest({ originId: 'A', dir: 'north' })
     const res = await linkRoomsHandler(req)
     assert.equal(res.status, 400)
@@ -107,7 +107,7 @@ test('HttpLinkRooms - missing destId returns 400', async () => {
 })
 
 test('HttpLinkRooms - invalid direction returns 400', async () => {
-    __resetLocationRepositoryForTests()
+    
     const req = makePostRequest({ originId: 'A', destId: 'B', dir: 'invalid-direction' })
     const res = await linkRoomsHandler(req)
     assert.equal(res.status, 400)
@@ -117,7 +117,7 @@ test('HttpLinkRooms - invalid direction returns 400', async () => {
 })
 
 test('HttpLinkRooms - valid request creates exit and returns created=true', async () => {
-    __resetLocationRepositoryForTests()
+    
 
     // Use existing seed locations (these exist in villageLocations.json)
     const id1 = 'f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53' // North Road
@@ -133,7 +133,7 @@ test('HttpLinkRooms - valid request creates exit and returns created=true', asyn
 })
 
 test('HttpLinkRooms - idempotent request returns created=false', async () => {
-    __resetLocationRepositoryForTests()
+    
 
     // Use existing seed locations
     const id1 = '5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41' // Market Row
@@ -153,7 +153,7 @@ test('HttpLinkRooms - idempotent request returns created=false', async () => {
 })
 
 test('HttpLinkRooms - reciprocal flag creates both directions', async () => {
-    __resetLocationRepositoryForTests()
+    
 
     // Use existing seed locations
     const id1 = '2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f' // Smithy
@@ -169,7 +169,7 @@ test('HttpLinkRooms - reciprocal flag creates both directions', async () => {
 })
 
 test('HttpGetExits - missing locationId returns 400', async () => {
-    __resetLocationRepositoryForTests()
+    
     const req = makeGetRequest({})
     const res = await getExitsHandler(req)
     assert.equal(res.status, 400)
@@ -179,7 +179,7 @@ test('HttpGetExits - missing locationId returns 400', async () => {
 })
 
 test('HttpGetExits - valid request returns exits array', async () => {
-    __resetLocationRepositoryForTests()
+    
     const req = makeGetRequest({ locationId: 'test-loc-7' })
     const res = await getExitsHandler(req)
     assert.equal(res.status, 200)

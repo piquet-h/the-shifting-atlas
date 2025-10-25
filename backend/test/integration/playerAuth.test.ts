@@ -1,12 +1,12 @@
 import { ensurePlayerForRequest } from '@piquet-h/shared/auth'
 import assert from 'node:assert'
 import test from 'node:test'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 import { HeaderBag, makePrincipalPayload } from '../helpers/testUtils.js'
 
 test('ensurePlayerForRequest creates and reuses player for SWA principal', async () => {
-    __resetPlayerRepositoryForTests()
-    const repo = await getPlayerRepository()
+    
+    const repo = await getPlayerRepositoryForTest()
     const { b64 } = makePrincipalPayload({ userId: 'UserXYZ' })
     const headers1 = new HeaderBag()
     headers1.set('x-ms-client-principal', b64)

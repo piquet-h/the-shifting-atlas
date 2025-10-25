@@ -4,6 +4,8 @@ import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from './persistenceConfig'
 import { ExitRepository } from './repos/exitRepository.js'
+import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
+import { ILocationRepository, InMemoryLocationRepository } from './repos/locationRepository.js'
 
 export const setupContainer = async (container: Container) => {
     container.bind<appInsights.TelemetryClient>('TelemetryClient').toConstantValue(appInsights.defaultClient)
@@ -20,6 +22,10 @@ export const setupContainer = async (container: Container) => {
         container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
 
         container.bind(ExitRepository).toSelf()
+        container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
+    } else {
+        // Memory mode
+        container.bind<ILocationRepository>('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
     }
 
     return container

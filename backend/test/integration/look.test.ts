@@ -2,7 +2,7 @@ import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { test } from 'node:test'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../../src/repos/exitRepository.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
+import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
 
 test('generateExitsSummaryCache - with multiple exits', () => {
     const exits: ExitEdgeResult[] = [
@@ -39,8 +39,8 @@ test('generateExitsSummaryCache - exits ordered canonically', () => {
 })
 
 test('Location repository - updateExitsSummaryCache', async () => {
-    __resetLocationRepositoryForTests()
-    const repo = await getLocationRepository()
+    
+    const repo = await getLocationRepositoryForTest()
 
     // Get a location
     const location = await repo.get(STARTER_LOCATION_ID)
@@ -57,16 +57,16 @@ test('Location repository - updateExitsSummaryCache', async () => {
 })
 
 test('Location repository - updateExitsSummaryCache on missing location', async () => {
-    __resetLocationRepositoryForTests()
-    const repo = await getLocationRepository()
+    
+    const repo = await getLocationRepositoryForTest()
 
     const result = await repo.updateExitsSummaryCache('nonexistent-id', 'Exits: north')
     assert.equal(result.updated, false, 'Should not update non-existent location')
 })
 
 test('LOOK command flow - cache hit path', async () => {
-    __resetLocationRepositoryForTests()
-    const repo = await getLocationRepository()
+    
+    const repo = await getLocationRepositoryForTest()
 
     // Pre-populate cache
     await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north, east')
@@ -77,8 +77,8 @@ test('LOOK command flow - cache hit path', async () => {
 })
 
 test('LOOK command flow - cache miss and regeneration', async () => {
-    __resetLocationRepositoryForTests()
-    const repo = await getLocationRepository()
+    
+    const repo = await getLocationRepositoryForTest()
 
     // Get location
     const location = await repo.get(STARTER_LOCATION_ID)
@@ -110,8 +110,8 @@ test('LOOK command flow - cache miss and regeneration', async () => {
 })
 
 test('LOOK command flow - repeated LOOK returns cache', async () => {
-    __resetLocationRepositoryForTests()
-    const repo = await getLocationRepository()
+    
+    const repo = await getLocationRepositoryForTest()
 
     // First LOOK - generate cache
     const location1 = await repo.get(STARTER_LOCATION_ID)

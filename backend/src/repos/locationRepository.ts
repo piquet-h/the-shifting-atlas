@@ -1,8 +1,6 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
-import { createGremlinClient } from '../gremlin/gremlinClient.js'
-import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
-import { CosmosLocationRepository } from './locationRepository.cosmos.js'
 
 // Repository contract isolates persistence (memory, cosmos, etc.) from handlers & AI tools.
 export interface ILocationRepository {
@@ -33,7 +31,8 @@ export interface ILocationRepository {
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
 // a Cosmos/Gremlin implementation in future without changing handler code.
-class InMemoryLocationRepository implements ILocationRepository {
+@injectable()
+export class InMemoryLocationRepository implements ILocationRepository {
     private locations: Map<string, Location>
     constructor() {
         const locs = starterLocationsData as Location[]
@@ -181,67 +180,4 @@ class InMemoryLocationRepository implements ILocationRepository {
         location.exitsSummaryCache = cache
         return { updated: true }
     }
-}
-
-let singleton: ILocationRepository | undefined
-export async function getLocationRepository(): Promise<ILocationRepository> {
-    if (singleton) return singleton
-    const mode = resolvePersistenceMode()
-    if (mode === 'cosmos') {
-        const strict =
-            typeof process !== 'undefined' && (process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true')
-        try {
-            const cfg = await loadPersistenceConfigAsync()
-            if (cfg.mode === 'cosmos' && cfg.cosmos) {
-                const pending = createGremlinClient(cfg.cosmos)
-                const proxy: ILocationRepository = {
-                    async get(id: string) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.get(id)
-                    },
-                    async move(fromId: string, direction: string) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.move(fromId, direction)
-                    },
-                    async upsert(location) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.upsert(location)
-                    },
-                    async ensureExit(fromId, direction, toId, description) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.ensureExit(fromId, direction, toId, description)
-                    },
-                    async ensureExitBidirectional(fromId, direction, toId, opts) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.ensureExitBidirectional(fromId, direction, toId, opts)
-                    },
-                    async removeExit(fromId, direction) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.removeExit(fromId, direction)
-                    },
-                    async applyExits(exits) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.applyExits(exits)
-                    },
-                    async updateExitsSummaryCache(locationId, cache) {
-                        const repo = new CosmosLocationRepository(await pending)
-                        return repo.updateExitsSummaryCache(locationId, cache)
-                    }
-                }
-                singleton = proxy
-                return singleton
-            }
-        } catch (err) {
-            if (strict) {
-                throw err instanceof Error ? err : new Error('Cosmos repository initialization failed in strict mode.')
-            }
-            // non-strict: silently fall back
-        }
-    }
-    singleton = new InMemoryLocationRepository()
-    return singleton
-}
-
-export function __resetLocationRepositoryForTests() {
-    singleton = undefined
 }

@@ -1,10 +1,10 @@
 import assert from 'node:assert'
 import { test } from 'node:test'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
+import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
 test('player repository stable identity upsert semantics', async () => {
-    __resetPlayerRepositoryForTests()
-    const repo = await getPlayerRepository()
+    
+    const repo = await getPlayerRepositoryForTest()
     const fixedId = '11111111-1111-4111-8111-111111111111'
     const first = await repo.getOrCreate(fixedId)
     assert.ok(first.created, 'expected first creation to report created=true')
@@ -19,8 +19,8 @@ test('player repository stable identity upsert semantics', async () => {
 })
 
 test('linkExternalId updates guest flag and sets updatedUtc', async () => {
-    __resetPlayerRepositoryForTests()
-    const repo = await getPlayerRepository()
+    
+    const repo = await getPlayerRepositoryForTest()
     const { record } = await repo.getOrCreate()
     const ext = 'external-sub-123'
     const result = await repo.linkExternalId(record.id, ext)
@@ -32,8 +32,8 @@ test('linkExternalId updates guest flag and sets updatedUtc', async () => {
 })
 
 test('linkExternalId detects conflict when externalId already linked to different player', async () => {
-    __resetPlayerRepositoryForTests()
-    const repo = await getPlayerRepository()
+    
+    const repo = await getPlayerRepositoryForTest()
     const { record: player1 } = await repo.getOrCreate()
     const { record: player2 } = await repo.getOrCreate()
     const ext = 'external-shared-id'
@@ -49,8 +49,8 @@ test('linkExternalId detects conflict when externalId already linked to differen
 })
 
 test('linkExternalId idempotent re-link does not update updatedUtc', async () => {
-    __resetPlayerRepositoryForTests()
-    const repo = await getPlayerRepository()
+    
+    const repo = await getPlayerRepositoryForTest()
     const { record } = await repo.getOrCreate()
     const ext = 'external-idempotent-test'
     // First link

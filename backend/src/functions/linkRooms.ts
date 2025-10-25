@@ -1,6 +1,7 @@
-import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { err, isDirection, ok } from '@piquet-h/shared'
-import { getLocationRepository } from '../repos/index.js'
+import { Container } from 'inversify'
+import { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId } from '../telemetry.js'
 
 /**
@@ -8,7 +9,7 @@ import { CORRELATION_HEADER, extractCorrelationId } from '../telemetry.js'
  * Body: { originId: string, destId: string, dir: string, reciprocal?: boolean, description?: string }
  * Returns: { created: boolean, reciprocalCreated?: boolean }
  */
-export async function linkRoomsHandler(req: HttpRequest): Promise<HttpResponseInit> {
+export async function linkRoomsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const correlationId = extractCorrelationId(req.headers)
 
     // Parse request body
@@ -62,7 +63,9 @@ export async function linkRoomsHandler(req: HttpRequest): Promise<HttpResponseIn
 
     // Link the rooms (type assertions safe after validation)
     try {
-        const repo = await getLocationRepository()
+        const container = context.extraInputs.get('container') as Container
+        const repo = container.get<ILocationRepository>('ILocationRepository')
+
         const result = await repo.ensureExitBidirectional(originId as string, dir as string, destId as string, {
             reciprocal,
             description,

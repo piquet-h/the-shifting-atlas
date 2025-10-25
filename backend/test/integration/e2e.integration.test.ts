@@ -16,10 +16,10 @@
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../../src/repos/locationRepository.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../../src/repos/playerRepository.js'
-import { __resetSeedWorldTestState, seedWorld, type SeedWorldResult } from '../../src/seeding/seedWorld.js'
-
+import { ILocationRepository } from '../../src/repos/locationRepository.js'
+import { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import { seedWorld, type SeedWorldResult } from '../../src/seeding/seedWorld.js'
+import { getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
 
 // Test fixtures: Create a small test world with ≥5 locations for traversal
 const createTestWorldBlueprint = (): Location[] => [
@@ -91,24 +91,21 @@ const createTestWorldBlueprint = (): Location[] => [
     }
 ]
 
-// Test helper: Clean state between tests
-const resetTestWorld = () => {
-    __resetSeedWorldTestState()
-    __resetLocationRepositoryForTests()
-    __resetPlayerRepositoryForTests()
-}
-
-// Test helper: Seed test world
-const seedTestWorld = async (playerId?: string): Promise<SeedWorldResult> => {
-    resetTestWorld()
+// Test helper: Seed test world and return repositories for reuse
+const seedTestWorld = async (
+    playerId?: string
+): Promise<{ result: SeedWorldResult; locationRepo: ILocationRepository; playerRepo: IPlayerRepository }> => {
     const blueprint = createTestWorldBlueprint()
-    return await seedWorld({ blueprint, demoPlayerId: playerId })
+    const locationRepository = await getLocationRepositoryForTest()
+    const playerRepository = await getPlayerRepositoryForTest()
+    const result = await seedWorld({ blueprint, demoPlayerId: playerId, locationRepository, playerRepository })
+    return { result, locationRepo: locationRepository, playerRepo: playerRepository }
 }
 
 describe('E2E Integration Test Suite', () => {
     describe('Test Fixture Setup', () => {
         test('automated world seed creates ≥5 locations with exits', async () => {
-            const result = await seedTestWorld('00000000-0000-4000-a000-000000000001')
+            const { result, locationRepo, playerRepo } = await seedTestWorld('00000000-0000-4000-a000-000000000001')
 
             assert.ok(result.locationsProcessed >= 5, 'at least 5 locations processed')
             assert.ok(result.locationVerticesCreated >= 5, 'at least 5 locations created')
@@ -128,10 +125,7 @@ describe('E2E Integration Test Suite', () => {
             const loc = await locRepo.get('e2e-start')
             assert.ok(loc, 'location exists after seed')
 
-            // Reset (cleanup)
-            resetTestWorld()
-
-            // Verify cleanup worked (new repo instance has clean slate)
+            // Reset (cleanup)            // Verify cleanup worked (new repo instance has clean slate)
             const locRepoAfter = await getLocationRepository()
             const locAfter = await locRepoAfter.get('e2e-start')
             assert.equal(locAfter, undefined, 'location cleaned up after reset')
