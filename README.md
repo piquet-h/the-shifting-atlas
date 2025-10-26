@@ -135,17 +135,19 @@ Visit: http://localhost:5173
 
 ### Backend Functions (Unified)
 
-Install deps once at repo root (workspaces):
+Install dependencies for each package:
 
 ```bash
-npm install --workspaces
+cd shared && npm install
+cd ../backend && npm install
+cd ../frontend && npm install
 ```
 
 Run frontend & backend separately during development:
 
 ```bash
-npm run dev -w frontend   # Vite dev server (http://localhost:5173)
-npm start -w backend      # Azure Functions host (http://localhost:7071)
+cd frontend && npm run dev   # Vite dev server (http://localhost:5173)
+cd backend && npm start      # Azure Functions host (http://localhost:7071)
 ```
 
 Health check (example):
@@ -309,7 +311,7 @@ Accessibility is treated as a first‑class requirement (not a polish phase). Re
 Run locally:
 
 ```bash
-npm install --workspaces
+cd frontend && npm install
 npm run a11y  # runs vite dev server then axe scan of http://localhost:5173
 ```
 
