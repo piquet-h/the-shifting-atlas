@@ -17,13 +17,12 @@ import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
 import { MockPlayerRepository } from './repos/playerRepository.mock.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
+import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
+import { MockTelemetryClient } from './telemetry/MockTelemetryClient.js'
 
 export type ContainerMode = 'cosmos' | 'memory' | 'mock'
 
 export const setupContainer = async (container: Container, mode?: ContainerMode) => {
-    // Register TelemetryClient
-    container.bind<appInsights.TelemetryClient>('TelemetryClient').toConstantValue(appInsights.defaultClient)
-
     // Determine mode: explicit parameter > persistence config > default to memory
     let resolvedMode: ContainerMode
     if (mode) {
@@ -32,6 +31,13 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         const config = await loadPersistenceConfigAsync()
         container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
+    }
+
+    // Register ITelemetryClient - use mock in test mode, real client otherwise
+    if (resolvedMode === 'mock') {
+        container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
+    } else {
+        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
     }
 
     if (resolvedMode === 'cosmos') {
