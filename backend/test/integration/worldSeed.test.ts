@@ -1,18 +1,32 @@
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { seedWorld } from '../../src/seeding/seedWorld.js'
-import { getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
-describe('world seeding', () => {
+describe('World Seeding', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('idempotent seedWorld', async () => {
+        const locationRepository = await fixture.getLocationRepository()
+        const playerRepository = await fixture.getPlayerRepository()
+
         const first = await seedWorld({
-            locationRepository: await getLocationRepositoryForTest(),
-            playerRepository: await getPlayerRepositoryForTest(),
+            locationRepository,
+            playerRepository,
             demoPlayerId: '11111111-1111-4111-8111-111111111111'
         })
         const second = await seedWorld({
-            locationRepository: await getLocationRepositoryForTest(),
-            playerRepository: await getPlayerRepositoryForTest(),
+            locationRepository,
+            playerRepository,
             demoPlayerId: '11111111-1111-4111-8111-111111111111'
         })
         assert.equal(second.locationVerticesCreated, 0)

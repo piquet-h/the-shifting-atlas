@@ -5,29 +5,40 @@
  */
 import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { bootstrapPlayerHandler } from '../../src/functions/bootstrapPlayer.handler.js'
-import { getTestContainer } from '../helpers/testContainer.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeHttpRequest } from '../helpers/testUtils.js'
 
-async function callBootstrap(options?: { playerGuidHeader?: string }) {
-    const container = await getTestContainer('memory')
-    const mockContext = {
-        invocationId: 'test-invocation',
-        functionName: 'playerBootstrap',
-        extraInputs: new Map([['container', container]]),
-        log: () => {},
-        error: () => {},
-        warn: () => {},
-        info: () => {},
-        debug: () => {},
-        trace: () => {}
-    } as unknown as InvocationContext
-
-    return bootstrapPlayerHandler(makeHttpRequest(options), mockContext)
-}
-
 describe('Player Bootstrap Flow (Envelope)', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
+    async function callBootstrap(options?: { playerGuidHeader?: string }) {
+        const container = await fixture.getContainer()
+        const mockContext = {
+            invocationId: 'test-invocation',
+            functionName: 'playerBootstrap',
+            extraInputs: new Map([['container', container]]),
+            log: () => {},
+            error: () => {},
+            warn: () => {},
+            info: () => {},
+            debug: () => {},
+            trace: () => {}
+        } as unknown as InvocationContext
+
+        return bootstrapPlayerHandler(makeHttpRequest(options), mockContext)
+    }
+
     test('initial bootstrap returns envelope + created=true', async () => {
         const response = await callBootstrap()
         assert.strictEqual(response.status, 200)

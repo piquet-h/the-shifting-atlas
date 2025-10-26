@@ -1,126 +1,145 @@
 import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
-import { test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../../src/repos/exitRepository.js'
-import { getLocationRepositoryForTest } from '../helpers/testContainer.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
-test('generateExitsSummaryCache - with multiple exits', () => {
-    const exits: ExitEdgeResult[] = [
-        { direction: 'north', toLocationId: 'loc1' },
-        { direction: 'south', toLocationId: 'loc2' },
-        { direction: 'east', toLocationId: 'loc3' }
-    ]
-    const summary = generateExitsSummaryCache(exits)
-    assert.equal(summary, 'Exits: north, south, east')
-})
+describe('LOOK Command Flow', () => {
+    let fixture: IntegrationTestFixture
 
-test('generateExitsSummaryCache - with single exit', () => {
-    const exits: ExitEdgeResult[] = [{ direction: 'north', toLocationId: 'loc1' }]
-    const summary = generateExitsSummaryCache(exits)
-    assert.equal(summary, 'Exits: north')
-})
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
 
-test('generateExitsSummaryCache - with no exits', () => {
-    const exits: ExitEdgeResult[] = []
-    const summary = generateExitsSummaryCache(exits)
-    assert.equal(summary, 'No exits available.')
-})
+    afterEach(async () => {
+        await fixture.teardown()
+    })
 
-test('generateExitsSummaryCache - exits ordered canonically', () => {
-    const exits: ExitEdgeResult[] = [
-        { direction: 'up', toLocationId: 'loc4' },
-        { direction: 'east', toLocationId: 'loc3' },
-        { direction: 'north', toLocationId: 'loc1' },
-        { direction: 'south', toLocationId: 'loc2' }
-    ]
-    const summary = generateExitsSummaryCache(exits)
-    // Should be ordered: north, south, east, up
-    assert.equal(summary, 'Exits: north, south, east, up')
-})
+    describe('generateExitsSummaryCache', () => {
+        test('with multiple exits', () => {
+            const exits: ExitEdgeResult[] = [
+                { direction: 'north', toLocationId: 'loc1' },
+                { direction: 'south', toLocationId: 'loc2' },
+                { direction: 'east', toLocationId: 'loc3' }
+            ]
+            const summary = generateExitsSummaryCache(exits)
+            assert.equal(summary, 'Exits: north, south, east')
+        })
 
-test('Location repository - updateExitsSummaryCache', async () => {
-    const repo = await getLocationRepositoryForTest()
+        test('with single exit', () => {
+            const exits: ExitEdgeResult[] = [{ direction: 'north', toLocationId: 'loc1' }]
+            const summary = generateExitsSummaryCache(exits)
+            assert.equal(summary, 'Exits: north')
+        })
 
-    // Get a location
-    const location = await repo.get(STARTER_LOCATION_ID)
-    assert.ok(location, 'Location should exist')
+        test('with no exits', () => {
+            const exits: ExitEdgeResult[] = []
+            const summary = generateExitsSummaryCache(exits)
+            assert.equal(summary, 'No exits available.')
+        })
 
-    // Update cache
-    const testCache = 'Exits: north, south'
-    const result = await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, testCache)
-    assert.equal(result.updated, true, 'Cache should be updated')
+        test('exits ordered canonically', () => {
+            const exits: ExitEdgeResult[] = [
+                { direction: 'up', toLocationId: 'loc4' },
+                { direction: 'east', toLocationId: 'loc3' },
+                { direction: 'north', toLocationId: 'loc1' },
+                { direction: 'south', toLocationId: 'loc2' }
+            ]
+            const summary = generateExitsSummaryCache(exits)
+            // Should be ordered: north, south, east, up
+            assert.equal(summary, 'Exits: north, south, east, up')
+        })
+    })
 
-    // Verify cache was stored
-    const updated = await repo.get(STARTER_LOCATION_ID)
-    assert.equal(updated?.exitsSummaryCache, testCache, 'Cache should match')
-})
+    describe('Location repository - updateExitsSummaryCache', () => {
+        test('updates cache successfully', async () => {
+            const repo = await fixture.getLocationRepository()
 
-test('Location repository - updateExitsSummaryCache on missing location', async () => {
-    const repo = await getLocationRepositoryForTest()
+            // Get a location
+            const location = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(location, 'Location should exist')
 
-    const result = await repo.updateExitsSummaryCache('nonexistent-id', 'Exits: north')
-    assert.equal(result.updated, false, 'Should not update non-existent location')
-})
+            // Update cache
+            const testCache = 'Exits: north, south'
+            const result = await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, testCache)
+            assert.equal(result.updated, true, 'Cache should be updated')
 
-test('LOOK command flow - cache hit path', async () => {
-    const repo = await getLocationRepositoryForTest()
+            // Verify cache was stored
+            const updated = await repo.get(STARTER_LOCATION_ID)
+            assert.equal(updated?.exitsSummaryCache, testCache, 'Cache should match')
+        })
 
-    // Pre-populate cache
-    await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north, east')
+        test('on missing location', async () => {
+            const repo = await fixture.getLocationRepository()
 
-    const location = await repo.get(STARTER_LOCATION_ID)
-    assert.ok(location, 'Location should exist')
-    assert.equal(location.exitsSummaryCache, 'Exits: north, east', 'Cache should be present')
-})
+            const result = await repo.updateExitsSummaryCache('nonexistent-id', 'Exits: north')
+            assert.equal(result.updated, false, 'Should not update non-existent location')
+        })
+    })
 
-test('LOOK command flow - cache miss and regeneration', async () => {
-    const repo = await getLocationRepositoryForTest()
+    describe('LOOK command flow scenarios', () => {
+        test('cache hit path', async () => {
+            const repo = await fixture.getLocationRepository()
 
-    // Get location
-    const location = await repo.get(STARTER_LOCATION_ID)
-    assert.ok(location, 'Location should exist')
+            // Pre-populate cache
+            await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north, east')
 
-    // Clear any existing cache to simulate cache miss
-    if (location.exitsSummaryCache) {
-        await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, '')
-    }
+            const location = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(location, 'Location should exist')
+            assert.equal(location.exitsSummaryCache, 'Exits: north, east', 'Cache should be present')
+        })
 
-    // Get fresh copy without cache
-    const locationWithoutCache = await repo.get(STARTER_LOCATION_ID)
+        test('cache miss and regeneration', async () => {
+            const repo = await fixture.getLocationRepository()
 
-    // Generate cache from exits
-    const exitEdges: ExitEdgeResult[] = (locationWithoutCache?.exits || []).map((e) => ({
-        direction: e.direction as Direction,
-        toLocationId: e.to || '',
-        description: e.description
-    }))
-    const generatedCache = generateExitsSummaryCache(exitEdges)
+            // Get location
+            const location = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(location, 'Location should exist')
 
-    // Persist cache
-    await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, generatedCache)
+            // Clear any existing cache to simulate cache miss
+            if (location.exitsSummaryCache) {
+                await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, '')
+            }
 
-    // Verify cache was stored
-    const updated = await repo.get(STARTER_LOCATION_ID)
-    assert.ok(updated?.exitsSummaryCache, 'Cache should exist after generation')
-    assert.equal(updated?.exitsSummaryCache, generatedCache, 'Cache should match generated value')
-})
+            // Get fresh copy without cache
+            const locationWithoutCache = await repo.get(STARTER_LOCATION_ID)
 
-test('LOOK command flow - repeated LOOK returns cache', async () => {
-    const repo = await getLocationRepositoryForTest()
+            // Generate cache from exits
+            const exitEdges: ExitEdgeResult[] = (locationWithoutCache?.exits || []).map((e) => ({
+                direction: e.direction as Direction,
+                toLocationId: e.to || '',
+                description: e.description
+            }))
+            const generatedCache = generateExitsSummaryCache(exitEdges)
 
-    // First LOOK - generate cache
-    const location1 = await repo.get(STARTER_LOCATION_ID)
-    assert.ok(location1, 'Location should exist')
+            // Persist cache
+            await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, generatedCache)
 
-    const exitEdges: ExitEdgeResult[] = (location1.exits || []).map((e) => ({
-        direction: e.direction as Direction,
-        toLocationId: e.to || '',
-        description: e.description
-    }))
-    const generatedCache = generateExitsSummaryCache(exitEdges)
-    await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, generatedCache)
+            // Verify cache was stored
+            const updated = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(updated?.exitsSummaryCache, 'Cache should exist after generation')
+            assert.equal(updated?.exitsSummaryCache, generatedCache, 'Cache should match generated value')
+        })
 
-    // Second LOOK - should return cached value
-    const location2 = await repo.get(STARTER_LOCATION_ID)
-    assert.equal(location2?.exitsSummaryCache, generatedCache, 'Cache should be returned on repeat LOOK')
+        test('repeated LOOK returns cache', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            // First LOOK - generate cache
+            const location1 = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(location1, 'Location should exist')
+
+            const exitEdges: ExitEdgeResult[] = (location1.exits || []).map((e) => ({
+                direction: e.direction as Direction,
+                toLocationId: e.to || '',
+                description: e.description
+            }))
+            const generatedCache = generateExitsSummaryCache(exitEdges)
+            await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, generatedCache)
+
+            // Second LOOK - should return cached value
+            const location2 = await repo.get(STARTER_LOCATION_ID)
+            assert.equal(location2?.exitsSummaryCache, generatedCache, 'Cache should be returned on repeat LOOK')
+        })
+    })
 })

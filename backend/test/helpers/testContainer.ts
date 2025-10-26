@@ -1,17 +1,18 @@
 import { Container } from 'inversify'
-import { ContainerMode, setupContainer } from '../../src/inversify.config.js'
 import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import { ContainerMode, setupTestContainer } from './testInversify.config.js'
 
 /**
  * Test helper to get a fresh container for each test.
  * Ensures isolation between tests.
+ * Uses test-specific inversify config with mocks from test folder
  * @param mode - 'mock', 'memory', or 'cosmos'
  */
 export async function getTestContainer(mode: ContainerMode = 'memory'): Promise<Container> {
     const container = new Container()
-    await setupContainer(container, mode)
+    await setupTestContainer(container, mode)
     return container
 }
 

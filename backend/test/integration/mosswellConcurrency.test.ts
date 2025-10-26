@@ -33,6 +33,7 @@
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 

@@ -3,37 +3,48 @@
  * Tests for World Event Queue Processor
  */
 import assert from 'node:assert'
-import { beforeEach, describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/functions/queueProcessWorldEvent.js'
-import { mockInvocationContext } from '../helpers/testUtils.js'
-
-// Helper to create valid world event envelope
-function createValidEvent(overrides?: Partial<Record<string, unknown>>): Record<string, unknown> {
-    return {
-        eventId: '00000000-0000-4000-8000-000000000001',
-        type: 'Player.Move',
-        occurredUtc: '2025-10-05T12:00:00.000Z',
-        actor: {
-            kind: 'player',
-            id: '00000000-0000-4000-8000-000000000002'
-        },
-        correlationId: '00000000-0000-4000-8000-000000000003',
-        idempotencyKey: 'player-move-test-key-1',
-        version: 1,
-        payload: {
-            playerId: '00000000-0000-4000-8000-000000000002',
-            fromLocationId: 'loc-1',
-            toLocationId: 'loc-2',
-            direction: 'north'
-        },
-        ...overrides
-    }
-}
+import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('World Event Queue Processor', () => {
+    let fixture: UnitTestFixture
+
+    beforeEach(async () => {
+        fixture = new UnitTestFixture()
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
+    // Helper to create valid world event envelope
+    function createValidEvent(overrides?: Partial<Record<string, unknown>>): Record<string, unknown> {
+        return {
+            eventId: '00000000-0000-4000-8000-000000000001',
+            type: 'Player.Move',
+            occurredUtc: '2025-10-05T12:00:00.000Z',
+            actor: {
+                kind: 'player',
+                id: '00000000-0000-4000-8000-000000000002'
+            },
+            correlationId: '00000000-0000-4000-8000-000000000003',
+            idempotencyKey: 'player-move-test-key-1',
+            version: 1,
+            payload: {
+                playerId: '00000000-0000-4000-8000-000000000002',
+                fromLocationId: 'loc-1',
+                toLocationId: 'loc-2',
+                direction: 'north'
+            },
+            ...overrides
+        }
+    }
+
     describe('Valid Event Processing', () => {
         test('should process valid event and emit telemetry', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent()
 
             await queueProcessWorldEvent(event, ctx as any)
@@ -50,7 +61,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should set ingestedUtc if missing', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent()
             delete (event as any).ingestedUtc
 
@@ -63,7 +74,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should propagate correlation and causation IDs in telemetry', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent({
                 correlationId: '11111111-1111-4111-8111-111111111111',
                 causationId: '22222222-2222-4222-8222-222222222222'
@@ -80,7 +91,7 @@ describe('World Event Queue Processor', () => {
 
     describe('Invalid Event Schema', () => {
         test('should reject event with missing type', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent()
             delete (event as any).type
 
@@ -93,7 +104,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should reject event with missing occurredUtc', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent()
             delete (event as any).occurredUtc
 
@@ -106,7 +117,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should reject event with invalid actor.kind', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent()
             ;(event as any).actor = { kind: 'invalid-kind', id: 'test-id' }
 
@@ -117,7 +128,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should reject event with invalid eventId (not UUID)', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent({ eventId: 'not-a-uuid' })
 
             await queueProcessWorldEvent(event, ctx as any)
@@ -127,7 +138,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should handle malformed JSON gracefully', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const malformedJson = 'not valid json {'
 
             await queueProcessWorldEvent(malformedJson, ctx as any)
@@ -145,8 +156,8 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should detect duplicate events with same idempotencyKey', async () => {
-            const ctx1 = mockInvocationContext()
-            const ctx2 = mockInvocationContext()
+            const ctx1 = fixture.createInvocationContext()
+            const ctx2 = fixture.createInvocationContext()
             const event = createValidEvent({ idempotencyKey: 'unique-duplicate-test-key' })
 
             await queueProcessWorldEvent(event, ctx1 as any)
@@ -158,8 +169,8 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should process events with different idempotencyKeys', async () => {
-            const ctx1 = mockInvocationContext()
-            const ctx2 = mockInvocationContext()
+            const ctx1 = fixture.createInvocationContext()
+            const ctx2 = fixture.createInvocationContext()
 
             const event1 = createValidEvent({ idempotencyKey: 'key-1', eventId: '10000000-0000-4000-8000-000000000001' })
             const event2 = createValidEvent({ idempotencyKey: 'key-2', eventId: '20000000-0000-4000-8000-000000000001' })
@@ -180,7 +191,7 @@ describe('World Event Queue Processor', () => {
 
     describe('Edge Cases', () => {
         test('should handle event with empty payload', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent({ payload: {} })
 
             await queueProcessWorldEvent(event, ctx as any)
@@ -190,7 +201,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should handle event with version > 1', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent({ version: 2 })
 
             await queueProcessWorldEvent(event, ctx as any)
@@ -200,7 +211,7 @@ describe('World Event Queue Processor', () => {
         })
 
         test('should reject event with version 0', async () => {
-            const ctx = mockInvocationContext()
+            const ctx = fixture.createInvocationContext()
             const event = createValidEvent({ version: 0 })
 
             await queueProcessWorldEvent(event, ctx as any)
@@ -213,7 +224,7 @@ describe('World Event Queue Processor', () => {
             const eventTypes = ['Player.Move', 'Player.Look', 'NPC.Tick', 'World.Ambience.Generated', 'World.Exit.Create', 'Quest.Proposed']
 
             for (const type of eventTypes) {
-                const ctx = mockInvocationContext()
+                const ctx = fixture.createInvocationContext()
                 const event = createValidEvent({
                     type,
                     idempotencyKey: `test-${type}-${Date.now()}-${Math.random()}`
