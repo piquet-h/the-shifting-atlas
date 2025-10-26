@@ -6,20 +6,20 @@ import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse } from './utils/responseBuilder.js'
 
 @injectable()
-export class HealthHandler extends BaseHandler {
+export class SimplePingHandler extends BaseHandler {
     constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
         super(telemetry)
     }
 
-    protected async execute(): Promise<HttpResponseInit> {
-        // Reuse Ping.Invoked semantic for health
-        this.track('Ping.Invoked', { echo: 'health' })
-        return okResponse({ status: 'ok', service: 'backend-core', latencyMs: this.latencyMs }, { correlationId: this.correlationId })
+    protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
+        const msg = req.query.get('msg') || 'pong'
+        this.track('Ping.Invoked', { echo: msg })
+        return okResponse({ reply: msg, latencyMs: this.latencyMs }, { correlationId: this.correlationId })
     }
 }
 
-export async function backendHealth(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function backendPing(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const container = context.extraInputs.get('container') as Container
-    const handler = container.get(HealthHandler)
+    const handler = container.get(SimplePingHandler)
     return handler.handle(req, context)
 }
