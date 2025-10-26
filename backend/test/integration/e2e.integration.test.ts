@@ -16,6 +16,7 @@
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { seedWorld, type SeedWorldResult } from '../../src/seeding/seedWorld.js'
