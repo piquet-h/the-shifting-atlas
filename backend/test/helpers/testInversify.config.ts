@@ -8,7 +8,14 @@ import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
 import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.handler.js'
+import { GetExitsHandler } from '../../src/handlers/getExits.handler.js'
+import { HealthHandler, SimplePingHandler } from '../../src/handlers/health.handler.js'
+import { LinkRoomsHandler } from '../../src/handlers/linkRooms.handler.js'
+import { LocationHandler } from '../../src/handlers/location.handler.js'
 import { MoveHandler } from '../../src/handlers/moveHandlerCore.js'
+import { PingHandler } from '../../src/handlers/ping.handler.js'
+import { PlayerCreateHandler } from '../../src/handlers/playerCreate.handler.js'
+import { PlayerGetHandler } from '../../src/handlers/playerGet.handler.js'
 import { PlayerLinkHandler } from '../../src/handlers/playerLink.handler.js'
 import { PlayerMoveHandler } from '../../src/handlers/playerMove.handler.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
@@ -55,6 +62,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(BootstrapPlayerHandler).toSelf().inSingletonScope()
     container.bind(PlayerLinkHandler).toSelf().inSingletonScope()
     container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
+    container.bind(PingHandler).toSelf().inSingletonScope()
+    container.bind(HealthHandler).toSelf().inSingletonScope()
+    container.bind(SimplePingHandler).toSelf().inSingletonScope()
+    container.bind(LocationHandler).toSelf().inSingletonScope()
+    container.bind(GetExitsHandler).toSelf().inSingletonScope()
+    container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
+    container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
+    container.bind(PlayerGetHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration

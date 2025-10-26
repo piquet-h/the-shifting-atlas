@@ -55,9 +55,13 @@ export class UnitTestFixture extends BaseTestFixture {
 
     /**
      * Create a new invocation context (doesn't cache)
+     * Async version with container in extraInputs for dependency injection
      */
-    createInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {
-        return TestMocks.createInvocationContext(overrides)
+    async createInvocationContext(overrides?: Partial<InvocationContext>): Promise<InvocationContextMockResult> {
+        const container = await this.getContainer()
+        const context = TestMocks.createInvocationContext(overrides)
+        context.extraInputs.set('container', container)
+        return context
     }
 
     /**

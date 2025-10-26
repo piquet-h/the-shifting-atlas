@@ -1,6 +1,7 @@
 import tsPlugin from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
 import prettierPlugin from 'eslint-plugin-prettier'
+import handlersMustExtendBaseRule from '../eslint-rules/handlers-must-extend-base.mjs'
 import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
@@ -19,7 +20,8 @@ export default [
                     'telemetry-event-name': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
-                    'no-direct-secret-access': noDirectSecretAccessRule
+                    'no-direct-secret-access': noDirectSecretAccessRule,
+                    'handlers-must-extend-base': handlersMustExtendBaseRule
                 }
             }
         },
@@ -30,7 +32,8 @@ export default [
             'internal/telemetry-event-name': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
-            'internal/no-direct-secret-access': 'error'
+            'internal/no-direct-secret-access': 'error',
+            'internal/handlers-must-extend-base': 'error'
         }
     },
     {

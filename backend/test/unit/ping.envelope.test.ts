@@ -31,8 +31,8 @@ describe('Ping and Health Envelope Tests', () => {
             method: 'GET',
             url: 'http://localhost/api/ping'
         })
-        const ctx = { invocationId: 'test-invocation' } as unknown
-        const res = (await ping(req as never, ctx as never)) as ResponseWithBody
+        const ctx = await fixture.createInvocationContext()
+        const res = (await ping(req as never, ctx)) as ResponseWithBody
 
         assert.equal(res.status, 200)
         assert.ok(res.headers)
@@ -50,7 +50,8 @@ describe('Ping and Health Envelope Tests', () => {
             method: 'GET',
             url: 'http://localhost/api/backend/health'
         })
-        const res = (await backendHealth(req as never)) as ResponseWithBody
+        const ctx = await fixture.createInvocationContext()
+        const res = (await backendHealth(req as never, ctx)) as ResponseWithBody
         const body = res.jsonBody
 
         assert.equal(res.status ?? 200, 200)
