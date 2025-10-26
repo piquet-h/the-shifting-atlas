@@ -1,15 +1,25 @@
 import { Container } from 'inversify'
 import assert from 'node:assert'
-import { suite, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { setupContainer } from '../../src/inversify.config.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
-suite('testContainerRegistration', async () => {
-    const testContainer = new Container()
-    await setupContainer(testContainer)
+describe('Container Registration', () => {
+    let fixture: IntegrationTestFixture
 
-    await test('ILocationRepository should be registered', async () => {
-        const repo = testContainer.get<ILocationRepository>('ILocationRepository')
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
+    test('ILocationRepository should be registered', async () => {
+        const container = await fixture.getContainer()
+        const repo = container.get<ILocationRepository>('ILocationRepository')
         assert.ok(repo, 'LocationRepository should be available')
     })
 })

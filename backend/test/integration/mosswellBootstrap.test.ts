@@ -1,6 +1,7 @@
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { seedWorld } from '../../src/seeding/seedWorld.js'
 import { getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
 

@@ -1,4 +1,7 @@
-import { mock } from 'node:test'
+import { TestMocks } from './TestFixture.js'
+
+// Re-export TestMocks for convenience
+export { TestMocks }
 
 /** Simple header bag with case-insensitive keys */
 export class HeaderBag {
@@ -50,6 +53,7 @@ export function makeLocationRequest(id?: string): unknown {
 /**
  * Mock an Azure Functions InvocationContext using node:test mocks.
  * Provides accessors for collected log + error call args.
+ * @deprecated Use TestMocks.createInvocationContext() from TestFixture instead
  */
 export interface TestInvocationContext {
     log: (...args: unknown[]) => void
@@ -64,35 +68,17 @@ export interface TestInvocationContext {
     getErrors: () => unknown[][]
 }
 
-interface MockCall {
-    arguments: unknown[]
-}
-
+/**
+ * @deprecated Use TestMocks.createInvocationContext() from TestFixture instead
+ */
 export function mockInvocationContext(): TestInvocationContext {
-    const logFn = mock.fn(() => {})
-    const errorFn = mock.fn(() => {})
-    const warnFn = mock.fn(() => {})
-    const infoFn = mock.fn(() => {})
-    const debugFn = mock.fn(() => {})
-    const traceFn = mock.fn(() => {})
-
-    return {
-        log: logFn,
-        error: errorFn,
-        warn: warnFn,
-        info: infoFn,
-        debug: debugFn,
-        trace: traceFn,
-        invocationId: 'test-invocation-id',
-        functionName: 'QueueProcessWorldEvent',
-        getLogs: () => logFn.mock.calls.map((c: MockCall) => c.arguments),
-        getErrors: () => errorFn.mock.calls.map((c: MockCall) => c.arguments)
-    }
+    return TestMocks.createInvocationContext() as TestInvocationContext
 }
 
 /**
  * Mock telemetryClient.trackEvent for testing telemetry emission.
  * The test must import telemetryClient directly to ensure same instance.
+ * @deprecated Use IntegrationTestFixture.setupTelemetryMock() or TestMocks.createTelemetryClient() instead
  * Usage:
  *   import { telemetryClient } from '../src/telemetry.js'
  *   const { getEvents, restore } = mockTelemetry(telemetryClient)
@@ -105,59 +91,37 @@ export function mockInvocationContext(): TestInvocationContext {
  *   }
  */
 export function mockTelemetry(client: { trackEvent: (payload: { name: string; properties?: Record<string, unknown> }) => void }) {
-    const events: Array<{ name: string; properties?: Record<string, unknown> }> = []
+    const mockResult = TestMocks.createTelemetryClient()
     const original = client.trackEvent
 
-    client.trackEvent = (payload: { name: string; properties?: Record<string, unknown> }) => {
-        events.push(payload)
-    }
+    client.trackEvent = mockResult.client.trackEvent
 
     return {
         restore: () => {
             client.trackEvent = original
         },
-        getEvents: () => events
+        getEvents: () => mockResult.getEvents()
     }
 }
 
-/** Create a minimal HttpRequest mock for Azure Functions handler testing */
+/**
+ * Create a minimal HttpRequest mock for Azure Functions handler testing
+ * @deprecated Use TestMocks.createHttpRequest() from TestFixture instead
+ */
 export function makeHttpRequest(options: { playerGuidHeader?: string; headers?: Map<string, string> } = {}): unknown {
-    const headers = options.headers || new Map<string, string>()
-    if (options.playerGuidHeader) headers.set('x-player-guid', options.playerGuidHeader)
-    return {
+    const headersObj: Record<string, string> = {}
+    if (options.headers) {
+        options.headers.forEach((value, key) => {
+            headersObj[key] = value
+        })
+    }
+    if (options.playerGuidHeader) {
+        headersObj['x-player-guid'] = options.playerGuidHeader
+    }
+
+    return TestMocks.createHttpRequest({
         method: 'GET',
         url: 'http://localhost/api/test',
-        headers: {
-            get: (key: string) => headers.get(key.toLowerCase()) || null,
-            has: (key: string) => headers.has(key.toLowerCase()),
-            entries: () => headers.entries(),
-            keys: () => headers.keys(),
-            values: () => headers.values(),
-            forEach: (cb: (value: string, key: string) => void) => headers.forEach(cb),
-            set: (key: string, value: string) => headers.set(key.toLowerCase(), value),
-            delete: (key: string) => headers.delete(key.toLowerCase()),
-            append: (key: string, value: string) => headers.set(key.toLowerCase(), value)
-        },
-        query: {
-            get: () => null,
-            has: () => false,
-            entries: () => [][Symbol.iterator](),
-            keys: () => [][Symbol.iterator](),
-            values: () => [][Symbol.iterator](),
-            forEach: () => {},
-            set: () => {},
-            delete: () => false,
-            append: () => {}
-        },
-        params: {},
-        user: null,
-        body: undefined,
-        bodyUsed: false,
-        arrayBuffer: async () => new ArrayBuffer(0),
-        blob: async () => new Blob(),
-        formData: async () => new FormData(),
-        json: async () => ({}),
-        text: async () => '',
-        clone: () => makeHttpRequest(options)
-    }
+        headers: headersObj
+    })
 }
