@@ -27,24 +27,27 @@ test/
 ```bash
 npm test                         # Run all tests (unit + integration)
 npm run test:unit                # Unit tests only (fast, no config needed)
-npm run test:integration         # Integration tests (uses current local.settings.json)
-npm run test:integration:memory  # Integration with in-memory storage
-npm run test:integration:cosmos  # Integration with real Cosmos DB
+npm run test:integration         # Integration tests (both memory and cosmos modes)
 npm run test:cov                 # All tests with coverage
 ```
 
 ### Persistence Mode
 
-Integration tests automatically load configuration from `local.settings.json`. By default, they use in-memory storage (fast, no credentials needed).
+**Integration tests no longer depend on `local.settings.json` or environment variables.**
 
-**Switch persistence mode:**
+Tests explicitly control which persistence mode(s) to test using the `getTestContainer(mode)` helper:
 
-```bash
-npm run test:integration:memory  # Use in-memory storage (default)
-npm run test:integration:cosmos  # Use real Cosmos DB (requires Azure credentials)
+```typescript
+// Test with memory mode only
+const container = await getTestContainer('memory')
+
+// Test with cosmos mode only (requires Azure credentials)
+const container = await getTestContainer('cosmos')
 ```
 
-These commands copy the appropriate config file before running integration tests. The setup is automatic.
+Most integration tests use **memory mode by default** (fast, no credentials needed). Some tests may run against **both modes** to ensure consistency across implementations.
+
+**Important:** The `local.settings.json` file is ONLY needed for running the actual Azure Functions app (`npm run dev`, `func start`). Tests do not use it.
 
 ## Key Differences
 
@@ -58,12 +61,11 @@ These commands copy the appropriate config file before running integration tests
 
 **Integration Tests (`test/integration/`)**
 
-- ✅ Configuration loaded automatically via `test/setup.ts`
-- ✅ Defaults to `PERSISTENCE_MODE=memory` (safe, fast)
+- ✅ No configuration files required
+- ✅ Tests explicitly specify which persistence mode to use: `getTestContainer('memory')` or `getTestContainer('cosmos')`
+- ✅ Most tests use memory mode (fast, safe, no credentials)
 - ✅ Tests real repository implementations with actual persistence
-- ✅ Switch modes: `npm run test:integration:memory` or `npm run test:integration:cosmos`
-
-**Note**: Integration tests automatically load settings from `local.settings.json`. You don't need to manually configure anything — just run `npm run test:integration` and the setup happens automatically.
+- ✅ Some tests may run against both modes to ensure consistency
 
 ## Writing New Tests
 
@@ -77,9 +79,33 @@ Add to `test/unit/` if:
 Add to `test/integration/` if:
 
 - Testing repository implementations with real persistence
-- Requires actual storage layer (memory or Cosmos)
+- Requires actual storage layer (memory or cosmos)
 - Tests cross-service workflows
-- **Don't worry about setup**: Configuration loads automatically from `local.settings.json`
+- Use `getTestContainer('memory')` by default for fast, isolated tests
+- Use `getTestContainer('cosmos')` if testing cosmos-specific behavior
+
+### Testing Against Both Persistence Modes
+
+To ensure your code works consistently across both memory and cosmos implementations, use the `describeForBothModes` helper:
+
+```typescript
+import { describeForBothModes } from '../helpers/dualModeTest.js'
+
+describeForBothModes('Location Repository', (mode, getRepo) => {
+    test('can create location', async () => {
+        const repo = await getRepo('ILocationRepository')
+        const result = await repo.upsert({
+            id: 'test',
+            name: 'Test',
+            description: 'Test location',
+            version: 1
+        })
+        assert.ok(result.created)
+    })
+})
+```
+
+This will run your tests against both 'memory' and 'cosmos' modes, ensuring consistency.
 
 ### Using Inversify for Unit Tests
 
