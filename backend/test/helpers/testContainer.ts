@@ -1,7 +1,8 @@
 import { Container } from 'inversify'
 import { ContainerMode, setupContainer } from '../../src/inversify.config.js'
+import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
-import { getPlayerRepository, IPlayerRepository } from '../../src/repos/playerRepository.js'
+import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 
 /**
  * Test helper to get a fresh container for each test.
@@ -24,11 +25,16 @@ export async function getLocationRepositoryForTest(mode: ContainerMode = 'memory
 
 /**
  * Get PlayerRepository from a test container
- * Note: PlayerRepository not yet migrated to DI, uses factory pattern
  */
-export async function getPlayerRepositoryForTest(): Promise<IPlayerRepository> {
-    return await getPlayerRepository()
+export async function getPlayerRepositoryForTest(mode: ContainerMode = 'memory'): Promise<IPlayerRepository> {
+    const container = await getTestContainer(mode)
+    return container.get<IPlayerRepository>('IPlayerRepository')
 }
 
-// Re-export reset functions for backward compatibility
-export { __resetPlayerRepositoryForTests } from '../../src/repos/playerRepository.js'
+/**
+ * Get DescriptionRepository from a test container
+ */
+export async function getDescriptionRepositoryForTest(mode: ContainerMode = 'memory'): Promise<IDescriptionRepository> {
+    const container = await getTestContainer(mode)
+    return container.get<IDescriptionRepository>('IDescriptionRepository')
+}

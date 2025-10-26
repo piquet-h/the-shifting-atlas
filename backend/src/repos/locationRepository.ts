@@ -182,5 +182,3 @@ export class InMemoryLocationRepository implements ILocationRepository {
     }
 }
 
-// Re-export factory function (delegates to Inversify container)
-export { getLocationRepository } from '../repositoryFactory.js'

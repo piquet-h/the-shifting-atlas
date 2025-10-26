@@ -1,12 +1,7 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import {
-    __resetDescriptionRepositoryForTests,
-    getDescriptionRepository,
-    type DescriptionLayer
-} from '../../src/repos/descriptionRepository.js'
-import { __resetPlayerRepositoryForTests } from '../helpers/testContainer.js'
-import { getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
+import type { DescriptionLayer } from '../../src/repos/descriptionRepository.js'
+import { getDescriptionRepositoryForTest, getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
 
 
 describe('Repository Interface Contracts', () => {
@@ -81,7 +76,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('IDescriptionRepository - has required methods', async () => {
-        const repo = await getDescriptionRepository()
+        const repo = await getDescriptionRepositoryForTest()
         assert.ok(typeof repo.getLayersForLocation === 'function', 'getLayersForLocation method exists')
         assert.ok(typeof repo.addLayer === 'function', 'addLayer method exists')
         assert.ok(typeof repo.archiveLayer === 'function', 'archiveLayer method exists')
@@ -90,7 +85,7 @@ describe('Repository Interface Contracts', () => {
 
     test('IDescriptionRepository - addLayer returns expected shape', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepository()
+        const repo = await getDescriptionRepositoryForTest()
         const layer: DescriptionLayer = {
             id: 'layer-1',
             locationId: 'loc-1',
@@ -105,7 +100,7 @@ describe('Repository Interface Contracts', () => {
 
     test('IDescriptionRepository - getLayersForLocation returns array', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepository()
+        const repo = await getDescriptionRepositoryForTest()
         const layers = await repo.getLayersForLocation('nonexistent')
         assert.ok(Array.isArray(layers), 'returns array')
         assert.equal(layers.length, 0, 'empty for nonexistent location')
@@ -160,7 +155,7 @@ describe('Repository Interface Type Contracts (TypeScript)', () => {
 
     test('DescriptionLayer has expected properties', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepository()
+        const repo = await getDescriptionRepositoryForTest()
         const layer: DescriptionLayer = {
             id: 'test-layer-1',
             locationId: 'test-loc-1',
