@@ -1,16 +1,15 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { Container } from 'inversify'
-import { setupContainer } from '../../src/inversify.config.js'
+import { setupTestContainer } from '../helpers/testInversify.config.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
-import { MockPlayerRepository } from '../../src/repos/playerRepository.mock.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
-import { MockLocationRepository } from '../../src/repos/locationRepository.mock.js'
 import { IExitRepository } from '../../src/repos/exitRepository.js'
-import { MockExitRepository } from '../../src/repos/exitRepository.mock.js'
 import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
-import { MockDescriptionRepository } from '../../src/repos/descriptionRepository.mock.js'
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { MockPlayerRepository } from '../mocks/repositories/playerRepository.mock.js'
+import { MockLocationRepository } from '../mocks/repositories/locationRepository.mock.js'
+import { MockExitRepository } from '../mocks/repositories/exitRepository.mock.js'
+import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
 
 describe('Mock Repositories', () => {
     describe('MockPlayerRepository', () => {
@@ -132,7 +131,7 @@ describe('Mock Repositories', () => {
     describe('Container registration', () => {
         test('mock mode', async () => {
             const container = new Container()
-            await setupContainer(container, 'mock')
+            await setupTestContainer(container, 'mock')
 
             const playerRepo = container.get<IPlayerRepository>('IPlayerRepository')
             const locationRepo = container.get<ILocationRepository>('ILocationRepository')
