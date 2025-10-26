@@ -1,11 +1,22 @@
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { DescriptionLayer } from '../../src/repos/descriptionRepository.js'
-import { getDescriptionRepositoryForTest, getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Repository Interface Contracts', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('IPlayerRepository - has required methods', async () => {
-        const repo = await getPlayerRepositoryForTest()
+        const repo = await fixture.getPlayerRepository()
         assert.ok(typeof repo.get === 'function', 'get method exists')
         assert.ok(typeof repo.getOrCreate === 'function', 'getOrCreate method exists')
         assert.ok(typeof repo.linkExternalId === 'function', 'linkExternalId method exists')
@@ -13,7 +24,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('IPlayerRepository - getOrCreate returns expected shape', async () => {
-        const repo = await getPlayerRepositoryForTest()
+        const repo = await fixture.getPlayerRepository()
         const result = await repo.getOrCreate()
         assert.ok(result.record, 'record present')
         assert.ok(typeof result.created === 'boolean', 'created is boolean')
@@ -23,7 +34,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - has required methods', async () => {
-        const repo = await getLocationRepositoryForTest()
+        const repo = await fixture.getLocationRepository()
         assert.ok(typeof repo.get === 'function', 'get method exists')
         assert.ok(typeof repo.move === 'function', 'move method exists')
         assert.ok(typeof repo.upsert === 'function', 'upsert method exists')
@@ -34,7 +45,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - upsert returns expected shape', async () => {
-        const repo = await getLocationRepositoryForTest()
+        const repo = await fixture.getLocationRepository()
         const result = await repo.upsert({
             id: 'test-loc-1',
             name: 'Test Location',
@@ -46,7 +57,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - move returns expected union types', async () => {
-        const repo = await getLocationRepositoryForTest()
+        const repo = await fixture.getLocationRepository()
         const loc = {
             id: 'test-from',
             name: 'From',
@@ -72,7 +83,7 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('IDescriptionRepository - has required methods', async () => {
-        const repo = await getDescriptionRepositoryForTest()
+        const repo = await fixture.getDescriptionRepository()
         assert.ok(typeof repo.getLayersForLocation === 'function', 'getLayersForLocation method exists')
         assert.ok(typeof repo.addLayer === 'function', 'addLayer method exists')
         assert.ok(typeof repo.archiveLayer === 'function', 'archiveLayer method exists')
@@ -81,7 +92,7 @@ describe('Repository Interface Contracts', () => {
 
     test('IDescriptionRepository - addLayer returns expected shape', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepositoryForTest()
+        const repo = await fixture.getDescriptionRepository()
         const layer: DescriptionLayer = {
             id: 'layer-1',
             locationId: 'loc-1',
@@ -96,7 +107,7 @@ describe('Repository Interface Contracts', () => {
 
     test('IDescriptionRepository - getLayersForLocation returns array', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepositoryForTest()
+        const repo = await fixture.getDescriptionRepository()
         const layers = await repo.getLayersForLocation('nonexistent')
         assert.ok(Array.isArray(layers), 'returns array')
         assert.equal(layers.length, 0, 'empty for nonexistent location')
@@ -105,7 +116,7 @@ describe('Repository Interface Contracts', () => {
 
 describe('Repository Interface Type Contracts (TypeScript)', () => {
     test('PlayerRecord has expected properties', async () => {
-        const repo = await getPlayerRepositoryForTest()
+        const repo = await fixture.getPlayerRepository()
         const { record } = await repo.getOrCreate()
 
         // Required fields
@@ -129,7 +140,7 @@ describe('Repository Interface Type Contracts (TypeScript)', () => {
     })
 
     test('Location has expected structure', async () => {
-        const repo = await getLocationRepositoryForTest()
+        const repo = await fixture.getLocationRepository()
         const loc = await repo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
         if (loc) {
             assert.ok(typeof loc.id === 'string', 'id is string')
@@ -149,7 +160,7 @@ describe('Repository Interface Type Contracts (TypeScript)', () => {
 
     test('DescriptionLayer has expected properties', async () => {
         __resetDescriptionRepositoryForTests()
-        const repo = await getDescriptionRepositoryForTest()
+        const repo = await fixture.getDescriptionRepository()
         const layer: DescriptionLayer = {
             id: 'test-layer-1',
             locationId: 'test-loc-1',
