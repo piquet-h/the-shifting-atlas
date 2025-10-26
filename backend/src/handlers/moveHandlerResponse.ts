@@ -1,6 +1,6 @@
 import type { HttpResponseInit } from '@azure/functions'
-import type { MoveResult } from './moveHandlerCore.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
+import type { MoveResult } from './moveHandlerCore.js'
 
 // Maps MoveResult (core movement outcome) to HttpResponseInit using shared ok/err envelope.
 export function buildMoveResponse(moveResult: MoveResult, correlationId: string): HttpResponseInit {

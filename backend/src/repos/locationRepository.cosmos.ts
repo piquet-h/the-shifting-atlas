@@ -1,27 +1,18 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
-import crypto from 'crypto'
-import { inject, injectable } from 'inversify'
-import type { IGremlinClient } from '../gremlin/gremlinClient.js'
-import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
+import { injectable } from 'inversify'
+import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
+import { CosmosGremlinRepository } from './base/index.js'
 import { ILocationRepository } from './locationRepository.js'
-
-/** Compute content hash for revision tracking (name + description + sorted tags) */
-function computeLocationContentHash(name: string, description: string, tags?: string[]): string {
-    const sortedTags = tags && tags.length > 0 ? [...tags].sort() : []
-    const content = JSON.stringify({ name, description, tags: sortedTags })
-    return crypto.createHash('sha256').update(content, 'utf8').digest('hex')
-}
+import { computeContentHash, firstScalar } from './utils/index.js'
 
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 @injectable()
-export class CosmosLocationRepository implements ILocationRepository {
-    constructor(@inject('GremlinClient') private client: IGremlinClient) {}
-
+export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
     /** Helper: Regenerate and update exits summary cache for a location */
     private async regenerateExitsSummaryCache(locationId: string): Promise<void> {
         // Fetch current exits (use coalesce to handle missing optional properties)
-        const exitsRaw = await this.client.submit<Record<string, unknown>>(
+        const exitsRaw = await this.query<Record<string, unknown>>(
             "g.V(locationId).outE('exit').project('direction','to','description','blocked')" +
                 ".by(values('direction')).by(inV().id())" +
                 ".by(coalesce(values('description'), constant('')))" +
@@ -46,10 +37,10 @@ export class CosmosLocationRepository implements ILocationRepository {
     }
 
     async get(id: string): Promise<Location | undefined> {
-        const vertices = await this.client.submit<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
+        const vertices = await this.query<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
         if (!vertices || vertices.length === 0) return undefined
         const v = vertices[0]
-        const exitsRaw = await this.client.submit<Record<string, unknown>>(
+        const exitsRaw = await this.query<Record<string, unknown>>(
             "g.V(locationId).outE('exit').project('direction','to','description').by(values('direction')).by(inV().id()).by(values('description'))",
             { locationId: id }
         )
@@ -102,10 +93,10 @@ export class CosmosLocationRepository implements ILocationRepository {
 
         try {
             // Compute content hash for the new location
-            const newContentHash = computeLocationContentHash(location.name, location.description, location.tags)
+            const newContentHash = computeContentHash(location.name, location.description, location.tags)
 
             // First, check if the location exists to determine if this is create vs update
-            const existingVertices = await this.client.submit<Record<string, unknown>>('g.V(lid).valueMap(true)', { lid: location.id })
+            const existingVertices = await this.query<Record<string, unknown>>('g.V(lid).valueMap(true)', { lid: location.id })
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
 
@@ -121,7 +112,7 @@ export class CosmosLocationRepository implements ILocationRepository {
                 const existingName = firstScalar(existing.name) || ''
                 const existingDescription = firstScalar(existing.description) || ''
                 const existingTags = Array.isArray(existing.tags) ? (existing.tags as string[]) : undefined
-                const existingContentHash = computeLocationContentHash(existingName, existingDescription, existingTags)
+                const existingContentHash = computeContentHash(existingName, existingDescription, existingTags)
 
                 // Only increment revision if content changed
                 if (existingContentHash === newContentHash) {
@@ -141,8 +132,7 @@ export class CosmosLocationRepository implements ILocationRepository {
                 lid: location.id,
                 name: location.name,
                 desc: location.description || '',
-                ver: newVersion,
-                pk: resolveGraphPartitionKey() // Partition key: "world" (prod) or "test" (tests)
+                ver: newVersion
             }
 
             // Build the query: for tags, we need to add each tag individually (Cosmos Gremlin doesn't support array properties)
@@ -163,7 +153,7 @@ export class CosmosLocationRepository implements ILocationRepository {
                 }
             }
 
-            await this.client.submit(query, bindings)
+            await this.query(query, bindings)
 
             success = true
             updatedRevision = shouldIncrementRevision ? newVersion : undefined
@@ -189,19 +179,12 @@ export class CosmosLocationRepository implements ILocationRepository {
     /** Ensure an exit edge with direction exists between fromId and toId */
     async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }> {
         if (!isDirection(direction)) return { created: false }
-        const partitionKey = resolveGraphPartitionKey()
-        // Ensure both vertices exist (no-op if present); include partitionKey for Cosmos Gremlin API requirement
-        await this.client.submit(
-            `g.V(fid).fold().coalesce(unfold(), addV('location').property('id', fid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
-            { fid: fromId, pk: partitionKey }
-        )
-        await this.client.submit(
-            `g.V(tid).fold().coalesce(unfold(), addV('location').property('id', tid).property('${WORLD_GRAPH_PARTITION_KEY_PROP}', pk))`,
-            { tid: toId, pk: partitionKey }
-        )
+        // Ensure both vertices exist (no-op if present)
+        await this.ensureVertex('location', fromId)
+        await this.ensureVertex('location', toId)
 
         // Check if edge already exists
-        const existingEdges = await this.client.submit<Record<string, unknown>>(
+        const existingEdges = await this.query<Record<string, unknown>>(
             "g.V(fid).outE('exit').has('direction', dir).where(inV().hasId(tid))",
             { fid: fromId, tid: toId, dir: direction }
         )
@@ -212,7 +195,7 @@ export class CosmosLocationRepository implements ILocationRepository {
         }
 
         // Create new edge (use addE().from().to() pattern for Cosmos Gremlin)
-        await this.client.submit("g.V(fid).addE('exit').to(g.V(tid)).property('direction', dir).property('description', desc)", {
+        await this.query("g.V(fid).addE('exit').to(g.V(tid)).property('direction', dir).property('description', desc)", {
             fid: fromId,
             tid: toId,
             dir: direction,
@@ -257,7 +240,7 @@ export class CosmosLocationRepository implements ILocationRepository {
         if (!isDirection(direction)) return { removed: false }
 
         // Find and remove matching edges
-        const edges = await this.client.submit<Record<string, unknown>>("g.V(fid).outE('exit').has('direction', dir)", {
+        const edges = await this.query<Record<string, unknown>>("g.V(fid).outE('exit').has('direction', dir)", {
             fid: fromId,
             dir: direction
         })
@@ -270,7 +253,7 @@ export class CosmosLocationRepository implements ILocationRepository {
         const toLocationId = edges.length > 0 ? String((edges[0] as Record<string, unknown>).inV || '') : undefined
 
         // Drop the edges
-        await this.client.submit("g.V(fid).outE('exit').has('direction', dir).drop()", { fid: fromId, dir: direction })
+        await this.query("g.V(fid).outE('exit').has('direction', dir).drop()", { fid: fromId, dir: direction })
 
         // Regenerate exits summary cache for the source location
         await this.regenerateExitsSummaryCache(fromId)
@@ -309,16 +292,10 @@ export class CosmosLocationRepository implements ILocationRepository {
 
     async updateExitsSummaryCache(locationId: string, cache: string): Promise<{ updated: boolean }> {
         try {
-            await this.client.submit("g.V(locationId).property('exitsSummaryCache', cache)", { locationId, cache })
+            await this.query("g.V(locationId).property('exitsSummaryCache', cache)", { locationId, cache })
             return { updated: true }
         } catch {
             return { updated: false }
         }
     }
-}
-
-function firstScalar(val: unknown): string | undefined {
-    if (val == null) return undefined
-    if (Array.isArray(val)) return val.length ? String(val[0]) : undefined
-    return String(val)
 }

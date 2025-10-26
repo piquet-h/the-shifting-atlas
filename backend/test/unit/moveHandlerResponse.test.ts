@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import type { MoveResult } from '../../src/functions/moveHandlerCore.js'
-import { buildMoveResponse } from '../../src/functions/moveHandlerResponse.js'
+import type { MoveResult } from '../../src/handlers/moveHandlerCore.js'
+import { buildMoveResponse } from '../../src/handlers/moveHandlerResponse.js'
 
 describe('Move Handler Response', () => {
     function makeErrorResult(type: MoveResult['error']['type'], statusCode: number, clarification?: string, reason?: string): MoveResult {

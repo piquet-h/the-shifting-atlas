@@ -1,13 +1,14 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
-import { IGremlinClient } from '../gremlin/gremlinClient.js'
-import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
+import { injectable } from 'inversify'
+import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
+import { CosmosGremlinRepository } from './base/index.js'
+import { firstScalar, parseBool } from './utils/index.js'
 
-export class CosmosPlayerRepository implements IPlayerRepository {
-    constructor(private client: IGremlinClient) {}
-
+@injectable()
+export class CosmosPlayerRepository extends CosmosGremlinRepository implements IPlayerRepository {
     async get(id: string): Promise<PlayerRecord | undefined> {
-        const rows = await this.client.submit<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", { playerId: id })
+        const rows = await this.query<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", { playerId: id })
         if (!rows.length) return undefined
         const v = rows[0]
         return mapVertexToPlayer(v)
@@ -22,7 +23,7 @@ export class CosmosPlayerRepository implements IPlayerRepository {
         // Upsert pattern (fold + coalesce) avoids duplicate vertex creation races for the same supplied id.
         // The preliminary get above is sufficient; no need for a second existence check.
         const createdIso = new Date().toISOString()
-        await this.client.submit(
+        await this.query(
             `
                 g.V(pid)
                     .hasLabel('player')
@@ -40,7 +41,6 @@ export class CosmosPlayerRepository implements IPlayerRepository {
             `,
             {
                 pid: newId,
-                pk: resolveGraphPartitionKey(),
                 created: createdIso,
                 startLoc: STARTER_LOCATION_ID
             }
@@ -75,7 +75,7 @@ export class CosmosPlayerRepository implements IPlayerRepository {
             return { updated: false, conflict: true, existingPlayerId: existingExternal.id }
         }
         const updatedIso = new Date().toISOString()
-        await this.client.submit(
+        await this.query(
             "g.V(pid).hasLabel('player').property('externalId', ext).property('guest', false).property('updatedUtc', updated)",
             {
                 pid: id,
@@ -88,10 +88,9 @@ export class CosmosPlayerRepository implements IPlayerRepository {
     }
 
     async findByExternalId(externalId: string): Promise<PlayerRecord | undefined> {
-        const rows = await this.client.submit<Record<string, unknown>>(
-            "g.V().hasLabel('player').has('externalId', ext).limit(1).valueMap(true)",
-            { ext: externalId }
-        )
+        const rows = await this.query<Record<string, unknown>>("g.V().hasLabel('player').has('externalId', ext).limit(1).valueMap(true)", {
+            ext: externalId
+        })
         if (!rows.length) return undefined
         return mapVertexToPlayer(rows[0])
     }
@@ -109,20 +108,9 @@ function mapVertexToPlayer(v: Record<string, unknown>): PlayerRecord {
     }
 }
 
-function firstScalar(val: unknown): string | undefined {
-    if (val == null) return undefined
-    if (Array.isArray(val)) return val.length ? String(val[0]) : undefined
-    return String(val)
-}
-
-function parseBool(v: string | undefined): boolean | undefined {
-    if (!v) return undefined
-    return v === 'true' || v === '1'
-}
-
 function cryptoRandomUUID(): string {
-    // Avoid importing node:crypto in shared to keep bundle light; fallback simple GUID subset generator.
-    // This is only used if cosmos creates a player with no supplied id.
+    // Fallback simple GUID generator for edge cases where Cosmos creates a player with no supplied id.
+    // This is rarely used; most player creation uses crypto.randomUUID() from the calling code.
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = (Math.random() * 16) | 0
         const v = c === 'x' ? r : (r & 0x3) | 0x8

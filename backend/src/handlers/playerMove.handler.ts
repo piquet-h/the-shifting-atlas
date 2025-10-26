@@ -1,7 +1,7 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { BaseHandler } from './base/BaseHandler.js'
-import { performMove } from './moveHandlerCore.js'
 import { buildMoveResponse } from './moveHandlerResponse.js'
+import { performMove } from './moveHandlerCore.js'
 
 class PlayerMoveHandler extends BaseHandler {
     protected async execute(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {

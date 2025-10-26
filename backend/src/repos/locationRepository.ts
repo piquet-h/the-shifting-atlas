@@ -2,6 +2,7 @@ import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDire
 import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { ExitEdgeResult, IExitRepository, sortExits } from './exitRepository.js'
+import { computeContentHash } from './utils/index.js'
 
 // Repository contract isolates persistence (memory, cosmos, etc.) from handlers & AI tools.
 export interface ILocationRepository {
@@ -99,8 +100,8 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         const existing = this.locations.get(location.id)
         if (existing) {
             // Compute content hash for comparison
-            const existingHash = this.computeContentHash(existing.name, existing.description, existing.tags)
-            const newHash = this.computeContentHash(location.name, location.description, location.tags)
+            const existingHash = computeContentHash(existing.name, existing.description, existing.tags)
+            const newHash = computeContentHash(location.name, location.description, location.tags)
 
             // Only update version if content changed
             const contentChanged = existingHash !== newHash
@@ -126,18 +127,6 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         return { created: true, id: location.id, updatedRevision: location.version || 1 }
     }
 
-    private computeContentHash(name: string, description: string, tags?: string[]): string {
-        const sortedTags = tags && tags.length > 0 ? [...tags].sort() : []
-        const content = JSON.stringify({ name, description, tags: sortedTags })
-        // Simple hash for in-memory (doesn't need crypto strength)
-        let hash = 0
-        for (let i = 0; i < content.length; i++) {
-            const char = content.charCodeAt(i)
-            hash = (hash << 5) - hash + char
-            hash = hash & hash // Convert to 32bit integer
-        }
-        return hash.toString(36)
-    }
     async ensureExit(fromId: string, direction: string, toId: string, description?: string) {
         if (!isDirection(direction)) return { created: false }
         const from = this.locations.get(fromId)

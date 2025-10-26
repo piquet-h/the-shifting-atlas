@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { ping } from './ping.handler.js'
+import { ping } from '../handlers/ping.handler.js'
 
 app.http('ping', {
     methods: ['GET', 'POST'],

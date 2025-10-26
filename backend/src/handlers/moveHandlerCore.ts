@@ -1,8 +1,8 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { getPlayerHeadingStore, normalizeDirection, STARTER_LOCATION_ID } from '@piquet-h/shared'
-import { Container } from 'inversify'
 import { ILocationRepository } from '../repos/locationRepository.js'
 import { extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
+import { getRepository } from './utils/contextHelpers.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed'
@@ -68,8 +68,7 @@ export async function performMove(req: HttpRequest, context: InvocationContext):
     const dir = normalizationResult.canonical
 
     // Fetch starting location
-    const container = context.extraInputs.get('container') as Container
-    const repo = container.get<ILocationRepository>('ILocationRepository')
+    const repo = getRepository<ILocationRepository>(context, 'ILocationRepository')
 
     const from = await repo.get(fromId)
     if (!from) {

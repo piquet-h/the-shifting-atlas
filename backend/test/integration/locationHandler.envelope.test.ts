@@ -3,7 +3,7 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { getLocationHandler } from '../../src/functions/location.handler.js'
+import { getLocationHandler } from '../../src/handlers/location.handler.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeLocationRequest } from '../helpers/testUtils.js'
 
