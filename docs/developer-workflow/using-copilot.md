@@ -31,7 +31,7 @@ Example preface:
 
 ## Local Development Aids
 
-Run frontend & backend separately (`npm run dev -w frontend` + `npm start -w backend`). Configure a Vite proxy for same‑origin behavior when needed. Tailor prompts to the layer you are editing; include brief domain rule excerpts for movement, identity, or world events to guide generation.
+Run frontend & backend separately (in separate terminals: `cd frontend && npm run dev` + `cd backend && npm start`). Configure a Vite proxy for same‑origin behavior when needed. Tailor prompts to the layer you are editing; include brief domain rule excerpts for movement, identity, or world events to guide generation.
 
 ## Style & Conventions
 
@@ -58,11 +58,12 @@ If you add major architecture components (e.g., Cosmos graph schema utilities), 
 
 ## Helpful Aliases
 
-| Command                     | Purpose                             |
-| --------------------------- | ----------------------------------- |
-| (removed)                   | Former unified SWA emulator script. |
-| `npm run build -w frontend` | Build production bundle.            |
-| `npm run typecheck`         | Monorepo TypeScript validation.     |
+| Command                        | Purpose                          |
+| ------------------------------ | -------------------------------- |
+| `cd frontend && npm run build` | Build production bundle.         |
+| `cd backend && npm run build`  | Build backend functions.         |
+| `cd shared && npm run build`   | Build shared package.            |
+| `npm run typecheck`            | TypeScript validation per package. |
 
 ## Next Improvements
 

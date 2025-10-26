@@ -11,7 +11,7 @@ This guide shows how to run the frontend SPA and the unified backend Azure Funct
 
 The repository previously used a single root workspaces install. That indirection has been removed to make dependency graphs explicit and speed up cold boot.
 
-Install each workspace directly (order does not matter):
+Install each package directly (order does not matter):
 
 ```bash
 cd frontend && npm install
@@ -70,7 +70,7 @@ npm run dev
 
 ## Backend
 
-Queue/world logic (Service Bus, timers) will incrementally land here; HTTP endpoints already reside in this workspace.
+Queue/world logic (Service Bus, timers) will incrementally land here; HTTP endpoints already reside in this package.
 
 ```bash
 cd backend
@@ -81,10 +81,12 @@ npm start
 
 ## Type Checking & Builds
 
-Run type checks across workspaces:
+Run type checks in each package:
 
 ```bash
-npm run typecheck
+cd frontend && npm run typecheck
+cd backend && npm run typecheck
+cd shared && npm run typecheck
 ```
 
 Build production frontend bundle:
