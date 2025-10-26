@@ -60,6 +60,28 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         location.exitsSummaryCache = generateExitsSummary(exits)
     }
 
+    /** Helper: Sort location exits using canonical exit ordering */
+    private sortLocationExits(
+        exits: Array<{ direction: string; to?: string; description?: string }>
+    ): Array<{ direction: string; to?: string; description?: string }> {
+        // Convert to ExitEdgeResult format for sorting
+        const exitResults: ExitEdgeResult[] = exits.map((e) => ({
+            direction: e.direction as Direction,
+            toLocationId: e.to || '',
+            description: e.description
+        }))
+
+        // Sort using canonical ordering
+        const sorted = sortExits(exitResults)
+
+        // Convert back to location exit format
+        return sorted.map((e) => ({
+            direction: e.direction,
+            to: e.toLocationId,
+            description: e.description
+        }))
+    }
+
     async get(id: string): Promise<Location | undefined> {
         return this.locations.get(id)
     }
@@ -84,17 +106,23 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
             const contentChanged = existingHash !== newHash
             const newVersion = contentChanged ? (existing.version || 0) + 1 : existing.version
 
+            // Sort exits if provided, maintaining canonical order
+            const sortedExits = location.exits ? this.sortLocationExits(location.exits) : existing.exits
+
             // Shallow update (keep existing exits unless provided)
             this.locations.set(location.id, {
                 ...existing,
                 name: location.name ?? existing.name,
                 description: location.description ?? existing.description,
-                exits: location.exits || existing.exits,
+                exits: sortedExits,
                 version: newVersion ?? location.version
             })
             return { created: false, id: location.id, updatedRevision: contentChanged ? newVersion : undefined }
         }
-        this.locations.set(location.id, { ...location, exits: location.exits || [], version: location.version || 1 })
+
+        // Sort exits for new locations
+        const sortedExits = location.exits ? this.sortLocationExits(location.exits) : []
+        this.locations.set(location.id, { ...location, exits: sortedExits, version: location.version || 1 })
         return { created: true, id: location.id, updatedRevision: location.version || 1 }
     }
 
@@ -123,6 +151,8 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
             return { created: false }
         }
         from.exits.push({ direction, to: toId, description })
+        // Sort exits after adding new one
+        from.exits = this.sortLocationExits(from.exits)
         // Regenerate exits summary cache
         this.regenerateExitsSummaryCache(fromId)
         return { created: true }

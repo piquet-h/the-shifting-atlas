@@ -117,20 +117,16 @@ export class TestMocks {
     /**
      * Create a mock HttpRequest for Azure Functions
      */
-    static createHttpRequest(options: {
-        method?: string
-        url?: string
-        query?: Record<string, string>
-        headers?: Record<string, string>
-        body?: unknown
-    } = {}): unknown {
-        const {
-            method = 'GET',
-            url = 'http://localhost/api/test',
-            query = {},
-            headers = {},
-            body = undefined
-        } = options
+    static createHttpRequest(
+        options: {
+            method?: string
+            url?: string
+            query?: Record<string, string>
+            headers?: Record<string, string>
+            body?: unknown
+        } = {}
+    ): unknown {
+        const { method = 'GET', url = 'http://localhost/api/test', query = {}, headers = {}, body = undefined } = options
 
         const headersMap = new Map<string, string>(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]))
 

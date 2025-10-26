@@ -76,7 +76,7 @@ export class IntegrationTestFixture extends BaseTestFixture {
         // Clear the telemetry mock if it's a MockTelemetryClient
         const client = this.container?.get<ITelemetryClient>('ITelemetryClient')
         if (client && 'clear' in client) {
-            (client as MockTelemetryClient).clear()
+            ;(client as MockTelemetryClient).clear()
         }
         this.container = undefined
         await super.teardown()

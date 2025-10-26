@@ -64,13 +64,15 @@ export class UnitTestFixture extends BaseTestFixture {
     /**
      * Create an HTTP request mock
      */
-    createHttpRequest(options: {
-        method?: string
-        url?: string
-        query?: Record<string, string>
-        headers?: Record<string, string>
-        body?: unknown
-    } = {}): unknown {
+    createHttpRequest(
+        options: {
+            method?: string
+            url?: string
+            query?: Record<string, string>
+            headers?: Record<string, string>
+            body?: unknown
+        } = {}
+    ): unknown {
         return TestMocks.createHttpRequest(options)
     }
 
