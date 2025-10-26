@@ -1,6 +1,8 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { IPlayerRepository } from '../repos/playerRepository.js'
-import { trackGameEventStrict } from '../telemetry.js'
+import type { Container } from 'inversify'
+import { inject, injectable } from 'inversify'
+import type { IPlayerRepository } from '../repos/playerRepository.js'
+import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 
@@ -14,7 +16,12 @@ interface LinkResponseBody {
     externalId?: string
 }
 
-class PlayerLinkHandler extends BaseHandler {
+@injectable()
+export class PlayerLinkHandler extends BaseHandler {
+    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+        super(telemetry)
+    }
+
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
         const playerRepo = this.getRepository<IPlayerRepository>('IPlayerRepository')
 
@@ -45,19 +52,11 @@ class PlayerLinkHandler extends BaseHandler {
                 })
             }
             if (linkResult.updated) {
-                trackGameEventStrict(
-                    'Auth.Player.Upgraded',
-                    { linkStrategy: 'merge', hadGuestProgress: true },
-                    { playerGuid: guid, correlationId: this.correlationId }
-                )
+                this.track('Auth.Player.Upgraded', { linkStrategy: 'merge', hadGuestProgress: true })
             }
         }
 
-        trackGameEventStrict(
-            'Player.Get',
-            { playerGuid: guid, status: 200, latencyMs: this.latencyMs },
-            { correlationId: this.correlationId, playerGuid: guid }
-        )
+        this.track('Player.Get', { playerGuid: guid, status: 200 })
 
         const resBody: LinkResponseBody = {
             playerGuid: guid,
@@ -70,6 +69,7 @@ class PlayerLinkHandler extends BaseHandler {
 }
 
 export async function linkPlayerHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    const handler = new PlayerLinkHandler()
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(PlayerLinkHandler)
     return handler.handle(request, context)
 }

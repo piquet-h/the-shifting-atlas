@@ -32,14 +32,23 @@
  */
 import type { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
-import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
 describe('Mosswell Concurrency - Location Upsert', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent location upserts create single vertex', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         const locationId = 'concurrent-loc-1'
         const location: Location = {
@@ -65,7 +74,7 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('concurrent upserts of different locations all succeed', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Create 20 different locations concurrently
         const promises = Array.from({ length: 20 }, (_, i) => {
@@ -93,7 +102,7 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('high parallelism location upserts (>20 concurrent)', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         const locationId = 'high-parallelism-loc'
         const location: Location = {
@@ -117,7 +126,7 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('concurrent upserts with content updates preserve latest state', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         const locationId = 'update-race-loc'
 
@@ -150,8 +159,19 @@ describe('Mosswell Concurrency - Location Upsert', () => {
 })
 
 describe('Mosswell Concurrency - Exit Creation', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent exit creation creates single edge', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations
         await locRepo.upsert({ id: 'exit-from-1', name: 'From', description: 'From location', exits: [] })
@@ -174,7 +194,7 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('concurrent bidirectional exit creation', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations
         await locRepo.upsert({ id: 'exit-bidir-a', name: 'Location A', description: 'Location A', exits: [] })
@@ -205,7 +225,7 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('concurrent different exit directions all succeed', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations
         await locRepo.upsert({ id: 'exit-hub', name: 'Hub', description: 'Central hub', exits: [] })
@@ -230,7 +250,7 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('high parallelism exit creation (>20 concurrent)', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations
         await locRepo.upsert({ id: 'exit-high-from', name: 'From', description: 'From location', exits: [] })
@@ -251,8 +271,19 @@ describe('Mosswell Concurrency - Exit Creation', () => {
 })
 
 describe('Mosswell Concurrency - Player Creation', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent player creation with same id - idempotency check', async () => {
-        const playerRepo = await getPlayerRepositoryForTest()
+        const playerRepo = await fixture.getPlayerRepository()
 
         // Use a valid UUID v4 format
         const playerId = '11111111-1111-4111-8111-111111111111'
@@ -283,7 +314,7 @@ describe('Mosswell Concurrency - Player Creation', () => {
     })
 
     test('concurrent player creation with different ids all succeed', async () => {
-        const playerRepo = await getPlayerRepositoryForTest()
+        const playerRepo = await fixture.getPlayerRepository()
 
         // Create 20 different players concurrently using valid UUID v4 format
         const promises = Array.from({ length: 20 }, (_, i) => {
@@ -306,7 +337,7 @@ describe('Mosswell Concurrency - Player Creation', () => {
     })
 
     test('high parallelism player creation (>20 concurrent) - idempotency check', async () => {
-        const playerRepo = await getPlayerRepositoryForTest()
+        const playerRepo = await fixture.getPlayerRepository()
 
         // Use a valid UUID v4 format
         const playerId = '22222222-2222-4222-8222-222222222222'
@@ -337,8 +368,19 @@ describe('Mosswell Concurrency - Player Creation', () => {
 })
 
 describe('Mosswell Concurrency - Batch Operations', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent batch exit applications are idempotent', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations
         await locRepo.upsert({ id: 'batch-a', name: 'A', description: 'Location A', exits: [] })
@@ -371,8 +413,19 @@ describe('Mosswell Concurrency - Batch Operations', () => {
 })
 
 describe('Mosswell Concurrency - Telemetry Verification', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent operations complete successfully (telemetry verification in Cosmos mode)', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Note: In-memory implementation doesn't emit telemetry events
         // This test verifies that concurrent operations complete successfully
@@ -407,7 +460,7 @@ describe('Mosswell Concurrency - Telemetry Verification', () => {
     })
 
     test('concurrent exit creation completes successfully (telemetry in Cosmos mode)', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Note: In-memory implementation doesn't emit telemetry events
         // This test verifies that concurrent exit creation completes successfully
@@ -435,8 +488,19 @@ describe('Mosswell Concurrency - Telemetry Verification', () => {
 })
 
 describe('Mosswell Concurrency - Retry Scenarios', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('retry after partial failure completes successfully', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Simulate a batch operation where we retry the entire batch
         const locations: Location[] = [
@@ -463,7 +527,7 @@ describe('Mosswell Concurrency - Retry Scenarios', () => {
     })
 
     test('partial batch retry with mixed new and existing entities', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Create some locations first
         await locRepo.upsert({ id: 'mixed-1', name: 'Existing 1', description: 'Existing', exits: [] })
@@ -492,8 +556,19 @@ describe('Mosswell Concurrency - Retry Scenarios', () => {
 })
 
 describe('Mosswell Concurrency - Edge Cases', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('concurrent location upsert and exit creation', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         const locationId = 'edge-concurrent-ops'
 
@@ -521,7 +596,7 @@ describe('Mosswell Concurrency - Edge Cases', () => {
     })
 
     test('concurrent remove and create of same exit', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         // Pre-create locations and exit
         await locRepo.upsert({ id: 'edge-rm-from', name: 'From', description: 'From', exits: [] })
@@ -547,7 +622,7 @@ describe('Mosswell Concurrency - Edge Cases', () => {
     })
 
     test('extreme parallelism (100+ concurrent operations)', async () => {
-        const locRepo = await getLocationRepositoryForTest()
+        const locRepo = await fixture.getLocationRepository()
 
         const locationId = 'extreme-parallel-loc'
         const location: Location = {

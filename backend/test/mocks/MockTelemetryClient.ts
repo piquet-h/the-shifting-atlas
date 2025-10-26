@@ -14,6 +14,7 @@ export class MockTelemetryClient implements ITelemetryClient {
     public traces: Contracts.TraceTelemetry[] = []
     public dependencies: Contracts.DependencyTelemetry[] = []
     public requests: Contracts.RequestTelemetry[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private processors: Array<(envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean> = []
 
     trackEvent(telemetry: Contracts.EventTelemetry): void {
@@ -40,11 +41,12 @@ export class MockTelemetryClient implements ITelemetryClient {
         this.requests.push(telemetry)
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addTelemetryProcessor(telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean): void {
         this.processors.push(telemetryProcessor)
     }
 
-    flush(_options?: { callback?: (response: string) => void; isAppCrashing?: boolean }): void {
+    flush(): void {
         // No-op in mock
     }
 

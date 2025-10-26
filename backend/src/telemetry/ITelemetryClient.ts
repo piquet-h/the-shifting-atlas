@@ -38,6 +38,7 @@ export interface ITelemetryClient {
     /**
      * Add a telemetry processor to filter/enrich telemetry
      */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     addTelemetryProcessor(telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean): void
 
     /**

@@ -12,7 +12,6 @@
 
 import type { InvocationContext } from '@azure/functions'
 import { Container } from 'inversify'
-import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { BaseTestFixture, TestMocks, type InvocationContextMockResult } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'

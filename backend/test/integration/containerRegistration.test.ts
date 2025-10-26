@@ -1,7 +1,5 @@
-import { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { setupContainer } from '../../src/inversify.config.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 

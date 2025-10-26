@@ -4,14 +4,19 @@
  */
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { type GameEventName } from '@piquet-h/shared'
-import { Container } from 'inversify'
-import { extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../../telemetry.js'
+import type { Container } from 'inversify'
+import { inject, injectable } from 'inversify'
+import { extractCorrelationId, extractPlayerGuid } from '../../telemetry.js'
+import type { ITelemetryClient } from '../../telemetry/ITelemetryClient.js'
 
+@injectable()
 export abstract class BaseHandler {
     protected correlationId!: string
     protected playerGuid?: string
     protected container!: Container
     private started!: number
+
+    constructor(@inject('ITelemetryClient') protected telemetry: ITelemetryClient) {}
 
     /**
      * Main entry point for the handler. Sets up context and calls execute().
@@ -66,11 +71,16 @@ export abstract class BaseHandler {
      * @param properties - Event properties
      */
     protected track(eventName: GameEventName, properties: Record<string, unknown>): void {
-        trackGameEventStrict(
-            eventName,
-            { ...properties, latencyMs: this.latencyMs },
-            { playerGuid: this.playerGuid, correlationId: this.correlationId }
-        )
+        this.telemetry.trackEvent({
+            name: eventName,
+            properties: {
+                ...properties,
+                latencyMs: this.latencyMs,
+                playerGuid: this.playerGuid,
+                correlationId: this.correlationId,
+                service: process.env.TSA_SERVICE_NAME || 'backend'
+            }
+        })
     }
 
     /**

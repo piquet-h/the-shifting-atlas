@@ -1,6 +1,8 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { IPlayerRepository } from '../repos/playerRepository.js'
-import { trackGameEventStrict } from '../telemetry.js'
+import type { Container } from 'inversify'
+import { inject, injectable } from 'inversify'
+import type { IPlayerRepository } from '../repos/playerRepository.js'
+import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse } from './utils/responseBuilder.js'
 
@@ -24,7 +26,12 @@ function isValidUuidV4(value: string | null | undefined): boolean {
     return uuidV4Regex.test(trimmed)
 }
 
-class BootstrapPlayerHandler extends BaseHandler {
+@injectable()
+export class BootstrapPlayerHandler extends BaseHandler {
+    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+        super(telemetry)
+    }
+
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
         const playerRepo = this.getRepository<IPlayerRepository>('IPlayerRepository')
 
@@ -32,23 +39,15 @@ class BootstrapPlayerHandler extends BaseHandler {
         const validatedGuid = isValidUuidV4(headerGuid) ? headerGuid : undefined
         const clientHadValidGuid = validatedGuid !== undefined
 
-        trackGameEventStrict('Onboarding.GuestGuid.Started', {}, { correlationId: this.correlationId })
+        this.track('Onboarding.GuestGuid.Started', {})
         const { record, created } = await playerRepo.getOrCreate(validatedGuid)
 
         const reportedCreated = clientHadValidGuid ? false : created
 
         if (created) {
-            trackGameEventStrict(
-                'Onboarding.GuestGuid.Created',
-                { phase: 'bootstrap' },
-                { playerGuid: record.id, correlationId: this.correlationId }
-            )
+            this.track('Onboarding.GuestGuid.Created', { phase: 'bootstrap' })
         }
-        trackGameEventStrict(
-            'Onboarding.GuestGuid.Completed',
-            { created: reportedCreated },
-            { playerGuid: record.id, correlationId: this.correlationId }
-        )
+        this.track('Onboarding.GuestGuid.Completed', { created: reportedCreated })
 
         const body: BootstrapResponseBody = {
             playerGuid: record.id,
@@ -62,6 +61,7 @@ class BootstrapPlayerHandler extends BaseHandler {
 }
 
 export async function bootstrapPlayerHandler(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    const handler = new BootstrapPlayerHandler()
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(BootstrapPlayerHandler)
     return handler.handle(request, context)
 }

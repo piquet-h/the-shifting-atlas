@@ -13,6 +13,7 @@ app.hook.appStart(() => {
         const client = appInsights.defaultClient
         if (client && typeof client.addTelemetryProcessor === 'function') {
             const patterns = ['.env', '.php', '/.git/', 'phpinfo', '/test.php', '/config/', '/_profiler']
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             client.addTelemetryProcessor((envelope: any) => {
                 try {
                     const baseData = envelope && envelope.data && envelope.data.baseData
@@ -20,12 +21,15 @@ app.hook.appStart(() => {
                     for (const p of patterns) {
                         if (url.includes(p)) return false
                     }
-                } catch (e) {}
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                } catch (_error) {
+                    // Ignore telemetry processor errors
+                }
                 return true
             })
         }
-    } catch (e: unknown) {
-        console.error('Failed to add telemetry processor', e)
+    } catch (error: unknown) {
+        console.error('Failed to add telemetry processor', error)
     }
 
     const startTime = Date.now()

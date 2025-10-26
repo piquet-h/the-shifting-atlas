@@ -1,4 +1,3 @@
-import { Direction } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import { ExitEdgeResult, IExitRepository, sortExits } from '../../../src/repos/exitRepository.js'
 

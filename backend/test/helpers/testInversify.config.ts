@@ -7,6 +7,10 @@ import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
+import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.handler.js'
+import { MoveHandler } from '../../src/handlers/moveHandlerCore.js'
+import { PlayerLinkHandler } from '../../src/handlers/playerLink.handler.js'
+import { PlayerMoveHandler } from '../../src/handlers/playerMove.handler.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 import { CosmosDescriptionRepository } from '../../src/repos/descriptionRepository.cosmos.js'
 import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
@@ -45,6 +49,12 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     } else {
         container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
     }
+
+    // Register handlers - these extend BaseHandler which has @injectable and constructor injection
+    container.bind(MoveHandler).toSelf().inSingletonScope()
+    container.bind(BootstrapPlayerHandler).toSelf().inSingletonScope()
+    container.bind(PlayerLinkHandler).toSelf().inSingletonScope()
+    container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration

@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { DescriptionLayer } from '../../src/repos/descriptionRepository.js'
+import { __resetDescriptionRepositoryForTests } from '../../src/repos/descriptionRepository.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Repository Interface Contracts', () => {
@@ -115,6 +116,17 @@ describe('Repository Interface Contracts', () => {
 })
 
 describe('Repository Interface Type Contracts (TypeScript)', () => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture('memory')
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     test('PlayerRecord has expected properties', async () => {
         const repo = await fixture.getPlayerRepository()
         const { record } = await repo.getOrCreate()
