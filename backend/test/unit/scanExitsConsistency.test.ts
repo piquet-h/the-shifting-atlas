@@ -1,11 +1,12 @@
 import assert from 'node:assert'
-import { test } from 'node:test'
+import { describe, test } from 'node:test'
 
-/**
- * Tests for Exit Graph Consistency Scanner
- *
- * Uses synthetic in-memory graph fixtures to verify scanner logic.
- */
+describe('Exit Graph Consistency Scanner', () => {
+    /**
+     * Tests for Exit Graph Consistency Scanner
+     *
+     * Uses synthetic in-memory graph fixtures to verify scanner logic.
+     */
 
 interface Location {
     id: string
@@ -284,4 +285,5 @@ test('scanner - summary counts match detail arrays', async () => {
     assert.equal(results.summary.orphanLocationsCount, results.orphanLocations.length)
     assert.equal(results.danglingExits.length, 2)
     assert.equal(results.orphanLocations.length, 2)
+})
 })

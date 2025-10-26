@@ -1,7 +1,9 @@
 import { getOppositeDirection } from '@piquet-h/shared'
 import assert from 'node:assert'
-import { test } from 'node:test'
+import { describe, test } from 'node:test'
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
+
+describe('Edge Management', () => {
 
 type VertexMap = Record<string, Record<string, unknown>>
 type ExitArray = Array<Record<string, unknown>>
@@ -258,4 +260,5 @@ test('location version policy - version unchanged when exit removed', async () =
     const location = await repo.get('A')
     assert.ok(location)
     assert.equal(location.version, 2)
+})
 })
