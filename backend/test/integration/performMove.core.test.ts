@@ -1,7 +1,7 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { performMove } from '../../src/handlers/moveHandlerCore.js'
+import { MoveHandler } from '../../src/handlers/moveHandlerCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
 
@@ -36,7 +36,13 @@ describe('PerformMove Core', () => {
     test('performMove returns ambiguous for relative direction without heading', async () => {
         const ctx = await createMockContext(fixture)
         const req = makeMoveRequest({ dir: 'forward' }) as HttpRequest
-        const res = await performMove(req, ctx)
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        // Initialize handler context via handle() then call performMove() for the result
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
         assert.equal(res.success, false)
         assert.equal(res.error?.type, 'ambiguous')
         assert.equal(res.error?.statusCode, 400)
@@ -45,7 +51,13 @@ describe('PerformMove Core', () => {
     test('performMove returns invalid-direction for unknown input', async () => {
         const ctx = await createMockContext(fixture)
         const req = makeMoveRequest({ dir: 'zzz' }) as HttpRequest
-        const res = await performMove(req, ctx)
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        // Initialize handler context via handle() then call performMove() for the result
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
         assert.equal(res.success, false)
         assert.equal(res.error?.type, 'invalid-direction')
         assert.equal(res.error?.statusCode, 400)

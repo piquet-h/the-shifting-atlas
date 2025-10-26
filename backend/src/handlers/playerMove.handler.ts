@@ -3,8 +3,7 @@ import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
-import { performMove } from './moveHandlerCore.js'
-import { buildMoveResponse } from './moveHandlerResponse.js'
+import { MoveHandler } from './moveHandlerCore.js'
 
 @injectable()
 export class PlayerMoveHandler extends BaseHandler {
@@ -13,8 +12,10 @@ export class PlayerMoveHandler extends BaseHandler {
     }
 
     protected async execute(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-        const moveResult = await performMove(req, context)
-        return buildMoveResponse(moveResult, this.correlationId)
+        // Delegate to MoveHandler for the actual move logic
+        const moveHandler = this.getRepository<MoveHandler>(MoveHandler.name)
+        // Call handle() which will invoke MoveHandler's execute() method
+        return moveHandler.handle(req, context)
     }
 }
 

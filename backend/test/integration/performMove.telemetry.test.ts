@@ -1,7 +1,7 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { performMove } from '../../src/handlers/moveHandlerCore.js'
+import { MoveHandler } from '../../src/handlers/moveHandlerCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
 
@@ -38,7 +38,11 @@ describe('PerformMove Telemetry Integration', () => {
         const telemetry = await fixture.getTelemetryClient()
 
         const req = makeMoveRequest({ dir: 'forward' }) as HttpRequest
-        const result = await performMove(req, ctx)
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const result = await handler.performMove(req)
 
         assert.equal(result.error?.type, 'ambiguous')
         if ('events' in telemetry) {
@@ -61,7 +65,11 @@ describe('PerformMove Telemetry Integration', () => {
         await repo.upsert({ id: toId, name: 'Beta', description: 'Destination', exits: [] })
 
         const req = makeMoveRequest({ dir: 'north', from: fromId }) as HttpRequest
-        const result = await performMove(req, ctx)
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const result = await handler.performMove(req)
 
         assert.equal(result.success, true)
         if ('events' in telemetry) {
