@@ -181,3 +181,4 @@ export class InMemoryLocationRepository implements ILocationRepository {
         return { updated: true }
     }
 }
+

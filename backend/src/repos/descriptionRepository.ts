@@ -99,11 +99,12 @@ class InMemoryDescriptionRepository implements IDescriptionRepository {
     }
 }
 
+// Legacy singleton pattern - kept for backward compatibility with old code
+// New code should use dependency injection via inversify container
 let singleton: IDescriptionRepository | undefined
 
 export async function getDescriptionRepository(): Promise<IDescriptionRepository> {
     if (singleton) return singleton
-    // Only in-memory implementation for now; Cosmos/SQL API adapter will be added in M4
     singleton = new InMemoryDescriptionRepository()
     return singleton
 }
