@@ -3,7 +3,7 @@ import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepo
 
 /**
  * Cosmos (SQL API) implementation of IDescriptionRepository.
- * 
+ *
  * STATUS: Stub implementation for future M4 milestone.
  * Currently delegates to in-memory implementation.
  * Will be replaced with Azure Cosmos SQL API integration.

@@ -4,7 +4,6 @@ import assert from 'node:assert'
 import { suite, test } from 'node:test'
 import type { IGremlinClient } from '../../src/gremlin/index.js'
 import { CosmosExitRepository, sortExits } from '../../src/repos/exitRepository.js'
-import { InMemoryExitRepository } from '../../src/repos/exitRepository.memory.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.js'
 
 type ExitData = { direction: string; toLocationId: string; description?: string; kind?: string; state?: string }
@@ -180,15 +179,15 @@ suite('CosmosExitRepository with Inversify', () => {
     })
 })
 
-suite('InMemoryExitRepository with Inversify', () => {
+suite('InMemoryLocationRepository as IExitRepository', () => {
     let container: Container
 
     test('getExits - returns ordered exits from in-memory location', async () => {
         container = new Container()
         container.bind('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
-        container.bind(InMemoryExitRepository).toSelf()
+        container.bind('IExitRepository').toService('ILocationRepository')
 
-        const repo = container.get(InMemoryExitRepository)
+        const repo = container.get<InMemoryLocationRepository>('IExitRepository')
         // Use Mosswell River Jetty ID from seed data
         const exits = await repo.getExits('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
 
@@ -208,9 +207,9 @@ suite('InMemoryExitRepository with Inversify', () => {
         })
 
         container.bind('ILocationRepository').toConstantValue(locationRepo)
-        container.bind(InMemoryExitRepository).toSelf()
+        container.bind('IExitRepository').toService('ILocationRepository')
 
-        const repo = container.get(InMemoryExitRepository)
+        const repo = container.get<InMemoryLocationRepository>('IExitRepository')
         const exits = await repo.getExits('empty-loc')
 
         assert.equal(exits.length, 0)
@@ -219,9 +218,9 @@ suite('InMemoryExitRepository with Inversify', () => {
     test('getExits - returns empty array for non-existent location', async () => {
         container = new Container()
         container.bind('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
-        container.bind(InMemoryExitRepository).toSelf()
+        container.bind('IExitRepository').toService('ILocationRepository')
 
-        const repo = container.get(InMemoryExitRepository)
+        const repo = container.get<InMemoryLocationRepository>('IExitRepository')
         const exits = await repo.getExits('non-existent-id')
 
         assert.equal(exits.length, 0)
@@ -244,9 +243,9 @@ suite('InMemoryExitRepository with Inversify', () => {
         })
 
         container.bind('ILocationRepository').toConstantValue(locationRepo)
-        container.bind(InMemoryExitRepository).toSelf()
+        container.bind('IExitRepository').toService('ILocationRepository')
 
-        const repo = container.get(InMemoryExitRepository)
+        const repo = container.get<InMemoryLocationRepository>('IExitRepository')
         const exits = await repo.getExits('test-loc')
 
         assert.equal(exits.length, 4)

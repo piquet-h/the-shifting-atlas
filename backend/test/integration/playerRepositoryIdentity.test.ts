@@ -3,7 +3,6 @@ import { test } from 'node:test'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
 test('player repository stable identity upsert semantics', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const fixedId = '11111111-1111-4111-8111-111111111111'
     const first = await repo.getOrCreate(fixedId)
@@ -19,7 +18,6 @@ test('player repository stable identity upsert semantics', async () => {
 })
 
 test('linkExternalId updates guest flag and sets updatedUtc', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const { record } = await repo.getOrCreate()
     const ext = 'external-sub-123'
@@ -32,7 +30,6 @@ test('linkExternalId updates guest flag and sets updatedUtc', async () => {
 })
 
 test('linkExternalId detects conflict when externalId already linked to different player', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const { record: player1 } = await repo.getOrCreate()
     const { record: player2 } = await repo.getOrCreate()
@@ -49,7 +46,6 @@ test('linkExternalId detects conflict when externalId already linked to differen
 })
 
 test('linkExternalId idempotent re-link does not update updatedUtc', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const { record } = await repo.getOrCreate()
     const ext = 'external-idempotent-test'

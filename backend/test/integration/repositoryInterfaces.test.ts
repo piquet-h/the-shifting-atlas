@@ -3,7 +3,6 @@ import { describe, test } from 'node:test'
 import type { DescriptionLayer } from '../../src/repos/descriptionRepository.js'
 import { getDescriptionRepositoryForTest, getLocationRepositoryForTest, getPlayerRepositoryForTest } from '../helpers/testContainer.js'
 
-
 describe('Repository Interface Contracts', () => {
     test('IPlayerRepository - has required methods', async () => {
         const repo = await getPlayerRepositoryForTest()
@@ -14,7 +13,6 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('IPlayerRepository - getOrCreate returns expected shape', async () => {
-        
         const repo = await getPlayerRepositoryForTest()
         const result = await repo.getOrCreate()
         assert.ok(result.record, 'record present')
@@ -36,7 +34,6 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - upsert returns expected shape', async () => {
-        
         const repo = await getLocationRepositoryForTest()
         const result = await repo.upsert({
             id: 'test-loc-1',
@@ -49,7 +46,6 @@ describe('Repository Interface Contracts', () => {
     })
 
     test('ILocationRepository - move returns expected union types', async () => {
-        
         const repo = await getLocationRepositoryForTest()
         const loc = {
             id: 'test-from',
@@ -109,7 +105,6 @@ describe('Repository Interface Contracts', () => {
 
 describe('Repository Interface Type Contracts (TypeScript)', () => {
     test('PlayerRecord has expected properties', async () => {
-        
         const repo = await getPlayerRepositoryForTest()
         const { record } = await repo.getOrCreate()
 
@@ -134,7 +129,6 @@ describe('Repository Interface Type Contracts (TypeScript)', () => {
     })
 
     test('Location has expected structure', async () => {
-        
         const repo = await getLocationRepositoryForTest()
         const loc = await repo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
         if (loc) {

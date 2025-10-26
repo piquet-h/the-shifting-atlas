@@ -25,7 +25,7 @@ test('telemetry emitted for successful movement (Location.Move status=200)', asy
     const { getEvents, restore } = mockTelemetry(telemetryClient)
     try {
         // Reset repo to ensure fresh in-memory state
-        
+
         const repo = await getLocationRepositoryForTest()
         // Two locations with an exit north from A to B
         const fromId = '00000000-0000-0000-0000-000000000001'

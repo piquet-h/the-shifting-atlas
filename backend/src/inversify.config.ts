@@ -3,20 +3,19 @@ import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from './persistenceConfig'
-import { IDescriptionRepository } from './repos/descriptionRepository.js'
 import { CosmosDescriptionRepository } from './repos/descriptionRepository.cosmos.js'
+import { IDescriptionRepository } from './repos/descriptionRepository.js'
 import { InMemoryDescriptionRepository } from './repos/descriptionRepository.memory.js'
 import { MockDescriptionRepository } from './repos/descriptionRepository.mock.js'
 import { CosmosExitRepository, IExitRepository } from './repos/exitRepository.js'
-import { InMemoryExitRepository } from './repos/exitRepository.memory.js'
 import { MockExitRepository } from './repos/exitRepository.mock.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository, InMemoryLocationRepository } from './repos/locationRepository.js'
 import { MockLocationRepository } from './repos/locationRepository.mock.js'
 import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
+import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
 import { MockPlayerRepository } from './repos/playerRepository.mock.js'
-import { IPlayerRepository } from './repos/playerRepository.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { MockTelemetryClient } from './telemetry/MockTelemetryClient.js'
 
@@ -61,8 +60,10 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(MockDescriptionRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
+        // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
+        // since exits are stored as nested properties of locations in memory
         container.bind<ILocationRepository>('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
-        container.bind<IExitRepository>('IExitRepository').to(InMemoryExitRepository).inSingletonScope()
+        container.bind<IExitRepository>('IExitRepository').toService('ILocationRepository')
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
     }

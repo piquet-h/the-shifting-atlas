@@ -36,10 +36,8 @@ import { describe, test } from 'node:test'
 import { __resetLocationRepositoryForTests, getLocationRepository } from '../helpers/testContainer.js'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
-
 describe('Mosswell Concurrency - Location Upsert', () => {
     test('concurrent location upserts create single vertex', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         const locationId = 'concurrent-loc-1'
@@ -66,7 +64,6 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('concurrent upserts of different locations all succeed', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Create 20 different locations concurrently
@@ -95,7 +92,6 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('high parallelism location upserts (>20 concurrent)', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         const locationId = 'high-parallelism-loc'
@@ -120,7 +116,6 @@ describe('Mosswell Concurrency - Location Upsert', () => {
     })
 
     test('concurrent upserts with content updates preserve latest state', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         const locationId = 'update-race-loc'
@@ -155,7 +150,6 @@ describe('Mosswell Concurrency - Location Upsert', () => {
 
 describe('Mosswell Concurrency - Exit Creation', () => {
     test('concurrent exit creation creates single edge', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations
@@ -179,7 +173,6 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('concurrent bidirectional exit creation', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations
@@ -211,7 +204,6 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('concurrent different exit directions all succeed', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations
@@ -237,7 +229,6 @@ describe('Mosswell Concurrency - Exit Creation', () => {
     })
 
     test('high parallelism exit creation (>20 concurrent)', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations
@@ -260,7 +251,6 @@ describe('Mosswell Concurrency - Exit Creation', () => {
 
 describe('Mosswell Concurrency - Player Creation', () => {
     test('concurrent player creation with same id - idempotency check', async () => {
-        
         const playerRepo = await getPlayerRepositoryForTest()
 
         // Use a valid UUID v4 format
@@ -292,7 +282,6 @@ describe('Mosswell Concurrency - Player Creation', () => {
     })
 
     test('concurrent player creation with different ids all succeed', async () => {
-        
         const playerRepo = await getPlayerRepositoryForTest()
 
         // Create 20 different players concurrently using valid UUID v4 format
@@ -316,7 +305,6 @@ describe('Mosswell Concurrency - Player Creation', () => {
     })
 
     test('high parallelism player creation (>20 concurrent) - idempotency check', async () => {
-        
         const playerRepo = await getPlayerRepositoryForTest()
 
         // Use a valid UUID v4 format
@@ -349,7 +337,6 @@ describe('Mosswell Concurrency - Player Creation', () => {
 
 describe('Mosswell Concurrency - Batch Operations', () => {
     test('concurrent batch exit applications are idempotent', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations
@@ -384,7 +371,6 @@ describe('Mosswell Concurrency - Batch Operations', () => {
 
 describe('Mosswell Concurrency - Telemetry Verification', () => {
     test('concurrent operations complete successfully (telemetry verification in Cosmos mode)', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Note: In-memory implementation doesn't emit telemetry events
@@ -420,7 +406,6 @@ describe('Mosswell Concurrency - Telemetry Verification', () => {
     })
 
     test('concurrent exit creation completes successfully (telemetry in Cosmos mode)', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Note: In-memory implementation doesn't emit telemetry events
@@ -450,7 +435,6 @@ describe('Mosswell Concurrency - Telemetry Verification', () => {
 
 describe('Mosswell Concurrency - Retry Scenarios', () => {
     test('retry after partial failure completes successfully', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Simulate a batch operation where we retry the entire batch
@@ -478,7 +462,6 @@ describe('Mosswell Concurrency - Retry Scenarios', () => {
     })
 
     test('partial batch retry with mixed new and existing entities', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Create some locations first
@@ -509,7 +492,6 @@ describe('Mosswell Concurrency - Retry Scenarios', () => {
 
 describe('Mosswell Concurrency - Edge Cases', () => {
     test('concurrent location upsert and exit creation', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         const locationId = 'edge-concurrent-ops'
@@ -538,7 +520,6 @@ describe('Mosswell Concurrency - Edge Cases', () => {
     })
 
     test('concurrent remove and create of same exit', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         // Pre-create locations and exit
@@ -565,7 +546,6 @@ describe('Mosswell Concurrency - Edge Cases', () => {
     })
 
     test('extreme parallelism (100+ concurrent operations)', async () => {
-        
         const locRepo = await getLocationRepositoryForTest()
 
         const locationId = 'extreme-parallel-loc'

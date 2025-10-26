@@ -5,7 +5,6 @@ import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers
 import { HeaderBag, makePrincipalPayload } from '../helpers/testUtils.js'
 
 test('ensurePlayerForRequest creates and reuses player for SWA principal', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const { b64 } = makePrincipalPayload({ userId: 'UserXYZ' })
     const headers1 = new HeaderBag()

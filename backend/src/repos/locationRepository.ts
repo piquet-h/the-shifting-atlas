@@ -1,6 +1,7 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
+import { ExitEdgeResult, IExitRepository, sortExits } from './exitRepository.js'
 
 // Repository contract isolates persistence (memory, cosmos, etc.) from handlers & AI tools.
 export interface ILocationRepository {
@@ -31,8 +32,10 @@ export interface ILocationRepository {
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
 // a Cosmos/Gremlin implementation in future without changing handler code.
+// Implements both ILocationRepository and IExitRepository since exits are stored
+// as nested properties of locations in memory.
 @injectable()
-export class InMemoryLocationRepository implements ILocationRepository {
+export class InMemoryLocationRepository implements ILocationRepository, IExitRepository {
     private locations: Map<string, Location>
     constructor() {
         const locs = starterLocationsData as Location[]
@@ -180,5 +183,21 @@ export class InMemoryLocationRepository implements ILocationRepository {
         location.exitsSummaryCache = cache
         return { updated: true }
     }
-}
 
+    // IExitRepository implementation
+    async getExits(locationId: string): Promise<ExitEdgeResult[]> {
+        const location = await this.get(locationId)
+        if (!location || !location.exits) {
+            return []
+        }
+
+        // Convert location exits to ExitEdgeResult format
+        const exits: ExitEdgeResult[] = location.exits.map((exit) => ({
+            direction: exit.direction as Direction,
+            toLocationId: exit.to || '',
+            description: exit.description
+        }))
+
+        return sortExits(exits)
+    }
+}

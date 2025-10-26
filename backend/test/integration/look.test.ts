@@ -39,7 +39,6 @@ test('generateExitsSummaryCache - exits ordered canonically', () => {
 })
 
 test('Location repository - updateExitsSummaryCache', async () => {
-    
     const repo = await getLocationRepositoryForTest()
 
     // Get a location
@@ -57,7 +56,6 @@ test('Location repository - updateExitsSummaryCache', async () => {
 })
 
 test('Location repository - updateExitsSummaryCache on missing location', async () => {
-    
     const repo = await getLocationRepositoryForTest()
 
     const result = await repo.updateExitsSummaryCache('nonexistent-id', 'Exits: north')
@@ -65,7 +63,6 @@ test('Location repository - updateExitsSummaryCache on missing location', async 
 })
 
 test('LOOK command flow - cache hit path', async () => {
-    
     const repo = await getLocationRepositoryForTest()
 
     // Pre-populate cache
@@ -77,7 +74,6 @@ test('LOOK command flow - cache hit path', async () => {
 })
 
 test('LOOK command flow - cache miss and regeneration', async () => {
-    
     const repo = await getLocationRepositoryForTest()
 
     // Get location
@@ -110,7 +106,6 @@ test('LOOK command flow - cache miss and regeneration', async () => {
 })
 
 test('LOOK command flow - repeated LOOK returns cache', async () => {
-    
     const repo = await getLocationRepositoryForTest()
 
     // First LOOK - generate cache

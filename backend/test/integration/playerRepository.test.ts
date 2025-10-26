@@ -5,7 +5,6 @@ import { test } from 'node:test'
 import { __resetPlayerRepositoryForTests, getPlayerRepository } from '../helpers/testContainer.js'
 
 test('player repository assigns starting location', async () => {
-    
     const repo = await getPlayerRepositoryForTest()
     const { record, created } = await repo.getOrCreate()
     assert.ok(created, 'expected new record')
