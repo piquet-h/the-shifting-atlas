@@ -16,17 +16,16 @@ describe('Telemetry Correlation', () => {
     })
 
     test('trackGameEventStrict includes correlationId when provided', async () => {
-        const telemetryMock = fixture.getTelemetryMock()
+        const mockTelemetry = await fixture.getTelemetryClient()
         const originalTrackEvent = telemetryClient.trackEvent
-        telemetryClient.trackEvent = telemetryMock.client.trackEvent
+        telemetryClient.trackEvent = mockTelemetry.trackEvent.bind(mockTelemetry)
 
         try {
             const corr = 'corr-test-123'
             trackGameEventStrict('Location.Get', { id: 'location-1', status: 200 }, { correlationId: corr })
 
-            const events = telemetryMock.getEvents()
-            assert.ok(events.length >= 1, 'No events captured')
-            const evt = events.find((e) => e.name === 'Location.Get')
+            assert.ok(mockTelemetry.events.length >= 1, 'No events captured')
+            const evt = mockTelemetry.events.find((e) => e.name === 'Location.Get')
             assert.ok(evt, 'Location.Get event not captured')
             assert.equal(evt?.properties?.correlationId, corr, 'Correlation ID not propagated')
         } finally {

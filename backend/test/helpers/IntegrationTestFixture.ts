@@ -3,26 +3,26 @@
  *
  * Features:
  * - Container setup with persistence mode selection
- * - Repository access
- * - Telemetry mocking
+ * - Repository access via DI
+ * - Telemetry mocking via DI
  * - Automatic cleanup
  */
 
 import type { Container } from 'inversify'
-import { BaseTestFixture, TestMocks, type TelemetryMockResult } from './TestFixture.js'
-import { getTestContainer } from './testContainer.js'
+import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
-import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
-import type { ContainerMode } from '../../src/inversify.config.js'
-import { telemetryClient } from '../../src/telemetry.js'
+import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
+import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
+import { BaseTestFixture } from './TestFixture.js'
+import { getTestContainer } from './testContainer.js'
+import type { ContainerMode } from './testInversify.config.js'
 
 /**
- * Integration test fixture with container and repository access
+ * Integration test fixture with container and repository access via DI
  */
 export class IntegrationTestFixture extends BaseTestFixture {
     protected container?: Container
-    protected telemetryMock?: TelemetryMockResult
     protected persistenceMode: ContainerMode
 
     constructor(persistenceMode: ContainerMode = 'memory') {
@@ -38,40 +38,31 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return this.container
     }
 
-    /** Get LocationRepository instance */
+    /** Get LocationRepository instance from DI container */
     async getLocationRepository(): Promise<ILocationRepository> {
         const container = await this.getContainer()
         return container.get<ILocationRepository>('ILocationRepository')
     }
 
-    /** Get PlayerRepository instance */
+    /** Get PlayerRepository instance from DI container */
     async getPlayerRepository(): Promise<IPlayerRepository> {
         const container = await this.getContainer()
         return container.get<IPlayerRepository>('IPlayerRepository')
     }
 
-    /** Get DescriptionRepository instance */
+    /** Get DescriptionRepository instance from DI container */
     async getDescriptionRepository(): Promise<IDescriptionRepository> {
         const container = await this.getContainer()
         return container.get<IDescriptionRepository>('IDescriptionRepository')
     }
 
     /**
-     * Setup telemetry mocking for integration tests
-     * Returns mock result for assertions
+     * Get the telemetry client from the container
+     * In test mode, this returns MockTelemetryClient for assertions
      */
-    setupTelemetryMock(): TelemetryMockResult {
-        if (!this.telemetryMock) {
-            this.telemetryMock = TestMocks.createTelemetryClient()
-            const originalTrackEvent = telemetryClient.trackEvent
-            telemetryClient.trackEvent = this.telemetryMock.client.trackEvent
-
-            // Register cleanup to restore original
-            this.registerCleanup(() => {
-                telemetryClient.trackEvent = originalTrackEvent
-            })
-        }
-        return this.telemetryMock
+    async getTelemetryClient(): Promise<ITelemetryClient | MockTelemetryClient> {
+        const container = await this.getContainer()
+        return container.get<ITelemetryClient>('ITelemetryClient')
     }
 
     /** Setup hook - initializes container */
@@ -82,8 +73,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
 
     /** Teardown hook - cleans up resources */
     async teardown(): Promise<void> {
+        // Clear the telemetry mock if it's a MockTelemetryClient
+        const client = this.container?.get<ITelemetryClient>('ITelemetryClient')
+        if (client && 'clear' in client) {
+            (client as MockTelemetryClient).clear()
+        }
         this.container = undefined
-        this.telemetryMock = undefined
         await super.teardown()
     }
 }

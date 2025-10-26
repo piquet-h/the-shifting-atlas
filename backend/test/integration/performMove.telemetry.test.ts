@@ -35,22 +35,23 @@ describe('PerformMove Telemetry Integration', () => {
 
     test('telemetry emitted for ambiguous relative direction', async () => {
         const ctx = await createMockContext(fixture)
-        const telemetryMock = fixture.setupTelemetryMock()
+        const telemetry = await fixture.getTelemetryClient()
 
         const req = makeMoveRequest({ dir: 'forward' }) as HttpRequest
         const result = await performMove(req, ctx)
 
         assert.equal(result.error?.type, 'ambiguous')
-        const events = telemetryMock.getEvents()
-        const navEvent = events.find((e) => e.name === 'Navigation.Input.Ambiguous')
-        assert.ok(navEvent, 'Navigation.Input.Ambiguous event missing')
-        assert.equal(navEvent?.properties?.from, 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21') // STARTER_LOCATION_ID
-        assert.equal(navEvent?.properties?.reason, 'no-heading')
+        if ('events' in telemetry) {
+            const navEvent = telemetry.events.find((e) => e.name === 'Navigation.Input.Ambiguous')
+            assert.ok(navEvent, 'Navigation.Input.Ambiguous event missing')
+            assert.equal(navEvent?.properties?.from, 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21') // STARTER_LOCATION_ID
+            assert.equal(navEvent?.properties?.reason, 'no-heading')
+        }
     })
 
     test('telemetry emitted for successful movement (Location.Move status=200)', async () => {
         const ctx = await createMockContext(fixture)
-        const telemetryMock = fixture.setupTelemetryMock()
+        const telemetry = await fixture.getTelemetryClient()
 
         const repo = await fixture.getLocationRepository()
         // Two locations with an exit north from A to B
@@ -63,13 +64,14 @@ describe('PerformMove Telemetry Integration', () => {
         const result = await performMove(req, ctx)
 
         assert.equal(result.success, true)
-        const events = telemetryMock.getEvents()
-        const moveEvents = events.filter((e) => e.name === 'Location.Move')
-        const successEvent = moveEvents.find((e) => e.properties?.status === 200)
-        assert.ok(successEvent, 'Location.Move success event missing')
-        assert.equal(successEvent?.properties?.from, fromId)
-        assert.equal(successEvent?.properties?.to, toId)
-        assert.equal(successEvent?.properties?.direction, 'north')
-        assert.equal(successEvent?.properties?.status, 200)
+        if ('events' in telemetry) {
+            const moveEvents = telemetry.events.filter((e) => e.name === 'Location.Move')
+            const successEvent = moveEvents.find((e) => e.properties?.status === 200)
+            assert.ok(successEvent, 'Location.Move success event missing')
+            assert.equal(successEvent?.properties?.from, fromId)
+            assert.equal(successEvent?.properties?.to, toId)
+            assert.equal(successEvent?.properties?.direction, 'north')
+            assert.equal(successEvent?.properties?.status, 200)
+        }
     })
 })

@@ -2,32 +2,46 @@
  * Unit Test Fixture - Provides setup for unit tests with mocked dependencies
  *
  * Features:
- * - Mock telemetry client
+ * - Inversify container with mock dependencies
+ * - Mock telemetry client via DI
+ * - Mock repositories via DI
  * - Mock invocation context
  * - Mock HTTP requests
  * - Automatic cleanup
  */
 
 import type { InvocationContext } from '@azure/functions'
-import { BaseTestFixture, TestMocks, type InvocationContextMockResult, type TelemetryMockResult } from './TestFixture.js'
 import { Container } from 'inversify'
+import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
+import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
+import { BaseTestFixture, TestMocks, type InvocationContextMockResult } from './TestFixture.js'
+import { getTestContainer } from './testContainer.js'
 
 /**
- * Unit test fixture with commonly mocked dependencies
+ * Unit test fixture with commonly mocked dependencies injected via Inversify
  */
 export class UnitTestFixture extends BaseTestFixture {
-    protected telemetryMock?: TelemetryMockResult
     protected invocationContext?: InvocationContextMockResult
     protected container?: Container
 
     /**
-     * Get or create a mock telemetry client
+     * Get or create the test container with 'mock' mode
+     * All dependencies are mocked and injectable
      */
-    getTelemetryMock(): TelemetryMockResult {
-        if (!this.telemetryMock) {
-            this.telemetryMock = TestMocks.createTelemetryClient()
+    async getContainer(): Promise<Container> {
+        if (!this.container) {
+            this.container = await getTestContainer('mock')
         }
-        return this.telemetryMock
+        return this.container
+    }
+
+    /**
+     * Get the mock telemetry client from the container
+     * Returns MockTelemetryClient instance for test assertions
+     */
+    async getTelemetryClient(): Promise<MockTelemetryClient> {
+        const container = await this.getContainer()
+        return container.get<MockTelemetryClient>('ITelemetryClient')
     }
 
     /**
@@ -60,27 +74,14 @@ export class UnitTestFixture extends BaseTestFixture {
         return TestMocks.createHttpRequest(options)
     }
 
-    /**
-     * Get or create a test container with mocks
-     */
-    getContainer(containerOverrides?: Partial<Container>): Container {
-        if (!this.container) {
-            this.container = new Container()
-            if (containerOverrides) {
-                Object.assign(this.container, containerOverrides)
-            }
-        }
-        return this.container
-    }
-
     /** Setup hook */
     async setup(): Promise<void> {
         await super.setup()
+        // Container will be lazily initialized
     }
 
     /** Teardown hook - clears all mocks */
     async teardown(): Promise<void> {
-        this.telemetryMock = undefined
         this.invocationContext = undefined
         this.container = undefined
         await super.teardown()
