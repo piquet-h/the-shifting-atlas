@@ -12,14 +12,9 @@ import { ILocationRepository, InMemoryLocationRepository } from './repos/locatio
 import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
-import { MockDescriptionRepository } from '../test/mocks/repositories/descriptionRepository.mock.js'
-import { MockExitRepository } from '../test/mocks/repositories/exitRepository.mock.js'
-import { MockLocationRepository } from '../test/mocks/repositories/locationRepository.mock.js'
-import { MockPlayerRepository } from '../test/mocks/repositories/playerRepository.mock.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
-import { MockTelemetryClient } from './telemetry/MockTelemetryClient.js'
 
-export type ContainerMode = 'cosmos' | 'memory' | 'mock'
+export type ContainerMode = 'cosmos' | 'memory'
 
 export const setupContainer = async (container: Container, mode?: ContainerMode) => {
     // Determine mode: explicit parameter > persistence config > default to memory
@@ -32,12 +27,8 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
     }
 
-    // Register ITelemetryClient - use mock in test mode, real client otherwise
-    if (resolvedMode === 'mock') {
-        container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
-    } else {
-        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
-    }
+    // Register ITelemetryClient
+    container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration
@@ -52,12 +43,6 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
         container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
-    } else if (resolvedMode === 'mock') {
-        // Mock mode - unit tests with controllable test doubles
-        container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
-        container.bind<IExitRepository>('IExitRepository').to(MockExitRepository).inSingletonScope()
-        container.bind<IPlayerRepository>('IPlayerRepository').to(MockPlayerRepository).inSingletonScope()
-        container.bind<IDescriptionRepository>('IDescriptionRepository').to(MockDescriptionRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
