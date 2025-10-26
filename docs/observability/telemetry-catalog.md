@@ -469,7 +469,7 @@ customEvents
 -   [Observability Overview](../observability.md) — High-level monitoring strategy
 -   [Telemetry Implementation](../../shared/src/telemetryEvents.ts) — Event name registry
 -   [ESLint Telemetry Rules](../../eslint-rules/telemetry-event-name.mjs) — Naming convention enforcement
--   [Application Insights Setup](./application-insights.md) — Azure configuration
+-   [Application Insights Setup](../../README.md#telemetry-application-insights) — Azure configuration
 
 ---
 
