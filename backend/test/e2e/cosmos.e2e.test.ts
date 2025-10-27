@@ -36,6 +36,11 @@ import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { E2ETestFixture } from './E2ETestFixture.js'
 
+// Global handler for unhandled Promise rejections to aid debugging
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason)
+})
+
 describe('E2E Integration Tests - Cosmos DB', () => {
     let fixture: E2ETestFixture
 
