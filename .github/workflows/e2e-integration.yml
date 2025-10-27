@@ -46,6 +46,7 @@ jobs:
       COSMOS_SQL_CONTAINER_LAYERS: descriptionLayers
       COSMOS_SQL_CONTAINER_EVENTS: worldEvents
       PERSISTENCE_MODE: cosmos
+      PERSISTENCE_STRICT: 1
       NODE_ENV: test
 
     steps:
