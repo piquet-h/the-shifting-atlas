@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { seedWorld } from '../../src/seeding/seedWorld.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
+import { seedTestWorld } from '../helpers/seedTestWorld.js'
 
 describe('World Seeding', () => {
     let fixture: IntegrationTestFixture
@@ -19,12 +19,12 @@ describe('World Seeding', () => {
         const locationRepository = await fixture.getLocationRepository()
         const playerRepository = await fixture.getPlayerRepository()
 
-        const first = await seedWorld({
+        const first = await seedTestWorld({
             locationRepository,
             playerRepository,
             demoPlayerId: '11111111-1111-4111-8111-111111111111'
         })
-        const second = await seedWorld({
+        const second = await seedTestWorld({
             locationRepository,
             playerRepository,
             demoPlayerId: '11111111-1111-4111-8111-111111111111'

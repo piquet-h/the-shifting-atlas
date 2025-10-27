@@ -6,6 +6,7 @@
  * - Repository access via DI
  * - Telemetry mocking via DI
  * - Automatic cleanup
+ * - Optional performance tracking for regression detection
  */
 
 import type { Container } from 'inversify'
@@ -18,16 +19,26 @@ import { BaseTestFixture } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'
 import type { ContainerMode } from './testInversify.config.js'
 
+export interface PerformanceMetric {
+    operationName: string
+    durationMs: number
+    timestamp: string
+}
+
 /**
  * Integration test fixture with container and repository access via DI
+ * Optionally tracks performance metrics for regression detection
  */
 export class IntegrationTestFixture extends BaseTestFixture {
     protected container?: Container
     protected persistenceMode: ContainerMode
+    private performanceMetrics: PerformanceMetric[] = []
+    private performanceTrackingEnabled: boolean = false
 
-    constructor(persistenceMode: ContainerMode = 'memory') {
+    constructor(persistenceMode: ContainerMode = 'memory', options?: { trackPerformance?: boolean }) {
         super()
         this.persistenceMode = persistenceMode
+        this.performanceTrackingEnabled = options?.trackPerformance || false
     }
 
     /** Get or create the test container */
@@ -65,6 +76,59 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get<ITelemetryClient>('ITelemetryClient')
     }
 
+    /**
+     * Track performance metric for an operation (optional)
+     * Only records if performance tracking is enabled in constructor
+     */
+    trackPerformance(operationName: string, durationMs: number): void {
+        if (!this.performanceTrackingEnabled) return
+
+        this.performanceMetrics.push({
+            operationName,
+            durationMs,
+            timestamp: new Date().toISOString()
+        })
+    }
+
+    /**
+     * Get all performance metrics for a specific operation
+     */
+    getPerformanceMetrics(operationName?: string): PerformanceMetric[] {
+        if (!this.performanceTrackingEnabled) {
+            console.warn('Performance tracking not enabled. Pass { trackPerformance: true } to constructor.')
+            return []
+        }
+
+        if (operationName) {
+            return this.performanceMetrics.filter((m) => m.operationName === operationName)
+        }
+        return this.performanceMetrics
+    }
+
+    /**
+     * Calculate p95 latency for an operation
+     * Useful for detecting performance regressions in integration tests
+     */
+    getP95Latency(operationName: string): number | null {
+        const metrics = this.getPerformanceMetrics(operationName)
+        if (metrics.length === 0) return null
+
+        const sorted = metrics.map((m) => m.durationMs).sort((a, b) => a - b)
+        const p95Index = Math.ceil(sorted.length * 0.95) - 1
+        return sorted[p95Index]
+    }
+
+    /**
+     * Get average latency for an operation
+     */
+    getAverageLatency(operationName: string): number | null {
+        const metrics = this.getPerformanceMetrics(operationName)
+        if (metrics.length === 0) return null
+
+        const sum = metrics.reduce((acc, m) => acc + m.durationMs, 0)
+        return sum / metrics.length
+    }
+
     /** Setup hook - initializes container */
     async setup(): Promise<void> {
         await super.setup()
@@ -79,6 +143,10 @@ export class IntegrationTestFixture extends BaseTestFixture {
             ;(client as MockTelemetryClient).clear()
         }
         this.container = undefined
+
+        // Clear performance metrics
+        this.performanceMetrics = []
+
         await super.teardown()
     }
 }

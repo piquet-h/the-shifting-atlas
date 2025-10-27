@@ -6,6 +6,11 @@
  * - Handles world seeding and cleanup for test isolation
  * - Tracks performance metrics for acceptance criteria validation
  *
+ * Architecture:
+ * - Uses composition (not inheritance) to wrap IntegrationTestFixture in cosmos mode
+ * - Delegates repository/container access to underlying fixture
+ * - Adds E2E-specific capabilities: performance tracking, world seeding, cleanup
+ *
  * Usage:
  * - Requires GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT), COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT)
  * - Uses dedicated test graph (GREMLIN_GRAPH_TEST=world-test) for complete isolation
@@ -14,8 +19,16 @@
  */
 
 import type { Location } from '@piquet-h/shared'
-import { seedWorld } from '../../src/seeding/seedWorld.js'
+import type { Container } from 'inversify'
+import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
+import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
+import type { ILocationRepository } from '../../src/repos/locationRepository.js'
+import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
+import { getE2ETestLocations, seedTestWorld } from '../helpers/seedTestWorld.js'
+import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
+import { cleanupTestDataByIds } from './cleanupTestData.js'
 
 export interface E2EPerformanceMetrics {
     operationName: string
@@ -25,16 +38,39 @@ export interface E2EPerformanceMetrics {
 
 /**
  * E2E test fixture with Cosmos DB and performance tracking
+ * Uses composition to wrap IntegrationTestFixture in cosmos mode
  */
-export class E2ETestFixture extends IntegrationTestFixture {
+export class E2ETestFixture {
+    private baseFixture: IntegrationTestFixture
     private testLocationIds: Set<string> = new Set()
     private testPlayerIds: Set<string> = new Set()
     private performanceMetrics: E2EPerformanceMetrics[] = []
     private worldSeeded: boolean = false
 
     constructor() {
-        // Force cosmos mode for E2E tests
-        super('cosmos')
+        // Create underlying fixture in cosmos mode
+        this.baseFixture = new IntegrationTestFixture('cosmos')
+    }
+
+    // Delegate to base fixture
+    async getContainer(): Promise<Container> {
+        return this.baseFixture.getContainer()
+    }
+
+    async getLocationRepository(): Promise<ILocationRepository> {
+        return this.baseFixture.getLocationRepository()
+    }
+
+    async getPlayerRepository(): Promise<IPlayerRepository> {
+        return this.baseFixture.getPlayerRepository()
+    }
+
+    async getDescriptionRepository(): Promise<IDescriptionRepository> {
+        return this.baseFixture.getDescriptionRepository()
+    }
+
+    async getTelemetryClient(): Promise<ITelemetryClient | MockTelemetryClient> {
+        return this.baseFixture.getTelemetryClient()
     }
 
     /**
@@ -49,14 +85,14 @@ export class E2ETestFixture extends IntegrationTestFixture {
         const testPlayerId = this.generateTestPlayerId()
         this.testPlayerIds.add(testPlayerId)
 
-        // Use provided blueprint or default to a minimal test set
-        const testBlueprint: Location[] = blueprint || this.getDefaultTestLocations()
+        // Use provided blueprint or default E2E test locations
+        const testBlueprint = blueprint || getE2ETestLocations()
 
         // Track all location IDs for cleanup
         testBlueprint.forEach((loc) => this.testLocationIds.add(loc.id))
 
-        // Seed the world
-        const result = await seedWorld({
+        // Seed the world using shared test helper
+        const result = await seedTestWorld({
             locationRepository,
             playerRepository,
             blueprint: testBlueprint,
@@ -66,7 +102,7 @@ export class E2ETestFixture extends IntegrationTestFixture {
         this.worldSeeded = true
 
         return {
-            locations: testBlueprint,
+            locations: result.locations,
             demoPlayerId: result.demoPlayerId
         }
     }
@@ -113,52 +149,6 @@ export class E2ETestFixture extends IntegrationTestFixture {
     }
 
     /**
-     * Get default test locations (minimal 5-location graph for E2E)
-     */
-    private getDefaultTestLocations(): Location[] {
-        return [
-            {
-                id: 'e2e-test-loc-1',
-                name: 'E2E Test Hub',
-                description: 'Central test location with multiple exits',
-                exits: [
-                    { direction: 'north', to: 'e2e-test-loc-2', description: 'North passage' },
-                    { direction: 'south', to: 'e2e-test-loc-3', description: 'South passage' },
-                    { direction: 'east', to: 'e2e-test-loc-4', description: 'East passage' },
-                    { direction: 'west', to: 'e2e-test-loc-5', description: 'West passage' }
-                ]
-            },
-            {
-                id: 'e2e-test-loc-2',
-                name: 'E2E Test North',
-                description: 'Northern test location',
-                exits: [{ direction: 'south', to: 'e2e-test-loc-1', description: 'Back south' }]
-            },
-            {
-                id: 'e2e-test-loc-3',
-                name: 'E2E Test South',
-                description: 'Southern test location',
-                exits: [{ direction: 'north', to: 'e2e-test-loc-1', description: 'Back north' }]
-            },
-            {
-                id: 'e2e-test-loc-4',
-                name: 'E2E Test East',
-                description: 'Eastern test location',
-                exits: [
-                    { direction: 'west', to: 'e2e-test-loc-1', description: 'Back west' },
-                    { direction: 'north', to: 'e2e-test-loc-2', description: 'To north room' }
-                ]
-            },
-            {
-                id: 'e2e-test-loc-5',
-                name: 'E2E Test West',
-                description: 'Western test location',
-                exits: [{ direction: 'east', to: 'e2e-test-loc-1', description: 'Back east' }]
-            }
-        ]
-    }
-
-    /**
      * Register a player ID for cleanup
      */
     registerTestPlayerId(playerId: string): void {
@@ -168,9 +158,8 @@ export class E2ETestFixture extends IntegrationTestFixture {
     /**
      * Cleanup test data from Cosmos DB
      *
-     * Note: Currently logs test data for manual cleanup. In production E2E setup,
-     * consider using a dedicated test database that can be wiped between runs,
-     * or implementing repository delete methods for automated cleanup.
+     * Uses automated cleanup utility to remove vertices by ID.
+     * Logs all cleanup operations for audit trail.
      */
     async cleanupTestData(): Promise<void> {
         if (!this.worldSeeded && this.testLocationIds.size === 0 && this.testPlayerIds.size === 0) {
@@ -178,22 +167,39 @@ export class E2ETestFixture extends IntegrationTestFixture {
             return
         }
 
-        // Log test data IDs for reference (manual cleanup or monitoring)
-        if (this.testLocationIds.size > 0) {
-            console.log(`E2E Test Locations created (${this.testLocationIds.size}):`, Array.from(this.testLocationIds))
-        }
-        if (this.testPlayerIds.size > 0) {
-            console.log(`E2E Test Players created (${this.testPlayerIds.size}):`, Array.from(this.testPlayerIds))
+        try {
+            // Get Gremlin client from container
+            const container = await this.getContainer()
+            const gremlinClient = container.get<IGremlinClient>('IGremlinClient')
+
+            // Clean up Gremlin vertices
+            const stats = await cleanupTestDataByIds(gremlinClient, this.testLocationIds)
+
+            console.log(
+                `E2E Cleanup: ${stats.verticesDeleted} vertices deleted` +
+                    (stats.errors.length > 0 ? `, ${stats.errors.length} errors` : '')
+            )
+
+            // Log player IDs for reference (SQL API cleanup would go here when implemented)
+            if (this.testPlayerIds.size > 0) {
+                console.log(`E2E Test Players created (${this.testPlayerIds.size}):`, Array.from(this.testPlayerIds))
+                // TODO: Add SQL API cleanup when CosmosPlayerRepository.delete() is implemented
+            }
+        } catch (error) {
+            console.error('Error during automated E2E cleanup:', error)
+            // Log IDs for manual cleanup if automated cleanup fails
+            if (this.testLocationIds.size > 0) {
+                console.log(`Manual cleanup required for locations:`, Array.from(this.testLocationIds))
+            }
+            if (this.testPlayerIds.size > 0) {
+                console.log(`Manual cleanup required for players:`, Array.from(this.testPlayerIds))
+            }
         }
 
         // Clear tracking sets
         this.testLocationIds.clear()
         this.testPlayerIds.clear()
         this.worldSeeded = false
-
-        // TODO: Implement automated cleanup when repository delete methods are available
-        // For now, recommend using separate test database (COSMOS_DATABASE_TEST=game-test)
-        // that can be wiped between test runs
     }
 
     /**
@@ -211,7 +217,7 @@ export class E2ETestFixture extends IntegrationTestFixture {
             throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) environment variable')
         }
 
-        await super.setup()
+        await this.baseFixture.setup()
     }
 
     /**
@@ -224,7 +230,7 @@ export class E2ETestFixture extends IntegrationTestFixture {
             console.error('Error during E2E test cleanup:', error)
         }
 
-        await super.teardown()
+        await this.baseFixture.teardown()
 
         // Clear performance metrics
         this.performanceMetrics = []
