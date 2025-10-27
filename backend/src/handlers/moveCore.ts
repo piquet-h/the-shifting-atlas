@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
-import { buildMoveResponse } from './move-response.js'
+import { buildMoveResponse } from './moveResponse.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed'

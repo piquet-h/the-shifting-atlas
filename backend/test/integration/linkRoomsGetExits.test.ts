@@ -2,8 +2,8 @@
 import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { getExitsHandler } from '../../src/handlers/get-exits.js'
-import { linkRoomsHandler } from '../../src/handlers/link-rooms.js'
+import { getExitsHandler } from '../../src/handlers/getExits.js'
+import { linkRoomsHandler } from '../../src/handlers/linkRooms.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { TestMocks } from '../helpers/TestFixture.js'
 

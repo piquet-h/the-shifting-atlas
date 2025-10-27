@@ -1,7 +1,7 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { MoveHandler } from '../../src/handlers/move-core.js'
+import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
 

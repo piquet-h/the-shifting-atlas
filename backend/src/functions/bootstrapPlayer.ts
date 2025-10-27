@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { bootstrapPlayerHandler } from '../handlers/bootstrap-player.js'
+import { bootstrapPlayerHandler } from '../handlers/bootstrapPlayer.js'
 
 /**
  * Player Bootstrap (migrated from legacy SWA managed API)

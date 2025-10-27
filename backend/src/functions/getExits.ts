@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { getExitsHandler } from '../handlers/get-exits.js'
+import { getExitsHandler } from '../handlers/getExits.js'
 
 /**
  * HTTP endpoint to get all exits from a location.

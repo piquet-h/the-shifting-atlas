@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { linkRoomsHandler } from '../handlers/link-rooms.js'
+import { linkRoomsHandler } from '../handlers/linkRooms.js'
 
 /**
  * HTTP endpoint to link two rooms with an EXIT edge.

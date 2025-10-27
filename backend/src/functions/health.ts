@@ -1,6 +1,6 @@
 import { app } from '@azure/functions'
 import { backendHealth } from '../handlers/health.js'
-import { backendPing } from '../handlers/ping-simple.js'
+import { backendPing } from '../handlers/pingSimple.js'
 
 app.http('BackendHealth', {
     route: 'backend/health',
