@@ -88,7 +88,7 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 
 ## Cosmos DB SQL API Containers
 
-The dual persistence pattern (ADR-002) uses Cosmos DB SQL API for mutable player data and event logs, complementing the Gremlin graph used for immutable world structure.
+The dual persistence pattern (ADR-002) uses Cosmos DB SQL API for mutable player data and event logs, complementing the Gremlin graph used for immutable world structure. See [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) for detailed persistence contracts.
 
 **Containers:**
 
@@ -170,11 +170,15 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 | `backend/src/functions/linkRooms.ts`              | [Exit Edge Management](../developer-workflow/edge-management.md)                                                                                 | Room connection utility          |
 | `backend/src/functions/getExits.ts`               | [Exits](./exits.md)                                                                                                                              | Exit retrieval endpoint          |
 | `shared/src/telemetry.ts`                         | [Observability](../observability.md), [M0 Closure](../milestones/M0-closure-summary.md#telemetry-scaffold)                                       | Canonical telemetry framework    |
-| `backend/src/repos/locationRepository.ts`         | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md)                              | Location persistence abstraction |
-| `backend/src/repos/playerRepository.ts`           | [Player-Location Edge Migration](./player-location-edge-migration.md), [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) (superseded) | Player persistence abstraction   |
-| `backend/src/repos/exitRepository.ts`             | [Exits](./exits.md), [Edge Management](../developer-workflow/edge-management.md)                                                                 | Exit edge persistence            |
+| `backend/src/repos/locationRepository.ts`         | [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md), [Location Version Policy](./location-version-policy.md), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) | Location persistence abstraction |
+| `backend/src/repos/playerRepository.ts`           | [Player-Location Edge Migration](./player-location-edge-migration.md), [ADR-003](../adr/ADR-003-player-location-edge-groundwork.md) (superseded), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) | Player persistence abstraction   |
+| `backend/src/repos/exitRepository.ts`             | [Exits](./exits.md), [Edge Management](../developer-workflow/edge-management.md), [Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) | Exit edge persistence            |
+| `backend/src/seeding/seedWorld.ts`                | [Bootstrap Script](../developer-workflow/mosswell-bootstrap-script.md), [ADR-001](../adr/ADR-001-mosswell-persistence-layering.md)                 | Idempotent world seeding         |
+| `backend/scripts/seed-production.ts`              | [Bootstrap Script](../developer-workflow/mosswell-bootstrap-script.md), [Local Dev Setup](../developer-workflow/local-dev-setup.md)               | Production seeding CLI           |
 
 ## Related Docs
+
+### Architecture &amp; Design
 
 -   `mvp-azure-architecture.md` – Concrete MVP resource layout & playtest priorities
 -   `world-event-contract.md` – World event envelope specification & queue cutover plan
@@ -182,15 +186,29 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 -   `direction-resolution-rules.md` – Authoritative rules for direction normalization (ambiguous cases, typo tolerance, relative directions)
 -   `exits.md` – Exit edge invariants and creation/removal flow
 -   `agentic-ai-and-mcp.md` – AI integration via Model Context Protocol
+-   `./player-location-edge-migration.md` – Complete player-location edge migration strategy
+
+### Developer Workflow
+
+-   `../developer-workflow/mosswell-repository-interfaces.md` – Repository contracts &amp; persistence patterns
+-   `../developer-workflow/mosswell-bootstrap-script.md` – World seeding usage &amp; idempotency
+-   `../developer-workflow/mosswell-migration-workflow.md` – Migration scaffold &amp; dry-run pattern
+-   `../developer-workflow/edge-management.md` – Exit edge management workflow
+-   `../developer-workflow/player-bootstrap-flow.md` – Player onboarding sequence
+-   `../developer-workflow/local-dev-setup.md` – Environment configuration
+
+### Modules &amp; Narrative
+
 -   `../modules/world-rules-and-lore.md` – Narrative & systemic framing
 -   `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
 -   `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
--   `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
+
+### ADRs &amp; Milestones
+
 -   `../adr/ADR-001-mosswell-persistence-layering.md` – Mosswell persistence (includes partition strategy appendix)
+-   `../adr/ADR-002-graph-partition-strategy.md` – Detailed partition key decision & migration plan
 -   `../adr/ADR-003-player-location-edge-groundwork.md` – Historical player edge groundwork (superseded by player-location-edge-migration.md)
--   `./player-location-edge-migration.md` – Complete player-location edge migration strategy
 -   `../milestones/M0-closure-summary.md` – M0 Foundation milestone completion
--   `../developer-workflow/edge-management.md` – Exit edge management workflow
 
 ---
 
