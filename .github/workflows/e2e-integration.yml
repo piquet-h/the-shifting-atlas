@@ -81,6 +81,23 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Debug Environment Variables
+        run: |
+          echo "Checking required environment variables (length only, not values):"
+          echo "GREMLIN_ENDPOINT_TEST length: ${#GREMLIN_ENDPOINT_TEST}"
+          echo "GREMLIN_DATABASE_TEST: ${GREMLIN_DATABASE_TEST}"
+          echo "GREMLIN_GRAPH_TEST: ${GREMLIN_GRAPH_TEST}"
+          echo "COSMOS_SQL_ENDPOINT_TEST length: ${#COSMOS_SQL_ENDPOINT_TEST}"
+          echo "PERSISTENCE_MODE: ${PERSISTENCE_MODE}"
+          echo "PERSISTENCE_STRICT: ${PERSISTENCE_STRICT}"
+          echo "NODE_ENV: ${NODE_ENV}"
+          if [ -z "$GREMLIN_ENDPOINT_TEST" ]; then
+            echo "::error::GREMLIN_ENDPOINT_TEST is empty or not set!"
+          fi
+          if [ -z "$COSMOS_SQL_ENDPOINT_TEST" ]; then
+            echo "::error::COSMOS_SQL_ENDPOINT_TEST is empty or not set!"
+          fi
+
       - name: Run E2E Tests
         id: e2e_tests
         run: |

@@ -217,6 +217,14 @@ export class E2ETestFixture {
             throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) environment variable')
         }
 
+        // Log endpoint info for debugging (hide actual values for security)
+        console.log(
+            `E2E Setup: GREMLIN_ENDPOINT_TEST length=${gremlinEndpoint.length}, COSMOS_SQL_ENDPOINT_TEST length=${sqlEndpoint.length}`
+        )
+        console.log(
+            `E2E Setup: GREMLIN_DATABASE_TEST=${process.env.GREMLIN_DATABASE_TEST}, GREMLIN_GRAPH_TEST=${process.env.GREMLIN_GRAPH_TEST}`
+        )
+
         await this.baseFixture.setup()
     }
 
