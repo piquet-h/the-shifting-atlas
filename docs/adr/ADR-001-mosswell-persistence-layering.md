@@ -80,6 +80,9 @@ For the full, living decision record and thresholds, see **ADR-002: Graph Partit
 -   [Architecture Overview](../architecture/overview.md) – High-level architecture context
 -   [Location Version Policy](../architecture/location-version-policy.md) – Location content versioning rules
 -   [World Event Contract](../architecture/world-event-contract.md) – Event envelope specification
+-   [Mosswell Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) – Repository contracts & persistence patterns
+-   [Mosswell Bootstrap Script](../developer-workflow/mosswell-bootstrap-script.md) – World seeding usage & idempotency
+-   [Mosswell Migration Workflow](../developer-workflow/mosswell-migration-workflow.md) – Migration scaffold & dry-run pattern
 
 ---
 

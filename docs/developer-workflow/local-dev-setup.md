@@ -120,52 +120,42 @@ If you see `Failed to acquire AAD token for Cosmos Gremlin.` re-run `az login` o
 
 An idempotent seed script is provided for initializing anchor locations and exits in the world graph. The script is safe to re-run and will not create duplicate vertices or edges.
 
+**For detailed usage, see [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md).**
+
 ### Quick Start
 
 ```bash
-# Seed to in-memory store (default)
-node scripts/seed-anchor-locations.mjs
+# Seed to Cosmos DB (production)
+cd backend
+npm run seed:production
 
-# Seed to Cosmos DB (requires Cosmos configuration)
-PERSISTENCE_MODE=cosmos node scripts/seed-anchor-locations.mjs
+# Or using direct invocation
+cd backend
+npx tsx scripts/seed-production.ts
 ```
-
-### Usage
-
-```bash
-node scripts/seed-anchor-locations.mjs [options]
-
-Options:
-  --mode=memory|cosmos    Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
-  --data=path            Path to locations JSON file relative to project root (default: backend/src/data/villageLocations.json)
-                         Note: For security, only files within the project directory can be loaded
-  --help, -h             Show this help message
-```
-
-### Output
-
-The script outputs a summary including:
-- Number of locations processed
-- Number of location vertices created (new only)
-- Number of exits created (new only)
-- Demo player creation status
-- Elapsed time
 
 ### Prerequisites
 
 - Backend dependencies must be installed: `cd backend && npm install`
-- For `cosmos` mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables
+- For Cosmos mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables configured in `local.settings.json`
+- `PERSISTENCE_MODE=cosmos` must be set (or use `npm run use:cosmos` to switch)
 
 ### Idempotency
 
-The script uses the existing `seedWorld` function which leverages:
+The script uses the `seedWorld` function which provides idempotency through:
 - `locationRepository.upsert()` - Creates or updates location vertices without duplicates
 - `locationRepository.ensureExit()` - Creates exits only if they don't already exist
 
 Re-running the script will:
-- Update existing location metadata if changed
+- Update existing location metadata if content hash changed
 - Skip creating exits that already exist
 - Not create duplicate vertices or edges
+
+See [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) for complete documentation including:
+- Detailed usage examples
+- Troubleshooting guide
+- Performance considerations
+- Integration with CI/CD
 
 ## Common Troubleshooting
 
@@ -174,6 +164,14 @@ Re-running the script will:
 | Port 5173 in use                               | Close previous Vite instance or set a custom port via `--port`. |
 | Functions host fails to start                  | Reinstall dependencies or ensure Node 20+.                      |
 | 404 on `/api/...` while using plain `vite dev` | Configure Vite proxy to backend (see `vite.config.ts`).         |
+
+## Related Documentation
+
+- [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) – Detailed world seeding guide
+- [Mosswell Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contracts & patterns
+- [Mosswell Migration Workflow](./mosswell-migration-workflow.md) – Evolving world data safely
+- [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player onboarding sequence
+- [Architecture Overview](../architecture/overview.md) – High-level system architecture
 
 ## Next Steps
 
