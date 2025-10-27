@@ -102,16 +102,18 @@ COSMOS_SQL_DATABASE_TEST=game-docs-test
 
 Required secrets for E2E tests:
 ```yaml
-# Test-specific endpoints (recommended)
-COSMOS_GREMLIN_ENDPOINT_TEST
-COSMOS_SQL_ENDPOINT_TEST
-COSMOS_GREMLIN_DATABASE_TEST
-COSMOS_SQL_DATABASE_TEST
+# Test-specific Cosmos configuration (recommended)
+COSMOS_GREMLIN_ENDPOINT_TEST      # https://your-test-cosmos.documents.azure.com:443/
+COSMOS_GREMLIN_DATABASE_TEST      # game (or game-test if using separate test DB)
+COSMOS_GREMLIN_GRAPH_TEST         # world
+COSMOS_SQL_ENDPOINT_TEST          # https://your-test-cosmos-sql.documents.azure.com:443/
+COSMOS_SQL_DATABASE_TEST          # game-docs (or game-docs-test if using separate test DB)
 
-# Or fallback to production endpoints
+# Or fallback to production endpoints (use with caution in CI)
 COSMOS_GREMLIN_ENDPOINT
-COSMOS_SQL_ENDPOINT
 COSMOS_GREMLIN_DATABASE
+COSMOS_GREMLIN_GRAPH
+COSMOS_SQL_ENDPOINT
 COSMOS_SQL_DATABASE
 
 # Azure authentication for Cosmos
@@ -119,6 +121,8 @@ AZURE_CLIENT_ID
 AZURE_CLIENT_SECRET
 AZURE_TENANT_ID
 ```
+
+**Note:** The workflow uses `*_TEST` secrets first, then falls back to production secrets if test-specific ones aren't configured.
 
 ## Test Data Cleanup
 

@@ -41,10 +41,10 @@ jobs:
       # Use test-specific Cosmos endpoints if available, fallback to production
       # Note: In production CI, configure test database secrets for isolation
       COSMOS_GREMLIN_ENDPOINT: ${{ secrets.COSMOS_GREMLIN_ENDPOINT_TEST || secrets.COSMOS_GREMLIN_ENDPOINT }}
-      COSMOS_GREMLIN_DATABASE: ${{ secrets.COSMOS_GREMLIN_DATABASE_TEST || secrets.COSMOS_GREMLIN_DATABASE || 'game-test' }}
+      COSMOS_GREMLIN_DATABASE: ${{ secrets.COSMOS_GREMLIN_DATABASE_TEST || secrets.COSMOS_GREMLIN_DATABASE || 'game' }}
       COSMOS_GREMLIN_GRAPH: ${{ secrets.COSMOS_GREMLIN_GRAPH_TEST || secrets.COSMOS_GREMLIN_GRAPH || 'world' }}
       COSMOS_SQL_ENDPOINT: ${{ secrets.COSMOS_SQL_ENDPOINT_TEST || secrets.COSMOS_SQL_ENDPOINT }}
-      COSMOS_SQL_DATABASE: ${{ secrets.COSMOS_SQL_DATABASE_TEST || secrets.COSMOS_SQL_DATABASE || 'game-docs-test' }}
+      COSMOS_SQL_DATABASE: ${{ secrets.COSMOS_SQL_DATABASE_TEST || secrets.COSMOS_SQL_DATABASE || 'game-docs' }}
       COSMOS_SQL_CONTAINER_PLAYERS: players
       COSMOS_SQL_CONTAINER_INVENTORY: inventory
       COSMOS_SQL_CONTAINER_LAYERS: descriptionLayers
@@ -86,18 +86,21 @@ jobs:
         id: e2e_tests
         run: |
           cd backend
+          set +e  # Don't exit on error
           npm run test:e2e 2>&1 | tee e2e-output.log
-          echo "E2E tests completed"
-        continue-on-error: true
+          E2E_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$E2E_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit 0  # Always succeed to allow post-processing
 
       - name: Check E2E test result
         run: |
+          EXIT_CODE="${{ steps.e2e_tests.outputs.exit_code }}"
           if grep -q "⊘ Skipping E2E tests" backend/e2e-output.log; then
             echo "⚠️ E2E tests were skipped (likely missing Cosmos configuration)"
             echo "::warning::E2E tests skipped - check Cosmos DB configuration"
             exit 0
-          elif [ "${{ steps.e2e_tests.outcome }}" != "success" ]; then
-            echo "❌ E2E tests failed"
+          elif [ "$EXIT_CODE" != "0" ]; then
+            echo "❌ E2E tests failed (exit code: $EXIT_CODE)"
             exit 1
           else
             echo "✅ E2E tests passed"
@@ -109,7 +112,14 @@ jobs:
           if [ -f backend/e2e-output.log ]; then
             echo '## E2E Performance Metrics' >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -E "(p95 latency|completed in|Completed .* rapid lookups)" backend/e2e-output.log >> $GITHUB_STEP_SUMMARY || echo "No performance metrics found" >> $GITHUB_STEP_SUMMARY
+            # Extract performance metrics with more robust patterns
+            grep -E "(p95 latency:|completed in [0-9]+ms|Completed [0-9]+ rapid lookups)" backend/e2e-output.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+            grep -E "✓ (Seeded|First LOOK|Move|LOOK) .*(in |p95:) [0-9]+ms" backend/e2e-output.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+            
+            # If no metrics found, indicate that
+            if ! grep -q "ms" $GITHUB_STEP_SUMMARY; then
+              echo "No performance metrics found in test output" >> $GITHUB_STEP_SUMMARY
+            fi
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
 
