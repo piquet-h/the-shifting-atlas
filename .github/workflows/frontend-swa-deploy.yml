@@ -51,7 +51,7 @@ jobs:
         run: npm ci
 
       - name: Build frontend (Vite)
-        run: cd frontend && npm run build
+        run: npm run build
 
       - name: Resolve SWA Name
         id: swa_name
