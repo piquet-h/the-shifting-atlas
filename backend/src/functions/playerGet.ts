@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { getPlayerHandler } from '../handlers/playerGet.handler.js'
+import { getPlayerHandler } from '../handlers/player-get.js'
 
 app.http('PlayerGet', {
     route: 'player/get',

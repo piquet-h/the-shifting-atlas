@@ -1,5 +1,5 @@
 import { app } from '@azure/functions'
-import { handlePlayerMove } from '../handlers/playerMove.handler.js'
+import { handlePlayerMove } from '../handlers/player-move.js'
 
 app.http('PlayerMove', {
     route: 'player/move',

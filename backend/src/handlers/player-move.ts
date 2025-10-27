@@ -3,7 +3,7 @@ import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
-import { MoveHandler } from './moveHandlerCore.js'
+import { MoveHandler } from './move-core.js'
 
 @injectable()
 export class PlayerMoveHandler extends BaseHandler {

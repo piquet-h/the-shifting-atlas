@@ -6,7 +6,7 @@
 import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { bootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.handler.js'
+import { bootstrapPlayerHandler } from '../../src/handlers/bootstrap-player.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeHttpRequest } from '../helpers/testUtils.js'
 
