@@ -170,7 +170,7 @@ export class E2ETestFixture {
         try {
             // Get Gremlin client from container
             const container = await this.getContainer()
-            const gremlinClient = container.get<IGremlinClient>('IGremlinClient')
+            const gremlinClient = container.get<IGremlinClient>('GremlinClient')
 
             // Clean up Gremlin vertices
             const stats = await cleanupTestDataByIds(gremlinClient, this.testLocationIds)
