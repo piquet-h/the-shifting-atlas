@@ -75,6 +75,9 @@ Revert constant usage to prior literal `'world'`; no data shape changes required
 -   [Architecture Overview](../architecture/overview.md) – High-level architecture context
 -   [Location Version Policy](../architecture/location-version-policy.md) – Location content versioning rules
 -   [MVP Azure Architecture](../architecture/mvp-azure-architecture.md) – Resource layout and partition strategy references
+-   [Mosswell Repository Interfaces](../developer-workflow/mosswell-repository-interfaces.md) – Repository contracts & persistence patterns
+-   [Mosswell Bootstrap Script](../developer-workflow/mosswell-bootstrap-script.md) – World seeding with current partition strategy
+-   [Mosswell Migration Workflow](../developer-workflow/mosswell-migration-workflow.md) – Migration scaffold for partition evolution
 
 ---
 
