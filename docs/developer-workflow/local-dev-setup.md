@@ -175,6 +175,86 @@ Re-running the script will:
 | Functions host fails to start                  | Reinstall dependencies or ensure Node 20+.                      |
 | 404 on `/api/...` while using plain `vite dev` | Configure Vite proxy to backend (see `vite.config.ts`).         |
 
+## E2E Integration Tests (Cosmos DB)
+
+End-to-end integration tests validate full traversal and persistence flows against real Cosmos DB (Gremlin + SQL API).
+
+### Running E2E Tests
+
+```bash
+cd backend
+
+# Run E2E tests against Cosmos DB
+PERSISTENCE_MODE=cosmos npm run test:e2e
+```
+
+### Environment Setup for E2E Tests
+
+E2E tests require Cosmos DB connection configuration. Recommended approach: use separate test database.
+
+**Environment Variables:**
+
+```bash
+# Test-specific Cosmos endpoints (preferred)
+COSMOS_GREMLIN_ENDPOINT_TEST=https://your-test-cosmos.documents.azure.com:443/
+COSMOS_SQL_ENDPOINT_TEST=https://your-test-cosmos.documents.azure.com:443/
+COSMOS_DATABASE_TEST=game-test
+COSMOS_SQL_DATABASE_TEST=game-docs-test
+
+# Or fallback to production endpoints (use with caution)
+COSMOS_GREMLIN_ENDPOINT=https://cosmosgraph-atlas.documents.azure.com:443/
+COSMOS_SQL_ENDPOINT=https://cosmossql-atlas.documents.azure.com:443/
+COSMOS_GREMLIN_DATABASE=game
+COSMOS_SQL_DATABASE=game-docs
+
+# Required for all Cosmos operations
+PERSISTENCE_MODE=cosmos
+```
+
+**Authentication:**
+- Local: `az login` (uses your Azure AD identity)
+- CI: Managed Identity or Service Principal with Cosmos DB Data Contributor role
+
+### Test Database Strategy
+
+**Recommended:** Use a dedicated test database (`game-test`, `game-docs-test`) that can be wiped between test runs.
+
+**Test Data Cleanup:**
+- Current implementation logs test entity IDs for monitoring
+- Manual cleanup: use logged IDs to remove test data via Azure Portal or scripts
+- Future enhancement: automated cleanup when repository delete methods are available
+
+### Performance Targets (p95)
+
+E2E tests track performance metrics against acceptance criteria:
+- Full suite: <90s
+- Single move operation: <500ms
+- LOOK query: <200ms
+
+**Note:** Performance may vary based on Cosmos DB provisioning (RU/s) and network latency.
+
+### CI Integration Policy
+
+Per issue #170 acceptance criteria:
+
+- **On PR:** Run unit tests only (fast feedback)
+- **On merge to main:** Run E2E suite (post-merge validation)
+- **Nightly:** Run E2E + extended scenarios (cost-optimized)
+
+This policy balances CI speed with comprehensive validation while managing Cosmos DB costs.
+
+### Test Coverage
+
+E2E tests validate:
+- ✓ World seeding (≥5 locations with exits)
+- ✓ Player bootstrap → location lookup → first LOOK (cold start)
+- ✓ Multi-hop traversal (move 3+ times, verify location updates)
+- ✓ Exit validation (missing exits return errors)
+- ✓ Concurrent operations (2+ players moving simultaneously)
+- ✓ Telemetry emission (Application Insights integration)
+- ✓ Cosmos throttling tolerance (429 retry handling)
+- ✓ Partition key strategy (per ADR-002)
+
 ## Next Steps
 
 -   Add Service Bus + Cosmos integration (see architecture docs) once APIs are stable.
