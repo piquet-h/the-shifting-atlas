@@ -37,7 +37,7 @@ jobs:
       GREMLIN_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
       GREMLIN_DATABASE_TEST: game-test
       GREMLIN_GRAPH_TEST: world-test
-      COSMOS_SQL_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
+      COSMOS_SQL_ENDPOINT_TEST: ${{ secrets.COSMOS_SQL_ENDPOINT }}
       PERSISTENCE_MODE: cosmos
       NODE_ENV: test
 
