@@ -1,5 +1,7 @@
 name: Publish Shared Package
-
+defaults:
+  run:
+    working-directory: shared
 on:
   push:
     paths:

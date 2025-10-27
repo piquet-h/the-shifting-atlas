@@ -1,5 +1,7 @@
 name: Backend Functions Deploy
-
+defaults:
+  run:
+    working-directory: backend
 on:
   push:
     branches: [main]

@@ -1,5 +1,7 @@
 name: Frontend Static Web App Deploy
-
+defaults:
+  run:
+    working-directory: frontend
 on:
   push:
     branches: [main]
