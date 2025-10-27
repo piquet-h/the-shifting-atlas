@@ -27,6 +27,10 @@
  *     "locations": [ ... Location objects ... ]
  *   }
  * 
+ * Note: This is a scaffolding script for migration workflow. The actual apply functionality
+ * requires repository wiring which will be implemented when the seeding infrastructure
+ * is updated with proper dependency injection.
+ * 
  * Exit Codes:
  *   0 - Success
  *   1 - Configuration or validation error
