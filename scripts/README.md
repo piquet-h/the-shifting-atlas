@@ -74,6 +74,62 @@ node scripts/verify-deployable.mjs
 
 ---
 
+### `mosswell-migration.mjs`
+
+Scaffolding script for consistent world data migrations with safety checks. Supports dry-run mode, duplicate ID detection, and schema version validation.
+
+**Usage:**
+```bash
+node scripts/mosswell-migration.mjs [options]
+```
+
+**Options:**
+- `--data=path` - Path to migration data JSON file (required)
+- `--dry-run` - Preview changes without applying them
+- `--mode=memory|cosmos` - Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
+- `--schema-version=N` - Expected minimum schema version (default: 1)
+- `--help, -h` - Show help message
+
+**Migration Data Format:**
+```json
+{
+  "schemaVersion": 3,
+  "migrationName": "add-new-district",
+  "locations": [ ... Location objects ... ]
+}
+```
+
+**Examples:**
+```bash
+# Dry-run preview
+node scripts/mosswell-migration.mjs --data=scripts/migrations/example-migration.json --dry-run
+
+# Apply migration to memory store
+node scripts/mosswell-migration.mjs --data=scripts/migrations/example-migration.json
+
+# Apply to Cosmos DB with schema version check
+PERSISTENCE_MODE=cosmos node scripts/mosswell-migration.mjs \
+  --data=scripts/migrations/001-new-district.json \
+  --schema-version=3
+```
+
+**Exit Codes:**
+- 0 - Success
+- 1 - Configuration or validation error
+- 2 - Duplicate ID detected
+- 3 - Schema version mismatch
+
+**Safety Features:**
+- Pre-checks for duplicate IDs
+- Schema version validation (prevents downgrades)
+- Dry-run mode for previewing changes
+- Idempotent operations (safe to re-run)
+- Path traversal protection
+
+**See also:** Example migration at `scripts/migrations/example-migration.json`
+
+---
+
 ## Testing
 
 Script tests are located in `scripts/test/` directory.
