@@ -23,6 +23,9 @@ jobs:
   version-and-publish:
     name: Version & Publish @piquet-h/shared
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shared
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used implicitly by setup-node for auth
     steps:
@@ -30,12 +33,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Combined setup + install using composite action (low-risk dedupe)
-      - name: Setup Node & Install shared
-        uses: ./.github/actions/setup-node-install
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          working-directory: shared
-          cache-dependency-path: shared/package-lock.json
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'shared/package-lock.json'
+
+      - name: Install JavaScript dependencies
+        run: npm ci
 
       - name: Build & test shared
         working-directory: ./shared
