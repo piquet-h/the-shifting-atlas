@@ -27,10 +27,6 @@
  *     "locations": [ ... Location objects ... ]
  *   }
  * 
- * Note: This is a scaffolding script for migration workflow. The actual apply functionality
- * requires repository wiring which will be implemented when the seeding infrastructure
- * is updated with proper dependency injection.
- * 
  * Exit Codes:
  *   0 - Success
  *   1 - Configuration or validation error
@@ -41,6 +37,7 @@
 import { readFile } from 'fs/promises'
 import { resolve, normalize } from 'path'
 import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
 
 /**
  * Validate migration data structure
@@ -391,44 +388,89 @@ Examples:
         console.log('═══════════════════════════════════════════════════════════')
         console.log()
         
-        // Dynamic import of seedWorld to avoid loading backend modules before env is set or in dry-run
+        // Dynamic import of backend modules to avoid loading before env is set or in dry-run
         console.log('Loading backend repositories...')
-        const { seedWorld } = await import('../backend/src/seeding/seedWorld.js')
         
-        const startTime = Date.now()
-        const result = await seedWorld({
-            blueprint: migrationData.locations,
-            log: (...args) => {
-                const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
-                console.log(`  ${msg}`)
+        try {
+            // Use createRequire to load backend modules from the backend directory context
+            const backendRequire = createRequire(resolve(projectRoot, 'backend/package.json'))
+            
+            // Load reflect-metadata (required by inversify)
+            backendRequire('reflect-metadata')
+            
+            // Load backend modules using the backend's require context
+            const { Container } = backendRequire('inversify')
+            const { setupContainer } = await import('../backend/dist/inversify.config.js')
+            const { seedWorld } = await import('../backend/dist/seeding/seedWorld.js')
+            
+            // Initialize DI container with proper mode
+            const container = new Container()
+            await setupContainer(container, mode)
+            
+            // Get repositories from container
+            const locationRepository = container.get('ILocationRepository')
+            const playerRepository = container.get('IPlayerRepository')
+            
+            const startTime = Date.now()
+            const result = await seedWorld({
+                blueprint: migrationData.locations,
+                locationRepository,
+                playerRepository,
+                log: (...args) => {
+                    const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+                    console.log(`  ${msg}`)
+                }
+            })
+            const elapsedMs = Date.now() - startTime
+        
+            console.log()
+            console.log('✅ Migration completed successfully')
+            console.log()
+            console.log('═══════════════════════════════════════════════════════════')
+            console.log('  Summary')
+            console.log('═══════════════════════════════════════════════════════════')
+            console.log()
+            console.log(`  Migration: ${migrationData.migrationName}`)
+            console.log(`  Schema Version: ${migrationData.schemaVersion}`)
+            console.log()
+            console.log(`  Locations processed:        ${result.locationsProcessed}`)
+            console.log(`  Location vertices created:  ${result.locationVerticesCreated}`)
+            console.log(`  Exits created:              ${result.exitsCreated}`)
+            console.log()
+            console.log(`  Elapsed time:               ${elapsedMs}ms`)
+            console.log()
+            console.log('═══════════════════════════════════════════════════════════')
+            console.log()
+            console.log('Note: This script is idempotent. Re-running will update')
+            console.log('      existing locations and skip creating duplicate exits.')
+            console.log()
+            console.log('If the migration was interrupted, you can safely re-run')
+            console.log('this script to complete the remaining operations.')
+            console.log()
+        } catch (moduleError) {
+            // Handle missing backend dependencies gracefully
+            if (moduleError.code === 'ERR_MODULE_NOT_FOUND' || moduleError.code === 'MODULE_NOT_FOUND') {
+                console.error()
+                console.error('❌ Backend dependencies not found')
+                console.error()
+                console.error('The migration script requires backend dependencies to be installed.')
+                console.error('Please run the following commands:')
+                console.error()
+                console.error('  cd backend')
+                console.error('  npm install')
+                console.error('  npm run build')
+                console.error()
+                console.error('If you have authentication issues with GitHub Packages, ensure')
+                console.error('you have a valid NODE_AUTH_TOKEN or PAT configured.')
+                console.error()
+                console.error('For now, you can still use --dry-run mode to validate your')
+                console.error('migration data without applying changes.')
+                console.error()
+                process.exit(1)
             }
-        })
-        const elapsedMs = Date.now() - startTime
-        
-        console.log()
-        console.log('✅ Migration completed successfully')
-        console.log()
-        console.log('═══════════════════════════════════════════════════════════')
-        console.log('  Summary')
-        console.log('═══════════════════════════════════════════════════════════')
-        console.log()
-        console.log(`  Migration: ${migrationData.migrationName}`)
-        console.log(`  Schema Version: ${migrationData.schemaVersion}`)
-        console.log()
-        console.log(`  Locations processed:        ${result.locationsProcessed}`)
-        console.log(`  Location vertices created:  ${result.locationVerticesCreated}`)
-        console.log(`  Exits created:              ${result.exitsCreated}`)
-        console.log()
-        console.log(`  Elapsed time:               ${elapsedMs}ms`)
-        console.log()
-        console.log('═══════════════════════════════════════════════════════════')
-        console.log()
-        console.log('Note: This script is idempotent. Re-running will update')
-        console.log('      existing locations and skip creating duplicate exits.')
-        console.log()
-        console.log('If the migration was interrupted, you can safely re-run')
-        console.log('this script to complete the remaining operations.')
-        console.log()
+            // Re-throw other errors
+            throw moduleError
+        }
         
         process.exit(0)
         
