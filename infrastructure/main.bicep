@@ -204,6 +204,25 @@ resource cosmosGraphAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' =
         }
       }
     }
+
+    resource gremlinGraphTest 'graphs' = {
+      name: 'world-test'
+      properties: {
+        resource: {
+          id: 'world-test'
+          partitionKey: {
+            paths: [
+              '/partitionKey'
+            ]
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {
+          throughput: 400
+        }
+      }
+    }
   }
 }
 

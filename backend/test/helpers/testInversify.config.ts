@@ -74,10 +74,13 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration
+        // For E2E tests (NODE_ENV=test), use *_TEST env vars if available
+        const isTestEnv = process.env.NODE_ENV === 'test'
+
         container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue({
-            endpoint: process.env.GREMLIN_ENDPOINT || '',
-            database: process.env.GREMLIN_DATABASE || '',
-            graph: process.env.GREMLIN_GRAPH || ''
+            endpoint: (isTestEnv ? process.env.GREMLIN_ENDPOINT_TEST : null) || process.env.GREMLIN_ENDPOINT || '',
+            database: (isTestEnv ? process.env.GREMLIN_DATABASE_TEST : null) || process.env.GREMLIN_DATABASE || '',
+            graph: (isTestEnv ? process.env.GREMLIN_GRAPH_TEST : null) || process.env.GREMLIN_GRAPH || ''
         })
         container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
 

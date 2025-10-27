@@ -7,13 +7,13 @@
  * - Tracks performance metrics for acceptance criteria validation
  *
  * Usage:
- * - Requires COSMOS_GREMLIN_ENDPOINT_TEST, COSMOS_SQL_ENDPOINT_TEST env vars
- * - Uses separate test database (COSMOS_DATABASE_TEST=game-test)
+ * - Requires GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT), COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT)
+ * - Uses dedicated test graph (GREMLIN_GRAPH_TEST=world-test) for complete isolation
+ * - Partition key automatically routes to 'test' partition (via NODE_ENV=test)
  * - Cleanup is automatic via teardown()
  */
 
 import type { Location } from '@piquet-h/shared'
-import type { Container } from 'inversify'
 import { seedWorld } from '../../src/seeding/seedWorld.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
@@ -167,7 +167,7 @@ export class E2ETestFixture extends IntegrationTestFixture {
 
     /**
      * Cleanup test data from Cosmos DB
-     * 
+     *
      * Note: Currently logs test data for manual cleanup. In production E2E setup,
      * consider using a dedicated test database that can be wiped between runs,
      * or implementing repository delete methods for automated cleanup.
@@ -201,11 +201,14 @@ export class E2ETestFixture extends IntegrationTestFixture {
      */
     async setup(): Promise<void> {
         // Verify required environment variables
-        if (!process.env.COSMOS_GREMLIN_ENDPOINT_TEST && !process.env.COSMOS_GREMLIN_ENDPOINT) {
-            throw new Error('E2E tests require COSMOS_GREMLIN_ENDPOINT_TEST or COSMOS_GREMLIN_ENDPOINT environment variable')
+        const gremlinEndpoint = process.env.GREMLIN_ENDPOINT_TEST || process.env.GREMLIN_ENDPOINT || process.env.COSMOS_GREMLIN_ENDPOINT
+        const sqlEndpoint = process.env.COSMOS_SQL_ENDPOINT_TEST || process.env.COSMOS_SQL_ENDPOINT
+
+        if (!gremlinEndpoint) {
+            throw new Error('E2E tests require GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT or COSMOS_GREMLIN_ENDPOINT) environment variable')
         }
-        if (!process.env.COSMOS_SQL_ENDPOINT_TEST && !process.env.COSMOS_SQL_ENDPOINT) {
-            throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST or COSMOS_SQL_ENDPOINT environment variable')
+        if (!sqlEndpoint) {
+            throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) environment variable')
         }
 
         await super.setup()

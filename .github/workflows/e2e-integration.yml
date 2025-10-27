@@ -1,26 +1,22 @@
 name: E2E Integration Tests
 
-# E2E tests run against real Cosmos DB
-# Policy: Run on merge to main (post-merge validation), not on every PR (cost/time tradeoff)
-# See: Issue #170, docs/developer-workflow/local-dev-setup.md
+# E2E tests run against real Cosmos DB with dedicated test graph (world-test)
+# Policy: Run on PR and merge to main for comprehensive validation
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'shared/**'
+      - '.github/workflows/e2e-integration.yml'
   push:
     branches: [main]
     paths:
       - 'backend/**'
       - 'shared/**'
       - '.github/workflows/e2e-integration.yml'
-  workflow_dispatch:
-    inputs:
-      run_e2e:
-        description: 'Force E2E test run'
-        required: false
-        type: boolean
-        default: true
-  # Nightly schedule for extended E2E scenarios
-  schedule:
-    - cron: '0 2 * * *' # 2 AM UTC daily
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -34,25 +30,16 @@ jobs:
   e2e-cosmos:
     name: E2E Tests (Cosmos DB)
     runs-on: ubuntu-latest
-    timeout-minutes: 15 # Suite target: <90s, allow buffer for setup
+    timeout-minutes: 15
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Test-specific Cosmos configuration (world-test graph)
+      GREMLIN_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
+      GREMLIN_DATABASE_TEST: game
+      GREMLIN_GRAPH_TEST: world-test
+      COSMOS_SQL_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
       PERSISTENCE_MODE: cosmos
-      # Use test-specific Cosmos endpoints if available, fallback to production
-      # Note: In production CI, configure test database secrets for isolation
-      COSMOS_GREMLIN_ENDPOINT: ${{ secrets.COSMOS_GREMLIN_ENDPOINT_TEST || secrets.COSMOS_GREMLIN_ENDPOINT }}
-      COSMOS_GREMLIN_DATABASE: ${{ secrets.COSMOS_GREMLIN_DATABASE_TEST || secrets.COSMOS_GREMLIN_DATABASE || 'game' }}
-      COSMOS_GREMLIN_GRAPH: ${{ secrets.COSMOS_GREMLIN_GRAPH_TEST || secrets.COSMOS_GREMLIN_GRAPH || 'world' }}
-      COSMOS_SQL_ENDPOINT: ${{ secrets.COSMOS_SQL_ENDPOINT_TEST || secrets.COSMOS_SQL_ENDPOINT }}
-      COSMOS_SQL_DATABASE: ${{ secrets.COSMOS_SQL_DATABASE_TEST || secrets.COSMOS_SQL_DATABASE || 'game-docs' }}
-      COSMOS_SQL_CONTAINER_PLAYERS: players
-      COSMOS_SQL_CONTAINER_INVENTORY: inventory
-      COSMOS_SQL_CONTAINER_LAYERS: descriptionLayers
-      COSMOS_SQL_CONTAINER_EVENTS: worldEvents
-      # Cosmos auth via Azure credentials
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      NODE_ENV: test
 
     steps:
       - name: Checkout
@@ -79,57 +66,136 @@ jobs:
       - name: Build shared
         run: cd shared && npm run build
 
-      - name: Build backend
-        run: cd backend && npm run build
-
       - name: Run E2E Tests
         id: e2e_tests
         run: |
           cd backend
-          set +e  # Don't exit on error
           npm run test:e2e 2>&1 | tee e2e-output.log
-          E2E_EXIT_CODE=${PIPESTATUS[0]}
-          echo "exit_code=$E2E_EXIT_CODE" >> $GITHUB_OUTPUT
-          exit 0  # Always succeed to allow post-processing
+          exit ${PIPESTATUS[0]}
+        continue-on-error: true
 
-      - name: Check E2E test result
-        run: |
-          EXIT_CODE="${{ steps.e2e_tests.outputs.exit_code }}"
-          if grep -q "⊘ Skipping E2E tests" backend/e2e-output.log; then
-            echo "⚠️ E2E tests were skipped (likely missing Cosmos configuration)"
-            echo "::warning::E2E tests skipped - check Cosmos DB configuration"
-            exit 0
-          elif [ "$EXIT_CODE" != "0" ]; then
-            echo "❌ E2E tests failed (exit code: $EXIT_CODE)"
-            exit 1
-          else
-            echo "✅ E2E tests passed"
-          fi
-
-      - name: Extract Performance Metrics
+      - name: Parse and Display Test Results
         if: always()
         run: |
-          if [ -f backend/e2e-output.log ]; then
-            echo '## E2E Performance Metrics' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            # Extract performance metrics with more robust patterns
-            grep -E "(p95 latency:|completed in [0-9]+ms|Completed [0-9]+ rapid lookups)" backend/e2e-output.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
-            grep -E "✓ (Seeded|First LOOK|Move|LOOK) .*(in |p95:) [0-9]+ms" backend/e2e-output.log >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
-            
-            # If no metrics found, indicate that
-            if ! grep -q "ms" $GITHUB_STEP_SUMMARY; then
-              echo "No performance metrics found in test output" >> $GITHUB_STEP_SUMMARY
-            fi
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          cd backend
+
+          if [ ! -f e2e-output.log ]; then
+            echo "::error::No test output file found"
+            exit 1
           fi
 
-      - name: Upload E2E test output
+          echo "## 🧪 E2E Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Extract test summary (tests X / pass Y / fail Z)
+          echo "### Summary" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -E "^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms)" e2e-output.log | tail -8 >> $GITHUB_STEP_SUMMARY || echo "No summary found" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Extract and check performance metrics
+          echo "### ⚡ Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Extract duration from summary
+          SUITE_DURATION=$(grep "^# duration_ms" e2e-output.log | awk '{print $3}' || echo "0")
+          SUITE_SECONDS=$(echo "scale=2; $SUITE_DURATION / 1000" | bc 2>/dev/null || echo "0")
+
+          # Check if suite exceeded 90s target
+          if [ $(echo "$SUITE_SECONDS > 90" | bc 2>/dev/null || echo "0") -eq 1 ]; then
+            echo "⚠️ **Full suite: ${SUITE_SECONDS}s** (target: <90s) ❌" >> $GITHUB_STEP_SUMMARY
+            echo "::warning::E2E suite took ${SUITE_SECONDS}s, exceeding 90s target"
+          else
+            echo "✅ **Full suite: ${SUITE_SECONDS}s** (target: <90s)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Look for logged performance metrics in test output
+          if grep -q "Seeded.*locations in" e2e-output.log; then
+            SEED_TIME=$(grep "Seeded.*locations in" e2e-output.log | grep -o "[0-9]\+ms" | head -1 || echo "N/A")
+            echo "- World seeding: $SEED_TIME" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for p95 latency mentions
+          if grep -q "p95" e2e-output.log; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**p95 Latency Measurements:**" >> $GITHUB_STEP_SUMMARY
+            grep -i "p95" e2e-output.log | while read -r line; do
+              echo "- $line" >> $GITHUB_STEP_SUMMARY
+              
+              # Extract numeric value and check against targets
+              if echo "$line" | grep -qi "move"; then
+                LATENCY=$(echo "$line" | grep -o "[0-9]\+ms" | grep -o "[0-9]\+" || echo "0")
+                if [ "$LATENCY" -gt 500 ]; then
+                  echo "  ⚠️ Exceeds 500ms target" >> $GITHUB_STEP_SUMMARY
+                  echo "::warning::Move operation p95 latency ${LATENCY}ms exceeds 500ms target"
+                fi
+              elif echo "$line" | grep -qi "look"; then
+                LATENCY=$(echo "$line" | grep -o "[0-9]\+ms" | grep -o "[0-9]\+" || echo "0")
+                if [ "$LATENCY" -gt 200 ]; then
+                  echo "  ⚠️ Exceeds 200ms target" >> $GITHUB_STEP_SUMMARY
+                  echo "::warning::LOOK query p95 latency ${LATENCY}ms exceeds 200ms target"
+                fi
+              fi
+            done
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "_No p95 performance metrics found in test output_" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Targets:** Full suite <90s • Move <500ms (p95) • LOOK <200ms (p95)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count failures
+          FAIL_COUNT=$(grep "^# fail" e2e-output.log | awk '{print $3}' || echo "0")
+
+          if [ "$FAIL_COUNT" != "0" ]; then
+            echo "### ❌ Failed Tests ($FAIL_COUNT)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract failed test names and error details
+            grep -B 2 "not ok" e2e-output.log | grep -E "(not ok|error:)" | head -30 >> $GITHUB_STEP_SUMMARY || true
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>📋 Failed Test Details</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -A 15 "not ok" e2e-output.log | head -100 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            
+            # Create error annotations for each failed test
+            grep "not ok" e2e-output.log | while read -r line; do
+              TEST_NAME=$(echo "$line" | sed 's/not ok [0-9]* - //')
+              echo "::error file=backend/test/e2e/cosmos.e2e.test.ts::E2E Test Failed: $TEST_NAME"
+            done
+          else
+            echo "### ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Always show recent output for context
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>📄 Recent Test Output (last 40 lines)</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -40 e2e-output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Full Test Log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-output
           path: backend/e2e-output.log
-          if-no-files-found: ignore
+          if-no-files-found: warn
+
+      - name: Fail job if tests failed
+        if: steps.e2e_tests.outcome == 'failure'
+        run: |
+          echo "::error::E2E tests failed - check summary above for details"
+          exit 1
 
   e2e-summary:
     name: E2E Summary
@@ -139,13 +205,22 @@ jobs:
     steps:
       - name: Generate Summary
         run: |
-          echo '## E2E Integration Tests Summary' >> $GITHUB_STEP_SUMMARY
-          echo '* Cosmos DB Tests: ${{ needs.e2e-cosmos.result }}' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo '**Note:** E2E tests run on merge to main (post-merge validation)' >> $GITHUB_STEP_SUMMARY
-          echo 'and nightly (2 AM UTC) for cost optimization.' >> $GITHUB_STEP_SUMMARY
-          echo '' >> $GITHUB_STEP_SUMMARY
-          echo 'Performance targets (p95):' >> $GITHUB_STEP_SUMMARY
-          echo '- Full suite: <90s' >> $GITHUB_STEP_SUMMARY
-          echo '- Single move: <500ms' >> $GITHUB_STEP_SUMMARY
-          echo '- LOOK query: <200ms' >> $GITHUB_STEP_SUMMARY
+          echo '## 🧪 E2E Integration Tests Summary' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Database:** Cosmos DB (world-test graph)" >> $GITHUB_STEP_SUMMARY
+          echo "**Partition:** test (isolated from production)" >> $GITHUB_STEP_SUMMARY
+          echo "**Result:** ${{ needs.e2e-cosmos.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.e2e-cosmos.result }}" == "success" ]; then
+            echo "✅ All E2E tests passed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ E2E tests failed - check the test job above for detailed output" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "💡 **Tip:** Failed test details are shown inline in the 'Parse and Display Test Results' step" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Performance Targets (p95):**" >> $GITHUB_STEP_SUMMARY
+          echo "- Full suite: <90s" >> $GITHUB_STEP_SUMMARY
+          echo "- Single move: <500ms" >> $GITHUB_STEP_SUMMARY
+          echo "- LOOK query: <200ms" >> $GITHUB_STEP_SUMMARY

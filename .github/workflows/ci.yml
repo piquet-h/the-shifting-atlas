@@ -23,6 +23,8 @@ jobs:
     outputs:
       frontend_changed: ${{ steps.changed.outputs.frontend }}
       a11y_changed: ${{ steps.changed.outputs.a11y }}
+      backend_changed: ${{ steps.changed.outputs.backend }}
+      shared_changed: ${{ steps.changed.outputs.shared }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

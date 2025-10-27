@@ -6,9 +6,10 @@
  *
  * Test Environment:
  * - PERSISTENCE_MODE=cosmos (required)
- * - COSMOS_GREMLIN_ENDPOINT_TEST or COSMOS_GREMLIN_ENDPOINT
- * - COSMOS_SQL_ENDPOINT_TEST or COSMOS_SQL_ENDPOINT
- * - COSMOS_DATABASE_TEST=game-test (recommended) or fallback to production DB names
+ * - GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT) - Cosmos Gremlin endpoint
+ * - GREMLIN_GRAPH_TEST=world-test - Dedicated test graph for isolation
+ * - COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) - Cosmos SQL API endpoint
+ * - NODE_ENV=test - Routes to 'test' partition within the test graph
  *
  * Performance Targets (p95):
  * - Full suite: <90s
@@ -393,9 +394,18 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const results = await Promise.all(lookups)
 
             // All lookups should return the same data
-            assert.ok(results.every((loc) => loc !== null), 'All lookups should succeed')
-            assert.ok(results.every((loc) => loc?.id === locations[0].id), 'All lookups should return same location ID')
-            assert.ok(results.every((loc) => loc?.name === locations[0].name), 'All lookups should return same name')
+            assert.ok(
+                results.every((loc) => loc !== null),
+                'All lookups should succeed'
+            )
+            assert.ok(
+                results.every((loc) => loc?.id === locations[0].id),
+                'All lookups should return same location ID'
+            )
+            assert.ok(
+                results.every((loc) => loc?.name === locations[0].name),
+                'All lookups should return same name'
+            )
 
             console.log('✓ Concurrent lookups returned consistent data')
         })
