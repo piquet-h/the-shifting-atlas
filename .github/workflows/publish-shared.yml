@@ -1,7 +1,5 @@
 name: Publish Shared Package
-defaults:
-  run:
-    working-directory: shared
+
 on:
   push:
     paths:
@@ -25,6 +23,9 @@ jobs:
   version-and-publish:
     name: Version & Publish @piquet-h/shared
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shared
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used implicitly by setup-node for auth
     steps:

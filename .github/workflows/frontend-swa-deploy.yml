@@ -1,7 +1,5 @@
 name: Frontend Static Web App Deploy
-defaults:
-  run:
-    working-directory: frontend
+
 on:
   push:
     branches: [main]
@@ -33,6 +31,9 @@ jobs:
   build-and-deploy-prod:
     name: Build & Deploy (Production)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:

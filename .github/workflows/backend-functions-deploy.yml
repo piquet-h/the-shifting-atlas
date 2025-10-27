@@ -1,7 +1,5 @@
 name: Backend Functions Deploy
-defaults:
-  run:
-    working-directory: backend
+
 on:
   push:
     branches: [main]
@@ -31,11 +29,11 @@ jobs:
   build-and-deploy:
     name: Build & Deploy Functions
     runs-on: ubuntu-latest
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     defaults:
       run:
         working-directory: backend
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
