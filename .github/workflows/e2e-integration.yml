@@ -35,7 +35,7 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Test-specific Cosmos configuration (world-test graph)
       GREMLIN_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
-      GREMLIN_DATABASE_TEST: game
+      GREMLIN_DATABASE_TEST: game-test
       GREMLIN_GRAPH_TEST: world-test
       COSMOS_SQL_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
       PERSISTENCE_MODE: cosmos
