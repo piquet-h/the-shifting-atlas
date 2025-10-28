@@ -3,7 +3,6 @@
  * Extends the main inversify config but imports mocks from the test folder
  */
 
-import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
@@ -50,13 +49,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
     }
 
-    // Register ITelemetryClient - use mock in test mode, real client otherwise
-    if (resolvedMode === 'mock' || resolvedMode === 'memory') {
-        // Always use MockTelemetryClient in tests to avoid real App Insights calls
-        container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
-    } else {
-        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
-    }
+    // Register ITelemetryClient - always use mock in tests to avoid real App Insights calls
+    // This includes E2E tests (cosmos mode) to prevent test telemetry pollution
+    container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
 
     // Register handlers - these extend BaseHandler which has @injectable and constructor injection
     container.bind(MoveHandler).toSelf().inSingletonScope()
