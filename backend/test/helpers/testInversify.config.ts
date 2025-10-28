@@ -3,8 +3,6 @@
  * Extends the main inversify config but imports mocks from the test folder
  */
 
-// Import appInsights for potential side effects, though we use MockTelemetryClient
-import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
