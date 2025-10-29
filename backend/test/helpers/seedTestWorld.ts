@@ -49,6 +49,21 @@ export interface SeedTestWorldResult {
  * - Multiple paths to same destination
  * - Exit validation (missing exits)
  */
+/**
+ * Default test location blueprint used across all test layers
+ *
+ * Design:
+ * - Hub location with 4 exits (north, south, east, west)
+ * - Each direction leads to a unique location
+ * - Locations have return paths to hub
+ * - East location has additional path to north (multi-hop testing)
+ *
+ * ID Strategy:
+ * - Integration tests: Use IDs as-is (in-memory, no cleanup needed)
+ * - E2E tests: Use same structure with 'e2e-' prefix via getE2ETestLocations()
+ *
+ * This unified structure ensures consistent test behavior across layers.
+ */
 export function getDefaultTestLocations(): Location[] {
     return [
         {
@@ -95,49 +110,26 @@ export function getDefaultTestLocations(): Location[] {
 /**
  * E2E-specific test location blueprint with unique IDs for cleanup
  *
- * Uses `e2e-` prefix for all IDs to enable automated cleanup in real Cosmos DB
+ * **Unified Data Structure:** Uses the same blueprint as integration tests,
+ * but with 'e2e-' prefixed IDs to enable automated cleanup in real Cosmos DB.
+ *
+ * This ensures E2E tests validate the exact same structure as integration tests,
+ * just with real database infrastructure.
  */
 export function getE2ETestLocations(): Location[] {
-    return [
-        {
-            id: 'e2e-test-loc-1',
-            name: 'E2E Test Hub',
-            description: 'Central test location with multiple exits',
-            exits: [
-                { direction: 'north', to: 'e2e-test-loc-2', description: 'North passage' },
-                { direction: 'south', to: 'e2e-test-loc-3', description: 'South passage' },
-                { direction: 'east', to: 'e2e-test-loc-4', description: 'East passage' },
-                { direction: 'west', to: 'e2e-test-loc-5', description: 'West passage' }
-            ]
-        },
-        {
-            id: 'e2e-test-loc-2',
-            name: 'E2E Test North',
-            description: 'Northern test location',
-            exits: [{ direction: 'south', to: 'e2e-test-loc-1', description: 'Back south' }]
-        },
-        {
-            id: 'e2e-test-loc-3',
-            name: 'E2E Test South',
-            description: 'Southern test location',
-            exits: [{ direction: 'north', to: 'e2e-test-loc-1', description: 'Back north' }]
-        },
-        {
-            id: 'e2e-test-loc-4',
-            name: 'E2E Test East',
-            description: 'Eastern test location',
-            exits: [
-                { direction: 'west', to: 'e2e-test-loc-1', description: 'Back west' },
-                { direction: 'north', to: 'e2e-test-loc-2', description: 'To north room' }
-            ]
-        },
-        {
-            id: 'e2e-test-loc-5',
-            name: 'E2E Test West',
-            description: 'Western test location',
-            exits: [{ direction: 'east', to: 'e2e-test-loc-1', description: 'Back east' }]
-        }
-    ]
+    // Get the default blueprint and transform IDs for E2E
+    const defaultLocations = getDefaultTestLocations()
+    
+    return defaultLocations.map((loc) => ({
+        ...loc,
+        // Transform: test-loc-hub → e2e-test-loc-hub
+        id: loc.id.replace('test-loc-', 'e2e-test-loc-'),
+        // Update exit target IDs to match transformed format
+        exits: loc.exits?.map((exit) => ({
+            ...exit,
+            to: exit.to?.replace('test-loc-', 'e2e-test-loc-')
+        }))
+    }))
 }
 
 /**
