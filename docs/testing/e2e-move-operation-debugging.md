@@ -37,10 +37,11 @@ async move(fromId: string, direction: string) {
 3. Silent failures if Cosmos DB returns unexpected data structures
 4. No distinction between "location not found" (logical error) vs "query failed" (infrastructure error)
 
-### 2. Potential Gremlin Query Issue in `get` Method
+### 2. Improved Gremlin Query Consistency in `get` Method
 
-**Problem:** The exits query used `by(values('description'))` which could fail if the description property doesn't exist:
+**Finding:** The exits query in `get()` was inconsistent with the pattern used in `regenerateExitsSummaryCache()`:
 
+**Before (in `get()` method):**
 ```typescript
 const exitsRaw = await this.query<Record<string, unknown>>(
     "g.V(locationId).outE('exit').project('direction','to','description')" +
@@ -49,7 +50,18 @@ const exitsRaw = await this.query<Record<string, unknown>>(
 )
 ```
 
-**Issue:** Gremlin `values()` throws an error if the property doesn't exist. The correct pattern is to use `coalesce(values('description'), constant(''))`.
+**Pattern in `regenerateExitsSummaryCache()`:**
+```typescript
+const exitsRaw = await this.query<Record<string, unknown>>(
+    "g.V(locationId).outE('exit').project('direction','to','description','blocked')" +
+    ".by(values('direction')).by(inV().id())" +
+    ".by(coalesce(values('description'), constant('')))" +
+    ".by(coalesce(values('blocked'), constant(false)))",
+    { locationId }
+)
+```
+
+**Issue:** While `values('description')` may work when all edges have descriptions, using `coalesce()` is more robust and handles missing optional properties gracefully. This inconsistency could lead to subtle failures if edge properties are incomplete.
 
 ### 3. Insufficient Test Validation
 
@@ -161,7 +173,9 @@ async move(fromId: string, direction: string) {
 - Errors distinguish between logical errors and infrastructure errors
 - Debug logs track the happy path for performance tuning
 
-### 2. Fixed Gremlin Query for Exits
+### 2. Improved Gremlin Query Consistency
+
+**Change:** Updated `get()` method to use `coalesce()` for optional properties, matching the pattern in `regenerateExitsSummaryCache()`:
 
 ```typescript
 const exitsRaw = await this.query<Record<string, unknown>>(
@@ -173,9 +187,9 @@ const exitsRaw = await this.query<Record<string, unknown>>(
 ```
 
 **Benefits:**
-- Handles missing description property gracefully
-- Consistent with `regenerateExitsSummaryCache` implementation
-- Prevents query failures on valid graph data
+- Consistent with existing codebase patterns
+- More robust handling of optional properties
+- Prevents potential query failures on incomplete edge data
 
 ### 3. Enhanced Test Validation
 
@@ -302,7 +316,5 @@ When a move operation fails in E2E tests, check the logs for:
 
 ## References
 
-- Issue: piquet-h/the-shifting-atlas#[issue-number]
-- PR: piquet-h/the-shifting-atlas#[pr-number]
-- ADR-002: Graph Partition Strategy
 - Test Strategy: docs/testing/test-strategy.md
+- ADR-002: Graph Partition Strategy
