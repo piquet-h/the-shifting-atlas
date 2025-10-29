@@ -291,22 +291,47 @@ describe('Move Validation', () => {
 
 ## Rate Limiting Analysis
 
-**Finding:** No rate-limit issues identified
+**Finding:** E2E tests were experiencing 429 (throttling) errors during CI runs
 
-**Reason:**
+**Root Cause:**
 - E2E tests use dedicated Cosmos DB account (world-test graph)
-- No external API dependencies in critical paths
-- Cosmos DB SDK includes automatic retry with exponential backoff
-- Test suite has built-in throttling test that validates SDK behavior
+- Some tests performed rapid sequential or concurrent operations without rate limiting
+- 20 rapid sequential moves (no delays)
+- 10-50 concurrent lookups
+- These patterns exceeded provisioned RU/s capacity during test execution
 
-**Mitigation Strategies (Already Implemented):**
-- ✅ Dedicated test database/graph
+**Mitigation Strategies (Implemented):**
+- ✅ Added 50ms delays between rapid sequential operations
+- ✅ Reduced concurrent operations from 10-50 to 5 per batch
+- ✅ Implemented batch processing with delays (4 batches of 5 operations)
+- ✅ Cosmos DB SDK automatic retry with exponential backoff (already present)
+- ✅ Dedicated test database/graph for isolation
 - ✅ Isolated partition key (NODE_ENV=test)
 - ✅ Automated cleanup after tests
-- ✅ Cosmos DB SDK retry mechanism
 - ✅ Performance tracking to detect degradation
 
-**Recommendation:** No changes needed for rate limiting
+**Expected Impact:**
+- Eliminates 429 errors in CI without sacrificing test coverage
+- Adds ~3 seconds to E2E suite (50ms × 60 operations)
+- Still meets <90s total execution target
+- Prevents production 429 concerns by validating controlled load patterns
+
+**Rate Limiting Strategy:**
+```typescript
+// Pattern: Add delays between rapid operations
+for (let i = 0; i < iterations; i++) {
+    await operation()
+    await new Promise(resolve => setTimeout(resolve, 50)) // Prevent throttling
+}
+
+// Pattern: Batch concurrent operations with delays
+for (let batch = 0; batch < numBatches; batch++) {
+    await Promise.all([...operations]) // Limited batch size
+    await new Promise(resolve => setTimeout(resolve, 100)) // Between batches
+}
+```
+
+**Recommendation:** Rate limiting strategy now aligns with production best practices
 
 ---
 
