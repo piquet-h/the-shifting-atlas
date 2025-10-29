@@ -1,3 +1,8 @@
+---
+description: Core Copilot operating guide (workflow, taxonomy, risk tags, commitments)
+applyTo: '**'
+---
+
 # The Shifting Atlas – Copilot Operating Guide (Compact)
 
 Source of truth for daily generation. Quick mnemonic: `./copilot-quickref.md`. Language/style specifics: `./copilot-language-style.md`.
@@ -601,7 +606,7 @@ If logs are expired / inaccessible (e.g., artifact retention lapsed), explicitly
 Secrets / Tokens:
 
 -   Never echo raw secret values.
--   Diagnostics must use only: source, preflight result, length (`${#TOK}`), and redacted first/last chars if absolutely necessary (avoid unless explicitly requested for debugging).
+-   Diagnostics must use only: source, preflight result, length (redacted), and optionally first/last chars redacted if absolutely necessary (avoid unless explicitly requested for debugging).
 
 Prohibited Without Logs:
 
@@ -646,7 +651,7 @@ Acceptance Criteria:
 Edge Cases: <2–3 bullets>
 Risk: <LOW|DATA-MODEL|RUNTIME-BEHAVIOR|BUILD-SCRIPT|INFRA>
 Out of Scope: <concise bullets>
-References: #<issue> docs/<path> (only directly relevant)
+References: include one issue reference and minimal docs/<path> links
 ```
 
 No embedded “Follow-up Task Checklist” inside atomic issues (create new issues instead).
@@ -739,3 +744,5 @@ User asks (historical example removed – scheduling & variance workflow depreca
 Each child then receives its atomic template.
 
 ---
+
+Last reviewed: 2025-10-29

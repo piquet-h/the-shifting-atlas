@@ -1,3 +1,8 @@
+---
+description: Commit message style & structure guidelines
+applyTo: '**'
+---
+
 # Commit Message Instructions
 
 Follow this lightweight format to keep history clean, searchable, and automation‑friendly.
@@ -19,28 +24,28 @@ If the change is trivially clear (docs typo, comment tweak), omit the body.
 
 ## Subject Line Rules
 
-- Use imperative present tense: "Add", "Fix", "Refactor" (not "Added" or "Adds").
-- Keep ≤ 50 chars (hard stop). Rewrite rather than truncate mid‑word.
-- Do NOT suffix with a period.
-- Prefer a single, specific action: `Refactor exit normalizer`, not `Refactor + test + doc`.
-- Avoid noisy prefixes (`chore:` / `feat:`). The taxonomy already lives in the issue.
+-   Use imperative present tense: "Add", "Fix", "Refactor" (not "Added" or "Adds").
+-   Keep ≤ 50 chars (hard stop). Rewrite rather than truncate mid‑word.
+-   Do NOT suffix with a period.
+-   Prefer a single, specific action: `Refactor exit normalizer`, not `Refactor + test + doc`.
+-   Avoid noisy prefixes (`chore:` / `feat:`). The taxonomy already lives in the issue.
 
 ## Body Guidelines (When Needed)
 
 Answer the minimal set:
 
-- What changed beyond the obvious filename diff?
-- Why (problem / constraint / motivation)?
-- How (notable approach, trade‑off, perf / safety consideration)?
-- Any follow‑up tasks or TODO anchors created?
+-   What changed beyond the obvious filename diff?
+-   Why (problem / constraint / motivation)?
+-   How (notable approach, trade‑off, perf / safety consideration)?
+-   Any follow‑up tasks or TODO anchors created?
 
 Separate logical paragraphs with a blank line. Use bullet lists sparingly for multiple points. Reference code symbols in backticks.
 
 ## Issue & Taxonomy References
 
-- Reference the issue number on a separate final line if an opened issue exists: `Refs #123` or `Fixes #123` (auto‑closure keyword when appropriate).
-- Do NOT replicate labels (e.g. `scope:world`, `feature`) in the commit; ordering automation has been deprecated.
-- If no issue exists for a non‑trivial change, open one first; commits should advance tracked work.
+-   Reference the issue number on a separate final line if an opened issue exists: `Refs #123` or `Fixes #123` (auto‑closure keyword when appropriate).
+-   Do NOT replicate labels (e.g. `scope:world`, `feature`) in the commit; ordering automation has been deprecated.
+-   If no issue exists for a non‑trivial change, open one first; commits should advance tracked work.
 
 ## Breaking Changes
 
@@ -85,10 +90,10 @@ Fixes #77.
 
 ## Quick Checklist Before Commit
 
-- [ ] Subject ≤ 50 chars & imperative
-- [ ] Blank line after subject
-- [ ] Body only if it adds decision/value context
-- [ ] References issue (`Refs # / Fixes #`) if applicable
-- [ ] No stray debug code / focus artifacts
+-   [ ] Subject ≤ 50 chars & imperative
+-   [ ] Blank line after subject
+-   [ ] Body only if it adds decision/value context
+-   [ ] References issue (`Refs # / Fixes #`) if applicable
+-   [ ] No stray debug code / focus artifacts
 
 > Keep it **succinct**, **actionable**, and **just enough context**—the issue and code diff carry the rest.

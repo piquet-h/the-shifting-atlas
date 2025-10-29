@@ -1,1 +1,6 @@
-Module-specific persistent instructions live in this folder.
+---
+description: Index for instruction files referencing INVENTORY.md
+applyTo: '**'
+---
+
+Module-specific persistent instructions live in this folder. See `INVENTORY.md` for classification, retention criteria, and deprecation plan.

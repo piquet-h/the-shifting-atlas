@@ -1,4 +1,11 @@
+---
+description: Deprecated DI patterns (migrating to docs/architecture/dependency-injection.md)
+applyTo: 'backend/**'
+---
+
 # InversifyJS Dependency Injection Patterns
+
+> DEPRECATION NOTICE: Migrate content to `docs/architecture/dependency-injection.md`. Remove this file after milestone M5. Do not expand further—only critical hotfix clarifications.
 
 ## Purpose
 

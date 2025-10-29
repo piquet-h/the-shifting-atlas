@@ -1,3 +1,8 @@
+---
+description: Quick mnemonic reference for architecture, labels, formatting
+applyTo: '**'
+---
+
 # Copilot Quickref
 
 Arch: SWA (React+Vite+Tailwind) + Azure Functions + API Mgmt + Service Bus + Cosmos (Gremlin + SQL dual persistence) + App Insights.
@@ -27,5 +32,6 @@ Do Not: Poll loops | duplicate labels | hardcode telemetry strings | lore walls 
 Additions: New scope/milestone → update labels + roadmap + compact guide + reference ADR.
 
 Detail: `./copilot-instructions.md` | Language/style: `./copilot-language-style.md`
+Last reviewed: 2025-10-29
 
 Commit Policy: PROPOSE ONLY (no auto stage/commit) unless user says: `stage now` / `commit now` / `open PR`.
