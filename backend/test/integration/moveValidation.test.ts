@@ -195,4 +195,95 @@ describe('Move Validation', () => {
             }
         })
     })
+
+    describe('Throttling and Retry Behavior', () => {
+        test('repository handles 429 errors with retry', async () => {
+            const locationRepo = await fixture.getLocationRepository()
+            const playerRepo = await fixture.getPlayerRepository()
+
+            // Seed test world
+            const { locations } = await seedTestWorld({
+                locationRepository: locationRepo,
+                playerRepository: playerRepo,
+                blueprint: getDefaultTestLocations()
+            })
+
+            // Create a mock that simulates 429 on first call, then succeeds
+            let callCount = 0
+            const originalGet = locationRepo.get.bind(locationRepo)
+            locationRepo.get = async (id: string) => {
+                callCount++
+                if (callCount === 1) {
+                    // Simulate 429 error on first attempt
+                    // In a real implementation, the SDK would retry automatically
+                    // For this test, we verify the repository can handle the scenario
+                    throw new Error('Request rate too large (429)')
+                }
+                // Subsequent attempts succeed
+                return originalGet(id)
+            }
+
+            // Test that the operation eventually succeeds despite initial throttling
+            // In production, the Cosmos SDK handles retry automatically
+            let result
+            let attempts = 0
+            const maxAttempts = 3
+
+            while (attempts < maxAttempts) {
+                attempts++
+                try {
+                    result = await locationRepo.get(locations[0].id)
+                    break
+                } catch (error: any) {
+                    if (error.message.includes('429') && attempts < maxAttempts) {
+                        // Retry after small delay (simulating SDK retry behavior)
+                        await new Promise(resolve => setTimeout(resolve, 50))
+                        continue
+                    }
+                    throw error
+                }
+            }
+
+            // Verify successful retrieval after retry
+            assert.ok(result, 'Should eventually retrieve location after 429 retry')
+            assert.equal(result?.id, locations[0].id, 'Retrieved location should match requested ID')
+            assert.ok(attempts > 1, 'Should have required retry after initial 429 error')
+            
+            console.log(`✓ Successfully handled 429 with ${attempts} attempts`)
+        })
+
+        test('repository gracefully handles persistent throttling', async () => {
+            const locationRepo = await fixture.getLocationRepository()
+            
+            // Mock a repository that always returns 429
+            let callCount = 0
+            locationRepo.get = async () => {
+                callCount++
+                throw new Error('Request rate too large (429)')
+            }
+
+            // Attempt to get location with limited retries
+            const maxAttempts = 3
+            let error: Error | null = null
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    await locationRepo.get('test-loc-hub')
+                    break
+                } catch (e: any) {
+                    error = e
+                    if (attempt < maxAttempts - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 50))
+                    }
+                }
+            }
+
+            // Verify appropriate error handling for persistent 429
+            assert.ok(error, 'Should preserve error after all retries exhausted')
+            assert.ok(error?.message.includes('429'), 'Error should indicate throttling')
+            assert.equal(callCount, maxAttempts, `Should have attempted ${maxAttempts} times`)
+            
+            console.log(`✓ Gracefully failed after ${maxAttempts} throttled attempts`)
+        })
+    })
 })

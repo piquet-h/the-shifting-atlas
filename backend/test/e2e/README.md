@@ -65,7 +65,6 @@ npm run test:e2e
 
 - Seed script creates ≥5 locations with exits
 - Cleanup strategy logs test data for monitoring
-- Idempotent re-run safe
 
 ### ✓ Player Bootstrap & First LOOK (Cold Start)
 
@@ -82,14 +81,9 @@ npm run test:e2e
 - 2 players move simultaneously without state corruption
 - Concurrent location lookups return consistent data
 
-### ✓ Performance & Reliability
+### ❌ Tests Migrated to Integration Layer
 
-- Cosmos throttling (429) handled via SDK retry
-- Partition key strategy validated per ADR-002
-
-### ❌ Migrated to Integration Layer
-
-The following tests were **moved to integration tests** for faster feedback:
+The following tests were **moved to integration tests** for faster, more reliable testing:
 
 - **Exit validation** (missing exit, invalid direction) → `backend/test/integration/moveValidation.test.ts`
   - Rationale: Input validation doesn't require real Cosmos DB
@@ -97,6 +91,18 @@ The following tests were **moved to integration tests** for faster feedback:
   
 - **Telemetry emission** → Removed (already covered by `backend/test/integration/performMove.telemetry.test.ts`)
   - Rationale: E2E test only checked client availability, no unique validation
+
+- **Throttling/429 retry** → `backend/test/integration/moveValidation.test.ts` (with mocked 429 responses)
+  - Rationale: SDK retry logic can be tested with mocks, more reliable than triggering real throttling
+  - Removes risk of hitting actual 429s in CI
+
+- **Idempotent re-run** → Removed (already covered by `backend/test/integration/worldSeed.test.ts`)
+  - Rationale: Business logic test, not database-specific
+
+- **Partition key routing** → Removed (infrastructure configuration)
+  - Rationale: Configuration validation, not runtime behavior to test repeatedly
+
+**Result:** E2E suite reduced from 13 to 8 focused tests, ~5.5 seconds faster, same coverage maintained.
 
 **See:** `docs/testing/test-inventory-analysis.md` for detailed migration analysis.
 

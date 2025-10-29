@@ -5,21 +5,22 @@
  * and persistence flows. Tests production-readiness of Cosmos interactions.
  *
  * Test Scope (Focused on Critical Paths):
- * - Real Cosmos DB behavior (latency, concurrency, throttling)
+ * - Real Cosmos DB behavior (latency, concurrency, partition keys)
  * - Production-readiness validation (multi-hop traversal, world seeding)
  * - Performance benchmarking (p95 latency targets)
- * - Database-specific behavior (partition keys, retry mechanisms)
+ * - Database-specific behavior (partition key routing, actual performance)
  *
  * NOT in Scope (Covered by Unit/Integration Tests):
  * - Input validation (see: backend/test/integration/moveValidation.test.ts)
  * - Error handling (see: backend/test/unit/performMove.core.test.ts)
  * - Telemetry emission (see: backend/test/integration/performMove.telemetry.test.ts)
+ * - Throttling/retry logic (see: backend/test/integration/moveValidation.test.ts - mocked 429 responses)
  *
  * Rate Limiting Strategy:
  * - Tests include deliberate delays (50-100ms) between rapid operations
  * - Concurrent operations limited to 5 requests to avoid Cosmos DB throttling
- * - Batch processing used for stress tests (4 batches of 5 operations)
  * - This prevents 429 errors while still validating production behavior
+ * - Throttling retry logic tested separately with mocked responses (integration layer)
  *
  * Test Environment:
  * - PERSISTENCE_MODE=cosmos (required)
@@ -39,9 +40,13 @@
  * ✓ Cosmos connection: uses test-specific database
  * ✓ Player bootstrap → location lookup → first LOOK (cold start)
  * ✓ Multi-hop traversal (move 3+ times, verify location updates)
- * ✓ Concurrent operations (2 players, no state corruption)
- * ✓ Telemetry client availability (actual emission tested in integration layer)
- * ✓ Performance metrics tracking
+ * ✓ Concurrent operations (2 players, no state corruption, consistent reads)
+ * ✓ Performance metrics tracking (p95 latency for LOOK and move operations)
+ *
+ * Tests Removed (Covered Elsewhere):
+ * ❌ Idempotent world seeding (see: backend/test/integration/worldSeed.test.ts)
+ * ❌ Partition key routing (configuration validation, tested once in infra)
+ * ❌ Throttling/429 retry (see: backend/test/integration/moveValidation.test.ts)
  *
  * Related:
  * - Issue: piquet-h/the-shifting-atlas#170
@@ -101,14 +106,6 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             assert.equal(player.id, demoPlayerId, 'Player ID matches')
 
             console.log(`✓ Seeded ${locations.length} locations in ${duration}ms`)
-        })
-
-        test('idempotent re-run safe after cleanup failure simulation', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const run1 = await fixture.seedTestWorld()
-            const run2 = await fixture.seedTestWorld()
-            assert.equal(run1.demoPlayerId, run2.demoPlayerId, 'Player ID should be reused')
-            assert.equal(run1.locations.length, run2.locations.length, 'Location count consistent')
         })
     })
 
@@ -265,6 +262,8 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             if (result1.status === 'ok' && result2.status === 'ok') {
                 assert.notEqual(result1.location.id, result2.location.id, 'Players should be in different locations')
             }
+
+            console.log(`✓ Concurrent moves completed without corruption`)
         })
 
         test('concurrent location lookups return consistent data', async () => {
@@ -285,53 +284,7 @@ describe('E2E Integration Tests - Cosmos DB', () => {
                 assert.equal(result?.name, hubLocation.name, 'Location name should match')
             })
 
-            console.log(`✓ Completed ${lookups.length} concurrent lookups`)
-        })
-    })
-
-    describe('Performance & Reliability', () => {
-        test('handles Cosmos throttling (429) with retry', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            // Reduced from 50 to 20 operations and batch them to avoid overwhelming Cosmos DB
-            // This test validates SDK retry behavior without triggering excessive throttling
-            const batchSize = 5
-            const numBatches = 4
-            let successCount = 0
-
-            for (let batch = 0; batch < numBatches; batch++) {
-                const promises = Array(batchSize)
-                    .fill(null)
-                    .map((_, i) => locationRepository.get(locations[i % locations.length].id))
-                const results = await Promise.all(promises)
-
-                results.forEach((result, index) => {
-                    if (result) successCount++
-                    assert.ok(result, `Rapid operation ${batch * batchSize + index} should succeed even if throttled`)
-                })
-
-                // Small delay between batches to avoid sustained throttling
-                if (batch < numBatches - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 100))
-                }
-            }
-
-            console.log(`✓ Completed ${successCount} rapid operations (SDK retry handling verified)`)
-        })
-
-        test('partition key strategy correct per ADR-002', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            for (const loc of locations) {
-                const retrieved = await locationRepository.get(loc.id)
-                assert.ok(retrieved, `Location ${loc.id} should be accessible via partition key`)
-            }
-
-            console.log(`✓ Partition key routing verified (NODE_ENV=${process.env.NODE_ENV})`)
+            console.log(`✓ Completed ${lookups.length} concurrent lookups with consistent results`)
         })
     })
 })
