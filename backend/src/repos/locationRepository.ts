@@ -11,7 +11,13 @@ export interface ILocationRepository {
     /** Upsert (idempotent) a location vertex. Returns whether a new vertex was created and updated revision (if changed). */
     upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }>
     /** Ensure an exit edge between two locations. Returns whether a new edge was created. */
-    ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }>
+    ensureExit(
+        fromId: string,
+        direction: string,
+        toId: string,
+        description?: string,
+        opts?: { skipVertexCheck?: boolean; deferCacheRegen?: boolean }
+    ): Promise<{ created: boolean }>
     /** Ensure an exit edge with optional bidirectional creation. Returns creation status for both directions. */
     ensureExitBidirectional(
         fromId: string,
@@ -29,6 +35,8 @@ export interface ILocationRepository {
     }>
     /** Update the exits summary cache for a location. Returns whether the cache was updated. */
     updateExitsSummaryCache(locationId: string, cache: string): Promise<{ updated: boolean }>
+    /** Regenerate exits summary cache for a location (bulk operations). */
+    regenerateExitsSummaryCache(locationId: string): Promise<void>
 }
 
 // In-memory implementation seeded from plain JSON world seed. Swap with
@@ -44,7 +52,7 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     }
 
     /** Helper: Regenerate exits summary cache for a location */
-    private regenerateExitsSummaryCache(locationId: string): void {
+    async regenerateExitsSummaryCache(locationId: string): Promise<void> {
         const location = this.locations.get(locationId)
         if (!location) return
 
@@ -127,7 +135,13 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         return { created: true, id: location.id, updatedRevision: location.version || 1 }
     }
 
-    async ensureExit(fromId: string, direction: string, toId: string, description?: string) {
+    async ensureExit(
+        fromId: string,
+        direction: string,
+        toId: string,
+        description?: string,
+        opts?: { skipVertexCheck?: boolean; deferCacheRegen?: boolean }
+    ) {
         if (!isDirection(direction)) return { created: false }
         const from = this.locations.get(fromId)
         const to = this.locations.get(toId)
@@ -142,8 +156,10 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         from.exits.push({ direction, to: toId, description })
         // Sort exits after adding new one
         from.exits = this.sortLocationExits(from.exits)
-        // Regenerate exits summary cache
-        this.regenerateExitsSummaryCache(fromId)
+        // Regenerate exits summary cache (unless deferred for bulk operations)
+        if (!opts?.deferCacheRegen) {
+            await this.regenerateExitsSummaryCache(fromId)
+        }
         return { created: true }
     }
 
@@ -173,7 +189,7 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         const removed = from.exits.length < initialLength
         if (removed) {
             // Regenerate exits summary cache
-            this.regenerateExitsSummaryCache(fromId)
+            await this.regenerateExitsSummaryCache(fromId)
         }
         return { removed }
     }

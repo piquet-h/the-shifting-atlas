@@ -21,6 +21,7 @@ export GREMLIN_ENDPOINT_TEST=https://your-cosmos.documents.azure.com:443/
 export GREMLIN_DATABASE_TEST=game
 export GREMLIN_GRAPH_TEST=world-test
 export COSMOS_SQL_ENDPOINT_TEST=https://your-cosmos.documents.azure.com:443/
+export COSMOS_SQL_DATABASE=game
 
 # Run E2E tests
 npm run test:e2e

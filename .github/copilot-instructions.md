@@ -156,7 +156,7 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 Environment variables (wired in Bicep, available in Functions):
 
 -   `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
--   `COSMOS_SQL_DATABASE` – Database name (`game-docs`)
+-   `COSMOS_SQL_DATABASE` – Database name (`game`)
 -   `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
 -   `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
 -   `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)

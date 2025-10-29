@@ -1,12 +1,17 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
+import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 import { CosmosGremlinRepository } from './base/index.js'
 import { firstScalar, parseBool } from './utils/index.js'
 
 @injectable()
 export class CosmosPlayerRepository extends CosmosGremlinRepository implements IPlayerRepository {
+    constructor(@inject('GremlinClient') client: IGremlinClient) {
+        super(client)
+    }
+
     async get(id: string): Promise<PlayerRecord | undefined> {
         const rows = await this.query<Record<string, unknown>>("g.V(playerId).hasLabel('player').valueMap(true)", { playerId: id })
         if (!rows.length) return undefined

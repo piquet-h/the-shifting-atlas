@@ -46,6 +46,7 @@ export class E2ETestFixture {
     private testPlayerIds: Set<string> = new Set()
     private performanceMetrics: E2EPerformanceMetrics[] = []
     private worldSeeded: boolean = false
+    private demoPlayerId: string | undefined = undefined
 
     constructor() {
         // Create underlying fixture in cosmos mode
@@ -81,9 +82,11 @@ export class E2ETestFixture {
         const locationRepository = await this.getLocationRepository()
         const playerRepository = await this.getPlayerRepository()
 
-        // Generate test player ID
-        const testPlayerId = this.generateTestPlayerId()
-        this.testPlayerIds.add(testPlayerId)
+        // Reuse existing demo player ID for idempotency, or generate a new one
+        if (!this.demoPlayerId) {
+            this.demoPlayerId = this.generateTestPlayerId()
+            this.testPlayerIds.add(this.demoPlayerId)
+        }
 
         // Use provided blueprint or default E2E test locations
         const testBlueprint = blueprint || getE2ETestLocations()
@@ -96,7 +99,7 @@ export class E2ETestFixture {
             locationRepository,
             playerRepository,
             blueprint: testBlueprint,
-            demoPlayerId: testPlayerId
+            demoPlayerId: this.demoPlayerId
         })
 
         this.worldSeeded = true
@@ -238,9 +241,19 @@ export class E2ETestFixture {
             console.error('Error during E2E test cleanup:', error)
         }
 
+        // Close Gremlin connection to allow tests to exit cleanly
+        try {
+            const container = await this.getContainer()
+            const gremlinClient = container.get<IGremlinClient>('GremlinClient')
+            await gremlinClient.close()
+        } catch (error) {
+            console.warn('Error closing Gremlin client:', error)
+        }
+
         await this.baseFixture.teardown()
 
-        // Clear performance metrics
+        // Clear performance metrics and reset demo player ID
         this.performanceMetrics = []
+        this.demoPlayerId = undefined
     }
 }

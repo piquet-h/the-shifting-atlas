@@ -1,5 +1,6 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
+import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
 import { trackGameEventStrict } from '../telemetry.js'
 import { CosmosGremlinRepository } from './base/index.js'
@@ -9,8 +10,12 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 @injectable()
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
+    constructor(@inject('GremlinClient') client: IGremlinClient) {
+        super(client)
+    }
+
     /** Helper: Regenerate and update exits summary cache for a location */
-    private async regenerateExitsSummaryCache(locationId: string): Promise<void> {
+    async regenerateExitsSummaryCache(locationId: string): Promise<void> {
         // Fetch current exits (use coalesce to handle missing optional properties)
         const exitsRaw = await this.query<Record<string, unknown>>(
             "g.V(locationId).outE('exit').project('direction','to','description','blocked')" +
@@ -177,11 +182,20 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
     }
 
     /** Ensure an exit edge with direction exists between fromId and toId */
-    async ensureExit(fromId: string, direction: string, toId: string, description?: string): Promise<{ created: boolean }> {
+    async ensureExit(
+        fromId: string,
+        direction: string,
+        toId: string,
+        description?: string,
+        opts?: { skipVertexCheck?: boolean; deferCacheRegen?: boolean }
+    ): Promise<{ created: boolean }> {
         if (!isDirection(direction)) return { created: false }
-        // Ensure both vertices exist (no-op if present)
-        await this.ensureVertex('location', fromId)
-        await this.ensureVertex('location', toId)
+
+        // Ensure both vertices exist (no-op if present) - skip if requested for bulk operations
+        if (!opts?.skipVertexCheck) {
+            await this.ensureVertex('location', fromId)
+            await this.ensureVertex('location', toId)
+        }
 
         // Check if edge already exists
         const existingEdges = await this.query<Record<string, unknown>>(
@@ -202,8 +216,10 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             desc: description || ''
         })
 
-        // Regenerate exits summary cache for the source location
-        await this.regenerateExitsSummaryCache(fromId)
+        // Regenerate exits summary cache for the source location - defer if requested for bulk operations
+        if (!opts?.deferCacheRegen) {
+            await this.regenerateExitsSummaryCache(fromId)
+        }
 
         // Emit telemetry for actual creation
         trackGameEventStrict('World.Exit.Created', {

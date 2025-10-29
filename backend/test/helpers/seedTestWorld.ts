@@ -153,7 +153,8 @@ export async function seedTestWorld(options: SeedTestWorldOptions): Promise<Seed
         playerRepository: options.playerRepository,
         blueprint,
         demoPlayerId: options.demoPlayerId,
-        log: options.log
+        log: options.log,
+        bulkMode: true // Use bulk mode for faster test seeding
     })
 
     return {

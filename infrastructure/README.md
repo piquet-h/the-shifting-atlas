@@ -9,7 +9,7 @@ Provisioned resources:
 | Azure Service Bus              | Message queue for world events (async processing).               | Basic tier (free up to 1M operations/month). Queue: `world-events`.                                                                              |
 | Azure Storage Account          | Function App backend storage (required for consumption plan).    | Standard LRS tier.                                                                                                                               |
 | Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items, player state.            | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices).                             |
-| Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game-docs`. Containers detailed below.                      |
+| Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game`. Containers detailed below.                           |
 | Azure Key Vault                | Stores Cosmos primary key secrets.                               | Access policy grants SWA and Function App system identities get/list for secrets. Stores both `cosmos-primary-key` and `cosmos-sql-primary-key`. |
 | Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                         |
 
@@ -69,7 +69,7 @@ g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').pr
 | `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                        |
 | `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                           |
 | `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).                 |
-| `cosmosSqlDatabaseName`           | string | game-docs               | No       | SQL API database name.                                        |
+| `cosmosSqlDatabaseName`           | string | game                    | No       | SQL API database name.                                        |
 | `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                       |
 | `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                     |
 | `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                            |

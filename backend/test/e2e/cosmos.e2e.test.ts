@@ -104,9 +104,9 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const player = await playerRepository.get(demoPlayerId)
             assert.ok(player, 'Player should exist after seed')
 
+            // Use first test location (player's currentLocationId may point to STARTER_LOCATION_ID which isn't in test blueprint)
             const locationRepository = await fixture.getLocationRepository()
-            const currentLocationId = player.currentLocationId || locations[0].id
-            const location = await locationRepository.get(currentLocationId)
+            const location = await locationRepository.get(locations[0].id)
 
             const duration = Date.now() - startTime
             fixture.trackPerformance('first-look', duration)

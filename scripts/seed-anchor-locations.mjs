@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 /**
  * Seed Script: Anchor Locations & Exits
- * 
+ *
  * Idempotent seeding of anchor locations and minimal EXIT edges via Gremlin/HTTP adapter.
  * Safe to re-run (no duplicate vertices/edges created).
- * 
+ *
  * Usage:
  *   node scripts/seed-anchor-locations.mjs [--mode=memory|cosmos] [--data=path/to/locations.json]
- * 
+ *
  * Environment Variables (for cosmos mode):
  *   PERSISTENCE_MODE=cosmos
  *   COSMOS_GREMLIN_ENDPOINT, COSMOS_GREMLIN_DATABASE, COSMOS_GREMLIN_GRAPH
  *   COSMOS_SQL_ENDPOINT, COSMOS_SQL_DATABASE, etc.
- * 
+ *
  * Exit Codes:
  *   0 - Success
  *   1 - Configuration or runtime error
  */
 
 import { readFile } from 'fs/promises'
-import { resolve, normalize } from 'path'
+import { normalize, resolve } from 'path'
 import { fileURLToPath } from 'url'
 
 /**
@@ -90,18 +90,18 @@ Examples:
         // Determine data file path
         const scriptDir = fileURLToPath(new URL('.', import.meta.url))
         const projectRoot = resolve(scriptDir, '..')
-        
+
         if (!dataPath) {
             // Default to villageLocations.json in backend
             dataPath = resolve(projectRoot, 'backend/src/data/villageLocations.json')
         } else {
             // Resolve and normalize user-provided path
             dataPath = resolve(projectRoot, dataPath)
-            
+
             // Security: Ensure the resolved path is within the project directory
             const normalizedPath = normalize(dataPath)
             const normalizedRoot = normalize(projectRoot) + '/'
-            
+
             if (!normalizedPath.startsWith(normalizedRoot) && normalizedPath !== normalize(projectRoot)) {
                 console.error(`❌ Error: Path '${dataPath}' is outside the project directory`)
                 console.error(`   For security reasons, only files within the project can be loaded.`)
@@ -110,7 +110,7 @@ Examples:
         }
 
         console.log(`Loading location data from: ${dataPath}`)
-        
+
         // Load location blueprint
         let blueprint
         try {
@@ -136,7 +136,7 @@ Examples:
         // Custom logger for capturing output
         const logs = []
         const log = (...args) => {
-            const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+            const msg = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
             logs.push(msg)
         }
 
@@ -147,7 +147,8 @@ Examples:
         const startTime = Date.now()
         const result = await seedWorld({
             blueprint,
-            log
+            log,
+            bulkMode: true // Enable bulk optimizations for faster initial seeding
         })
         const elapsedMs = Date.now() - startTime
 
@@ -173,7 +174,7 @@ Examples:
         if (logs.length > 0) {
             console.log()
             console.log('Additional Details:')
-            logs.forEach(l => console.log(`  ${l}`))
+            logs.forEach((l) => console.log(`  ${l}`))
         }
 
         console.log()
@@ -182,7 +183,6 @@ Examples:
         console.log()
 
         process.exit(0)
-
     } catch (error) {
         console.error()
         console.error('═══════════════════════════════════════════════════════════')
@@ -190,20 +190,20 @@ Examples:
         console.error('═══════════════════════════════════════════════════════════')
         console.error()
         console.error(`${error.message}`)
-        
+
         if (error.stack) {
             console.error()
             console.error('Stack trace:')
             console.error(error.stack)
         }
-        
+
         console.error()
         console.error('Troubleshooting:')
         console.error('  • Ensure backend dependencies are installed: cd backend && npm install')
         console.error('  • For cosmos mode, verify all required environment variables are set')
         console.error('  • Check that the location data file exists and is valid JSON')
         console.error()
-        
+
         process.exit(1)
     }
 }

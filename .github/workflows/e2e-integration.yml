@@ -34,13 +34,13 @@ jobs:
     timeout-minutes: 15
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Test-specific Cosmos configuration (world-test graph)
+      # Test-specific Cosmos configuration (world-test graph in game database)
       GREMLIN_ENDPOINT_TEST: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
-      GREMLIN_DATABASE_TEST: game-test
+      GREMLIN_DATABASE_TEST: game
       GREMLIN_GRAPH_TEST: world-test
       COSMOS_SQL_ENDPOINT_TEST: ${{ secrets.COSMOS_SQL_ENDPOINT }}
-      # Cosmos SQL container configuration
-      COSMOS_SQL_DATABASE: game-test
+      # Cosmos SQL container configuration (shared game database, isolated by partition keys)
+      COSMOS_SQL_DATABASE: game
       COSMOS_SQL_CONTAINER_PLAYERS: players
       COSMOS_SQL_CONTAINER_INVENTORY: inventory
       COSMOS_SQL_CONTAINER_LAYERS: descriptionLayers

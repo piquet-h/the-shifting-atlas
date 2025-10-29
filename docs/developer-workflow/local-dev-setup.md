@@ -136,26 +136,29 @@ npx tsx scripts/seed-production.ts
 
 ### Prerequisites
 
-- Backend dependencies must be installed: `cd backend && npm install`
-- For Cosmos mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables configured in `local.settings.json`
-- `PERSISTENCE_MODE=cosmos` must be set (or use `npm run use:cosmos` to switch)
+-   Backend dependencies must be installed: `cd backend && npm install`
+-   For Cosmos mode: Azure CLI authentication (`az login`) and appropriate Cosmos DB environment variables configured in `local.settings.json`
+-   `PERSISTENCE_MODE=cosmos` must be set (or use `npm run use:cosmos` to switch)
 
 ### Idempotency
 
 The script uses the `seedWorld` function which provides idempotency through:
-- `locationRepository.upsert()` - Creates or updates location vertices without duplicates
-- `locationRepository.ensureExit()` - Creates exits only if they don't already exist
+
+-   `locationRepository.upsert()` - Creates or updates location vertices without duplicates
+-   `locationRepository.ensureExit()` - Creates exits only if they don't already exist
 
 Re-running the script will:
-- Update existing location metadata if content hash changed
-- Skip creating exits that already exist
-- Not create duplicate vertices or edges
+
+-   Update existing location metadata if content hash changed
+-   Skip creating exits that already exist
+-   Not create duplicate vertices or edges
 
 See [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) for complete documentation including:
-- Detailed usage examples
-- Troubleshooting guide
-- Performance considerations
-- Integration with CI/CD
+
+-   Detailed usage examples
+-   Troubleshooting guide
+-   Performance considerations
+-   Integration with CI/CD
 
 ## Common Troubleshooting
 
@@ -167,11 +170,12 @@ See [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) for complete doc
 
 ## Related Documentation
 
-- [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) – Detailed world seeding guide
-- [Mosswell Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contracts & patterns
-- [Mosswell Migration Workflow](./mosswell-migration-workflow.md) – Evolving world data safely
-- [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player onboarding sequence
-- [Architecture Overview](../architecture/overview.md) – High-level system architecture
+-   [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) – Detailed world seeding guide
+-   [Mosswell Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contracts & patterns
+-   [Mosswell Migration Workflow](./mosswell-migration-workflow.md) – Evolving world data safely
+-   [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player onboarding sequence
+-   [Architecture Overview](../architecture/overview.md) – High-level system architecture
+
 ## E2E Integration Tests (Cosmos DB)
 
 End-to-end integration tests validate full traversal and persistence flows against real Cosmos DB (Gremlin + SQL API).
@@ -187,46 +191,56 @@ PERSISTENCE_MODE=cosmos npm run test:e2e
 
 ### Environment Setup for E2E Tests
 
-E2E tests require Cosmos DB connection configuration. Recommended approach: use separate test database.
+E2E tests require Cosmos DB connection configuration. The infrastructure uses a single `game` database with dedicated test isolation.
 
 **Environment Variables:**
 
 ```bash
-# Test-specific Cosmos endpoints (preferred)
-COSMOS_GREMLIN_ENDPOINT_TEST=https://your-test-cosmos.documents.azure.com:443/
-COSMOS_SQL_ENDPOINT_TEST=https://your-test-cosmos.documents.azure.com:443/
-COSMOS_DATABASE_TEST=game-test
-COSMOS_SQL_DATABASE_TEST=game-docs-test
+# Test-specific Cosmos endpoints
+GREMLIN_ENDPOINT_TEST=https://your-cosmos.documents.azure.com:443/
+COSMOS_SQL_ENDPOINT_TEST=https://your-cosmos.documents.azure.com:443/
 
-# Or fallback to production endpoints (use with caution)
-COSMOS_GREMLIN_ENDPOINT=https://cosmosgraph-atlas.documents.azure.com:443/
-COSMOS_SQL_ENDPOINT=https://cosmossql-atlas.documents.azure.com:443/
-COSMOS_GREMLIN_DATABASE=game
-COSMOS_SQL_DATABASE=game-docs
+# Database configuration (same database, different graph for tests)
+GREMLIN_DATABASE_TEST=game         # Same database as production
+GREMLIN_GRAPH_TEST=world-test      # Dedicated test graph container
+COSMOS_SQL_DATABASE=game           # Same database as production (isolation via partition keys)
 
 # Required for all Cosmos operations
 PERSISTENCE_MODE=cosmos
+NODE_ENV=test                      # Routes to 'test' partition
 ```
 
 **Authentication:**
-- Local: `az login` (uses your Azure AD identity)
-- CI: Managed Identity or Service Principal with Cosmos DB Data Contributor role
+
+-   Local: `az login` (uses your Azure AD identity)
+-   CI: Managed Identity or Service Principal with Cosmos DB Data Contributor role
 
 ### Test Database Strategy
 
-**Recommended:** Use a dedicated test database (`game-test`, `game-docs-test`) that can be wiped between test runs.
+**Architecture:** The infrastructure provisions:
+
+-   Single `game` database in Gremlin account with `world` (prod) and `world-test` (test) graphs
+-   Single `game` database in SQL account with shared containers (test data isolated by partition keys)
+
+**Test Isolation:**
+
+-   Dedicated `world-test` graph container for Gremlin test data
+-   `NODE_ENV=test` routes to `test` partition
+-   Test entity IDs prefixed with `e2e-` for easy identification
 
 **Test Data Cleanup:**
-- Current implementation logs test entity IDs for monitoring
-- Manual cleanup: use logged IDs to remove test data via Azure Portal or scripts
-- Future enhancement: automated cleanup when repository delete methods are available
+
+-   Test graph (`world-test`) can be wiped independently from production
+-   Manual cleanup via Azure Portal or scripts using logged entity IDs
+-   Future enhancement: automated cleanup when repository delete methods are available
 
 ### Performance Targets (p95)
 
 E2E tests track performance metrics against acceptance criteria:
-- Full suite: <90s
-- Single move operation: <500ms
-- LOOK query: <200ms
+
+-   Full suite: <90s
+-   Single move operation: <500ms
+-   LOOK query: <200ms
 
 **Note:** Performance may vary based on Cosmos DB provisioning (RU/s) and network latency.
 
@@ -234,23 +248,24 @@ E2E tests track performance metrics against acceptance criteria:
 
 Per issue #170 acceptance criteria:
 
-- **On PR:** Run unit tests only (fast feedback)
-- **On merge to main:** Run E2E suite (post-merge validation)
-- **Nightly:** Run E2E + extended scenarios (cost-optimized)
+-   **On PR:** Run unit tests only (fast feedback)
+-   **On merge to main:** Run E2E suite (post-merge validation)
+-   **Nightly:** Run E2E + extended scenarios (cost-optimized)
 
 This policy balances CI speed with comprehensive validation while managing Cosmos DB costs.
 
 ### Test Coverage
 
 E2E tests validate:
-- ✓ World seeding (≥5 locations with exits)
-- ✓ Player bootstrap → location lookup → first LOOK (cold start)
-- ✓ Multi-hop traversal (move 3+ times, verify location updates)
-- ✓ Exit validation (missing exits return errors)
-- ✓ Concurrent operations (2+ players moving simultaneously)
-- ✓ Telemetry emission (Application Insights integration)
-- ✓ Cosmos throttling tolerance (429 retry handling)
-- ✓ Partition key strategy (per ADR-002)
+
+-   ✓ World seeding (≥5 locations with exits)
+-   ✓ Player bootstrap → location lookup → first LOOK (cold start)
+-   ✓ Multi-hop traversal (move 3+ times, verify location updates)
+-   ✓ Exit validation (missing exits return errors)
+-   ✓ Concurrent operations (2+ players moving simultaneously)
+-   ✓ Telemetry emission (Application Insights integration)
+-   ✓ Cosmos throttling tolerance (429 retry handling)
+-   ✓ Partition key strategy (per ADR-002)
 
 ## Next Steps
 

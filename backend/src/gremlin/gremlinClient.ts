@@ -26,6 +26,12 @@ export interface IGremlinClient {
      * @returns Array of query results
      */
     submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]>
+
+    /**
+     * Closes the Gremlin connection.
+     * Should be called during cleanup to properly release resources.
+     */
+    close(): Promise<void>
 }
 
 /**
@@ -53,6 +59,18 @@ export class GremlinClient implements IGremlinClient {
         const internalClient = this.connection as unknown as GremlinInternalClient<T>
         const raw = await internalClient._client.submit(query, bindings)
         return raw._items
+    }
+
+    async close(): Promise<void> {
+        if (this.connection) {
+            try {
+                await this.connection.close()
+            } catch (error) {
+                // Log but don't throw - cleanup should be best-effort
+                console.warn('Error closing Gremlin connection:', error)
+            }
+            this.connection = undefined
+        }
     }
 
     private async initialize(): Promise<void> {

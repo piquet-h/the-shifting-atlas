@@ -1,6 +1,7 @@
 import tsPlugin from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
 import prettierPlugin from 'eslint-plugin-prettier'
+import cosmosGremlinRepoConstructorRule from '../eslint-rules/cosmos-gremlin-repo-constructor.mjs'
 import handlersMustExtendBaseRule from '../eslint-rules/handlers-must-extend-base.mjs'
 import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
@@ -21,7 +22,8 @@ export default [
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-direct-secret-access': noDirectSecretAccessRule,
-                    'handlers-must-extend-base': handlersMustExtendBaseRule
+                    'handlers-must-extend-base': handlersMustExtendBaseRule,
+                    'cosmos-gremlin-repo-constructor': cosmosGremlinRepoConstructorRule
                 }
             }
         },
@@ -33,7 +35,8 @@ export default [
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error',
-            'internal/handlers-must-extend-base': 'error'
+            'internal/handlers-must-extend-base': 'error',
+            'internal/cosmos-gremlin-repo-constructor': 'error'
         }
     },
     {

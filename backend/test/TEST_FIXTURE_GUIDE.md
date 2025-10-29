@@ -122,10 +122,10 @@ Use for end-to-end tests against real Cosmos DB. Requires test credentials.
 ```bash
 # Required for E2E tests
 export GREMLIN_ENDPOINT_TEST=https://your-test-cosmos.documents.azure.com:443/
-export GREMLIN_DATABASE_TEST=game-test  # Use separate test database
-export GREMLIN_GRAPH_TEST=world-test    # Dedicated test graph
+export GREMLIN_DATABASE_TEST=game  # Same database as prod
+export GREMLIN_GRAPH_TEST=world-test    # Dedicated test graph within game database
 export COSMOS_SQL_ENDPOINT_TEST=https://your-test-cosmos-sql.documents.azure.com:443/
-export COSMOS_SQL_DATABASE_TEST=game-docs-test
+export COSMOS_SQL_DATABASE=game  # Same database as prod (isolation via partition keys)
 export NODE_ENV=test  # Routes to 'test' partition
 export PERSISTENCE_MODE=cosmos
 ```
