@@ -2,6 +2,31 @@
 
 End-to-end integration tests running against real Cosmos DB (Gremlin + SQL API) to validate full traversal and persistence flows.
 
+## Purpose & Scope
+
+E2E tests validate **production-readiness** with real Cosmos DB, focusing on:
+
+✅ **Critical user journeys** (move, look, bootstrap)  
+✅ **Real database behavior** (concurrency, throttling, latency)  
+✅ **Performance benchmarking** (p95 latency targets)  
+✅ **Infrastructure validation** (partition keys, retry mechanisms)
+
+❌ **NOT in scope** (covered by unit/integration tests):
+- Input validation → See `backend/test/integration/moveValidation.test.ts`
+- Error handling → See `backend/test/unit/performMove.core.test.ts`
+- Telemetry emission → See `backend/test/integration/performMove.telemetry.test.ts`
+
+**Rationale:** E2E tests are expensive (time + cost). Keep them focused on what cannot be tested with mocks or in-memory repositories.
+
+## Test Philosophy
+
+Follow the **test pyramid**:
+- **Unit tests (70%):** Fast, isolated, logic validation
+- **Integration tests (25%):** Medium speed, service layer, in-memory repositories
+- **E2E tests (5%):** Slow, expensive, production-readiness only
+
+**See:** `docs/testing/test-strategy.md` for complete test strategy guidelines.
+
 ## Architecture
 
 - **Test Graph**: `world-test` (dedicated Gremlin graph container, separate from production `world`)
@@ -52,24 +77,28 @@ npm run test:e2e
 - Move 3+ times and verify location updates
 - Performance: Move operation <500ms (p95)
 
-### ✓ Exit Validation
-
-- Missing exit returns error (no-exit)
-- Invalid direction returns error
-
 ### ✓ Concurrent Operations
 
 - 2 players move simultaneously without state corruption
 - Concurrent location lookups return consistent data
 
-### ✓ Telemetry Emission
-
-- Operations emit telemetry events to Application Insights
-
 ### ✓ Performance & Reliability
 
 - Cosmos throttling (429) handled via SDK retry
 - Partition key strategy validated per ADR-002
+
+### ❌ Migrated to Integration Layer
+
+The following tests were **moved to integration tests** for faster feedback:
+
+- **Exit validation** (missing exit, invalid direction) → `backend/test/integration/moveValidation.test.ts`
+  - Rationale: Input validation doesn't require real Cosmos DB
+  - 10x faster (50ms vs 500ms per test)
+  
+- **Telemetry emission** → Removed (already covered by `backend/test/integration/performMove.telemetry.test.ts`)
+  - Rationale: E2E test only checked client availability, no unique validation
+
+**See:** `docs/testing/test-inventory-analysis.md` for detailed migration analysis.
 
 ## Environment Variables
 
