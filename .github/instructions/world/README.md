@@ -4,8 +4,8 @@ This directory contains Copilot instructions specific to world design, lore gene
 
 ## Files
 
-- `.instructions.md` - Comprehensive world design and content generation guidelines
-- `README.md` - This index file
+-   `.instructions.md` - Comprehensive world design and content generation guidelines
+-   `README.md` - This index file
 
 These instructions help ensure all generated world content maintains narrative consistency, integrates properly with D&D mechanics, and supports the game's core vision of emergent storytelling in a persistent, AI-driven fantasy world.
 
