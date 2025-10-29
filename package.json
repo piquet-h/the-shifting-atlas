@@ -1,0 +1,13 @@
+{
+  "name": "the-shifting-atlas-root",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "verify:instructions": "node scripts/verify-instructions.mjs",
+    "verify:instructions:json": "node scripts/verify-instructions.mjs --format json"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

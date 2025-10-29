@@ -438,3 +438,4 @@ container.bind<ILogger>(TYPES.Logger).to(FileLogger).whenTargetNamed('file')
 // Inject
 constructor(@inject(TYPES.Logger) @named('console') logger: ILogger) {}
 ```
+_Last reviewed: 2025-10-29_

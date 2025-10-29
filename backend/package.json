@@ -24,7 +24,8 @@
         "predev": "npm run build",
         "dev": "concurrently -k -n tsc,host -c yellow,blue \"npm:watch\" \"func start\"",
         "dev:fullstack": "npm run build && concurrently -k -n backend,frontend -c blue,magenta \"func start\" \"cd ../frontend && npm run dev\"",
-        "start": "npm run build && func start"
+        "start": "npm run build && func start",
+        "verify:instructions": "node ../scripts/verify-instructions.mjs"
     },
     "engines": {
         "node": "20.x",

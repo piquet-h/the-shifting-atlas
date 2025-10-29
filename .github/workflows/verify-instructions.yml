@@ -1,0 +1,41 @@
+name: Verify instructions
+
+on:
+  pull_request:
+    paths:
+      - '.github/**/*.md'
+      - 'scripts/verify-instructions.mjs'
+  push:
+    paths:
+      - '.github/**/*.md'
+      - 'scripts/verify-instructions.mjs'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run verification (human)
+        run: node scripts/verify-instructions.mjs
+      - name: Run verification (json)
+        run: node scripts/verify-instructions.mjs --format json > verify.json
+      - name: Upload verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: instruction-verification
+          path: verify.json
+      - name: Fail on issues
+        run: |
+          status=$(jq -r '.status' verify.json || echo 'fail')
+          if [ "$status" != "pass" ]; then
+            echo 'Instruction verification failed'
+            if command -v jq >/dev/null 2>&1; then
+              jq '.issues' verify.json || true
+            else
+              cat verify.json || true
+            fi
+            exit 1
+          fi

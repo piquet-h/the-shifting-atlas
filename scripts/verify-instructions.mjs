@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-env node */
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 
 /**
  * Verification script for instruction files.
@@ -13,12 +13,28 @@ import { join, resolve } from 'node:path'
  * 5. Presence of Last reviewed marker per file
  */
 
-const ROOT = process.cwd()
+function findRepoRoot(startDir) {
+    let current = startDir
+    while (true) {
+        const candidate = resolve(current, '.github')
+        if (existsSync(candidate)) return current
+        const parent = dirname(current)
+        if (parent === current) return startDir // fallback
+        current = parent
+    }
+}
+
+const ROOT = findRepoRoot(process.cwd())
 const GITHUB_DIR = resolve(ROOT, '.github')
 const INSTRUCTIONS_DIR = resolve(GITHUB_DIR, 'instructions')
 
 const MAX_AGE_DAYS = 90
 const DUPLICATE_PHRASES = ['Partition keys', 'dual persistence', 'Azure Functions Runtime v4', 'Service Bus', 'Cosmos DB']
+// Whitelist: phrases allowed to appear in these relative paths without triggering duplication warning
+const PHRASE_WHITELIST = {
+    'Service Bus': ['.github/copilot-instructions.md', '.github/instructions/backend/.instructions.md'],
+    'Cosmos DB': ['.github/copilot-instructions.md', '.github/instructions/backend/.instructions.md']
+}
 const WORLD_INLINE_PROMPT_STARTERS = ['Generate a [terrain_type] location', 'Generate dialogue for [npc_name]', 'Create a [quest_type]']
 
 function listInstructionFiles() {
@@ -55,10 +71,11 @@ function daysSince(dateStr) {
 }
 
 function main() {
+    const issues = []
     let failed = false
     const files = listInstructionFiles()
 
-    const phraseCounts = Object.fromEntries(DUPLICATE_PHRASES.map((p) => [p, 0]))
+    const phraseOccurrences = Object.fromEntries(DUPLICATE_PHRASES.map((p) => [p, []]))
 
     for (const file of files) {
         let content
@@ -73,30 +90,26 @@ function main() {
         // Last reviewed check
         const lr = parseLastReviewed(content)
         if (!lr) {
-            process.stderr.write(`[verify-instructions] WARN missing Last reviewed marker: ${file}\n`)
+            issues.push({ type: 'missingLastReviewed', file: relativeToRoot(file) })
         } else {
             const age = daysSince(lr)
             if (age > MAX_AGE_DAYS) {
-                process.stderr.write(`[verify-instructions] STALE (${age}d) ${file} (last reviewed ${lr})\n`)
+                issues.push({ type: 'stale', file: relativeToRoot(file), ageDays: age, lastReviewed: lr })
                 failed = true
             }
         }
 
         // Deprecated DI patterns file check
-        if (file.endsWith('inversify-di-patterns.md')) {
-            if (!/DEPRECATION NOTICE/i.test(content)) {
-                process.stderr.write('[verify-instructions] MISSING deprecation banner in inversify-di-patterns.md\n')
-                failed = true
-            }
+        if (file.endsWith('inversify-di-patterns.md') && !/DEPRECATION NOTICE/i.test(content)) {
+            issues.push({ type: 'deprecationBannerMissing', file: relativeToRoot(file) })
+            failed = true
         }
 
         // World prompt inline check
         if (file.endsWith('world/.instructions.md')) {
             for (const starter of WORLD_INLINE_PROMPT_STARTERS) {
                 if (content.includes(starter)) {
-                    process.stderr.write(
-                        `[verify-instructions] INLINE PROMPT FOUND (“${starter}”) should be externalized in worldTemplates.ts\n`
-                    )
+                    issues.push({ type: 'inlinePrompt', file: relativeToRoot(file), starter })
                     failed = true
                 }
             }
@@ -104,26 +117,72 @@ function main() {
 
         // Phrase duplication counts
         for (const phrase of DUPLICATE_PHRASES) {
-            if (content.includes(phrase)) phraseCounts[phrase]++
+            if (content.includes(phrase)) phraseOccurrences[phrase].push(relativeToRoot(file))
         }
     }
 
-    // Duplication report
-    for (const [phrase, count] of Object.entries(phraseCounts)) {
+    // Duplication report with whitelist consideration
+    for (const [phrase, filesWithPhrase] of Object.entries(phraseOccurrences)) {
+        const count = filesWithPhrase.length
         if (count > 3) {
-            // threshold; appears broadly
-            process.stderr.write(
-                `[verify-instructions] DUPLICATION: phrase “${phrase}” appears in ${count} instruction files (consider slimming)\n`
-            )
+            const whitelist = PHRASE_WHITELIST[phrase] || []
+            const allWhitelisted = filesWithPhrase.every((f) => whitelist.includes(f))
+            if (!allWhitelisted) {
+                issues.push({ type: 'duplication', phrase, count, files: filesWithPhrase })
+            }
+        }
+    }
+
+    const jsonMode = process.argv.includes('--json') || process.env.VERIFY_INSTRUCTIONS_JSON === '1'
+    if (jsonMode) {
+        const result = {
+            status: failed ? 'fail' : 'pass',
+            issues,
+            root: ROOT,
+            timestamp: new Date().toISOString()
+        }
+        process.stdout.write(JSON.stringify(result, null, 2) + '\n')
+        process.exit(failed ? 1 : 0)
+    }
+
+    // Human-readable output
+    for (const issue of issues) {
+        switch (issue.type) {
+            case 'missingLastReviewed':
+                process.stderr.write(`[verify-instructions] WARN missing Last reviewed marker: ${issue.file}\n`)
+                break
+            case 'stale':
+                process.stderr.write(
+                    `[verify-instructions] STALE (${issue.ageDays}d) ${issue.file} (last reviewed ${issue.lastReviewed})\n`
+                )
+                break
+            case 'deprecationBannerMissing':
+                process.stderr.write('[verify-instructions] MISSING deprecation banner in inversify-di-patterns.md\n')
+                break
+            case 'inlinePrompt':
+                process.stderr.write(
+                    `[verify-instructions] INLINE PROMPT FOUND ("${issue.starter}") in ${issue.file} – use worldTemplates.ts\n`
+                )
+                break
+            case 'duplication':
+                process.stderr.write(
+                    `[verify-instructions] DUPLICATION: phrase "${issue.phrase}" appears in ${issue.count} files: ${issue.files.join(
+                        ', '
+                    )} (consider slimming)\n`
+                )
+                break
         }
     }
 
     if (failed) {
         process.stderr.write('[verify-instructions] FAIL – issues detected.\n')
         process.exit(1)
-    } else {
-        process.stdout.write('[verify-instructions] PASS – all checks OK.\n')
     }
+    process.stdout.write('[verify-instructions] PASS – all checks OK.\n')
 }
 
 main()
+
+function relativeToRoot(absPath) {
+    return absPath.startsWith(ROOT) ? absPath.slice(ROOT.length + 1) : absPath
+}

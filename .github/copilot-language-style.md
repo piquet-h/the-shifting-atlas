@@ -131,3 +131,5 @@ Prefer a minimal, well-typed stub + TODO with pointer to relevant doc rather tha
 ---
 
 Update this file when adding a new language, style shift, or enabling/disabling Copilot inline suggestions globally. Keep the compact and quickref guides free from per-language verbosity.
+
+_Last reviewed: 2025-10-29_
