@@ -95,15 +95,42 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
             const locationRepository = await fixture.getLocationRepository()
 
-            // Validate each location exists and has expected exits
+            // Helper: retry location retrieval when exit count mismatch (handles transient Gremlin exit query failures)
+            async function getWithExitRetry(id: string, expectedExitCount: number, maxAttempts = 3, delayMs = 100) {
+                let last: Awaited<ReturnType<typeof locationRepository.get>> | undefined
+                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                    last = await locationRepository.get(id)
+                    if (!last) return undefined
+                    const actualCount = last.exits?.length || 0
+                    // If expected is zero, or counts match, or partial (non-zero) mismatch persists beyond first attempt, decide whether to continue
+                    if (expectedExitCount === 0 || actualCount === expectedExitCount) {
+                        return last
+                    }
+                    // Only treat zero/empty exits as potentially transient when we expect >0
+                    if (actualCount === 0 && expectedExitCount > 0 && attempt < maxAttempts) {
+                        await new Promise((r) => setTimeout(r, delayMs))
+                        continue
+                    }
+                    // Partial mismatch (e.g., some exits present) – no retry, return immediately for assertion
+                    return last
+                }
+                return last
+            }
+
+            // Validate each location exists and has expected exits (with retry for transient empty exit lists)
             for (const loc of locations) {
-                const retrieved = await locationRepository.get(loc.id)
+                const expectedExitCount = loc.exits?.length || 0
+                const retrieved = await getWithExitRetry(loc.id, expectedExitCount)
                 assert.ok(retrieved, `Location ${loc.id} should exist after seeding`)
                 assert.equal(retrieved.name, loc.name, 'Location name matches')
 
-                // Validate exits were created
-                const expectedExitCount = loc.exits?.length || 0
+                // Validate exits were created (after retries)
                 const actualExitCount = retrieved.exits?.length || 0
+                if (actualExitCount !== expectedExitCount && expectedExitCount > 0) {
+                    console.error(
+                        `Exit count mismatch after retries for ${loc.id}: expected ${expectedExitCount}, actual ${actualExitCount}`
+                    )
+                }
                 assert.equal(
                     actualExitCount,
                     expectedExitCount,

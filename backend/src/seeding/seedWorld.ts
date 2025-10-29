@@ -37,15 +37,20 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
     let exitsCreated = 0
     const locationsWithExits = new Set<string>()
 
-    for (const loc of blueprint) {
-        const up = await locRepo.upsert(loc)
-        if (up.created) locationVerticesCreated++
-        if (loc.exits) {
+    if (bulkMode) {
+        // Phase 1: Upsert all vertices first so exit creation is guaranteed to succeed
+        for (const loc of blueprint) {
+            const up = await locRepo.upsert(loc)
+            if (up.created) locationVerticesCreated++
+        }
+        // Phase 2: Apply exits once all vertices exist (skip vertex checks & defer cache regen)
+        for (const loc of blueprint) {
+            if (!loc.exits) continue
             for (const ex of loc.exits) {
                 if (!ex.to || !ex.direction) continue
                 const ec = await locRepo.ensureExit(loc.id, ex.direction, ex.to, ex.description, {
-                    skipVertexCheck: bulkMode, // Skip vertex checks - we just upserted them
-                    deferCacheRegen: bulkMode // Defer cache regen until the end
+                    skipVertexCheck: true,
+                    deferCacheRegen: true
                 })
                 if (ec.created) {
                     exitsCreated++
@@ -53,13 +58,30 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
                 }
             }
         }
-    }
-
-    // In bulk mode, regenerate all exit caches at the end (one query per affected location)
-    if (bulkMode && locationsWithExits.size > 0) {
-        log(`seedWorld: regenerating exit caches for ${locationsWithExits.size} locations`)
-        for (const locId of locationsWithExits) {
-            await locRepo.regenerateExitsSummaryCache(locId)
+        // Regenerate exit summary caches once at end
+        if (locationsWithExits.size > 0) {
+            log(`seedWorld: regenerating exit caches for ${locationsWithExits.size} locations`)
+            for (const locId of locationsWithExits) {
+                await locRepo.regenerateExitsSummaryCache(locId)
+            }
+        }
+    } else {
+        // Non-bulk mode: original one-pass behavior (simpler & fine for small blueprints)
+        for (const loc of blueprint) {
+            const up = await locRepo.upsert(loc)
+            if (up.created) locationVerticesCreated++
+            if (!loc.exits) continue
+            for (const ex of loc.exits) {
+                if (!ex.to || !ex.direction) continue
+                const ec = await locRepo.ensureExit(loc.id, ex.direction, ex.to, ex.description, {
+                    skipVertexCheck: false,
+                    deferCacheRegen: false
+                })
+                if (ec.created) {
+                    exitsCreated++
+                    locationsWithExits.add(loc.id)
+                }
+            }
         }
     }
 
