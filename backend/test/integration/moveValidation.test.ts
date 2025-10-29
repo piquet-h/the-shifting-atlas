@@ -237,7 +237,7 @@ describe('Move Validation', () => {
                 } catch (error: any) {
                     if (error.message.includes('429') && attempts < maxAttempts) {
                         // Retry after small delay (simulating SDK retry behavior)
-                        await new Promise(resolve => setTimeout(resolve, 50))
+                        await new Promise((resolve) => setTimeout(resolve, 50))
                         continue
                     }
                     throw error
@@ -248,13 +248,13 @@ describe('Move Validation', () => {
             assert.ok(result, 'Should eventually retrieve location after 429 retry')
             assert.equal(result?.id, locations[0].id, 'Retrieved location should match requested ID')
             assert.ok(attempts > 1, 'Should have required retry after initial 429 error')
-            
+
             console.log(`✓ Successfully handled 429 with ${attempts} attempts`)
         })
 
         test('repository gracefully handles persistent throttling', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            
+
             // Mock a repository that always returns 429
             let callCount = 0
             locationRepo.get = async () => {
@@ -273,7 +273,7 @@ describe('Move Validation', () => {
                 } catch (e: any) {
                     error = e
                     if (attempt < maxAttempts - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 50))
+                        await new Promise((resolve) => setTimeout(resolve, 50))
                     }
                 }
             }
@@ -282,7 +282,7 @@ describe('Move Validation', () => {
             assert.ok(error, 'Should preserve error after all retries exhausted')
             assert.ok(error?.message.includes('429'), 'Error should indicate throttling')
             assert.equal(callCount, maxAttempts, `Should have attempted ${maxAttempts} times`)
-            
+
             console.log(`✓ Gracefully failed after ${maxAttempts} throttled attempts`)
         })
     })
