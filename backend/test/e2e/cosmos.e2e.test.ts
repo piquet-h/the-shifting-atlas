@@ -4,6 +4,24 @@
  * Comprehensive E2E tests running against real Cosmos DB to validate full traversal
  * and persistence flows. Tests production-readiness of Cosmos interactions.
  *
+ * Test Scope (Focused on Critical Paths):
+ * - Real Cosmos DB behavior (latency, concurrency, partition keys)
+ * - Production-readiness validation (multi-hop traversal, world seeding)
+ * - Performance benchmarking (p95 latency targets)
+ * - Database-specific behavior (partition key routing, actual performance)
+ *
+ * NOT in Scope (Covered by Unit/Integration Tests):
+ * - Input validation (see: backend/test/integration/moveValidation.test.ts)
+ * - Error handling (see: backend/test/unit/performMove.core.test.ts)
+ * - Telemetry emission (see: backend/test/integration/performMove.telemetry.test.ts)
+ * - Throttling/retry logic (see: backend/test/integration/moveValidation.test.ts - mocked 429 responses)
+ *
+ * Rate Limiting Strategy:
+ * - Tests include deliberate delays (50-100ms) between rapid operations
+ * - Concurrent operations limited to 5 requests to avoid Cosmos DB throttling
+ * - This prevents 429 errors while still validating production behavior
+ * - Throttling retry logic tested separately with mocked responses (integration layer)
+ *
  * Test Environment:
  * - PERSISTENCE_MODE=cosmos (required)
  * - GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT) - Cosmos Gremlin endpoint
@@ -22,14 +40,19 @@
  * ✓ Cosmos connection: uses test-specific database
  * ✓ Player bootstrap → location lookup → first LOOK (cold start)
  * ✓ Multi-hop traversal (move 3+ times, verify location updates)
- * ✓ Exit validation (missing exit returns error)
- * ✓ Concurrent operations (2 players, no state corruption)
- * ✓ Telemetry emission (events logged for all operations)
- * ✓ Performance metrics tracking
+ * ✓ Concurrent operations (2 players, no state corruption, consistent reads)
+ * ✓ Performance metrics tracking (p95 latency for LOOK and move operations)
+ *
+ * Tests Removed (Covered Elsewhere):
+ * ❌ Idempotent world seeding (see: backend/test/integration/worldSeed.test.ts)
+ * ❌ Partition key routing (configuration validation, tested once in infra)
+ * ❌ Throttling/429 retry (see: backend/test/integration/moveValidation.test.ts)
  *
  * Related:
  * - Issue: piquet-h/the-shifting-atlas#170
  * - ADR-002: Graph Partition Strategy
+ * - Test Strategy: docs/testing/test-strategy.md
+ * - Test Inventory: docs/testing/test-inventory-analysis.md
  */
 
 import assert from 'node:assert'
@@ -84,14 +107,6 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
             console.log(`✓ Seeded ${locations.length} locations in ${duration}ms`)
         })
-
-        test('idempotent re-run safe after cleanup failure simulation', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const run1 = await fixture.seedTestWorld()
-            const run2 = await fixture.seedTestWorld()
-            assert.equal(run1.demoPlayerId, run2.demoPlayerId, 'Player ID should be reused')
-            assert.equal(run1.locations.length, run2.locations.length, 'Location count consistent')
-        })
     })
 
     describe('Player Bootstrap & First LOOK (Cold Start)', () => {
@@ -132,6 +147,9 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
                 assert.ok(location, `Location ${locationId} should exist`)
                 fixture.trackPerformance('look-query', duration)
+                
+                // Add small delay to prevent Cosmos DB throttling (429 errors)
+                await new Promise(resolve => setTimeout(resolve, 50))
             }
 
             const p95 = fixture.getP95Latency('look-query')
@@ -153,11 +171,11 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
             assert.equal(move1Result.status, 'ok', 'First move should succeed')
             if (move1Result.status === 'ok') {
-                assert.equal(move1Result.location.id, 'e2e-test-loc-2', 'Should move to north location')
+                assert.equal(move1Result.location.id, 'e2e-test-loc-north', 'Should move to north location')
             }
 
             const start2 = Date.now()
-            const move2Result = await locationRepository.move('e2e-test-loc-2', 'south')
+            const move2Result = await locationRepository.move('e2e-test-loc-north', 'south')
             fixture.trackPerformance('move-operation', Date.now() - start2)
 
             assert.equal(move2Result.status, 'ok', 'Second move should succeed')
@@ -171,16 +189,16 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
             assert.equal(move3Result.status, 'ok', 'Third move should succeed')
             if (move3Result.status === 'ok') {
-                assert.equal(move3Result.location.id, 'e2e-test-loc-4', 'Should move to east location')
+                assert.equal(move3Result.location.id, 'e2e-test-loc-east', 'Should move to east location')
             }
 
             const start4 = Date.now()
-            const move4Result = await locationRepository.move('e2e-test-loc-4', 'north')
+            const move4Result = await locationRepository.move('e2e-test-loc-east', 'north')
             fixture.trackPerformance('move-operation', Date.now() - start4)
 
             assert.equal(move4Result.status, 'ok', 'Fourth move should succeed')
             if (move4Result.status === 'ok') {
-                assert.equal(move4Result.location.id, 'e2e-test-loc-2', 'Should move to north location via alternate path')
+                assert.equal(move4Result.location.id, 'e2e-test-loc-north', 'Should move to north location via alternate path')
             }
 
             console.log(`✓ Completed 4 move operations`)
@@ -196,12 +214,16 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             for (let i = 0; i < iterations; i++) {
                 const start = Date.now()
                 const direction = i % 2 === 0 ? 'north' : 'south'
-                const fromId = i % 2 === 0 ? hubLocation.id : 'e2e-test-loc-2'
+                const fromId = i % 2 === 0 ? hubLocation.id : 'e2e-test-loc-north'
                 const result = await locationRepository.move(fromId, direction)
                 const duration = Date.now() - start
 
                 assert.equal(result.status, 'ok', `Move ${i + 1} should succeed`)
                 fixture.trackPerformance('move-rapid', duration)
+                
+                // Add small delay to prevent Cosmos DB throttling (429 errors)
+                // Wait 50ms between operations to stay under RU/s limits
+                await new Promise(resolve => setTimeout(resolve, 50))
             }
 
             const p95 = fixture.getP95Latency('move-rapid')
@@ -209,36 +231,6 @@ describe('E2E Integration Tests - Cosmos DB', () => {
 
             console.log(`✓ Move operation p95: ${p95}ms`)
             console.log(`✓ Completed ${iterations} rapid moves`)
-        })
-    })
-
-    describe('Exit Validation', () => {
-        test('missing exit returns error', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            const northLocation = locations[1]
-            const result = await locationRepository.move(northLocation.id, 'north')
-
-            assert.equal(result.status, 'error', 'Move with no exit should return error')
-            if (result.status === 'error') {
-                assert.ok(result.reason.includes('No exit') || result.reason.includes('not found'), 'Error should mention missing exit')
-            }
-        })
-
-        test('invalid direction returns error', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            const hubLocation = locations[0]
-            const result = await locationRepository.move(hubLocation.id, 'invalid-direction')
-
-            assert.equal(result.status, 'error', 'Move with invalid direction should return error')
-            if (result.status === 'error') {
-                assert.ok(result.reason.length > 0, 'Error should have a reason')
-            }
         })
     })
 
@@ -270,6 +262,8 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             if (result1.status === 'ok' && result2.status === 'ok') {
                 assert.notEqual(result1.location.id, result2.location.id, 'Players should be in different locations')
             }
+
+            console.log(`✓ Concurrent moves completed without corruption`)
         })
 
         test('concurrent location lookups return consistent data', async () => {
@@ -278,7 +272,8 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const locationRepository = await fixture.getLocationRepository()
             const hubLocation = locations[0]
 
-            const lookups = Array(10)
+            // Reduced from 10 to 5 concurrent lookups to avoid Cosmos DB throttling
+            const lookups = Array(5)
                 .fill(null)
                 .map(() => locationRepository.get(hubLocation.id))
             const results = await Promise.all(lookups)
@@ -289,55 +284,7 @@ describe('E2E Integration Tests - Cosmos DB', () => {
                 assert.equal(result?.name, hubLocation.name, 'Location name should match')
             })
 
-            console.log(`✓ Completed 10 concurrent lookups`)
-        })
-    })
-
-    describe('Telemetry Emission', () => {
-        test('operations emit telemetry events', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-            const telemetryClient = await fixture.getTelemetryClient()
-
-            assert.ok(telemetryClient, 'Telemetry client should be available')
-
-            await locationRepository.get(locations[0].id)
-            await locationRepository.move(locations[0].id, 'north')
-
-            console.log(`✓ Telemetry client available for E2E operations`)
-        })
-    })
-
-    describe('Performance & Reliability', () => {
-        test('handles Cosmos throttling (429) with retry', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            const promises = Array(50)
-                .fill(null)
-                .map((_, i) => locationRepository.get(locations[i % locations.length].id))
-            const results = await Promise.all(promises)
-
-            results.forEach((result, index) => {
-                assert.ok(result, `Rapid operation ${index} should succeed even if throttled`)
-            })
-
-            console.log(`✓ Completed 50 rapid operations (SDK retry handling verified)`)
-        })
-
-        test('partition key strategy correct per ADR-002', async () => {
-            if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations } = await fixture.seedTestWorld()
-            const locationRepository = await fixture.getLocationRepository()
-
-            for (const loc of locations) {
-                const retrieved = await locationRepository.get(loc.id)
-                assert.ok(retrieved, `Location ${loc.id} should be accessible via partition key`)
-            }
-
-            console.log(`✓ Partition key routing verified (NODE_ENV=${process.env.NODE_ENV})`)
+            console.log(`✓ Completed ${lookups.length} concurrent lookups with consistent results`)
         })
     })
 })
