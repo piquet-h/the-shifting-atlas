@@ -42,38 +42,115 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
     }
 
     async get(id: string): Promise<Location | undefined> {
-        const vertices = await this.query<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
-        if (!vertices || vertices.length === 0) return undefined
-        const v = vertices[0]
-        const exitsRaw = await this.query<Record<string, unknown>>(
-            "g.V(locationId).outE('exit').project('direction','to','description').by(values('direction')).by(inV().id()).by(values('description'))",
-            { locationId: id }
-        )
-        const exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
-            direction: String(e.direction as string),
-            to: String(e.to as string),
-            description: e.description ? String(e.description as string) : undefined
-        }))
-        return {
-            id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Location',
-            description: firstScalar(v.description) || '',
-            exits,
-            tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
-            version: typeof v.version === 'number' ? v.version : undefined,
-            exitsSummaryCache: firstScalar(v.exitsSummaryCache) as string | undefined
+        try {
+            const vertices = await this.query<Record<string, unknown>>('g.V(locationId).valueMap(true)', { locationId: id })
+            if (!vertices || vertices.length === 0) {
+                console.debug(`[LocationRepository.get] Location not found: ${id}`)
+                return undefined
+            }
+            const v = vertices[0]
+            
+            // Fetch exits with better error handling and coalesce for optional properties
+            let exits: Array<{ direction: string; to?: string; description?: string }> = []
+            try {
+                const exitsRaw = await this.query<Record<string, unknown>>(
+                    "g.V(locationId).outE('exit').project('direction','to','description')" +
+                    ".by(values('direction')).by(inV().id())" +
+                    ".by(coalesce(values('description'), constant('')))",
+                    { locationId: id }
+                )
+                exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
+                    direction: String(e.direction as string),
+                    to: String(e.to as string),
+                    description: e.description ? String(e.description as string) : undefined
+                }))
+                
+                console.debug(`[LocationRepository.get] Location ${id} has ${exits.length} exits`)
+            } catch (error) {
+                console.error(`[LocationRepository.get] Error fetching exits for location ${id}:`, error)
+                // Return location without exits rather than failing completely
+                exits = []
+            }
+            
+            return {
+                id: String(v.id || v['id']),
+                name: firstScalar(v.name) || 'Unknown Location',
+                description: firstScalar(v.description) || '',
+                exits,
+                tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
+                version: typeof v.version === 'number' ? v.version : undefined,
+                exitsSummaryCache: firstScalar(v.exitsSummaryCache) as string | undefined
+            }
+        } catch (error) {
+            console.error(`[LocationRepository.get] Error fetching location ${id}:`, error)
+            throw error // Re-throw so callers can handle appropriately
         }
     }
 
     async move(fromId: string, direction: string) {
-        if (!isDirection(direction)) return { status: 'error', reason: 'no-exit' } as const
-        const from = await this.get(fromId)
-        if (!from) return { status: 'error', reason: 'from-missing' } as const
-        const exit = from.exits?.find((e) => e.direction === direction)
-        if (!exit || !exit.to) return { status: 'error', reason: 'no-exit' } as const
-        const dest = await this.get(exit.to)
-        if (!dest) return { status: 'error', reason: 'target-missing' } as const
-        return { status: 'ok', location: dest } as const
+        try {
+            // Validate direction first (cheap operation)
+            if (!isDirection(direction)) {
+                console.warn(`[LocationRepository.move] Invalid direction: ${direction} from location: ${fromId}`)
+                return { status: 'error', reason: 'no-exit' } as const
+            }
+
+            // Get source location with detailed error logging
+            let from: Location | undefined
+            try {
+                from = await this.get(fromId)
+            } catch (error) {
+                console.error(`[LocationRepository.move] Error fetching source location ${fromId}:`, error)
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                return { status: 'error', reason: `from-location-query-failed: ${errorMessage}` } as const
+            }
+
+            if (!from) {
+                console.warn(`[LocationRepository.move] Source location not found: ${fromId}`)
+                return { status: 'error', reason: 'from-missing' } as const
+            }
+
+            // Log current location state for debugging
+            console.debug(`[LocationRepository.move] Source location ${fromId} has ${from.exits?.length || 0} exits`)
+
+            // Find exit in the specified direction
+            const exit = from.exits?.find((e) => e.direction === direction)
+            if (!exit || !exit.to) {
+                console.warn(
+                    `[LocationRepository.move] No exit in direction '${direction}' from location ${fromId}. ` +
+                    `Available exits: ${from.exits?.map((e) => e.direction).join(', ') || 'none'}`
+                )
+                return { status: 'error', reason: 'no-exit' } as const
+            }
+
+            console.debug(`[LocationRepository.move] Found exit: ${fromId} --${direction}--> ${exit.to}`)
+
+            // Get destination location with detailed error logging
+            let dest: Location | undefined
+            try {
+                dest = await this.get(exit.to)
+            } catch (error) {
+                console.error(`[LocationRepository.move] Error fetching destination location ${exit.to}:`, error)
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                return { status: 'error', reason: `target-location-query-failed: ${errorMessage}` } as const
+            }
+
+            if (!dest) {
+                console.error(
+                    `[LocationRepository.move] Destination location not found: ${exit.to}. ` +
+                    `This indicates a broken exit link in the graph.`
+                )
+                return { status: 'error', reason: 'target-missing' } as const
+            }
+
+            console.debug(`[LocationRepository.move] Move successful: ${fromId} --> ${dest.id} (${dest.name})`)
+            return { status: 'ok', location: dest } as const
+        } catch (error) {
+            // Catch any unexpected errors (should be rare after specific error handling above)
+            console.error(`[LocationRepository.move] Unexpected error during move operation:`, error)
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            return { status: 'error', reason: `unexpected-error: ${errorMessage}` } as const
+        }
     }
 
     /** Upsert (idempotent) a location vertex. */

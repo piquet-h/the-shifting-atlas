@@ -94,10 +94,48 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             assert.ok(locations.length >= 5, `Expected ≥5 locations, got ${locations.length}`)
 
             const locationRepository = await fixture.getLocationRepository()
+            
+            // Validate each location exists and has expected exits
             for (const loc of locations) {
                 const retrieved = await locationRepository.get(loc.id)
                 assert.ok(retrieved, `Location ${loc.id} should exist after seeding`)
                 assert.equal(retrieved.name, loc.name, 'Location name matches')
+                
+                // Validate exits were created
+                const expectedExitCount = loc.exits?.length || 0
+                const actualExitCount = retrieved.exits?.length || 0
+                assert.equal(
+                    actualExitCount,
+                    expectedExitCount,
+                    `Location ${loc.id} should have ${expectedExitCount} exits, but has ${actualExitCount}. ` +
+                    `Expected: [${loc.exits?.map(e => e.direction).join(', ')}], ` +
+                    `Actual: [${retrieved.exits?.map(e => e.direction).join(', ')}]`
+                )
+                
+                // Validate each exit direction matches and target exists
+                for (const expectedExit of loc.exits || []) {
+                    const actualExit = retrieved.exits?.find(e => e.direction === expectedExit.direction)
+                    assert.ok(
+                        actualExit,
+                        `Location ${loc.id} should have exit in direction '${expectedExit.direction}'`
+                    )
+                    assert.equal(
+                        actualExit.to,
+                        expectedExit.to,
+                        `Exit ${loc.id} --${expectedExit.direction}--> should point to ${expectedExit.to}, but points to ${actualExit.to}`
+                    )
+                    
+                    // Verify target location exists
+                    if (actualExit.to) {
+                        const targetExists = await locationRepository.get(actualExit.to)
+                        assert.ok(
+                            targetExists,
+                            `Exit target location ${actualExit.to} should exist (from ${loc.id} via ${expectedExit.direction})`
+                        )
+                    }
+                }
+                
+                console.log(`✓ Location ${loc.id}: ${actualExitCount} exits validated`)
             }
 
             const playerRepository = await fixture.getPlayerRepository()
@@ -169,7 +207,12 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const move1Result = await locationRepository.move(hubLocation.id, 'north')
             fixture.trackPerformance('move-operation', Date.now() - start1)
 
-            assert.equal(move1Result.status, 'ok', 'First move should succeed')
+            if (move1Result.status !== 'ok') {
+                console.error(`Move 1 failed with reason: ${move1Result.reason}`)
+                const hubState = await locationRepository.get(hubLocation.id)
+                console.error(`Hub location state:`, JSON.stringify(hubState, null, 2))
+            }
+            assert.equal(move1Result.status, 'ok', `First move should succeed. Got: ${move1Result.status === 'error' ? move1Result.reason : 'ok'}`)
             if (move1Result.status === 'ok') {
                 assert.equal(move1Result.location.id, 'e2e-test-loc-north', 'Should move to north location')
             }
@@ -178,7 +221,12 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const move2Result = await locationRepository.move('e2e-test-loc-north', 'south')
             fixture.trackPerformance('move-operation', Date.now() - start2)
 
-            assert.equal(move2Result.status, 'ok', 'Second move should succeed')
+            if (move2Result.status !== 'ok') {
+                console.error(`Move 2 failed with reason: ${move2Result.reason}`)
+                const northState = await locationRepository.get('e2e-test-loc-north')
+                console.error(`North location state:`, JSON.stringify(northState, null, 2))
+            }
+            assert.equal(move2Result.status, 'ok', `Second move should succeed. Got: ${move2Result.status === 'error' ? move2Result.reason : 'ok'}`)
             if (move2Result.status === 'ok') {
                 assert.equal(move2Result.location.id, hubLocation.id, 'Should return to hub')
             }
@@ -187,7 +235,12 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const move3Result = await locationRepository.move(hubLocation.id, 'east')
             fixture.trackPerformance('move-operation', Date.now() - start3)
 
-            assert.equal(move3Result.status, 'ok', 'Third move should succeed')
+            if (move3Result.status !== 'ok') {
+                console.error(`Move 3 failed with reason: ${move3Result.reason}`)
+                const hubState = await locationRepository.get(hubLocation.id)
+                console.error(`Hub location state:`, JSON.stringify(hubState, null, 2))
+            }
+            assert.equal(move3Result.status, 'ok', `Third move should succeed. Got: ${move3Result.status === 'error' ? move3Result.reason : 'ok'}`)
             if (move3Result.status === 'ok') {
                 assert.equal(move3Result.location.id, 'e2e-test-loc-east', 'Should move to east location')
             }
@@ -196,7 +249,12 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const move4Result = await locationRepository.move('e2e-test-loc-east', 'north')
             fixture.trackPerformance('move-operation', Date.now() - start4)
 
-            assert.equal(move4Result.status, 'ok', 'Fourth move should succeed')
+            if (move4Result.status !== 'ok') {
+                console.error(`Move 4 failed with reason: ${move4Result.reason}`)
+                const eastState = await locationRepository.get('e2e-test-loc-east')
+                console.error(`East location state:`, JSON.stringify(eastState, null, 2))
+            }
+            assert.equal(move4Result.status, 'ok', `Fourth move should succeed. Got: ${move4Result.status === 'error' ? move4Result.reason : 'ok'}`)
             if (move4Result.status === 'ok') {
                 assert.equal(move4Result.location.id, 'e2e-test-loc-north', 'Should move to north location via alternate path')
             }
@@ -211,6 +269,7 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const hubLocation = locations[0]
 
             const iterations = 20
+            let failureCount = 0
             for (let i = 0; i < iterations; i++) {
                 const start = Date.now()
                 const direction = i % 2 === 0 ? 'north' : 'south'
@@ -218,12 +277,26 @@ describe('E2E Integration Tests - Cosmos DB', () => {
                 const result = await locationRepository.move(fromId, direction)
                 const duration = Date.now() - start
 
-                assert.equal(result.status, 'ok', `Move ${i + 1} should succeed`)
+                if (result.status !== 'ok') {
+                    failureCount++
+                    console.error(`Move ${i + 1} failed with reason: ${result.reason}`)
+                    const locationState = await locationRepository.get(fromId)
+                    console.error(`Location ${fromId} state:`, JSON.stringify(locationState, null, 2))
+                }
+                assert.equal(
+                    result.status,
+                    'ok',
+                    `Move ${i + 1} should succeed (from: ${fromId}, direction: ${direction}). Got: ${result.status === 'error' ? result.reason : 'ok'}`
+                )
                 fixture.trackPerformance('move-rapid', duration)
                 
                 // Add small delay to prevent Cosmos DB throttling (429 errors)
                 // Wait 50ms between operations to stay under RU/s limits
                 await new Promise(resolve => setTimeout(resolve, 50))
+            }
+
+            if (failureCount > 0) {
+                console.error(`Total failures in rapid move test: ${failureCount}/${iterations}`)
             }
 
             const p95 = fixture.getP95Latency('move-rapid')
