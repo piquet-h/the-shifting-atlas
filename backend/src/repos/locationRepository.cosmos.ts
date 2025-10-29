@@ -49,14 +49,14 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 return undefined
             }
             const v = vertices[0]
-            
+
             // Fetch exits with better error handling and coalesce for optional properties
             let exits: Array<{ direction: string; to?: string; description?: string }> = []
             try {
                 const exitsRaw = await this.query<Record<string, unknown>>(
                     "g.V(locationId).outE('exit').project('direction','to','description')" +
-                    ".by(values('direction')).by(inV().id())" +
-                    ".by(coalesce(values('description'), constant('')))",
+                        ".by(values('direction')).by(inV().id())" +
+                        ".by(coalesce(values('description'), constant('')))",
                     { locationId: id }
                 )
                 exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
@@ -64,14 +64,14 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                     to: String(e.to as string),
                     description: e.description ? String(e.description as string) : undefined
                 }))
-                
+
                 console.debug(`[LocationRepository.get] Location ${id} has ${exits.length} exits`)
             } catch (error) {
                 console.error(`[LocationRepository.get] Error fetching exits for location ${id}:`, error)
                 // Return location without exits rather than failing completely
                 exits = []
             }
-            
+
             return {
                 id: String(v.id || v['id']),
                 name: firstScalar(v.name) || 'Unknown Location',
@@ -118,7 +118,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             if (!exit || !exit.to) {
                 console.warn(
                     `[LocationRepository.move] No exit in direction '${direction}' from location ${fromId}. ` +
-                    `Available exits: ${from.exits?.map((e) => e.direction).join(', ') || 'none'}`
+                        `Available exits: ${from.exits?.map((e) => e.direction).join(', ') || 'none'}`
                 )
                 return { status: 'error', reason: 'no-exit' } as const
             }
@@ -138,7 +138,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             if (!dest) {
                 console.error(
                     `[LocationRepository.move] Destination location not found: ${exit.to}. ` +
-                    `This indicates a broken exit link in the graph.`
+                        `This indicates a broken exit link in the graph.`
                 )
                 return { status: 'error', reason: 'target-missing' } as const
             }

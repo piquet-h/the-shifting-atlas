@@ -119,7 +119,7 @@ export function getDefaultTestLocations(): Location[] {
 export function getE2ETestLocations(): Location[] {
     // Get the default blueprint and transform IDs for E2E
     const defaultLocations = getDefaultTestLocations()
-    
+
     return defaultLocations.map((loc) => ({
         ...loc,
         // Transform: test-loc-hub → e2e-test-loc-hub
