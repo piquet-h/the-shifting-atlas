@@ -22,6 +22,9 @@ export const GAME_EVENT_NAMES = [
     // Navigation & direction normalization
     'Navigation.Input.Parsed',
     'Navigation.Input.Ambiguous',
+    // Movement outcome events (added M2 Observability)
+    'Navigation.Move.Success',
+    'Navigation.Move.Blocked',
     'Navigation.Look.Issued',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
