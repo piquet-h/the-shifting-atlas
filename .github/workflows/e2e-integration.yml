@@ -56,9 +56,9 @@ jobs:
         run: |
           since='${{ steps.baseline.outputs.baseline }}'
           echo "Baseline timestamp: $since"
-          echo "Collecting changed files since baseline (all):"
-          git diff --name-only "$since"...HEAD > all_changed.txt || true
-          cat all_changed.txt
+          echo "Collecting changed files since baseline (unique):"
+          git log --since="$since" --pretty=format: --name-only | sort -u > all_changed.txt || true
+          cat all_changed.txt || true
           total_commits=$(git rev-list --count HEAD --since="$since")
           echo "Total commits since baseline: $total_commits"
 
@@ -298,7 +298,7 @@ jobs:
           echo '## 🧪 Nightly E2E Integration Tests Summary' >> $GITHUB_STEP_SUMMARY
           echo "_Schedule: 22:00 UTC daily (runs only if non-doc code changes since last run at ${{ needs.precheck.outputs.since }})_" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commits Today:** ${{ needs.precheck.outputs.count }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Code-impacting file changes:** ${{ needs.precheck.outputs.count }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.precheck.outputs.run }}" != "true" ]; then
             echo "🔄 Skipped: No qualifying code changes (doc-only or no changes)." >> $GITHUB_STEP_SUMMARY
             exit 0
