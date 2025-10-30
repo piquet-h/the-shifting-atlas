@@ -28,7 +28,8 @@ export class CosmosPlayerRepository extends CosmosGremlinRepository implements I
         // Upsert pattern (fold + coalesce) avoids duplicate vertex creation races for the same supplied id.
         // The preliminary get above is sufficient; no need for a second existence check.
         const createdIso = new Date().toISOString()
-        await this.query(
+        await this.queryWithTelemetry(
+            'player.create',
             `
                 g.V(pid)
                     .hasLabel('player')
