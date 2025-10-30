@@ -4,6 +4,8 @@ import { Container } from 'inversify'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../repos/exitRepository.js'
 import { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
+import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
+import { rateLimiters } from '../middleware/rateLimiter.js'
 
 // LOOK command: Returns location description + exits summary cache (regenerates if missing)
 app.http('LocationLook', {
@@ -11,6 +13,12 @@ app.http('LocationLook', {
     methods: ['GET'],
     authLevel: 'anonymous',
     handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+        // Check rate limit
+        const rateLimitResponse = checkRateLimit(req, rateLimiters.look, 'location/look')
+        if (rateLimitResponse) {
+            return rateLimitResponse
+        }
+
         const started = Date.now()
         const correlationId = extractCorrelationId(req.headers)
         const playerGuid = extractPlayerGuid(req.headers)
