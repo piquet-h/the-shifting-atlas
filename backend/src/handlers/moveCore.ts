@@ -5,6 +5,8 @@ import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
+import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
+import { rateLimiters } from '../middleware/rateLimiter.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed'
@@ -31,6 +33,12 @@ export class MoveHandler extends BaseHandler {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected async execute(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+        // Check rate limit
+        const rateLimitResponse = checkRateLimit(req, rateLimiters.movement, 'player/move')
+        if (rateLimitResponse) {
+            return rateLimitResponse
+        }
+
         const moveResult = await this.performMove(req)
         return buildMoveResponse(moveResult, this.correlationId)
     }
