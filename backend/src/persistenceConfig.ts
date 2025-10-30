@@ -1,5 +1,7 @@
 /** Persistence configuration & mode resolution */
 
+import { trackGameEventStrict } from './telemetry.js'
+
 export type PersistenceMode = 'memory' | 'cosmos'
 
 export interface IPersistenceConfig {
@@ -50,7 +52,19 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
             if (strict) {
-                throw new Error('PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete (endpoint/database/graph).')
+                const missingVars = []
+                if (!endpoint) missingVars.push('COSMOS_GREMLIN_ENDPOINT')
+                if (!database) missingVars.push('COSMOS_GREMLIN_DATABASE')
+                if (!graph) missingVars.push('COSMOS_GREMLIN_GRAPH')
+
+                trackGameEventStrict('Persistence.Mode.StrictFail', {
+                    reason: 'gremlin-config-incomplete',
+                    missingVars: missingVars.join(', ')
+                })
+
+                throw new Error(
+                    `PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete. Missing: ${missingVars.join(', ')}`
+                )
             }
             // Fall back to memory if misconfigured (non-strict mode only)
             return { mode: 'memory' }
@@ -59,7 +73,22 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         // Validate SQL API config (required for dual persistence)
         if (!sqlEndpoint || !sqlDatabase || !sqlContainerPlayers || !sqlContainerInventory || !sqlContainerLayers || !sqlContainerEvents) {
             if (strict) {
-                throw new Error('PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete (endpoint/database/containers).')
+                const missingVars = []
+                if (!sqlEndpoint) missingVars.push('COSMOS_SQL_ENDPOINT')
+                if (!sqlDatabase) missingVars.push('COSMOS_SQL_DATABASE')
+                if (!sqlContainerPlayers) missingVars.push('COSMOS_SQL_CONTAINER_PLAYERS')
+                if (!sqlContainerInventory) missingVars.push('COSMOS_SQL_CONTAINER_INVENTORY')
+                if (!sqlContainerLayers) missingVars.push('COSMOS_SQL_CONTAINER_LAYERS')
+                if (!sqlContainerEvents) missingVars.push('COSMOS_SQL_CONTAINER_EVENTS')
+
+                trackGameEventStrict('Persistence.Mode.StrictFail', {
+                    reason: 'sql-config-incomplete',
+                    missingVars: missingVars.join(', ')
+                })
+
+                throw new Error(
+                    `PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete. Missing: ${missingVars.join(', ')}`
+                )
             }
             // Log warning but continue (SQL API might not be used yet in all code paths)
             console.warn('Cosmos SQL API configuration incomplete. Some features may not be available.')
