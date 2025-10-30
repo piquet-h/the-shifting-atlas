@@ -59,6 +59,61 @@ Test an API route (implemented `ping`):
 curl http://localhost:7071/api/ping
 ```
 
+## Health Check Endpoints
+
+The backend provides health check endpoints for monitoring service and persistence status:
+
+### Backend Health
+
+```bash
+curl http://localhost:7071/api/backend/health
+```
+
+Returns general backend service health with latency metrics.
+
+### Gremlin Health
+
+```bash
+curl http://localhost:7071/api/backend/health/gremlin
+```
+
+Returns Gremlin (Cosmos DB graph) persistence health:
+
+**Response format:**
+
+```json
+{
+    "success": true,
+    "data": {
+        "mode": "memory",
+        "canQuery": true,
+        "latencyMs": 0,
+        "strictFallback": false
+    },
+    "correlationId": "..."
+}
+```
+
+**Response fields:**
+
+-   `mode`: Current persistence mode (`memory` or `cosmos`)
+-   `canQuery`: Whether Gremlin queries can be executed successfully
+-   `latencyMs`: Query latency in milliseconds (0 for memory mode)
+-   `strictFallback`: Whether strict mode is enabled (`PERSISTENCE_STRICT=true`)
+-   `reason`: (Optional) Failure reason if `canQuery` is false
+
+**HTTP Status:**
+
+-   `200 OK`: Health check succeeded (even if `canQuery=false` in non-strict mode)
+-   `503 Service Unavailable`: Strict mode is enabled and Gremlin is unavailable
+
+**Usage:**
+
+-   Kubernetes readiness/liveness probes
+-   Load balancer health checks
+-   CI/CD deployment gates
+-   Local development troubleshooting
+
 If you require same‑origin local auth flows, configure a Vite proxy that forwards `/api` → `http://localhost:7071` instead of relying on the SWA emulator.
 
 ## Frontend Only
