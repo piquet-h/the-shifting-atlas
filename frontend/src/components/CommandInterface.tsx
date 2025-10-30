@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { unwrapEnvelope } from '../utils/envelope'
+import { extractErrorMessage } from '../utils/apiResponse'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 
@@ -77,9 +78,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     latencyMs = Math.round(performance.now() - start)
                     const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                        const fallbackErr = (json as Record<string, unknown>)?.error
-                        error =
-                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `HTTP ${res.status}`
+                        error = extractErrorMessage(res, json, unwrapped)
                     } else {
                         const data = unwrapped.data || {}
                         response = (data.echo as string) || 'pong'
@@ -92,9 +91,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     latencyMs = Math.round(performance.now() - start)
                     const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                        const fallbackErr = (json as Record<string, unknown>)?.error
-                        error =
-                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `HTTP ${res.status}`
+                        error = extractErrorMessage(res, json, unwrapped)
                     } else {
                         const loc = unwrapped.data as Record<string, unknown> | undefined
                         if (loc) {
@@ -118,9 +115,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     latencyMs = Math.round(performance.now() - start)
                     const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                        const fallbackErr = (json as Record<string, unknown>)?.error
-                        error =
-                            unwrapped.error?.message || (typeof fallbackErr === 'string' ? fallbackErr : undefined) || `Cannot move ${dir}`
+                        error = extractErrorMessage(res, json, unwrapped)
                     } else {
                         const loc = unwrapped.data as Record<string, unknown> | undefined
                         if (loc) {
