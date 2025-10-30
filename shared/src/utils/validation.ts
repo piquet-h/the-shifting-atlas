@@ -77,10 +77,7 @@ export function validatePlayerId(playerId: string | undefined | null): Validatio
  * @param lastHeading - Optional last heading for relative directions
  * @returns Validation result with canonical direction or error
  */
-export function validateDirection(
-    direction: string | undefined | null,
-    lastHeading?: Direction
-): ValidationResult<Direction> {
+export function validateDirection(direction: string | undefined | null, lastHeading?: Direction): ValidationResult<Direction> {
     if (!direction) {
         return {
             success: false,
