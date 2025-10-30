@@ -41,30 +41,30 @@ Only `EXIT` is required for the MVP. Others provide a roadmap (do not implement 
 
 Location Vertex (`Location`):
 
-- `id` (GUID)
-- `name`
-- `baseDescription` (human-authored stable text)
-- `descLayers` (array of layered description objects; see AI section)
-- `biome` (string)
-- `tags` (string[]; e.g. `"urban"`, `"arena"`, `"stone"`)
-- `vector` (object: `{ x, y, z }`) – optional in earliest slice (can stub `{0,0,0}`)
-- `exitsSummaryCache` (string; regenerated when exits change)
-- `lastGeneratedUtc` (ISO; when AI layer updated)
-- `revision` (int, optimistic concurrency)
+-   `id` (GUID)
+-   `name`
+-   `baseDescription` (human-authored stable text)
+-   `descLayers` (array of layered description objects; see AI section)
+-   `biome` (string)
+-   `tags` (string[]; e.g. `"urban"`, `"arena"`, `"stone"`)
+-   `vector` (object: `{ x, y, z }`) – optional in earliest slice (can stub `{0,0,0}`)
+-   `exitsSummaryCache` (string; regenerated when exits change)
+-   `lastGeneratedUtc` (ISO; when AI layer updated)
+-   `revision` (int, optimistic concurrency)
 
 Exit Edge (`EXIT`):
 
-- `dir` (enum token – cardinal, vertical, semantic, radial)
-- `name` (player-facing label; e.g. `North Gate`, `Archway`, `Tunnel`)
-- `kind` (`cardinal` | `vertical` | `radial` | `semantic` | `portal`)
-- `distance` (relative units or abstract difficulty metric)
-- `travelMs` (approx movement time; default null initially)
-- `state` (`open` | `closed` | `locked` | `concealed`)
-- `gating` (optional expression: e.g. `requires:item:bronze_key` or `skill:athletics>=12`)
-- `accessibility` (object: `{ mobility: boolean, lowVision: boolean }` future)
-- `genSource` (`manual` | `ai` | `hybrid`)
-- `version` (int)
-- `createdUtc`
+-   `dir` (enum token – cardinal, vertical, semantic, radial)
+-   `name` (player-facing label; e.g. `North Gate`, `Archway`, `Tunnel`)
+-   `kind` (`cardinal` | `vertical` | `radial` | `semantic` | `portal`)
+-   `distance` (relative units or abstract difficulty metric)
+-   `travelMs` (approx movement time; default null initially)
+-   `state` (`open` | `closed` | `locked` | `concealed`)
+-   `gating` (optional expression: e.g. `requires:item:bronze_key` or `skill:athletics>=12`)
+-   `accessibility` (object: `{ mobility: boolean, lowVision: boolean }` future)
+-   `genSource` (`manual` | `ai` | `hybrid`)
+-   `version` (int)
+-   `createdUtc`
 
 ### Rationale for a Single `EXIT` Label
 
@@ -87,10 +87,10 @@ Approach Options:
 
 MVP Recommendation: Implement the coliseum using only `Location` + `EXIT`, _but_ name/tag locations with a consistent scheme:
 
-- `Coliseum Concourse NW`
-- `Coliseum Concourse North`
-- `Coliseum Gate 3`
-- `Coliseum Arena Floor`
+-   `Coliseum Concourse NW`
+-   `Coliseum Concourse North`
+-   `Coliseum Gate 3`
+-   `Coliseum Arena Floor`
 
 Add shared tags: `arena`, `coliseum`, `public` so future queries can group them:
 
@@ -100,9 +100,9 @@ g.V().hasLabel('Location').has('tags','arena')
 
 ### Internal vs Radial Exits
 
-- **Radial (inward/outward)**: Use `kind: 'radial'` with `dir: 'in'` or `dir: 'out'` (paired edges). Name edges for specificity: `North Gate`, `Gate 3`.
-- **Concourse Circumference**: Cardinal or semantic (e.g., `clockwise`, `counterclockwise`) – store as `kind: 'semantic'`, `dir: 'clockwise'` if adopting rotational movement.
-- **Vertical Access**: Stands/seating tiers use `kind: 'vertical'`, `dir: 'up'` / `dir: 'down'`.
+-   **Radial (inward/outward)**: Use `kind: 'radial'` with `dir: 'in'` or `dir: 'out'` (paired edges). Name edges for specificity: `North Gate`, `Gate 3`.
+-   **Concourse Circumference**: Cardinal or semantic (e.g., `clockwise`, `counterclockwise`) – store as `kind: 'semantic'`, `dir: 'clockwise'` if adopting rotational movement.
+-   **Vertical Access**: Stands/seating tiers use `kind: 'vertical'`, `dir: 'up'` / `dir: 'down'`.
 
 ### Vantage & Visibility (Deferred)
 
@@ -153,9 +153,9 @@ Exit generation uses a two-pass prompt approach:
 
 Regeneration triggers:
 
-- Edge add/remove → mark location `exitsSummaryCache` stale.
-- World event (e.g., `gate_closed`) → append new `event` layer or modify edge `state`.
-- Scheduled freshness job (e.g., weekly) → re-run AI layer _only if_ last change > threshold.
+-   Edge add/remove → mark location `exitsSummaryCache` stale.
+-   World event (e.g., `gate_closed`) → append new `event` layer or modify edge `state`.
+-   Scheduled freshness job (e.g., weekly) → re-run AI layer _only if_ last change > threshold.
 
 Moderation pipeline (initially manual override): Generated text is NOT persisted into `descLayers` until a flag is set (avoid storing unreviewed hallucinations). Early MVP can skip moderation fields but structure them for forward compatibility.
 
@@ -269,10 +269,10 @@ Sanitization script (planned): parses seed JSON, warns on unknown directions, of
 
 ### Telemetry Events (Additions)
 
-- `Navigation.Input.Parsed` (rawLen, canonicalDir, latencyMs, ambiguityCount)
-- `Navigation.Input.Ambiguous` (optionsCount)
-- `Navigation.Exit.GenerationRequested` (dir, reason)
-- `Navigation.Exit.GenerationRejected` (reason)
+-   `Navigation.Input.Parsed` (rawLen, canonicalDir, latencyMs, ambiguityCount)
+-   `Navigation.Input.Ambiguous` (optionsCount)
+-   `Navigation.Exit.GenerationRequested` (dir, reason)
+-   `Navigation.Exit.GenerationRejected` (reason)
 
 These feed confusion / friction dashboards and drive iterative lexicon tuning.
 
@@ -288,9 +288,9 @@ These feed confusion / friction dashboards and drive iterative lexicon tuning.
 
 ### Open Design Decisions (Normalization)
 
-- Do we persist `bearingDeg` early, or derive later from vector deltas? (Leaning: derive.)
-- Should landmark alias resolution be server-only or hinted by client for UI auto-complete? (Leaning: server authoritative.)
-- Minimum confidence threshold for fuzzy direction correction vs prompting user? (Tune via telemetry.)
+-   Do we persist `bearingDeg` early, or derive later from vector deltas? (Leaning: derive.)
+-   Should landmark alias resolution be server-only or hinted by client for UI auto-complete? (Leaning: server authoritative.)
+-   Minimum confidence threshold for fuzzy direction correction vs prompting user? (Tune via telemetry.)
 
 ### Rationale Recap
 
@@ -343,9 +343,9 @@ provenance: {
 
 ### Mutation via Layers (No Base Rewrite)
 
-- Structural events add edges / set edge `state`
-- Environmental, faction, catastrophe, seasonal -> new `descLayers` entries
-- Restoration / aftermath -> layer referencing prior state (audit chain preserved)
+-   Structural events add edges / set edge `state`
+-   Environmental, faction, catastrophe, seasonal -> new `descLayers` entries
+-   Restoration / aftermath -> layer referencing prior state (audit chain preserved)
 
 ### Safeguards
 
@@ -365,26 +365,28 @@ Even AI-first strategy benefits from 5–8 curated anchor locations to establish
 
 Canonical event names follow the `Domain.[Subject].Action` PascalCase pattern (2–3 segments) and are centrally defined in `shared/src/telemetryEvents.ts`. Do not introduce ad‑hoc names here—extend the canonical list first if a new event is required.
 
-- `World.Location.Generated` (tokens, latencyMs, safetyResult, similarityScore)
-- `World.Location.Rejected` (failureCode)
-- `World.Layer.Added` (layerType, roomId)
-- `World.Exit.Created` (dir, kind, genSource)
+-   `World.Location.Generated` (tokens, latencyMs, safetyResult, similarityScore)
+-   `World.Location.Rejected` (failureCode)
+-   `World.Layer.Added` (layerType, roomId)
+-   `World.Exit.Created` (dir, kind, genSource)
+-   `Navigation.Move.Success` (from, to, direction, latencyMs, rawInput?)
+-   `Navigation.Move.Blocked` (from, direction, reason, status, latencyMs)
 
 Instrumentation MUST use `trackGameEventStrict` to enforce name validity; legacy helpers should be migrated.
 
 ### Advancement Criteria (B → C)
 
-- Sustained similarity rejection < 10%
-- Safety false-positive rate acceptable (< 3%)
-- Median genesis latency within target (< X ms after warm)
+-   Sustained similarity rejection < 10%
+-   Safety false-positive rate acceptable (< 3%)
+-   Median genesis latency within target (< X ms after warm)
 
 Refer to: `ai-prompt-engineering.md` for prompt schemas; `extension-framework.md` for pre/post genesis hooks.
 
 ## Open Questions (Tracked)
 
-- Do we move player location as a property (`currentRoomId`) or add `AT` edges? (MVP: property, migration path documented.)
-- Should exit edge contain inverse reference metadata for summary optimization? (Likely unnecessary early; can query reverse.)
-- Do we cache direction synonyms per locale? (Internationalization deferred.)
+-   Do we move player location as a property (`currentRoomId`) or add `AT` edges? (MVP: property, migration path documented.)
+-   Should exit edge contain inverse reference metadata for summary optimization? (Likely unnecessary early; can query reverse.)
+-   Do we cache direction synonyms per locale? (Internationalization deferred.)
 
 ## Next Actions
 
@@ -401,23 +403,28 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 ## Location Generation
 
 1. **Trigger: Location Creation with Exit Expansion**
+
     - When a new location is created, the system immediately generates all connected locations for each exit vector.
     - This proactive generation enables batch creation of multiple locations in advance.
     - If an exit leads to an existing location node, the system tailors the new location's description to match the destination's biome, mood, and spatial context.
 
 2. **Contextual Prompt Construction**
+
     - A prompt is built for Azure OpenAI, including details like current location, vector hint, nearby locations, and generation rules (e.g., biome continuity, max distance, unique names).
     - Example prompt: “Generate a new forest location approximately 10 units north of Whispering Glade. Nearby is Mossy Hollow. Ensure biome continuity and avoid naming conflicts.”
 
 3. **AI Response Parsing**
+
     - Extracts details such as name, description, biome, and optional tags (e.g., mood, elevation, hazards).
 
 4. **Vector Assignment and Convergence**
+
     - Computes a target vector using directional heuristics and applies proximity checks.
     - If an existing location is nearby, reuse it and add a portal with narrative stitching.
     - Otherwise, generate a new location and assign its vector.
 
 5. **Graph Persistence**
+
     - Adds the new location as a vertex and the connection as an `exit_to` edge.
     - All metadata is stored in Cosmos DB.
 
@@ -429,6 +436,7 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 ## Navigation and Traversal
 
 1. **Traversal Logic**
+
     - Players choose a direction via semantic exit or freeform input.
     - The system checks for existing edges:
         - If `exit_to`: Moves to the connected location.
@@ -436,43 +444,52 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
     - New locations and edges are persisted in Cosmos DB.
 
 2. **Procedural Navigation in 3D Space**
+
     - Locations are stored as 3D vectors relative to a global origin.
     - Euclidean distance measures proximity between locations.
     - Proximity thresholds define connection criteria.
     - Vector normalization ensures consistent direction representation.
 
 3. **Directional Heuristics**
+
     - Directional weighting influences location generation and connections.
     - Vector adjustments and biome clustering enhance spatial and thematic coherence.
 
 4. **Terrain Types and Modifiers**
+
     - Elevation and slope affect stamina cost, speed, and DCs for movement.
     - Hazards like rivers, lava, and blizzards require skill checks or items.
     - Faction zones restrict access and influence encounter tables.
 
 5. **Traversal Skill Checks**
+
     - Movement challenges (e.g., climbing, swimming) are gated by D&D skill checks.
     - Terrain, gear, spells, and party assists modify DCs.
 
 6. **Fast Travel and Teleportation**
+
     - Anchors like waystones and shrines enable fast travel.
     - Require discovery and resources; preserve spatial consistency.
 
 7. **Semantic Exits**
+
     - Natural language descriptions are parsed into vectors and conditions.
     - Developers can seed exits with explicit vectors and tags.
 
 8. **Multiplayer Convergence and Retroactive Portals**
+
     - Spatial checks reuse nearby locations to avoid duplicates.
     - If a portal doesn't exist, retroactively add one with narrative justification.
     - Temporal tags track who/when changed what.
 
 9. **Temporal Tagging and World Evolution**
+
     - Each edge and location is annotated with timestamps and player IDs.
     - Evolution events (e.g., clearing vines, building bridges) mutate the graph.
     - Azure OpenAI generates narrative updates reflecting changes.
 
 10. **Narrative Integration**
+
     - Prompts describe how player actions alter traversal.
     - Hidden paths become visible after evolution.
 
@@ -487,9 +504,9 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 
 ### Goals
 
-- Allow a player to request travel to a distant target (location ID, landmark alias, semantic phrase) without manually issuing each intermediate `move`.
-- Preserve world consistency & interruption points (encounters, gating, generation fallbacks) while keeping Functions stateless per invocation.
-- Re‑use the existing `Location` + `EXIT` graph; do not introduce a parallel pathing mesh.
+-   Allow a player to request travel to a distant target (location ID, landmark alias, semantic phrase) without manually issuing each intermediate `move`.
+-   Preserve world consistency & interruption points (encounters, gating, generation fallbacks) while keeping Functions stateless per invocation.
+-   Re‑use the existing `Location` + `EXIT` graph; do not introduce a parallel pathing mesh.
 
 ### Journey Vertex (Conceptual)
 
@@ -540,12 +557,12 @@ If path search halts at a frontier and expansion is allowed: emit a GenerationRe
 
 Add (via shared telemetry registry – do NOT inline literal strings here; list is descriptive):
 
-- Navigation.Travel.Requested (targetKind, distanceApprox, inputLen)
-- Navigation.Travel.PathResolved (legs, strategy, cacheHit, gapsGenerated)
-- Navigation.Travel.LegComplete (seq, estMs, actualMs, mode)
-- Navigation.Travel.GenerationFallback (reason)
-- Navigation.Travel.Completed (totalActualMs, interruptions)
-- Navigation.Travel.Interrupted (cause)
+-   Navigation.Travel.Requested (targetKind, distanceApprox, inputLen)
+-   Navigation.Travel.PathResolved (legs, strategy, cacheHit, gapsGenerated)
+-   Navigation.Travel.LegComplete (seq, estMs, actualMs, mode)
+-   Navigation.Travel.GenerationFallback (reason)
+-   Navigation.Travel.Completed (totalActualMs, interruptions)
+-   Navigation.Travel.Interrupted (cause)
 
 Key derived metrics: route cache hit %, fallback rate per 100 journeys, avg leg variance (actual vs est), interruption density per biome.
 
@@ -553,9 +570,9 @@ Key derived metrics: route cache hit %, fallback rate per 100 journeys, avg leg 
 
 Fast travel reuses the Journey flow with a single leg whose `mode = 'fast_travel'`. Macro edges are only created after:
 
-- Player has traversed underlying path end‑to‑end at least once.
-- Risk envelope below threshold & gating satisfied.
-- (Optional) Faction standing or discovery milestone.
+-   Player has traversed underlying path end‑to‑end at least once.
+-   Risk envelope below threshold & gating satisfied.
+-   (Optional) Faction standing or discovery milestone.
 
 ### Failure / Edge Cases
 
@@ -579,29 +596,29 @@ The above keeps early implementation small while leaving clear extension seams.
 
 ## Extension Points and Developer API
 
-- Developers can inject regions, traversal puzzles, and item/quest content.
-- Regions are seeded with coordinates, biomes, and vector fields.
-- Traversal puzzles include custom conditions, DCs, and narrative hooks.
-- Safety checks validate injected content against spatial constraints.
-- Contracts support generation, approval, rollback, and versioning.
+-   Developers can inject regions, traversal puzzles, and item/quest content.
+-   Regions are seeded with coordinates, biomes, and vector fields.
+-   Traversal puzzles include custom conditions, DCs, and narrative hooks.
+-   Safety checks validate injected content against spatial constraints.
+-   Contracts support generation, approval, rollback, and versioning.
 
 ## Future Expansion: Pre-Generated Quest Paths
 
 Once basic location generation and traversal are complete, the system can support pre-generated quest paths. These are sequences of interconnected locations generated in advance to support narrative arcs, puzzles, or multi-step objectives.
 
-- **Batch Generation**: Multiple locations and connections are created in a single pass.
-- **Narrative Continuity**: Prompts are tailored to maintain thematic and biome consistency across the path.
-- **Quest Metadata**: Locations and edges are tagged with quest identifiers, objectives, and progression flags.
-- **Multiplayer Support**: Paths can be shared or branched based on player decisions.
-- **Branching and Re-Stitching**: Alternate routes and re-entry points are supported.
-- **Agent Pathing**: NPCs use the same vector topology for goals, patrols, and pursuit.
+-   **Batch Generation**: Multiple locations and connections are created in a single pass.
+-   **Narrative Continuity**: Prompts are tailored to maintain thematic and biome consistency across the path.
+-   **Quest Metadata**: Locations and edges are tagged with quest identifiers, objectives, and progression flags.
+-   **Multiplayer Support**: Paths can be shared or branched based on player decisions.
+-   **Branching and Re-Stitching**: Alternate routes and re-entry points are supported.
+-   **Agent Pathing**: NPCs use the same vector topology for goals, patrols, and pursuit.
 
 ## System Interaction Overview
 
 ### See Also
 
-- **World Rules & Lore** – Biome transitions and environmental logic that inform traversal difficulty (`world-rules-and-lore.md`).
-- **AI Prompt Engineering** – How generation prompts are structured for new locations (`ai-prompt-engineering.md`).
-- **Multiplayer Mechanics** – Synchronisation of player movement and shared spatial events (`multiplayer-mechanics.md`).
-- **Extension Framework** – Injecting custom regions, traversal puzzles, and environmental hooks (`extension-framework.md`).
-- **Economy & Trade Systems** – Future tie-ins for trade routes and resource node placement (`economy-and-trade-systems.md`).
+-   **World Rules & Lore** – Biome transitions and environmental logic that inform traversal difficulty (`world-rules-and-lore.md`).
+-   **AI Prompt Engineering** – How generation prompts are structured for new locations (`ai-prompt-engineering.md`).
+-   **Multiplayer Mechanics** – Synchronisation of player movement and shared spatial events (`multiplayer-mechanics.md`).
+-   **Extension Framework** – Injecting custom regions, traversal puzzles, and environmental hooks (`extension-framework.md`).
+-   **Economy & Trade Systems** – Future tie-ins for trade routes and resource node placement (`economy-and-trade-systems.md`).

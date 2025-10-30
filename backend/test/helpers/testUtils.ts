@@ -85,7 +85,7 @@ export function mockInvocationContext(): TestInvocationContext {
  *   try {
  *     // ... test code that emits events
  *     const events = getEvents()
- *     assert.ok(events.find(e => e.name === 'Location.Move'))
+ *     assert.ok(events.find(e => e.name === 'Navigation.Move.Success'))
  *   } finally {
  *     restore()
  *   }

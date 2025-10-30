@@ -53,7 +53,7 @@ describe('PerformMove Telemetry Integration', () => {
         }
     })
 
-    test('telemetry emitted for successful movement (Location.Move status=200)', async () => {
+    test('telemetry emitted for successful movement (Navigation.Move.Success status=200)', async () => {
         const ctx = await createMockContext(fixture)
         const telemetry = await fixture.getTelemetryClient()
 
@@ -73,13 +73,38 @@ describe('PerformMove Telemetry Integration', () => {
 
         assert.equal(result.success, true)
         if ('events' in telemetry) {
-            const moveEvents = telemetry.events.filter((e) => e.name === 'Location.Move')
-            const successEvent = moveEvents.find((e) => e.properties?.status === 200)
-            assert.ok(successEvent, 'Location.Move success event missing')
+            const successEvent = telemetry.events.find((e) => e.name === 'Navigation.Move.Success')
+            assert.ok(successEvent, 'Navigation.Move.Success event missing')
             assert.equal(successEvent?.properties?.from, fromId)
             assert.equal(successEvent?.properties?.to, toId)
             assert.equal(successEvent?.properties?.direction, 'north')
             assert.equal(successEvent?.properties?.status, 200)
+        }
+    })
+
+    test('telemetry emitted for blocked movement (Navigation.Move.Blocked invalid direction)', async () => {
+        const ctx = await createMockContext(fixture)
+        const telemetry = await fixture.getTelemetryClient()
+
+        const repo = await fixture.getLocationRepository()
+        const fromId = '00000000-0000-0000-0000-000000000003'
+        await repo.upsert({ id: fromId, name: 'Gamma', description: 'Start', exits: [] })
+
+        // invalid direction token
+        const req = makeMoveRequest({ dir: 'norrrth', from: fromId }) as HttpRequest
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const result = await handler.performMove(req)
+        assert.equal(result.success, false)
+        assert.equal(result.error?.type, 'invalid-direction')
+        if ('events' in telemetry) {
+            const blockedEvent = telemetry.events.find(
+                (e) => e.name === 'Navigation.Move.Blocked' && e.properties?.reason === 'invalid-direction'
+            )
+            assert.ok(blockedEvent, 'Navigation.Move.Blocked event missing for invalid direction')
+            assert.equal(blockedEvent?.properties?.from, fromId)
+            assert.equal(blockedEvent?.properties?.status, 400)
         }
     })
 })

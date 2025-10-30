@@ -1,12 +1,12 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { getPlayerHeadingStore, normalizeDirection, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
+import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
+import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
-import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
-import { rateLimiters } from '../middleware/rateLimiter.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed'
@@ -72,7 +72,7 @@ export class MoveHandler extends BaseHandler {
 
         // Invalid / unknown direction
         if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
-            this.track('Location.Move', {
+            this.track('Navigation.Move.Blocked', {
                 from: fromId,
                 direction: rawDir,
                 status: 400,
@@ -97,7 +97,7 @@ export class MoveHandler extends BaseHandler {
 
         const from = await repo.get(fromId)
         if (!from) {
-            this.track('Location.Move', {
+            this.track('Navigation.Move.Blocked', {
                 from: fromId,
                 direction: dir,
                 status: 404,
@@ -114,7 +114,7 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
-            this.track('Location.Move', {
+            this.track('Navigation.Move.Blocked', {
                 from: fromId,
                 direction: dir,
                 status: 400,
@@ -133,7 +133,7 @@ export class MoveHandler extends BaseHandler {
         if (result.status === 'error') {
             const reason = result.reason
             const statusMap: Record<string, number> = { 'from-missing': 404, 'no-exit': 400, 'target-missing': 500 }
-            this.track('Location.Move', {
+            this.track('Navigation.Move.Blocked', {
                 from: fromId,
                 direction: dir,
                 status: statusMap[reason] || 500,
@@ -151,7 +151,7 @@ export class MoveHandler extends BaseHandler {
         if (this.playerGuid) headingStore.setLastHeading(this.playerGuid, dir)
 
         const latencyMs = Date.now() - started
-        this.track('Location.Move', {
+        this.track('Navigation.Move.Success', {
             from: fromId,
             to: result.location.id,
             direction: dir,

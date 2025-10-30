@@ -18,6 +18,8 @@ export const GAME_EVENT_NAMES = [
     'Player.Created',
     // Player traversal + location access (non-genesis)
     'Location.Get',
+    // Deprecated (2025-10-30): Location.Move → replaced by Navigation.Move.Success / Navigation.Move.Blocked.
+    // Retained until historical retention window (180d) expires; do not emit new events.
     'Location.Move',
     // Navigation & direction normalization
     'Navigation.Input.Parsed',

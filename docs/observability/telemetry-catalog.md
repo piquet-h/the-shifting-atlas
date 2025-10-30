@@ -91,13 +91,22 @@ Central registry documenting all game domain telemetry events, including when th
 **Alert:** >300ms (p95) for single vertex queries  
 **Retention:** 90 days
 
-#### `Location.Move`
+#### `Navigation.Move.Success`
 
-**Trigger:** Player movement attempt (successful or blocked)  
-**Dimensions:** `player_id`, `from_location_id`, `to_location_id`, `direction`, `status` (success|blocked|invalid), `reason`, `latency_ms`, `correlation_id`  
-**Severity:** Informational (success); Warning (blocked/invalid)  
-**Purpose:** Core traversal metric; track movement success rate and failure reasons  
-**Alert:** Success rate <95% sustained for 10 minutes  
+**Trigger:** Player movement completes successfully (destination resolved & player heading updated)  
+**Dimensions:** `player_id`, `from_location_id`, `to_location_id`, `direction`, `raw_input` (if normalized), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Primary traversal success KPI; used for success rate denominator; latency forms part of core loop performance dashboards.  
+**Alert:** P95 latency >400ms for 5 consecutive minutes  
+**Retention:** 180 days
+
+#### `Navigation.Move.Blocked`
+
+**Trigger:** Movement attempt rejected (invalid direction, missing origin, absent exit, repository error)  
+**Dimensions:** `player_id`, `from_location_id`, `direction`, `reason` (invalid-direction|from-missing|no-exit|move-failed), `status` (HTTP status), `latency_ms`, `correlation_id`  
+**Severity:** Warning (operational); individual reasons may be informational for player input quality  
+**Purpose:** Tracks friction sources in traversal; enables breakdown dashboards by reason to guide UX copy & world design fixes.  
+**Alert:** Blocked rate >10% over 15 min OR invalid-direction >5% (typo normalization tuning)  
 **Retention:** 180 days
 
 ---
@@ -434,10 +443,12 @@ Central registry documenting all game domain telemetry events, including when th
 ```kusto
 customEvents
 | where timestamp > ago(24h)
-| where name == "Location.Move"
-| summarize Total = count(),
-            Success = countif(customDimensions.status == "success"),
-            SuccessRate = 100.0 * countif(customDimensions.status == "success") / count()
+| where name in ("Navigation.Move.Success", "Navigation.Move.Blocked")
+| summarize Success=countif(name == "Navigation.Move.Success"),
+            Blocked=countif(name == "Navigation.Move.Blocked"),
+            Total=Success + Blocked,
+            SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total),
+            BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)
 ```
 
 ### Example: Direction Normalization Failures
@@ -457,7 +468,7 @@ customEvents
 ```kusto
 customEvents
 | where timestamp > ago(1h)
-| where name in ("Player.Get", "Location.Move", "Navigation.Look.Issued")
+| where name in ("Player.Get", "Navigation.Move.Success", "Navigation.Move.Blocked", "Navigation.Look.Issued")
 | extend latency = todouble(customDimensions.latency_ms)
 | summarize P95 = percentile(latency, 95) by name
 ```
@@ -473,5 +484,31 @@ customEvents
 
 ---
 
-**Last Updated:** 2025-10-24  
-**Event Count:** 43 canonical events
+### Dashboard Recommendations (M2 Observability)
+
+| Panel                         | Query Basis                               | Purpose                                         | Refresh |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- |
+| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   |
+| Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   |
+| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   |
+
+> Implementation: each panel derives from `customEvents` queries shown above. Create separate Application Insights workbook sections with clear thresholds & annotations referencing issue #10.
+
+**Last Updated:** 2025-10-30  
+**Event Count:** 44 canonical events
+
+## Deprecated Events
+
+#### `Location.Move` (Deprecated 2025-10-30)
+
+**Replaced By:** `Navigation.Move.Success`, `Navigation.Move.Blocked`  
+**Status:** No longer emitted after migration in #10; retained in registry for historical query compatibility until data retention window (180 days) lapses.  
+**Removal Target:** Not earlier than 2026-04-28 (post 180d) pending verification criteria below.  
+**Dimensions (Historical):** `player_id`, `from_location_id`, `to_location_id`, `direction`, `status`, `reason`, `latency_ms`, `correlation_id`  
+**Deprecation Rationale:** Split success vs failure semantics improves dashboard clarity and alert threshold calibration.  
+**Verification Criteria Before Removal:**
+
+-   [ ] No active workbooks or alerts reference `Location.Move`
+-   [ ] 30d telemetry scan shows zero new occurrences
+-   [ ] Dashboard panels for movement success & blocked reasons stable (>14d)
+-   [ ] Lint rule updated (#TODO issue) to forbid new emissions

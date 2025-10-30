@@ -70,6 +70,10 @@ export function createMockGremlinClient(data: Record<string, unknown[]>): IGreml
                 }
             }
             return []
+        },
+        // Added to satisfy updated IGremlinClient interface
+        close: async () => {
+            /* no-op for mock */
         }
     }
 }
@@ -85,7 +89,7 @@ export function createMockGremlinClient(data: Record<string, unknown[]>): IGreml
  * // ... run tests ...
  *
  * const events = getEvents()
- * assert.ok(events.find(e => e.name === 'Location.Move'))
+ * assert.ok(events.find(e => e.name === 'Navigation.Move.Success'))
  * ```
  */
 export function createMockTelemetryClient(): {
