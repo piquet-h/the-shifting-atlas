@@ -70,6 +70,10 @@ jobs:
         run: |
           CURRENT=$(node -p "require('./package.json').version")
           MODE='${{ github.event.inputs.mode }}'
+          # Fallback for push events (no workflow_dispatch inputs)
+          if [ -z "$MODE" ]; then
+            MODE="semver"
+          fi
           if [ "$MODE" = "semver" ]; then
             BUMP='${{ github.event.inputs.semverBump }}'
             npm version ${BUMP:-patch} --no-git-tag-version
