@@ -52,6 +52,8 @@ export const GAME_EVENT_NAMES = [
     'Secret.Fetch.Failure',
     'Secret.Fetch.Fallback',
     'Secret.Cache.Clear',
+    // Persistence / infrastructure
+    'Persistence.Mode.StrictFail',
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid'
 ] as const

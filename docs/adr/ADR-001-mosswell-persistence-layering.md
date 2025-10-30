@@ -73,6 +73,56 @@ Migration steps (export, region mapping, reingest, edge recreation, flip) are de
 
 For the full, living decision record and thresholds, see **ADR-002: Graph Partition Strategy**. This appendix exists to anchor Mosswell persistence documentation and avoid ambiguity for early contributors reviewing only ADR-001.
 
+## Strict Persistence Mode
+
+**Environment Variable:** `PERSISTENCE_STRICT=1`
+
+### Purpose
+
+Enforces fail-fast behavior when `PERSISTENCE_MODE=cosmos` is configured but required environment variables or secrets are missing. Prevents silent fallback to in-memory repositories that can mask infrastructure misconfiguration and lead to data loss.
+
+### Behavior
+
+- **Default (Strict Disabled):** Missing Cosmos configuration causes silent fallback to memory mode (suitable for local development)
+- **Strict Enabled:** Missing configuration throws an error with actionable message identifying missing environment variables
+- **Telemetry:** Emits `Persistence.Mode.StrictFail` event when strict validation fails, with details about missing configuration
+
+### Usage
+
+**Local Development (default):**
+```bash
+PERSISTENCE_MODE=cosmos
+# Missing config falls back to memory - no error
+```
+
+**Staging/Production (recommended):**
+```bash
+PERSISTENCE_MODE=cosmos
+PERSISTENCE_STRICT=1
+# Missing config throws error - prevents accidental memory mode
+```
+
+### Required Environment Variables
+
+When `PERSISTENCE_MODE=cosmos` and `PERSISTENCE_STRICT=1`, the following must be set:
+
+**Gremlin API (Graph):**
+- `COSMOS_GREMLIN_ENDPOINT` or `COSMOS_ENDPOINT`
+- `COSMOS_GREMLIN_DATABASE`
+- `COSMOS_GREMLIN_GRAPH`
+
+**SQL API (Documents):**
+- `COSMOS_SQL_ENDPOINT`
+- `COSMOS_SQL_DATABASE`
+- `COSMOS_SQL_CONTAINER_PLAYERS`
+- `COSMOS_SQL_CONTAINER_INVENTORY`
+- `COSMOS_SQL_CONTAINER_LAYERS`
+- `COSMOS_SQL_CONTAINER_EVENTS`
+
+### Related Documentation
+
+For health endpoint integration and monitoring, see issue #71.
+
 ## Related Documentation
 
 -   [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Detailed partition key decision & thresholds
