@@ -21,7 +21,7 @@ jobs:
       - name: Run verification (human)
         run: node scripts/verify-instructions.mjs
       - name: Run verification (json)
-        run: node scripts/verify-instructions.mjs --format json > verify.json
+        run: node scripts/verify-instructions.mjs --json > verify.json
       - name: Upload verification artifact
         uses: actions/upload-artifact@v4
         with:
