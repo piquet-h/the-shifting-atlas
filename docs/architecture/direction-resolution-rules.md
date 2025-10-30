@@ -208,6 +208,14 @@ Balance between helpfulness and safety. Edit distance of 1 catches common typos 
 
 See `navigation-and-traversal.md` for the full normalization roadmap.
 
+## Related Documentation
+
+-   [Exit Edge Invariants](./exits.md) – Exit creation/removal flow and invariants
+-   [Navigation & Traversal](../modules/navigation-and-traversal.md) – Full normalization roadmap and movement semantics
+-   [Direction Normalizer Usage](../developer-workflow/direction-normalizer-usage.md) – Practical usage guide
+-   [Architecture Overview](./overview.md) – Implementation to design mapping
+-   [Dungeons](./dungeons.md) – Dungeon-specific direction handling
+
 ---
 
 _Last updated: 2025-10-21 – Extracted from implementation as authoritative reference per issue #[issue-number]_
