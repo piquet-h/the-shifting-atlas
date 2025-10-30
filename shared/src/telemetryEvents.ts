@@ -8,6 +8,7 @@
 export const GAME_EVENT_NAMES = [
     // Core service / utility
     'Ping.Invoked',
+    'Health.Gremlin.Check',
     // Onboarding & Auth
     'Onboarding.GuestGuid.Started',
     'Onboarding.GuestGuid.Created',

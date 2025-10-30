@@ -8,6 +8,7 @@ import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
 import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
 import { GetExitsHandler } from '../../src/handlers/getExits.js'
+import { GremlinHealthHandler } from '../../src/handlers/gremlinHealth.js'
 import { HealthHandler } from '../../src/handlers/health.js'
 import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
 import { LocationHandler } from '../../src/handlers/location.js'
@@ -43,6 +44,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     let resolvedMode: ContainerMode
     if (mode) {
         resolvedMode = mode
+        // Always bind PersistenceConfig even in explicit mode
+        const config = await loadPersistenceConfigAsync()
+        container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
     } else {
         const config = await loadPersistenceConfigAsync()
         container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
@@ -60,6 +64,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
     container.bind(PingHandler).toSelf().inSingletonScope()
     container.bind(HealthHandler).toSelf().inSingletonScope()
+    container.bind(GremlinHealthHandler).toSelf().inSingletonScope()
     container.bind(SimplePingHandler).toSelf().inSingletonScope()
     container.bind(LocationHandler).toSelf().inSingletonScope()
     container.bind(GetExitsHandler).toSelf().inSingletonScope()
