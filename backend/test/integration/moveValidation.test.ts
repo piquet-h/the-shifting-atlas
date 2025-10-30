@@ -54,12 +54,14 @@ describe('Move Validation', () => {
 
             // Assert error response
             assert.equal(result.status, 'error', 'Move with no exit should return error status')
-            assert.ok(result.reason, 'Error should have a reason')
-            // In-memory repo returns 'no-exit', Cosmos may have different format
-            assert.ok(
-                result.reason === 'no-exit' || result.reason.includes('No exit') || result.reason.includes('not found'),
-                `Error reason should indicate missing exit, got: ${result.reason}`
-            )
+            if (result.status === 'error') {
+                assert.ok(result.reason, 'Error should have a reason')
+                // In-memory repo returns 'no-exit', Cosmos may have different format
+                assert.ok(
+                    result.reason === 'no-exit' || result.reason.includes('No exit') || result.reason.includes('not found'),
+                    `Error reason should indicate missing exit, got: ${result.reason}`
+                )
+            }
         })
 
         test('invalid direction returns error', async () => {
@@ -81,7 +83,11 @@ describe('Move Validation', () => {
 
             // Assert error response
             assert.equal(result.status, 'error', 'Move with invalid direction should return error status')
-            assert.ok(result.reason && result.reason.length > 0, 'Error should have a reason message')
+            if (result.status === 'error') {
+                assert.ok(result.reason.length > 0, 'Error should have a reason message')
+            } else {
+                assert.fail(`Expected error status, got ${result.status}`)
+            }
         })
 
         test('empty direction returns error', async () => {
@@ -169,8 +175,12 @@ describe('Move Validation', () => {
 
             // Validate error response structure
             assert.equal(result.status, 'error')
-            assert.ok(result.reason, 'Error response should have reason field')
-            assert.equal(typeof result.reason, 'string', 'Reason should be a string')
+            if (result.status === 'error') {
+                assert.ok(result.reason, 'Error response should have reason field')
+                assert.equal(typeof result.reason, 'string', 'Reason should be a string')
+            } else {
+                assert.fail(`Expected error status, got ${result.status}`)
+            }
         })
 
         test('success response has correct structure', async () => {
@@ -234,13 +244,17 @@ describe('Move Validation', () => {
                 try {
                     result = await locationRepo.get(locations[0].id)
                     break
-                } catch (error: any) {
-                    if (error.message.includes('429') && attempts < maxAttempts) {
-                        // Retry after small delay (simulating SDK retry behavior)
-                        await new Promise((resolve) => setTimeout(resolve, 50))
-                        continue
+                } catch (error: unknown) {
+                    if (error instanceof Error) {
+                        if (error.message.includes('429') && attempts < maxAttempts) {
+                            // Retry after small delay (simulating SDK retry behavior)
+                            await new Promise((resolve) => setTimeout(resolve, 50))
+                            continue
+                        }
+                        throw error
                     }
-                    throw error
+                    // Non-Error thrown
+                    throw new Error('Unknown non-Error value thrown during throttling test')
                 }
             }
 
@@ -270,8 +284,13 @@ describe('Move Validation', () => {
                 try {
                     await locationRepo.get('test-loc-hub')
                     break
-                } catch (e: any) {
-                    error = e
+                } catch (e: unknown) {
+                    // Narrow unknown error type safely
+                    if (e instanceof Error) {
+                        error = e
+                    } else {
+                        error = new Error('Unknown error type caught during throttling test')
+                    }
                     if (attempt < maxAttempts - 1) {
                         await new Promise((resolve) => setTimeout(resolve, 50))
                     }
