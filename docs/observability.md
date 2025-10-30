@@ -115,6 +115,8 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 | `Multiplayer.LayerDelta.Sent`               | Multiplayer layer diff broadcast (future)         |
 | `Multiplayer.LocationSnapshot.HashMismatch` | Client/server snapshot divergence                 |
 | `Multiplayer.Movement.Latency`              | Movement latency decomposition (future)           |
+| `Graph.Query.Executed`                      | Gremlin query success with RU & latency (M2)      |
+| `Graph.Query.Failed`                        | Gremlin query failure with error details (M2)     |
 | `Telemetry.EventName.Invalid`               | Guard rail emission for invalid names             |
 
 ## Emission Guidelines
@@ -134,6 +136,62 @@ Add dimensions sparingly; prefer a single event with multiple dimensions over ma
 ## Partition Signals (Reference)
 
 Scaling thresholds live in `adr/ADR-002-graph-partition-strategy.md`. Emit partition health only if a decision boundary nears—do not pre‑emptively stream RU/vertex counts each request.
+
+### Gremlin RU & Latency Tracking (M2 Observability)
+
+Starting in M2, critical Gremlin operations emit `Graph.Query.Executed` and `Graph.Query.Failed` events with RU consumption and latency metrics. This enables pre-migration monitoring of partition pressure (ADR-002 thresholds: >50k vertices OR sustained RU >70% for 3 days OR 429 throttling).
+
+**Instrumented Operations:**
+
+-   `location.upsert.check` / `location.upsert.write` - Location vertex upserts
+-   `exit.ensureExit.check` / `exit.ensureExit.create` - Exit edge creation
+-   `player.create` - Player vertex creation
+
+**Event Schema:**
+
+```typescript
+// Success event
+{
+  eventName: 'Graph.Query.Executed',
+  operationName: 'location.upsert.write',
+  latencyMs: 45,
+  ruCharge: 5.2,  // Request Units consumed (if available from Cosmos DB)
+  resultCount: 1
+}
+
+// Failure event
+{
+  eventName: 'Graph.Query.Failed',
+  operationName: 'exit.ensureExit.check',
+  latencyMs: 120,
+  errorMessage: 'Connection timeout'
+}
+```
+
+**Query Snippet (Application Insights Analytics):**
+
+```kusto
+customEvents
+| where name in ('Graph.Query.Executed', 'Graph.Query.Failed')
+| extend operationName = tostring(customDimensions.operationName),
+         latencyMs = todouble(customDimensions.latencyMs),
+         ruCharge = todouble(customDimensions.ruCharge)
+| summarize
+    totalOps = count(),
+    failures = countif(name == 'Graph.Query.Failed'),
+    avgLatency = avg(latencyMs),
+    p95Latency = percentile(latencyMs, 95),
+    totalRU = sum(ruCharge),
+    avgRU = avg(ruCharge)
+  by operationName, bin(timestamp, 1h)
+| order by timestamp desc
+```
+
+**Alert Thresholds (ADR-002):**
+
+-   RU consumption sustained >70% of provisioned throughput for 3 consecutive days
+-   Repeated 429 (throttled) responses at <50 RPS
+-   P95 latency >500ms for critical operations
 
 ## Current Event Mapping (Old → New)
 

@@ -25,6 +25,20 @@ describe('Exit Repository', () => {
             }
             return []
         }
+
+        async submitWithMetrics<T>(query: string, bindings?: Record<string, unknown>): Promise<{ items: T[]; latencyMs: number; requestCharge?: number }> {
+            const startTime = Date.now()
+            const items = await this.submit<T>(query, bindings)
+            return {
+                items,
+                latencyMs: Date.now() - startTime,
+                requestCharge: 5.0 // Mock RU charge
+            }
+        }
+
+        async close(): Promise<void> {
+            // Mock close - no-op
+        }
     }
 
     describe('sortExits', () => {

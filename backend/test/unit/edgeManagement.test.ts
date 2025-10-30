@@ -59,6 +59,20 @@ describe('Edge Management', () => {
             }
             throw new Error('Unexpected query: ' + query)
         }
+
+        async submitWithMetrics<T>(query: string, bindings?: Record<string, unknown>): Promise<{ items: T[]; latencyMs: number; requestCharge?: number }> {
+            const startTime = Date.now()
+            const items = await this.submit<T>(query, bindings)
+            return {
+                items,
+                latencyMs: Date.now() - startTime,
+                requestCharge: 5.0 // Mock RU charge
+            }
+        }
+
+        async close(): Promise<void> {
+            // Mock close - no-op
+        }
     }
 
     test('getOppositeDirection - cardinal directions', () => {

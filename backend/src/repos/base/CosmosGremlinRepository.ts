@@ -3,8 +3,9 @@
  * Provides common functionality for querying and managing graph vertices/edges.
  */
 import { inject, injectable } from 'inversify'
-import type { IGremlinClient } from '../../gremlin/gremlinClient.js'
+import type { GremlinQueryResult, IGremlinClient } from '../../gremlin/gremlinClient.js'
 import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../../persistence/graphPartition.js'
+import { trackGameEventStrict } from '../../telemetry.js'
 
 @injectable()
 export abstract class CosmosGremlinRepository {
@@ -37,6 +38,50 @@ export abstract class CosmosGremlinRepository {
             ...bindings,
             pk: this.partitionKey
         })
+    }
+
+    /**
+     * Execute a Gremlin query with telemetry tracking.
+     * Emits Graph.Query.Executed or Graph.Query.Failed events with RU and latency metrics.
+     * @param operationName - Human-readable operation name for telemetry
+     * @param query - Gremlin query string
+     * @param bindings - Query parameter bindings
+     * @returns Array of query results
+     */
+    protected async queryWithTelemetry<T>(operationName: string, query: string, bindings: Record<string, unknown> = {}): Promise<T[]> {
+        const startTime = Date.now()
+        let success = false
+        let result: GremlinQueryResult<T> | undefined
+
+        try {
+            result = await this.client.submitWithMetrics<T>(
+                query,
+                {
+                    ...bindings,
+                    pk: this.partitionKey
+                },
+                operationName
+            )
+            success = true
+            return result.items
+        } catch (error) {
+            const latencyMs = Date.now() - startTime
+            trackGameEventStrict('Graph.Query.Failed', {
+                operationName,
+                latencyMs,
+                errorMessage: error instanceof Error ? error.message : 'Unknown error'
+            })
+            throw error
+        } finally {
+            if (success && result) {
+                trackGameEventStrict('Graph.Query.Executed', {
+                    operationName,
+                    latencyMs: result.latencyMs,
+                    ruCharge: result.requestCharge,
+                    resultCount: result.items.length
+                })
+            }
+        }
     }
 
     /**

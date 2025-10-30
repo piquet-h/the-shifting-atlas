@@ -59,6 +59,9 @@ export const GAME_EVENT_NAMES = [
     'Secret.Cache.Clear',
     // Persistence / infrastructure
     'Persistence.Mode.StrictFail',
+    // Graph operations (Gremlin RU & latency tracking for ADR-002 partition thresholds)
+    'Graph.Query.Executed',
+    'Graph.Query.Failed',
     // Security
     'Security.RateLimit.Exceeded',
     'Security.Validation.Failed',
