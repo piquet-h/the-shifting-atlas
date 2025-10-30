@@ -27,6 +27,13 @@ jobs:
         with:
           name: instruction-verification
           path: verify.json
+      - name: Validate verify.json
+        run: |
+          if ! jq empty verify.json; then
+            echo "verify.json is not valid JSON"
+            cat verify.json
+            exit 1
+          fi
       - name: Fail on issues
         run: |
           status=$(jq -r '.status' verify.json || echo 'fail')
