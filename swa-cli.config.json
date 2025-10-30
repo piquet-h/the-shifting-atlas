@@ -2,7 +2,7 @@
     "configurations": {
         "dev": {
             "appDevserverUrl": "http://localhost:5173",
-            "run": "npm run dev --prefix frontend",
+            "run": "npm run dev",
             "outputLocation": "frontend/dist",
             "swaConfigLocation": "frontend/public"
         }

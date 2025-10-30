@@ -8,7 +8,7 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "swa": "npx swa start --config ../swa-cli.config.json --env dev",
+        "swa": "npx swa start --config ../swa-cli.config.json",
         "typecheck": "tsc --noEmit",
         "lint": "eslint src test --ext .ts,.tsx",
         "format": "prettier --write \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\"",
