@@ -41,7 +41,7 @@ describe('Persistence Concurrency Idempotency', () => {
         const concurrencyLevel = 15
 
         // Create N parallel promises attempting to upsert the same locations
-        const promises = []
+        const promises: Promise<{ created: boolean; id: string; updatedRevision?: number }>[] = []
         for (let i = 0; i < concurrencyLevel; i++) {
             for (const location of locations) {
                 promises.push(repo.upsert(location))
@@ -98,7 +98,7 @@ describe('Persistence Concurrency Idempotency', () => {
         const concurrencyLevel = 20
 
         // Create N parallel promises attempting to create the same edges
-        const promises = []
+        const promises: Promise<{ created: boolean }>[] = []
         for (let i = 0; i < concurrencyLevel; i++) {
             for (const edge of edges) {
                 promises.push(repo.ensureExit(edge.from, edge.direction, edge.to))
@@ -153,7 +153,7 @@ describe('Persistence Concurrency Idempotency', () => {
         assert.equal(location?.version, 1)
 
         // Concurrent upserts with SAME content (no changes)
-        const sameContentPromises = []
+        const sameContentPromises: Promise<{ created: boolean; id: string; updatedRevision?: number }>[] = []
         for (let i = 0; i < 15; i++) {
             sameContentPromises.push(
                 repo.upsert({
@@ -198,7 +198,7 @@ describe('Persistence Concurrency Idempotency', () => {
             version: undefined
         }
 
-        const changedContentPromises = []
+        const changedContentPromises: Promise<{ created: boolean; id: string; updatedRevision?: number }>[] = []
         for (let i = 0; i < 15; i++) {
             changedContentPromises.push(repo.upsert(changedLocation))
         }
@@ -251,7 +251,7 @@ describe('Persistence Concurrency Idempotency', () => {
         const workers = 12
 
         // Phase 1: Concurrent upserts (ensure all locations exist first)
-        const upsertPromises = []
+        const upsertPromises: Promise<{ created: boolean; id: string; updatedRevision?: number }>[] = []
         for (let worker = 0; worker < workers; worker++) {
             for (const location of locations) {
                 upsertPromises.push(repo.upsert(location))
@@ -264,7 +264,7 @@ describe('Persistence Concurrency Idempotency', () => {
         assert.equal(locationsCreated, locations.length, `Expected ${locations.length} location creates, got ${locationsCreated}`)
 
         // Phase 2: Concurrent exit creation (now that locations are guaranteed to exist)
-        const exitPromises = []
+        const exitPromises: Promise<{ created: boolean }>[] = []
         for (let worker = 0; worker < workers; worker++) {
             for (const edge of edges) {
                 exitPromises.push(repo.ensureExit(edge.from, edge.direction, edge.to))
@@ -302,7 +302,7 @@ describe('Persistence Concurrency Idempotency', () => {
         await repo.upsert({ id: 'Y', name: 'Location Y', description: 'End', exits: [] })
 
         // Concurrent bidirectional exit creation
-        const promises = []
+        const promises: Promise<{ created: boolean; reciprocalCreated?: boolean }>[] = []
         for (let i = 0; i < 20; i++) {
             promises.push(repo.ensureExitBidirectional('X', 'north', 'Y', { reciprocal: true }))
         }
