@@ -54,14 +54,10 @@ export abstract class CosmosGremlinRepository {
         let result: GremlinQueryResult<T> | undefined
 
         try {
-            result = await this.client.submitWithMetrics<T>(
-                query,
-                {
-                    ...bindings,
-                    pk: this.partitionKey
-                },
-                operationName
-            )
+            result = await this.client.submitWithMetrics<T>(query, {
+                ...bindings,
+                pk: this.partitionKey
+            })
             success = true
             return result.items
         } catch (error) {
