@@ -1,34 +1,34 @@
-# M2 Observability – Implementation Plan & Sequencing
+# M2 Observability – Implementation Plan & Progress
 
 > **Milestone:** M2 Observability  
 > **Exit Criteria:** Dashboards show move success rate & RU/latency for key ops; visibility page live  
-> **Status:** OPEN | **Created:** 2025-10-30
+> **Status:** IN PROGRESS (Foundational telemetry complete) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-30
 
 ---
 
 ## Executive Summary
 
-M2's **observability scope** ensures visibility into core loop performance, cost controls, and operational health before introducing AI variability in M3.
+M2's **observability scope** ensures visibility into core loop performance, cost controls, and operational health before introducing AI variability in M3. Two foundational issues (#10 Telemetry Registry, #79 Gremlin RU/Latency) are now closed, unlocking subsequent health, trace, and cost tracks.
 
-**MVP Critical Path:**
+**MVP Critical Path (status):**
 
-1. Core telemetry expansion (registry, RU/latency wrappers)
-2. Health checks and operational visibility
-3. Cost monitoring and guardrails
-4. API modernization (RESTful patterns)
+1. Core telemetry expansion (registry, RU/latency wrappers) – **DONE** (#10, #79)
+2. Health checks and operational visibility – **PENDING** (#71)
+3. Cost monitoring and guardrails – **PENDING** (#50)
+4. API modernization (RESTful patterns) – **PENDING** (#228–#233 sequence)
 
-**26 Open Issues:** Mix of telemetry infrastructure, health checks, API refactoring, and description integrity monitoring.
+**42 Total Issues (3 closed, 39 open):** Mix of telemetry infrastructure, health checks, API refactoring, and description integrity monitoring.
 
 ---
 
-## Current Open Issues (26 Total)
+## Current Issues Overview (42 Total / 3 Closed)
 
 ### Foundation: Telemetry & Observability Core
 
 | Issue | Title                                              | Scope         | Type        | Priority | Dependencies |
 | ----- | -------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #10   | Telemetry Event Registry Expansion                 | observability | feature     | High     | None         |
-| #79   | Capture Gremlin RU + latency telemetry             | observability | enhancement | High     | #10          |
+| #10   | Telemetry Event Registry Expansion (CLOSED)        | observability | feature     | High     | None         |
+| #79   | Capture Gremlin RU + latency telemetry (CLOSED)    | observability | enhancement | High     | #10          |
 | #41   | Application Insights Correlation & OpenTelemetry   | observability | infra       | Medium   | #10          |
 | #50   | AI Cost & Token Usage Telemetry + Budget Guardrails| observability | feature     | Medium   | #10          |
 
@@ -311,10 +311,10 @@ M2's **observability scope** ensures visibility into core loop performance, cost
 
 - [x] Telemetry registry expanded with M2 events (#10)
 - [x] RU & latency metrics captured for Gremlin ops (#79)
-- [x] Health check endpoint operational (#71)
-- [x] OpenTelemetry correlation wired (#41)
-- [x] AI cost telemetry emitting (#50)
-- [x] RESTful API patterns operational with backward compat (#228-#233)
+- [ ] Health check endpoint operational (#71)
+- [ ] OpenTelemetry correlation wired (#41)
+- [ ] AI cost telemetry emitting (#50)
+- [ ] RESTful API patterns operational with backward compat (#228-#233)
 
 ### M2 Completion Criteria (Comprehensive)
 

@@ -6,7 +6,7 @@ This roadmap expresses intent by milestone (M0–M5) instead of a long numbered 
 | ------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M0 Foundation ✅         | Prove deploy + minimal loop viability         | Ping, guest GUID bootstrap, telemetry scaffold                                                               | CLOSED                     | **CLOSED** 2025-10-19: Player gets GUID & receives ping consistently                                                                                    |
 | M1 Traversal ✅          | Persistent movement across locations          | Location persistence, exit model, move/look commands, direction normalization (N1–N3); data foundations      | CLOSED                     | Player can move across ≥3 persisted locations; telemetry for move success/failure; persistent player-location tracking (scalar and edge-based) achieved |
-| M2 Observability         | Ensure we can see & tune core loop            | Event registry expansion, RU & latency wrappers, health check; Learn More page; Mosswell bootstrap           | **23** (1 closed, 22 open) | Dashboards show move success rate & RU/latency for key ops; visibility page live                                                                        |
+| M2 Observability         | Ensure we can see & tune core loop            | Event registry expansion, RU & latency wrappers, health check; Learn More page; Mosswell bootstrap           | **42** (3 closed, 39 open) | Dashboards show move success rate & RU/latency for key ops; visibility page live                                                                        |
 | M3 AI Read               | Safe advisory AI context only                 | Prompt template registry, read‑only MCP (world-query, prompt-template, telemetry), classification groundwork | **8** (0 closed, 8 open)   | AI can supply optional ambience lines; no mutations accepted                                                                                            |
 | M4 Layering & Enrichment | Persistent world variation without retcon     | Description layering engine (base + structural), ambient context registry, validator guards                  | **37** (5 closed, 32 open) | Layers applied & audited; base descriptions immutable                                                                                                   |
 | M5 Systems               | Begin systemic depth & extension              | Factions scaffold, economy signals (basic), extension hook sandbox, NPC tick skeleton                        | **5** (0 closed, 5 open)   | At least one extension hook emits telemetry; NPC tick produces non-blocking event                                                                       |
@@ -42,7 +42,9 @@ Deferred items moved to appropriate future milestones (semantic exits, relative 
 
 **M2 Observability (NOW):**
 
--   Expand RU & latency wrappers; dashboard refinement (#108, #111)
+-   Telemetry registry expansion & RU/latency wrappers (COMPLETED: #10, #79)
+-   Implement health check (#71) and OpenTelemetry correlation (#41)
+-   AI cost telemetry (#50) and dashboard refinement (#108, #111)
 -   Integrate player-location edge metrics (population per location)
 -   Harden telemetry validator & event membership rules
 -   Health checks enrichment & Learn More page progression (#171)
@@ -59,4 +61,4 @@ Material roadmap shifts require updating: this file + affected ADR cross-links. 
 
 **Bulk Assignment Note (2025-10-19):** 61 issues now assigned to M1–M5 milestones. Use GitHub Project views to filter by milestone and scope for detailed planning. Deferred issues remain unassigned pending M1 stabilization.
 
-_Last updated: 2025-10-30 (M1 Traversal CLOSED; focus shifted to M2 Observability – current counts unchanged for M2–M6 pending next sync)_
+_Last updated: 2025-10-30 (M1 Traversal CLOSED; M2 Observability counts updated after closing #10 & #79 – remaining foundation now health check, tracing, cost telemetry)_
