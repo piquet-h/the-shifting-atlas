@@ -57,4 +57,15 @@ ExitEdge {
 -   Traversal cost / weight for pathfinding heuristics.
 -   Skill / attribute requirements (kept separate from existence).
 
+## Related Documentation
+
+-   [Direction Resolution Rules](./direction-resolution-rules.md) – Direction normalization, ambiguity handling, typo tolerance
+-   [Edge Management Guide](../developer-workflow/edge-management.md) – Operational workflow for exit creation/removal
+-   [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Player edge migration patterns
+-   [Location Version Policy](./location-version-policy.md) – Exit changes do not increment location version
+-   [Navigation & Traversal](../modules/navigation-and-traversal.md) – Movement semantics and graph traversal
+-   [Architecture Overview](./overview.md) – Implementation to design mapping
+
+---
+
 _Last updated: 2025-10-19 (extracted invariants from edge-management guide)_
