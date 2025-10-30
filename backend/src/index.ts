@@ -58,4 +58,4 @@ import './functions/playerCreate.js'
 import './functions/playerGet.js'
 import './functions/playerLink.js'
 import './functions/playerMove.js'
-import './functions/queueProcessWorldEvent.js'
+// Note: queueProcessWorldEvent.ts has its registration commented out, so not imported here
