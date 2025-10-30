@@ -44,3 +44,18 @@ app.hook.appStart(() => {
 app.hook.preInvocation((context: PreInvocationContext) => {
     context.invocationContext.extraInputs.set('container', container)
 })
+
+// Import function registrations (side effects register them with app)
+import './functions/bootstrapPlayer.js'
+import './functions/getExits.js'
+import './functions/health.js'
+import './functions/linkRooms.js'
+import './functions/location.js'
+import './functions/locationLook.js'
+import './functions/ping.js'
+import './functions/player.js'
+import './functions/playerCreate.js'
+import './functions/playerGet.js'
+import './functions/playerLink.js'
+import './functions/playerMove.js'
+import './functions/queueProcessWorldEvent.js'
