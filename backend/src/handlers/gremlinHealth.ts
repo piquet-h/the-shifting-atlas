@@ -40,6 +40,8 @@ export class GremlinHealthHandler extends BaseHandler {
                     reason = 'cosmos-config-missing'
                 } else {
                     // Attempt lightweight query
+                    // Note: Using basic submit() for now. Future enhancement (issue #79) will add
+                    // RU charge metrics via submitWithMetrics() for cost monitoring.
                     const gremlinClient = this.container.get<IGremlinClient>('GremlinClient')
                     await gremlinClient.submit('g.V().limit(1)')
                     queryLatencyMs = Date.now() - queryStart
