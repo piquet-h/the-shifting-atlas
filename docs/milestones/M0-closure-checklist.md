@@ -2,7 +2,7 @@
 
 **Closed By:** Copilot  
 **Date:** 2025-10-19  
-**Status:** ✅ Ready for M1 Traversal
+**Status:** ✅ M1 Traversal Completed (2025-10-30); preparing for M2 Observability
 
 ## Pre-Closure Verification
 
@@ -97,6 +97,6 @@
 
 **M0 Foundation Milestone Closed:** ✅ 2025-10-19
 
-All exit criteria verified. Deployment stable. Ready to proceed with M1 Traversal.
+All exit criteria verified. Deployment stable. M1 Traversal subsequently completed (2025-10-30).
 
-**Next Milestone:** [M1 Traversal](../roadmap.md#m1-traversal)
+**Next Milestone:** [M2 Observability](../roadmap.md#m2-observability)

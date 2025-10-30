@@ -165,4 +165,4 @@ These are **M1 Traversal** features, intentionally deferred:
 
 ---
 
-**Next Milestone:** [M1 Traversal](../roadmap.md#m1-traversal)
+**Next Milestone:** [M2 Observability](../roadmap.md#m2-observability)

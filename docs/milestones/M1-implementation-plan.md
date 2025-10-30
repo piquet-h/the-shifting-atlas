@@ -1,8 +1,10 @@
-# M1 Traversal – Implementation Plan & Sequencing
+# M1 Traversal – Implementation Plan & Sequencing (ARCHIVED)
+
+> ARCHIVED: Milestone CLOSED 2025-10-30. For final outcomes and verification, see `M1-closure-summary.md`.
 
 **Milestone:** M1 Traversal  
 **Exit Criteria:** Player can move across ≥3 persisted locations; telemetry for move success/failure  
-**Status:** MVP Complete (22 open issues remain) | **Updated:** 2025-10-22
+**Status:** CLOSED 2025-10-30 | **Historical Snapshot Last Updated:** 2025-10-22 (retained for traceability)
 
 ---
 
