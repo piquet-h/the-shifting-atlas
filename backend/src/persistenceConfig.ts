@@ -53,7 +53,7 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         if (!endpoint || !database || !graph) {
             if (strict) {
                 const missingVars = []
-                if (!endpoint) missingVars.push('COSMOS_GREMLIN_ENDPOINT')
+                if (!endpoint) missingVars.push('COSMOS_GREMLIN_ENDPOINT or COSMOS_ENDPOINT')
                 if (!database) missingVars.push('COSMOS_GREMLIN_DATABASE')
                 if (!graph) missingVars.push('COSMOS_GREMLIN_GRAPH')
 
