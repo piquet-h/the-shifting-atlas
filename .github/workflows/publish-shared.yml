@@ -9,10 +9,17 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      releaseType:
-        description: 'semver bump (patch|minor|major) or explicit version (e.g. 0.2.0)'
+      mode:
+        description: 'publish mode (semver|explicit)'
+        required: true
+        default: 'semver'
+      semverBump:
+        description: 'patch|minor|major (used when mode=semver)'
         required: false
         default: 'patch'
+      explicitVersion:
+        description: 'Exact version (used when mode=explicit, e.g. 0.4.0)'
+        required: false
 
 permissions:
   contents: write
@@ -28,11 +35,10 @@ jobs:
         working-directory: shared
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # used implicitly by setup-node for auth
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -40,6 +46,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'shared/package-lock.json'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
 
       - name: Install JavaScript dependencies
         run: npm ci
@@ -61,26 +69,52 @@ jobs:
         id: version
         run: |
           CURRENT=$(node -p "require('./package.json').version")
-          INPUT='${{ github.event.inputs.releaseType }}'
-          if [ -z "$INPUT" ] || [[ "$INPUT" == patch || "$INPUT" == minor || "$INPUT" == major ]]; then
-            npm version ${INPUT:-patch} --no-git-tag-version
+          MODE='${{ github.event.inputs.mode }}'
+          if [ "$MODE" = "semver" ]; then
+            BUMP='${{ github.event.inputs.semverBump }}'
+            npm version ${BUMP:-patch} --no-git-tag-version
+          elif [ "$MODE" = "explicit" ]; then
+            EXPLICIT='${{ github.event.inputs.explicitVersion }}'
+            if [ -z "$EXPLICIT" ]; then
+              echo "Explicit mode selected but no explicitVersion provided"; exit 1
+            fi
+            if ! echo "$EXPLICIT" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "Invalid explicitVersion format: $EXPLICIT"; exit 1
+            fi
+            # Monotonic check (explicit must be greater than current)
+            node -e "const current=require('./package.json').version; const target='${EXPLICIT}'; const cmp=(a,b)=>{const pa=a.split('.').map(Number), pb=b.split('.').map(Number); for(let i=0;i<3;i++){ if(pa[i]<pb[i]) return -1; if(pa[i]>pb[i]) return 1;} return 0;}; if(cmp(target,current)<=0){console.error(\"Explicit version ${target} must be greater than current ${current}\"); process.exit(1);}"
+            npm version "$EXPLICIT" --no-git-tag-version
           else
-            npm version "$INPUT" --no-git-tag-version
+            echo "Unknown mode $MODE"; exit 1
           fi
           NEW=$(node -p "require('./package.json').version")
           echo "newVersion=$NEW" >> $GITHUB_OUTPUT
-          echo "Bumped version $CURRENT -> $NEW"
+          echo "Bumped version $CURRENT -> $NEW (mode=$MODE)"
+
+      - name: Abort if target version already published
+        run: |
+          NEW='${{ steps.version.outputs.newVersion }}'
+          if npm view @piquet-h/shared@"$NEW" version >/dev/null 2>&1; then
+            echo "Version $NEW already published. Skipping commit/publish/tag."
+            exit 0
+          fi
 
       - name: Commit version bump
         run: |
           NEW_VERSION='${{ steps.version.outputs.newVersion }}'
           git config user.name 'github-actions'
           git config user.email 'github-actions@github.com'
-          git add package.json
-          git commit -m "chore(shared): release $NEW_VERSION"
+          git add package.json package-lock.json
+          MODE='${{ github.event.inputs.mode }}'
+          if [ "$MODE" = "explicit" ]; then
+            git commit -m "chore(shared): release $NEW_VERSION (explicit)"
+          else
+            BUMP='${{ github.event.inputs.semverBump }}'
+            git commit -m "chore(shared): release $NEW_VERSION (semver:${BUMP:-patch})"
+          fi
 
       - name: Publish @piquet-h/shared
-        run: npm publish --access public
+        run: npm publish
 
       - name: Create Git tag
         run: |
