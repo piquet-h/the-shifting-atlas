@@ -20,6 +20,7 @@ export interface IPersistenceConfig {
             inventory: string
             layers: string
             events: string
+            deadLetters: string
         }
     }
 }
@@ -48,6 +49,7 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         const sqlContainerInventory = process.env.COSMOS_SQL_CONTAINER_INVENTORY
         const sqlContainerLayers = process.env.COSMOS_SQL_CONTAINER_LAYERS
         const sqlContainerEvents = process.env.COSMOS_SQL_CONTAINER_EVENTS
+        const sqlContainerDeadLetters = process.env.COSMOS_SQL_CONTAINER_DEADLETTERS || 'deadLetters'
 
         // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
@@ -108,7 +110,8 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                     players: sqlContainerPlayers,
                     inventory: sqlContainerInventory,
                     layers: sqlContainerLayers,
-                    events: sqlContainerEvents
+                    events: sqlContainerEvents,
+                    deadLetters: sqlContainerDeadLetters
                 }
             }
         }
