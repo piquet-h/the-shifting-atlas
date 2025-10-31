@@ -15,6 +15,19 @@ export interface GremlinClientConfig {
 }
 
 /**
+ * Result metadata from a Gremlin query execution.
+ * Includes performance metrics for observability (ADR-002 partition monitoring).
+ */
+export interface GremlinQueryResult<T = unknown> {
+    /** Query result items */
+    items: T[]
+    /** Execution time in milliseconds */
+    latencyMs: number
+    /** Request charge in Request Units (RU), if available from Cosmos DB */
+    requestCharge?: number
+}
+
+/**
  * Interface for executing Gremlin queries against Cosmos DB Gremlin API.
  * Automatically handles Azure AD authentication and connection management.
  */
@@ -28,6 +41,14 @@ export interface IGremlinClient {
     submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]>
 
     /**
+     * Submits a Gremlin query with telemetry metadata.
+     * @param query - The Gremlin query string to execute
+     * @param bindings - Optional parameter bindings for the query
+     * @returns Query result with performance metadata
+     */
+    submitWithMetrics<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<GremlinQueryResult<T>>
+
+    /**
      * Closes the Gremlin connection.
      * Should be called during cleanup to properly release resources.
      */
@@ -37,10 +58,17 @@ export interface IGremlinClient {
 /**
  * Internal structure of the Gremlin driver's remote connection.
  * The public types don't expose _client, but we need it for query submission.
+ * Cosmos DB Gremlin API returns response attributes including request charge.
  */
 interface GremlinInternalClient<T = unknown> {
     _client: {
-        submit: (query: string, bindings?: Record<string, unknown>) => Promise<{ _items: T[] }>
+        submit: (
+            query: string,
+            bindings?: Record<string, unknown>
+        ) => Promise<{
+            _items: T[]
+            attributes?: Map<string, unknown> | Record<string, unknown>
+        }>
     }
 }
 
@@ -51,14 +79,47 @@ export class GremlinClient implements IGremlinClient {
     constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {}
 
     async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
+        const result = await this.submitWithMetrics<T>(query, bindings)
+        return result.items
+    }
+
+    async submitWithMetrics<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<GremlinQueryResult<T>> {
         if (!this.connection) {
             await this.initialize()
         }
 
-        // Access the internal _client that's not exposed in the public type definitions
-        const internalClient = this.connection as unknown as GremlinInternalClient<T>
-        const raw = await internalClient._client.submit(query, bindings)
-        return raw._items
+        const startTime = Date.now()
+        let requestCharge: number | undefined
+
+        try {
+            // Access the internal _client that's not exposed in the public type definitions
+            const internalClient = this.connection as unknown as GremlinInternalClient<T>
+            const raw = await internalClient._client.submit(query, bindings)
+
+            // Extract request charge from response attributes if available
+            // Cosmos DB Gremlin API returns this in the response attributes
+            if (raw.attributes) {
+                try {
+                    // Attributes can be a Map or plain object depending on driver version
+                    const attrs = raw.attributes instanceof Map ? Object.fromEntries(raw.attributes) : raw.attributes
+                    // Common attribute keys: 'x-ms-request-charge', 'requestCharge'
+                    requestCharge =
+                        (attrs['x-ms-request-charge'] as number) ||
+                        (attrs['requestCharge'] as number) ||
+                        (attrs['x-ms-total-request-charge'] as number)
+                } catch {
+                    // Silently ignore attribute parsing errors
+                }
+            }
+
+            return {
+                items: raw._items,
+                latencyMs: Date.now() - startTime,
+                requestCharge
+            }
+        } catch (error) {
+            throw error
+        }
     }
 
     async close(): Promise<void> {

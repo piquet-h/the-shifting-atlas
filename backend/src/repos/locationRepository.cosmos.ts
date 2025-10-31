@@ -178,7 +178,11 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             const newContentHash = computeContentHash(location.name, location.description, location.tags)
 
             // First, check if the location exists to determine if this is create vs update
-            const existingVertices = await this.query<Record<string, unknown>>('g.V(lid).valueMap(true)', { lid: location.id })
+            const existingVertices = await this.queryWithTelemetry<Record<string, unknown>>(
+                'location.upsert.check',
+                'g.V(lid).valueMap(true)',
+                { lid: location.id }
+            )
             const exists = existingVertices && existingVertices.length > 0
             created = !exists
 
@@ -235,7 +239,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 }
             }
 
-            await this.query(query, bindings)
+            await this.queryWithTelemetry('location.upsert.write', query, bindings)
 
             success = true
             updatedRevision = shouldIncrementRevision ? newVersion : undefined
@@ -252,7 +256,6 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 success,
                 created: success ? created : undefined,
                 revision: success ? updatedRevision : undefined,
-                ru: undefined, // RU tracking not available from Gremlin client
                 reason: success ? undefined : reason
             })
         }
@@ -275,7 +278,8 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         }
 
         // Check if edge already exists
-        const existingEdges = await this.query<Record<string, unknown>>(
+        const existingEdges = await this.queryWithTelemetry<Record<string, unknown>>(
+            'exit.ensureExit.check',
             "g.V(fid).outE('exit').has('direction', dir).where(inV().hasId(tid))",
             { fid: fromId, tid: toId, dir: direction }
         )
@@ -286,12 +290,16 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         }
 
         // Create new edge (use addE().from().to() pattern for Cosmos Gremlin)
-        await this.query("g.V(fid).addE('exit').to(g.V(tid)).property('direction', dir).property('description', desc)", {
-            fid: fromId,
-            tid: toId,
-            dir: direction,
-            desc: description || ''
-        })
+        await this.queryWithTelemetry(
+            'exit.ensureExit.create',
+            "g.V(fid).addE('exit').to(g.V(tid)).property('direction', dir).property('description', desc)",
+            {
+                fid: fromId,
+                tid: toId,
+                dir: direction,
+                desc: description || ''
+            }
+        )
 
         // Regenerate exits summary cache for the source location - defer if requested for bulk operations
         if (!opts?.deferCacheRegen) {

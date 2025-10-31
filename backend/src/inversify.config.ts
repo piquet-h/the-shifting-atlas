@@ -4,6 +4,7 @@ import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin'
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
 import { GetExitsHandler } from './handlers/getExits.js'
+import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
 import { LocationHandler } from './handlers/location.js'
@@ -49,6 +50,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
     container.bind(PingHandler).toSelf().inSingletonScope()
     container.bind(HealthHandler).toSelf().inSingletonScope()
+    container.bind(GremlinHealthHandler).toSelf().inSingletonScope()
     container.bind(SimplePingHandler).toSelf().inSingletonScope()
     container.bind(LocationHandler).toSelf().inSingletonScope()
     container.bind(GetExitsHandler).toSelf().inSingletonScope()

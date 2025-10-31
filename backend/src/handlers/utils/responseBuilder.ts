@@ -55,3 +55,13 @@ export function okResponse(data: unknown, options: ResponseOptions): HttpRespons
 export function errorResponse(status: number, code: string, message: string, options: ResponseOptions): HttpResponseInit {
     return jsonResponse(status, err(code, message, options.correlationId), options)
 }
+
+/**
+ * Build a service unavailable (503) response with data payload.
+ * @param data - Response data to include
+ * @param options - Response options
+ * @returns Azure Functions HTTP response with 503 status
+ */
+export function serviceUnavailableResponse(data: unknown, options: ResponseOptions): HttpResponseInit {
+    return jsonResponse(503, data, options)
+}
