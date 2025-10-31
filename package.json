@@ -5,7 +5,8 @@
     "license": "MIT",
     "scripts": {
         "verify:instructions": "node scripts/verify-instructions.mjs",
-        "verify:instructions:json": "node scripts/verify-instructions.mjs --format json"
+        "verify:instructions:json": "node scripts/verify-instructions.mjs --format json",
+        "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs"
     },
     "engines": {
         "node": ">=20"
