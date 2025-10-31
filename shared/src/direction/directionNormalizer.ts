@@ -253,6 +253,10 @@ function resolveSemanticExit(input: string, context?: LocationExitContext): Dire
     }
 
     // Check landmark aliases (only if no exit matches)
+    // PRIORITY RATIONALE: Exit names/synonyms are more specific and contextual to the immediate
+    // navigation choice, while landmarks are meant as convenient aliases. If both match, the
+    // exit is the primary entity and takes precedence. This also handles the case where an exit
+    // might have the same name as a landmark pointing toward it (result would be identical).
     if (matches.length === 0 && context.landmarkAliases) {
         // Normalize all landmark alias keys to lowercase for comparison
         const normalizedAliases: Record<string, Direction> = {}

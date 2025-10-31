@@ -18,11 +18,10 @@ function createContext(
     exits: Array<{ direction: string; name?: string; synonyms?: string[] }>,
     landmarkAliases?: Record<string, string>
 ): LocationExitContext {
+    // Test helper: accepts string types for convenience, they match the actual Direction type at runtime
     return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        exits: exits as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        landmarkAliases: landmarkAliases as any
+        exits: exits as LocationExitContext['exits'],
+        landmarkAliases: landmarkAliases as LocationExitContext['landmarkAliases']
     }
 }
 
