@@ -1,6 +1,7 @@
 /* global localStorage */
 import { useCallback, useEffect, useState } from 'react'
 import { trackGameEventClient } from '../services/telemetry'
+import { buildPlayerUrl, buildHeaders, isValidGuid } from '../utils/apiClient'
 
 /**
  * usePlayerGuid
@@ -30,7 +31,7 @@ export function usePlayerGuid(): PlayerGuidState {
     const readLocal = useCallback(() => {
         try {
             const stored = localStorage.getItem(STORAGE_KEY)
-            return stored && /^[0-9a-fA-F-]{36}$/.test(stored) ? stored : null
+            return stored && isValidGuid(stored) ? stored : null
         } catch {
             return null
         }
@@ -53,9 +54,11 @@ export function usePlayerGuid(): PlayerGuidState {
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
                 trackGameEventClient('Onboarding.GuestGuid.Started')
-                const res = await fetch('/api/player', {
+                const url = buildPlayerUrl(existing)
+                const headers = buildHeaders(existing)
+                const res = await fetch(url, {
                     method: 'GET',
-                    headers: existing ? { 'x-player-guid': existing } : undefined
+                    headers
                 })
                 if (!res.ok) {
                     throw new Error(`Bootstrap failed: ${res.status}`)
