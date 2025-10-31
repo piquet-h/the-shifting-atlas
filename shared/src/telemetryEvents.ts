@@ -4,6 +4,12 @@
 // CRITICAL: This file is for GAME DOMAIN events ONLY (player actions, world events, gameplay).
 // DO NOT add build/CI automation events here - those belong in scripts/shared/build-telemetry.mjs.
 // See docs/developer-workflow/build-telemetry.md for separation rules.
+//
+// NO INLINE LITERALS: All event names must be referenced from this registry.
+// To verify no inline usage outside registry:
+// grep -r "AI\.Cost\." --include="*.ts" --exclude-dir=node_modules --exclude-dir=dist | \
+//   grep -v "shared/src/telemetryEvents.ts" | grep -v "\.test\.ts"
+// (Adjust pattern for other event domains as needed)
 
 export const GAME_EVENT_NAMES = [
     // Core service / utility
@@ -66,9 +72,23 @@ export const GAME_EVENT_NAMES = [
     // Security
     'Security.RateLimit.Exceeded',
     'Security.Validation.Failed',
+    // AI Cost Tracking (M2 Observability)
+    // Track AI operation cost estimation, windowed summaries, and threshold events
+    // Key dimensions: model, operation type, token counts, USD estimate, timestamp
+    'AI.Cost.Estimated', // Pre-execution cost estimate for AI calls (prompt + completion tokens)
+    'AI.Cost.WindowSummary', // Hourly or windowed cost aggregation (total spend, operation count)
+    'AI.Cost.OverrideRejected', // Cost limit override attempt rejected by policy
+    'AI.Cost.InputAdjusted', // Input size adjusted to fit within cost constraints
+    'AI.Cost.InputCapped', // Input capped at maximum token limit
+    'AI.Cost.SoftThresholdCrossed', // Soft budget threshold warning (does not block operation)
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid'
 ] as const
+
+// Future deprecations or renames should follow the pattern above:
+// - Add comment with date and reason: "Deprecated (YYYY-MM-DD): OldName → NewName. Reason."
+// - Keep old event in array until retention window expires (180d standard)
+// - Document in observability docs when adding replacement
 
 export type GameEventName = (typeof GAME_EVENT_NAMES)[number]
 
