@@ -45,6 +45,7 @@ export const GAME_EVENT_NAMES = [
     'World.Exit.Removed',
     'World.Event.Processed',
     'World.Event.Duplicate',
+    'World.Event.DeadLettered',
     'Prompt.Genesis.Issued',
     'Prompt.Genesis.Rejected',
     'Prompt.Genesis.Crystallized',
