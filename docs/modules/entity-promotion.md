@@ -119,6 +119,43 @@ function attemptPromotion(playerInput: string, sceneDescription: string, existin
 
 All helper functions (`parsePlayerIntent`, `extractNouns`, `persistEntity`, etc.) are deferred to later phases; they must not introduce direct DB writes before validation scaffolding exists.
 
+## Latent vs Promoted Entities
+
+Not every described object is persisted immediately. Two states exist:
+
+| State    | Origin                                | Persistence | Interaction | Example                                      |
+| -------- | ------------------------------------- | ----------- | ----------- | -------------------------------------------- |
+| Latent   | Appears only in layered description   | None        | Indirect    | "a large axe rests on the rack"              |
+| Promoted | Player targets / interacts (eligible) | Document    | Direct      | Player: "take the axe" → `axe_29af3` created |
+
+Rules:
+
+1. Latent items do NOT block narrative reuse; they can repeat until promotion occurs.
+2. Promotion triggers when a verb in the eligible set targets a latent noun and confidence ≥ threshold.
+3. Once promoted, subsequent descriptions should reference the canonical entity (e.g. include its current status) rather than re‑describing it as flavor.
+4. Demotion is disallowed—entities remain persisted; removal uses status transitions (`destroyed`, `taken`).
+5. NPC Promotion: When a player speaks to / trades with an implied actor (e.g. smith), the NPC is promoted PLUS any referenced inventory items become promotable latent children. Inventory items are promoted only on direct interaction verbs (`inspect`, `take`, `buy`).
+6. Inventory Snapshot: NPC promotion records an initial inventory manifest (IDs generated lazily on item promotion). This prevents premature entity explosion while allowing deterministic later promotion.
+7. Latent Object Revisit: If a player leaves and returns without prior promotion, the object remains latent; a second interaction still promotes it—no time decay applied in MVP.
+
+### NPC Promotion Minimal Shape (Deferred Implementation)
+
+```ts
+interface NpcEntity extends Entity {
+    npcType: 'smith' | 'vendor' | 'bard' | 'generic'
+    inventoryRefs: string[] // Item entity IDs (promoted) or latent descriptors
+}
+```
+
+### Promotion Telemetry Extension (Illustrative)
+
+| Event                         | Purpose                                     |
+| ----------------------------- | ------------------------------------------- |
+| `Entity.Promotion.NpcCreated` | NPC promoted; inventory latent count logged |
+| `Entity.Promotion.ItemLinked` | Item promoted from NPC latent inventory     |
+
+Cross‑Link: See `parameterized-action-flow.md` for how promotion integrates after intent interpretation, and `narration-governance.md` for rules ensuring humorous fallback when promotion is rejected.
+
 ## Narrative & Action Resolution
 
 After promotion, the resolving action (attack, examine, interact) proceeds using the **intent adjudication pipeline**. Outcome text is layered (do not mutate original description) and may append transient sensory fragments (e.g., falling feathers). Future rule: destructive results create follow‑up entities (corpse, dropped object) via secondary promotion with `generationMode: 'inferred'`.

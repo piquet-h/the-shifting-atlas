@@ -2,7 +2,7 @@
 
 > STATUS: REFERENCE / STYLE GUIDE (2025-10-23). Used for AI prompt conditioning & human-authored narrative consistency. Not an implementation spec; no runtime components exist yet.
 >
-> Related: [AI Prompt Engineering](modules/ai-prompt-engineering.md) · [Description Layering & Variation](modules/description-layering-and-variation.md) · [Entity Promotion](modules/entity-promotion.md) · [Player Interaction & Intents](modules/player-interaction-and-intents.md) · [World Rules & Lore](modules/world-rules-and-lore.md)
+> Related (Concept Facet): [Parameterized Action Flow](concept/parameterized-action-flow.md) · [Perception Actions](concept/perception-actions.md) · [Narration Governance](concept/narration-governance.md) · [Entity Promotion](modules/entity-promotion.md) · [AI Prompt Engineering](modules/ai-prompt-engineering.md) · [Description Layering & Variation](modules/description-layering-and-variation.md) · [Player Interaction & Intents](modules/player-interaction-and-intents.md) · [World Rules & Lore](modules/world-rules-and-lore.md)
 
 ## Summary
 

@@ -8,26 +8,28 @@ The Shifting Atlas is a persistent, event‑driven multiplayer text world where 
 
 1. Spatial Storytelling: Movement and location context create a navigable, lore‑rich fabric.
 2. Narrative Layering: Base prose remains immutable; context (weather, faction marks, ambience) accumulates additively.
-3. Humorous Guidance: A lightly eccentric narrator converts ambiguity into playful, non‑blocking outcomes.
-4. Deterministic AI Support: Prompt templates are hashed/versioned; advisory outputs validated before materialization.
-5. Event‑Driven Evolution: Player commands & systemic ticks produce auditable world events; processors advance state asynchronously.
-6. Extensible Systems: Factions, quests, dungeons, economy, and extension hooks integrate via explicit contracts—not ad‑hoc coupling.
-7. Safe Multiplayer: Anti‑grief patterns reduce disruptive incentives; cooperative progression favored.
+3. Humorous Guidance (AI‑Driven): A lightly eccentric, AI‑orchestrated narrator converts ambiguity into playful, non‑blocking outcomes and injects micro‑lore where safe.
+4. AI‑Driven Narrative Orchestration: Generative models propose ephemeral narration and candidate additive layers; validators gate persistence to prevent canon drift.
+5. Deterministic AI Support: Prompt templates are hashed/versioned; model outputs are provenance‑tracked and validated before materialization.
+6. Event‑Driven Evolution: Player commands & systemic ticks produce auditable world events; processors advance state asynchronously.
+7. Extensible Systems: Factions, quests, dungeons, economy, and extension hooks integrate via explicit contracts—not ad‑hoc coupling.
+8. Safe Multiplayer: Anti‑grief patterns reduce disruptive incentives; cooperative progression favored.
 
 ## Decision Tenets (Guiding Principles)
 
-| Tenet                                                       | Rationale                                   | Tradeoff Accepted                          |
-| ----------------------------------------------------------- | ------------------------------------------- | ------------------------------------------ |
-| Prefer narrative humour & gameplay over accurate simulation | Maintains engagement & accessibility        | Reduced simulation fidelity                |
-| Determinism over raw randomness                             | Enables replay, debugging, cost control     | Requires managed variation mechanisms      |
-| Immutable base prose, additive layering only                | Prevents lore drift & retcon conflicts      | Requires provenance & layering validator   |
-| Centralized telemetry event names (no inline literals)      | Ensures schema consistency, low cardinality | Slight upfront governance overhead         |
-| Advisory AI before mutation                                 | Mitigates risk & hallucination side effects | Slower path to autonomous generation       |
-| Idempotent world operations                                 | Safe retries under transient failures       | Additional existence checks per operation  |
-| Separation of concept, architecture, execution facets       | Reduces documentation drift & leakage       | Initial reorganization cost                |
-| Feature flags for emergent mechanics                        | Controlled rollout & rollback               | More configuration surface                 |
-| Player clarity > simulation realism                         | Avoids opaque complexity & grief vectors    | Some systems simplified (economy, physics) |
-| Extensibility sandboxed & versioned                         | Protects core stability & security          | Integration friction for third parties     |
+| Tenet                                                       | Rationale                                                            | Tradeoff Accepted                             |
+| ----------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------- |
+| Prefer narrative humour & gameplay over accurate simulation | Maintains engagement & accessibility                                 | Reduced simulation fidelity                   |
+| Determinism over raw randomness                             | Enables replay, debugging, cost control                              | Requires managed variation mechanisms         |
+| Immutable base prose, additive layering only                | Prevents lore drift & retcon conflicts                               | Requires provenance & layering validator      |
+| Centralized telemetry event names (no inline literals)      | Ensures schema consistency, low cardinality                          | Slight upfront governance overhead            |
+| Advisory AI before mutation                                 | Mitigates risk & hallucination side effects                          | Slower path to autonomous generation          |
+| AI‑driven narration with bounded creative hallucination     | Enriches world with micro‑lore & dynamic tone while preserving canon | Requires stricter validators & review cadence |
+| Idempotent world operations                                 | Safe retries under transient failures                                | Additional existence checks per operation     |
+| Separation of concept, architecture, execution facets       | Reduces documentation drift & leakage                                | Initial reorganization cost                   |
+| Feature flags for emergent mechanics                        | Controlled rollout & rollback                                        | More configuration surface                    |
+| Player clarity > simulation realism                         | Avoids opaque complexity & grief vectors                             | Some systems simplified (economy, physics)    |
+| Extensibility sandboxed & versioned                         | Protects core stability & security                                   | Integration friction for third parties        |
 
 ## Facet Boundaries
 
@@ -39,23 +41,27 @@ The Shifting Atlas is a persistent, event‑driven multiplayer text world where 
 
 ## World Modeling Principles
 
-- Graph-first spatial semantics (locations & exits as vertices/edges).
-- Dual persistence: Gremlin (immutable structure) + SQL API (mutable player/inventory/events).
-- Stable GUIDs for all entities; no composite natural keys.
-- Idempotent creation/removal for exits, layers, events.
-- Partition evolution gated by empirical RU telemetry (per ADR‑002).
+-   Graph-first spatial semantics (locations & exits as vertices/edges).
+-   Dual persistence: Gremlin (immutable structure) + SQL API (mutable player/inventory/events).
+-   Stable GUIDs for all entities; no composite natural keys.
+-   Idempotent creation/removal for exits, layers, events.
+-   Partition evolution gated by empirical RU telemetry (per ADR‑002).
 
 ## AI Integration Strategy
 
-- Stage M3: Read‑only MCP servers (world-query, prompt-template, telemetry).
-- Stage M4+: Narrative enrichment via validated additive layers.
-- Mutation gates (write proposals) only after deterministic validators & cost telemetry mature.
+-   Stage M3: Read‑only MCP servers (world-query, prompt-template, telemetry).
+-   Stage M4+: Narrative enrichment via validated additive layers.
+-   Mutation gates (write proposals) only after deterministic validators & cost telemetry mature.
+-   AI acts as primary narrator: model outputs are first treated as ephemeral narration (non‑canonical), then selectively elevated into additive description layers via hashing + layering validator.
+-   Controlled hallucination pipeline: minor creative deviations are classified (ambient, flavour, ephemeral hint) and only additive—never altering immutable base prose.
+-   Provenance & drift guard: each accepted layer stores prompt hash + classification + validator decision code to enable audits and rollback.
+-   Sandbox rejection feedback: structured reasons guide prompt refinement (tone mismatch, duplication, lore conflict, cardinality risk).
 
 ## Anti-Grief Patterns
 
-- Low reward loops for pure disruption (no progression via spam failure).
-- Shared cooperative benefits favored (dungeon instance scaling, faction reputation group actions).
-- Auditable events + correlation IDs enable moderation & rollback.
+-   Low reward loops for pure disruption (no progression via spam failure).
+-   Shared cooperative benefits favored (dungeon instance scaling, faction reputation group actions).
+-   Auditable events + correlation IDs enable moderation & rollback.
 
 ## Extension Philosophy
 
@@ -63,11 +69,12 @@ Sandboxed hooks, schema‑validated proposals, explicit version contracts. No di
 
 ## Success Metrics (Foundational)
 
-- Traversal reliability (move success rate ≥95%).
-- Layering integrity (0 retcon violations per audit window).
-- Advisory AI pass-through latency within budget (< defined threshold) with deterministic hash match rate ≥99%.
-- Telemetry schema error rate <2% per sprint.
-- Extension sandbox rejection clarity (≥90% proposals return structured reasons).
+-   Traversal reliability (move success rate ≥95%).
+-   Layering integrity (0 retcon violations per audit window).
+-   Advisory AI pass-through latency within budget (< defined threshold) with deterministic hash match rate ≥99%.
+-   Telemetry schema error rate <2% per sprint.
+-   Extension sandbox rejection clarity (≥90% proposals return structured reasons).
+-   Narrative AI enrichment governance: ≥95% of persisted AI narration passes canonical drift audit; validator rejection rate for hallucination proposals within defined healthy band (e.g. 20–40%).
 
 ## Evolution Path Snapshot
 
@@ -95,9 +102,10 @@ Tenet modifications require brief rationale & updated tradeoff row; major shifts
 
 ## Change Log
 
-| Date       | Change                                                    |
-| ---------- | --------------------------------------------------------- |
-| 2025-10-31 | Initial creation (vision & decision tenets consolidated). |
+| Date       | Change                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| 2025-10-31 | Initial creation (vision & decision tenets consolidated).                                               |
+| 2025-10-31 | Added AI‑driven narration pillar & tenet; clarified controlled hallucination strategy & success metric. |
 
 ---
 
