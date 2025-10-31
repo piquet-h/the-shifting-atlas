@@ -15,6 +15,22 @@ Core goals:
 -   Auditability: Promotion decision and source description recorded for replay/analysis.
 -   Restraint: Minimal initial model (avoid premature deep stats / faction linkage).
 
+### DM Persona Alignment (2025-10-31)
+
+The humorous DM parser narrows initial promotion scope:
+
+-   **Trigger verbs (Phase MVP):** `take | grab | pick | attack | throw | examine` only.
+-   **Promotion attempt timing:** After ActionFrame assembly if the frame's direct target fails resolution against existing entities.
+-   **Ambiguity handling:** If multiple noun candidates found, 50% humorous misfire (narrative joke), 50% clarification prompt (future EP-3). No AI alias expansion in MVP.
+-   **Traits (deferred):** Omit trait inference until EP-2; store empty `traits: []`.
+-   **Confidence logic:** Deterministic heuristic only (exact noun match). If absent → no promotion (humorous narration allowed: "You gesture at something that isn't quite there.").
+-   **Telemetry (minimal):** `Entity.Promotion.Created` and `Entity.Promotion.Rejected` (reason) with correlation ID from parser; other events deferred.
+-   **Out of scope now:** Semantic alias derivation, AI-assisted trait enrichment, inferred secondary entities.
+
+This alignment prevents overbuilding before core playful parsing is validated and keeps failure states entertaining rather than blocking.
+
+**Cross-Link:** For parser integration details and guiding principles (including the "narrative over simulation" tenet), see `../architecture/dm-persona-parsing.md` (Sections 2 & 12). Promotion only triggers after ActionFrame direct target resolution fails for eligible verbs.
+
 ## Conceptual Flow
 
 | Phase                | Purpose                                                  | Output / Record              |
