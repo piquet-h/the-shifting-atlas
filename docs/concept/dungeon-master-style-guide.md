@@ -1,6 +1,6 @@
 # Dungeon Master Narration Style Guide (Concept Facet)
 
-> STATUS: REFERENCE / STYLE GUIDE (2025-10-23). Used for AI prompt conditioning & human-authored narrative consistency. Not an implementation spec; no runtime components exist yet.
+> STATUS: REFERENCE / STYLE GUIDE (2025-10-23). Used for AI prompt conditioning & human-authored narrative consistency. Not a runtime specification; no runtime components exist yet.
 > Related: `../modules/ai-prompt-engineering.md` · `../modules/description-layering-and-variation.md` · `../modules/entity-promotion.md` · `../modules/player-interaction-and-intents.md` · `../modules/world-rules-and-lore.md`
 
 ## Summary

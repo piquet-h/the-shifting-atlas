@@ -1,6 +1,6 @@
 # Concept Facet
 
-Authoritative source for player experience, narrative tone, systemic invariants, and non‑mutable gameplay semantics. Implementation sequencing and architectural mechanics are intentionally excluded.
+Authoritative source for player experience, narrative tone, systemic invariants, and non‑mutable gameplay semantics. Delivery timelines and architectural mechanics are intentionally excluded.
 
 ## Purpose
 
@@ -19,13 +19,13 @@ Keep long‑term truths (invariants, tone, normalization rules, dungeon run inte
 
 ## Boundaries
 
-Excluded: milestone tables, atomic issue lists, deployment scripts, persistence implementation details (see `../execution/` and `../architecture/`).
+Excluded: progress stage tables, atomic issue lists, deployment scripts, persistence technical details (see `../execution/` and `../architecture/`).
 
 ## Change Rules
 
 1. Modify only when an invariant genuinely evolves; avoid speculative future mechanics (archive speculative drafts instead).
 2. If a concept shifts enough to alter technical contracts, add or update an ADR and cross‑link.
-3. Do not add implementation step checklists—create execution issues instead.
+3. Do not add delivery step checklists—create execution issues instead.
 4. Automation will propose atomic issues for invariant / scope changes; review before merging.
 
 Reference: Full facet segregation policy lives in `.github/copilot-instructions.md` Section 18 (authoritative boundaries & review heuristics).
@@ -59,11 +59,11 @@ Add string `<!-- concept-automation:ignore -->` to a changed line to suppress de
 
 ## Related Facets
 
-| Facet           | Directory                 | Purpose                                            |
-| --------------- | ------------------------- | -------------------------------------------------- |
-| Architecture    | `../architecture/`        | Technical persistence, integration, mapping        |
-| Execution       | `../execution/`           | Mutable milestone planning & atomic issue clusters |
-| Vision & Tenets | `../vision-and-tenets.md` | High-level rationale & decision principles         |
+| Facet           | Directory                 | Purpose                                           |
+| --------------- | ------------------------- | ------------------------------------------------- |
+| Architecture    | `../architecture/`        | Technical persistence, integration, mapping       |
+| Execution       | `../execution/`           | Mutable progress tracking & atomic issue clusters |
+| Vision & Tenets | `../vision-and-tenets.md` | High-level rationale & decision principles        |
 
 ---
 

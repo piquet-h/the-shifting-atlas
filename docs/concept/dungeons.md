@@ -1,6 +1,6 @@
 # Dungeon Runs (Concept Facet: Episodic Subgraph Instances)
 
-> Status: DRAFT · Planned implementation post-M4 (Layering & Enrichment)
+> Status: CONCEPT · Authoritative invariants only (2025-10-31). Delivery timeline lives in execution facet.
 
 ## Purpose
 
@@ -103,10 +103,6 @@ TTL granularity, checkpointing, abandoned vs timeout semantics, persistence of c
 - [Direction Resolution Rules](./direction-resolution-rules.md)
 - [Architecture Overview](../architecture/overview.md)
 
-## Implementation Roadmap Reference
-
-Execution details moved to `../execution/modules-implementation.md` (M6 Dungeon Runs cluster).
-
 ---
 
-_Last updated: 2025-10-31 (relocated to concept facet; execution sections trimmed)_
+_Last updated: 2025-10-31 (relocated to concept facet; planning references removed)_

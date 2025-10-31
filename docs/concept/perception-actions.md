@@ -1,6 +1,6 @@
 # Concept Facet: Perception & Sensory Actions
 
-> FACET: CONCEPT · Implementation details (transient flags, telemetry) live in `../modules/perception-actions.md`.
+> FACET: CONCEPT · Runtime detail (transient flags, telemetry) lives in `../modules/perception-actions.md`.
 
 ## Essence
 
@@ -17,21 +17,21 @@ Perception actions temporarily widen the descriptive lens—surfacing ambient so
 
 ## Player Experience Examples
 
--   "Stay very quiet and listen" → Dripping mist, distant creak, leaf rustle.
--   "Look for wildlife" → Deer shapes, owl glide, rat skittering—none persisted yet.
--   Follow-up targeting ("Shoot the owl") promotes the previously latent detail.
+- "Stay very quiet and listen" → Dripping mist, distant creak, leaf rustle.
+- "Look for wildlife" → Deer shapes, owl glide, rat skittering—none persisted yet.
+- Follow-up targeting ("Shoot the owl") promotes the previously latent detail.
 
 ## Boundaries
 
--   Cannot resolve structural change (no tree felling, no exit creation).
--   Ephemeral sensory fragments vanish after narration.
--   Does not force entity promotion—agency preserved.
+- Cannot resolve structural change (no tree felling, no exit creation).
+- Ephemeral sensory fragments vanish after narration.
+- Does not force entity promotion—agency preserved.
 
 ## Interactions
 
--   **Entity Promotion:** Perception supplies targetable nouns.
--   **Narration Governance:** Ensures sensory embellishments stay within class boundaries (ambient / hint).
--   **Layering:** Uses existing layers as substrate; does not create new persistent layers directly.
+- **Entity Promotion:** Perception supplies targetable nouns.
+- **Narration Governance:** Ensures sensory embellishments stay within class boundaries (ambient / hint).
+- **Layering:** Uses existing layers as substrate; does not create new persistent layers directly.
 
 ## Risks
 
@@ -43,9 +43,9 @@ Perception actions temporarily widen the descriptive lens—surfacing ambient so
 
 ## Success Signals
 
--   Players use perception tactically before interaction.
--   Emergent nouns feel organic, not forced or artificial.
--   Minimal redundancy (no repeated identical sensory lines back-to-back).
+- Players use perception tactically before interaction.
+- Emergent nouns feel organic, not forced or artificial.
+- Minimal redundancy (no repeated identical sensory lines back-to-back).
 
 ## Change Log
 

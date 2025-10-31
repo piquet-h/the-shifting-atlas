@@ -1,6 +1,6 @@
 # Direction Resolution Rules (Concept Facet)
 
-> Purpose: Canonical normalization rules for player direction input. Implementation references this doc; architecture links updated after relocation.
+> Purpose: Canonical normalization rules for player direction input. Runtime components reference this doc; architecture links updated after relocation.
 
 ## Overview
 

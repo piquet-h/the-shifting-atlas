@@ -64,7 +64,7 @@ ExitEdge {
 - [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Player edge migration patterns
 - [Location Version Policy](../architecture/location-version-policy.md) – Exit changes do not increment location version
 - [Navigation & Traversal](../modules/navigation-and-traversal.md) – Movement semantics and graph traversal
-- [Architecture Overview](../architecture/overview.md) – Implementation to design mapping
+- [Architecture Overview](../architecture/overview.md) – Design mapping reference
 
 ---
 
