@@ -5,6 +5,7 @@ import { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
+import { isValidGuid } from './utils/validation.js'
 
 @injectable()
 export class PlayerGetHandler extends BaseHandler {
@@ -15,9 +16,17 @@ export class PlayerGetHandler extends BaseHandler {
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
         const repo = this.getRepository<IPlayerRepository>('IPlayerRepository')
 
-        const id = req.query.get('id') || req.headers.get('x-player-guid') || undefined
+        // Extract playerId from path parameter, fallback to header for backward compatibility
+        const id = req.params.playerId || req.headers.get('x-player-guid') || undefined
         if (!id) {
-            return errorResponse(400, 'MissingPlayerId', 'Player id or x-player-guid header required', {
+            return errorResponse(400, 'MissingPlayerId', 'Player id required in path or x-player-guid header', {
+                correlationId: this.correlationId
+            })
+        }
+
+        // Validate GUID format
+        if (!isValidGuid(id)) {
+            return errorResponse(400, 'InvalidPlayerId', 'Player id must be a valid GUID format', {
                 correlationId: this.correlationId
             })
         }
