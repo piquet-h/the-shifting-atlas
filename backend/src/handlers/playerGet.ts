@@ -5,6 +5,7 @@ import { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
+import { isValidGuid } from './utils/validation.js'
 
 @injectable()
 export class PlayerGetHandler extends BaseHandler {
@@ -24,8 +25,7 @@ export class PlayerGetHandler extends BaseHandler {
         }
 
         // Validate GUID format
-        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (!guidRegex.test(id)) {
+        if (!isValidGuid(id)) {
             return errorResponse(400, 'InvalidPlayerId', 'Player id must be a valid GUID format', {
                 correlationId: this.correlationId
             })

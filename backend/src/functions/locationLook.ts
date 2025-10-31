@@ -6,6 +6,7 @@ import { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER, extractCorrelationId, extractPlayerGuid, trackGameEventStrict } from '../telemetry.js'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
+import { isValidGuid } from '../handlers/utils/validation.js'
 
 // LOOK command: Returns location description + exits summary cache (regenerates if missing)
 app.http('LocationLook', {
@@ -31,8 +32,7 @@ app.http('LocationLook', {
 
         // Validate GUID format if provided and not the default starter location
         if (id && id !== STARTER_LOCATION_ID) {
-            const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-            if (!guidRegex.test(id)) {
+            if (!isValidGuid(id)) {
                 const latencyMs = Date.now() - started
                 trackGameEventStrict(
                     'Navigation.Look.Issued',

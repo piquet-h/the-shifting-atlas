@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { MoveHandler } from './moveCore.js'
+import { isValidGuid } from './utils/validation.js'
 
 @injectable()
 export class PlayerMoveHandler extends BaseHandler {
@@ -33,8 +34,7 @@ export class PlayerMoveHandler extends BaseHandler {
         }
 
         // Validate GUID format
-        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        if (!guidRegex.test(playerId)) {
+        if (!isValidGuid(playerId)) {
             return {
                 status: 400,
                 headers: {
