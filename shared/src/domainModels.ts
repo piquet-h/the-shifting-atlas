@@ -103,6 +103,10 @@ export interface ExitEdge {
     description?: string
     /** Whether movement via this exit is currently blocked (future: reasons/conditions). */
     blocked?: boolean
+    /** Optional semantic name for this exit (e.g., "wooden_door", "archway"). N2 feature. */
+    name?: string
+    /** Optional synonyms for this exit (e.g., ["gate", "entrance"]). N2 feature. */
+    synonyms?: string[]
 }
 
 // --- Location ----------------------------------------------------------------
@@ -123,6 +127,8 @@ export interface LocationNode {
     version?: number
     createdAt?: string
     updatedAt?: string
+    /** Landmark alias mapping: landmark name -> canonical direction. N2 feature. */
+    landmarkAliases?: Record<string, Direction>
 }
 
 // --- Player ------------------------------------------------------------------
