@@ -2,7 +2,7 @@
 
 > **Milestone:** M2 Observability  
 > **Exit Criteria:** Dashboards show move success rate & RU/latency for key ops; visibility page live  
-> **Status:** IN PROGRESS (Foundational telemetry complete; AI cost epic decomposed) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-30
+> **Status:** IN PROGRESS (Foundational telemetry complete; AI cost epic decomposed, health check live) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-31
 
 ---
 
@@ -13,15 +13,15 @@ M2's **observability scope** ensures visibility into core loop performance, cost
 **MVP Critical Path (status):**
 
 1. Core telemetry expansion (registry, RU/latency wrappers) – **DONE** (#10, #79)
-2. Health checks and operational visibility – **PENDING** (#71)
+2. Health checks and operational visibility – **DONE** (#71)
 3. Cost monitoring and guardrails – **PENDING** (#50)
 4. API modernization (RESTful patterns) – **PENDING** (#228–#233 sequence)
 
-**53 Total Issues (3 closed, 50 open):** Mix of telemetry infrastructure, health checks, API refactoring, cost telemetry (epic #50 + children), and description integrity monitoring.
+**52 Total Issues (4 closed, 48 open):** Mix of telemetry infrastructure, health checks (now implemented), API refactoring, cost telemetry (epic #50 + children), and description integrity monitoring.
 
 ---
 
-## Current Issues Overview (53 Total / 3 Closed)
+## Current Issues Overview (52 Total / 4 Closed)
 
 ### Foundation: Telemetry & Observability Core
 
@@ -34,9 +34,9 @@ M2's **observability scope** ensures visibility into core loop performance, cost
 
 ### Health & Monitoring
 
-| Issue | Title                         | Scope         | Type    | Priority | Dependencies |
-| ----- | ----------------------------- | ------------- | ------- | -------- | ------------ |
-| #71   | Gremlin Health Check Function | observability | feature | High     | #79          |
+| Issue | Title                                  | Scope         | Type    | Priority | Dependencies |
+| ----- | -------------------------------------- | ------------- | ------- | -------- | ------------ |
+| #71   | Gremlin Health Check Function (CLOSED) | observability | feature | High     | #79          |
 
 ### Description Integrity (Epic #69)
 
@@ -325,7 +325,7 @@ Child Issues (#299–#309):
 
 -   [x] Telemetry registry expanded with M2 events (#10)
 -   [x] RU & latency metrics captured for Gremlin ops (#79)
--   [ ] Health check endpoint operational (#71)
+-   [x] Health check endpoint operational (#71)
 -   [ ] OpenTelemetry correlation wired (#41)
 -   [ ] AI cost telemetry epic foundation implemented (events + aggregation: #299–#304)
 -   [ ] RESTful API patterns operational with backward compat (#228-#233)
@@ -402,4 +402,4 @@ Child Issues (#299–#309):
 
 ---
 
-_Plan created: 2025-10-30 | Updated after AI Cost epic (#50) decomposition (issues #299–#309) | Ready to execute_
+_Plan created: 2025-10-30 | Updated after AI Cost epic (#50) decomposition (issues #299–#309) and health check completion (#71) | Ready to execute_
