@@ -62,6 +62,9 @@ export function startHttpSpan(name: string, headers: { get(h: string): string | 
 }
 
 export function endSpan(span: Span, error?: unknown) {
+    // Guard against double-end which produces noisy warnings in tests.
+    // If span has already been ended, span.isRecording() will be false.
+    if (!span.isRecording()) return
     if (error) {
         span.recordException(error as Error)
         span.setStatus({ code: 2 }) // ERROR
