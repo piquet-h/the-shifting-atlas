@@ -61,21 +61,24 @@ npm run test:cosmos
 If your tests are running slowly when you expect memory mode:
 
 1. Check if `local.settings.json` exists:
-   ```bash
-   cat local.settings.json
-   ```
+
+    ```bash
+    cat local.settings.json
+    ```
 
 2. If it shows `"PERSISTENCE_MODE": "cosmos"`, switch to memory mode:
-   ```bash
-   npm run use:memory
-   ```
+
+    ```bash
+    npm run use:memory
+    ```
 
 3. Verify tests are using memory mode by checking the test output:
-   ```
-   ✓ Loaded local.settings.json: PERSISTENCE_MODE=memory
-   ```
+    ```
+    ✓ Loaded local.settings.json: PERSISTENCE_MODE=memory
+    ```
 
 The `local.settings.json` file is created by:
+
 - `npm run use:memory` - copies `local.settings.memory.json` to `local.settings.json`
 - `npm run use:cosmos` - copies `local.settings.cosmos.json` to `local.settings.json`
 - `func start` (Azure Functions CLI) - may create it based on your environment
@@ -88,14 +91,15 @@ Deployment details live exclusively in the workflow YAML under `.github/workflow
 
 ## Roadmap Snapshot (High Level)
 
-| Area                 | Status      | Notes                                    |
-| -------------------- | ----------- | ---------------------------------------- |
-| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)     |
-| Queue world events   | Pending     | Introduce Service Bus & processors       |
-| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories       |
-| Telemetry enrichment | Ongoing     | Add world event emission instrumentation |
-| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops  |
+| Area                 | Status      | Notes                                                                  |
+| -------------------- | ----------- | ---------------------------------------------------------------------- |
+| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)                                   |
+| Queue world events   | Pending     | Introduce Service Bus & processors                                     |
+| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories                                     |
+| Telemetry enrichment | Ongoing     | Add world event emission instrumentation + span enrichment (Epic #310) |
+| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops                                |
 
 ## Notes
 
 Until one of the above lands this package deploys an almost empty artifact (negligible cost / risk). Keeping the scaffold explicit avoids surprise architectural shifts later.
+Refer to `.github/copilot-instructions.md` Section 12.1 for dependency policy: never use `file:` references to `@piquet-h/shared`; always consume registry version (validated by `scripts/validate-package-refs.mjs`).

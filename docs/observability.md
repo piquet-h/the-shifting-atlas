@@ -241,3 +241,16 @@ Canonical enumeration source of truth:
 -   `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.
+
+## Tracing (OpenTelemetry Baseline & Roadmap)
+
+Baseline HTTP span tracing is initialized (issue #41) capturing request lifecycle with a safeguard against double `end()` calls. Correlation IDs flow through events but span attributes are intentionally minimal for now.
+
+Upcoming enrichment (Epic #310) will introduce:
+
+-   Production exporter configuration (OTLP / Application Insights)
+-   Span attribute enrichment (playerGuid, location IDs, persistenceMode, RU/latency metrics)
+-   Outbound traceparent propagation to queued world events & AI cost telemetry flows
+-   Error status mapping and standardized naming taxonomy
+
+Until #310 lands, avoid ad-hoc span attribute proliferation—defer to the enrichment plan for consistency.

@@ -115,6 +115,15 @@ npm test
 
 Any violations will fail CI.
 
+## Telemetry Event Naming & Lint Enforcement
+
+Telemetry event names are governed centrally (see `shared/src/telemetryEvents.ts`) and enforced by ESLint rules:
+
+- `eslint-rules/telemetry-event-name.mjs` – regex + segment grammar
+- `eslint-rules/telemetry-event-membership.mjs` – membership in canonical enumeration
+
+Shared package only exposes enumerations and validation helpers; it does NOT emit Application Insights events directly (no `trackEvent` calls). Backend instrumentation should use the strict helpers and avoid introducing literal names outside the enumeration. Propose additions via PR updating both the enumeration and observability docs.
+
 ## Versioning
 
 Semantic Versioning (SemVer) will be followed beginning with the first tagged release after stabilization. Pre-1.0 minor versions may contain limited breaking changes; these will be noted in CHANGELOG (to be added when external consumption begins).

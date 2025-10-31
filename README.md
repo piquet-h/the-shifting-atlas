@@ -70,16 +70,17 @@ Notable:
 
 ## 4. Current Implementation Status
 
-| Area                           | Status                      | Notes                                               |
-| ------------------------------ | --------------------------- | --------------------------------------------------- |
-| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)               |
-| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA) |
-| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App            |
-| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                |
-| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place           |
-| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated     |
-| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                            |
-| CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)  |
+| Area                           | Status                      | Notes                                                               |
+| ------------------------------ | --------------------------- | ------------------------------------------------------------------- |
+| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)                               |
+| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA)                 |
+| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App                            |
+| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                                |
+| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place                           |
+| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated                     |
+| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                                            |
+| CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)                  |
+| Tracing (OpenTelemetry)        | Baseline spans implemented  | Span lifecycle + safe end guard (#41); enrichment epic #310 planned |
 
 ## 5. Quick Start (Local Dev)
 
@@ -257,7 +258,7 @@ Current gaps:
 
 -   No Service Bus or queue processors.
 -   No runtime Cosmos DB integration code (graph client, schema bootstrap).
--   Minimal test coverage (none checked in yet).
+-   Limited test coverage (backend + shared scaffolding present; expansion planned).
 -   No managed identity consumption in Functions (uses key secret placeholder only).
 -   Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
 
@@ -333,10 +334,21 @@ Local example `.env.local` (frontend):
 VITE_APPINSIGHTS_CONNECTION_STRING="InstrumentationKey=...;IngestionEndpoint=...;LiveEndpoint=..."
 ```
 
-Custom events (backend): import `trackEvent` from `backend/src/shared/telemetry.ts`.
+Custom events (backend): import `trackEvent` from `backend/src/telemetry.ts`.
 Custom events (frontend): import `{ trackEvent }` from `src/services/telemetry.ts`.
 
 Sampling and PII: default 100% sampling; IP masking / personally identifying data not manually collected. Adjust later via SDK config (e.g. `setAutoCollectConsole(false)` or processor filters) before production scale.
+
+### Tracing (OpenTelemetry)
+
+Backend span tracing is initialized (baseline) for HTTP and internal operations: spans capture core request lifecycles and correlate with custom event telemetry. A guard prevents double-ending spans (#41). Upcoming enrichment (Epic #310) will add:
+
+-   Production exporter wiring (Application Insights or OTLP) under configuration flag
+-   Span attribute enrichment (player/location IDs, persistence mode, RU/latency metrics)
+-   Outbound traceparent propagation to queued world events
+-   Error status mapping + standardized span naming taxonomy
+
+Until Epic #310 lands, traces remain minimal (lifecycle + correlation only). Do not add ad‑hoc span attributes; defer to enrichment plan.
 
 ---
 
