@@ -6,9 +6,15 @@
     "scripts": {
         "verify:instructions": "node scripts/verify-instructions.mjs",
         "verify:instructions:json": "node scripts/verify-instructions.mjs --format json",
-        "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs"
+        "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs",
+        "concept:issues:dry": "node scripts/generate-concept-issues.mjs",
+        "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs"
     },
     "engines": {
         "node": ">=20"
+    },
+    "devDependencies": {
+        "@octokit/core": "^5.0.0",
+        "cross-env": "^7.0.3"
     }
 }

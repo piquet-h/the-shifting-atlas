@@ -1,0 +1,74 @@
+name: Concept Issue Draft & Creation
+
+on:
+  pull_request:
+    paths:
+      - 'docs/concept/**'
+      - 'docs/vision-and-tenets.md'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/concept/**'
+      - 'docs/vision-and-tenets.md'
+
+jobs:
+  draft:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install (minimal)
+        run: npm install --no-audit --no-fund
+      - name: Generate Draft
+        id: draft
+        run: |
+          node scripts/generate-concept-issues.mjs > concept-draft.txt || true
+          echo 'draftPath=concept-draft.txt' >> $GITHUB_OUTPUT
+      - name: Comment Draft on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync(core.getInput('draftPath') || 'concept-draft.txt','utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `### Concept Change Issue Draft\n\n${body}`.slice(0, 65000)
+            });
+        env:
+          draftPath: concept-draft.txt
+
+  create:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install (minimal)
+        run: npm install --no-audit --no-fund
+      - name: Create Issues
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CREATE_CONCEPT_ISSUES: 'true'
+        run: node scripts/generate-concept-issues.mjs
