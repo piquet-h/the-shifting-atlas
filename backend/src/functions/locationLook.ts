@@ -9,7 +9,7 @@ import { rateLimiters } from '../middleware/rateLimiter.js'
 
 // LOOK command: Returns location description + exits summary cache (regenerates if missing)
 app.http('LocationLook', {
-    route: 'location/look',
+    route: 'location/{locationId}',
     methods: ['GET'],
     authLevel: 'anonymous',
     handler: async (req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
@@ -26,7 +26,31 @@ app.http('LocationLook', {
         const container = context.extraInputs.get('container') as Container
         const repo = container.get<ILocationRepository>('ILocationRepository')
 
-        const id = req.query.get('id') || STARTER_LOCATION_ID
+        // Extract locationId from path parameter, fallback to query for backward compatibility
+        const id = req.params.locationId || req.query.get('id') || STARTER_LOCATION_ID
+
+        // Validate GUID format if provided and not the default starter location
+        if (id && id !== STARTER_LOCATION_ID) {
+            const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            if (!guidRegex.test(id)) {
+                const latencyMs = Date.now() - started
+                trackGameEventStrict(
+                    'Navigation.Look.Issued',
+                    { locationId: id, status: 400, latencyMs, reason: 'invalid-guid' },
+                    { playerGuid, correlationId }
+                )
+                return {
+                    status: 400,
+                    headers: {
+                        [CORRELATION_HEADER]: correlationId,
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Cache-Control': 'no-store'
+                    },
+                    jsonBody: err('InvalidLocationId', 'Location id must be a valid GUID format', correlationId)
+                }
+            }
+        }
+
         const fromLocationId = req.query.get('fromLocationId') || undefined
 
         const loc = await repo.get(id)

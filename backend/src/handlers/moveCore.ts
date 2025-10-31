@@ -50,7 +50,17 @@ export class MoveHandler extends BaseHandler {
     async performMove(req: HttpRequest): Promise<MoveResult> {
         const started = Date.now()
         const fromId = req.query.get('from') || STARTER_LOCATION_ID
-        const rawDir = req.query.get('dir') || ''
+
+        // Support direction from query param or request body
+        let rawDir = req.query.get('dir') || req.query.get('direction') || ''
+        if (!rawDir && req.body) {
+            try {
+                const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+                rawDir = body.dir || body.direction || ''
+            } catch {
+                // Ignore JSON parse errors, rawDir will remain empty
+            }
+        }
 
         const headingStore = getPlayerHeadingStore()
         const lastHeading = this.playerGuid ? headingStore.getLastHeading(this.playerGuid) : undefined
