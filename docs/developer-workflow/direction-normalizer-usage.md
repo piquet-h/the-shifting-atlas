@@ -1,7 +1,7 @@
 # Direction Normalizer Usage Guide
 
 > **Implementation**: `shared/src/direction/directionNormalizer.ts`  
-> **Design**: `docs/architecture/direction-resolution-rules.md`  
+> **Design**: `docs/concept/direction-resolution-rules.md`  
 > **Status**: Implemented (N1 complete; N2/N3 planned)
 
 ## Purpose
@@ -33,7 +33,7 @@ Normalizes a raw direction input string to a canonical `Direction` value.
 
 **Parameters:**
 
--   `input` — Raw player input (case-insensitive, whitespace trimmed)
+- `input` — Raw player input (case-insensitive, whitespace trimmed)
 
 **Returns:** `DirectionResolutionResult`
 
@@ -66,7 +66,7 @@ Type guard checking if a string is a valid canonical `Direction`.
 
 **Parameters:**
 
--   `value` — String to validate
+- `value` — String to validate
 
 **Returns:** `true` if value is in canonical direction set, `false` otherwise
 
@@ -91,8 +91,8 @@ N1 supports 12 canonical directions (all lowercase):
 
 **Shortcuts (N1):**
 
--   Single-letter: `n`, `s`, `e`, `w`, `u`, `d`
--   Two-letter: `ne`, `nw`, `se`, `sw`
+- Single-letter: `n`, `s`, `e`, `w`, `u`, `d`
+- Two-letter: `ne`, `nw`, `se`, `sw`
 
 ## Integration Patterns
 
@@ -199,9 +199,9 @@ See issue #256 for N3 implementation plan.
 
 ## Performance Considerations
 
--   **Normalization latency:** <1ms for all N1 cases (in-memory operations only)
--   **Cache exits:** If using semantic resolution (N2), cache exit lookups per location
--   **Avoid repeated calls:** Normalize once per request; pass `Direction` downstream
+- **Normalization latency:** <1ms for all N1 cases (in-memory operations only)
+- **Cache exits:** If using semantic resolution (N2), cache exit lookups per location
+- **Avoid repeated calls:** Normalize once per request; pass `Direction` downstream
 
 ## Common Pitfalls
 
@@ -212,21 +212,21 @@ See issue #256 for N3 implementation plan.
 
 ## Testing Checklist
 
--   [ ] Exact match (all 12 canonical directions)
--   [ ] Shortcuts (all 8 shortcuts)
--   [ ] Typos (1-char edit distance for common typos: `nrth`, `esst`, `wset`)
--   [ ] Case insensitivity (`NORTH`, `North`, `north`)
--   [ ] Whitespace trimming (`" north "`)
--   [ ] Unknown input (`xyz`, `123`, empty string)
--   [ ] Edge cases (numeric input, special chars)
+- [ ] Exact match (all 12 canonical directions)
+- [ ] Shortcuts (all 8 shortcuts)
+- [ ] Typos (1-char edit distance for common typos: `nrth`, `esst`, `wset`)
+- [ ] Case insensitivity (`NORTH`, `North`, `north`)
+- [ ] Whitespace trimming (`" north "`)
+- [ ] Unknown input (`xyz`, `123`, empty string)
+- [ ] Edge cases (numeric input, special chars)
 
 ## Related Documentation
 
--   [Direction Resolution Rules](../architecture/direction-resolution-rules.md) — Algorithm design & decision rationale
--   [Exits Architecture](../architecture/exits.md) — Exit edge invariants
--   [Telemetry Events](../observability.md) — Event catalog
--   Issue #33 — Semantic Exit Names (N2)
--   Issue #256 — Relative Directions (N3)
+- [Direction Resolution Rules](../concept/direction-resolution-rules.md) — Normalization invariants (concept facet)
+- [Exit Edge Invariants](../concept/exits.md) — Exit edge invariants (concept facet)
+- [Telemetry Events](../observability.md) — Event catalog
+- Issue #33 — Semantic Exit Names (N2)
+- Issue #256 — Relative Directions (N3)
 
 ---
 

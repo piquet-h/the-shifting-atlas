@@ -28,6 +28,8 @@ Excluded: milestone tables, atomic issue lists, deployment scripts, persistence 
 3. Do not add implementation step checklists—create execution issues instead.
 4. Automation will propose atomic issues for invariant / scope changes; review before merging.
 
+Reference: Full facet segregation policy lives in `.github/copilot-instructions.md` Section 18 (authoritative boundaries & review heuristics).
+
 ## Automation Governance
 
 Concept changes are monitored by `scripts/generate-concept-issues.mjs` and GitHub Action workflow `concept-issue-generator.yml`:

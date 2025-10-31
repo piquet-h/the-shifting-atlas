@@ -61,12 +61,12 @@ Low confidence assumptions require a guard (runtime check or test case).
 
 Use the highest applicable:
 
--   LOW – simple/internal edit
--   DATA-MODEL – schema, partition key, ID semantics
--   RUNTIME-BEHAVIOR – execution flow / side-effects change
--   BUILD-SCRIPT – CI / scripts / tooling logic
--   INFRA – Bicep, deployment, secret wiring
-    Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
+- LOW – simple/internal edit
+- DATA-MODEL – schema, partition key, ID semantics
+- RUNTIME-BEHAVIOR – execution flow / side-effects change
+- BUILD-SCRIPT – CI / scripts / tooling logic
+- INFRA – Bicep, deployment, secret wiring
+  Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
 
 ### 0.6 Response Structure (Non‑Trivial)
 
@@ -86,8 +86,8 @@ Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Tests <x passed / y run> | Edge 
 
 ### 0.8 Hallucination Guardrails
 
--   Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
--   Never invent APIs; prefer searching codebase first.
+- Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
+- Never invent APIs; prefer searching codebase first.
 
 ### 0.9 Test Spec Pattern (Inline)
 
@@ -95,8 +95,8 @@ Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1
 
 ### 0.10 Fast Path vs Full Workflow
 
--   Fast Path (Trivial): direct patch → run tests → summarize
--   Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
+- Fast Path (Trivial): direct patch → run tests → summarize
+- Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
 
 ### 0.11 New Azure Function High‑Level Flow
 
@@ -115,19 +115,19 @@ Backend and API: Azure Functions (HTTP player actions + queue world logic)
 Messaging: Azure Service Bus
 Data: Dual persistence (ADR-002)
 
--   Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
--   Cosmos DB SQL API: Documents (players, inventory, description layers, events)
-    Observability: Application Insights
-    Principle: Event‑driven, stateless functions, no polling loops.
+- Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
+- Cosmos DB SQL API: Documents (players, inventory, description layers, events)
+  Observability: Application Insights
+  Principle: Event‑driven, stateless functions, no polling loops.
 
 ---
 
 ## 2. Repo Layout (Essentials)
 
--   `frontend/` SWA client
--   `backend/` Functions
--   `shared/` Cross‑package domain models + telemetry
--   `docs/` Design & narrative sources
+- `frontend/` SWA client
+- `backend/` Functions
+- `shared/` Cross‑package domain models + telemetry
+- `docs/` Design & narrative sources
 
 ---
 
@@ -160,31 +160,31 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 Environment variables (wired in Bicep, available in Functions):
 
--   `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
--   `COSMOS_SQL_DATABASE` – Database name (`game`)
--   `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
--   `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
--   `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
--   `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
--   `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
+- `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
+- `COSMOS_SQL_DATABASE` – Database name (`game`)
+- `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
+- `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
+- `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
+- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
+- `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
 
 Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
 Partition key patterns:
 
--   Players: Use player GUID as PK value.
--   Inventory: Use player GUID to colocate all items for a player.
--   Layers: Use location GUID to colocate all layers for a location.
--   Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+- Players: Use player GUID as PK value.
+- Inventory: Use player GUID to colocate all items for a player.
+- Layers: Use location GUID to colocate all layers for a location.
+- Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
 
 ---
 
 ## 6. Telemetry
 
--   **Module**: `shared/src/telemetry.ts`
--   **Purpose**: In-game events (player actions, world generation, navigation)
--   **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
--   **Destination**: Application Insights ONLY
--   **Location**: `shared/src/` folder ONLY
+- **Module**: `shared/src/telemetry.ts`
+- **Purpose**: In-game events (player actions, world generation, navigation)
+- **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+- **Destination**: Application Insights ONLY
+- **Location**: `shared/src/` folder ONLY
 
 Include correlation IDs across chained events.
 Avoid noisy high‑cardinality ad‑hoc logs.
@@ -226,8 +226,8 @@ GitHub milestones have both a numeric ID and a display name. The GitHub MCP sear
 
 **Example confusion to avoid:**
 
--   ❌ "Search for M1 issues" → searching for literal string "M1" finds nothing
--   ✅ "Search for M1 issues" → use `milestone:"M1 Traversal"` in GitHub search query
+- ❌ "Search for M1 issues" → searching for literal string "M1" finds nothing
+- ✅ "Search for M1 issues" → use `milestone:"M1 Traversal"` in GitHub search query
 
 **To find milestone ID from API response:**
 Milestone objects include both `number` (the ID) and `title` (the display name):
@@ -303,9 +303,9 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 ### Why This Matters:
 
--   **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
--   **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
--   **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
+- **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
+- **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
+- **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
 
 ### Agent Rules:
 
@@ -322,9 +322,9 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 ### Verification:
 
--   CI validation script checks for `file:` patterns in backend/package.json
--   Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
--   Backend tests will fail if file-based reference is used in a clean CI environment
+- CI validation script checks for `file:` patterns in backend/package.json
+- Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
+- Backend tests will fail if file-based reference is used in a clean CI environment
 
 ---
 
@@ -336,23 +336,21 @@ Polling loops; inline telemetry names; multiple scope labels; lore dumps in code
 
 Backend code cannot import from a shared package version that doesn't exist in GitHub Packages yet. If both are in one PR:
 
--   CI tries to `npm install` backend dependencies
--   Shared version X doesn't exist in registry yet
--   Build fails with "package not found"
+- CI tries to `npm install` backend dependencies
+- Shared version X doesn't exist in registry yet
+- Build fails with "package not found"
 
 ### Required Pattern: Two-Stage Merge
 
 #### Stage 1: Shared Package Changes Only
 
 1. **Create PR with ONLY shared/ changes:**
-
     - New utilities, types, or functions
     - Version bump in `shared/package.json`
     - Tests in `shared/test/`
     - NO backend integration code
 
 2. **Merge to main**
-
     - CI automatically publishes new version to GitHub Packages
     - Wait ~5 minutes for publish workflow to complete
 
@@ -365,7 +363,6 @@ Backend code cannot import from a shared package version that doesn't exist in G
 #### Stage 2: Backend Integration
 
 4. **Create follow-up PR with backend changes:**
-
     - Update `backend/package.json` to reference new shared version
     - Add backend code using new shared utilities
     - Integration tests
@@ -400,7 +397,6 @@ When the coding agent creates a PR that touches both `shared/` and `backend/`:
     ```
 
 3. **Update PR descriptions:**
-
     - Stage 1 PR: Mark as "Part 1: Shared package changes"
     - Add note: "Backend integration will follow in separate PR after publish"
     - Stage 2 PR: Reference stage 1 PR number, note dependency on published version
@@ -436,18 +432,18 @@ git add backend/package.json && git commit --amend --no-edit
 
 Single PR acceptable only if:
 
--   Shared changes are trivial hotfix (typo, comment)
--   No version bump required
--   Backend already compatible with current shared version
+- Shared changes are trivial hotfix (typo, comment)
+- No version bump required
+- Backend already compatible with current shared version
 
 ### Detection Heuristics
 
 Agent should split when PR includes:
 
--   ✅ New exports in `shared/src/index.ts`
--   ✅ Version bump in `shared/package.json`
--   ✅ New imports in backend from `@piquet-h/shared`
--   ✅ Backend code using newly-added shared functions
+- ✅ New exports in `shared/src/index.ts`
+- ✅ Version bump in `shared/package.json`
+- ✅ New imports in backend from `@piquet-h/shared`
+- ✅ Backend code using newly-added shared functions
 
 ---
 
@@ -492,13 +488,13 @@ Assumptions allowed: <yes/no>
 
 ### A.2 Success Criteria / Definition of Done Checklist
 
--   All acceptance criteria checkboxes addressed (Done/Deferred noted)
--   Risk tag declared (non‑LOW has extra verification)
--   Assumptions block present (if any inference)
--   Tests: existing pass + new tests for new logic (happy + 1 edge)
--   No stray telemetry literals (only enum)
--   No roadmap manual edits (Section 12 guardrails)
--   Build + lint + typecheck clean
+- All acceptance criteria checkboxes addressed (Done/Deferred noted)
+- Risk tag declared (non‑LOW has extra verification)
+- Assumptions block present (if any inference)
+- Tests: existing pass + new tests for new logic (happy + 1 edge)
+- No stray telemetry literals (only enum)
+- No roadmap manual edits (Section 12 guardrails)
+- Build + lint + typecheck clean
 
 ### A.3 Assumptions Block Pattern
 
@@ -517,14 +513,14 @@ Then it returns 400 (invalid: no starting location) and emits no world event
 
 ### A.5 New Azure Function Checklist
 
--   Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
--   Trigger binding & auth level appropriate
--   Input validation (shared validators) + clear 4xx vs 5xx handling
--   Telemetry: existing constants only; new constant added centrally if required
--   Cosmos operations idempotent / duplicate-safe
--   Queue/event emission includes correlation IDs
--   Tests: happy path + invalid input + (if side-effects) idempotency repeat
--   Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
+- Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
+- Trigger binding & auth level appropriate
+- Input validation (shared validators) + clear 4xx vs 5xx handling
+- Telemetry: existing constants only; new constant added centrally if required
+- Cosmos operations idempotent / duplicate-safe
+- Queue/event emission includes correlation IDs
+- Tests: happy path + invalid input + (if side-effects) idempotency repeat
+- Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
 
 ### A.6 Refactor Safety Sequence
 
@@ -554,8 +550,8 @@ The agent may read & edit files, run tests/lint, and present unified diffs; it m
 
 Approval signals (any of):
 
--   Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
--   User asks for a PR / pull request explicitly.
+- Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
+- User asks for a PR / pull request explicitly.
 
 Behavior by default (no approval present):
 
@@ -565,8 +561,8 @@ Behavior by default (no approval present):
 
 Escalation exceptions (still require explicit confirmation unless user inactive >1 interaction):
 
--   Hotfix: security/license violation or broken main build introduced by previous agent edit.
--   Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
+- Hotfix: security/license violation or broken main build introduced by previous agent edit.
+- Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
 
 Prohibited without approval: staging, committing, force-pushing, branch deletion.
 
@@ -605,17 +601,17 @@ If logs are expired / inaccessible (e.g., artifact retention lapsed), explicitly
 
 Secrets / Tokens:
 
--   Never echo raw secret values.
--   Diagnostics must use only: source, preflight result, length (redacted), and optionally first/last chars redacted if absolutely necessary (avoid unless explicitly requested for debugging).
+- Never echo raw secret values.
+- Diagnostics must use only: source, preflight result, length (redacted), and optionally first/last chars redacted if absolutely necessary (avoid unless explicitly requested for debugging).
 
 Prohibited Without Logs:
 
--   Broad refactors presented as “likely” fixes.
--   Multi‑file edits addressing hypothetical causes.
+- Broad refactors presented as “likely” fixes.
+- Multi‑file edits addressing hypothetical causes.
 
 Fast Path Heuristic:
 
--   If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
+- If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
 
 Rationale:
 This codifies a “logs-first, patch-second” discipline prompted by prior wasted cycles where guessing preceded log retrieval.
@@ -633,12 +629,12 @@ Epic Issue: Organizational/coordination issue containing no implementation accep
 
 ### 17.2 Atomicity Heuristics (Failing ≥2 ⇒ Split)
 
--   Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
--   Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
--   Follow-up checklist >5 items or mixes runtime + infra + docs
--   Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
--   Requires more than one new Azure Function OR more than one new script
--   Adds both telemetry enumeration and feature logic simultaneously
+- Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
+- Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
+- Follow-up checklist >5 items or mixes runtime + infra + docs
+- Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
+- Requires more than one new Azure Function OR more than one new script
+- Adds both telemetry enumeration and feature logic simultaneously
 
 ### 17.3 Required Fields (Atomic Issue Template)
 
@@ -690,21 +686,21 @@ else:
 
 ### 17.6 Labeling Rules for Generated Issues
 
--   Exactly one `scope:*` label (reuse existing taxonomy Section 8)
--   Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
--   Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
--   Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
+- Exactly one `scope:*` label (reuse existing taxonomy Section 8)
+- Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
+- Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
+- Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
 
 ### 17.7 Prioritization Guidance
 
--   If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
--   Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
--   Avoid reshuffling active work unless a dependency block emerges.
+- If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
+- Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
+- Avoid reshuffling active work unless a dependency block emerges.
 
 ### 17.8 Telemetry & Security Separation When Splitting
 
--   Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
--   Security hardening (rate limits, secret rules) separated from functional feature increments.
+- Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
+- Security hardening (rate limits, secret rules) separated from functional feature increments.
 
 ### 17.9 DO / DO NOT
 
@@ -727,11 +723,11 @@ When the user requests issue creation for a broad feature:
 
 Each generated issue must:
 
--   Have ≤10 acceptance checkboxes
--   Contain ≤1 risk tag
--   Contain at least 1 edge case
--   Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
--   Not define more than one new function trigger or script
+- Have ≤10 acceptance checkboxes
+- Contain ≤1 risk tag
+- Contain at least 1 edge case
+- Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
+- Not define more than one new function trigger or script
 
 ### 17.13 Rationale
 
@@ -746,3 +742,134 @@ Each child then receives its atomic template.
 ---
 
 Last reviewed: 2025-10-29
+
+---
+
+## 18. Facet Segregation Policy (Authoritative)
+
+Purpose: Enforce durable separation between immutable player experience semantics (Concept), technical mechanics (Architecture), mutable planning (Execution), and guiding rationale (Vision & Tenets). Prevent leakage that couples long‑term invariants with short‑term implementation detail.
+
+### 18.1 Facet Taxonomy & Directories
+
+| Facet           | Directory / File            | Core Intent                                           | Mutation Frequency |
+| --------------- | --------------------------- | ----------------------------------------------------- | ------------------ |
+| Concept         | `docs/concept/`             | Invariants, tone, systemic truths                     | Low                |
+| Architecture    | `docs/architecture/`        | Technical design, persistence, integration flows      | Medium             |
+| Execution       | `docs/execution/`           | Milestones, issue clusters, implementation sequencing | High               |
+| Vision & Tenets | `docs/vision-and-tenets.md` | Product purpose, decision tenets, experience pillars  | Very low           |
+
+### 18.2 Allowed vs Prohibited Content (Concept Facet)
+
+Allowed (Concept):
+
+- Player‑facing systemic invariants (e.g. exit directions, dungeon episodic logic)
+- Tone/style guidelines (narration voice, persona interpretation boundaries)
+- Normalization rules (direction resolution semantics)
+- Rationale for immutable experiential constraints
+
+Prohibited (Concept):
+
+- Implementation sequencing (milestones, sprints, backlog lists)
+- Architecture mechanics (Cosmos partition details, function trigger bindings)
+- Telemetry enumeration plans
+- Performance tuning notes
+- Unvalidated speculative future systems (archive separately)
+- Inline acceptance criteria / task checklists
+
+Planning / leakage indicator verbs (blockers if appearing in Concept docs): `implement`, `sequence`, `schedule`, `sprint`, `backlog`, `dependency`, `milestone`, `roadmap`, `optimize`, `telemetry task`, `story points`, `spike`.
+
+### 18.3 Mutation Rules
+
+1. Concept changes must reflect real shifts (not aspirational speculation).
+2. If a Concept change alters contracts or persistence assumptions → add/update ADR and cross‑link.
+3. Vision & Tenets updates require explicit justification referencing an external driver (user feedback, design review). Avoid churn.
+4. Execution facet may restructure freely WITHOUT modifying Concept wording for sequencing convenience.
+5. Architecture docs may link to Concept docs by filename ONLY (no content duplication).
+
+### 18.4 Cross‑Facet Linking Guidelines
+
+Use relative links referencing filenames; never paste large blocks across facets. Example:
+`See gameplay invariants in ../concept/exits.md` (✔) vs copying the exit direction table (✘).
+
+### 18.5 Agent Workflow Before Editing Docs
+
+```
+Facet Decision Flow:
+Input path →
+    if path starts with docs/concept/ → apply Concept rules (reject planning leakage)
+    else if path starts with docs/execution/ → ensure no invariants duplicated from concept
+    else if path starts with docs/architecture/ → ensure technical detail only, add ADR link if changing structure
+    else if path == docs/vision-and-tenets.md → require justification & minimal diff
+```
+
+PRE‑EDIT CHECKLIST (Agent):
+
+- Identify facet from path.
+- Search for prohibited verbs (case‑insensitive) if Concept.
+- Confirm no milestone tables inside Concept.
+- If adding new invariant heading in Concept → prepare atomic issue (script will also detect).
+- If editing Tenets → run dry diff to ensure only intended lines change.
+
+### 18.6 Automation Integration
+
+The script `scripts/generate-concept-issues.mjs` + workflow `concept-issue-generator.yml` enforce detection for:
+
+- InvariantAdded / InvariantRemoved
+- SystemScopeExpanded (new headings)
+- TenetAddedOrModified
+- CrossFacetLeak (planning verbs)
+
+Opt‑out for benign editorial edits: add `<!-- concept-automation:ignore -->` to the changed line.
+
+### 18.7 ADR Escalation Triggers
+
+Create / update an ADR when a Concept change:
+
+- Alters persistence schema expectations (e.g., introducing new vertex/edge category).
+- Modifies traversal rules impacting existing function validation.
+- Introduces cross‑system dependency (e.g., economy influencing dungeon seed logic).
+
+### 18.8 Review Heuristics (PR Level)
+
+Reviewer / Agent should confirm:
+
+- Concept diff contains no planning verbs or issue sequencing.
+- Execution changes do not re‑declare invariants (link instead).
+- Architecture additions reference Concept but do not restate narrative tone.
+- Tenet modifications include rationale line in PR description.
+- No duplication: same invariant table exists only once (Concept).
+
+### 18.9 Common Violations & Remedies
+
+| Violation                                    | Remedy                                                                  |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| Milestone list added to Concept doc          | Move to `docs/execution/` and replace with invariant rationale sentence |
+| Partition key detail placed in Concept       | Relocate to `docs/architecture/persistence` document                    |
+| Tone guide pasted into Architecture overview | Replace with single link to `../concept/dungeon-master-style-guide.md`  |
+| Tenet weakened without rationale             | Add PR comment referencing user need or design principle                |
+
+### 18.10 Agent Enforcement Summary
+
+When editing any doc within `docs/concept/`:
+
+- Abort adding implementation checklists.
+- Suggest relocation for any architecture or execution fragment detected.
+- Provide a dry run of concept issue generation (optional) if invariants change.
+
+### 18.11 Definition of Done (Facet Change)
+
+- Facet identification logged in response.
+- No prohibited verbs (Concept facet).
+- ADR linked if contract/persistence changed.
+- Automation script would classify change correctly (manual dry run optional).
+- Diff minimal (only lines requiring semantic update).
+
+### 18.12 Future Enhancements (Non‑Blocking)
+
+- Semantic similarity scan to prevent partial invariant duplication.
+- Automatic ADR stub creation when new vertex/edge pattern introduced.
+- Epic bundling if >3 related headings added in one PR.
+
+---
+
+Last reviewed (Facet Policy section): 2025-10-31

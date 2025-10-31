@@ -15,14 +15,14 @@ This ADR originally outlined preliminary thoughts on migrating player position f
 
 **What happened since:**
 
--   Epic #117 (Location Edge Management) was completed, delivering exit edge management patterns
--   Issue #131 produced a complete, detailed migration design document that supersedes this ADR
--   The migration design in `player-location-edge-migration.md` provides:
-    -   Four-phase migration strategy with explicit gates
-    -   Risk analysis and rollback plans per phase
-    -   Success metrics and exit criteria
-    -   Implementation code samples
-    -   Open questions with recommendations
+- Epic #117 (Location Edge Management) was completed, delivering exit edge management patterns
+- Issue #131 produced a complete, detailed migration design document that supersedes this ADR
+- The migration design in `player-location-edge-migration.md` provides:
+    - Four-phase migration strategy with explicit gates
+    - Risk analysis and rollback plans per phase
+    - Success metrics and exit criteria
+    - Implementation code samples
+    - Open questions with recommendations
 
 ## Key Decisions (Historical Record)
 
@@ -43,11 +43,11 @@ This ADR is retained for historical reference to show the evolution from early g
 
 ## Related Documentation
 
--   **[Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md)** – AUTHORITATIVE migration strategy (supersedes this ADR)
--   [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model
--   [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Partition key design and dual persistence
--   [Edge Management Guide](../developer-workflow/edge-management.md) – Exit edge patterns (template for player edges)
--   [Exit Edge Invariants](../architecture/exits.md) – Exit edge specification (Epic #117)
+- **[Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md)** – AUTHORITATIVE migration strategy (supersedes this ADR)
+- [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model
+- [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Partition key design and dual persistence
+- [Edge Management Guide](../developer-workflow/edge-management.md) – Exit edge patterns (template for player edges)
+- [Exit Edge Invariants](../concept/exits.md) – Exit edge specification (Epic #117, relocated to concept facet)
 
 ---
 

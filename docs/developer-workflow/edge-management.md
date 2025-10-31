@@ -1,6 +1,6 @@
 # Location Edge Management Guide
 
-> For a concise invariants-only summary see `../architecture/exits.md`. This guide retains operational examples and extended rationale.
+> For a concise invariants-only summary see `../concept/exits.md` (relocated). This guide retains operational examples and extended rationale.
 
 ## Overview
 
@@ -51,9 +51,9 @@ const result = await repo.removeExit('location-a', 'north')
 
 **Behavior:**
 
--   Returns `removed: true` only if exit existed and was deleted
--   Returns `removed: false` if exit didn't exist (idempotent)
--   Emits `World.Exit.Removed` telemetry only on actual removal
+- Returns `removed: true` only if exit existed and was deleted
+- Returns `removed: false` if exit didn't exist (idempotent)
+- Emits `World.Exit.Removed` telemetry only on actual removal
 
 ### 3. Batch Exit Provisioning
 
@@ -86,8 +86,8 @@ npm run scan:graph-consistency -- --output=report.json
 
 **Detects:**
 
--   **Dangling exits**: Exit edges pointing to non-existent locations
--   **Orphan locations**: Locations with no inbound or outbound exits
+- **Dangling exits**: Exit edges pointing to non-existent locations
+- **Orphan locations**: Locations with no inbound or outbound exits
 
 **Output:**
 
@@ -125,12 +125,12 @@ const opposite = getOppositeDirection('in') // 'out'
 
 **Full Mapping:**
 
--   `north` ↔ `south`
--   `east` ↔ `west`
--   `northeast` ↔ `southwest`
--   `northwest` ↔ `southeast`
--   `up` ↔ `down`
--   `in` ↔ `out`
+- `north` ↔ `south`
+- `east` ↔ `west`
+- `northeast` ↔ `southwest`
+- `northwest` ↔ `southeast`
+- `up` ↔ `down`
+- `in` ↔ `out`
 
 ## Telemetry Events
 
@@ -168,10 +168,10 @@ Emitted only when an exit is actually deleted:
 
 Rationale:
 
--   `version` tracks **content changes** (name, description, tags)
--   Exit edges are **structural relationships** separate from content
--   Optimistic concurrency is for content conflicts, not edge conflicts
--   Exit changes tracked via dedicated telemetry events
+- `version` tracks **content changes** (name, description, tags)
+- Exit edges are **structural relationships** separate from content
+- Optimistic concurrency is for content conflicts, not edge conflicts
+- Exit changes tracked via dedicated telemetry events
 
 See: [`docs/architecture/location-version-policy.md`](../architecture/location-version-policy.md)
 
@@ -179,10 +179,10 @@ See: [`docs/architecture/location-version-policy.md`](../architecture/location-v
 
 All edge operations are idempotent:
 
--   `ensureExit`: Creating an existing exit returns `created: false`, no telemetry
--   `ensureExitBidirectional`: Both forward and reverse checked independently
--   `removeExit`: Removing non-existent exit returns `removed: false`, no telemetry
--   `applyExits`: Metrics separate created vs skipped counts
+- `ensureExit`: Creating an existing exit returns `created: false`, no telemetry
+- `ensureExitBidirectional`: Both forward and reverse checked independently
+- `removeExit`: Removing non-existent exit returns `removed: false`, no telemetry
+- `applyExits`: Metrics separate created vs skipped counts
 
 ## Usage Patterns
 
@@ -231,13 +231,13 @@ await repo.ensureExitBidirectional('broken-location', 'northeast', 'correct-targ
 
 Comprehensive test coverage in `shared/test/edgeManagement.test.ts`:
 
--   Opposite direction mapping for all 12 directions
--   Exit creation with `created` status detection
--   Idempotent re-creation (no duplicate telemetry)
--   Bidirectional creation with reciprocal tracking
--   Exit removal with proper return values
--   Batch provisioning with accurate metrics
--   Version policy verification (version unchanged on exit changes)
+- Opposite direction mapping for all 12 directions
+- Exit creation with `created` status detection
+- Idempotent re-creation (no duplicate telemetry)
+- Bidirectional creation with reciprocal tracking
+- Exit removal with proper return values
+- Batch provisioning with accurate metrics
+- Version policy verification (version unchanged on exit changes)
 
 Run tests:
 
@@ -253,33 +253,33 @@ Player position migration from scalar `currentLocationId` to graph edges `(playe
 
 **Key documents:**
 
--   [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md) – Complete migration strategy
--   [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Historical context (superseded)
+- [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md) – Complete migration strategy
+- [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Historical context (superseded)
 
 ### Exit Metadata
 
 Potential extensions:
 
--   `blocked` status (doors, keys, conditions)
--   `cost` for pathfinding weights
--   `requiredSkill` for traversal gating
--   `description` layers for dynamic flavor text
+- `blocked` status (doors, keys, conditions)
+- `cost` for pathfinding weights
+- `requiredSkill` for traversal gating
+- `description` layers for dynamic flavor text
 
 ### Consistency Enforcement
 
 Future automated checks:
 
--   Alert on dangling exit rate > threshold
--   Auto-cleanup of orphan locations (with approval workflow)
+- Alert on dangling exit rate > threshold
+- Auto-cleanup of orphan locations (with approval workflow)
 
 ## References
 
--   [Exit Edge Invariants](../architecture/exits.md) – Concise invariants reference
--   [Player-Location Edge Migration](../architecture/player-location-edge-migration.md) – Future player edge strategy
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
--   [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) (superseded)
--   Issue #117: Epic - Location Edge Management
--   Issue #131: Player-Location Edge Migration Design
+- [Exit Edge Invariants](../concept/exits.md) – Concise invariants reference (concept facet)
+- [Player-Location Edge Migration](../architecture/player-location-edge-migration.md) – Future player edge strategy
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
+- [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) (superseded)
+- Issue #117: Epic - Location Edge Management
+- Issue #131: Player-Location Edge Migration Design
 
 ---
 
