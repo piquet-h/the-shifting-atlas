@@ -2,35 +2,38 @@
 
 > **Milestone:** M2 Observability  
 > **Exit Criteria:** Dashboards show move success rate & RU/latency for key ops; visibility page live  
-> **Status:** IN PROGRESS (Foundational telemetry complete; AI cost epic decomposed, health check live) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-31
+> **Status:** IN PROGRESS (Foundational telemetry, health & base tracing complete; dead-letter + semantic exits done; enrichment & cost aggregation underway) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-31
 
 ---
 
 ## Executive Summary
 
-M2's **observability scope** ensures visibility into core loop performance, cost controls, and operational health before introducing AI variability in M3. Two foundational issues (#10 Telemetry Registry, #79 Gremlin RU/Latency) are now closed, unlocking subsequent health, trace, and cost tracks.
+M2's **observability scope** now has its base pillars shipped (event registry #10, RU/latency wrapper #79, health check #71, OpenTelemetry baseline #41, dead-letter storage #257, semantic exits #33). Focus shifts to tracing enrichment (epic #310), AI cost aggregation & guardrails (post #299), and API modernization (#228–#233). Newly added humor & promotion telemetry threads (#328, #329, #337) extend player interaction and lifecycle visibility.
 
 **MVP Critical Path (status):**
 
 1. Core telemetry expansion (registry, RU/latency wrappers) – **DONE** (#10, #79)
 2. Health checks and operational visibility – **DONE** (#71)
-3. Cost monitoring and guardrails – **PENDING** (#50)
-4. API modernization (RESTful patterns) – **PENDING** (#228–#233 sequence)
+3. Base tracing & correlation – **DONE** (#41)
+4. Cost monitoring (event registration) – **PARTIAL** (#299 DONE; aggregation pending #302–#304)
+5. API modernization (RESTful patterns) – **PENDING** (#228–#233 sequence)
+6. Tracing enrichment & sampling – **PENDING** (#310 children #311–#316)
 
-**52 Total Issues (4 closed, 48 open):** Mix of telemetry infrastructure, health checks (now implemented), API refactoring, cost telemetry (epic #50 + children), and description integrity monitoring.
+**64 Total Issues (8 closed, 56 open):** Expanded scope includes tracing enrichment (epic #310 + children), AI cost telemetry aggregation tasks, humor & promotion telemetry, plus existing API modernization, description integrity, and world event processing.
 
 ---
 
-## Current Issues Overview (52 Total / 4 Closed)
+## Current Issues Overview (64 Total / 8 Closed)
 
 ### Foundation: Telemetry & Observability Core
 
-| Issue | Title                                            | Scope         | Type        | Priority | Dependencies |
-| ----- | ------------------------------------------------ | ------------- | ----------- | -------- | ------------ |
-| #10   | Telemetry Event Registry Expansion (CLOSED)      | observability | feature     | High     | None         |
-| #79   | Capture Gremlin RU + latency telemetry (CLOSED)  | observability | enhancement | High     | #10          |
-| #41   | Application Insights Correlation & OpenTelemetry | observability | infra       | Medium   | #10          |
-| #50   | Epic: AI Cost Telemetry & Budget Guardrails      | observability | epic        | Medium   | #10          |
+| Issue | Title                                                     | Scope         | Type        | Priority | Dependencies |
+| ----- | --------------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
+| #10   | Telemetry Event Registry Expansion (CLOSED)               | observability | feature     | High     | None         |
+| #79   | Capture Gremlin RU + latency telemetry (CLOSED)           | observability | enhancement | High     | #10          |
+| #41   | Application Insights Correlation & OpenTelemetry (CLOSED) | observability | infra       | Medium   | #10          |
+| #50   | Epic: AI Cost Telemetry & Budget Guardrails               | observability | epic        | Medium   | #10          |
+| #299  | AI Cost Event Registry Alignment (CLOSED)                 | observability | enhancement | Medium   | #50, #10     |
 
 ### Health & Monitoring
 
@@ -77,17 +80,39 @@ M2's **observability scope** ensures visibility into core loop performance, cost
 
 ### World Event Processing
 
-| Issue | Title                                       | Scope         | Type        | Priority | Dependencies |
-| ----- | ------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #257  | World Event Dead-Letter Storage & Redaction | observability | enhancement | Medium   | #10          |
-| #258  | World Event Type-Specific Payload Handlers  | world         | enhancement | Medium   | #257         |
+| Issue | Title                                                | Scope         | Type        | Priority | Dependencies |
+| ----- | ---------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
+| #257  | World Event Dead-Letter Storage & Redaction (CLOSED) | observability | enhancement | Medium   | #10          |
+| #258  | World Event Type-Specific Payload Handlers           | world         | enhancement | Medium   | #257         |
 
 ### Traversal Enhancements (Lower Priority M2 Scope)
 
-| Issue | Title                           | Scope     | Type    | Priority | Dependencies |
-| ----- | ------------------------------- | --------- | ------- | -------- | ------------ |
-| #33   | Semantic Exit Names (N2)        | traversal | feature | Low      | None         |
-| #256  | Relative Direction Support (N3) | traversal | feature | Low      | #33          |
+| Issue | Title                             | Scope     | Type    | Priority | Dependencies |
+| ----- | --------------------------------- | --------- | ------- | -------- | ------------ |
+| #33   | Semantic Exit Names (N2) (CLOSED) | traversal | feature | Low      | None         |
+| #256  | Relative Direction Support (N3)   | traversal | feature | Low      | #33          |
+
+### Tracing Enrichment & Expansion (Epic #310)
+
+| Issue | Title                                                         | Scope         | Type        | Priority | Dependencies |
+| ----- | ------------------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
+| #310  | Epic: Tracing Enrichment & Production Observability Expansion | observability | epic        | Medium   | #41          |
+| #311  | Azure Monitor / OTLP Exporter Integration                     | observability | infra       | Medium   | #310         |
+| #312  | Span Attribute Enrichment (Player / Location / Event)         | observability | enhancement | Medium   | #310         |
+| #313  | Outbound Service Bus Traceparent Injection                    | observability | feature     | Medium   | #310         |
+| #314  | Error Status Normalization & Span Status Mapping              | observability | enhancement | Medium   | #310         |
+| #315  | Sampling Strategy Configuration (Env-Based)                   | observability | enhancement | Medium   | #310         |
+| #316  | Telemetry ↔ Trace Correlation (traceId/spanId on Events)      | observability | enhancement | Medium   | #310         |
+| #317  | Frontend OpenTelemetry Init & HTTP Trace Propagation          | observability | feature     | Medium   | #310         |
+| #318  | Domain-Specific Span Naming Taxonomy Refactor                 | observability | enhancement | Medium   | #310         |
+
+### Humor & Promotion Telemetry
+
+| Issue | Title                                          | Scope         | Type        | Priority | Dependencies |
+| ----- | ---------------------------------------------- | ------------- | ----------- | -------- | ------------ |
+| #328  | Humor Telemetry Enumeration & Emission         | observability | enhancement | Medium   | #10          |
+| #329  | Player Humor Feedback Endpoint & Frontend Hook | core          | feature     | Medium   | #328         |
+| #337  | Promotion Telemetry Events Enumeration         | observability | enhancement | Medium   | #333–#336    |
 
 ---
 
@@ -95,7 +120,7 @@ M2's **observability scope** ensures visibility into core loop performance, cost
 
 ### Phase 1: Telemetry Foundation (High Priority)
 
-**Goal:** Establish core telemetry infrastructure for observability.
+**Goal:** Establish core telemetry infrastructure for observability (registry, RU/latency, base tracing) – achieved; continuing with enrichment.
 
 **Issues:**
 
@@ -110,9 +135,9 @@ M2's **observability scope** ensures visibility into core loop performance, cost
     - Abstract Gremlin client to emit timing + RU metrics
     - **Enables:** #71 (health checks)
 
-3. **#41** – Application Insights Correlation & OpenTelemetry
-    - Integrate OpenTelemetry for trace correlation
-    - **Enables:** Cross-function observability
+3. **#41** – Application Insights Correlation & OpenTelemetry – **DONE**
+    - Baseline trace propagation (HTTP + queue)
+    - **Enables:** Tracing enrichment (#310 child issues)
 
 ### Phase 2: Health & Monitoring (High Priority)
 
@@ -145,7 +170,7 @@ Child Issues (#299–#309):
 | #308  | Dashboard Query Snippets & Interpretation Guide | docs        | Low      | #303, #304   |
 | #309  | Aggregation Validation & Reconciliation Tests   | test        | Medium   | #303, #304   |
 
-**Summary:** Pre‑AI cost visibility (estimation + bucketing) & safeguards (threshold events) established ahead of real model integration.
+**Summary:** Event registration complete (#299 CLOSED). Remaining: estimation (#300), calculator & aggregation (#302–#303), guardrail (#304), docs/tests (#305–#309).
 
 ### Phase 4: API Modernization (Medium Priority)
 
@@ -235,7 +260,7 @@ Child Issues (#299–#309):
 
 ### Phase 8: Traversal Enhancements (Lower Priority)
 
-**Goal:** Enhanced traversal UX (deferred if time-constrained).
+**Goal:** Enhanced traversal UX (deferred if time-constrained). Semantic names implemented (#33 CLOSED); relative directions pending (#256).
 
 **Issues:** 23. **#33** – Semantic Exit Names (N2) - Support semantic/landmark-based navigation - **Blocking:** #256
 
@@ -250,17 +275,17 @@ Child Issues (#299–#309):
 ### Critical Path (Must Complete for M2 Exit Criteria)
 
 ```
-#10 (Registry)
- ├─→ #79 (RU/Latency)
+#10 (Registry) ✓
+ ├─→ #79 (RU/Latency) ✓
  │    └─→ #71 (Health Check) ✓ EXIT CRITERIA
  ├─→ #41 (OpenTelemetry) ✓ EXIT CRITERIA
- └─→ #50 (AI Cost) ✓ EXIT CRITERIA
+ └─→ #50 (AI Cost) (foundation #299 ✓; aggregation & guardrail pending)
 
 #229 (API Versioning)
  └─→ #230 (Backend Routes)
-      ├─→ #231 (Frontend Client)
-      ├─→ #232 (Integration Tests)
-      └─→ #233 (Documentation)
+    ├─→ #231 (Frontend Client)
+    ├─→ #232 (Integration Tests)
+    └─→ #233 (Documentation)
 ```
 
 ### Secondary Tracks (Valuable but not blocking M2 closure)
@@ -273,12 +298,16 @@ Child Issues (#299–#309):
  │         ├─→ #155 (Simulation)
  │         └─→ #156 (Alerting)
  │
- ├─→ #257 (Dead-Letter)
+ ├─→ #257 (Dead-Letter) ✓
  │    └─→ #258 (Event Handlers)
+ │
+ ├─→ Tracing Enrichment Epic #310 (child issues #311–#318)
+ │
+ ├─→ Humor & Promotion Telemetry (#328, #329, #337)
  │
  └─→ DevX: #108, #111, #172-#174
 
-#33 (Semantic Exits)
+#33 (Semantic Exits) ✓
  └─→ #256 (Relative Directions)
 ```
 
@@ -326,9 +355,10 @@ Child Issues (#299–#309):
 -   [x] Telemetry registry expanded with M2 events (#10)
 -   [x] RU & latency metrics captured for Gremlin ops (#79)
 -   [x] Health check endpoint operational (#71)
--   [ ] OpenTelemetry correlation wired (#41)
--   [ ] AI cost telemetry epic foundation implemented (events + aggregation: #299–#304)
+-   [x] OpenTelemetry correlation wired (#41)
+-   [ ] AI cost telemetry aggregation & guardrails implemented (#300–#304)
 -   [ ] RESTful API patterns operational with backward compat (#228-#233)
+-   [ ] Tracing enrichment baseline (exporter, span attributes, sampling) (#311–#316)
 
 ### M2 Completion Criteria (Comprehensive)
 
@@ -336,15 +366,15 @@ Child Issues (#299–#309):
 -   [ ] At least one dashboard query documented showing move success rate
 -   [ ] API documentation updated with RESTful patterns
 -   [ ] Health check endpoint returns <200ms latency
--   [ ] Cost telemetry capturing token usage for at least one AI operation
+-   [ ] Cost telemetry capturing token usage & hourly summaries (post #302–#303)
 -   [ ] All M2 tests passing
 -   [ ] Documentation current
 
 ### Nice-to-Have (Defer if time-constrained)
 
 -   [ ] Description integrity monitoring complete (#69 epic)
--   [ ] World event handlers refactored (#257, #258)
--   [ ] Semantic/relative directions implemented (#33, #256)
+-   [ ] World event handlers refactored (#257 CLOSED, #258 pending)
+-   [ ] Relative directions implemented (#256; semantic names done #33)
 -   [ ] Learn More page automation (#172-#174)
 -   [ ] Full AI cost simulation & reconciliation tests (#305, #309) after foundational emission validated
 
@@ -352,18 +382,22 @@ Child Issues (#299–#309):
 
 ## Recommended Next Steps
 
-**Immediate Focus:** Start with critical path foundations:
+**Immediate Focus (updated):**
 
-1. **Start #10** (Telemetry Event Registry Expansion) – Unblocks 5 other issues
-2. **Start #229** (API Versioning Strategy) – Lightweight doc work, unblocks API track
-3. **Start #79** (Gremlin RU/Latency) – Parallel with #10, enables health checks
+1. (Completed) #10 – Registry foundation
+2. (Completed) #79 – RU/Latency wrappers
+3. (Completed) #71 – Health endpoint
+4. (Completed) #41 – Baseline tracing
+5. (Completed) #257 – Dead-letter storage
+6. **Advance:** Tracing enrichment (#310 children #311–#316), AI cost aggregation (#300–#303), API versioning (#229), world event handlers (#258)
 
-**Parallel Tracks:** Once foundations complete:
+**Parallel Tracks (current):**
 
--   **Observability track:** #10 → #79 → #71 → #41 → #50
+-   **Observability track:** #10 ✓ → #79 ✓ → #71 ✓ → #41 ✓ → #310 (enrichment) → #50 (aggregation/guardrail)
 -   **API track:** #229 → #230 → #231, #232, #233
--   **Integrity track:** #10 → #152 → #153 → #154, #155, #156
--   **Event processing track:** #10 → #257 → #258
+-   **Integrity track:** #10 ✓ → #152 → #153 → #154, #155, #156
+-   **Event processing track:** #10 ✓ → #257 ✓ → #258
+-   **Humor/Promotion track:** #328 → #329 & #337 (enumeration precedes endpoint & lifecycle)
 
 ---
 
@@ -399,7 +433,11 @@ Child Issues (#299–#309):
 3. **Cost telemetry:** Real-time aggregation or batch? (Recommend: Batch for MVP, real-time later)
 4. **Health check frequency:** How often should monitoring ping health endpoint? (Recommend: 60s interval)
 5. **Description integrity:** Hash algorithm choice? (Recommend: SHA-256, standard and sufficient)
+6. **Sampling ratio initial value:** Proposed 0.15 (adjust after #315 metrics).
+7. **Exporter readiness:** Confirm Azure Monitor credentials before #311.
+8. **Trace ↔ event correlation shape:** Property names (`traceId`, `spanId`) for #316.
+9. **Span naming taxonomy baseline:** Confirm domain prefixes before #318 refactor.
 
 ---
 
-_Plan created: 2025-10-30 | Updated after AI Cost epic (#50) decomposition (issues #299–#309) and health check completion (#71) | Ready to execute_
+_Plan created: 2025-10-30 | Updated after tracing enrichment & humor telemetry additions (#310, #328–#329, #337) and cost event registration completion (#299) | Ready to execute_
