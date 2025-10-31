@@ -1,18 +1,15 @@
 import { Direction, DIRECTIONS, isDirection } from '../domainModels.js'
 
 /**
- * Direction Normalizer (N1)
+ * Direction Normalizer (N1 + N2)
  *
  * PURPOSE: Provide fault-tolerant resolution of player input strings to canonical Direction values.
  *
- * FEATURES (N1 - Current):
- * - Exact match: case-insensitive canonical direction recognition
- * - Shortcuts: single/double letter abbreviations (n→north, ne→northeast)
- * - Typo tolerance: edit distance ≤1 from canonical (nrth→north)
- * - Relative directions: left/right/forward/back (requires player heading)
+ * FEATURES:
+ * - N1 (Current): Exact match, shortcuts, typo tolerance, relative directions
+ * - N2 (Issue #33): Semantic exit names, synonyms, landmark aliases
  *
  * FUTURE EXTENSIONS:
- * - N2 (#33): Semantic exit names (e.g., "wooden door" → resolves to direction)
  * - N3 (#256): Enhanced relative direction support with persistent heading state
  *
  * DESIGN PRINCIPLES:
@@ -24,6 +21,21 @@ import { Direction, DIRECTIONS, isDirection } from '../domainModels.js'
  * See: docs/architecture/direction-resolution-rules.md for detailed algorithm
  * See: docs/developer-workflow/direction-normalizer-usage.md for integration patterns
  */
+
+/**
+ * Location-specific exit context for semantic resolution (N2).
+ * This data enables the normalizer to resolve semantic exit names and landmark aliases.
+ */
+export interface LocationExitContext {
+    /** List of exits with optional semantic names and synonyms */
+    exits: Array<{
+        direction: Direction
+        name?: string
+        synonyms?: string[]
+    }>
+    /** Landmark alias mapping: landmark name (lowercase) -> canonical direction */
+    landmarkAliases?: Record<string, Direction>
+}
 
 /** Relative direction tokens that require lastHeading for resolution */
 export type RelativeDirection = 'left' | 'right' | 'forward' | 'back'
@@ -39,6 +51,8 @@ export interface DirectionNormalizationResult {
     canonical?: Direction
     /** Human-readable explanation (always present for ambiguous/unknown; optional for ok) */
     clarification?: string
+    /** Number of semantic matches found (N2 telemetry) - only present when > 1 */
+    ambiguityCount?: number
 }
 
 /**
@@ -198,43 +212,109 @@ export function resolveRelativeDirection(relativeDir: RelativeDirection, lastHea
 }
 
 /**
- * Normalize direction input using optional lastHeading context.
+ * Resolve semantic exit name or landmark alias to canonical direction(s).
+ * Returns array of matching directions (empty if no match).
+ *
+ * STAGE N2: Semantic resolution
+ * - Check exit names (exact match, case-insensitive)
+ * - Check exit synonyms (exact match, case-insensitive)
+ * - Check landmark aliases (exact match, case-insensitive)
+ *
+ * AMBIGUITY HANDLING:
+ * - Multiple matches → return all candidates (caller handles ambiguity)
+ * - No matches → return empty array
+ *
+ * PRIORITY: Exit names/synonyms are checked before landmark aliases to avoid confusion
+ * when an exit might have the same name as a landmark.
+ */
+function resolveSemanticExit(input: string, context?: LocationExitContext): Direction[] {
+    if (!context) {
+        return []
+    }
+
+    const lowerInput = input.toLowerCase()
+    const matches: Direction[] = []
+
+    // Check exit names and synonyms
+    for (const exit of context.exits) {
+        // Check exit name
+        if (exit.name && exit.name.toLowerCase() === lowerInput) {
+            matches.push(exit.direction)
+        }
+        // Check synonyms
+        if (exit.synonyms) {
+            for (const synonym of exit.synonyms) {
+                if (synonym.toLowerCase() === lowerInput) {
+                    matches.push(exit.direction)
+                    break // Only count this exit once
+                }
+            }
+        }
+    }
+
+    // Check landmark aliases (only if no exit matches)
+    if (matches.length === 0 && context.landmarkAliases) {
+        // Normalize all landmark alias keys to lowercase for comparison
+        const normalizedAliases: Record<string, Direction> = {}
+        for (const [key, value] of Object.entries(context.landmarkAliases)) {
+            normalizedAliases[key.toLowerCase()] = value
+        }
+
+        const landmarkDir = normalizedAliases[lowerInput]
+        if (landmarkDir) {
+            matches.push(landmarkDir)
+        }
+    }
+
+    return matches
+}
+
+/**
+ * Normalize direction input using optional lastHeading and locationContext.
  *
  * RESOLUTION PIPELINE (executed in order):
  * 1. Exact match: input matches canonical direction (case-insensitive)
  * 2. Shortcut expansion: input is a known abbreviation (n→north, ne→northeast)
- * 3. Relative resolution: input is left/right/forward/back (requires lastHeading)
- * 4. Typo tolerance: input within edit distance 1 of canonical direction
- * 5. Fallback: return { status: 'unknown' } if no match
+ * 3. Semantic resolution (N2): input matches exit name, synonym, or landmark alias
+ * 4. Relative resolution: input is left/right/forward/back (requires lastHeading)
+ * 5. Typo tolerance: input within edit distance 1 of canonical direction
+ * 6. Fallback: return { status: 'unknown' } if no match
  *
  * STAGES IMPLEMENTED:
- * - N1 (Current): shortcuts + typo tolerance + relative directions
+ * - N1: shortcuts + typo tolerance + relative directions
+ * - N2 (Issue #33): Semantic exit names + synonyms + landmark aliases
  *
  * STAGES PLANNED:
- * - N2 (#33): Semantic exit names (e.g., "wooden door" resolves to direction via location context)
  * - N3 (#256): Enhanced relative support with persistent heading state + turn commands
  *
  * PARAMETERS:
  * @param input - Raw player input string (case-insensitive, whitespace trimmed automatically)
  * @param lastHeading - Optional previous direction traveled (enables left/right/forward/back)
+ * @param locationContext - Optional location-specific exit context (enables semantic resolution)
  *
  * RETURNS:
  * - { status: 'ok', canonical: Direction } — Successfully resolved
- * - { status: 'ambiguous', clarification: string } — Multiple matches or missing heading
+ * - { status: 'ambiguous', clarification: string, ambiguityCount: number } — Multiple semantic matches
  * - { status: 'unknown', clarification: string } — No match found
  *
  * TELEMETRY: Caller should emit Navigation.Input.Parsed event with:
- * - rawInput, status, direction (if ok), candidates (if ambiguous)
+ * - rawInput, status, direction (if ok), ambiguityCount (if ambiguous)
  *
  * EXAMPLES:
  * - normalizeDirection("NORTH") → { status: 'ok', canonical: 'north' }
  * - normalizeDirection("ne") → { status: 'ok', canonical: 'northeast' }
- * - normalizeDirection("nrth") → { status: 'ok', canonical: 'north', clarification: "Interpreted..." }
+ * - normalizeDirection("wooden_door", undefined, context) → { status: 'ok', canonical: 'north' }
+ * - normalizeDirection("door", undefined, context) → { status: 'ambiguous', ambiguityCount: 2 } (if 2 doors)
+ * - normalizeDirection("fountain", undefined, context) → { status: 'ok', canonical: 'south' } (landmark)
  * - normalizeDirection("left") → { status: 'ambiguous', clarification: "Requires heading" }
  * - normalizeDirection("left", "north") → { status: 'ok', canonical: 'west' }
  * - normalizeDirection("xyz") → { status: 'unknown', clarification: "Not recognized..." }
  */
-export function normalizeDirection(input: string, lastHeading?: Direction): DirectionNormalizationResult {
+export function normalizeDirection(
+    input: string,
+    lastHeading?: Direction,
+    locationContext?: LocationExitContext
+): DirectionNormalizationResult {
     const trimmed = input.toLowerCase().trim()
 
     // Empty input
@@ -255,7 +335,22 @@ export function normalizeDirection(input: string, lastHeading?: Direction): Dire
         return { status: 'ok', canonical: DIRECTION_SHORTCUTS[trimmed] }
     }
 
-    // 3. Check relative directions (left/right/forward/back)
+    // 3. Check semantic exits (N2: names, synonyms, landmark aliases)
+    const semanticMatches = resolveSemanticExit(trimmed, locationContext)
+    if (semanticMatches.length === 1) {
+        // Unambiguous semantic match
+        return { status: 'ok', canonical: semanticMatches[0] }
+    } else if (semanticMatches.length > 1) {
+        // Ambiguous semantic match
+        const directions = semanticMatches.join(', ')
+        return {
+            status: 'ambiguous',
+            clarification: `"${input}" matches multiple exits: ${directions}. Please specify which direction.`,
+            ambiguityCount: semanticMatches.length
+        }
+    }
+
+    // 4. Check relative directions (left/right/forward/back)
     if (isRelativeDirection(trimmed)) {
         if (!lastHeading) {
             return {
@@ -275,7 +370,7 @@ export function normalizeDirection(input: string, lastHeading?: Direction): Dire
         }
     }
 
-    // 4. Try typo tolerance (edit distance ≤1)
+    // 5. Try typo tolerance (edit distance ≤1)
     const typoMatch = findTypoMatch(trimmed)
     if (typoMatch) {
         return {
@@ -285,7 +380,7 @@ export function normalizeDirection(input: string, lastHeading?: Direction): Dire
         }
     }
 
-    // 5. Unknown
+    // 6. Unknown
     return {
         status: 'unknown',
         clarification: `"${input}" is not a recognized direction. Try: north, south, east, west, up, down, in, out, or shortcuts like n, s, e, w.`
