@@ -12,14 +12,51 @@
 import { InvocationContext, app } from '@azure/functions'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
+import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import { endSpan, startSpanFromTraceparent } from '../instrumentation/opentelemetry.js'
 import { trackGameEventStrict } from '../telemetry.js'
+import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
+import { MemoryDeadLetterRepository } from '../repos/deadLetterRepository.memory.js'
+import { CosmosDeadLetterRepository } from '../repos/deadLetterRepository.cosmos.js'
+import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 
 // --- Configuration -----------------------------------------------------------
 
 const DUPE_TTL_MS = parseInt(process.env.WORLD_EVENT_DUPE_TTL_MS || '600000', 10)
 const CACHE_MAX_SIZE = parseInt(process.env.WORLD_EVENT_CACHE_MAX_SIZE || '10000', 10)
 const DEADLETTER_MODE = process.env.WORLD_EVENT_DEADLETTER_MODE || 'log-only'
+
+// --- Dead-Letter Repository Initialization -----------------------------------
+
+let deadLetterRepo: IDeadLetterRepository | null = null
+
+/**
+ * Initialize dead-letter repository lazily on first validation failure
+ */
+async function getDeadLetterRepository(): Promise<IDeadLetterRepository> {
+    if (deadLetterRepo) {
+        return deadLetterRepo
+    }
+
+    const mode = resolvePersistenceMode()
+    if (mode === 'cosmos') {
+        const config = await loadPersistenceConfigAsync()
+        if (config.cosmosSql) {
+            deadLetterRepo = new CosmosDeadLetterRepository(
+                config.cosmosSql.endpoint,
+                config.cosmosSql.database,
+                config.cosmosSql.containers.deadLetters
+            )
+        } else {
+            // Fallback to memory if SQL config missing
+            deadLetterRepo = new MemoryDeadLetterRepository()
+        }
+    } else {
+        deadLetterRepo = new MemoryDeadLetterRepository()
+    }
+
+    return deadLetterRepo
+}
 
 // --- In-Memory Idempotency Guard ---------------------------------------------
 
@@ -110,6 +147,43 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         }
     } catch (parseError) {
         context.error('Failed to parse queue message as JSON', { parseError: String(parseError) })
+
+        // Store dead-letter record for JSON parse failure
+        try {
+            const repo = await getDeadLetterRepository()
+            const deadLetterRecord = createDeadLetterRecord(message, {
+                category: 'json-parse',
+                message: 'Failed to parse queue message as JSON',
+                issues: [
+                    {
+                        path: 'message',
+                        message: String(parseError),
+                        code: 'invalid_json'
+                    }
+                ]
+            })
+            await repo.store(deadLetterRecord)
+
+            // Emit dead-letter telemetry
+            trackGameEventStrict(
+                'World.Event.DeadLettered',
+                {
+                    reason: 'json-parse',
+                    errorCount: 1,
+                    recordId: deadLetterRecord.id
+                },
+                {}
+            )
+
+            context.log('Dead-letter record created for JSON parse failure', {
+                recordId: deadLetterRecord.id
+            })
+        } catch (deadLetterError) {
+            context.error('Failed to store dead-letter record', {
+                error: String(deadLetterError)
+            })
+        }
+
         // Cannot proceed without valid JSON - skip (no retry)
         endSpan(span)
         return
@@ -128,7 +202,41 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             errors,
             deadLetterMode: DEADLETTER_MODE
         })
-        // TODO: Future hook for dead-letter storage with redacted payload
+
+        // Store dead-letter record with redacted payload
+        try {
+            const repo = await getDeadLetterRepository()
+            const deadLetterRecord = createDeadLetterRecord(rawEvent, {
+                category: 'schema-validation',
+                message: 'Event envelope failed schema validation',
+                issues: errors
+            })
+            await repo.store(deadLetterRecord)
+
+            // Emit dead-letter telemetry
+            trackGameEventStrict(
+                'World.Event.DeadLettered',
+                {
+                    reason: 'schema-validation',
+                    errorCount: errors.length,
+                    recordId: deadLetterRecord.id,
+                    eventType: deadLetterRecord.eventType,
+                    correlationId: deadLetterRecord.correlationId
+                },
+                { correlationId: deadLetterRecord.correlationId }
+            )
+
+            context.log('Dead-letter record created', {
+                recordId: deadLetterRecord.id,
+                errorCount: errors.length
+            })
+        } catch (deadLetterError) {
+            // Log but don't throw - dead-letter storage failure should not block processing
+            context.error('Failed to store dead-letter record', {
+                error: String(deadLetterError)
+            })
+        }
+
         // Invalid schema - skip (no retry)
         endSpan(span)
         return
