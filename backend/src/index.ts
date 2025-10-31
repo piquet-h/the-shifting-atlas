@@ -1,4 +1,7 @@
+// Tracing MUST be initialized first
 import { app, PreInvocationContext } from '@azure/functions'
+import './instrumentation/opentelemetry.js'
+// Application Insights direct SDK retained temporarily for existing metrics (to be migrated to OTel later)
 import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import { setupContainer } from './inversify.config.js'
@@ -6,6 +9,7 @@ import { setupContainer } from './inversify.config.js'
 const container = new Container()
 
 app.hook.appStart(() => {
+    // Initialize (legacy) Application Insights auto collection; spans handled by OpenTelemetry provider.
     appInsights.setup().start()
 
     // add telemetry processor to drop bot/probe requests

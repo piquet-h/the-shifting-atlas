@@ -9,9 +9,10 @@
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
  * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
-import { InvocationContext } from '@azure/functions'
+import { InvocationContext, app } from '@azure/functions'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
+import { endSpan, startSpanFromTraceparent } from '../instrumentation/opentelemetry.js'
 import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------
@@ -91,6 +92,14 @@ function hashPrefix(key: string): string {
 // --- Main Handler ------------------------------------------------------------
 
 export async function queueProcessWorldEvent(message: unknown, context: InvocationContext): Promise<void> {
+    // Attempt to continue trace from Service Bus applicationProperties
+    // Extract traceparent directly (shared utility not yet published; will migrate after version bump)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const traceparent = (message as any)?.applicationProperties?.traceparent as string | undefined
+    const span = startSpanFromTraceparent('ServiceBus QueueProcessWorldEvent', traceparent)
+    span.setAttribute('messaging.system', 'azure.servicebus')
+    span.setAttribute('messaging.destination', 'world-events')
+    span.setAttribute('messaging.operation', 'process')
     // 1. Parse message (Azure Service Bus messages can be JSON or string)
     let rawEvent: unknown
     try {
@@ -102,6 +111,7 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
     } catch (parseError) {
         context.error('Failed to parse queue message as JSON', { parseError: String(parseError) })
         // Cannot proceed without valid JSON - skip (no retry)
+        endSpan(span)
         return
     }
 
@@ -120,6 +130,7 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         })
         // TODO: Future hook for dead-letter storage with redacted payload
         // Invalid schema - skip (no retry)
+        endSpan(span)
         return
     }
 
@@ -155,6 +166,7 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             { correlationId: event.correlationId }
         )
 
+        endSpan(span)
         return
     }
 
@@ -190,10 +202,13 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         type: event.type,
         latencyMs
     })
+    span.setAttribute('tsa.correlation_id', event.correlationId)
+    span.setAttribute('messaging.message_id', event.eventId)
+    endSpan(span)
 }
 
-// app.serviceBusQueue('QueueProcessWorldEvent', {
-//     connection: 'ServiceBusConnection',
-//     queueName: 'world-events',
-//     handler: queueProcessWorldEvent
-// })
+app.serviceBusQueue('QueueProcessWorldEvent', {
+    connection: 'SERVICEBUS_CONNECTION',
+    queueName: 'world-events',
+    handler: queueProcessWorldEvent
+})
