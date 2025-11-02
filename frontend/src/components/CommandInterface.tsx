@@ -86,7 +86,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     }
                 } else if (lower === 'look') {
                     const url = buildLocationUrl(currentLocationId)
-                    const headers = buildHeaders(playerGuid)
+                    const headers = buildHeaders()
                     const res = await fetch(url, { headers })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
@@ -109,13 +109,13 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
                     const moveRequest = buildMoveRequest(playerGuid, dir, currentLocationId)
-                    const headers = buildHeaders(playerGuid, {
-                        ...(moveRequest.body ? { 'Content-Type': 'application/json' } : {})
+                    const headers = buildHeaders({
+                        'Content-Type': 'application/json'
                     })
                     const res = await fetch(moveRequest.url, {
                         method: moveRequest.method,
                         headers,
-                        ...(moveRequest.body ? { body: JSON.stringify(moveRequest.body) } : {})
+                        body: JSON.stringify(moveRequest.body)
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)

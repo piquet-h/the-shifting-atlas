@@ -8,7 +8,7 @@ import { buildPlayerUrl, buildHeaders, isValidGuid } from '../utils/apiClient'
  * Responsible for obtaining and persisting a stable player GUID for guest users.
  * Behavior:
  *  - Stores guid in localStorage under key `tsa.playerGuid`.
- *  - Calls GET /api/player to allocate or confirm a GUID.
+ *  - Calls GET /api/player/{playerId} to confirm existing GUID or GET /api/player to allocate new.
  *  - Emits telemetry events to Application Insights via trackGameEventClient.
  */
 export interface PlayerGuidState {
@@ -54,8 +54,8 @@ export function usePlayerGuid(): PlayerGuidState {
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
                 trackGameEventClient('Onboarding.GuestGuid.Started')
-                const url = buildPlayerUrl(existing)
-                const headers = buildHeaders(existing)
+                const url = existing ? buildPlayerUrl(existing) : '/api/player'
+                const headers = buildHeaders()
                 const res = await fetch(url, {
                     method: 'GET',
                     headers

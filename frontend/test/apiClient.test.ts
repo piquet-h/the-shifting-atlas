@@ -1,21 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { isValidGuid, buildPlayerUrl, buildLocationUrl, buildMoveRequest, buildHeaders } from '../src/utils/apiClient'
 
 describe('apiClient', () => {
-    // Store original env value
-    let originalEnv: string | undefined
-
-    beforeEach(() => {
-        originalEnv = import.meta.env.VITE_USE_RESTFUL_URLS
-    })
-
-    afterEach(() => {
-        // Restore original env value
-        if (originalEnv !== undefined) {
-            import.meta.env.VITE_USE_RESTFUL_URLS = originalEnv
-        }
-    })
-
     describe('isValidGuid', () => {
         it('should return true for valid GUID', () => {
             expect(isValidGuid('12345678-1234-1234-1234-123456789abc')).toBe(true)
@@ -38,9 +24,9 @@ describe('apiClient', () => {
             expect(url).toBe(`/api/player/${playerId}`)
         })
 
-        it('should build legacy URL with invalid playerId', () => {
-            expect(buildPlayerUrl('invalid')).toBe('/api/player')
-            expect(buildPlayerUrl(null)).toBe('/api/player')
+        it('should throw error with invalid playerId', () => {
+            expect(() => buildPlayerUrl('invalid')).toThrow('Player ID must be a valid GUID')
+            expect(() => buildPlayerUrl(null)).toThrow('Player ID must be a valid GUID')
         })
     })
 
@@ -51,9 +37,8 @@ describe('apiClient', () => {
             expect(url).toBe(`/api/location/${locationId}`)
         })
 
-        it('should build legacy URL with query string for invalid locationId', () => {
-            const url = buildLocationUrl('not-a-guid')
-            expect(url).toBe('/api/location?id=not-a-guid')
+        it('should throw error with invalid locationId', () => {
+            expect(() => buildLocationUrl('not-a-guid')).toThrow('Location ID must be a valid GUID')
         })
 
         it('should build base URL with no locationId', () => {
@@ -85,47 +70,24 @@ describe('apiClient', () => {
             })
         })
 
-        it('should build legacy GET request with invalid playerId', () => {
-            const result = buildMoveRequest('invalid', 'east')
-
-            expect(result.url).toBe('/api/player/move?dir=east')
-            expect(result.method).toBe('GET')
-            expect(result.body).toBeUndefined()
-        })
-
-        it('should include from parameter in legacy URL when provided', () => {
-            const fromLocationId = '87654321-4321-4321-4321-cba987654321'
-            const result = buildMoveRequest(null, 'west', fromLocationId)
-
-            expect(result.url).toBe(`/api/player/move?dir=west&from=${fromLocationId}`)
-            expect(result.method).toBe('GET')
-            expect(result.body).toBeUndefined()
+        it('should throw error with invalid playerId', () => {
+            expect(() => buildMoveRequest('invalid', 'east')).toThrow('Player ID must be a valid GUID')
+            expect(() => buildMoveRequest(null, 'west')).toThrow('Player ID must be a valid GUID')
         })
     })
 
     describe('buildHeaders', () => {
-        it('should include x-player-guid header when playerId provided', () => {
-            const playerId = '12345678-1234-1234-1234-123456789abc'
-            const headers = buildHeaders(playerId)
-
-            expect(headers).toEqual({
-                'x-player-guid': playerId
-            })
-        })
-
-        it('should not include x-player-guid header when playerId is null', () => {
-            const headers = buildHeaders(null)
+        it('should return empty headers when no additional headers', () => {
+            const headers = buildHeaders()
             expect(headers).toEqual({})
         })
 
         it('should merge additional headers', () => {
-            const playerId = '12345678-1234-1234-1234-123456789abc'
-            const headers = buildHeaders(playerId, {
+            const headers = buildHeaders({
                 'Content-Type': 'application/json'
             })
 
             expect(headers).toEqual({
-                'x-player-guid': playerId,
                 'Content-Type': 'application/json'
             })
         })

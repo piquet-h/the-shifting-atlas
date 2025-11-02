@@ -1,13 +1,6 @@
 /**
  * API Client utilities for constructing RESTful URLs and making API calls
- * Supports feature flag for gradual rollout of RESTful patterns
  */
-
-/**
- * Feature flag for RESTful URL patterns
- * Set via environment variable or default to true (new pattern)
- */
-const USE_RESTFUL_URLS = import.meta.env.VITE_USE_RESTFUL_URLS !== 'false'
 
 /**
  * Validates a string is a valid GUID format
@@ -18,66 +11,58 @@ export function isValidGuid(guid: string | null | undefined): guid is string {
 }
 
 /**
- * Build URL for GET /api/player or /api/player/{playerId}
+ * Build URL for GET /api/player/{playerId}
+ * @throws Error if playerId is not a valid GUID
  */
 export function buildPlayerUrl(playerId: string | null): string {
-    if (USE_RESTFUL_URLS && isValidGuid(playerId)) {
-        return `/api/player/${playerId}`
+    if (!isValidGuid(playerId)) {
+        throw new Error('Player ID must be a valid GUID')
     }
-    return '/api/player'
+    return `/api/player/${playerId}`
 }
 
 /**
- * Build URL for GET /api/location or /api/location/{locationId}
+ * Build URL for GET /api/location/{locationId}
+ * @throws Error if locationId is not a valid GUID
  */
 export function buildLocationUrl(locationId: string | null | undefined): string {
-    if (USE_RESTFUL_URLS && isValidGuid(locationId)) {
-        return `/api/location/${locationId}`
+    if (!locationId) {
+        return '/api/location'
     }
-    // Legacy query string pattern
-    return locationId ? `/api/location?id=${encodeURIComponent(locationId)}` : '/api/location'
+    if (!isValidGuid(locationId)) {
+        throw new Error('Location ID must be a valid GUID')
+    }
+    return `/api/location/${locationId}`
 }
 
 /**
  * Build URL and body for move command
- * RESTful: POST /api/player/{playerId}/move with body { direction, fromLocationId }
- * Legacy: GET /api/player/move?dir={dir}&from={from}
+ * POST /api/player/{playerId}/move with body { direction, fromLocationId }
+ * @throws Error if playerId is not a valid GUID
  */
 export function buildMoveRequest(
     playerId: string | null,
     direction: string,
     fromLocationId?: string
-): { url: string; method: string; body?: Record<string, unknown> } {
-    if (USE_RESTFUL_URLS && isValidGuid(playerId)) {
-        return {
-            url: `/api/player/${playerId}/move`,
-            method: 'POST',
-            body: {
-                direction,
-                ...(fromLocationId ? { fromLocationId } : {})
-            }
-        }
+): { url: string; method: string; body: Record<string, unknown> } {
+    if (!isValidGuid(playerId)) {
+        throw new Error('Player ID must be a valid GUID')
     }
-
-    // Legacy query string pattern
-    const fromParam = fromLocationId ? `&from=${encodeURIComponent(fromLocationId)}` : ''
     return {
-        url: `/api/player/move?dir=${encodeURIComponent(direction)}${fromParam}`,
-        method: 'GET'
+        url: `/api/player/${playerId}/move`,
+        method: 'POST',
+        body: {
+            direction,
+            ...(fromLocationId ? { fromLocationId } : {})
+        }
     }
 }
 
 /**
- * Build headers including x-player-guid for backward compatibility
+ * Build headers for API requests
  */
-export function buildHeaders(playerId: string | null, additionalHeaders?: Record<string, string>): HeadersInit {
-    const headers: Record<string, string> = {
+export function buildHeaders(additionalHeaders?: Record<string, string>): HeadersInit {
+    return {
         ...additionalHeaders
     }
-
-    if (playerId) {
-        headers['x-player-guid'] = playerId
-    }
-
-    return headers
 }
