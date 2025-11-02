@@ -107,12 +107,41 @@ jobs:
           if [ -n "$FUNCTION_URL" ]; then
             echo "Function app URL: https://$FUNCTION_URL"
             
-            # Test health endpoint
-            echo "Testing health endpoint..."
-            if curl -f -s "https://$FUNCTION_URL/api/backend/health" > /dev/null; then
-              echo "✅ Health endpoint is responding"
+            # Wait briefly for deployment to settle
+            echo "Waiting 30 seconds for function app to sync..."
+            sleep 30
+            
+            # List all functions registered in the app
+            echo "Listing registered functions..."
+            az functionapp function list --name "$FUNCTION_APP_NAME" --resource-group "rg-atlas-game" --query '[].{name:name,invokeUrlTemplate:invokeUrlTemplate}' -o table || echo "Could not list functions"
+            
+            # Test critical endpoints
+            echo ""
+            echo "Testing critical API endpoints..."
+            
+            # Test /api/player endpoint (critical for frontend bootstrap)
+            echo -n "Testing /api/player... "
+            if curl -f -s -m 10 "https://$FUNCTION_URL/api/player" > /dev/null 2>&1; then
+              echo "✅ PASS"
             else
-              echo "⚠️  Health endpoint not responding (may still be starting up)"
+              echo "❌ FAIL"
+              echo "::error title=Critical API Endpoint Failed::/api/player is not responding. Frontend will not work."
+            fi
+            
+            # Test /api/ping endpoint
+            echo -n "Testing /api/ping... "
+            if curl -f -s -m 10 "https://$FUNCTION_URL/api/ping" > /dev/null 2>&1; then
+              echo "✅ PASS"
+            else
+              echo "⚠️ FAIL (non-critical)"
+            fi
+            
+            # Test health endpoint  
+            echo -n "Testing /api/backend/health... "
+            if curl -f -s -m 10 "https://$FUNCTION_URL/api/backend/health" > /dev/null 2>&1; then
+              echo "✅ PASS"
+            else
+              echo "⚠️ FAIL (may still be starting up)"
             fi
           else
             echo "⚠️  Could not retrieve function app URL"
