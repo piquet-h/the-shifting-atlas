@@ -3,6 +3,7 @@ import { Container } from 'inversify'
 import 'reflect-metadata'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin'
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
+import { ContainerHealthHandler } from './handlers/containerHealth.js'
 import { GetExitsHandler } from './handlers/getExits.js'
 import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
@@ -59,6 +60,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
+    container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration

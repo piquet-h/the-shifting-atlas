@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { containerHealth } from '../../src/handlers/containerHealth.js'
 import { backendHealth } from '../../src/handlers/health.js'
 import { ping } from '../../src/handlers/ping.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
@@ -58,5 +59,28 @@ describe('Ping and Health Envelope Tests', () => {
         assert.equal(body?.success, true)
         assert.equal(body?.data?.status, 'ok')
         assert.ok(body?.correlationId)
+    })
+
+    test('container health returns ok with all required bindings', async () => {
+        const req = fixture.createHttpRequest({
+            method: 'GET',
+            url: 'http://localhost/api/backend/health/container'
+        })
+        const ctx = await fixture.createInvocationContext()
+        const res = (await containerHealth(req as never, ctx)) as ResponseWithBody
+        const body = res.jsonBody
+
+        assert.equal(res.status ?? 200, 200)
+        assert.equal(body?.success, true)
+        interface ContainerHealthData {
+            status: string
+            bindings: Array<{ token: string; bound: boolean }>
+            missing: string[]
+        }
+        const data = body?.data as unknown as ContainerHealthData | undefined
+        assert.equal(data?.status, 'ok')
+        assert.ok(Array.isArray(data?.bindings))
+        assert.ok(Array.isArray(data?.missing))
+        assert.equal(data?.missing.length, 0)
     })
 })

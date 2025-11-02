@@ -123,7 +123,7 @@ export class MockLocationRepository implements ILocationRepository {
         return { updated: true }
     }
 
-    private regenerateExitsSummaryCache(locationId: string): void {
+    async regenerateExitsSummaryCache(locationId: string): Promise<void> {
         const location = this.mockLocations.get(locationId)
         if (!location) return
 

@@ -8,7 +8,11 @@ import { setupContainer } from './inversify.config.js'
 
 const container = new Container()
 
-app.hook.appStart(() => {
+// Ensure container setup completes before any function invocation.
+// Previously this hook was synchronous and did not await the async setupContainer call,
+// causing a race where handler/repository bindings might be missing on first invocation
+// (e.g. Functions.player alias to bootstrap) leading to FunctionInvocationException.
+app.hook.appStart(async () => {
     // Initialize (legacy) Application Insights auto collection; spans handled by OpenTelemetry provider.
     appInsights.setup().start()
 
@@ -38,7 +42,18 @@ app.hook.appStart(() => {
 
     const startTime = Date.now()
 
-    setupContainer(container)
+    try {
+        await setupContainer(container)
+    } catch (error) {
+        // Log and emit metric so cold start failures are diagnosable
+
+        console.error('Container setup failed', error)
+        try {
+            appInsights.defaultClient.trackException({ exception: error as Error })
+        } catch (_inner) {
+            // swallow
+        }
+    }
 
     const endTime = Date.now()
     const duration = endTime - startTime
