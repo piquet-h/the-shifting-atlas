@@ -4,6 +4,7 @@ import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { unwrapEnvelope } from '../utils/envelope'
 import { extractErrorMessage } from '../utils/apiResponse'
+import { buildLocationUrl, buildMoveRequest, buildHeaders } from '../utils/apiClient'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 
@@ -84,9 +85,9 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                         response = (data.echo as string) || 'pong'
                     }
                 } else if (lower === 'look') {
-                    const res = await fetch(`/api/location${currentLocationId ? `?id=${encodeURIComponent(currentLocationId)}` : ''}`, {
-                        headers: playerGuid ? { 'x-player-guid': playerGuid } : undefined
-                    })
+                    const url = buildLocationUrl(currentLocationId)
+                    const headers = buildHeaders()
+                    const res = await fetch(url, { headers })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
                     const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
@@ -107,9 +108,14 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     }
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
-                    const fromParam = currentLocationId ? `&from=${encodeURIComponent(currentLocationId)}` : ''
-                    const res = await fetch(`/api/player/move?dir=${encodeURIComponent(dir)}${fromParam}`, {
-                        headers: playerGuid ? { 'x-player-guid': playerGuid } : undefined
+                    const moveRequest = buildMoveRequest(playerGuid, dir, currentLocationId)
+                    const headers = buildHeaders({
+                        'Content-Type': 'application/json'
+                    })
+                    const res = await fetch(moveRequest.url, {
+                        method: moveRequest.method,
+                        headers,
+                        body: JSON.stringify(moveRequest.body)
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)

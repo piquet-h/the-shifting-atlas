@@ -1,13 +1,14 @@
 /* global localStorage */
 import { useCallback, useEffect, useState } from 'react'
 import { trackGameEventClient } from '../services/telemetry'
+import { buildPlayerUrl, buildHeaders, isValidGuid } from '../utils/apiClient'
 
 /**
  * usePlayerGuid
  * Responsible for obtaining and persisting a stable player GUID for guest users.
  * Behavior:
  *  - Stores guid in localStorage under key `tsa.playerGuid`.
- *  - Calls GET /api/player to allocate or confirm a GUID.
+ *  - Calls GET /api/player/{playerId} to confirm existing GUID or GET /api/player to allocate new.
  *  - Emits telemetry events to Application Insights via trackGameEventClient.
  */
 export interface PlayerGuidState {
@@ -30,7 +31,7 @@ export function usePlayerGuid(): PlayerGuidState {
     const readLocal = useCallback(() => {
         try {
             const stored = localStorage.getItem(STORAGE_KEY)
-            return stored && /^[0-9a-fA-F-]{36}$/.test(stored) ? stored : null
+            return stored && isValidGuid(stored) ? stored : null
         } catch {
             return null
         }
@@ -53,9 +54,11 @@ export function usePlayerGuid(): PlayerGuidState {
             if (existing) setPlayerGuid(existing) // optimistic usage
             try {
                 trackGameEventClient('Onboarding.GuestGuid.Started')
-                const res = await fetch('/api/player', {
+                const url = existing ? buildPlayerUrl(existing) : '/api/player'
+                const headers = buildHeaders()
+                const res = await fetch(url, {
                     method: 'GET',
-                    headers: existing ? { 'x-player-guid': existing } : undefined
+                    headers
                 })
                 if (!res.ok) {
                     throw new Error(`Bootstrap failed: ${res.status}`)
