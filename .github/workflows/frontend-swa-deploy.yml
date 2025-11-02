@@ -202,12 +202,14 @@ jobs:
             if [ -n "$FUNC_HOSTNAME" ]; then
               echo "Function App URL: https://$FUNC_HOSTNAME"
               
-              # Test if backend is responding (try health endpoint or any function)
+              # Test if backend is responding using dedicated health endpoint
               echo "Testing backend health..."
-              if curl -f -s -m 10 "https://$FUNC_HOSTNAME/api/ping" > /dev/null 2>&1; then
-                echo "✅ Backend ping endpoint responding"
+              if curl -f -s -m 10 "https://$FUNC_HOSTNAME/api/backend/health" > /dev/null 2>&1; then
+                echo "✅ Backend health endpoint responding"
+              elif curl -f -s -m 10 "https://$FUNC_HOSTNAME/api/ping" > /dev/null 2>&1; then
+                echo "✅ Backend responding (via ping endpoint)"
               else
-                echo "::warning title=Backend Not Responding::Could not reach https://$FUNC_HOSTNAME/api/ping"
+                echo "::warning title=Backend Not Responding::Could not reach backend health or ping endpoints"
                 echo "::warning::The function app may be cold-starting or not deployed. API calls from SWA may fail."
               fi
             fi

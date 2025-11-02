@@ -8,6 +8,14 @@
 ## Root Cause
 The Azure Static Web App is not properly connected to the backend Azure Function App, causing all `/api/*` requests to return 404.
 
+## Project-Specific Values
+For The Shifting Atlas project:
+- Static Web App name: Check `vars.SWA_NAME` repository variable
+- Function App name: `func-atlas` (defined in infrastructure/main.bicep)
+- Resource Group: `rg-atlas-game`
+
+Replace these values as appropriate for your deployment.
+
 ## Diagnosis
 
 ### 1. Check if linked backend exists
@@ -20,7 +28,8 @@ az staticwebapp backends list --name <swa-name>
 
 ### 2. Check function app status
 ```bash
-az functionapp show --name func-atlas --query "state" -o tsv
+az functionapp show --name <function-app-name> --query "state" -o tsv
+# For this project: az functionapp show --name func-atlas --query "state" -o tsv
 ```
 
 **Expected:** `Running`
@@ -28,7 +37,8 @@ az functionapp show --name func-atlas --query "state" -o tsv
 
 ### 3. Check function app has functions deployed
 ```bash
-az functionapp function list --name func-atlas --query '[].name' -o tsv
+az functionapp function list --name <function-app-name> --query '[].name' -o tsv
+# For this project: az functionapp function list --name func-atlas --query '[].name' -o tsv
 ```
 
 **Expected:** List including `player`, `ping`, etc.
@@ -36,7 +46,7 @@ az functionapp function list --name func-atlas --query '[].name' -o tsv
 
 ### 4. Test function app directly
 ```bash
-FUNC_URL=$(az functionapp show --name func-atlas --query "defaultHostName" -o tsv)
+FUNC_URL=$(az functionapp show --name <function-app-name> --query "defaultHostName" -o tsv)
 curl -v "https://$FUNC_URL/api/player"
 ```
 
@@ -74,7 +84,8 @@ az staticwebapp backends link \
 If the function app is stopped:
 
 ```bash
-az functionapp start --name func-atlas
+az functionapp start --name <function-app-name>
+# For this project: az functionapp start --name func-atlas
 ```
 
 ### Solution 4: Redeploy Backend Functions
