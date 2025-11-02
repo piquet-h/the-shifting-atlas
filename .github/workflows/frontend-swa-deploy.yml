@@ -157,3 +157,60 @@ jobs:
         run: |
           echo "Fetching properties for ${SWA_NAME} after deployment attempt..."
           az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties."
+
+      - name: Verify linked backend configuration
+        env:
+          SWA_NAME: ${{ env.SWA_NAME }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SWA_NAME:-}" ]; then
+            echo "::warning::SWA_NAME not set, skipping backend verification"
+            exit 0
+          fi
+          
+          echo "Checking linked backends for ${SWA_NAME}..."
+          LINKED_BACKENDS=$(az staticwebapp backends list --name "${SWA_NAME}" --query '[].{name:name,backendResourceId:properties.backendResourceId,region:properties.region}' -o json 2>/dev/null || echo '[]')
+          
+          if [ "$LINKED_BACKENDS" = "[]" ] || [ -z "$LINKED_BACKENDS" ]; then
+            echo "::error title=No Linked Backend::Static Web App ${SWA_NAME} has no linked backend configured. API routes will return 404."
+            echo "::error::Run infrastructure deployment to configure the linked backend or manually link using: az staticwebapp backends link"
+            exit 1
+          fi
+          
+          echo "Linked backends found:"
+          echo "$LINKED_BACKENDS" | jq '.'
+          
+          # Extract backend resource ID to verify it's the function app
+          BACKEND_ID=$(echo "$LINKED_BACKENDS" | jq -r '.[0].backendResourceId')
+          echo "Backend Resource ID: $BACKEND_ID"
+          
+          # Try to get function app name from resource ID
+          if [[ "$BACKEND_ID" =~ /Microsoft.Web/sites/([^/]+) ]]; then
+            FUNC_APP_NAME="${BASH_REMATCH[1]}"
+            echo "Function App: $FUNC_APP_NAME"
+            
+            # Get function app status
+            FUNC_STATE=$(az functionapp show --name "$FUNC_APP_NAME" --query "state" -o tsv 2>/dev/null || echo "Unknown")
+            echo "Function App State: $FUNC_STATE"
+            
+            if [ "$FUNC_STATE" != "Running" ]; then
+              echo "::warning title=Function App Not Running::Backend function app $FUNC_APP_NAME is in state '$FUNC_STATE'. API calls may fail."
+            fi
+            
+            # Try to get function app hostname
+            FUNC_HOSTNAME=$(az functionapp show --name "$FUNC_APP_NAME" --query "defaultHostName" -o tsv 2>/dev/null || echo "")
+            if [ -n "$FUNC_HOSTNAME" ]; then
+              echo "Function App URL: https://$FUNC_HOSTNAME"
+              
+              # Test if backend is responding using dedicated health endpoint
+              echo "Testing backend health..."
+              if curl -f -s -m 10 "https://$FUNC_HOSTNAME/api/backend/health" > /dev/null 2>&1; then
+                echo "✅ Backend health endpoint responding"
+              elif curl -f -s -m 10 "https://$FUNC_HOSTNAME/api/ping" > /dev/null 2>&1; then
+                echo "✅ Backend responding (via ping endpoint)"
+              else
+                echo "::warning title=Backend Not Responding::Could not reach backend health or ping endpoints"
+                echo "::warning::The function app may be cold-starting or not deployed. API calls from SWA may fail."
+              fi
+            fi
+          fi
