@@ -37,9 +37,10 @@ export function resolvePersistenceMode(): PersistenceMode {
 export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> {
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
-        const endpoint = process.env.COSMOS_GREMLIN_ENDPOINT || process.env.COSMOS_ENDPOINT
-        const database = process.env.COSMOS_GREMLIN_DATABASE
-        const graph = process.env.COSMOS_GREMLIN_GRAPH
+        // Accept legacy GREMLIN_* variables as fallback (backward compatibility with older deployments)
+        const endpoint = process.env.COSMOS_GREMLIN_ENDPOINT || process.env.COSMOS_ENDPOINT || process.env.GREMLIN_ENDPOINT
+        const database = process.env.COSMOS_GREMLIN_DATABASE || process.env.GREMLIN_DATABASE
+        const graph = process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH
         const strict = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
 
         // SQL API configuration

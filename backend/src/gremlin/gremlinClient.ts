@@ -137,6 +137,11 @@ export class GremlinClient implements IGremlinClient {
     private async initialize(): Promise<void> {
         const token = await this.getAzureADToken()
         const authenticator = this.createAuthenticator(token)
+        if (!this.config.endpoint) {
+            throw new Error(
+                'Gremlin endpoint is empty. Verify COSMOS_GREMLIN_ENDPOINT (or legacy GREMLIN_ENDPOINT) environment variable is configured when PERSISTENCE_MODE=cosmos.'
+            )
+        }
         const wsEndpoint = this.convertToWebSocketEndpoint(this.config.endpoint)
 
         this.connection = new driver.DriverRemoteConnection(wsEndpoint, {
