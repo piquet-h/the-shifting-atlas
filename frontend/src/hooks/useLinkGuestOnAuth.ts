@@ -1,5 +1,7 @@
 /* global localStorage */
 import { useEffect, useState } from 'react'
+import { PlayerLinkRequest, PlayerLinkResponse } from '../types/apiResponses'
+import { unwrapEnvelope } from '../utils/envelope'
 import { useAuth } from './useAuth'
 import { usePlayerGuid } from './usePlayerGuid'
 
@@ -28,15 +30,22 @@ export function useLinkGuestOnAuth() {
             setLinking(true)
             setError(null)
             try {
+                const requestBody: PlayerLinkRequest = { playerGuid }
                 const res = await fetch('/api/player/link', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ playerGuid })
+                    body: JSON.stringify(requestBody)
                 })
                 if (!res.ok) throw new Error(`Link failed: ${res.status}`)
-                const data = await res.json()
+                const json = await res.json()
+                const unwrapped = unwrapEnvelope<PlayerLinkResponse>(json)
+
+                if (!unwrapped.success || !unwrapped.data) {
+                    throw new Error('Invalid response format from player link')
+                }
+
                 if (aborted) return
-                if (data?.linked) {
+                if (unwrapped.data.linked) {
                     localStorage.setItem(FLAG_KEY, '1')
                     setLinked(true)
                 }

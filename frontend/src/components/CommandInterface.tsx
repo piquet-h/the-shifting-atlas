@@ -2,9 +2,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
-import { unwrapEnvelope } from '../utils/envelope'
+import { LocationResponse, PingRequest, PingResponse } from '../types/apiResponses'
+import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
-import { buildLocationUrl, buildMoveRequest, buildHeaders } from '../utils/apiClient'
+import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 
@@ -66,23 +67,26 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
                 if (lower.startsWith('ping')) {
-                    const payload = { playerGuid: playerGuid, message: raw.replace(/^ping\s*/, '') || 'ping' }
+                    const requestBody: PingRequest = {
+                        playerGuid: playerGuid || undefined,
+                        message: raw.replace(/^ping\s*/, '') || 'ping'
+                    }
                     const res = await fetch('/api/ping', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             ...(playerGuid ? { 'x-player-guid': playerGuid } : {})
                         },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(requestBody)
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    const unwrapped = unwrapEnvelope<PingResponse>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                         error = extractErrorMessage(res, json, unwrapped)
                     } else {
                         const data = unwrapped.data || {}
-                        response = (data.echo as string) || 'pong'
+                        response = (data.echo as string) || (data.reply as string) || 'pong'
                     }
                 } else if (lower === 'look') {
                     const url = buildLocationUrl(currentLocationId)
@@ -90,16 +94,15 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     const res = await fetch(url, { headers })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    const unwrapped = unwrapEnvelope<LocationResponse>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                         error = extractErrorMessage(res, json, unwrapped)
                     } else {
-                        const loc = unwrapped.data as Record<string, unknown> | undefined
+                        const loc = unwrapped.data
                         if (loc) {
-                            setCurrentLocationId(loc.id as string)
-                            const exitsArray = loc.exits as { direction: string }[] | undefined
-                            const exits: string | undefined = Array.isArray(exitsArray)
-                                ? exitsArray.map((e) => e.direction).join(', ')
+                            setCurrentLocationId(loc.id)
+                            const exits: string | undefined = Array.isArray(loc.exits)
+                                ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
                             response = `${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
                         } else {
@@ -119,16 +122,15 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    const unwrapped = unwrapEnvelope<Record<string, unknown>>(json)
+                    const unwrapped = unwrapEnvelope<LocationResponse>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                         error = extractErrorMessage(res, json, unwrapped)
                     } else {
-                        const loc = unwrapped.data as Record<string, unknown> | undefined
+                        const loc = unwrapped.data
                         if (loc) {
-                            setCurrentLocationId(loc.id as string)
-                            const exitsArray = loc.exits as { direction: string }[] | undefined
-                            const exits: string | undefined = Array.isArray(exitsArray)
-                                ? exitsArray.map((e) => e.direction).join(', ')
+                            setCurrentLocationId(loc.id)
+                            const exits: string | undefined = Array.isArray(loc.exits)
+                                ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
                             response = `Moved ${dir} -> ${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
                         } else {

@@ -2,6 +2,8 @@
  * API Client utilities for constructing RESTful URLs and making API calls
  */
 
+import { MoveRequest } from '../types/apiResponses'
+
 /**
  * Validates a string is a valid GUID format
  */
@@ -44,7 +46,7 @@ export function buildMoveRequest(
     playerId: string | null,
     direction: string,
     fromLocationId?: string
-): { url: string; method: string; body: Record<string, unknown> } {
+): { url: string; method: string; body: MoveRequest } {
     if (!isValidGuid(playerId)) {
         throw new Error('Player ID must be a valid GUID')
     }
