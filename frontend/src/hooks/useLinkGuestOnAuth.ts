@@ -1,6 +1,6 @@
 /* global localStorage */
+import type { PlayerLinkRequest, PlayerLinkResponse } from '@piquet-h/shared'
 import { useEffect, useState } from 'react'
-import { PlayerLinkRequest, PlayerLinkResponse } from '../types/apiResponses'
 import { unwrapEnvelope } from '../utils/envelope'
 import { useAuth } from './useAuth'
 import { usePlayerGuid } from './usePlayerGuid'
@@ -45,10 +45,9 @@ export function useLinkGuestOnAuth() {
                 }
 
                 if (aborted) return
-                if (unwrapped.data.linked) {
-                    localStorage.setItem(FLAG_KEY, '1')
-                    setLinked(true)
-                }
+                // Success response means linking succeeded (either newly linked or already linked)
+                localStorage.setItem(FLAG_KEY, '1')
+                setLinked(true)
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {

@@ -1,17 +1,11 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import type { PlayerBootstrapResponse } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse } from './utils/responseBuilder.js'
-
-interface BootstrapResponseBody {
-    playerGuid: string
-    created: boolean
-    currentLocationId: string
-    name?: string
-}
 
 const HEADER_PLAYER_GUID = 'x-player-guid'
 
@@ -49,7 +43,7 @@ export class BootstrapPlayerHandler extends BaseHandler {
         }
         this.track('Onboarding.GuestGuid.Completed', { created: reportedCreated })
 
-        const body: BootstrapResponseBody = {
+        const body: PlayerBootstrapResponse = {
             playerGuid: record.id,
             created: reportedCreated,
             currentLocationId: record.currentLocationId || 'unknown',

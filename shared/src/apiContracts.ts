@@ -2,11 +2,8 @@
  * API Contract Types (Requests & Responses)
  *
  * Type definitions for HTTP API request/response payloads.
- * All backend responses are wrapped in ApiEnvelope (success/error) - see shared/src/domainModels.ts.
+ * All backend responses are wrapped in ApiEnvelope (success/error) - see domainModels.ts.
  * Response types define the shape of the `data` field within successful envelopes.
- *
- * TODO: Move to shared package once we can publish a new version (requires two-stage PR per Section 12.1).
- *        Backend handlers currently use inline interfaces that duplicate these types.
  */
 
 // ============================================================================
@@ -46,9 +43,7 @@ export interface PlayerBootstrapResponse {
 /** POST /api/player/link - Link guest player to authenticated account */
 export interface PlayerLinkResponse {
     playerGuid: string
-    linked: boolean
-    alreadyLinked: boolean
-    externalId?: string
+    message: string
     latencyMs?: number
 }
 

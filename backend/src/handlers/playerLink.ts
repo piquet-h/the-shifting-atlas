@@ -1,20 +1,11 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import type { PlayerLinkRequest, PlayerLinkResponse } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
-
-interface LinkRequestBody {
-    playerGuid?: string
-}
-interface LinkResponseBody {
-    playerGuid: string
-    linked: boolean
-    alreadyLinked: boolean
-    externalId?: string
-}
 
 @injectable()
 export class PlayerLinkHandler extends BaseHandler {
@@ -25,9 +16,9 @@ export class PlayerLinkHandler extends BaseHandler {
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
         const playerRepo = this.getRepository<IPlayerRepository>('IPlayerRepository')
 
-        let body: LinkRequestBody = {}
+        let body: PlayerLinkRequest | Record<string, never> = {}
         try {
-            body = (await request.json()) as LinkRequestBody
+            body = (await request.json()) as PlayerLinkRequest
         } catch {
             // ignore
         }
@@ -58,13 +49,12 @@ export class PlayerLinkHandler extends BaseHandler {
 
         this.track('Player.Get', { playerGuid: guid, status: 200 })
 
-        const resBody: LinkResponseBody = {
+        // Success response
+        const resBody: PlayerLinkResponse = {
             playerGuid: guid,
-            linked: true,
-            alreadyLinked,
-            externalId: record.externalId
+            message: alreadyLinked ? 'Existing player linked' : 'Player upgraded from guest'
         }
-        return okResponse({ ...resBody, latencyMs: this.latencyMs }, { correlationId: this.correlationId, playerGuid: guid })
+        return okResponse(resBody, { correlationId: this.correlationId, playerGuid: guid })
     }
 }
 

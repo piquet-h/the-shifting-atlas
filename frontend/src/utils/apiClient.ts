@@ -1,8 +1,9 @@
 /**
- * API Client utilities for constructing RESTful URLs and making API calls
+ * API client utilities – shared helpers for calling backend endpoints.
+ * - Validates player GUID format.
+ * - Provides typed request helpers for common backend operations.
  */
-
-import { MoveRequest } from '../types/apiResponses'
+import type { MoveRequest } from '@piquet-h/shared'
 
 /**
  * Validates a string is a valid GUID format

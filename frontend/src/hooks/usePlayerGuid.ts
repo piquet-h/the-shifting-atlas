@@ -1,7 +1,9 @@
 /* global localStorage */
+import type { PlayerBootstrapResponse } from '@piquet-h/shared'
 import { useCallback, useEffect, useState } from 'react'
 import { trackGameEventClient } from '../services/telemetry'
-import { buildPlayerUrl, buildHeaders, isValidGuid } from '../utils/apiClient'
+import { buildHeaders, buildPlayerUrl, isValidGuid } from '../utils/apiClient'
+import { unwrapEnvelope } from '../utils/envelope'
 
 /**
  * usePlayerGuid
@@ -63,12 +65,18 @@ export function usePlayerGuid(): PlayerGuidState {
                 if (!res.ok) {
                     throw new Error(`Bootstrap failed: ${res.status}`)
                 }
-                const data = (await res.json()) as { playerGuid: string; created: boolean }
+                const json = await res.json()
+                const unwrapped = unwrapEnvelope<PlayerBootstrapResponse>(json)
+
+                if (!unwrapped.success || !unwrapped.data) {
+                    throw new Error('Invalid response format from bootstrap')
+                }
+
                 if (aborted) return
-                setPlayerGuid(data.playerGuid)
-                setCreated(data.created)
-                if (data.playerGuid !== existing) writeLocal(data.playerGuid)
-                if (data.created) trackGameEventClient('Onboarding.GuestGuid.Created', { playerGuid: data.playerGuid })
+                setPlayerGuid(unwrapped.data.playerGuid)
+                setCreated(unwrapped.data.created)
+                if (unwrapped.data.playerGuid !== existing) writeLocal(unwrapped.data.playerGuid)
+                if (unwrapped.data.created) trackGameEventClient('Onboarding.GuestGuid.Created', { playerGuid: unwrapped.data.playerGuid })
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {

@@ -1,8 +1,8 @@
 /* global sessionStorage */
-import React, { useCallback, useEffect, useState } from 'react'
+import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
+import { useCallback, useEffect, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
-import { LocationResponse, PingRequest, PingResponse } from '../types/apiResponses'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { unwrapEnvelope } from '../utils/envelope'

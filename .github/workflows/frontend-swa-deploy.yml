@@ -157,8 +157,6 @@ jobs:
         run: |
           echo "Fetching properties for ${SWA_NAME} after deployment attempt..."
           az staticwebapp show --name "${SWA_NAME}" -o jsonc || echo "Failed to retrieve SWA properties."
-
-      - name: Verify linked backend configuration
         env:
           SWA_NAME: ${{ env.SWA_NAME }}
         run: |
