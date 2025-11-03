@@ -118,6 +118,17 @@ export class GremlinClient implements IGremlinClient {
                 requestCharge
             }
         } catch (error) {
+            // Improve diagnostic clarity for missing Cosmos RBAC (Forbidden Substatus 5301)
+            if (error instanceof Error) {
+                const msg = error.message || ''
+                // Substatus 5301 = principal lacks "Microsoft.DocumentDB/databaseAccounts/readMetadata" action
+                if (/Substatus:\s*5301/.test(msg) || /does not have required RBAC permissions/.test(msg)) {
+                    const guidance =
+                        'Cosmos Gremlin RBAC misconfiguration: the managed identity or AAD principal lacks a data role. Assign "Cosmos DB Built-in Data Contributor" (or at minimum Data Reader for read-only) at the account scope "/" to principal GUID shown in the original error. See https://aka.ms/cosmos-native-rbac.'
+                    // Re-wrap original error without leaking auth header/token contents
+                    throw new Error(guidance + ' Original: ' + sanitizeCosmosError(msg))
+                }
+            }
             throw error
         }
     }
@@ -213,4 +224,14 @@ export function validateGremlinEndpoint(endpoint: string): string {
     // Convert
     const ws = value.replace('https://', 'wss://').replace('.documents.azure.com', '.gremlin.cosmos.azure.com')
     return ws
+}
+
+/**
+ * Remove potentially sensitive header detail from a Cosmos SDK error string while retaining core diagnostics.
+ */
+function sanitizeCosmosError(message: string): string {
+    // Drop Authorization length details and any bearer token fragments if present.
+    return message
+        .replace(/Authorization Length: \d+/g, 'Authorization Length: [redacted]')
+        .replace(/"Authorization"\s*:\s*"[^"]+"/g, '"Authorization":"[redacted]"')
 }
