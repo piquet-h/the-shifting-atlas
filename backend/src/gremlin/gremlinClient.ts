@@ -137,12 +137,13 @@ export class GremlinClient implements IGremlinClient {
     private async initialize(): Promise<void> {
         const token = await this.getAzureADToken()
         const authenticator = this.createAuthenticator(token)
-        if (!this.config.endpoint) {
+        const trimmed = (this.config.endpoint || '').trim()
+        if (!trimmed) {
             throw new Error(
-                'Gremlin endpoint is empty. Verify COSMOS_GREMLIN_ENDPOINT (or legacy GREMLIN_ENDPOINT) environment variable is configured when PERSISTENCE_MODE=cosmos.'
+                'Gremlin endpoint is empty or whitespace. Set COSMOS_GREMLIN_ENDPOINT (preferred) or COSMOS_ENDPOINT. Example: https://your-account.documents.azure.com:443/'
             )
         }
-        const wsEndpoint = this.convertToWebSocketEndpoint(this.config.endpoint)
+        const wsEndpoint = validateGremlinEndpoint(trimmed)
 
         this.connection = new driver.DriverRemoteConnection(wsEndpoint, {
             authenticator,
@@ -190,4 +191,26 @@ export async function createGremlinClient(config: GremlinClientConfig): Promise<
     // Initialize the connection eagerly to ensure it's ready
     await client.submit('g.V().limit(1)')
     return client
+}
+
+/**
+ * Validates and converts a Cosmos DB account HTTPS endpoint to a Gremlin WebSocket endpoint.
+ * Throws a descriptive error if the endpoint is clearly invalid.
+ */
+export function validateGremlinEndpoint(endpoint: string): string {
+    const value = endpoint.trim()
+    if (!value) {
+        throw new Error('Gremlin endpoint empty after trim.')
+    }
+    if (!/^https:\/\//.test(value)) {
+        throw new Error('Gremlin endpoint must start with https:// (Cosmos DB account endpoint). Received: ' + value)
+    }
+    if (!value.includes('.documents.azure.com')) {
+        // Accept if already gremlin form
+        if (value.includes('.gremlin.cosmos.azure.com')) return value.replace('https://', 'wss://')
+        throw new Error('Unexpected Cosmos endpoint format. Expected host ending in .documents.azure.com')
+    }
+    // Convert
+    const ws = value.replace('https://', 'wss://').replace('.documents.azure.com', '.gremlin.cosmos.azure.com')
+    return ws
 }

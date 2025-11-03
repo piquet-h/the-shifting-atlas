@@ -63,24 +63,19 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
-        // Cosmos mode - production configuration
-        // Prefer new COSMOS_GREMLIN_* variables (aligned with persistenceConfig) with fallback to legacy GREMLIN_*
-        const gremlinEndpoint = process.env.COSMOS_GREMLIN_ENDPOINT || process.env.COSMOS_ENDPOINT || process.env.GREMLIN_ENDPOINT || ''
-        const gremlinDatabase = process.env.COSMOS_GREMLIN_DATABASE || process.env.GREMLIN_DATABASE || ''
-        const gremlinGraph = process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH || ''
-
+        // Cosmos mode - prefer already loaded persistence configuration for consistency
+        const persistenceConfig = container.get<IPersistenceConfig>('PersistenceConfig')
+        const gremlinEndpoint = persistenceConfig.cosmos?.endpoint?.trim() || ''
+        const gremlinDatabase = persistenceConfig.cosmos?.database || ''
+        const gremlinGraph = persistenceConfig.cosmos?.graph || ''
         if (!gremlinEndpoint || !gremlinDatabase || !gremlinGraph) {
-            // Provide clear diagnostic early rather than opaque "Invalid URL" from ws
             console.warn(
-                'Gremlin configuration incomplete (endpoint|database|graph). Verify COSMOS_GREMLIN_* environment variables are set. Falling back to empty values may cause connection errors.'
+                'Gremlin configuration incomplete via persistenceConfig (endpoint|database|graph). Verify COSMOS_GREMLIN_* variables. Binding may cause connection errors.'
             )
         }
-
-        container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue({
-            endpoint: gremlinEndpoint,
-            database: gremlinDatabase,
-            graph: gremlinGraph
-        })
+        container
+            .bind<GremlinClientConfig>('GremlinConfig')
+            .toConstantValue({ endpoint: gremlinEndpoint, database: gremlinDatabase, graph: gremlinGraph })
         container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
 
         container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
