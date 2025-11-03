@@ -8,8 +8,8 @@ Player identity linking ensures that each external identity (from authentication
 
 The `linkExternalId` repository method now detects conflicts when:
 
-- An `externalId` is already linked to a different player
-- A second player attempts to link the same `externalId`
+-   An `externalId` is already linked to a different player
+-   A second player attempts to link the same `externalId`
 
 ## Behavior
 
@@ -29,8 +29,9 @@ See `backend/src/repos/playerRepository.ts` for interface definition and return 
 See `@piquet-h/shared/apiContracts` for `PlayerLinkRequest` and `PlayerLinkResponse` type definitions.
 
 All responses follow the ApiEnvelope pattern (see `shared/src/domainModels.ts`):
-- Success: `{ success: true, data: PlayerLinkResponse, correlationId?: string }`
-- Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
+
+-   Success: `{ success: true, data: PlayerLinkResponse, correlationId?: string }`
+-   Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
 
 **HTTP 409 Conflict:**  
 Error code: `ExternalIdConflict`
@@ -41,29 +42,29 @@ This allows clients to detect when an externalId is already linked to a differen
 
 When automatically linking a player during SWA authentication:
 
-- If conflict detected: Falls back to creating a new guest player
-- Rationale: Preserves availability during rare race conditions
-- Future enhancement: Could log for investigation or emit telemetry
+-   If conflict detected: Falls back to creating a new guest player
+-   Rationale: Preserves availability during rare race conditions
+-   Future enhancement: Could log for investigation or emit telemetry
 
 ## Test Coverage
 
-- **Conflict Detection**: Verifies 409 response when linking externalId to second player
-- **Idempotency**: Confirms re-linking same externalId to same player doesn't change `updatedUtc`
-- **Repository Tests**: Both in-memory and Cosmos implementations tested
+-   **Conflict Detection**: Verifies 409 response when linking externalId to second player
+-   **Idempotency**: Confirms re-linking same externalId to same player doesn't change `updatedUtc`
+-   **Repository Tests**: Both in-memory and Cosmos implementations tested
 
 ## Telemetry
 
 Onboarding telemetry events maintain correlation IDs across:
 
-- `Onboarding.GuestGuid.Started`
-- `Onboarding.GuestGuid.Created`
-- `Onboarding.GuestGuid.Completed`
+-   `Onboarding.GuestGuid.Started`
+-   `Onboarding.GuestGuid.Created`
+-   `Onboarding.GuestGuid.Completed`
 
 This enables analytics on:
 
-- Onboarding funnel completion rates
-- Latency distribution per phase
-- Guest-to-authenticated conversion patterns
+-   Onboarding funnel completion rates
+-   Latency distribution per phase
+-   Guest-to-authenticated conversion patterns
 
 ## Design Decisions
 
@@ -81,13 +82,13 @@ Future iterations may add explicit "merge accounts" flows with user confirmation
 
 Re-linking the same externalId to the same player is treated as a no-op:
 
-- No mutation of data occurs
-- `updatedUtc` remains unchanged
-- Simplifies client retry logic
-- Reduces unnecessary database updates
+-   No mutation of data occurs
+-   `updatedUtc` remains unchanged
+-   Simplifies client retry logic
+-   Reduces unnecessary database updates
 
 ## Related
 
-- Issue #103 (closed): Player Persistence Enhancement (foundation)
-- Issue #121 (closed): Player Persistence Hardening (this implementation)
-- ADR-002: Dual Persistence (Cosmos SQL + Gremlin)
+-   Issue #103 (closed): Player Persistence Enhancement (foundation)
+-   Issue #121 (closed): Player Persistence Hardening (this implementation)
+-   ADR-002: Dual Persistence (Cosmos SQL + Gremlin)

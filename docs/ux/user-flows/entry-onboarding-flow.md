@@ -36,18 +36,18 @@ Assumption: Mobile (~40%) + Desktop (~60%) split; must remain single‑input fri
 
 ### Goals
 
-- Fast time‑to‑first‑command (< 10s typical; stretch < 5s on broadband)
-- Minimize friction before value (guest path always available, never blocked by auth)
-- Seamless upgrade from guest to authenticated account (no data divergence)
-- Provide clear system feedback (loading, error, success states) with accessible patterns
-- Ensure telemetry needed for cohort analysis is emitted with stable keys
+-   Fast time‑to‑first‑command (< 10s typical; stretch < 5s on broadband)
+-   Minimize friction before value (guest path always available, never blocked by auth)
+-   Seamless upgrade from guest to authenticated account (no data divergence)
+-   Provide clear system feedback (loading, error, success states) with accessible patterns
+-   Ensure telemetry needed for cohort analysis is emitted with stable keys
 
 ### Non‑Goals (Out of Scope)
 
-- Full player profile customization
-- Social / friends graph
-- Account recovery / password reset flows
-- Deep tutorial scripting (will reference separate tutorial doc later)
+-   Full player profile customization
+-   Social / friends graph
+-   Account recovery / password reset flows
+-   Deep tutorial scripting (will reference separate tutorial doc later)
 
 ## Trigger
 
@@ -66,25 +66,25 @@ Player navigates to site root `/` without a valid session / auth cookie OR with 
 
 ## Preconditions
 
-- Application build loads successfully (no blocking JS errors)
-- Network reachable for at least one bootstrap OR command request (offline deferred)
-- Feature flags (if any) for onboarding resolved prior to first command input enable
+-   Application build loads successfully (no blocking JS errors)
+-   Network reachable for at least one bootstrap OR command request (offline deferred)
+-   Feature flags (if any) for onboarding resolved prior to first command input enable
 
 ## Postconditions (Happy Path)
 
-- Player receives a GUID (guest) OR reuses existing playerGuid (returning)
-- Player can submit a command and receive a response
-- (If authenticated) Player profile synchronized with external identity
-- Telemetry events for Onboarding.Start and Onboarding.FirstCommandSuccess emitted
+-   Player receives a GUID (guest) OR reuses existing playerGuid (returning)
+-   Player can submit a command and receive a response
+-   (If authenticated) Player profile synchronized with external identity
+-   Telemetry events for Onboarding.Start and Onboarding.FirstCommandSuccess emitted
 
 ## Success Criteria
 
-- Command interface visible with navigation (no blocking spinners post 2s)
-- Guest GUID created only when a command is attempted OR when a stateful feature (like save) is touched
-- First command round‑trip completes (< 1s p50 local; < 1.5s p50 prod target TBD)
-- Auth upgrade preserves progress (guest GUID linked, not discarded)
-- Accessibility: initial interactive control reachable via keyboard (tab index 0/first)
-- No console errors at INFO level or higher after happy path run
+-   Command interface visible with navigation (no blocking spinners post 2s)
+-   Guest GUID created only when a command is attempted OR when a stateful feature (like save) is touched
+-   First command round‑trip completes (< 1s p50 local; < 1.5s p50 prod target TBD)
+-   Auth upgrade preserves progress (guest GUID linked, not discarded)
+-   Accessibility: initial interactive control reachable via keyboard (tab index 0/first)
+-   No console errors at INFO level or higher after happy path run
 
 ## UX State Map
 
@@ -176,16 +176,17 @@ Privacy: No PII beyond hashed user agent and stable GUID (guest) or provider opa
 
 ## API Contract (Current & Planned)
 
-| Endpoint                       | Method | Auth Required   | Purpose                         | Contract Reference                                 |
-| ------------------------------ | ------ | --------------- | ------------------------------- | -------------------------------------------------- |
-| /api/player or /api/player/:id | GET    | No              | Bootstrap or retrieve player    | `@piquet-h/shared` PlayerBootstrapResponse         |
-| /api/player/link               | POST   | Yes (principal) | Link auth identity to player    | `@piquet-h/shared` PlayerLinkRequest/Response      |
-| /api/ping                      | POST   | No              | Test round‑trip & latency       | `@piquet-h/shared` PingRequest/PingResponse        |
-| /api/player/telemetry (future) | POST   | No (signed?)    | Client event funnel (batched)   | TBD                                                |
+| Endpoint                       | Method | Auth Required   | Purpose                       | Contract Reference                            |
+| ------------------------------ | ------ | --------------- | ----------------------------- | --------------------------------------------- |
+| /api/player or /api/player/:id | GET    | No              | Bootstrap or retrieve player  | `@piquet-h/shared` PlayerBootstrapResponse    |
+| /api/player/link               | POST   | Yes (principal) | Link auth identity to player  | `@piquet-h/shared` PlayerLinkRequest/Response |
+| /api/ping                      | POST   | No              | Test round‑trip & latency     | `@piquet-h/shared` PingRequest/PingResponse   |
+| /api/player/telemetry (future) | POST   | No (signed?)    | Client event funnel (batched) | TBD                                           |
 
 All responses wrapped in ApiEnvelope pattern (see `shared/src/domainModels.ts`):
-- Success: `{ success: true, data: T, correlationId?: string }`
-- Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
+
+-   Success: `{ success: true, data: T, correlationId?: string }`
+-   Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
 
 ## Data Model (Simplified)
 
@@ -211,11 +212,11 @@ On auth merge append provider descriptor:
 
 ## Accessibility Considerations
 
-- All actionable onboarding controls have discernible text (ARIA labels where icon‑only)
-- Color contrast for status / error messages meets WCAG AA (contrast >= 4.5:1)
-- Loading state not solely color; includes role="status" aria-live="polite"
-- Command input auto-focused only if it doesn’t steal focus from assistive tech (respect user preference / reduce motion settings for animations)
-- Provide skip link to jump directly to command interface for keyboard users
+-   All actionable onboarding controls have discernible text (ARIA labels where icon‑only)
+-   Color contrast for status / error messages meets WCAG AA (contrast >= 4.5:1)
+-   Loading state not solely color; includes role="status" aria-live="polite"
+-   Command input auto-focused only if it doesn’t steal focus from assistive tech (respect user preference / reduce motion settings for animations)
+-   Provide skip link to jump directly to command interface for keyboard users
 
 ## Risks & Mitigations
 
@@ -229,18 +230,18 @@ On auth merge append provider descriptor:
 
 ## Future Enhancements (Not in 1.2.0)
 
-- Guided progressive tutorial overlay after 2nd successful command
-- Lightweight offline cache enabling command queueing
-- Multi-tab coordination for single active session focus
-- Event-driven onboarding completion badge (Service Bus + Events collection)
+-   Guided progressive tutorial overlay after 2nd successful command
+-   Lightweight offline cache enabling command queueing
+-   Multi-tab coordination for single active session focus
+-   Event-driven onboarding completion badge (Service Bus + Events collection)
 
 ## Open Questions (Pending)
 
-- Persist tutorial edge immediately or after first successful command?
-- Should advanced commands require auth or just rate-limit guests?
-- Do we surface a minimal privacy notice pre-auth or post-auth only?
-- Where to surface latency insight (inline vs dev-only console)?
-- Do we unify telemetry ingestion via separate function or piggyback existing endpoints?
+-   Persist tutorial edge immediately or after first successful command?
+-   Should advanced commands require auth or just rate-limit guests?
+-   Do we surface a minimal privacy notice pre-auth or post-auth only?
+-   Where to surface latency insight (inline vs dev-only console)?
+-   Do we unify telemetry ingestion via separate function or piggyback existing endpoints?
 
 ## Iteration Log
 
@@ -269,15 +270,15 @@ We integrate Azure Static Web Apps built‑in auth with Azure External Identitie
 
 ### UX Considerations
 
-- Provide both a "Continue as guest" path (current onboarding stub GUID behavior) and a clear "Sign up / Log in" CTA. Guests can convert to an identity later.
-- When the user finishes provider auth, show a short confirmation modal that maps the external identity to an in-game profile and asks to complete an optional display name and avatar.
-- For first-time external logins, surface a brief data usage / privacy notice and an option to link an existing guest profile using an emailed verification link or an in-app code.
+-   Provide both a "Continue as guest" path (current onboarding stub GUID behavior) and a clear "Sign up / Log in" CTA. Guests can convert to an identity later.
+-   When the user finishes provider auth, show a short confirmation modal that maps the external identity to an in-game profile and asks to complete an optional display name and avatar.
+-   For first-time external logins, surface a brief data usage / privacy notice and an option to link an existing guest profile using an emailed verification link or an in-app code.
 
 ### Backend Validation & Security Contract
 
-- Input: requests from the SPA with either the platform auth header (`x-ms-client-principal`) forwarded by Static Web Apps or an Authorization: Bearer <JWT> if you opt to use auth tokens directly.
-- Output: Created/updated Player vertex in Cosmos DB, returns canonical playerGuid and role claims.
-- Error modes: header missing/invalid, provider mismatch, profile conflict.
+-   Input: requests from the SPA with either the platform auth header (`x-ms-client-principal`) forwarded by Static Web Apps or an Authorization: Bearer <JWT> if you opt to use auth tokens directly.
+-   Output: Created/updated Player vertex in Cosmos DB, returns canonical playerGuid and role claims.
+-   Error modes: header missing/invalid, provider mismatch, profile conflict.
 
 Key checks the backend must perform:
 
@@ -321,9 +322,9 @@ if (principalHeader) {
 
 ### Edge Cases
 
-- User signs up using multiple external providers (linking): offer a profile linking UI that verifies control of both accounts (e.g., login to each provider and confirm linking).
-- Guests who later sign up: attempt heuristic match by email to merge profiles; require explicit confirmation if potential conflict.
-- Offline/slow networks: keep guest session locally and queue sync after auth completes.
+-   User signs up using multiple external providers (linking): offer a profile linking UI that verifies control of both accounts (e.g., login to each provider and confirm linking).
+-   Guests who later sign up: attempt heuristic match by email to merge profiles; require explicit confirmation if potential conflict.
+-   Offline/slow networks: keep guest session locally and queue sync after auth completes.
 
 ### Acceptance Criteria
 
@@ -342,13 +343,13 @@ if (principalHeader) {
 
 The Homepage component displays two different CTAs based on user state:
 
-- **"Create Your Explorer"** for first-time visitors (`isNewUser = true`)
-- **"Sign In to Continue"** for returning visitors (`isNewUser = false`)
+-   **"Create Your Explorer"** for first-time visitors (`isNewUser = true`)
+-   **"Sign In to Continue"** for returning visitors (`isNewUser = false`)
 
 Both buttons currently trigger the same authentication flow (`signIn('msa', '/')`), but with an important difference:
 
-- **"Create Your Explorer"** calls `acknowledge()` from `useVisitState` before authentication, marking the user as having visited
-- **"Sign In to Continue"** proceeds directly to authentication
+-   **"Create Your Explorer"** calls `acknowledge()` from `useVisitState` before authentication, marking the user as having visited
+-   **"Sign In to Continue"** proceeds directly to authentication
 
 This ensures that after a user clicks "Create Your Explorer", subsequent visits will show the "Sign In to Continue" button instead.
 
@@ -372,23 +373,24 @@ onClick={() => {
 **Vision**: The "Create Your Explorer" button will eventually expand beyond simple authentication to provide a rich character creation experience similar to D&D character builders.
 
 **See Full Documentation**: For complete details on the planned D&D-style explorer creation system, including class selection, attributes, backgrounds, equipment, and phased rollout plan, refer to:
-- **`docs/modules/explorer-creation-future.md`** - Comprehensive future vision for explorer creation
+
+-   **`docs/modules/explorer-creation-future.md`** - Comprehensive future vision for explorer creation
 
 **Quick Summary** (see full doc for details):
 
-- Character class selection (Cartographer, Wanderer, Scout, Chronicler, Pathfinder, Emissary)
-- D&D-style attributes (Perception, Endurance, Intellect, Charisma, Agility, Wisdom)
-- Rich backgrounds with narrative hooks and starting bonuses
-- Equipment packs and optional heirloom items
-- Personal goal setting for AI-personalized content
-- Quick start option for immediate gameplay
+-   Character class selection (Cartographer, Wanderer, Scout, Chronicler, Pathfinder, Emissary)
+-   D&D-style attributes (Perception, Endurance, Intellect, Charisma, Agility, Wisdom)
+-   Rich backgrounds with narrative hooks and starting bonuses
+-   Equipment packs and optional heirloom items
+-   Personal goal setting for AI-personalized content
+-   Quick start option for immediate gameplay
 
 **Technical Considerations**:
 
-- Character creation flow will remain optional - users can still choose a "Quick Start" path
-- New user state management will expand beyond simple localStorage flag to include creation progress
-- Character data will be stored as part of the Player vertex in Cosmos DB
-- The current authentication flow will be preserved as the final step after character customization
+-   Character creation flow will remain optional - users can still choose a "Quick Start" path
+-   New user state management will expand beyond simple localStorage flag to include creation progress
+-   Character data will be stored as part of the Player vertex in Cosmos DB
+-   The current authentication flow will be preserved as the final step after character customization
 
 **UX Flow** (planned):
 
