@@ -1,3 +1,4 @@
+import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { test } from 'node:test'
 import { queueProcessWorldEvent } from '../../src/functions/queueProcessWorldEvent.js'
@@ -16,14 +17,17 @@ const sampleEvent = {
     correlationId: 'corr-1'
 }
 
-function makeContext() {
+function makeContext(): InvocationContext {
+    // Construct minimal InvocationContext needed by queueProcessWorldEvent
+    // Cast through unknown to satisfy the full interface without using 'any'.
     return {
         invocationId: 'inv-1',
         functionName: 'QueueProcessWorldEvent',
         log: () => {},
         error: () => {},
-        extraInputs: new Map()
-    } as any
+        extraInputs: new Map(),
+        traceContext: { attributes: {}, traceparent: undefined }
+    } as unknown as InvocationContext
 }
 
 test('ServiceBus span reuses traceparent traceId', async () => {
@@ -31,7 +35,7 @@ test('ServiceBus span reuses traceparent traceId', async () => {
     const message = { body: sampleEvent, applicationProperties: { traceparent: TRACEPARENT } }
     await queueProcessWorldEvent(message, makeContext())
     const spans = getFinishedSpans()
-    const sbSpan = spans.find((s) => s.name === 'ServiceBus QueueProcessWorldEvent')
+    const sbSpan = spans.find((s) => (s as { name?: string }).name === 'ServiceBus QueueProcessWorldEvent')
     assert.ok(sbSpan, 'Expected ServiceBus span')
     assert.equal(sbSpan!.spanContext().traceId, 'cccccccccccccccccccccccccccccccc')
 })

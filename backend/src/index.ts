@@ -50,7 +50,7 @@ app.hook.appStart(async () => {
         console.error('Container setup failed', error)
         try {
             appInsights.defaultClient.trackException({ exception: error as Error })
-        } catch (_inner) {
+        } catch {
             // swallow
         }
     }
