@@ -111,9 +111,9 @@ Upgrade path (guest → linked identity) will remain deferred until traversal pe
 
 1. Guest session issues `playerGuid` (already implemented).
 2. Client obtains external auth token (Microsoft Entra External Identities) off-band.
-3. `POST /player/link` supplies token; backend validates & maps stable `sub` → existing guest `playerGuid` (no new player row created).
-4. Idempotency: repeated link attempts for same `sub` return 200 + existing mapping.
-5. Telemetry: `Auth.Player.Upgraded` emitted exactly once per mapping; subsequent calls emit `Player.Get` only.
+3. `POST /api/player/link` validates & maps `externalId` → existing guest `playerGuid` (no new player row created). See `@piquet-h/shared/apiContracts` for request/response types.
+4. Idempotency: repeated link attempts for same `externalId` return success with appropriate message.
+5. Telemetry: `Auth.Player.Upgraded` emitted on first successful link; subsequent calls emit `Player.Get`.
 
 Gating Conditions (before implementation):
 

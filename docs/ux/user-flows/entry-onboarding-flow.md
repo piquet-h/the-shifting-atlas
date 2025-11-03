@@ -176,14 +176,16 @@ Privacy: No PII beyond hashed user agent and stable GUID (guest) or provider opa
 
 ## API Contract (Current & Planned)
 
-| Endpoint                       | Method | Auth Required   | Purpose                         | Request Body (min)                | Response (shape)                          |
-| ------------------------------ | ------ | --------------- | ------------------------------- | --------------------------------- | ----------------------------------------- |
-| /api/player/bootstrap          | GET    | No              | Return (or allocate) guest GUID | n/a                               | { playerGuid: string, created?: boolean } |
-| /api/ping                      | POST   | No              | Test round‑trip & latency       | { guid: string, message: string } | { message: string, latency?: number }     |
-| /api/player/sync-profile       | POST   | Yes (principal) | Link auth identity to player    | { externalClaimsHash?: string }   | { playerGuid: string, merged: boolean }   |
-| /api/player/telemetry (future) | POST   | No (signed?)    | Client event funnel (batched)   | { events: Event[] }               | { accepted: number }                      |
+| Endpoint                       | Method | Auth Required   | Purpose                         | Contract Reference                                 |
+| ------------------------------ | ------ | --------------- | ------------------------------- | -------------------------------------------------- |
+| /api/player or /api/player/:id | GET    | No              | Bootstrap or retrieve player    | `@piquet-h/shared` PlayerBootstrapResponse         |
+| /api/player/link               | POST   | Yes (principal) | Link auth identity to player    | `@piquet-h/shared` PlayerLinkRequest/Response      |
+| /api/ping                      | POST   | No              | Test round‑trip & latency       | `@piquet-h/shared` PingRequest/PingResponse        |
+| /api/player/telemetry (future) | POST   | No (signed?)    | Client event funnel (batched)   | TBD                                                |
 
-Error Envelope (pattern): { error: { code: string, message: string, retryable: boolean } }
+All responses wrapped in ApiEnvelope pattern (see `shared/src/domainModels.ts`):
+- Success: `{ success: true, data: T, correlationId?: string }`
+- Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
 
 ## Data Model (Simplified)
 

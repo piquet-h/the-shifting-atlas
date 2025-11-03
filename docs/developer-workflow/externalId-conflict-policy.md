@@ -15,49 +15,27 @@ The `linkExternalId` repository method now detects conflicts when:
 
 ### Repository Level (`IPlayerRepository.linkExternalId`)
 
-**Returns:**
-
-```typescript
-{
-    updated: boolean
-    record?: PlayerRecord
-    conflict?: boolean
-    existingPlayerId?: string
-}
-```
+See `backend/src/repos/playerRepository.ts` for interface definition and return type structure.
 
 **Scenarios:**
 
-1. **Successful Link** (first time linking unique externalId):
-    - `updated: true`
-    - `record: PlayerRecord` (with externalId set, guest: false, updatedUtc set)
+1. **Successful Link** (first time linking unique externalId): `updated: true` with player record
+2. **Idempotent Re-link** (same player, same externalId): `updated: false`, no timestamp mutation
+3. **Conflict** (externalId already linked to different player): `conflict: true` with existing player ID
 
-2. **Idempotent Re-link** (same player, same externalId):
-    - `updated: false`
-    - `record: PlayerRecord` (unchanged, updatedUtc NOT modified)
-    - Rationale: No mutation occurred, timestamp should remain stable
+### HTTP API Level (`POST /api/player/link`)
 
-3. **Conflict** (externalId already linked to different player):
-    - `updated: false`
-    - `conflict: true`
-    - `existingPlayerId: string` (the GUID of the player who already owns this externalId)
+**Request/Response Contracts:**  
+See `@piquet-h/shared/apiContracts` for `PlayerLinkRequest` and `PlayerLinkResponse` type definitions.
 
-### HTTP API Level (`/api/player/link`)
+All responses follow the ApiEnvelope pattern (see `shared/src/domainModels.ts`):
+- Success: `{ success: true, data: PlayerLinkResponse, correlationId?: string }`
+- Error: `{ success: false, error: { code: string, message: string }, correlationId?: string }`
 
-**HTTP 409 Conflict Response:**
+**HTTP 409 Conflict:**  
+Error code: `ExternalIdConflict`
 
-```json
-{
-    "code": "externalId-conflict",
-    "playerId": "<existing-player-guid>"
-}
-```
-
-This allows clients to:
-
-- Detect the conflict situation
-- Identify which player already owns the identity
-- Implement UI flows for identity resolution (e.g., "Link to existing account" vs "Contact support")
+This allows clients to detect when an externalId is already linked to a different player and implement appropriate UI flows
 
 ### Auto-Link Flow (`ensurePlayerForRequest`)
 
