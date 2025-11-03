@@ -41,7 +41,7 @@
         "@opentelemetry/resources": "^1.25.1",
         "@opentelemetry/sdk-trace-node": "^1.25.1",
         "@opentelemetry/semantic-conventions": "^1.25.1",
-        "@piquet-h/shared": "^0.3.31",
+        "@piquet-h/shared": "^0.3.32",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
         "gremlin": "^3.7.0",
