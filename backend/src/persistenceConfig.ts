@@ -1,6 +1,6 @@
 /** Persistence configuration & mode resolution */
 
-import { trackGameEventStrict } from './telemetry.js'
+import { trackGameEventStrict, trackGameEvent } from './telemetry.js'
 
 export type PersistenceMode = 'memory' | 'cosmos'
 
@@ -104,6 +104,23 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
 
         // Add SQL config if all required vars are present
         if (sqlEndpoint && sqlDatabase && sqlContainerPlayers && sqlContainerInventory && sqlContainerLayers && sqlContainerEvents) {
+            // Guardrail: If SQL endpoint equals Gremlin endpoint we assume accidental reuse of graph account
+            // unless explicitly opted in via COSMOS_MULTI_MODEL_SINGLE_ACCOUNT=1. This misconfiguration surfaced
+            // in production as RBAC 403 Substatus 5301 when the managed identity lacked data plane roles on the
+            // graph account while the code attempted SQL container metadata reads (dead-letter repository init).
+            const multiModelOptIn = process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === '1' ||
+                process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === 'true'
+            if (!multiModelOptIn && sqlEndpoint.trim() === endpoint.trim()) {
+                // Non-strict telemetry to avoid cross-package version bump for new event name
+                trackGameEvent('Persistence.SqlEndpoint.Misconfigured', {
+                    reason: 'sql-endpoint-equals-gremlin-endpoint',
+                    endpoint
+                })
+                console.warn(
+                    '[persistenceConfig] COSMOS_SQL_ENDPOINT equals COSMOS_GREMLIN_ENDPOINT. Assigning separate accounts is recommended. ' +
+                        'If intentional (single multi-model account), set COSMOS_MULTI_MODEL_SINGLE_ACCOUNT=1 to suppress this warning.'
+                )
+            }
             config.cosmosSql = {
                 endpoint: sqlEndpoint,
                 database: sqlDatabase,
