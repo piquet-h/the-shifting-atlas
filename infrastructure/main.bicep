@@ -377,30 +377,25 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 
 // Role assignments granting the Function App managed identity data access to Cosmos (Gremlin + SQL) and Service Bus send/receive.
-// Using Built-in Data Contributor for Cosmos (read/write) and Service Bus Data Sender/Receiver.
-resource cosmosGraphDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Using Cosmos DB data plane RBAC (sqlRoleAssignments) for data access.
+// Built-in role IDs: Reader = 00000000-0000-0000-0000-000000000001, Contributor = 00000000-0000-0000-0000-000000000002
+resource cosmosGraphDataContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-04-15' = {
   name: guid(cosmosGraphAccount.id, backendFunctionApp.id, 'cosmos-graph-data-contrib')
-  scope: cosmosGraphAccount
+  parent: cosmosGraphAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '5bd9cd88-fe45-4216-938b-f97437e15450'
-    ) // Cosmos DB Built-in Data Contributor
+    roleDefinitionId: '${cosmosGraphAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Cosmos DB Built-in Data Contributor
     principalId: backendFunctionApp.identity.principalId
-    principalType: 'ServicePrincipal'
+    scope: cosmosGraphAccount.id
   }
 }
 
-resource cosmosSqlDataContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource cosmosSqlDataContrib 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2025-04-15' = {
   name: guid(cosmosSqlAccount.id, backendFunctionApp.id, 'cosmos-sql-data-contrib')
-  scope: cosmosSqlAccount
+  parent: cosmosSqlAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      '5bd9cd88-fe45-4216-938b-f97437e15450'
-    )
+    roleDefinitionId: '${cosmosSqlAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002' // Cosmos DB Built-in Data Contributor
     principalId: backendFunctionApp.identity.principalId
-    principalType: 'ServicePrincipal'
+    scope: cosmosSqlAccount.id
   }
 }
 
