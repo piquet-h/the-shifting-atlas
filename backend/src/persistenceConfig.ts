@@ -1,6 +1,6 @@
 /** Persistence configuration & mode resolution */
 
-import { trackGameEventStrict, trackGameEvent } from './telemetry.js'
+import { trackGameEvent, trackGameEventStrict } from './telemetry.js'
 
 export type PersistenceMode = 'memory' | 'cosmos'
 
@@ -108,8 +108,8 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
             // unless explicitly opted in via COSMOS_MULTI_MODEL_SINGLE_ACCOUNT=1. This misconfiguration surfaced
             // in production as RBAC 403 Substatus 5301 when the managed identity lacked data plane roles on the
             // graph account while the code attempted SQL container metadata reads (dead-letter repository init).
-            const multiModelOptIn = process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === '1' ||
-                process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === 'true'
+            const multiModelOptIn =
+                process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === '1' || process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === 'true'
             if (!multiModelOptIn && sqlEndpoint.trim() === endpoint.trim()) {
                 // Non-strict telemetry to avoid cross-package version bump for new event name
                 trackGameEvent('Persistence.SqlEndpoint.Misconfigured', {

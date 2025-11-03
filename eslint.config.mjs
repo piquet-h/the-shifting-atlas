@@ -127,10 +127,11 @@ export default [
             sourceType: 'module',
             globals: { process: 'readonly' }
         },
-        plugins: { '@typescript-eslint': tsPlugin },
+        plugins: { '@typescript-eslint': tsPlugin, prettier: prettierPlugin },
         rules: {
             ...tsPlugin.configs.recommended.rules,
-            '@typescript-eslint/no-explicit-any': 'warn'
+            '@typescript-eslint/no-explicit-any': 'warn',
+            'prettier/prettier': 'error'
         }
     }
 ]
