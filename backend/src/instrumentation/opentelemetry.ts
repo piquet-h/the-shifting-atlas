@@ -1,17 +1,26 @@
 /*
  * OpenTelemetry Tracing Initialization
  * Wires a NodeTracerProvider with Azure Monitor exporter (if connection string available)
- * and sets basic resource attributes for service correlation.
+ * and sets enriched resource attributes for service correlation.
  *
  * Safe to import multiple times (idempotent). Should be imported as early as possible
  * (before any functions/handlers) to ensure spans cover cold start + DI container setup.
+ *
+ * Configuration:
+ * - TRACE_EXPORT_ENABLED: Set to 'true' to enable Azure Monitor export (default: false)
+ * - APPLICATIONINSIGHTS_CONNECTION_STRING: Connection string for Azure Monitor
+ * - DEPLOYMENT_ENV / AZURE_FUNCTIONS_ENVIRONMENT: Environment name for resource attributes
+ * - COMMIT_SHA: Git commit SHA for deployment tracing
  */
 import { diag, DiagConsoleLogger, DiagLogLevel, propagation, ROOT_CONTEXT, Span, trace } from '@opentelemetry/api'
+import { AzureMonitorTraceExporter } from '@azure/monitor-opentelemetry-exporter'
 import { Resource } from '@opentelemetry/resources'
 import { BatchSpanProcessor, InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION, ATTR_DEPLOYMENT_ENVIRONMENT } from '@opentelemetry/semantic-conventions'
 import { SERVICE_BACKEND } from '@piquet-h/shared'
+
+const SERVICE_VERSION = '0.1.0'
 
 // Avoid duplicate initialization
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,24 +28,46 @@ const g = globalThis as any
 if (!g.__tsaOtelInitialized) {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR)
 
+    // Enriched resource attributes per issue #311
     const resource = new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_BACKEND,
-        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]:
-            process.env.DEPLOYMENT_ENV || process.env.AZURE_FUNCTIONS_ENVIRONMENT || process.env.NODE_ENV || 'unknown'
+        [ATTR_SERVICE_NAME]: SERVICE_BACKEND,
+        [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
+        [ATTR_DEPLOYMENT_ENVIRONMENT]:
+            process.env.DEPLOYMENT_ENV || process.env.AZURE_FUNCTIONS_ENVIRONMENT || process.env.NODE_ENV || 'unknown',
+        // Add commit SHA if available for deployment tracing
+        ...(process.env.COMMIT_SHA && { 'commit.sha': process.env.COMMIT_SHA })
     })
 
     const provider = new NodeTracerProvider({ resource })
 
+    // Production exporter (Azure Monitor) - gated by TRACE_EXPORT_ENABLED flag
+    const traceExportEnabled = process.env.TRACE_EXPORT_ENABLED === 'true'
     const connectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING
-    if (connectionString) {
-        // Exporter not bundled yet; fallback to console while retaining trace ids for correlation.
-        // A future PR can add @azure/monitor-opentelemetry-exporter once version is selected.
-        provider.addSpanProcessor(makeConsoleExporter())
+
+    if (traceExportEnabled && connectionString) {
+        try {
+            const exporter = new AzureMonitorTraceExporter({ connectionString })
+            // Tuned BatchSpanProcessor settings per issue #311
+            const processor = new BatchSpanProcessor(exporter, {
+                maxQueueSize: 2048, // Prevent memory blowout under high span volume
+                scheduledDelayMillis: 5000 // 5 second batch interval
+            })
+            provider.addSpanProcessor(processor)
+        } catch (error) {
+            // Graceful degradation: log warning but don't crash
+            console.warn('[OpenTelemetry] Failed to initialize Azure Monitor exporter:', error)
+            // Optional: emit telemetry event Tracing.Exporter.InitFailed
+            provider.addSpanProcessor(makeConsoleExporter())
+        }
     } else {
+        // Fallback to console exporter for development/debugging
+        if (traceExportEnabled && !connectionString) {
+            console.warn('[OpenTelemetry] TRACE_EXPORT_ENABLED is true but APPLICATIONINSIGHTS_CONNECTION_STRING is missing')
+        }
         provider.addSpanProcessor(makeConsoleExporter())
     }
 
-    // In-memory exporter for tests (span inspection)
+    // In-memory exporter for tests (span inspection) - always enabled in test mode
     if (process.env.NODE_ENV === 'test') {
         const memoryExporter = new InMemorySpanExporter()
         provider.addSpanProcessor(new SimpleSpanProcessor(memoryExporter))
