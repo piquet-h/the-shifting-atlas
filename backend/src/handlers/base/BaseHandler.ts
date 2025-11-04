@@ -98,7 +98,9 @@ export abstract class BaseHandler {
             properties: {
                 ...properties,
                 latencyMs: this.latencyMs,
-                playerGuid: this.playerGuid,
+                // Only set playerGuid from BaseHandler if not already provided in properties
+                // This prevents overwriting explicit playerGuid values with undefined
+                playerGuid: properties.playerGuid ?? this.playerGuid,
                 correlationId: this.correlationId,
                 service: process.env.TSA_SERVICE_NAME || 'backend'
             }

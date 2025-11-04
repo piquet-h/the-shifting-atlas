@@ -126,9 +126,8 @@ describe('RESTful Endpoints Integration', () => {
             const events = telemetry.events.filter((e) => e.name === 'Player.Get')
             assert.strictEqual(events.length, 1, 'Should emit exactly one Player.Get telemetry event')
             assert.ok(events[0].properties, 'Telemetry event should have properties')
-            // Note: BaseHandler.track() overwrites explicit playerGuid with this.playerGuid (from header)
-            // When playerId is in path param only, this.playerGuid is undefined
-            // This is expected behavior - telemetry tracks the authenticated player from header
+            // BaseHandler.track() now preserves explicit playerGuid from handler properties
+            assert.strictEqual(events[0].properties.playerGuid, playerId, 'Telemetry should include playerGuid from handler')
             assert.strictEqual(events[0].properties.status, 200, 'Telemetry should include status 200')
         })
 
