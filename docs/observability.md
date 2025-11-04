@@ -242,15 +242,80 @@ Canonical enumeration source of truth:
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.
 
-## Tracing (OpenTelemetry Baseline & Roadmap)
+## Tracing (OpenTelemetry with Azure Monitor)
 
-Baseline HTTP span tracing is initialized (issue #41) capturing request lifecycle with a safeguard against double `end()` calls. Correlation IDs flow through events but span attributes are intentionally minimal for now.
+### Current State
 
-Upcoming enrichment (Epic #310) will introduce:
+HTTP span tracing is initialized (issue #41) and Azure Monitor export is configured (issue #311). The system captures request lifecycle with a safeguard against double `end()` calls.
 
--   Production exporter configuration (OTLP / Application Insights)
+### Configuration
+
+**Environment Variables:**
+- `TRACE_EXPORT_ENABLED`: Set to `'true'` to enable Azure Monitor export (default: `false`)
+- `APPLICATIONINSIGHTS_CONNECTION_STRING`: Connection string for Azure Monitor
+- `DEPLOYMENT_ENV` / `AZURE_FUNCTIONS_ENVIRONMENT`: Environment name for resource attributes
+- `COMMIT_SHA`: Optional git commit SHA for deployment tracing
+
+**Resource Attributes (Enriched):**
+- `service.name`: Backend service identifier
+- `service.version`: Backend package version
+- `deployment.environment`: Deployment environment (production, staging, etc.)
+- `commit.sha`: Git commit SHA (if provided)
+
+**Span Processor Settings:**
+- BatchSpanProcessor with `maxQueueSize: 2048` and `scheduledDelayMillis: 5000`
+- In-memory exporter retained for test mode (`NODE_ENV=test`)
+
+### Verification (Azure Monitor / Application Insights)
+
+**Query Traces by Service Name:**
+
+```kusto
+traces
+| where customDimensions.["service.name"] == "backend-functions"
+| project timestamp, message, operation_Name, customDimensions
+| order by timestamp desc
+| take 100
+```
+
+**Search for Specific Operation:**
+
+```kusto
+dependencies
+| union requests
+| where cloud_RoleName == "backend-functions"
+| where timestamp > ago(1h)
+| project timestamp, name, operation_Name, success, duration, resultCode
+| order by timestamp desc
+```
+
+**Trace Correlation (Join with Custom Events):**
+
+```kusto
+let traceId = "your-trace-id-here";
+union requests, dependencies, traces, customEvents
+| where operation_Id == traceId
+| project timestamp, itemType, name, message, customDimensions
+| order by timestamp asc
+```
+
+**Verify Resource Attributes:**
+
+```kusto
+requests
+| where timestamp > ago(24h)
+| extend serviceVersion = tostring(customDimensions.["service.version"])
+| extend deployEnv = tostring(customDimensions.["deployment.environment"])
+| extend commitSha = tostring(customDimensions.["commit.sha"])
+| summarize count() by serviceVersion, deployEnv, commitSha
+```
+
+### Upcoming Enrichment (Epic #310)
+
+Remaining items from Epic #310:
+
 -   Span attribute enrichment (playerGuid, location IDs, persistenceMode, RU/latency metrics)
 -   Outbound traceparent propagation to queued world events & AI cost telemetry flows
 -   Error status mapping and standardized naming taxonomy
 
-Until #310 lands, avoid ad-hoc span attribute proliferation—defer to the enrichment plan for consistency.
+Until #310 is complete, avoid ad-hoc span attribute proliferation—defer to the enrichment plan for consistency.
