@@ -378,7 +378,7 @@ Valid direction values for movement operations. Refer to concept documentation f
 
 Relative directions require previous heading context. If context is unavailable, the API returns an `ambiguous` error prompting the player to use a canonical direction.
 
-**Detailed Semantics:** See [Direction Resolution Rules](../concept/direction-resolution-rules.md) for normalization algorithm, typo tolerance, and ambiguity handling.
+**Detailed Semantics:** See [Direction Resolution Rules (Concept)](../concept/direction-resolution-rules.md) for normalization algorithm, typo tolerance, and ambiguity handling.
 
 ## Versioning Strategy
 
@@ -391,7 +391,7 @@ Relative directions require previous heading context. If context is unavailable,
 ## Architecture References
 
 - **Exit Invariants:** [Exit Edge Invariants](./exits.md) and [Concept: Exits](../concept/exits.md)
-- **Direction Resolution:** [Direction Resolution Rules (stub)](./direction-resolution-rules.md) redirects to [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
+- **Direction Resolution:** [Direction Resolution Rules (relocated)](./direction-resolution-rules.md) - superseded by [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
 - **Frontend Contract:** [Frontend API Contract](./frontend-api-contract.md)
 - **Versioning Discussion:** [Issue #229: API Versioning Strategy](https://github.com/piquet-h/the-shifting-atlas/issues/229)
 
