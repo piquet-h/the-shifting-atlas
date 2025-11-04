@@ -21,9 +21,8 @@ export interface MoveRequest {
     fromLocationId?: string
 }
 
-/** POST /api/ping - Request body (optional, can also use query param) */
+/** POST /api/ping - Request body */
 export interface PingRequest {
-    playerGuid?: string
     message?: string
 }
 
@@ -61,14 +60,21 @@ export interface LocationResponse {
     description: string
     exits?: Array<{ direction: string }>
     latencyMs?: number
+    metadata?: {
+        exitsSummaryCache?: string
+        tags?: string[]
+        revision?: number
+    }
 }
 
 /** POST /api/ping - Diagnostic endpoint response */
 export interface PingResponse {
+    service: string
+    timestamp: string
+    requestId?: string
+    latencyMs: number
     echo?: string
-    reply?: string
-    service?: string
-    latencyMs?: number
+    version?: string
 }
 
 /** POST /api/player/{playerId}/move - Returns new location after movement */
