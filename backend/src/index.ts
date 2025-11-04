@@ -93,13 +93,13 @@ app.hook.appStart(async () => {
             try {
                 const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
                 telemetry.flush({ isAppCrashing: signal === 'SIGINT' || signal === 'SIGTERM' })
-            } catch (e) {
+            } catch {
                 // swallow – telemetry optional
             }
             try {
                 const gremlin = container.get<IGremlinClient>('GremlinClient')
                 await gremlin.close()
-            } catch (e) {
+            } catch {
                 // swallow – gremlin may not be bound (memory mode)
             }
         }
