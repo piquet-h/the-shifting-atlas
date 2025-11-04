@@ -84,10 +84,20 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
 
             return { created: true, id: layer.id }
         } catch (error) {
+            // Use standardized reason codes for telemetry to avoid exposing sensitive information
+            let reason = 'unknown'
+            if (error instanceof Error) {
+                if (error.message.includes('empty')) {
+                    reason = 'empty-content'
+                } else {
+                    reason = 'validation-error'
+                }
+            }
+
             trackGameEventStrict('Description.Generate.Failure', {
                 locationId: layer.locationId,
                 layerId: layer.id,
-                reason: error instanceof Error ? error.message : 'unknown',
+                reason,
                 durationMs: Date.now() - started
             })
             throw error
