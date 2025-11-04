@@ -1,443 +1,65 @@
-# M2 Observability – Implementation Plan & Progress
+# M2 Observability – Decision & Action Snapshot
 
-> **Milestone:** M2 Observability  
-> **Exit Criteria:** Dashboards show move success rate & RU/latency for key ops; visibility page live  
-> **Status:** IN PROGRESS (Foundational telemetry, health & base tracing complete; dead-letter + semantic exits done; enrichment & cost aggregation underway) | **Created:** 2025-10-30 | **Last Updated:** 2025-10-31
+> Milestone: M2 Observability  
+> Last Updated: 2025-11-04  
+> Status: In Progress – foundations closed; focus on enrichment, cost, versioning.
 
----
+## 1. Current Snapshot
 
-## Executive Summary
+Closed: 11 / 64 (17%). Newly closed since prior update: #230 (backend routes), #231 (frontend client), #300 (pricing & override infra). Foundations done: #10, #79, #71, #41, #257, #33, #299, #300.
 
-M2's **observability scope** now has its base pillars shipped (event registry #10, RU/latency wrapper #79, health check #71, OpenTelemetry baseline #41, dead-letter storage #257, semantic exits #33). Focus shifts to tracing enrichment (epic #310), AI cost aggregation & guardrails (post #299), and API modernization (#228–#233). Newly added humor & promotion telemetry threads (#328, #329, #337) extend player interaction and lifecycle visibility.
+## 2. Exit Criteria (Minimum to declare M2 complete)
 
-**MVP Critical Path (status):**
+1. Dashboard query for move success rate & RU/latency visible.
+2. Tracing enrichment baseline: exporter (#311), attributes (#312), sampling (#315), event correlation (#316).
+3. AI cost telemetry: estimation (#302) → calculator (#303) → hourly aggregation (#304) → guardrail (#305).
+4. API versioning decision (#229) + docs/tests (#232, #233).
+5. Health + foundational telemetry (already done).
 
-1. Core telemetry expansion (registry, RU/latency wrappers) – **DONE** (#10, #79)
-2. Health checks and operational visibility – **DONE** (#71)
-3. Base tracing & correlation – **DONE** (#41)
-4. Cost monitoring (event registration) – **PARTIAL** (#299 DONE; aggregation pending #302–#304)
-5. API modernization (RESTful patterns) – **COMPLETE** (#228–#233 sequence)
-6. Tracing enrichment & sampling – **PENDING** (#310 children #311–#316)
+## 3. Remaining Critical Items
 
-**64 Total Issues (8 closed, 56 open):** Expanded scope includes tracing enrichment (epic #310 + children), AI cost telemetry aggregation tasks, humor & promotion telemetry, plus existing API modernization, description integrity, and world event processing.
+-   API versioning strategy (#229) – unlocks documentation & test closure (#232, #233).
+-   Cost telemetry pipeline (#302–#305) – currently only registry + pricing infra done.
+-   Tracing exporter & sampling (#311, #315) – required before correlation (#316) is meaningful.
+-   World event handlers (#258) – moves from validation-only to functional processing.
+-   Description telemetry start (#152) – prerequisite for integrity chain (#153–#156).
 
----
+## 4. Immediate Next Actions (ordered)
 
-## Current Issues Overview (64 Total / 8 Closed)
+1. Decide & document versioning (#229).
+2. Implement exporter + sampling together (#311 + #315) for span volume insight.
+3. Cost estimation interface (#302) then calculator (#303).
+4. Event correlation enhancement (#316) once exporter live.
+5. Description telemetry emission (#152) → hash baseline (#153).
+6. World event handlers registry (#258).
 
-### Foundation: Telemetry & Observability Core
+## 5. Decision Queue (unresolved)
 
-| Issue | Title                                                     | Scope         | Type        | Priority | Dependencies |
-| ----- | --------------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #10   | Telemetry Event Registry Expansion (CLOSED)               | observability | feature     | High     | None         |
-| #79   | Capture Gremlin RU + latency telemetry (CLOSED)           | observability | enhancement | High     | #10          |
-| #41   | Application Insights Correlation & OpenTelemetry (CLOSED) | observability | infra       | Medium   | #10          |
-| #50   | Epic: AI Cost Telemetry & Budget Guardrails               | observability | epic        | Medium   | #10          |
-| #299  | AI Cost Event Registry Alignment (CLOSED)                 | observability | enhancement | Medium   | #50, #10     |
+-   Exporter choice: Azure Monitor vs OTLP endpoint (default to Azure Monitor if credentials available).
+-   Sampling default ratio for production (proposed 0.15 – confirm after initial data).
+-   Versioning prefix final form (`/api/v1/` vs `/v1/`) + deprecation window for legacy routes.
 
-### Health & Monitoring
+## 6. Defer / Non-Blocking (post‑M2 or if time remains)
 
-| Issue | Title                                  | Scope         | Type    | Priority | Dependencies |
-| ----- | -------------------------------------- | ------------- | ------- | -------- | ------------ |
-| #71   | Gremlin Health Check Function (CLOSED) | observability | feature | High     | #79          |
+Relative directions (#256); humor/promotion telemetry (#328, #329, #337); span naming taxonomy refactor (#318); integrity cache/simulation/alerting (#154–#156); cost simulation & audit extras (#306–#309) beyond minimal guardrail.
 
-### Description Integrity (Epic #69)
+## 7. Completion Checklist (quick view)
 
-| Issue | Title                                   | Scope         | Type        | Priority | Dependencies |
-| ----- | --------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #69   | Epic: Description Telemetry & Integrity | observability | epic        | Medium   | #10          |
-| #152  | Description Telemetry Events Emission   | observability | feature     | Medium   | #69, #10     |
-| #153  | Integrity Hash Computation Job          | observability | feature     | Medium   | #69, #152    |
-| #154  | Integrity Cache Layer                   | observability | enhancement | Low      | #69, #153    |
-| #155  | Corruption Simulation Harness           | observability | test        | Low      | #69, #153    |
-| #156  | Integrity Anomaly Alerting Logic        | observability | feature     | Low      | #69, #153    |
+-   [x] Registry & base telemetry (#10, #79, #71, #41)
+-   [x] Dead-letter foundation (#257)
+-   [x] Pricing & override infra (#300)
+-   [ ] Versioning decision (#229)
+-   [ ] Exporter + sampling (#311, #315)
+-   [ ] Cost estimation → aggregation → guardrail (#302–#305)
+-   [ ] Event correlation span IDs (#316)
+-   [ ] Move success rate + RU/latency dashboard query
+-   [ ] Description telemetry start (#152)
+-   [ ] World event handlers (#258)
 
-### API Modernization (Epic #228)
+## 8. One-Line Status
 
-| Issue | Title                                   | Scope | Type        | Priority | Dependencies |
-| ----- | --------------------------------------- | ----- | ----------- | -------- | ------------ |
-| #228  | Epic: RESTful API URL Pattern Migration | core  | epic        | Medium   | None         |
-| #229  | API Versioning Strategy & Route Prefix  | core  | docs        | High     | #228         |
-| #230  | Backend Route Pattern Migration         | core  | enhancement | High     | #228, #229   |
-| #231  | Frontend API Client Updates             | core  | enhancement | High     | #228, #230   |
-| #232  | Integration Tests for RESTful Endpoints | core  | test        | Medium   | #228, #230   |
-| #233  | API Documentation Updates               | core  | docs        | Medium   | #228, #229   |
-
-### DevX & Quality
-
-| Issue | Title                                       | Scope | Type        | Priority | Dependencies |
-| ----- | ------------------------------------------- | ----- | ----------- | -------- | ------------ |
-| #108  | DI Suitability Gating Workflow              | devx  | enhancement | Low      | None         |
-| #111  | Managed API Deployment Packaging Regression | devx  | test        | Low      | None         |
-
-### Learn More Page (Epic #52 - Partial M2)
-
-| Issue | Title                                  | Scope | Type        | Priority | Dependencies |
-| ----- | -------------------------------------- | ----- | ----------- | -------- | ------------ |
-| #172  | Weekly Learn More Content Regeneration | devx  | enhancement | Low      | None         |
-| #173  | Roadmap Embedding Component            | devx  | feature     | Low      | None         |
-| #174  | Learn More SEO & Analytics             | devx  | enhancement | Low      | None         |
-
-### World Event Processing
-
-| Issue | Title                                                | Scope         | Type        | Priority | Dependencies |
-| ----- | ---------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #257  | World Event Dead-Letter Storage & Redaction (CLOSED) | observability | enhancement | Medium   | #10          |
-| #258  | World Event Type-Specific Payload Handlers           | world         | enhancement | Medium   | #257         |
-
-### Traversal Enhancements (Lower Priority M2 Scope)
-
-| Issue | Title                             | Scope     | Type    | Priority | Dependencies |
-| ----- | --------------------------------- | --------- | ------- | -------- | ------------ |
-| #33   | Semantic Exit Names (N2) (CLOSED) | traversal | feature | Low      | None         |
-| #256  | Relative Direction Support (N3)   | traversal | feature | Low      | #33          |
-
-### Tracing Enrichment & Expansion (Epic #310)
-
-| Issue | Title                                                         | Scope         | Type        | Priority | Dependencies |
-| ----- | ------------------------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #310  | Epic: Tracing Enrichment & Production Observability Expansion | observability | epic        | Medium   | #41          |
-| #311  | Azure Monitor / OTLP Exporter Integration                     | observability | infra       | Medium   | #310         |
-| #312  | Span Attribute Enrichment (Player / Location / Event)         | observability | enhancement | Medium   | #310         |
-| #313  | Outbound Service Bus Traceparent Injection                    | observability | feature     | Medium   | #310         |
-| #314  | Error Status Normalization & Span Status Mapping              | observability | enhancement | Medium   | #310         |
-| #315  | Sampling Strategy Configuration (Env-Based)                   | observability | enhancement | Medium   | #310         |
-| #316  | Telemetry ↔ Trace Correlation (traceId/spanId on Events)      | observability | enhancement | Medium   | #310         |
-| #317  | Frontend OpenTelemetry Init & HTTP Trace Propagation          | observability | feature     | Medium   | #310         |
-| #318  | Domain-Specific Span Naming Taxonomy Refactor                 | observability | enhancement | Medium   | #310         |
-
-### Humor & Promotion Telemetry
-
-| Issue | Title                                          | Scope         | Type        | Priority | Dependencies |
-| ----- | ---------------------------------------------- | ------------- | ----------- | -------- | ------------ |
-| #328  | Humor Telemetry Enumeration & Emission         | observability | enhancement | Medium   | #10          |
-| #329  | Player Humor Feedback Endpoint & Frontend Hook | core          | feature     | Medium   | #328         |
-| #337  | Promotion Telemetry Events Enumeration         | observability | enhancement | Medium   | #333–#336    |
+Foundations locked; milestone success now hinges on versioning decision, tracing exporter/sampling, cost aggregation path, and initial description + world event processing layers.
 
 ---
 
-## Implementation Sequence
-
-### Phase 1: Telemetry Foundation (High Priority)
-
-**Goal:** Establish core telemetry infrastructure for observability (registry, RU/latency, base tracing) – achieved; continuing with enrichment.
-
-**Issues:**
-
-1. **#10** – Telemetry Event Registry Expansion
-
-    - Expand event registry with M2 canonical events
-    - Enforce allow-list validation
-    - **Blocking:** #79, #41, #50, #152, #257
-
-2. **#79** – Capture Gremlin RU + Latency Telemetry
-
-    - Abstract Gremlin client to emit timing + RU metrics
-    - **Enables:** #71 (health checks)
-
-3. **#41** – Application Insights Correlation & OpenTelemetry – **DONE**
-    - Baseline trace propagation (HTTP + queue)
-    - **Enables:** Tracing enrichment (#310 child issues)
-
-### Phase 2: Health & Monitoring (High Priority)
-
-**Goal:** Operational health visibility.
-
-**Issues:** 4. **#71** – Gremlin Health Check Function
-
--   HTTP health endpoint for Gremlin connectivity
--   **Depends on:** #79
-
-### Phase 3: Cost Controls (Medium Priority)
-
-**Goal:** AI cost visibility and soft guardrails.
-
-**Epic #50 Sequence:** 5. **#50** – Epic: AI Cost Telemetry & Budget Guardrails
-
-Child Issues (#299–#309):
-
-| Issue | Title                                           | Type        | Priority | Dependencies |
-| ----- | ----------------------------------------------- | ----------- | -------- | ------------ |
-| #299  | AI Cost Event Registry Alignment                | enhancement | Medium   | #50, #10     |
-| #300  | Token Estimation Heuristic (charDiv4)           | feature     | Medium   | #50          |
-| #301  | Pricing Table & Override Loader (ENV JSON)      | feature     | Medium   | #50          |
-| #302  | Cost Calculator Module (Micros Bucketing)       | feature     | Medium   | #50, #300    |
-| #303  | Hourly Aggregation & Window Summary Emission    | feature     | Medium   | #302         |
-| #304  | Soft Budget Threshold Guardrail (Micros)        | feature     | Medium   | #302         |
-| #305  | Simulation Harness (Synthetic Events)           | test        | Low      | #302, #303   |
-| #306  | PII Audit Script (Payload Schema Enforcement)   | test        | Low      | #299         |
-| #307  | Developer Docs: AI Cost Telemetry               | docs        | Medium   | #299-#304    |
-| #308  | Dashboard Query Snippets & Interpretation Guide | docs        | Low      | #303, #304   |
-| #309  | Aggregation Validation & Reconciliation Tests   | test        | Medium   | #303, #304   |
-
-**Summary:** Event registration complete (#299 CLOSED). Remaining: estimation (#300), calculator & aggregation (#302–#303), guardrail (#304), docs/tests (#305–#309).
-
-### Phase 4: API Modernization (Medium Priority)
-
-**Goal:** RESTful API patterns with backward compatibility.
-
-**Epic #228 Sequence:** 6. **#229** – API Versioning Strategy & Route Prefix
-
--   Define `/v1/` prefix and deprecation policy
--   **Blocking:** #230, #233
-
-7. **#230** – Backend Route Pattern Migration
-
-    - Migrate endpoints to path-based patterns
-    - **Depends on:** #229
-    - **Blocking:** #231, #232
-
-8. **#231** – Frontend API Client Updates
-
-    - Update client to use RESTful patterns
-    - **Depends on:** #230
-
-9. **#232** – Integration Tests for RESTful Endpoints
-
-    - Test coverage for dual operation
-    - **Depends on:** #230
-
-10. **#233** – API Documentation Updates
-    - Document new patterns and migration guide
-    - **Depends on:** #229
-
-### Phase 5: Description Integrity (Medium Priority)
-
-**Goal:** Monitor description generation quality.
-
-**Epic #69 Sequence:** 11. **#152** – Description Telemetry Events Emission - Emit events for description operations - **Depends on:** #10 - **Blocking:** #153
-
-12. **#153** – Integrity Hash Computation Job
-
-    -   Compute and store description hashes
-    -   **Depends on:** #152
-    -   **Blocking:** #154, #155, #156
-
-13. **#154** – Integrity Cache Layer
-
-    -   Optional cache for recent hashes
-    -   **Depends on:** #153
-
-14. **#155** – Corruption Simulation Harness
-
-    -   Test harness for integrity validation
-    -   **Depends on:** #153
-
-15. **#156** – Integrity Anomaly Alerting Logic
-    -   Alert on detected anomalies
-    -   **Depends on:** #153
-
-### Phase 6: World Event Processing (Medium Priority)
-
-**Goal:** Robust event processing with failure handling.
-
-**Issues:** 16. **#257** – World Event Dead-Letter Storage & Redaction - Persist failed events for debugging - **Depends on:** #10 - **Blocking:** #258
-
-17. **#258** – World Event Type-Specific Payload Handlers
-    -   Handler registry for event types
-    -   **Depends on:** #257
-
-### Phase 7: DevX & Quality (Low Priority)
-
-**Goal:** Developer experience and quality tooling.
-
-**Issues:** 18. **#108** – DI Suitability Gating Workflow - Automated DI assessment reporting
-
-19. **#111** – Managed API Deployment Packaging Regression
-
-    -   Validation script for deployment structure
-
-20. **#172** – Weekly Learn More Content Regeneration
-
-    -   Automated content updates
-
-21. **#173** – Roadmap Embedding Component
-
-    -   Remove deprecated ordering references
-
-22. **#174** – Learn More SEO & Analytics
-    -   SEO metadata and analytics
-
-### Phase 8: Traversal Enhancements (Lower Priority)
-
-**Goal:** Enhanced traversal UX (deferred if time-constrained). Semantic names implemented (#33 CLOSED); relative directions pending (#256).
-
-**Issues:** 23. **#33** – Semantic Exit Names (N2) - Support semantic/landmark-based navigation - **Blocking:** #256
-
-24. **#256** – Relative Direction Support (N3)
-    -   Player-relative directions (left/right/forward/back)
-    -   **Depends on:** #33
-
----
-
-## Dependency Graph
-
-### Critical Path (Must Complete for M2 Exit Criteria)
-
-```
-#10 (Registry) ✓
- ├─→ #79 (RU/Latency) ✓
- │    └─→ #71 (Health Check) ✓ EXIT CRITERIA
- ├─→ #41 (OpenTelemetry) ✓ EXIT CRITERIA
- └─→ #50 (AI Cost) (foundation #299 ✓; aggregation & guardrail pending)
-
-#229 (API Versioning)
- └─→ #230 (Backend Routes)
-    ├─→ #231 (Frontend Client)
-    ├─→ #232 (Integration Tests)
-    └─→ #233 (Documentation)
-```
-
-### Secondary Tracks (Valuable but not blocking M2 closure)
-
-```
-#10 (Registry)
- ├─→ #152 (Description Events)
- │    └─→ #153 (Integrity Hash)
- │         ├─→ #154 (Cache)
- │         ├─→ #155 (Simulation)
- │         └─→ #156 (Alerting)
- │
- ├─→ #257 (Dead-Letter) ✓
- │    └─→ #258 (Event Handlers)
- │
- ├─→ Tracing Enrichment Epic #310 (child issues #311–#318)
- │
- ├─→ Humor & Promotion Telemetry (#328, #329, #337)
- │
- └─→ DevX: #108, #111, #172-#174
-
-#33 (Semantic Exits) ✓
- └─→ #256 (Relative Directions)
-```
-
----
-
-## Blocking/Blocked By Relationships Summary
-
-### Blockers (Issues blocking others)
-
--   **#10** → blocks #79, #41, #50, #152, #257 (telemetry foundation)
--   **#79** → blocks #71 (health needs RU metrics)
--   **#229** → blocks #230, #233 (versioning strategy)
--   **#230** → blocks #231, #232 (backend implementation)
--   **#152** → blocks #153 (description events)
--   **#153** → blocks #154, #155, #156 (hash baseline)
--   **#257** → blocks #258 (dead-letter storage)
--   **#33** → blocks #256 (semantic exits)
-
-### Most Blocked (High-value issues waiting on dependencies)
-
--   **#71** – Gremlin Health Check (blocked by #79)
--   **#231** – Frontend API Client (blocked by #230)
--   **#232** – Integration Tests (blocked by #230)
--   **#258** – Event Handlers (blocked by #257)
--   **#256** – Relative Directions (blocked by #33)
-
----
-
-## Risk & Mitigation
-
-| Risk                                  | Probability | Impact | Mitigation                                         |
-| ------------------------------------- | ----------- | ------ | -------------------------------------------------- |
-| Telemetry volume impacts performance  | Low         | Medium | Use sampling for high-frequency events; monitor RU |
-| API migration breaks existing clients | Medium      | High   | Dual operation during transition; feature flag     |
-| Description integrity false positives | Medium      | Low    | Simulation harness validates detection logic       |
-| OpenTelemetry overhead                | Low         | Medium | Measure baseline; adjust sampling rates            |
-| Cost telemetry accuracy drift         | Medium      | Medium | Periodic reconciliation with actual billing        |
-
----
-
-## Success Criteria
-
-### MVP (Required for M2 Closure)
-
--   [x] Telemetry registry expanded with M2 events (#10)
--   [x] RU & latency metrics captured for Gremlin ops (#79)
--   [x] Health check endpoint operational (#71)
--   [x] OpenTelemetry correlation wired (#41)
--   [ ] AI cost telemetry aggregation & guardrails implemented (#300–#304)
--   [ ] RESTful API patterns operational with backward compat (#228-#233)
--   [ ] Tracing enrichment baseline (exporter, span attributes, sampling) (#311–#316)
-
-### M2 Completion Criteria (Comprehensive)
-
--   [ ] All high-priority issues closed (#10, #79, #71, #41, #229, #230)
--   [ ] At least one dashboard query documented showing move success rate
--   [ ] API documentation updated with RESTful patterns
--   [ ] Health check endpoint returns <200ms latency
--   [ ] Cost telemetry capturing token usage & hourly summaries (post #302–#303)
--   [ ] All M2 tests passing
--   [ ] Documentation current
-
-### Nice-to-Have (Defer if time-constrained)
-
--   [ ] Description integrity monitoring complete (#69 epic)
--   [ ] World event handlers refactored (#257 CLOSED, #258 pending)
--   [ ] Relative directions implemented (#256; semantic names done #33)
--   [ ] Learn More page automation (#172-#174)
--   [ ] Full AI cost simulation & reconciliation tests (#305, #309) after foundational emission validated
-
----
-
-## Recommended Next Steps
-
-**Immediate Focus (updated):**
-
-1. (Completed) #10 – Registry foundation
-2. (Completed) #79 – RU/Latency wrappers
-3. (Completed) #71 – Health endpoint
-4. (Completed) #41 – Baseline tracing
-5. (Completed) #257 – Dead-letter storage
-6. **Advance:** Tracing enrichment (#310 children #311–#316), AI cost aggregation (#300–#303), API versioning (#229), world event handlers (#258)
-
-**Parallel Tracks (current):**
-
--   **Observability track:** #10 ✓ → #79 ✓ → #71 ✓ → #41 ✓ → #310 (enrichment) → #50 (aggregation/guardrail)
--   **API track:** #229 → #230 → #231, #232, #233
--   **Integrity track:** #10 ✓ → #152 → #153 → #154, #155, #156
--   **Event processing track:** #10 ✓ → #257 ✓ → #258
--   **Humor/Promotion track:** #328 → #329 & #337 (enumeration precedes endpoint & lifecycle)
-
----
-
-## Post-M2 Roadmap
-
-### Deferred to M3 (AI Read)
-
--   Advanced cost optimization and budget enforcement
--   AI-specific telemetry correlation
--   Prompt template registry observability
-
-### Deferred to M4 (Layering & Enrichment)
-
--   Layer-specific integrity monitoring
--   Description generation performance profiling
--   Advanced description corruption detection
-
----
-
-## Communication Plan
-
-**Kickoff:** 2025-10-30  
-**Daily Progress:** Track via issue comments and project board  
-**Mid-Milestone Review:** After Phase 2 completion (health checks operational)  
-**M2 Validation:** All high-priority issues closed; at least one operational dashboard query
-
----
-
-## Questions to Answer Before Starting
-
-1. **OpenTelemetry exporter:** Use Azure Monitor exporter or generic OTLP? (Recommend: Azure Monitor for native integration)
-2. **API versioning:** Hard cutover date or indefinite dual operation? (Recommend: 2 milestone deprecation period)
-3. **Cost telemetry:** Real-time aggregation or batch? (Recommend: Batch for MVP, real-time later)
-4. **Health check frequency:** How often should monitoring ping health endpoint? (Recommend: 60s interval)
-5. **Description integrity:** Hash algorithm choice? (Recommend: SHA-256, standard and sufficient)
-6. **Sampling ratio initial value:** Proposed 0.15 (adjust after #315 metrics).
-7. **Exporter readiness:** Confirm Azure Monitor credentials before #311.
-8. **Trace ↔ event correlation shape:** Property names (`traceId`, `spanId`) for #316.
-9. **Span naming taxonomy baseline:** Confirm domain prefixes before #318 refactor.
-
----
-
-_Plan created: 2025-10-30 | Updated after tracing enrichment & humor telemetry additions (#310, #328–#329, #337) and cost event registration completion (#299) | Ready to execute_
+Historical detail removed intentionally for focus. Refer to issue bodies for full acceptance criteria when implementing.
