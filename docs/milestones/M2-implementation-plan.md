@@ -6,19 +6,18 @@
 
 ## 1. Current Snapshot
 
-Closed: 11 / 64 (17%). Newly closed since prior update: #230 (backend routes), #231 (frontend client), #300 (pricing & override infra). Foundations done: #10, #79, #71, #41, #257, #33, #299, #300.
+Closed: 13 / 64 (20%). Newly closed since prior update: #230 (backend routes), #231 (frontend client), #232 (integration tests), #233 (API docs), #300 (pricing & override infra). Foundations done: #10, #79, #71, #41, #257, #33, #299, #300. API modernization (Epic #228) complete.
 
 ## 2. Exit Criteria (Minimum to declare M2 complete)
 
 1. Dashboard query for move success rate & RU/latency visible.
 2. Tracing enrichment baseline: exporter (#311), attributes (#312), sampling (#315), event correlation (#316).
 3. AI cost telemetry: estimation (#302) → calculator (#303) → hourly aggregation (#304) → guardrail (#305).
-4. API versioning decision (#229) + docs/tests (#232, #233).
+4. API modernization (already done: #228 epic, #230–#233 closed; #229 not needed).
 5. Health + foundational telemetry (already done).
 
 ## 3. Remaining Critical Items
 
--   API versioning strategy (#229) – unlocks documentation & test closure (#232, #233).
 -   Cost telemetry pipeline (#302–#305) – currently only registry + pricing infra done.
 -   Tracing exporter & sampling (#311, #315) – required before correlation (#316) is meaningful.
 -   World event handlers (#258) – moves from validation-only to functional processing.
@@ -26,18 +25,16 @@ Closed: 11 / 64 (17%). Newly closed since prior update: #230 (backend routes), #
 
 ## 4. Immediate Next Actions (ordered)
 
-1. Decide & document versioning (#229).
-2. Implement exporter + sampling together (#311 + #315) for span volume insight.
-3. Cost estimation interface (#302) then calculator (#303).
-4. Event correlation enhancement (#316) once exporter live.
-5. Description telemetry emission (#152) → hash baseline (#153).
-6. World event handlers registry (#258).
+1. Implement exporter + sampling together (#311 + #315) for span volume insight.
+2. Cost estimation interface (#302) then calculator (#303).
+3. Event correlation enhancement (#316) once exporter live.
+4. Description telemetry emission (#152) → hash baseline (#153).
+5. World event handlers registry (#258).
 
 ## 5. Decision Queue (unresolved)
 
 -   Exporter choice: Azure Monitor vs OTLP endpoint (default to Azure Monitor if credentials available).
 -   Sampling default ratio for production (proposed 0.15 – confirm after initial data).
--   Versioning prefix final form (`/api/v1/` vs `/v1/`) + deprecation window for legacy routes.
 
 ## 6. Defer / Non-Blocking (post‑M2 or if time remains)
 
@@ -48,7 +45,7 @@ Relative directions (#256); humor/promotion telemetry (#328, #329, #337); span n
 -   [x] Registry & base telemetry (#10, #79, #71, #41)
 -   [x] Dead-letter foundation (#257)
 -   [x] Pricing & override infra (#300)
--   [ ] Versioning decision (#229)
+-   [x] API modernization (Epic #228: #230–#233 complete; #229 not needed)
 -   [ ] Exporter + sampling (#311, #315)
 -   [ ] Cost estimation → aggregation → guardrail (#302–#305)
 -   [ ] Event correlation span IDs (#316)
@@ -58,7 +55,7 @@ Relative directions (#256); humor/promotion telemetry (#328, #329, #337); span n
 
 ## 8. One-Line Status
 
-Foundations locked; milestone success now hinges on versioning decision, tracing exporter/sampling, cost aggregation path, and initial description + world event processing layers.
+Foundations locked; milestone success now hinges on tracing exporter/sampling, cost aggregation path, and initial description + world event processing layers.
 
 ---
 

@@ -364,6 +364,58 @@ All error responses follow a consistent JSON envelope structure:
 
 **Correlation IDs:** All responses include a `correlationId` field and `x-correlation-id` header for troubleshooting. Include this value when reporting issues.
 
+## Observability: Tracking API Pattern Usage
+
+Application Insights queries to distinguish between legacy query-string and RESTful path-based patterns:
+
+**Legacy move pattern (query string via GET):**
+```kql
+requests
+| where name == "PlayerMove"
+| where url contains "?dir="
+| summarize Count=count() by bin(timestamp, 1h)
+```
+
+**RESTful move pattern (path parameter via POST):**
+```kql
+requests
+| where name == "PlayerMove"
+| where method == "POST"
+| summarize Count=count() by bin(timestamp, 1h)
+```
+
+**Legacy location lookup (query string):**
+```kql
+requests
+| where name == "LocationLook"
+| where url contains "?id="
+| summarize Count=count() by bin(timestamp, 1h)
+```
+
+**RESTful location lookup (path parameter):**
+```kql
+requests
+| where name == "LocationLook"
+| where url contains "/location/"
+| where url !contains "?"
+| summarize Count=count() by bin(timestamp, 1h)
+```
+
+**Pattern adoption rate:**
+```kql
+requests
+| where name in ("PlayerMove", "LocationLook", "PlayerGet")
+| extend PatternType = case(
+    method == "POST", "RESTful",
+    url contains "?", "Legacy",
+    "RESTful"
+  )
+| summarize Count=count() by PatternType, bin(timestamp, 1d)
+| render timechart
+```
+
+Use these queries to monitor migration progress and validate that the RESTful patterns are being adopted by clients.
+
 ## Direction Semantics
 
 Valid direction values for movement operations. Refer to concept documentation for normalization rules and relative direction handling.
