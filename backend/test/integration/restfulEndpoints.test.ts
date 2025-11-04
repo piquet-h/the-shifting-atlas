@@ -442,7 +442,8 @@ describe('RESTful Endpoints Integration', () => {
             const res = await getPlayerHandler(req, ctx)
 
             assert.strictEqual(res.status, 400)
-            const body = res.jsonBody as { error: { code: string } }
+            const body = res.jsonBody as { success: boolean; error: { code: string; message: string } }
+            assert.strictEqual(body.success, false)
             assert.strictEqual(body.error.code, 'InvalidPlayerId')
         })
 
