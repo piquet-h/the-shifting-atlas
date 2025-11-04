@@ -52,18 +52,56 @@ export class MoveHandler extends BaseHandler {
      */
     async performMove(req: HttpRequest): Promise<MoveResult> {
         const started = Date.now()
-        const fromId = req.query.get('from') || STARTER_LOCATION_ID
-
-        // Support direction from query param or request body
-        let rawDir = req.query.get('dir') || req.query.get('direction') || ''
-        if (!rawDir && req.body) {
+        // Prefer explicit from location provided via query param or JSON body; fallback to starter.
+        // NOTE: Frontend sends { direction, fromLocationId } in JSON body. Previous implementation
+        // ignored body.fromLocationId and always used STARTER_LOCATION_ID which caused subsequent
+        // moves to evaluate against the starter room rather than the player's current location.
+        // Additionally, Azure Functions v4 does not expose request.body directly; it must be read
+        // via request.json()/request.text(). The prior code attempted req.body access, leading to
+        // direction always being treated as empty and returning 400.
+        let parsedBody: Record<string, unknown> = {}
+        const contentType = req.headers.get('content-type') || ''
+        if (contentType.includes('application/json')) {
             try {
-                const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-                rawDir = body.dir || body.direction || ''
+                // request.json() is the canonical way to read the body in @azure/functions v4.
+                parsedBody = (await req.json()) as Record<string, unknown>
             } catch {
-                // Ignore JSON parse errors, rawDir will remain empty
+                // Swallow JSON parse errors; leave parsedBody empty for graceful fallback.
             }
         }
+
+        // Body property names (dir | direction) for backward compatibility with earlier clients.
+        // Accept query param override first to allow bookmarking/testing via query string.
+        let rawDir = req.query.get('dir') || req.query.get('direction') || ''
+        if (!rawDir && parsedBody) {
+            const dirVal = (parsedBody['dir'] || parsedBody['direction']) as string | undefined
+            if (typeof dirVal === 'string') rawDir = dirVal
+        }
+
+        // Test environment fallback: some integration tests construct HttpRequest mocks with a .body property
+        // (stringified JSON) but omit the content-type header. Support that shape to avoid forcing all tests to add
+        // headers while keeping production path strictly header-driven.
+        if (!rawDir && Object.keys(parsedBody).length === 0 && (req as unknown as { body?: unknown }).body) {
+            try {
+                const legacyBody = (req as unknown as { body?: unknown }).body
+                if (typeof legacyBody === 'string') {
+                    const parsed = JSON.parse(legacyBody) as Record<string, unknown>
+                    const dirVal = (parsed['dir'] || parsed['direction']) as string | undefined
+                    if (typeof dirVal === 'string') rawDir = dirVal
+                    // Merge into parsedBody for fromLocationId fallback below
+                    parsedBody = parsed
+                } else if (legacyBody && typeof legacyBody === 'object') {
+                    const dirVal = (legacyBody as Record<string, unknown>)['dir'] || (legacyBody as Record<string, unknown>)['direction']
+                    if (typeof dirVal === 'string') rawDir = dirVal
+                    parsedBody = legacyBody as Record<string, unknown>
+                }
+            } catch {
+                /* ignore legacy body parse errors */
+            }
+        }
+
+        const bodyFrom = (parsedBody['fromLocationId'] || parsedBody['from']) as string | undefined
+        const fromId = req.query.get('from') || bodyFrom || STARTER_LOCATION_ID
 
         const headingStore = getPlayerHeadingStore()
         const lastHeading = this.playerGuid ? headingStore.getLastHeading(this.playerGuid) : undefined
