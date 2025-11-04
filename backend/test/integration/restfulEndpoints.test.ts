@@ -339,21 +339,23 @@ describe('RESTful Endpoints Integration', () => {
             const body = res.jsonBody as {
                 success: boolean
                 data: {
-                    locationId: string
+                    id: string
                     name: string
-                    baseDescription: string
-                    exits: Record<string, string>
-                    exitsSummaryCache?: string
-                    metadata?: { tags?: string[] }
-                    revision?: number
+                    description: string
+                    exits?: Array<{ direction: string }>
+                    metadata?: {
+                        exitsSummaryCache?: string
+                        tags?: string[]
+                        revision?: number
+                    }
                 }
             }
             assert.strictEqual(body.success, true)
             assert.ok(body.data, 'Should have data field')
-            assert.strictEqual(body.data.locationId, STARTER_LOCATION_ID)
+            assert.strictEqual(body.data.id, STARTER_LOCATION_ID)
             assert.ok(body.data.name, 'Should have location name')
-            assert.ok(body.data.baseDescription, 'Should have description')
-            assert.ok(typeof body.data.exits === 'object', 'Should have exits object')
+            assert.ok(body.data.description, 'Should have description')
+            assert.ok(Array.isArray(body.data.exits), 'Should have exits array')
 
             // Validate telemetry
             const lookEvents = telemetry.events.filter((e) => e.name === 'Navigation.Look.Issued')
@@ -410,8 +412,8 @@ describe('RESTful Endpoints Integration', () => {
             const res = await getLocationLookHandler(req, ctx)
 
             assert.strictEqual(res.status, 200)
-            const body = res.jsonBody as { success: boolean; data: { locationId: string } }
-            assert.strictEqual(body.data.locationId, STARTER_LOCATION_ID)
+            const body = res.jsonBody as { success: boolean; data: { id: string } }
+            assert.strictEqual(body.data.id, STARTER_LOCATION_ID)
         })
     })
 

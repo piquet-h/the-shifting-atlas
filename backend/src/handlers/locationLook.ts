@@ -81,23 +81,17 @@ export class LocationLookHandler extends BaseHandler {
 
         return okResponse(
             {
-                locationId: loc.id,
+                id: loc.id,
                 name: loc.name,
-                baseDescription: loc.description,
-                exits: (loc.exits || []).reduce(
-                    (acc, e) => {
-                        if (e.direction && e.to) {
-                            acc[e.direction] = e.to
-                        }
-                        return acc
-                    },
-                    {} as Record<string, string>
-                ),
-                exitsSummaryCache,
+                description: loc.description,
+                exits: (loc.exits || []).map((e) => ({
+                    direction: e.direction
+                })),
                 metadata: {
-                    tags: loc.tags
-                },
-                revision: loc.version
+                    exitsSummaryCache,
+                    tags: loc.tags,
+                    revision: loc.version
+                }
             },
             { correlationId: this.correlationId, playerGuid: this.playerGuid }
         )
