@@ -6,19 +6,18 @@
 
 ## 1. Current Snapshot
 
-Closed: 11 / 64 (17%). Newly closed since prior update: #230 (backend routes), #231 (frontend client), #300 (pricing & override infra). Foundations done: #10, #79, #71, #41, #257, #33, #299, #300.
+Closed: 13 / 64 (20%). Newly closed since prior update: #230 (backend routes), #231 (frontend client), #232 (integration tests), #233 (API docs), #300 (pricing & override infra). Foundations done: #10, #79, #71, #41, #257, #33, #299, #300. API modernization (Epic #228) complete.
 
 ## 2. Exit Criteria (Minimum to declare M2 complete)
 
 1. Dashboard query for move success rate & RU/latency visible.
 2. Telemetry consolidation baseline: OTel removal (#311), attributes (#312), App Insights sampling configuration (#315), event correlation (operationId + correlationId) (#316).
 3. AI cost telemetry: estimation (#302) → calculator (#303) → hourly aggregation (#304) → guardrail (#305).
-4. API versioning decision (#229) + docs/tests (#232, #233).
+4. API modernization (already done: #228 epic, #230–#233 closed; #229 not needed).
 5. Health + foundational telemetry (already done).
 
 ## 3. Remaining Critical Items
 
--   API versioning strategy (#229) – unlocks documentation & test closure (#232, #233).
 -   Cost telemetry pipeline (#302–#305) – currently only registry + pricing infra done.
 -   OTel removal & consolidation (#311) – prerequisite before sampling adjustment (#315) & correlation enrichment (#316).
 -   App Insights sampling configuration (#315) – set % and verify volume.
