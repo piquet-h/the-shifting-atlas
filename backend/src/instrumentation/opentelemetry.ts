@@ -17,7 +17,6 @@ import { AzureMonitorTraceExporter } from '@azure/monitor-opentelemetry-exporter
 import { Resource } from '@opentelemetry/resources'
 import { BatchSpanProcessor, InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION, ATTR_DEPLOYMENT_ENVIRONMENT } from '@opentelemetry/semantic-conventions'
 import { SERVICE_BACKEND } from '@piquet-h/shared'
 
 const SERVICE_VERSION = '0.1.0'
@@ -29,10 +28,11 @@ if (!g.__tsaOtelInitialized) {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR)
 
     // Enriched resource attributes per issue #311
+    // Using string literals for OpenTelemetry semantic conventions (portable across versions)
     const resource = new Resource({
-        [ATTR_SERVICE_NAME]: SERVICE_BACKEND,
-        [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
-        [ATTR_DEPLOYMENT_ENVIRONMENT]:
+        'service.name': SERVICE_BACKEND,
+        'service.version': SERVICE_VERSION,
+        'deployment.environment':
             process.env.DEPLOYMENT_ENV || process.env.AZURE_FUNCTIONS_ENVIRONMENT || process.env.NODE_ENV || 'unknown',
         // Add commit SHA if available for deployment tracing
         ...(process.env.COMMIT_SHA && { 'commit.sha': process.env.COMMIT_SHA })
