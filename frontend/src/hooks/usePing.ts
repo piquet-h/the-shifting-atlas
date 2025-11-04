@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { fetchPing, PingResponse } from '../services/ping'
+import { fetchPing, PingDiagnosticResponse } from '../services/ping'
 
 interface UsePingOptions {
     intervalMs?: number
@@ -8,7 +8,7 @@ interface UsePingOptions {
 
 interface UsePingState {
     loading: boolean
-    data?: PingResponse
+    data?: PingDiagnosticResponse
     error?: string
     lastAt?: number
 }

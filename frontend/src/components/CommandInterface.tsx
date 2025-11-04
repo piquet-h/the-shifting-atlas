@@ -70,7 +70,6 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 }
                 if (lower.startsWith('ping')) {
                     const requestBody: PingRequest = {
-                        playerGuid: playerGuid || undefined,
                         message: raw.replace(/^ping\s*/, '') || 'ping'
                     }
                     const res = await fetch('/api/ping', {
@@ -87,8 +86,8 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                         error = extractErrorMessage(res, json, unwrapped)
                     } else {
-                        const data = unwrapped.data || {}
-                        response = (data.echo as string) || (data.reply as string) || 'pong'
+                        const data = unwrapped.data
+                        response = data?.echo || 'pong'
                     }
                 } else if (lower === 'look') {
                     const url = buildLocationUrl(currentLocationId)
@@ -171,9 +170,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 </div>
             )}
             {guidError && !playerGuid && (
-                <div className="mb-2 text-xs text-red-400">
-                    Session initialization failed: {guidError}. Some commands may not work.
-                </div>
+                <div className="mb-2 text-xs text-red-400">Session initialization failed: {guidError}. Some commands may not work.</div>
             )}
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
                 Disable only while GUID is actively loading and not yet available to reduce confusion. */}

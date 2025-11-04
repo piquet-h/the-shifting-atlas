@@ -2,7 +2,11 @@ const BASE: string = (import.meta.env.VITE_API_BASE as string) || '/api'
 
 import { unwrapEnvelope, UnwrappedEnvelope } from '../utils/envelope'
 
-export interface PingResponse {
+/**
+ * Wrapper response for ping diagnostic.
+ * Contains raw HTTP response details plus parsed envelope if applicable.
+ */
+export interface PingDiagnosticResponse {
     ok: boolean
     status: number
     /** Milliseconds between request start and first byte read */
@@ -16,7 +20,7 @@ export interface PingResponse {
     error?: string
 }
 
-export async function fetchPing(): Promise<PingResponse> {
+export async function fetchPing(): Promise<PingDiagnosticResponse> {
     const performance: { now: () => number } | undefined =
         typeof window !== 'undefined' && window.performance ? window.performance : undefined
     const start = performance ? performance.now() : Date.now()
