@@ -83,7 +83,13 @@ export const GAME_EVENT_NAMES = [
     'AI.Cost.InputCapped', // Input capped at maximum token limit
     'AI.Cost.SoftThresholdCrossed', // Soft budget threshold warning (does not block operation)
     // Internal / fallback diagnostics
-    'Telemetry.EventName.Invalid'
+    'Telemetry.EventName.Invalid',
+    // Description layer telemetry (M4 Layering & Enrichment)
+    'Description.Generate.Start', // Description generation initiated
+    'Description.Generate.Success', // Description generated successfully
+    'Description.Generate.Failure', // Description generation failed
+    'Description.Cache.Hit', // Description retrieved from cache
+    'Description.Cache.Miss' // Description not in cache, will generate
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
