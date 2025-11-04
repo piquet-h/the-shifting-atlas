@@ -61,11 +61,13 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
             let response: string | undefined
             let latencyMs: number | undefined
             try {
-                if (!playerGuid && raw !== 'clear') {
-                    throw new Error('Player not ready yet')
-                }
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
+                // Only commands that mutate player state (move) require a resolved player GUID.
+                const requiresPlayer = lower.startsWith('move ')
+                if (!playerGuid && requiresPlayer) {
+                    throw new Error('Player not ready yet (initializing)')
+                }
                 if (lower.startsWith('ping')) {
                     const requestBody: PingRequest = {
                         playerGuid: playerGuid || undefined,
@@ -161,7 +163,9 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
     return (
         <div className={className}>
             <CommandOutput items={history} className="mb-4" />
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={!playerGuid || guidLoading} />
+            {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
+                Disable only while GUID is actively loading and not yet available to reduce confusion. */}
+            <CommandInput onSubmit={runCommand} busy={busy} disabled={guidLoading && !playerGuid} />
             <p className="mt-2 text-[11px] text-slate-300">
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
