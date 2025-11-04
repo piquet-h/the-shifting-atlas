@@ -492,7 +492,7 @@ customEvents
 | Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   |
 | Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   |
 
-> Implementation: each panel derives from `customEvents` queries shown above. Create separate Application Insights workbook sections with clear thresholds & annotations referencing issue #10.
+> **Implementation**: The Movement Success Rate workbook is available at [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import instructions in [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md). Each panel derives from `customEvents` queries shown above with clear thresholds & annotations referencing issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10).
 
 **Last Updated:** 2025-10-30  
 **Event Count:** 44 canonical events
