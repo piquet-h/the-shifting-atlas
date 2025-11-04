@@ -242,80 +242,76 @@ Canonical enumeration source of truth:
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.
 
-## Tracing (OpenTelemetry with Azure Monitor)
+## Consolidated Telemetry Mode (Application Insights Only)
 
-### Current State
+OpenTelemetry span tracing has been removed (issue #311). The system now relies solely on Application Insights automatic collection plus custom events. No span exporter / traceparent continuation is active. Placeholder OTel code will be fully deleted after final cleanup.
 
-HTTP span tracing is initialized (issue #41) and Azure Monitor export is configured (issue #311). The system captures request lifecycle with a safeguard against double `end()` calls.
+### Correlation Strategy
 
-### Configuration
+-   `correlationId`: Always emitted (UUID generated if not supplied). Present in every custom event.
+-   `operationId`: Emitted when Application Insights request context has been initialized (may be absent in early init or certain async flows). Queries should guard with `isnotempty(customDimensions.operationId)`.
 
-**Environment Variables:**
-- `TRACE_EXPORT_ENABLED`: Set to `'true'` to enable Azure Monitor export (default: `false`)
-- `APPLICATIONINSIGHTS_CONNECTION_STRING`: Connection string for Azure Monitor
-- `DEPLOYMENT_ENV` / `AZURE_FUNCTIONS_ENVIRONMENT`: Environment name for resource attributes
-- `COMMIT_SHA`: Optional git commit SHA for deployment tracing
-
-**Resource Attributes (Enriched):**
-- `service.name`: Backend service identifier
-- `service.version`: Backend package version
-- `deployment.environment`: Deployment environment (production, staging, etc.)
-- `commit.sha`: Git commit SHA (if provided)
-
-**Span Processor Settings:**
-- BatchSpanProcessor with `maxQueueSize: 2048` and `scheduledDelayMillis: 5000`
-- In-memory exporter retained for test mode (`NODE_ENV=test`)
-
-### Verification (Azure Monitor / Application Insights)
-
-**Query Traces by Service Name:**
+Example Kusto pattern to join events with requests:
 
 ```kusto
-traces
-| where customDimensions.["service.name"] == "backend-functions"
-| project timestamp, message, operation_Name, customDimensions
-| order by timestamp desc
-| take 100
-```
-
-**Search for Specific Operation:**
-
-```kusto
-dependencies
-| union requests
-| where cloud_RoleName == "backend-functions"
+let recentRequests = requests
+  | where timestamp > ago(1h)
+  | project operation_Id, requestName = name, duration=duration, resultCode;
+customEvents
 | where timestamp > ago(1h)
-| project timestamp, name, operation_Name, success, duration, resultCode
+| where name in ('Location.Move','Location.Get','World.Event.Processed')
+| project operationId = tostring(customDimensions.operationId), correlationId = tostring(customDimensions.correlationId), name, latencyMs=todouble(customDimensions.latencyMs)
+| join kind=leftouter recentRequests on $left.operationId == $right.operation_Id
 | order by timestamp desc
 ```
 
-**Trace Correlation (Join with Custom Events):**
+### Internal Timing Events
+
+`Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. It is deliberately not enumerated in the shared `GAME_EVENT_NAMES` list to keep domain event space clean. Properties:
+
+| Key          | Description                      |
+| ------------ | -------------------------------- |
+| `opName`     | Operation label (developer set)  |
+| `durationMs` | Elapsed time in milliseconds     |
+| (extras…)    | Any supplemental diagnostic keys |
+
+Usage guidance:
+
+-   Prefer using existing domain events’ `latencyMs` dimension when measuring request/command duration.
+-   Use `Timing.Op` for one-off internal instrumentation unlikely to persist long-term; migrate to a domain event if it becomes permanent.
+-   Avoid high-cardinality `opName` values (do not embed dynamic IDs).
+
+### Sampling Configuration
+
+Sampling percentage is set during startup from environment variables (`APPINSIGHTS_SAMPLING_PERCENTAGE`, `APPINSIGHTS_SAMPLING_PERCENT`, `APP_INSIGHTS_SAMPLING_PERCENT`, `APP_INSIGHTS_SAMPLING_RATIO`). Ratio values (<=1) are converted to percentages. Default: 15% (subject to adjustment after initial production data review).
+
+Verification query:
 
 ```kusto
-let traceId = "your-trace-id-here";
-union requests, dependencies, traces, customEvents
-| where operation_Id == traceId
-| project timestamp, itemType, name, message, customDimensions
-| order by timestamp asc
-```
-
-**Verify Resource Attributes:**
-
-```kusto
-requests
+customEvents
 | where timestamp > ago(24h)
-| extend serviceVersion = tostring(customDimensions.["service.version"])
-| extend deployEnv = tostring(customDimensions.["deployment.environment"])
-| extend commitSha = tostring(customDimensions.["commit.sha"])
-| summarize count() by serviceVersion, deployEnv, commitSha
+| summarize events=count() by bin(timestamp, 5m)
 ```
 
-### Upcoming Enrichment (Epic #310)
+Compare sustained volume to expected request count to validate sampling effect.
 
-Remaining items from Epic #310:
+### Pending Cleanup
 
--   Span attribute enrichment (playerGuid, location IDs, persistenceMode, RU/latency metrics)
--   Outbound traceparent propagation to queued world events & AI cost telemetry flows
--   Error status mapping and standardized naming taxonomy
+-   Remove legacy placeholder file `src/instrumentation/opentelemetry.ts` once all references are purged.
+-   Delete neutralized span test files (currently blank) in next housekeeping PR.
 
-Until #310 is complete, avoid ad-hoc span attribute proliferation—defer to the enrichment plan for consistency.
+### Do / Do Not
+
+| Do                                                               | Reason                                         |
+| ---------------------------------------------------------------- | ---------------------------------------------- |
+| Use `correlationId` for cross-event linkage                      | Uniform across all custom events               |
+| Check `operationId` presence before joining                      | Not guaranteed in early init or non-HTTP flows |
+| Keep `Timing.Op` usage sparing                                   | Prevent enumeration pollution                  |
+| Document new persistent performance metrics before adding events | Maintains low-cardinality taxonomy             |
+| Remove deprecated span code promptly                             | Reduces confusion and dead paths               |
+
+| Do Not                                                                      | Reason                                        |
+| --------------------------------------------------------------------------- | --------------------------------------------- |
+| Reintroduce OTel exporter ad-hoc                                            | Requires formal ADR & milestone alignment     |
+| Add span-style attributes to events (e.g. `messaging.system`) unless needed | Avoid semantic leakage from old tracing layer |
+| Enumerate `Timing.Op` prematurely                                           | Internal helper, not domain event             |

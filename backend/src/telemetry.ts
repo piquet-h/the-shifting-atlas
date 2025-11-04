@@ -24,6 +24,13 @@ export const telemetryClient: AppInsightsClient = {
     }
 }
 
+// Internal test interceptor (not used in production). Allows unit tests to observe
+// enriched game events without patching the underlying Application Insights client.
+let eventInterceptor: ((name: string, properties: Record<string, unknown>) => void) | null = null
+export function __setTelemetryEventInterceptor(interceptor: ((name: string, properties: Record<string, unknown>) => void) | null) {
+    eventInterceptor = interceptor
+}
+
 /**
  * Low-level event emission (no enrichment). Exposed for rare cases where domain
  * enrichment is handled externally. Lint rule forbids direct use of the old
@@ -31,6 +38,9 @@ export const telemetryClient: AppInsightsClient = {
  */
 function trackEventClient(name: string, properties?: Record<string, unknown>) {
     telemetryClient?.trackEvent({ name, properties })
+    if (eventInterceptor) {
+        eventInterceptor(name, properties || {})
+    }
 }
 
 export function trackException(error: Error, properties?: Record<string, unknown>) {

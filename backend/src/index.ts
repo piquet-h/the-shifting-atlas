@@ -1,4 +1,4 @@
-// Tracing MUST be initialized first
+// Telemetry MUST be initialized first (Application Insights auto-collection before any user code)
 import { app, PreInvocationContext } from '@azure/functions'
 // OpenTelemetry instrumentation removed – consolidated on Application Insights only.
 // Import order matters: initialize App Insights before any user code for auto-collection.
