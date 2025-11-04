@@ -391,7 +391,7 @@ Relative directions require previous heading context. If context is unavailable,
 ## Architecture References
 
 - **Exit Invariants:** [Exit Edge Invariants](./exits.md) and [Concept: Exits](../concept/exits.md)
-- **Direction Resolution:** [Direction Resolution Rules](./direction-resolution-rules.md) and [Concept: Direction Semantics](../concept/direction-resolution-rules.md)
+- **Direction Resolution:** [Direction Resolution Rules](./direction-resolution-rules.md) and [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
 - **Frontend Contract:** [Frontend API Contract](./frontend-api-contract.md)
 - **Versioning Discussion:** [Issue #229: API Versioning Strategy](https://github.com/piquet-h/the-shifting-atlas/issues/229)
 
