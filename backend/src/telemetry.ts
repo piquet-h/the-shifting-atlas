@@ -6,6 +6,7 @@
  * In test mode (NODE_ENV=test), Application Insights is completely disabled to avoid slow initialization and network timeouts.
  */
 import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
+import appInsights from 'applicationinsights'
 import { randomUUID } from 'node:crypto'
 
 // Expose a telemetryClient even without a configured connection (tests / local)
@@ -63,7 +64,11 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
-    if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId || randomUUID()
+    // Always attach correlationId; generate if not supplied
+    if (finalProps.correlationId === undefined) finalProps.correlationId = opts?.correlationId || randomUUID()
+    // Attach operationId if available from Application Insights context
+    const opId = getOperationId()
+    if (opId && finalProps.operationId === undefined) finalProps.operationId = opId
     trackEventClient(name, finalProps)
 }
 
@@ -81,7 +86,9 @@ export function trackGameEventStrict(name: GameEventName, properties: Record<str
     const pm = resolvePersistenceMode(opts?.persistenceMode)
     if (pm && finalProps.persistenceMode === undefined) finalProps.persistenceMode = pm
     if (opts?.playerGuid && finalProps.playerGuid === undefined) finalProps.playerGuid = opts.playerGuid
-    if (opts?.correlationId && finalProps.correlationId === undefined) finalProps.correlationId = opts.correlationId
+    if (finalProps.correlationId === undefined) finalProps.correlationId = opts?.correlationId || randomUUID()
+    const opId = getOperationId()
+    if (opId && finalProps.operationId === undefined) finalProps.operationId = opId
     trackEventClient(name, finalProps)
 }
 
@@ -100,6 +107,19 @@ export function extractPlayerGuid(headers: { get(name: string): string | null | 
     try {
         const guid = headers?.get('x-player-guid') || undefined
         return guid || undefined
+    } catch {
+        return undefined
+    }
+}
+
+function getOperationId(): string | undefined {
+    try {
+        const client = appInsights.defaultClient
+        if (!client) return undefined
+        const tags = client.context?.tags
+        const key = client.context?.keys?.operationId
+        if (tags && key && tags[key]) return tags[key]
+        return undefined
     } catch {
         return undefined
     }

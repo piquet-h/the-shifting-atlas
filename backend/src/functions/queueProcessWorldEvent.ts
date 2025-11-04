@@ -10,15 +10,14 @@
  * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
 import { InvocationContext, app } from '@azure/functions'
+import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
-import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
-import { endSpan, startSpanFromTraceparent } from '../instrumentation/opentelemetry.js'
-import { trackGameEventStrict } from '../telemetry.js'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
-import { MemoryDeadLetterRepository } from '../repos/deadLetterRepository.memory.js'
 import { CosmosDeadLetterRepository } from '../repos/deadLetterRepository.cosmos.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
+import { MemoryDeadLetterRepository } from '../repos/deadLetterRepository.memory.js'
+import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------
 
@@ -131,12 +130,6 @@ function hashPrefix(key: string): string {
 export async function queueProcessWorldEvent(message: unknown, context: InvocationContext): Promise<void> {
     // Attempt to continue trace from Service Bus applicationProperties
     // Extract traceparent directly (shared utility not yet published; will migrate after version bump)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const traceparent = (message as any)?.applicationProperties?.traceparent as string | undefined
-    const span = startSpanFromTraceparent('ServiceBus QueueProcessWorldEvent', traceparent)
-    span.setAttribute('messaging.system', 'azure.servicebus')
-    span.setAttribute('messaging.destination', 'world-events')
-    span.setAttribute('messaging.operation', 'process')
     // 1. Parse message (Azure Service Bus messages can be JSON or string)
     let rawEvent: unknown
     try {
@@ -185,7 +178,6 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         }
 
         // Cannot proceed without valid JSON - skip (no retry)
-        endSpan(span)
         return
     }
 
@@ -238,7 +230,6 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         }
 
         // Invalid schema - skip (no retry)
-        endSpan(span)
         return
     }
 
@@ -274,7 +265,6 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             { correlationId: event.correlationId }
         )
 
-        endSpan(span)
         return
     }
 
@@ -310,9 +300,6 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         type: event.type,
         latencyMs
     })
-    span.setAttribute('tsa.correlation_id', event.correlationId)
-    span.setAttribute('messaging.message_id', event.eventId)
-    endSpan(span)
 }
 
 app.serviceBusQueue('QueueProcessWorldEvent', {
