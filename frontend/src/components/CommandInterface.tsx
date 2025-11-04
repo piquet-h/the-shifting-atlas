@@ -20,7 +20,7 @@ interface CommandInterfaceProps {
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
 export default function CommandInterface({ className }: CommandInterfaceProps): React.ReactElement {
-    const { playerGuid, loading: guidLoading } = usePlayerGuid()
+    const { playerGuid, loading: guidLoading, error: guidError } = usePlayerGuid()
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
@@ -66,7 +66,7 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 // Only commands that mutate player state (move) require a resolved player GUID.
                 const requiresPlayer = lower.startsWith('move ')
                 if (!playerGuid && requiresPlayer) {
-                    throw new Error('Player not ready yet (initializing)')
+                    throw new Error('Cannot move yet - your session is still initializing. Please wait a moment and try again.')
                 }
                 if (lower.startsWith('ping')) {
                     const requestBody: PingRequest = {
@@ -163,6 +163,18 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
     return (
         <div className={className}>
             <CommandOutput items={history} className="mb-4" />
+            {/* Show status message if player GUID is loading or errored */}
+            {guidLoading && !playerGuid && (
+                <div className="mb-2 text-xs text-amber-400 flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                    Initializing session...
+                </div>
+            )}
+            {guidError && !playerGuid && (
+                <div className="mb-2 text-xs text-red-400">
+                    Session initialization failed: {guidError}. Some commands may not work.
+                </div>
+            )}
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
                 Disable only while GUID is actively loading and not yet available to reduce confusion. */}
             <CommandInput onSubmit={runCommand} busy={busy} disabled={guidLoading && !playerGuid} />
