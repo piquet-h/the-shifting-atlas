@@ -37,15 +37,17 @@ describe('CommandInterface enablement states (SSR)', () => {
     it('disables while GUID loading & absent', async () => {
         mockState.playerGuid = null
         mockState.loading = true
+        mockState.error = null
         const Component = (await import('../src/components/CommandInterface')).default
         const markup = renderToString(<Component />)
         expect(isDisabled(extractInput(markup))).toBe(true)
         mockState.loading = false
     })
 
-    it('enables when GUID not yet assigned but not loading', async () => {
+    it('enables when GUID not yet assigned but not loading and no error', async () => {
         mockState.playerGuid = null
         mockState.loading = false
+        mockState.error = null
         const Component = (await import('../src/components/CommandInterface')).default
         const markup = renderToString(<Component />)
         expect(isDisabled(extractInput(markup))).toBe(false)
@@ -54,8 +56,29 @@ describe('CommandInterface enablement states (SSR)', () => {
     it('enables when GUID present and not loading', async () => {
         mockState.playerGuid = '11111111-1111-1111-1111-111111111111'
         mockState.loading = false
+        mockState.error = null
         const Component = (await import('../src/components/CommandInterface')).default
         const markup = renderToString(<Component />)
         expect(isDisabled(extractInput(markup))).toBe(false)
+    })
+
+    it('disables when GUID creation fails (error present, no GUID)', async () => {
+        mockState.playerGuid = null
+        mockState.loading = false
+        mockState.error = 'Failed to create guest player'
+        const Component = (await import('../src/components/CommandInterface')).default
+        const markup = renderToString(<Component />)
+        expect(isDisabled(extractInput(markup))).toBe(true)
+        mockState.error = null
+    })
+
+    it('enables when GUID present even if error occurred', async () => {
+        mockState.playerGuid = '11111111-1111-1111-1111-111111111111'
+        mockState.loading = false
+        mockState.error = 'Some error'
+        const Component = (await import('../src/components/CommandInterface')).default
+        const markup = renderToString(<Component />)
+        expect(isDisabled(extractInput(markup))).toBe(false)
+        mockState.error = null
     })
 })

@@ -20,7 +20,7 @@ interface CommandInterfaceProps {
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
 export default function CommandInterface({ className }: CommandInterfaceProps): React.ReactElement {
-    const { playerGuid, loading: guidLoading } = usePlayerGuid()
+    const { playerGuid, loading: guidLoading, error: guidError } = usePlayerGuid()
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
@@ -63,10 +63,14 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
             try {
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
-                // Only commands that mutate player state (move) require a resolved player GUID.
+                // Move commands require a resolved player GUID (guest player must be created first)
                 const requiresPlayer = lower.startsWith('move ')
                 if (!playerGuid && requiresPlayer) {
-                    throw new Error('Player not ready yet (initializing)')
+                    // Provide more helpful error message based on whether there was an initialization error
+                    const errorMsg = guidError
+                        ? `Unable to initialize player session: ${guidError}`
+                        : 'Player session is initializing. Please wait a moment and try again.'
+                    throw new Error(errorMsg)
                 }
                 if (lower.startsWith('ping')) {
                     const requestBody: PingRequest = {
@@ -157,15 +161,15 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 })
             }
         },
-        [playerGuid, currentLocationId]
+        [playerGuid, currentLocationId, guidError]
     )
 
     return (
         <div className={className}>
             <CommandOutput items={history} className="mb-4" />
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
-                Disable only while GUID is actively loading and not yet available to reduce confusion. */}
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={guidLoading && !playerGuid} />
+                Disable when GUID is loading without a value, or when there was an error creating the guest player. */}
+            <CommandInput onSubmit={runCommand} busy={busy} disabled={!playerGuid && (guidLoading || !!guidError)} />
             <p className="mt-2 text-[11px] text-slate-300">
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
