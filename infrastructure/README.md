@@ -12,10 +12,12 @@ Provisioned resources:
 | Azure Cosmos DB (SQL/Core API) | Document store for players, inventory, layers, events (ADR-002). | Serverless capacity mode. Separate account for dual-persistence strategy. Database: `game`. Containers detailed below.                           |
 | Azure Key Vault                | Stores Cosmos primary key secrets.                               | Access policy grants SWA and Function App system identities get/list for secrets. Stores both `cosmos-primary-key` and `cosmos-sql-primary-key`. |
 | Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                         |
+| Azure Workbooks                | Pre-configured dashboards for observability (M2).                | Movement Blocked Reasons Breakdown panel linked to Application Insights. See `docs/observability/workbooks/`.                                    |
 
 Files:
 
--   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection
+-   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks
+-   `workbook-movement-blocked-reasons.bicep` – Movement Blocked Reasons dashboard workbook module
 -   `parameters.json` – example / placeholder (not required; inline params acceptable)
 
 The backend Function App handles all synchronous HTTP endpoints and async queue processing; the Static Web App serves only static frontend assets.
@@ -195,11 +197,47 @@ az deployment group create \
 -   Managed Identity eliminates need for connection strings in app settings
 -   Consider enabling soft-delete and purge protection for production
 
+## Azure Workbooks (M2 Observability)
+
+Pre-configured Application Insights workbooks are deployed automatically via Bicep modules. Each workbook provides interactive dashboards for monitoring specific aspects of the game telemetry.
+
+### Movement Blocked Reasons Breakdown
+
+**Module:** `workbook-movement-blocked-reasons.bicep`  
+**Documentation:** `docs/observability/workbooks/README.md`  
+**Issue:** [#282](https://github.com/piquet-h/the-shifting-atlas/issues/282)
+
+Analyzes `Navigation.Move.Blocked` events by reason to identify traversal friction sources:
+- Groups blocked events by reason (invalid-direction, from-missing, no-exit, move-failed)
+- Shows percentage distribution and alerts when any reason exceeds 50%
+- 7-day trend sparkline for blocked rate
+- Interpretation guide with actionable recommendations
+
+**Deployment:**
+The workbook module is automatically included when deploying `main.bicep`. It:
+- Creates the workbook resource linked to Application Insights
+- Loads panel definitions from `docs/observability/workbooks/movement-blocked-reasons.workbook.json`
+- Tags the workbook with M2-Observability, Navigation, and Telemetry
+- Uses deterministic naming based on resource group ID
+
+**Manual Update:**
+To update an existing workbook after JSON changes:
+```bash
+cd infrastructure
+az deployment group create \
+  --resource-group rg-atlas-game \
+  --template-file main.bicep \
+  --parameters name=atlas
+```
+
+The deployment is idempotent - workbooks are updated in-place if the definition changes.
+
 ## Alignment With Architecture
 
 -   Matches architecture doc: Static Web App + Function App + Service Bus + Gremlin Cosmos DB.
 -   Backend unified: Function App provides both HTTP endpoints and queue processors (simpler deployment, single telemetry surface).
 -   Service Bus (Basic tier) handles async world event processing.
+-   Observability workbooks provide dashboards for M2 milestone telemetry analysis.
 
 ## Roadmap (Next Infrastructure Enhancements)
 
@@ -215,6 +253,7 @@ az deployment group create \
 
 | Date       | Change                                                                                                                                      |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2025-11-04 | Added Movement Blocked Reasons Breakdown workbook module (M2 Observability) with automatic deployment via main.bicep.                       |
 | 2025-10-05 | Added Service Bus (Basic tier), Function App (consumption Y1), Storage Account, and RBAC role assignments for world event queue processing. |
 | 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.                                            |
 | 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).                                          |

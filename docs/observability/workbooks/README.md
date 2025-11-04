@@ -65,39 +65,62 @@ Workbooks provide interactive data exploration and visualization for telemetry e
 5. **Pin to Dashboard (Optional)**
    - Click **Pin** to add to your Azure Dashboard for quick access
 
+### Alternative: Bicep Deployment (Recommended)
+
+For automated infrastructure-as-code deployment, use the Bicep module included in the repository:
+
+**Location:** `infrastructure/workbook-movement-blocked-reasons.bicep`
+
+The workbook is automatically deployed when you deploy the main infrastructure:
+
+```bash
+# Deploy entire infrastructure including workbook
+cd infrastructure
+az deployment group create \
+  --resource-group rg-atlas-game \
+  --template-file main.bicep \
+  --parameters name=atlas
+```
+
+The workbook module automatically:
+- Creates the workbook resource in Azure
+- Links it to Application Insights
+- Loads the JSON definition from `docs/observability/workbooks/`
+- Tags it appropriately for M2 Observability milestone
+
+**Manual Bicep deployment** (workbook only):
+
+```bash
+cd infrastructure
+az deployment group create \
+  --resource-group rg-atlas-game \
+  --template-file workbook-movement-blocked-reasons.bicep \
+  --parameters name=atlas \
+  --parameters applicationInsightsId='/subscriptions/{subscription-id}/resourceGroups/{rg-name}/providers/Microsoft.Insights/components/appi-atlas'
+```
+
+**Benefits of Bicep deployment:**
+- Version controlled infrastructure
+- Consistent deployment across environments
+- Automatic workbook updates on JSON changes
+- Integration with CI/CD pipelines
+- Idempotent (safe to re-run)
+
 ### Alternative: ARM Template Deployment
 
-For automated deployment, wrap the workbook JSON in an ARM template:
+For non-Bicep environments, you can also use raw ARM templates. The Bicep file compiles to ARM JSON:
 
-```json
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "workbookName": {
-      "type": "string",
-      "defaultValue": "Movement Blocked Reasons Breakdown"
-    },
-    "appInsightsResourceId": {
-      "type": "string"
-    }
-  },
-  "resources": [
-    {
-      "type": "microsoft.insights/workbooks",
-      "apiVersion": "2021-03-08",
-      "name": "[guid(parameters('workbookName'))]",
-      "location": "[resourceGroup().location]",
-      "kind": "shared",
-      "properties": {
-        "displayName": "[parameters('workbookName')]",
-        "serializedData": "[string(json(...))]",
-        "sourceId": "[parameters('appInsightsResourceId')]",
-        "category": "tsg"
-      }
-    }
-  ]
-}
+```bash
+# Generate ARM template from Bicep
+az bicep build --file infrastructure/workbook-movement-blocked-reasons.bicep
+```
+
+This creates `workbook-movement-blocked-reasons.json` that can be deployed with:
+
+```bash
+az deployment group create \
+  --resource-group rg-atlas-game \
+  --template-file workbook-movement-blocked-reasons.json
 ```
 
 ## Kusto Query Reference
