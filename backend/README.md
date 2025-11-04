@@ -18,6 +18,12 @@ backend/
   shared/                 # Reusable validation & telemetry helpers
 ```
 
+## API Endpoints
+
+For complete API documentation including RESTful routes, request/response formats, error handling, and migration guidance, see:
+
+**[API Reference](../docs/architecture/api-reference.md)**
+
 ## Adding New Functions
 
 Add a function when it:
