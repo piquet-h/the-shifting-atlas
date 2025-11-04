@@ -5,7 +5,7 @@ import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../repos/exitRepository.js'
-import { ILocationRepository } from '../repos/locationRepository.js'
+import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
@@ -13,7 +13,10 @@ import { isValidGuid } from './utils/validation.js'
 
 @injectable()
 export class LocationLookHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('ILocationRepository') private locationRepo: ILocationRepository
+    ) {
         super(telemetry)
     }
 
@@ -24,7 +27,7 @@ export class LocationLookHandler extends BaseHandler {
             return rateLimitResponse
         }
 
-        const repo = this.getRepository<ILocationRepository>('ILocationRepository')
+    const repo = this.locationRepo
 
         // Extract locationId from path parameter, fallback to query for backward compatibility
         const id = req.params.locationId || req.query.get('id') || STARTER_LOCATION_ID

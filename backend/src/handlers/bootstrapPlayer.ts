@@ -22,13 +22,15 @@ function isValidUuidV4(value: string | null | undefined): boolean {
 
 @injectable()
 export class BootstrapPlayerHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
+    ) {
         super(telemetry)
     }
 
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
-        const playerRepo = this.getRepository<IPlayerRepository>('IPlayerRepository')
-
+        const playerRepo = this.playerRepo
         const headerGuid = request.headers.get(HEADER_PLAYER_GUID) || undefined
         const validatedGuid = isValidUuidV4(headerGuid) ? headerGuid : undefined
         const clientHadValidGuid = validatedGuid !== undefined

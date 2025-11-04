@@ -9,12 +9,15 @@ import { errorResponse, okResponse } from './utils/responseBuilder.js'
 
 @injectable()
 export class PlayerLinkHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
+    ) {
         super(telemetry)
     }
 
     protected async execute(request: HttpRequest): Promise<HttpResponseInit> {
-        const playerRepo = this.getRepository<IPlayerRepository>('IPlayerRepository')
+        const playerRepo = this.playerRepo
 
         let body: PlayerLinkRequest | Record<string, never> = {}
         try {

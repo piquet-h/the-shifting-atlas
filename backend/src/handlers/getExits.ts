@@ -2,7 +2,7 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
 import { err, ok } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
-import { IExitRepository } from '../repos/exitRepository.js'
+import type { IExitRepository } from '../repos/exitRepository.js'
 import { CORRELATION_HEADER } from '../telemetry.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
@@ -13,7 +13,10 @@ import { BaseHandler } from './base/BaseHandler.js'
  */
 @injectable()
 export class GetExitsHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('IExitRepository') private exitRepo: IExitRepository
+    ) {
         super(telemetry)
     }
 
@@ -31,8 +34,7 @@ export class GetExitsHandler extends BaseHandler {
         }
 
         try {
-            const exitRepo = this.getRepository<IExitRepository>('IExitRepository')
-            const exits = await exitRepo.getExits(locationId)
+            const exits = await this.exitRepo.getExits(locationId)
 
             return {
                 status: 200,

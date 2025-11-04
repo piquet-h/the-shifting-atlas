@@ -1,10 +1,15 @@
 // Telemetry MUST be initialized first (Application Insights auto-collection before any user code)
 import { app, PreInvocationContext } from '@azure/functions'
+// Lightweight declaration to satisfy type checker if Node types resolution is delayed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const process: any
 // OpenTelemetry instrumentation removed – consolidated on Application Insights only.
 // Import order matters: initialize App Insights before any user code for auto-collection.
 import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
+import type { IGremlinClient } from './gremlin/gremlinClient.js'
 import { setupContainer } from './inversify.config.js'
+import type { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 
 const container = new Container()
 
@@ -80,6 +85,41 @@ app.hook.appStart(async () => {
     const endTime = Date.now()
     const duration = endTime - startTime
     appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
+
+    // Register graceful shutdown hooks AFTER container setup so bindings exist.
+    // Azure Functions may recycle processes; we attempt best-effort flush/close on signals.
+    const registerShutdown = () => {
+        const performShutdown = async (signal: string) => {
+            try {
+                const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
+                telemetry.flush({ isAppCrashing: signal === 'SIGINT' || signal === 'SIGTERM' })
+            } catch (e) {
+                // swallow – telemetry optional
+            }
+            try {
+                const gremlin = container.get<IGremlinClient>('GremlinClient')
+                await gremlin.close()
+            } catch (e) {
+                // swallow – gremlin may not be bound (memory mode)
+            }
+        }
+        for (const sig of ['SIGINT', 'SIGTERM']) {
+            process.once(sig, () => {
+                // Fire and forget; Functions host will terminate shortly.
+                void performShutdown(sig)
+            })
+        }
+        // beforeExit gives a final opportunity to flush telemetry.
+        process.once('beforeExit', () => {
+            try {
+                const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
+                telemetry.flush()
+            } catch {
+                // ignore
+            }
+        })
+    }
+    registerShutdown()
 })
 
 app.hook.preInvocation((context: PreInvocationContext) => {

@@ -24,7 +24,10 @@ export interface MoveResult {
 
 @injectable()
 export class MoveHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('ILocationRepository') private locationRepo: ILocationRepository
+    ) {
         super(telemetry)
     }
 
@@ -103,9 +106,7 @@ export class MoveHandler extends BaseHandler {
         const dir = normalizationResult.canonical
 
         // Fetch starting location
-        const repo = this.getRepository<ILocationRepository>('ILocationRepository')
-
-        const from = await repo.get(fromId)
+    const from = await this.locationRepo.get(fromId)
         if (!from) {
             this.track('Navigation.Move.Blocked', {
                 from: fromId,
@@ -139,7 +140,7 @@ export class MoveHandler extends BaseHandler {
         }
 
         // Execute move
-        const result = await repo.move(fromId, dir)
+    const result = await this.locationRepo.move(fromId, dir)
         if (result.status === 'error') {
             const reason = result.reason
             const statusMap: Record<string, number> = { 'from-missing': 404, 'no-exit': 400, 'target-missing': 500 }

@@ -1,7 +1,7 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
-import { IPlayerRepository } from '../repos/playerRepository.js'
+import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
@@ -9,13 +9,14 @@ import { isValidGuid } from './utils/validation.js'
 
 @injectable()
 export class PlayerGetHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
+    ) {
         super(telemetry)
     }
 
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
-        const repo = this.getRepository<IPlayerRepository>('IPlayerRepository')
-
         // Extract playerId from path parameter, fallback to header for backward compatibility
         const id = req.params.playerId || req.headers.get('x-player-guid') || undefined
         if (!id) {
@@ -30,7 +31,7 @@ export class PlayerGetHandler extends BaseHandler {
                 correlationId: this.correlationId
             })
         }
-        const rec = await repo.get(id)
+        const rec = await this.playerRepo.get(id)
         if (!rec) {
             this.track('Player.Get', { playerGuid: id, status: 404 })
             return errorResponse(404, 'NotFound', 'Player not found', { correlationId: this.correlationId })

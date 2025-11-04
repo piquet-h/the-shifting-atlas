@@ -45,22 +45,22 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     // Register ITelemetryClient
     container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
 
-    // Register handlers - these extend BaseHandler which has @injectable and constructor injection
-    container.bind(MoveHandler).toSelf().inSingletonScope()
-    container.bind(BootstrapPlayerHandler).toSelf().inSingletonScope()
-    container.bind(PlayerLinkHandler).toSelf().inSingletonScope()
-    container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
-    container.bind(PingHandler).toSelf().inSingletonScope()
-    container.bind(HealthHandler).toSelf().inSingletonScope()
-    container.bind(GremlinHealthHandler).toSelf().inSingletonScope()
-    container.bind(SimplePingHandler).toSelf().inSingletonScope()
-    container.bind(LocationHandler).toSelf().inSingletonScope()
-    container.bind(LocationLookHandler).toSelf().inSingletonScope()
-    container.bind(GetExitsHandler).toSelf().inSingletonScope()
-    container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
-    container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
-    container.bind(PlayerGetHandler).toSelf().inSingletonScope()
-    container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
+    // Register handlers as transient (no shared mutable state across requests)
+    container.bind(MoveHandler).toSelf()
+    container.bind(BootstrapPlayerHandler).toSelf()
+    container.bind(PlayerLinkHandler).toSelf()
+    container.bind(PlayerMoveHandler).toSelf()
+    container.bind(PingHandler).toSelf()
+    container.bind(HealthHandler).toSelf()
+    container.bind(GremlinHealthHandler).toSelf()
+    container.bind(SimplePingHandler).toSelf()
+    container.bind(LocationHandler).toSelf()
+    container.bind(LocationLookHandler).toSelf()
+    container.bind(GetExitsHandler).toSelf()
+    container.bind(LinkRoomsHandler).toSelf()
+    container.bind(PlayerCreateHandler).toSelf()
+    container.bind(PlayerGetHandler).toSelf()
+    container.bind(ContainerHealthHandler).toSelf()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - prefer already loaded persistence configuration for consistency
@@ -84,10 +84,12 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
-        // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
-        // since exits are stored as nested properties of locations in memory
+        // Explicit bindings; share same instance for exit + location repository via dynamic value
         container.bind<ILocationRepository>('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
-        container.bind<IExitRepository>('IExitRepository').toService('ILocationRepository')
+        container
+            .bind<IExitRepository>('IExitRepository')
+            .toDynamicValue(() => container.get<ILocationRepository>('ILocationRepository') as unknown as IExitRepository)
+            .inSingletonScope()
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
     }

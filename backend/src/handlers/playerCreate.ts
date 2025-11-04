@@ -2,21 +2,22 @@ import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { ensurePlayerForRequest } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
-import { IPlayerRepository } from '../repos/playerRepository.js'
+import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse } from './utils/responseBuilder.js'
 
 @injectable()
 export class PlayerCreateHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
+    ) {
         super(telemetry)
     }
 
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
-        const repo = this.getRepository<IPlayerRepository>('IPlayerRepository')
-
-        const result = await ensurePlayerForRequest(req.headers, repo)
+        const result = await ensurePlayerForRequest(req.headers, this.playerRepo)
         if (result.created) {
             this.track('Player.Created', { playerGuid: result.playerGuid, method: result.source })
         }

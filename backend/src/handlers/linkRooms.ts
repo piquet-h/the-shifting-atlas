@@ -1,7 +1,7 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { err, isDirection, ok } from '@piquet-h/shared'
 import { Container, inject, injectable } from 'inversify'
-import { ILocationRepository } from '../repos/locationRepository.js'
+import type { ILocationRepository } from '../repos/locationRepository.js'
 import { CORRELATION_HEADER } from '../telemetry.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
@@ -13,7 +13,10 @@ import { BaseHandler } from './base/BaseHandler.js'
  */
 @injectable()
 export class LinkRoomsHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('ILocationRepository') private locationRepo: ILocationRepository
+    ) {
         super(telemetry)
     }
 
@@ -69,9 +72,7 @@ export class LinkRoomsHandler extends BaseHandler {
 
         // Link the rooms (type assertions safe after validation)
         try {
-            const repo = this.getRepository<ILocationRepository>('ILocationRepository')
-
-            const result = await repo.ensureExitBidirectional(originId as string, dir as string, destId as string, {
+            const result = await this.locationRepo.ensureExitBidirectional(originId as string, dir as string, destId as string, {
                 reciprocal,
                 description,
                 reciprocalDescription: description

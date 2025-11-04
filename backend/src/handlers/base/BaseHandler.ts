@@ -49,14 +49,7 @@ export abstract class BaseHandler {
      */
     protected abstract execute(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit>
 
-    /**
-     * Get a repository or service from the inversify container.
-     * @param key - Inversify binding key (e.g., 'IPlayerRepository')
-     * @returns The resolved dependency
-     */
-    protected getRepository<T>(key: string): T {
-        return this.container.get<T>(key)
-    }
+    // All handlers use constructor-injected dependencies; dynamic container lookups removed.
 
     /**
      * Get the elapsed time since handler started (in milliseconds).
