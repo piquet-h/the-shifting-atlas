@@ -1,4 +1,5 @@
 import { app } from '@azure/functions'
-import { getLocationHandler } from '../handlers/location.js'
+import { getLocationLookHandler } from '../handlers/locationLook.js'
 
-app.http('LocationGet', { route: 'location', methods: ['GET'], authLevel: 'anonymous', handler: getLocationHandler })
+// GET /api/location (no param) - Returns starter location via LocationLookHandler fallback
+app.http('LocationGet', { route: 'location', methods: ['GET'], authLevel: 'anonymous', handler: getLocationLookHandler })

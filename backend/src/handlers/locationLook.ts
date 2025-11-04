@@ -27,7 +27,7 @@ export class LocationLookHandler extends BaseHandler {
             return rateLimitResponse
         }
 
-    const repo = this.locationRepo
+        const repo = this.locationRepo
 
         // Extract locationId from path parameter, fallback to query for backward compatibility
         const id = req.params.locationId || req.query.get('id') || STARTER_LOCATION_ID

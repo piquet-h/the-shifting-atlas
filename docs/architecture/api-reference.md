@@ -19,41 +19,47 @@ Retrieve an existing player by their unique identifier.
 **Endpoint:** `GET /api/player/{playerId}`
 
 **Path Parameters:**
-- `playerId` (required): Player GUID in UUID v4 format
+
+-   `playerId` (required): Player GUID in UUID v4 format
 
 **Headers:**
-- `x-player-guid` (optional): Fallback for backward compatibility if `playerId` is not in path
+
+-   `x-player-guid` (optional): Fallback for backward compatibility if `playerId` is not in path
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "guest": true,
-  "externalId": null
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "guest": true,
+    "externalId": null
 }
 ```
 
 **Response Headers:**
-- `x-correlation-id`: Request correlation identifier for troubleshooting
-- `x-player-guid`: Echo of player GUID for client convenience
+
+-   `x-correlation-id`: Request correlation identifier for troubleshooting
+-   `x-player-guid`: Echo of player GUID for client convenience
 
 **Error Responses:**
 
-*400 Bad Request* - Missing or invalid player ID:
+_400 Bad Request_ - Missing or invalid player ID:
+
 ```json
 {
-  "error": "InvalidPlayerId",
-  "message": "Player id must be a valid GUID format",
-  "correlationId": "abc-123-def"
+    "error": "InvalidPlayerId",
+    "message": "Player id must be a valid GUID format",
+    "correlationId": "abc-123-def"
 }
 ```
 
-*404 Not Found* - Player does not exist:
+_404 Not Found_ - Player does not exist:
+
 ```json
 {
-  "error": "NotFound",
-  "message": "Player not found",
-  "correlationId": "abc-123-def"
+    "error": "NotFound",
+    "message": "Player not found",
+    "correlationId": "abc-123-def"
 }
 ```
 
@@ -64,16 +70,18 @@ Allocate a new player GUID for session initialization.
 **Endpoint:** `GET /api/player`
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "id": "123e4567-e89b-12d3-a456-426614174000",
-  "guest": true
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "guest": true
 }
 ```
 
 **Response Headers:**
-- `x-correlation-id`: Request correlation identifier
-- `x-player-guid`: Newly allocated player GUID
+
+-   `x-correlation-id`: Request correlation identifier
+-   `x-player-guid`: Newly allocated player GUID
 
 #### Move Player
 
@@ -82,96 +90,130 @@ Execute a directional movement action.
 **Endpoint:** `POST /api/player/{playerId}/move`
 
 **Path Parameters:**
-- `playerId` (required): Player GUID in UUID v4 format
+
+-   `playerId` (required): Player GUID in UUID v4 format
 
 **Headers:**
-- `x-player-guid` (optional): Fallback for backward compatibility if `playerId` is not in path
+
+-   `x-player-guid` (optional): Fallback for backward compatibility if `playerId` is not in path
 
 **Request Body:**
+
 ```json
 {
-  "direction": "north",
-  "fromLocationId": "a56e7890-e89b-12d3-a456-426614174001"
+    "direction": "north",
+    "fromLocationId": "a56e7890-e89b-12d3-a456-426614174001"
 }
 ```
 
 **Body Fields:**
-- `direction` (required): One of the canonical directions (see [Direction Semantics](#direction-semantics))
-- `fromLocationId` (optional): Current location GUID for validation
+
+-   `direction` (required): One of the canonical directions (see [Direction Semantics](#direction-semantics))
+-   `fromLocationId` (optional): Current location GUID for validation
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "success": true,
-  "newLocationId": "b89e0123-e89b-12d3-a456-426614174002",
-  "message": "You move north."
+    "success": true,
+    "newLocationId": "b89e0123-e89b-12d3-a456-426614174002",
+    "message": "You move north."
 }
 ```
 
 **Error Responses:**
 
-*400 Bad Request* - Invalid direction or missing required fields:
+_400 Bad Request_ - Invalid direction or missing required fields:
+
 ```json
 {
-  "error": "InvalidDirection",
-  "message": "Direction must be one of: north, south, east, west, up, down, in, out",
-  "correlationId": "abc-123-def"
+    "error": "InvalidDirection",
+    "message": "Direction must be one of: north, south, east, west, up, down, in, out",
+    "correlationId": "abc-123-def"
 }
 ```
 
-*404 Not Found* - No exit in specified direction:
+_404 Not Found_ - No exit in specified direction:
+
 ```json
 {
-  "error": "NoExit",
-  "message": "You cannot go north from here.",
-  "correlationId": "abc-123-def"
+    "error": "NoExit",
+    "message": "You cannot go north from here.",
+    "correlationId": "abc-123-def"
 }
 ```
 
 ### Location Operations
 
-#### Get Location Details
+#### Get Location Details (Look Command)
 
-Retrieve location information including description and available exits.
+Retrieve location information including description, available exits, and generated exit summary cache.
 
 **Endpoint:** `GET /api/location/{locationId}`
 
 **Path Parameters:**
-- `locationId` (required): Location GUID in UUID v4 format
 
-**Query Parameters (Deprecated):**
-- `id` (legacy): Use path parameter instead
-- `fromLocationId` (optional): Previous location for contextual descriptions
+-   `locationId` (required): Location GUID in UUID v4 format
+
+**Query Parameters:**
+
+-   `fromLocationId` (optional): Previous location for contextual descriptions
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "id": "b89e0123-e89b-12d3-a456-426614174002",
-  "name": "Ancient Crossroads",
-  "description": "Weathered stone paths converge at this junction.",
-  "exits": ["north", "south", "east"]
+    "id": "b89e0123-e89b-12d3-a456-426614174002",
+    "name": "Ancient Crossroads",
+    "description": "Weathered stone paths converge at this junction.",
+    "exits": [{ "direction": "north" }, { "direction": "south" }],
+    "metadata": {
+        "exitsSummaryCache": "Exits: north, south",
+        "tags": ["crossroads", "outdoor"],
+        "revision": 1
+    }
 }
 ```
+
+**Response Headers:**
+
+-   `x-correlation-id`: Request correlation identifier
+-   `x-player-guid`: Echo of player GUID if provided
 
 **Error Responses:**
 
-*404 Not Found* - Location does not exist:
+_400 Bad Request_ - Invalid location ID format:
+
 ```json
 {
-  "error": "NotFound",
-  "message": "Location not found",
-  "correlationId": "abc-123-def"
+    "error": "InvalidLocationId",
+    "message": "Location id must be a valid GUID format",
+    "correlationId": "abc-123-def"
 }
 ```
 
+_404 Not Found_ - Location does not exist:
+
+```json
+{
+    "error": "NotFound",
+    "message": "Location not found",
+    "correlationId": "abc-123-def"
+}
+```
+
+**Rate Limiting:** This endpoint is rate-limited (configurable per-IP limit). Exceeding the limit returns 429 status.
+
 #### Get Default Starting Location
 
-Retrieve the default starting location (used during player initialization).
+Retrieve the configured starter location (used during player initialization when no specific location is known).
 
 **Endpoint:** `GET /api/location`
 
 **Success Response (200 OK):**
-Same format as location details above, returns the configured starter location.
+Same format as location details above, returns the location designated by `STARTER_LOCATION_ID`.
+
+**Implementation Note:** This endpoint uses the same handler (`LocationLookHandler`) as the parameterized route; omitting `locationId` triggers fallback to the starter location constant.
 
 ### Health & Diagnostics
 
@@ -182,10 +224,11 @@ General health status for the Functions backend.
 **Endpoint:** `GET /api/backend/health`
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "status": "healthy",
-  "timestamp": "2025-11-04T00:42:29.532Z"
+    "status": "healthy",
+    "timestamp": "2025-11-04T00:42:29.532Z"
 }
 ```
 
@@ -196,10 +239,11 @@ Validate connectivity to Cosmos DB Gremlin API.
 **Endpoint:** `GET /api/backend/health/gremlin`
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "status": "healthy",
-  "gremlin": "connected"
+    "status": "healthy",
+    "gremlin": "connected"
 }
 ```
 
@@ -210,10 +254,11 @@ Validate connectivity to Cosmos DB SQL API containers.
 **Endpoint:** `GET /api/backend/health/container`
 
 **Success Response (200 OK):**
+
 ```json
 {
-  "status": "healthy",
-  "containers": ["players", "inventory"]
+    "status": "healthy",
+    "containers": ["players", "inventory"]
 }
 ```
 
@@ -244,11 +289,13 @@ The following endpoints use query string parameters and are maintained for backw
 ### Player Movement
 
 **Legacy Pattern:**
+
 ```bash
 GET /api/player/{playerId}/move?dir=north&from={locationId}
 ```
 
 **RESTful Pattern:**
+
 ```bash
 POST /api/player/{playerId}/move
 Content-Type: application/json
@@ -260,42 +307,44 @@ Content-Type: application/json
 ```
 
 **JavaScript Example:**
+
 ```javascript
 // Legacy (deprecated)
-const response = await fetch(
-  `/api/player/${playerId}/move?dir=north&from=${fromId}`
-);
+const response = await fetch(`/api/player/${playerId}/move?dir=north&from=${fromId}`)
 
 // RESTful (current)
 const response = await fetch(`/api/player/${playerId}/move`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    direction: 'north',
-    fromLocationId: fromId
-  })
-});
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        direction: 'north',
+        fromLocationId: fromId
+    })
+})
 ```
 
 ### Location Lookup
 
 **Legacy Pattern:**
+
 ```bash
 GET /api/location?id={locationId}
 ```
 
 **RESTful Pattern:**
+
 ```bash
 GET /api/location/{locationId}
 ```
 
 **JavaScript Example:**
+
 ```javascript
 // Legacy (deprecated)
-const response = await fetch(`/api/location?id=${locationId}`);
+const response = await fetch(`/api/location?id=${locationId}`)
 
 // RESTful (current)
-const response = await fetch(`/api/location/${locationId}`);
+const response = await fetch(`/api/location/${locationId}`)
 ```
 
 ## CORS Behavior
@@ -324,41 +373,45 @@ All error responses follow a consistent JSON envelope structure:
 
 ```json
 {
-  "error": "ErrorCode",
-  "message": "Human-readable description",
-  "correlationId": "abc-123-def"
+    "error": "ErrorCode",
+    "message": "Human-readable description",
+    "correlationId": "abc-123-def"
 }
 ```
 
 ### Common HTTP Status Codes
 
 **400 Bad Request** - Invalid path parameter or malformed request:
-- Missing required field (e.g., `playerId` in path)
-- Invalid GUID format
-- Invalid direction value
-- Malformed JSON body
+
+-   Missing required field (e.g., `playerId` in path)
+-   Invalid GUID format
+-   Invalid direction value
+-   Malformed JSON body
 
 **404 Not Found** - Resource does not exist:
-- Player not found
-- Location not found
-- No exit in specified direction
 
-**429 Too Many Requests** *(Future Placeholder)* - Rate limiting:
+-   Player not found
+-   Location not found
+-   No exit in specified direction
+
+**429 Too Many Requests** _(Future Placeholder)_ - Rate limiting:
+
 ```json
 {
-  "error": "RateLimitExceeded",
-  "message": "Too many requests. Retry after 60 seconds.",
-  "correlationId": "abc-123-def",
-  "retryAfter": 60
+    "error": "RateLimitExceeded",
+    "message": "Too many requests. Retry after 60 seconds.",
+    "correlationId": "abc-123-def",
+    "retryAfter": 60
 }
 ```
 
 **500 Internal Server Error** - Unexpected server failure:
+
 ```json
 {
-  "error": "InternalError",
-  "message": "An unexpected error occurred. Please try again.",
-  "correlationId": "abc-123-def"
+    "error": "InternalError",
+    "message": "An unexpected error occurred. Please try again.",
+    "correlationId": "abc-123-def"
 }
 ```
 
@@ -369,6 +422,7 @@ All error responses follow a consistent JSON envelope structure:
 Application Insights queries to distinguish between legacy query-string and RESTful path-based patterns:
 
 **Legacy move pattern (query string via GET):**
+
 ```kql
 requests
 | where name == "PlayerMove"
@@ -377,6 +431,7 @@ requests
 ```
 
 **RESTful move pattern (path parameter via POST):**
+
 ```kql
 requests
 | where name == "PlayerMove"
@@ -385,6 +440,7 @@ requests
 ```
 
 **Legacy location lookup (query string):**
+
 ```kql
 requests
 | where name == "LocationLook"
@@ -393,6 +449,7 @@ requests
 ```
 
 **RESTful location lookup (path parameter):**
+
 ```kql
 requests
 | where name == "LocationLook"
@@ -402,6 +459,7 @@ requests
 ```
 
 **Pattern adoption rate:**
+
 ```kql
 requests
 | where name in ("PlayerMove", "LocationLook", "PlayerGet")
@@ -421,12 +479,14 @@ Use these queries to monitor migration progress and validate that the RESTful pa
 Valid direction values for movement operations. Refer to concept documentation for normalization rules and relative direction handling.
 
 **Canonical Directions:**
-- Cardinal: `north`, `south`, `east`, `west`
-- Vertical: `up`, `down`
-- Portal/Threshold: `in`, `out`
+
+-   Cardinal: `north`, `south`, `east`, `west`
+-   Vertical: `up`, `down`
+-   Portal/Threshold: `in`, `out`
 
 **Relative Directions (Context-Dependent):**
-- `forward`, `back`, `left`, `right`
+
+-   `forward`, `back`, `left`, `right`
 
 Relative directions require previous heading context. If context is unavailable, the API returns an `ambiguous` error prompting the player to use a canonical direction.
 
@@ -442,16 +502,16 @@ Relative directions require previous heading context. If context is unavailable,
 
 ## Architecture References
 
-- **Exit Invariants:** [Exit Edge Invariants](./exits.md) and [Concept: Exits](../concept/exits.md)
-- **Direction Resolution:** [Direction Resolution Rules (relocated)](./direction-resolution-rules.md) - superseded by [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
-- **Frontend Contract:** [Frontend API Contract](./frontend-api-contract.md)
-- **Versioning Discussion:** [Issue #229: API Versioning Strategy](https://github.com/piquet-h/the-shifting-atlas/issues/229)
+-   **Exit Invariants:** [Exit Edge Invariants](./exits.md) and [Concept: Exits](../concept/exits.md)
+-   **Direction Resolution:** [Direction Resolution Rules (relocated)](./direction-resolution-rules.md) - superseded by [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
+-   **Frontend Contract:** [Frontend API Contract](./frontend-api-contract.md)
+-   **Versioning Discussion:** [Issue #229: API Versioning Strategy](https://github.com/piquet-h/the-shifting-atlas/issues/229)
 
 ## Out of Scope
 
 The following items are explicitly out of scope for this document:
 
-- **OpenAPI/Swagger Specification:** Future enhancement. When implemented, generated spec will be published separately (not embedded here).
-- **Interactive API Explorer:** Future enhancement (e.g., Swagger UI integration).
-- **Multi-Language Code Samples:** Only JavaScript/TypeScript and curl examples provided. Additional language bindings (Python, C#, etc.) are future enhancements.
-- **Authentication/Authorization:** Player session management and auth propagation are under development (see backend README for status). Current endpoints use `authLevel: 'anonymous'`.
+-   **OpenAPI/Swagger Specification:** Future enhancement. When implemented, generated spec will be published separately (not embedded here).
+-   **Interactive API Explorer:** Future enhancement (e.g., Swagger UI integration).
+-   **Multi-Language Code Samples:** Only JavaScript/TypeScript and curl examples provided. Additional language bindings (Python, C#, etc.) are future enhancements.
+-   **Authentication/Authorization:** Player session management and auth propagation are under development (see backend README for status). Current endpoints use `authLevel: 'anonymous'`.

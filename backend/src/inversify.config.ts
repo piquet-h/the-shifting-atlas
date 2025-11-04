@@ -8,7 +8,6 @@ import { GetExitsHandler } from './handlers/getExits.js'
 import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
-import { LocationHandler } from './handlers/location.js'
 import { LocationLookHandler } from './handlers/locationLook.js'
 import { MoveHandler } from './handlers/moveCore.js'
 import { PingHandler } from './handlers/ping.js'
@@ -54,7 +53,6 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     container.bind(HealthHandler).toSelf()
     container.bind(GremlinHealthHandler).toSelf()
     container.bind(SimplePingHandler).toSelf()
-    container.bind(LocationHandler).toSelf()
     container.bind(LocationLookHandler).toSelf()
     container.bind(GetExitsHandler).toSelf()
     container.bind(LinkRoomsHandler).toSelf()
