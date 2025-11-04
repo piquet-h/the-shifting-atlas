@@ -91,7 +91,7 @@ Execute a directional movement action.
 ```json
 {
   "direction": "north",
-  "fromLocationId": "456e7890-e89b-12d3-a456-426614174001"
+  "fromLocationId": "a56e7890-e89b-12d3-a456-426614174001"
 }
 ```
 
@@ -103,7 +103,7 @@ Execute a directional movement action.
 ```json
 {
   "success": true,
-  "newLocationId": "789e0123-e89b-12d3-a456-426614174002",
+  "newLocationId": "b89e0123-e89b-12d3-a456-426614174002",
   "message": "You move north."
 }
 ```
@@ -146,7 +146,7 @@ Retrieve location information including description and available exits.
 **Success Response (200 OK):**
 ```json
 {
-  "id": "789e0123-e89b-12d3-a456-426614174002",
+  "id": "b89e0123-e89b-12d3-a456-426614174002",
   "name": "Ancient Crossroads",
   "description": "Weathered stone paths converge at this junction.",
   "exits": ["north", "south", "east"]
@@ -391,7 +391,7 @@ Relative directions require previous heading context. If context is unavailable,
 ## Architecture References
 
 - **Exit Invariants:** [Exit Edge Invariants](./exits.md) and [Concept: Exits](../concept/exits.md)
-- **Direction Resolution:** [Direction Resolution Rules](./direction-resolution-rules.md) and [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
+- **Direction Resolution:** [Direction Resolution Rules (stub)](./direction-resolution-rules.md) redirects to [Concept: Direction Resolution Rules](../concept/direction-resolution-rules.md)
 - **Frontend Contract:** [Frontend API Contract](./frontend-api-contract.md)
 - **Versioning Discussion:** [Issue #229: API Versioning Strategy](https://github.com/piquet-h/the-shifting-atlas/issues/229)
 
