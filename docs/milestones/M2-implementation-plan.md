@@ -16,7 +16,7 @@ M2's **observability scope** now has its base pillars shipped (event registry #1
 2. Health checks and operational visibility – **DONE** (#71)
 3. Base tracing & correlation – **DONE** (#41)
 4. Cost monitoring (event registration) – **PARTIAL** (#299 DONE; aggregation pending #302–#304)
-5. API modernization (RESTful patterns) – **PENDING** (#228–#233 sequence)
+5. API modernization (RESTful patterns) – **COMPLETE** (#228–#233 sequence)
 6. Tracing enrichment & sampling – **PENDING** (#310 children #311–#316)
 
 **64 Total Issues (8 closed, 56 open):** Expanded scope includes tracing enrichment (epic #310 + children), AI cost telemetry aggregation tasks, humor & promotion telemetry, plus existing API modernization, description integrity, and world event processing.
