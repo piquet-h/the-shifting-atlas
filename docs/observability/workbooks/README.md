@@ -242,7 +242,7 @@ customEvents
 ## Support
 
 For workbook-related issues:
-1. Check [Application Insights documentation](https://docs.microsoft.com/azure/azure-monitor/visualize/workbooks-overview)
-2. Review [KQL reference](https://docs.microsoft.com/azure/data-explorer/kusto/query/)
+1. Check [Application Insights documentation](https://learn.microsoft.com/azure/azure-monitor/visualize/workbooks-overview)
+2. Review [KQL reference](https://learn.microsoft.com/azure/data-explorer/kusto/query/)
 3. Open issue with `scope:observability` label
 4. Include query + error message in issue description

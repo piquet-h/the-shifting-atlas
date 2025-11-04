@@ -458,19 +458,16 @@ customEvents
 // Groups Navigation.Move.Blocked events by reason and calculates percentages
 let timeRange = 24h;
 let knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);
-customEvents
+let reasonCounts = customEvents
 | where timestamp > ago(timeRange)
 | where name == 'Navigation.Move.Blocked'
 | extend reason = tostring(customDimensions.reason)
 | extend normalizedReason = iff(reason in (knownReasons), reason, 'other')
-| summarize Count = count() by normalizedReason
-| extend TotalCount = toscalar(
-    customEvents
-    | where timestamp > ago(timeRange)
-    | where name == 'Navigation.Move.Blocked'
-    | count
-  )
-| extend PercentageShare = round(100.0 * Count / TotalCount, 2)
+| summarize Count = count() by normalizedReason;
+let totalCount = toscalar(reasonCounts | summarize sum(Count));
+reasonCounts
+| extend TotalCount = totalCount
+| extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)
 | extend IsHighConcentration = iff(PercentageShare > 50.0, '⚠️ HIGH', '')
 | project 
     Reason = normalizedReason,
