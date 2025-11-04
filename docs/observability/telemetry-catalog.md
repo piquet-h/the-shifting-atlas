@@ -451,6 +451,42 @@ customEvents
             BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)
 ```
 
+### Example: Blocked Reasons Breakdown (Last 24h)
+
+```kusto
+// Movement Blocked Reasons Breakdown - Last 24h
+// Groups Navigation.Move.Blocked events by reason and calculates percentages
+let timeRange = 24h;
+let knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);
+customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Navigation.Move.Blocked'
+| extend reason = tostring(customDimensions.reason)
+| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')
+| summarize Count = count() by normalizedReason
+| extend TotalCount = toscalar(
+    customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Navigation.Move.Blocked'
+    | count
+  )
+| extend PercentageShare = round(100.0 * Count / TotalCount, 2)
+| extend IsHighConcentration = iff(PercentageShare > 50.0, '⚠️ HIGH', '')
+| project 
+    Reason = normalizedReason,
+    Count,
+    PercentageShare,
+    Alert = IsHighConcentration
+| order by Count desc
+```
+
+**Interpretation:**
+- `invalid-direction` >30% → Tune direction normalization
+- `no-exit` >40% → World connectivity gaps
+- `from-missing` >5% → Data integrity issue (critical)
+- `move-failed` >10% → System reliability concern
+- Any reason >50% → Immediate investigation (⚠️ HIGH)
+
 ### Example: Direction Normalization Failures
 
 ```kusto
@@ -486,13 +522,13 @@ customEvents
 
 ### Dashboard Recommendations (M2 Observability)
 
-| Panel                         | Query Basis                               | Purpose                                         | Refresh |
-| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- |
-| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   |
-| Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   |
-| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   |
+| Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------- |
+| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [#281](https://github.com/piquet-h/the-shifting-atlas/issues/281) |
+| Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   | [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) |
+| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283) |
 
-> Implementation: each panel derives from `customEvents` queries shown above. Create separate Application Insights workbook sections with clear thresholds & annotations referencing issue #10.
+> Implementation: each panel derives from `customEvents` queries shown above. Workbook definitions are stored in [docs/observability/workbooks/](workbooks/) directory. See [workbooks/README.md](workbooks/README.md) for import instructions and query reference.
 
 **Last Updated:** 2025-10-30  
 **Event Count:** 44 canonical events

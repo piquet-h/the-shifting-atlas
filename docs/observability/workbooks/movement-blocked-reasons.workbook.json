@@ -1,0 +1,138 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-09-01/workbook.json",
+  "version": "Notebook/1.0",
+  "name": "Movement Blocked Reasons Breakdown",
+  "description": "Dashboard panel showing Navigation.Move.Blocked events grouped by reason to identify traversal friction sources",
+  "panels": [
+    {
+      "type": "markdown",
+      "content": {
+        "content": "# Movement Blocked Reasons Breakdown\n\nThis panel breaks down `Navigation.Move.Blocked` events by reason to identify primary traversal friction sources.\n\n**Purpose:** Prioritize UX improvements and world connectivity fixes based on blocked movement patterns.\n\n**Related Issues:**\n- [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10) - Telemetry Event Registry Expansion\n- [#281](https://github.com/piquet-h/the-shifting-atlas/issues/281) - Movement Success Rate Panel\n- [#282](https://github.com/piquet-h/the-shifting-atlas/issues/282) - This dashboard\n\n**Reason Definitions:**\n- `invalid-direction`: Player input couldn't be normalized to valid direction (tuning opportunity)\n- `from-missing`: Player's current location not found (data integrity issue)\n- `no-exit`: Valid direction but no exit exists in that direction (world connectivity)\n- `move-failed`: Repository or system error during movement execution\n- `other`: Unrecognized reason values (should investigate if appears)\n\n---"
+      }
+    },
+    {
+      "type": "text",
+      "content": {
+        "content": "## Blocked Events by Reason (Last 24 Hours)"
+      }
+    },
+    {
+      "type": "query",
+      "query": {
+        "query": "// Movement Blocked Reasons Breakdown - Last 24h\n// Groups Navigation.Move.Blocked events by reason and calculates percentages\nlet timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize \n    Count = count(),\n    SamplePlayerIds = make_set(tostring(customDimensions.player_id), 3)\n  by normalizedReason\n| extend TotalCount = toscalar(\n    customEvents\n    | where timestamp > ago(timeRange)\n    | where name == 'Navigation.Move.Blocked'\n    | count\n  )\n| extend PercentageShare = round(100.0 * Count / TotalCount, 2)\n| extend IsHighConcentration = iff(PercentageShare > 50.0, '⚠️ HIGH', '')\n| project \n    Reason = normalizedReason,\n    Count,\n    ['% Share'] = PercentageShare,\n    ['Alert'] = IsHighConcentration,\n    ['Sample Players'] = SamplePlayerIds\n| order by Count desc",
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": "Kusto",
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Count",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "blue"
+              }
+            },
+            {
+              "columnMatch": "% Share",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen"
+              }
+            },
+            {
+              "columnMatch": "Alert",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "thresholdValue": "HIGH",
+                    "representation": "redBright"
+                  }
+                ]
+              }
+            }
+          ],
+          "sortBy": [
+            {
+              "itemKey": "Count",
+              "sortOrder": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "text",
+      "content": {
+        "content": "## 7-Day Blocked Rate Trend"
+      }
+    },
+    {
+      "type": "query",
+      "query": {
+        "query": "// 7-Day Blocked Rate Sparkline\n// Shows trend of total blocked events over the past week\nlet timeRange = 7d;\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| summarize \n    TotalMoves = count(),\n    BlockedMoves = countif(name == 'Navigation.Move.Blocked')\n  by bin(timestamp, 6h)\n| extend BlockedRate = round(100.0 * BlockedMoves / TotalMoves, 2)\n| project timestamp, BlockedRate, BlockedMoves, TotalMoves\n| order by timestamp asc",
+        "timeContext": {
+          "durationMs": 604800000
+        },
+        "queryType": "Kusto",
+        "resourceType": "microsoft.insights/components",
+        "visualization": "linechart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            {
+              "seriesName": "BlockedRate",
+              "label": "Blocked Rate %",
+              "color": "orange"
+            }
+          ],
+          "ySettings": {
+            "numberFormatSettings": {
+              "unit": 0,
+              "options": {
+                "style": "decimal",
+                "useGrouping": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "text",
+      "content": {
+        "content": "## Summary Statistics"
+      }
+    },
+    {
+      "type": "query",
+      "query": {
+        "query": "// Summary: Total blocked events and most common reason\nlet timeRange = 24h;\nlet blockedEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked';\nlet totalBlocked = toscalar(blockedEvents | count);\nlet topReason = toscalar(\n    blockedEvents\n    | extend reason = tostring(customDimensions.reason)\n    | summarize Count = count() by reason\n    | top 1 by Count desc\n    | project reason\n);\nprint \n    ['Total Blocked Events'] = iff(totalBlocked == 0, 'No traversal friction detected ✓', strcat(totalBlocked, ' events')),\n    ['Most Common Reason'] = iff(totalBlocked == 0, 'N/A', topReason),\n    ['Time Range'] = '24 hours'",
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": "Kusto",
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Total Blocked Events",
+              "formatter": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "markdown",
+      "content": {
+        "content": "---\n\n### Interpretation Guide\n\n**High `invalid-direction` percentage (>30%):**\n- Consider improving direction normalization algorithm\n- Review common typos in player input logs\n- Enhance help text for movement commands\n\n**High `no-exit` percentage (>40%):**\n- World connectivity gaps detected\n- Review location graph for isolated nodes\n- Consider adding bidirectional exits\n- May indicate incomplete world generation\n\n**High `from-missing` percentage (>5%):**\n- **Critical:** Data integrity issue\n- Player location references may be stale\n- Investigate player document sync with location graph\n\n**High `move-failed` percentage (>10%):**\n- System reliability concern\n- Check repository error logs\n- May indicate transient Cosmos DB issues\n- Review RU consumption and throttling\n\n**Alert Threshold:**\nAny single reason exceeding 50% of total blocked events is flagged with ⚠️ HIGH indicator, suggesting immediate investigation needed.\n\n**Empty State:**\nIf no blocked events are present, the panel displays \"No traversal friction detected ✓\" indicating healthy movement patterns."
+      }
+    }
+  ]
+}
