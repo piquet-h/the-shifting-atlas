@@ -27,6 +27,7 @@ import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
+import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 
 export type ContainerMode = 'cosmos' | 'memory'
 
@@ -41,8 +42,12 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
     }
 
-    // Register ITelemetryClient
-    container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
+    // Register ITelemetryClient: use null client in memory mode (local dev), real client in cosmos mode
+    if (resolvedMode === 'memory') {
+        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(new NullTelemetryClient())
+    } else {
+        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
+    }
 
     // Register handlers as transient (no shared mutable state across requests)
     container.bind(MoveHandler).toSelf()

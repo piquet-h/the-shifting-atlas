@@ -18,53 +18,62 @@ const container = new Container()
 // causing a race where handler/repository bindings might be missing on first invocation
 // (e.g. Functions.player alias to bootstrap) leading to FunctionInvocationException.
 app.hook.appStart(async () => {
-    // Initialize Application Insights auto collection (requests, dependencies, exceptions, performance)
-    appInsights.setup().start()
+    // Determine persistence mode early to conditionally initialize Application Insights
+    const persistenceMode = (process.env.PERSISTENCE_MODE || 'memory').toLowerCase()
+    const isCosmosMode = persistenceMode === 'cosmos'
 
-    // Sampling configuration (issue #315): environment-driven percentage.
-    // Accept either whole number (e.g. 15) or ratio (e.g. 0.15) via several possible variable names.
-    const samplingEnv =
-        process.env.APPINSIGHTS_SAMPLING_PERCENTAGE ||
-        process.env.APPINSIGHTS_SAMPLING_PERCENT ||
-        process.env.APP_INSIGHTS_SAMPLING_PERCENT ||
-        process.env.APP_INSIGHTS_SAMPLING_RATIO
-    let samplingPercentage = 15 // default proposed 15% (0.15)
-    if (samplingEnv) {
-        let raw = parseFloat(samplingEnv)
-        if (!Number.isNaN(raw)) {
-            // If value looks like a ratio (<=1), convert to percent
-            if (raw > 0 && raw <= 1) raw = raw * 100
-            samplingPercentage = Math.min(100, Math.max(0, raw))
+    // Initialize Application Insights only in cosmos mode (production/staging)
+    // In memory mode (local dev), skip initialization to avoid overhead and network calls
+    if (isCosmosMode) {
+        appInsights.setup().start()
+
+        // Sampling configuration (issue #315): environment-driven percentage.
+        // Accept either whole number (e.g. 15) or ratio (e.g. 0.15) via several possible variable names.
+        const samplingEnv =
+            process.env.APPINSIGHTS_SAMPLING_PERCENTAGE ||
+            process.env.APPINSIGHTS_SAMPLING_PERCENT ||
+            process.env.APP_INSIGHTS_SAMPLING_PERCENT ||
+            process.env.APP_INSIGHTS_SAMPLING_RATIO
+        let samplingPercentage = 15 // default proposed 15% (0.15)
+        if (samplingEnv) {
+            let raw = parseFloat(samplingEnv)
+            if (!Number.isNaN(raw)) {
+                // If value looks like a ratio (<=1), convert to percent
+                if (raw > 0 && raw <= 1) raw = raw * 100
+                samplingPercentage = Math.min(100, Math.max(0, raw))
+            }
         }
-    }
-    try {
-        appInsights.defaultClient.config.samplingPercentage = samplingPercentage
-    } catch {
-        // ignore sampling configuration errors
-    }
+        try {
+            appInsights.defaultClient.config.samplingPercentage = samplingPercentage
+        } catch {
+            // ignore sampling configuration errors
+        }
 
-    // add telemetry processor to drop bot/probe requests
-    try {
-        const client = appInsights.defaultClient
-        if (client && typeof client.addTelemetryProcessor === 'function') {
-            const patterns = ['.env', '.php', '/.git/', 'phpinfo', '/test.php', '/config/', '/_profiler']
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            client.addTelemetryProcessor((envelope: any) => {
-                try {
-                    const baseData = envelope && envelope.data && envelope.data.baseData
-                    const url = ((baseData && (baseData.url || baseData.name)) || '').toLowerCase()
-                    for (const p of patterns) {
-                        if (url.includes(p)) return false
+        // add telemetry processor to drop bot/probe requests
+        try {
+            const client = appInsights.defaultClient
+            if (client && typeof client.addTelemetryProcessor === 'function') {
+                const patterns = ['.env', '.php', '/.git/', 'phpinfo', '/test.php', '/config/', '/_profiler']
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                client.addTelemetryProcessor((envelope: any) => {
+                    try {
+                        const baseData = envelope && envelope.data && envelope.data.baseData
+                        const url = ((baseData && (baseData.url || baseData.name)) || '').toLowerCase()
+                        for (const p of patterns) {
+                            if (url.includes(p)) return false
+                        }
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    } catch (_error) {
+                        // Ignore telemetry processor errors
                     }
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                } catch (_error) {
-                    // Ignore telemetry processor errors
-                }
-                return true
-            })
+                    return true
+                })
+            }
+        } catch (error: unknown) {
+            console.error('Failed to add telemetry processor', error)
         }
-    } catch (error: unknown) {
-        console.error('Failed to add telemetry processor', error)
+    } else {
+        console.log('[startup] Memory mode detected - skipping Application Insights initialization')
     }
 
     const startTime = Date.now()
@@ -73,18 +82,23 @@ app.hook.appStart(async () => {
         await setupContainer(container)
     } catch (error) {
         // Log and emit metric so cold start failures are diagnosable
-
         console.error('Container setup failed', error)
-        try {
-            appInsights.defaultClient.trackException({ exception: error as Error })
-        } catch {
-            // swallow
+        if (isCosmosMode) {
+            try {
+                appInsights.defaultClient.trackException({ exception: error as Error })
+            } catch {
+                // swallow
+            }
         }
     }
 
     const endTime = Date.now()
     const duration = endTime - startTime
-    appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
+    if (isCosmosMode) {
+        appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
+    } else {
+        console.log(`[startup] Container setup completed in ${duration}ms`)
+    }
 
     // Register graceful shutdown hooks AFTER container setup so bindings exist.
     // Azure Functions may recycle processes; we attempt best-effort flush/close on signals.
