@@ -475,3 +475,13 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
     principalType: 'ServicePrincipal'
   }
 }
+
+// Workbook: Movement Blocked Reasons Breakdown
+module workbookMovementBlockedReasons 'workbook-movement-blocked-reasons.bicep' = {
+  name: 'workbook-movement-blocked-reasons'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
