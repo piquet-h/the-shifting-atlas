@@ -48,7 +48,21 @@ function validateBackendPackageJson() {
     }
 }
 
+// Ensure shared seed file has not been reintroduced (Option 2 canonical backend seed).
+function ensureNoSharedSeedFile() {
+    const seedPath = resolve(process.cwd(), 'shared/src/data/villageLocations.json')
+    if (existsSync(seedPath)) {
+        process.stderr.write(
+            '[verify-deployable] FORBIDDEN: shared/src/data/villageLocations.json exists. Backend seed is canonical; remove duplicate.\n'
+        )
+        return false
+    }
+    process.stdout.write('[verify-deployable] OK: No duplicate shared seed file present.\n')
+    return true
+}
+
 let failed = !validateBackendPackageJson()
+failed = !ensureNoSharedSeedFile() || failed
 
 for (const c of checks) {
     const full = resolve(process.cwd(), c.path)

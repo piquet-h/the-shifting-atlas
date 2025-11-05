@@ -1,32 +1,32 @@
 #!/usr/bin/env node
 /**
  * Mosswell World Data Migration Script
- * 
+ *
  * Scaffolding for consistent world data migrations with safety checks.
  * Supports dry-run mode, duplicate ID detection, and schema version validation.
- * 
+ *
  * Usage:
  *   node scripts/mosswell-migration.mjs [options]
- * 
+ *
  * Options:
  *   --mode=memory|cosmos       Persistence mode (default: from PERSISTENCE_MODE env or 'memory')
  *   --data=path                Path to migration data JSON file
  *   --dry-run                  Preview changes without applying them
  *   --schema-version=N         Expected minimum schema version (default: 1)
  *   --help, -h                 Show help message
- * 
+ *
  * Environment Variables (for cosmos mode):
  *   PERSISTENCE_MODE=cosmos
  *   COSMOS_GREMLIN_ENDPOINT, COSMOS_GREMLIN_DATABASE, COSMOS_GREMLIN_GRAPH
  *   COSMOS_SQL_ENDPOINT, COSMOS_SQL_DATABASE
- * 
+ *
  * Migration Data Format:
  *   {
  *     "schemaVersion": 3,
  *     "migrationName": "add-new-district",
  *     "locations": [ ... Location objects ... ]
  *   }
- * 
+ *
  * Exit Codes:
  *   0 - Success
  *   1 - Configuration or validation error
@@ -35,44 +35,44 @@
  */
 
 import { readFile } from 'fs/promises'
-import { resolve, normalize } from 'path'
-import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
+import { normalize, resolve } from 'path'
+import { fileURLToPath } from 'url'
 
 /**
  * Validate migration data structure
  */
 function validateMigrationData(data) {
     const errors = []
-    
+
     if (!data || typeof data !== 'object') {
         errors.push('Migration data must be an object')
         return errors
     }
-    
+
     if (!data.schemaVersion || typeof data.schemaVersion !== 'number') {
         errors.push('Missing or invalid schemaVersion (must be a number)')
     }
-    
+
     if (!data.migrationName || typeof data.migrationName !== 'string') {
         errors.push('Missing or invalid migrationName (must be a string)')
     }
-    
+
     if (!Array.isArray(data.locations)) {
         errors.push('locations must be an array')
         return errors
     }
-    
+
     if (data.locations.length === 0) {
         errors.push('locations array cannot be empty')
     }
-    
+
     // Validate each location
     const ids = new Set()
     for (let i = 0; i < data.locations.length; i++) {
         const loc = data.locations[i]
         const prefix = `locations[${i}]`
-        
+
         if (!loc.id || typeof loc.id !== 'string') {
             errors.push(`${prefix}: Missing or invalid id`)
         } else if (ids.has(loc.id)) {
@@ -80,19 +80,19 @@ function validateMigrationData(data) {
         } else {
             ids.add(loc.id)
         }
-        
+
         if (!loc.name || typeof loc.name !== 'string') {
             errors.push(`${prefix}: Missing or invalid name`)
         }
-        
+
         if (!loc.description || typeof loc.description !== 'string') {
             errors.push(`${prefix}: Missing or invalid description`)
         }
-        
+
         if (loc.version !== undefined && typeof loc.version !== 'number') {
             errors.push(`${prefix}: version must be a number`)
         }
-        
+
         // Validate exits if present
         if (loc.exits && !Array.isArray(loc.exits)) {
             errors.push(`${prefix}: exits must be an array`)
@@ -100,18 +100,18 @@ function validateMigrationData(data) {
             for (let j = 0; j < loc.exits.length; j++) {
                 const exit = loc.exits[j]
                 const exitPrefix = `${prefix}.exits[${j}]`
-                
+
                 if (!exit.direction || typeof exit.direction !== 'string') {
                     errors.push(`${exitPrefix}: Missing or invalid direction`)
                 }
-                
+
                 if (exit.to !== undefined && typeof exit.to !== 'string') {
                     errors.push(`${exitPrefix}: to must be a string`)
                 }
             }
         }
     }
-    
+
     return errors
 }
 
@@ -120,8 +120,8 @@ function validateMigrationData(data) {
  */
 async function checkDuplicateIds(migrationData, existingLocations) {
     const duplicates = []
-    const existingIds = new Set(existingLocations.map(l => l.id))
-    
+    const existingIds = new Set(existingLocations.map((l) => l.id))
+
     for (const loc of migrationData.locations) {
         if (existingIds.has(loc.id)) {
             duplicates.push({
@@ -131,7 +131,7 @@ async function checkDuplicateIds(migrationData, existingLocations) {
             })
         }
     }
-    
+
     return duplicates
 }
 
@@ -146,7 +146,7 @@ function validateSchemaVersion(migrationData, minVersion) {
             isDowngrade: true
         }
     }
-    
+
     return { valid: true }
 }
 
@@ -155,17 +155,16 @@ function validateSchemaVersion(migrationData, minVersion) {
  */
 function formatPlannedChanges(migrationData) {
     const lines = []
-    
+
     lines.push(`Migration: ${migrationData.migrationName}`)
     lines.push(`Schema Version: ${migrationData.schemaVersion}`)
     lines.push('')
     lines.push('Planned Changes:')
     lines.push(`  Locations to add: ${migrationData.locations.length}`)
-    
-    const totalExits = migrationData.locations.reduce((sum, loc) => 
-        sum + (loc.exits?.length || 0), 0)
+
+    const totalExits = migrationData.locations.reduce((sum, loc) => sum + (loc.exits?.length || 0), 0)
     lines.push(`  Total exits: ${totalExits}`)
-    
+
     lines.push('')
     lines.push('Location Details:')
     for (const loc of migrationData.locations) {
@@ -175,10 +174,10 @@ function formatPlannedChanges(migrationData) {
             lines.push(`    Tags: ${loc.tags.join(', ')}`)
         }
         if (loc.exits && loc.exits.length > 0) {
-            lines.push(`    Exits: ${loc.exits.map(e => e.direction).join(', ')}`)
+            lines.push(`    Exits: ${loc.exits.map((e) => e.direction).join(', ')}`)
         }
     }
-    
+
     return lines.join('\n')
 }
 
@@ -191,7 +190,7 @@ async function main() {
     let dataPath = null
     let dryRun = false
     let minSchemaVersion = 1
-    
+
     // Parse command line arguments
     for (const arg of args) {
         if (arg.startsWith('--mode=')) {
@@ -257,16 +256,16 @@ Examples:
             process.exit(0)
         }
     }
-    
+
     if (!dataPath) {
         console.error('❌ Error: --data argument is required')
         console.error('   Use --help for usage information')
         process.exit(1)
     }
-    
+
     // Set persistence mode environment variable
     process.env.PERSISTENCE_MODE = mode
-    
+
     try {
         console.log('═══════════════════════════════════════════════════════════')
         console.log('  Mosswell World Data Migration')
@@ -276,25 +275,25 @@ Examples:
         console.log(`Minimum Schema Version: ${minSchemaVersion}`)
         console.log(`Timestamp: ${new Date().toISOString()}`)
         console.log()
-        
+
         // Resolve and validate data file path
         const scriptDir = fileURLToPath(new URL('.', import.meta.url))
         const projectRoot = resolve(scriptDir, '..')
         let resolvedDataPath = resolve(projectRoot, dataPath)
-        
+
         // Security: Ensure the resolved path is within the project directory or /tmp (for tests)
         const normalizedPath = normalize(resolvedDataPath)
         const normalizedRoot = normalize(projectRoot) + '/'
         const isTmpPath = normalizedPath.startsWith('/tmp/')
-        
+
         if (!normalizedPath.startsWith(normalizedRoot) && normalizedPath !== normalize(projectRoot) && !isTmpPath) {
             console.error(`❌ Error: Path '${dataPath}' is outside the project directory`)
             console.error(`   For security reasons, only files within the project can be loaded.`)
             process.exit(1)
         }
-        
+
         console.log(`Loading migration data from: ${resolvedDataPath}`)
-        
+
         // Load migration data
         let migrationData
         try {
@@ -305,22 +304,22 @@ Examples:
             console.error(`   ${err.message}`)
             process.exit(1)
         }
-        
+
         console.log('✓ Migration data loaded')
         console.log()
-        
+
         // Validate migration data structure
         console.log('Running pre-checks...')
         console.log('───────────────────────────────────────────────────────────')
-        
+
         const validationErrors = validateMigrationData(migrationData)
         if (validationErrors.length > 0) {
             console.error('❌ Validation Errors:')
-            validationErrors.forEach(err => console.error(`   • ${err}`))
+            validationErrors.forEach((err) => console.error(`   • ${err}`))
             process.exit(1)
         }
         console.log('✓ Migration data structure is valid')
-        
+
         // Validate schema version
         const schemaCheck = validateSchemaVersion(migrationData, minSchemaVersion)
         if (!schemaCheck.valid) {
@@ -331,12 +330,12 @@ Examples:
             process.exit(3)
         }
         console.log(`✓ Schema version ${migrationData.schemaVersion} meets minimum requirement`)
-        
+
         // For duplicate ID checking, we need to query existing locations
         // This is a simplified check - in a real scenario, you might want to load
         // the actual location repository to check against the database
         console.log('✓ Checking for duplicate IDs...')
-        
+
         // Load existing data for duplicate check (simplified - assumes villageLocations.json)
         const existingDataPath = resolve(projectRoot, 'backend/src/data/villageLocations.json')
         let existingLocations = []
@@ -347,20 +346,20 @@ Examples:
             console.log('   Note: Could not load existing locations for duplicate check')
             console.log(`   ${err.message}`)
         }
-        
+
         const duplicates = await checkDuplicateIds(migrationData, existingLocations)
         if (duplicates.length > 0) {
             console.error('❌ Duplicate ID Errors:')
-            duplicates.forEach(dup => {
+            duplicates.forEach((dup) => {
                 console.error(`   • ${dup.id} (${dup.name}): ${dup.conflict}`)
             })
             process.exit(2)
         }
         console.log('✓ No duplicate IDs detected')
-        
+
         console.log('───────────────────────────────────────────────────────────')
         console.log()
-        
+
         // Display planned changes
         console.log('═══════════════════════════════════════════════════════════')
         console.log('  Planned Changes')
@@ -368,7 +367,7 @@ Examples:
         console.log()
         console.log(formatPlannedChanges(migrationData))
         console.log()
-        
+
         if (dryRun) {
             console.log('═══════════════════════════════════════════════════════════')
             console.log('  DRY RUN MODE - No changes applied')
@@ -381,48 +380,48 @@ Examples:
             console.log()
             process.exit(0)
         }
-        
+
         // Apply migration
         console.log('═══════════════════════════════════════════════════════════')
         console.log('  Applying Migration')
         console.log('═══════════════════════════════════════════════════════════')
         console.log()
-        
+
         // Dynamic import of backend modules to avoid loading before env is set or in dry-run
         console.log('Loading backend repositories...')
-        
+
         try {
             // Use createRequire to load backend modules from the backend directory context
             const backendRequire = createRequire(resolve(projectRoot, 'backend/package.json'))
-            
+
             // Load reflect-metadata (required by inversify)
             backendRequire('reflect-metadata')
-            
+
             // Load backend modules using the backend's require context
             const { Container } = backendRequire('inversify')
             const { setupContainer } = await import('../backend/dist/inversify.config.js')
             const { seedWorld } = await import('../backend/dist/seeding/seedWorld.js')
-            
+
             // Initialize DI container with proper mode
             const container = new Container()
             await setupContainer(container, mode)
-            
+
             // Get repositories from container
             const locationRepository = container.get('ILocationRepository')
             const playerRepository = container.get('IPlayerRepository')
-            
+
             const startTime = Date.now()
             const result = await seedWorld({
                 blueprint: migrationData.locations,
                 locationRepository,
                 playerRepository,
                 log: (...args) => {
-                    const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+                    const msg = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
                     console.log(`  ${msg}`)
                 }
             })
             const elapsedMs = Date.now() - startTime
-        
+
             console.log()
             console.log('✅ Migration completed successfully')
             console.log()
@@ -471,9 +470,8 @@ Examples:
             // Re-throw other errors
             throw moduleError
         }
-        
+
         process.exit(0)
-        
     } catch (error) {
         console.error()
         console.error('═══════════════════════════════════════════════════════════')
@@ -481,13 +479,13 @@ Examples:
         console.error('═══════════════════════════════════════════════════════════')
         console.error()
         console.error(`${error.message}`)
-        
+
         if (error.stack) {
             console.error()
             console.error('Stack trace:')
             console.error(error.stack)
         }
-        
+
         console.error()
         console.error('Troubleshooting:')
         console.error('  • Ensure backend dependencies are installed: cd backend && npm install')
@@ -500,7 +498,7 @@ Examples:
         console.error('  • The script is idempotent and will skip already-applied changes')
         console.error('  • Use --dry-run to preview changes before applying')
         console.error()
-        
+
         process.exit(1)
     }
 }
@@ -510,4 +508,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     main()
 }
 
-export { main, validateMigrationData, checkDuplicateIds, validateSchemaVersion, formatPlannedChanges }
+export { checkDuplicateIds, formatPlannedChanges, main, validateMigrationData, validateSchemaVersion }

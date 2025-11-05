@@ -1,6 +1,7 @@
 # Seed Script Implementation - Acceptance Criteria Verification
 
 ## Issue Requirements
+
 **Issue:** Seed Script: Anchor Locations & Exits  
 **Milestone:** M0 Foundation  
 **Labels:** scope:devx, feature
@@ -10,12 +11,14 @@
 ### ✅ 1. Re-run safe (no duplicate vertices/edges)
 
 **Implementation:**
-- Script uses `seedWorld()` function from `backend/src/seeding/seedWorld.ts`
-- `locationRepository.upsert()` creates or updates location vertices without duplicates
-- `locationRepository.ensureExit()` creates exit edges only if they don't exist
-- Tested in `backend/test/mosswellBootstrap.test.ts` with multiple sequential runs
+
+-   Script uses `seedWorld()` function from `backend/src/seeding/seedWorld.ts`
+-   `locationRepository.upsert()` creates or updates location vertices without duplicates
+-   `locationRepository.ensureExit()` creates exit edges only if they don't exist
+-   Tested in `backend/test/mosswellBootstrap.test.ts` with multiple sequential runs
 
 **Verification:**
+
 ```bash
 # Run twice and verify no duplicates
 node scripts/seed-anchor-locations.mjs --mode=memory
@@ -27,14 +30,16 @@ node scripts/seed-anchor-locations.mjs --mode=memory
 
 **Implementation:**
 Script outputs detailed summary including:
-- Locations processed count
-- Location vertices created (new only)
-- Exits created (new only)
-- Demo player creation status
-- Demo player ID
-- Elapsed time in milliseconds
+
+-   Locations processed count
+-   Location vertices created (new only)
+-   Exits created (new only)
+-   Demo player creation status
+-   Demo player ID
+-   Elapsed time in milliseconds
 
 **Sample Output:**
+
 ```
 ═══════════════════════════════════════════════════════════
   Summary
@@ -54,32 +59,37 @@ Script outputs detailed summary including:
 ### ✅ 3. Documented in dev workflow README
 
 **Implementation:**
-- Added comprehensive section in `docs/developer-workflow/local-dev-setup.md`
-- Added quick reference in main `README.md`
-- Created `scripts/README.md` with full script documentation
+
+-   Added comprehensive section in `docs/developer-workflow/local-dev-setup.md`
+-   Added quick reference in main `README.md`
+-   Created `scripts/README.md` with full script documentation
 
 **Documentation includes:**
-- Quick start examples
-- Usage syntax and options
-- Output description
-- Prerequisites
-- Idempotency guarantees
+
+-   Quick start examples
+-   Usage syntax and options
+-   Output description
+-   Prerequisites
+-   Idempotency guarantees
 
 ## Additional Features
 
 ### CLI Interface
-- `--mode=memory|cosmos` for persistence mode selection
-- `--data=path` for custom location data files
-- `--help` for usage information
+
+-   `--mode=memory|cosmos` for persistence mode selection
+-   `--data=path` for custom location data files
+-   `--help` for usage information
 
 ### Testing
-- Integration tests in `scripts/test/seed-anchor-locations.test.mjs`
-- Tests cover: help output, successful execution, idempotency, custom data files, error handling
+
+-   Integration tests in `scripts/test/seed-anchor-locations.test.mjs`
+-   Tests cover: help output, successful execution, idempotency, custom data files, error handling
 
 ### Data Source
-- Default: `backend/src/data/villageLocations.json` (34 locations, 90 exits)
-- Provides "arena slice" for playtesting and telemetry validation
-- Supports custom data files for flexibility
+
+-   Default: `backend/src/data/villageLocations.json` (34 locations, 90 exits)
+-   Provides "arena slice" for playtesting and telemetry validation
+-   Supports custom data files for flexibility
 
 ## Manual Testing Required
 
@@ -89,6 +99,7 @@ Due to GitHub Packages authentication requirements in CI environment, full integ
 2. For cosmos mode: Azure CLI authentication (`az login`)
 
 **Local Test Commands:**
+
 ```bash
 # Test help
 node scripts/seed-anchor-locations.mjs --help
@@ -106,10 +117,10 @@ node --test scripts/test/seed-anchor-locations.test.mjs
 
 ## Enables (from issue)
 
-- ✅ Movement loop validation: Script seeds connected locations with exits
-- ✅ Early AI read-only context scope: Provides meaningful world graph for AI tools
-- ✅ Playtesting: Multiple locations with various exit patterns
-- ✅ Telemetry validation: Demo player and locations ready for event tracking
+-   ✅ Movement loop validation: Script seeds connected locations with exits
+-   ✅ Early AI read-only context scope: Provides meaningful world graph for AI tools
+-   ✅ Playtesting: Multiple locations with various exit patterns
+-   ✅ Telemetry validation: Demo player and locations ready for event tracking
 
 ## Implementation Notes
 

@@ -54,3 +54,33 @@ test('AI.Cost events match telemetry pattern', () => {
         assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
     }
 })
+
+// Description telemetry events tests
+test('Description.Generate.Start is registered', () => {
+    assert.ok(isGameEventName('Description.Generate.Start'), 'Description.Generate.Start should be recognized')
+})
+
+test('Description.Generate.Success is registered', () => {
+    assert.ok(isGameEventName('Description.Generate.Success'), 'Description.Generate.Success should be recognized')
+})
+
+test('Description.Generate.Failure is registered', () => {
+    assert.ok(isGameEventName('Description.Generate.Failure'), 'Description.Generate.Failure should be recognized')
+})
+
+test('Description.Cache.Hit is registered', () => {
+    assert.ok(isGameEventName('Description.Cache.Hit'), 'Description.Cache.Hit should be recognized')
+})
+
+test('Description.Cache.Miss is registered', () => {
+    assert.ok(isGameEventName('Description.Cache.Miss'), 'Description.Cache.Miss should be recognized')
+})
+
+test('Description events match telemetry pattern', () => {
+    const descriptionEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Description.'))
+    assert.ok(descriptionEvents.length === 5, `Expected 5 Description events, found ${descriptionEvents.length}`)
+
+    for (const event of descriptionEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})

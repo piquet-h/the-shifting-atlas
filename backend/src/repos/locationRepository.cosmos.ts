@@ -87,6 +87,23 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         }
     }
 
+    /** List all location vertices (used for reconciliation). */
+    async listAll(): Promise<Location[]> {
+        const vertices = await this.query<Record<string, unknown>>("g.V().hasLabel('location').valueMap(true)")
+        const results: Location[] = []
+        for (const v of vertices || []) {
+            results.push({
+                id: String(v.id || v['id']),
+                name: firstScalar(v.name) || 'Unknown Location',
+                description: firstScalar(v.description) || '',
+                tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
+                version: typeof v.version === 'number' ? v.version : undefined
+                // exits omitted for listAll to reduce query volume – caller may refetch if needed
+            })
+        }
+        return results
+    }
+
     async move(fromId: string, direction: string) {
         try {
             // Validate direction first (cheap operation)
@@ -367,6 +384,16 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         })
 
         return { removed: true }
+    }
+
+    /** Delete a location vertex and all its connected exit edges. */
+    async deleteLocation(id: string): Promise<{ deleted: boolean }> {
+        // Verify exists first
+        const existing = await this.query<Record<string, unknown>>('g.V(lid).limit(1)', { lid: id })
+        if (!existing || existing.length === 0) return { deleted: false }
+        await this.query('g.V(lid).drop()', { lid: id })
+        // Telemetry intentionally omitted to avoid cross-package event additions during consolidation
+        return { deleted: true }
     }
 
     /** Batch apply multiple exits */

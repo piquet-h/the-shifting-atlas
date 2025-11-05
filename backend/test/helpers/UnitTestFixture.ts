@@ -12,6 +12,7 @@
 
 import type { InvocationContext } from '@azure/functions'
 import { Container } from 'inversify'
+import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { BaseTestFixture, TestMocks, type InvocationContextMockResult } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'
@@ -41,6 +42,14 @@ export class UnitTestFixture extends BaseTestFixture {
     async getTelemetryClient(): Promise<MockTelemetryClient> {
         const container = await this.getContainer()
         return container.get<MockTelemetryClient>('ITelemetryClient')
+    }
+
+    /**
+     * Get DescriptionRepository instance from DI container
+     */
+    async getDescriptionRepository(): Promise<IDescriptionRepository> {
+        const container = await this.getContainer()
+        return container.get<IDescriptionRepository>('IDescriptionRepository')
     }
 
     /**

@@ -55,11 +55,11 @@ npm run seed:production
 
 The bootstrap script is **safe to run multiple times**. It will:
 
-- ✅ Create missing location vertices
-- ✅ Create missing exit edges
-- ✅ Skip existing vertices and edges (no duplicates)
-- ✅ Create demo player if missing, skip if exists
-- ✅ Update location content if changed (based on content hash)
+-   ✅ Create missing location vertices
+-   ✅ Create missing exit edges
+-   ✅ Skip existing vertices and edges (no duplicates)
+-   ✅ Create demo player if missing, skip if exists
+-   ✅ Update location content if changed (based on content hash)
 
 **No destructive operations**: Never deletes or overwrites existing world data.
 
@@ -71,21 +71,21 @@ The bootstrap script is **safe to run multiple times**. It will:
 
 ```json
 [
-  {
-    "id": "loc-mosswell-entrance",
-    "externalId": "mosswell_entrance",
-    "name": "Mosswell Entrance",
-    "description": "A weathered stone archway marks the entrance...",
-    "kind": "entrance",
-    "version": 1,
-    "exits": [
-      {
-        "direction": "north",
-        "to": "loc-village-square",
-        "description": "A cobblestone path leads north"
-      }
-    ]
-  }
+    {
+        "id": "loc-mosswell-entrance",
+        "externalId": "mosswell_entrance",
+        "name": "Mosswell Entrance",
+        "description": "A weathered stone archway marks the entrance...",
+        "kind": "entrance",
+        "version": 1,
+        "exits": [
+            {
+                "direction": "north",
+                "to": "loc-village-square",
+                "description": "A cobblestone path leads north"
+            }
+        ]
+    }
 ]
 ```
 
@@ -108,40 +108,43 @@ const result = await seedWorld({
 ### Prerequisites
 
 1. **Backend dependencies installed**:
-   ```bash
-   cd backend
-   npm install
-   ```
+
+    ```bash
+    cd backend
+    npm install
+    ```
 
 2. **Persistence mode configured** (`local.settings.json`):
 
-   **For Cosmos Mode**:
-   ```json
-   {
-     "Values": {
-       "PERSISTENCE_MODE": "cosmos",
-       "COSMOS_ENDPOINT": "https://<account>.gremlin.cosmos.azure.com:443/",
-       "COSMOS_DATABASE": "shifting-atlas",
-       "COSMOS_GRAPH_NAME": "world-graph",
-       "COSMOS_KEY_SECRET_NAME": "cosmos-primary-key"
-     }
-   }
-   ```
+    **For Cosmos Mode**:
 
-   **For Memory Mode** (local testing):
-   ```json
-   {
-     "Values": {
-       "PERSISTENCE_MODE": "memory"
-     }
-   }
-   ```
+    ```json
+    {
+        "Values": {
+            "PERSISTENCE_MODE": "cosmos",
+            "COSMOS_ENDPOINT": "https://<account>.gremlin.cosmos.azure.com:443/",
+            "COSMOS_DATABASE": "shifting-atlas",
+            "COSMOS_GRAPH_NAME": "world-graph",
+            "COSMOS_KEY_SECRET_NAME": "cosmos-primary-key"
+        }
+    }
+    ```
+
+    **For Memory Mode** (local testing):
+
+    ```json
+    {
+        "Values": {
+            "PERSISTENCE_MODE": "memory"
+        }
+    }
+    ```
 
 3. **Azure authentication** (Cosmos mode only):
-   ```bash
-   az login
-   # OR set COSMOS_KEY_SECRET_NAME and configure Key Vault access
-   ```
+    ```bash
+    az login
+    # OR set COSMOS_KEY_SECRET_NAME and configure Key Vault access
+    ```
 
 ### Running the Script
 
@@ -163,9 +166,9 @@ npx tsx scripts/seed-production.ts
 
 The script performs pre-flight validation:
 
-- ❌ Aborts if `NODE_ENV=test` (prevents seeding test partition)
-- ❌ Aborts if `PARTITION_SCOPE=test` (same reason)
-- ❌ Aborts if `PERSISTENCE_MODE` is not `cosmos`
+-   ❌ Aborts if `NODE_ENV=test` (prevents seeding test partition)
+-   ❌ Aborts if `PARTITION_SCOPE=test` (same reason)
+-   ❌ Aborts if `PERSISTENCE_MODE` is not `cosmos`
 
 These checks prevent accidental test partition pollution.
 
@@ -253,9 +256,9 @@ console.log(`Created ${result.exitsCreated} new exits`)
 1. Compute content hash from location properties (name, description, kind)
 2. Query vertex by ID
 3. If vertex exists:
-   - Compare content hashes
-   - If different: Update vertex properties, increment revision
-   - If same: Skip (return `created: false`)
+    - Compare content hashes
+    - If different: Update vertex properties, increment revision
+    - If same: Skip (return `created: false`)
 4. If vertex missing: Create new vertex (return `created: true`)
 
 **Result**: Safe to call with same data repeatedly.
@@ -307,38 +310,38 @@ npm run seed:production
 **Solution**:
 
 1. Update `local.settings.json`:
-   ```json
-   {
-     "Values": {
-       "PERSISTENCE_MODE": "cosmos"
-     }
-   }
-   ```
+    ```json
+    {
+        "Values": {
+            "PERSISTENCE_MODE": "cosmos"
+        }
+    }
+    ```
 2. Or use quick toggle script:
-   ```bash
-   npm run use:cosmos
-   npm run seed:production
-   ```
+    ```bash
+    npm run use:cosmos
+    npm run seed:production
+    ```
 
 ### Script Hangs or Times Out
 
 **Possible Causes**:
 
-- Cosmos endpoint unreachable
-- Missing authentication (Managed Identity or Key Vault secret)
-- Network firewall blocking Cosmos port (443)
+-   Cosmos endpoint unreachable
+-   Missing authentication (Managed Identity or Key Vault secret)
+-   Network firewall blocking Cosmos port (443)
 
 **Solution**:
 
 1. Verify Cosmos endpoint is correct:
-   ```bash
-   curl -v https://<account>.gremlin.cosmos.azure.com:443/
-   ```
+    ```bash
+    curl -v https://<account>.gremlin.cosmos.azure.com:443/
+    ```
 2. Test Azure authentication:
-   ```bash
-   az login
-   az account show
-   ```
+    ```bash
+    az login
+    az account show
+    ```
 3. Check Key Vault secret access (if using secret-based auth)
 
 ### All Locations Show "Created: 0" on First Run
@@ -370,30 +373,30 @@ az cosmosdb gremlin graph throughput show \
 
 **Factors**:
 
-- Number of locations (34 in default blueprint)
-- Number of exits (90 in default blueprint)
-- Cosmos RU/s provisioned (400 RU/s for dev tier)
-- Geographic proximity to Cosmos region
+-   Number of locations (34 in default blueprint)
+-   Number of exits (90 in default blueprint)
+-   Cosmos RU/s provisioned (400 RU/s for dev tier)
+-   Geographic proximity to Cosmos region
 
 ### RU Consumption
 
 **Per Location**:
 
-- Upsert (new): ~10 RU
-- Upsert (existing, no change): ~5 RU (read + compare)
-- Exit creation: ~5 RU per edge
+-   Upsert (new): ~10 RU
+-   Upsert (existing, no change): ~5 RU (read + compare)
+-   Exit creation: ~5 RU per edge
 
 **Total for Full Seed** (first run):
 
-- 34 locations × 10 RU = 340 RU
-- 90 exits × 5 RU = 450 RU
-- **Total**: ~800 RU (~2 seconds at 400 RU/s)
+-   34 locations × 10 RU = 340 RU
+-   90 exits × 5 RU = 450 RU
+-   **Total**: ~800 RU (~2 seconds at 400 RU/s)
 
 **Idempotent Run** (no changes):
 
-- 34 locations × 5 RU = 170 RU
-- 90 exits × 3 RU (edge existence check) = 270 RU
-- **Total**: ~440 RU (~1 second at 400 RU/s)
+-   34 locations × 5 RU = 170 RU
+-   90 exits × 3 RU (edge existence check) = 270 RU
+-   **Total**: ~440 RU (~1 second at 400 RU/s)
 
 ## Integration with CI/CD
 
@@ -403,11 +406,11 @@ az cosmosdb gremlin graph throughput show \
 # .github/workflows/deploy.yml
 - name: Seed Production World
   run: |
-    cd backend
-    npm run seed:production
+      cd backend
+      npm run seed:production
   env:
-    COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
-    COSMOS_KEY_SECRET_NAME: cosmos-primary-key
+      COSMOS_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
+      COSMOS_KEY_SECRET_NAME: cosmos-primary-key
 ```
 
 **Current**: Manual execution after infrastructure provisioning.
@@ -442,10 +445,10 @@ For future world expansions, see [Migration Workflow](./mosswell-migration-workf
 
 **Characteristics**:
 
-- Always created during bootstrap
-- Guest account (not linked to external identity)
-- Initial location: `null` (assigned on first `GET /api/player/{id}`)
-- Safe to use for HTTP endpoint testing
+-   Always created during bootstrap
+-   Guest account (not linked to external identity)
+-   Initial location: `null` (assigned on first `GET /api/player/{id}`)
+-   Safe to use for HTTP endpoint testing
 
 **Usage**:
 
@@ -489,35 +492,35 @@ g.V('loc-mosswell-entrance')
 
 **Properties**:
 
-- **Label**: Direction string (enables efficient direction-based queries)
-- **description**: Optional prose for exit flavor text
-- **kind**: (Future) 'door', 'archway', 'passage'
-- **state**: (Future) 'locked', 'hidden', 'open'
+-   **Label**: Direction string (enables efficient direction-based queries)
+-   **description**: Optional prose for exit flavor text
+-   **kind**: (Future) 'door', 'archway', 'passage'
+-   **state**: (Future) 'locked', 'hidden', 'open'
 
 ## Best Practices
 
 ### Do's ✅
 
-- Run bootstrap script after infrastructure changes (new Cosmos account, partition migration)
-- Use idempotency to recover from partial failures (re-run is safe)
-- Verify output metrics (locations/exits created should match expectations)
-- Test with memory mode first, then Cosmos mode
+-   Run bootstrap script after infrastructure changes (new Cosmos account, partition migration)
+-   Use idempotency to recover from partial failures (re-run is safe)
+-   Verify output metrics (locations/exits created should match expectations)
+-   Test with memory mode first, then Cosmos mode
 
 ### Don'ts ❌
 
-- Don't modify `villageLocations.json` in place for custom worlds (create new migration files)
-- Don't assume bootstrap creates players beyond the demo player (use player bootstrap endpoint)
-- Don't run with `PARTITION_SCOPE=test` in production environment variables
-- Don't rely on bootstrap for runtime player onboarding (use `POST /api/player/bootstrap`)
+-   Don't modify `villageLocations.json` in place for custom worlds (create new migration files)
+-   Don't assume bootstrap creates players beyond the demo player (use player bootstrap endpoint)
+-   Don't run with `PARTITION_SCOPE=test` in production environment variables
+-   Don't rely on bootstrap for runtime player onboarding (use `POST /api/player/bootstrap`)
 
 ## Related Documentation
 
-- [Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contract details
-- [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
-- [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold usage
-- [Local Dev Setup](./local-dev-setup.md) – Environment configuration
-- [ADR-001: Mosswell Persistence](../adr/ADR-001-mosswell-persistence-layering.md) – Design rationale
-- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution
+-   [Repository Interfaces](./mosswell-repository-interfaces.md) – Persistence contract details
+-   [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
+-   [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold usage
+-   [Local Dev Setup](./local-dev-setup.md) – Environment configuration
+-   [ADR-001: Mosswell Persistence](../adr/ADR-001-mosswell-persistence-layering.md) – Design rationale
+-   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution
 
 ---
 
