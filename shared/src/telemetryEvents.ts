@@ -37,6 +37,9 @@ export const GAME_EVENT_NAMES = [
     'Navigation.Look.Issued',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
+    // UI interaction telemetry (M2 Observability - frontend correlation)
+    'UI.Move.Command', // Movement command dispatched from frontend
+    'UI.Location.Look', // Location look request from frontend
     'World.Location.Generated',
     'World.Location.Rejected',
     'World.Location.Upsert',

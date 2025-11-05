@@ -12,7 +12,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"), Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| extend BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)\n| project Success, Blocked, SuccessRate, BlockedRate",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"✓ Normal\", iff(SuccessRate >= 90, \"⚠ Warning\", \"🔴 Critical\"))\n| project Success, Blocked, Total, SuccessRate, BlockedRate, Status",
                 "size": 0,
                 "title": "Movement Success Rate (Last 24h)",
                 "queryType": 0,
@@ -32,7 +32,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"), Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| extend BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)\n| extend Status = case(SuccessRate >= 95, \"🟢 Normal\", SuccessRate >= 90, \"🟡 Warning\", \"🔴 Critical\")\n| project Status, Success, Blocked, Total, SuccessRate, BlockedRate",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"✓ Normal\", iff(SuccessRate >= 90, \"⚠ Warning\", \"🔴 Critical\"))\n| project Status, Success, Blocked, Total, SuccessRate, BlockedRate",
                 "size": 0,
                 "title": "Movement Metrics Summary",
                 "queryType": 0,
@@ -64,7 +64,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"), Blocked=countif(name == \"Navigation.Move.Blocked\") by bin(timestamp, 1h)\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| project timestamp, SuccessRate\n| order by timestamp asc",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n            by bin(timestamp, 1h)\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| project timestamp, SuccessRate\n| order by timestamp asc",
                 "size": 0,
                 "title": "Success Rate Trend (Last 24h)",
                 "queryType": 0,
@@ -78,7 +78,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Blocked Reasons Table (Last 24h)\nlet timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);\nlet reasonCounts = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count(), SamplePlayerIds = make_set(tostring(customDimensions.player_id), 3) by normalizedReason;\nlet totalCount = toscalar(reasonCounts | summarize sum(Count));\nreasonCounts\n| extend TotalCount = totalCount\n| extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)\n| extend IsHighConcentration = iff(PercentageShare > 50.0, '⚠️ HIGH', '')\n| project Reason = normalizedReason, Count, ['% Share'] = PercentageShare, Alert = IsHighConcentration, ['Sample Players'] = SamplePlayerIds\n| order by Count desc",
+                "query": "// Blocked Reasons Table (Last 24h)\nlet timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);\nlet reasonCounts = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason;\nlet totalCount = toscalar(reasonCounts | summarize sum(Count));\nreasonCounts\n| extend TotalCount = totalCount\n| extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)\n| extend Alert = iff(PercentageShare > 50.0, '⚠️ HIGH', '')\n| project \n    Reason = normalizedReason,\n    Count,\n    [\"% Share\"] = PercentageShare,\n    Alert\n| order by Count desc",
                 "size": 0,
                 "title": "Blocked Events by Reason (24h)",
                 "queryType": 0,
