@@ -32,14 +32,13 @@ export class PlayerGetHandler extends BaseHandler {
                 correlationId: this.correlationId
             })
         }
-        
+
         // Use withTiming to measure repository call latency
-        const rec = await withTiming(
-            'PlayerRepository.get',
-            () => this.playerRepo.get(id),
-            { category: 'repository', correlationId: this.correlationId }
-        )
-        
+        const rec = await withTiming('PlayerRepository.get', () => this.playerRepo.get(id), {
+            category: 'repository',
+            correlationId: this.correlationId
+        })
+
         if (!rec) {
             this.track('Player.Get', { playerGuid: id, status: 404 })
             return errorResponse(404, 'NotFound', 'Player not found', { correlationId: this.correlationId })

@@ -1,19 +1,20 @@
+import { randomUUID } from 'node:crypto'
 import type { GameTelemetryOptions } from '../telemetry.js'
 import { trackGameEvent } from '../telemetry.js'
 
 /**
  * Lightweight timing helper (Issue #353) providing ad-hoc latency measurement without spans.
- * 
+ *
  * New withTiming API - Usage:
  *   const result = await withTiming('FetchPlayer', async () => {
  *     return await playerRepo.get(id)
  *   }, { category: 'repository', includeErrorFlag: true })
- * 
+ *
  * Legacy startTiming API (for manual instrumentation):
  *   const t = startTiming('ContainerSetup')
  *   // ... work ...
  *   t.stop({ extra: 'value' })
- * 
+ *
  * Emits event name `Timing.Op` with properties: op, ms, correlationId, category?, error?
  */
 export interface TimingHandle {
@@ -37,11 +38,7 @@ export function __setTimingDebugSink(sink: ((name: string, properties: Record<st
  * Automatically emits Timing.Op event on completion (success or error).
  * Errors are re-thrown after emission when includeErrorFlag is true.
  */
-export async function withTiming<T>(
-    op: string,
-    fn: () => T | Promise<T>,
-    opts?: WithTimingOptions
-): Promise<T> {
+export async function withTiming<T>(op: string, fn: () => T | Promise<T>, opts?: WithTimingOptions): Promise<T> {
     const started = Date.now()
     let error: Error | undefined
     try {
@@ -62,11 +59,16 @@ export async function withTiming<T>(
         if (error && opts?.includeErrorFlag) {
             properties.error = true
         }
-        trackGameEvent('Timing.Op', properties, opts)
+
+        // Generate correlationId if not provided (matching trackGameEvent behavior)
+        const correlationId = opts?.correlationId || randomUUID()
+        const enrichedOpts = { ...opts, correlationId }
+
+        trackGameEvent('Timing.Op', properties, enrichedOpts)
         if (debugSink) {
             debugSink('Timing.Op', {
                 ...properties,
-                ...(opts?.correlationId ? { correlationId: opts.correlationId } : {})
+                correlationId
             })
         }
     }

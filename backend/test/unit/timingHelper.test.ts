@@ -193,14 +193,11 @@ test('withTiming bubbles errors without error flag when includeErrorFlag is fals
     })
 
     const testError = new Error('Test error')
-    await assert.rejects(
-        async () => {
-            await withTiming('FailingOperationNoFlag', () => {
-                throw testError
-            })
-        },
-        testError
-    )
+    await assert.rejects(async () => {
+        await withTiming('FailingOperationNoFlag', () => {
+            throw testError
+        })
+    }, testError)
 
     assert.equal(captured.length, 1, 'Event should still be emitted on error')
     const evt = captured[0]
