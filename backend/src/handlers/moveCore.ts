@@ -1,5 +1,11 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { getPlayerHeadingStore, normalizeDirection, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import {
+    enrichErrorAttributes,
+    enrichMovementAttributes,
+    getPlayerHeadingStore,
+    normalizeDirection,
+    STARTER_LOCATION_ID
+} from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
@@ -123,13 +129,20 @@ export class MoveHandler extends BaseHandler {
 
         // Invalid / unknown direction
         if (normalizationResult.status === 'unknown' || !normalizationResult.canonical) {
-            this.track('Navigation.Move.Blocked', {
+            const props = {
                 from: fromId,
                 direction: rawDir,
                 status: 400,
                 reason: 'invalid-direction',
                 latencyMs: Date.now() - started
+            }
+            enrichMovementAttributes(props, {
+                playerId: this.playerGuid,
+                fromLocationId: fromId,
+                exitDirection: rawDir
             })
+            enrichErrorAttributes(props, { errorCode: 'invalid-direction' })
+            this.track('Navigation.Move.Blocked', props)
             return {
                 success: false,
                 error: {
@@ -146,13 +159,20 @@ export class MoveHandler extends BaseHandler {
         // Fetch starting location
         const from = await this.locationRepo.get(fromId)
         if (!from) {
-            this.track('Navigation.Move.Blocked', {
+            const props = {
                 from: fromId,
                 direction: dir,
                 status: 404,
                 reason: 'from-missing',
                 latencyMs: Date.now() - started
+            }
+            enrichMovementAttributes(props, {
+                playerId: this.playerGuid,
+                fromLocationId: fromId,
+                exitDirection: dir
             })
+            enrichErrorAttributes(props, { errorCode: 'from-missing' })
+            this.track('Navigation.Move.Blocked', props)
             return {
                 success: false,
                 error: { type: 'from-missing', statusCode: 404, reason: 'from-missing' },
@@ -163,13 +183,20 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
-            this.track('Navigation.Move.Blocked', {
+            const props = {
                 from: fromId,
                 direction: dir,
                 status: 400,
                 reason: 'no-exit',
                 latencyMs: Date.now() - started
+            }
+            enrichMovementAttributes(props, {
+                playerId: this.playerGuid,
+                fromLocationId: fromId,
+                exitDirection: dir
             })
+            enrichErrorAttributes(props, { errorCode: 'no-exit' })
+            this.track('Navigation.Move.Blocked', props)
             return {
                 success: false,
                 error: { type: 'no-exit', statusCode: 400, reason: 'no-exit' },
@@ -182,13 +209,20 @@ export class MoveHandler extends BaseHandler {
         if (result.status === 'error') {
             const reason = result.reason
             const statusMap: Record<string, number> = { 'from-missing': 404, 'no-exit': 400, 'target-missing': 500 }
-            this.track('Navigation.Move.Blocked', {
+            const props = {
                 from: fromId,
                 direction: dir,
                 status: statusMap[reason] || 500,
                 reason,
                 latencyMs: Date.now() - started
+            }
+            enrichMovementAttributes(props, {
+                playerId: this.playerGuid,
+                fromLocationId: fromId,
+                exitDirection: dir
             })
+            enrichErrorAttributes(props, { errorCode: reason })
+            this.track('Navigation.Move.Blocked', props)
             return {
                 success: false,
                 error: { type: 'move-failed', statusCode: statusMap[reason] || 500, reason },
@@ -200,14 +234,21 @@ export class MoveHandler extends BaseHandler {
         if (this.playerGuid) headingStore.setLastHeading(this.playerGuid, dir)
 
         const latencyMs = Date.now() - started
-        this.track('Navigation.Move.Success', {
+        const props = {
             from: fromId,
             to: result.location.id,
             direction: dir,
             status: 200,
             rawInput: rawDir !== dir.toLowerCase() ? rawDir : undefined,
             latencyMs
+        }
+        enrichMovementAttributes(props, {
+            playerId: this.playerGuid,
+            fromLocationId: fromId,
+            toLocationId: result.location.id,
+            exitDirection: dir
         })
+        this.track('Navigation.Move.Success', props)
 
         return { success: true, location: result.location, latencyMs }
     }

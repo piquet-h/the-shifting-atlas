@@ -79,6 +79,10 @@ describe('PerformMove Telemetry Integration', () => {
             assert.equal(successEvent?.properties?.to, toId)
             assert.equal(successEvent?.properties?.direction, 'north')
             assert.equal(successEvent?.properties?.status, 200)
+            // Verify game.* attributes
+            assert.equal(successEvent?.properties?.['game.location.from'], fromId)
+            assert.equal(successEvent?.properties?.['game.location.to'], toId)
+            assert.equal(successEvent?.properties?.['game.world.exit.direction'], 'north')
         }
     })
 
@@ -105,6 +109,39 @@ describe('PerformMove Telemetry Integration', () => {
             assert.ok(blockedEvent, 'Navigation.Move.Blocked event missing for invalid direction')
             assert.equal(blockedEvent?.properties?.from, fromId)
             assert.equal(blockedEvent?.properties?.status, 400)
+            // Verify game.* attributes
+            assert.equal(blockedEvent?.properties?.['game.location.from'], fromId)
+            assert.equal(blockedEvent?.properties?.['game.world.exit.direction'], 'norrrth')
+            assert.equal(blockedEvent?.properties?.['game.error.code'], 'invalid-direction')
+        }
+    })
+
+    test('enriched attributes present for no-exit blocked movement', async () => {
+        const ctx = await createMockContext(fixture)
+        const telemetry = await fixture.getTelemetryClient()
+
+        const repo = await fixture.getLocationRepository()
+        const fromId = '00000000-0000-0000-0000-000000000004'
+        await repo.upsert({ id: fromId, name: 'Delta', description: 'Start', exits: [] })
+
+        // valid direction but no exit
+        const req = makeMoveRequest({ dir: 'north', from: fromId }) as HttpRequest
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const result = await handler.performMove(req)
+        assert.equal(result.success, false)
+        assert.equal(result.error?.type, 'no-exit')
+        if ('events' in telemetry) {
+            const blockedEvent = telemetry.events.find((e) => e.name === 'Navigation.Move.Blocked' && e.properties?.reason === 'no-exit')
+            assert.ok(blockedEvent, 'Navigation.Move.Blocked event missing for no-exit')
+            assert.equal(blockedEvent?.properties?.from, fromId)
+            assert.equal(blockedEvent?.properties?.direction, 'north')
+            assert.equal(blockedEvent?.properties?.status, 400)
+            // Verify game.* attributes
+            assert.equal(blockedEvent?.properties?.['game.location.from'], fromId)
+            assert.equal(blockedEvent?.properties?.['game.world.exit.direction'], 'north')
+            assert.equal(blockedEvent?.properties?.['game.error.code'], 'no-exit')
         }
     })
 })

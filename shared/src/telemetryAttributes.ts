@@ -75,10 +75,7 @@ export interface ErrorEventAttributes {
  * @param attrs - Player attribute values
  * @returns The mutated properties object for chaining
  */
-export function enrichPlayerAttributes(
-    properties: Record<string, unknown>,
-    attrs: PlayerEventAttributes
-): Record<string, unknown> {
+export function enrichPlayerAttributes(properties: Record<string, unknown>, attrs: PlayerEventAttributes): Record<string, unknown> {
     if (attrs.playerId) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.PLAYER_ID] = attrs.playerId
     }
@@ -94,10 +91,7 @@ export function enrichPlayerAttributes(
  * @param attrs - Movement attribute values
  * @returns The mutated properties object for chaining
  */
-export function enrichMovementAttributes(
-    properties: Record<string, unknown>,
-    attrs: MovementEventAttributes
-): Record<string, unknown> {
+export function enrichMovementAttributes(properties: Record<string, unknown>, attrs: MovementEventAttributes): Record<string, unknown> {
     if (attrs.playerId) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.PLAYER_ID] = attrs.playerId
     }
@@ -122,10 +116,7 @@ export function enrichMovementAttributes(
  * @param attrs - World event attribute values
  * @returns The mutated properties object for chaining
  */
-export function enrichWorldEventAttributes(
-    properties: Record<string, unknown>,
-    attrs: WorldEventAttributes
-): Record<string, unknown> {
+export function enrichWorldEventAttributes(properties: Record<string, unknown>, attrs: WorldEventAttributes): Record<string, unknown> {
     if (attrs.eventType) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_TYPE] = attrs.eventType
     }
@@ -150,10 +141,7 @@ export function enrichWorldEventAttributes(
  * @param attrs - Error attribute values
  * @returns The mutated properties object for chaining
  */
-export function enrichErrorAttributes(
-    properties: Record<string, unknown>,
-    attrs: ErrorEventAttributes
-): Record<string, unknown> {
+export function enrichErrorAttributes(properties: Record<string, unknown>, attrs: ErrorEventAttributes): Record<string, unknown> {
     if (attrs.errorCode) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
     }
