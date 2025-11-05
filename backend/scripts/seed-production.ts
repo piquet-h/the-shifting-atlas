@@ -35,7 +35,11 @@ try {
     console.error('⚠️  Warning: Could not load local.settings.json')
 }
 
+import { Container } from 'inversify'
+import { setupContainer } from '../src/inversify.config.js'
 import { resolvePersistenceMode } from '../src/persistenceConfig.js'
+import { ILocationRepository } from '../src/repos/locationRepository.js'
+import { IPlayerRepository } from '../src/repos/playerRepository.js'
 import { seedWorld } from '../src/seeding/seedWorld.js'
 
 async function main() {
@@ -63,9 +67,18 @@ async function main() {
     console.log('   Source: villageLocations.json (34 Mosswell locations)\n')
 
     try {
+        // Build DI container in cosmos mode and resolve repositories
+        // Let setupContainer infer mode & bind PersistenceConfig from environment instead of passing explicit mode
+        const container = await setupContainer(new Container())
+        const locationRepository = container.get<ILocationRepository>('ILocationRepository')
+        const playerRepository = container.get<IPlayerRepository>('IPlayerRepository')
+
         const result = await seedWorld({
             log: console.log,
-            demoPlayerId: '00000000-0000-4000-8000-000000000001'
+            demoPlayerId: '00000000-0000-4000-8000-000000000001',
+            locationRepository,
+            playerRepository,
+            bulkMode: true
         })
 
         console.log('\n✅ Production seeding complete!')
