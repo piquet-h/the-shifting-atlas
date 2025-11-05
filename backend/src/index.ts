@@ -29,16 +29,16 @@ app.hook.appStart(async () => {
         // Sampling configuration (issue #315): environment-driven percentage.
         // Accept either whole number (e.g. 15) or ratio (e.g. 0.15) via several possible variable names.
         const samplingEnv = process.env.APPINSIGHTS_SAMPLING_PERCENTAGE
-        
+
         // Environment-based default: 100% for dev/test, 15% for production
         const nodeEnv = (process.env.NODE_ENV || 'production').toLowerCase()
         const isDevelopment = nodeEnv === 'development' || nodeEnv === 'test'
         const defaultSampling = isDevelopment ? 100 : 15
-        
+
         let samplingPercentage = defaultSampling
         let configAdjusted = false
         let adjustmentReason = ''
-        
+
         if (samplingEnv) {
             const raw = parseFloat(samplingEnv)
             if (Number.isNaN(raw)) {
@@ -60,10 +60,10 @@ app.hook.appStart(async () => {
                 samplingPercentage = clamped
             }
         }
-        
+
         try {
             appInsights.defaultClient.config.samplingPercentage = samplingPercentage
-            
+
             // Emit warning event if configuration was adjusted
             if (configAdjusted) {
                 appInsights.defaultClient.trackEvent({
