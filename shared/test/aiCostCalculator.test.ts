@@ -128,7 +128,8 @@ test('calculateCost: should round to whole microdollars', () => {
     const result2 = calculateCost('gpt-4o-mini', 5, 0)
     assert.strictEqual(result2.estimatedCostMicros, 1)
 
-    // 10 prompt tokens: (10/1000) * 0.00015 = 0.0000015 USD = 1.5 microdollars → rounds to 2 (banker's rounding)
+    // 10 prompt tokens: (10/1000) * 0.00015 = 0.0000015 USD = 1.5 microdollars
+    // Due to floating-point precision: 1.4999999999999998 → rounds to 1
     const result3 = calculateCost('gpt-4o-mini', 10, 0)
     assert.strictEqual(result3.estimatedCostMicros, 1)
 })
