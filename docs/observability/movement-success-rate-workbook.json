@@ -1,0 +1,144 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Movement Success Rate Dashboard\n\nMonitors traversal health to detect regressions in normalization and world connectivity.\n\n**References:**\n- Issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10) - Telemetry Event Registry Expansion\n- Telemetry Catalog: `Navigation.Move.Success`, `Navigation.Move.Blocked`\n\n**Thresholds:**\n- 🟢 SuccessRate ≥ 95%: Normal\n- 🟡 90% ≤ SuccessRate < 95%: Warning (amber)\n- 🔴 SuccessRate < 90%: Critical (red)"
+      },
+      "name": "header-text"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| extend BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)\n| project Success, Blocked, SuccessRate, BlockedRate",
+        "size": 0,
+        "title": "Movement Success Rate (Last 24h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "Success",
+            "formatter": 1
+          },
+          "leftContent": {
+            "columnMatch": "Success",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "green"
+            }
+          },
+          "secondaryContent": {
+            "columnMatch": "SuccessRate",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "greenRed"
+            }
+          },
+          "showBorder": true
+        }
+      },
+      "customWidth": "50",
+      "name": "movement-success-tiles"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| extend BlockedRate = 100.0 * Blocked / (Total == 0 ? 1 : Total)\n| extend Status = case(\n    SuccessRate >= 95, \"🟢 Normal\",\n    SuccessRate >= 90, \"🟡 Warning\",\n    \"🔴 Critical\"\n)\n| project Status, Success, Blocked, Total, SuccessRate, BlockedRate",
+        "size": 0,
+        "title": "Movement Metrics Summary",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "Normal",
+                    "representation": "green"
+                  },
+                  {
+                    "operator": "contains",
+                    "text": "Warning",
+                    "representation": "yellow"
+                  },
+                  {
+                    "operator": "contains",
+                    "text": "Critical",
+                    "representation": "redBright"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "SuccessRate",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 100,
+                "palette": "greenRed"
+              }
+            },
+            {
+              "columnMatch": "BlockedRate",
+              "formatter": 8,
+              "formatOptions": {
+                "min": 0,
+                "max": 100,
+                "palette": "redGreen"
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "movement-metrics-table"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n  by bin(timestamp, 1h)\n| extend Total = Success + Blocked\n| extend SuccessRate = 100.0 * Success / (Total == 0 ? 1 : Total)\n| project timestamp, SuccessRate\n| order by timestamp asc",
+        "size": 0,
+        "title": "Success Rate Trend (Last 24h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "linechart",
+        "chartSettings": {
+          "yAxis": [
+            "SuccessRate"
+          ],
+          "ySettings": {
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      "name": "success-rate-trend"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(24h)\n| where name == \"Navigation.Move.Blocked\"\n| extend reason = tostring(customDimensions.reason)\n| summarize Count = count() by reason\n| order by Count desc",
+        "size": 0,
+        "title": "Blocked Reasons Breakdown (Last 24h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "piechart"
+      },
+      "name": "blocked-reasons-breakdown"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
