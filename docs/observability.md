@@ -414,18 +414,108 @@ OpenTelemetry span tracing has been removed (issue #311). The system now relies 
 -   `correlationId`: Always emitted (UUID generated if not supplied). Present in every custom event.
 -   `operationId`: Emitted when Application Insights request context has been initialized (may be absent in early init or certain async flows). Queries should guard with `isnotempty(customDimensions.operationId)`.
 
-Example Kusto pattern to join events with requests:
+#### Kusto Query Examples for Event Correlation
+
+##### Join custom events with HTTP requests via operationId
+
+Correlate domain events (Location.Move, Location.Get) with their originating HTTP request to analyze end-to-end latency and status:
 
 ```kusto
 let recentRequests = requests
   | where timestamp > ago(1h)
-  | project operation_Id, requestName = name, duration=duration, resultCode;
+  | project operation_Id, requestName = name, requestDuration = duration, resultCode;
 customEvents
 | where timestamp > ago(1h)
-| where name in ('Location.Move','Location.Get','World.Event.Processed')
-| project operationId = tostring(customDimensions.operationId), correlationId = tostring(customDimensions.correlationId), name, latencyMs=todouble(customDimensions.latencyMs)
+| where name in ('Location.Move', 'Location.Get', 'World.Event.Processed')
+| extend operationId = tostring(customDimensions.operationId),
+         correlationId = tostring(customDimensions.correlationId),
+         eventLatencyMs = todouble(customDimensions.latencyMs)
+| where isnotempty(operationId)
 | join kind=leftouter recentRequests on $left.operationId == $right.operation_Id
+| project timestamp, name, correlationId, operationId, requestName, requestDuration, resultCode, eventLatencyMs
 | order by timestamp desc
+```
+
+##### Track event chain across queue processing via correlationId
+
+Follow a correlationId across HTTP trigger → queue message → event processing to trace async workflows:
+
+```kusto
+let eventCorrelationId = "your-correlation-id-here";
+union customEvents, requests, dependencies
+| where timestamp > ago(24h)
+| extend correlationId = coalesce(
+    tostring(customDimensions.correlationId),
+    tostring(customProperties.correlationId),
+    ""
+)
+| where correlationId == eventCorrelationId
+| project timestamp, 
+         itemType = iff(itemType == "", "customEvent", itemType),
+         name,
+         correlationId,
+         operationId = coalesce(operation_Id, tostring(customDimensions.operationId)),
+         duration = coalesce(duration, todouble(customDimensions.latencyMs)),
+         resultCode = coalesce(resultCode, tostring(customDimensions.status))
+| order by timestamp asc
+```
+
+##### Identify queue-triggered events without request context
+
+Find events emitted from queue handlers where operationId is unavailable (useful for validating correlation coverage):
+
+```kusto
+customEvents
+| where timestamp > ago(1h)
+| where name in ('World.Event.Processed', 'World.Event.Duplicate')
+| extend operationId = tostring(customDimensions.operationId),
+         correlationId = tostring(customDimensions.correlationId)
+| where isempty(operationId) or isnull(operationId)
+| summarize count() by name, bin(timestamp, 5m)
+| render timechart
+```
+
+##### Join custom events with dependencies (external calls)
+
+Correlate game events with outbound dependencies (Cosmos DB, Service Bus) via operationId:
+
+```kusto
+let recentDependencies = dependencies
+  | where timestamp > ago(1h)
+  | where type in ("Azure blob", "Azure table", "Azure Service Bus", "HTTP")
+  | project operation_Id, dependencyType = type, target, dependencyDuration = duration, success;
+customEvents
+| where timestamp > ago(1h)
+| where name startswith "Location." or name startswith "World."
+| extend operationId = tostring(customDimensions.operationId)
+| where isnotempty(operationId)
+| join kind=inner recentDependencies on $left.operationId == $right.operation_Id
+| project timestamp, name, operationId, dependencyType, target, dependencyDuration, success
+| order by timestamp desc
+```
+
+##### Analyze request-to-event latency distribution
+
+Measure time between HTTP request start and domain event emission (useful for performance analysis):
+
+```kusto
+let eventsWithOp = customEvents
+  | where timestamp > ago(1h)
+  | where name in ('Location.Move', 'Location.Get')
+  | extend operationId = tostring(customDimensions.operationId)
+  | where isnotempty(operationId)
+  | project eventTimestamp = timestamp, name, operationId;
+requests
+| where timestamp > ago(1h)
+| join kind=inner eventsWithOp on $left.operation_Id == $right.operationId
+| extend latencyMs = datetime_diff('millisecond', eventTimestamp, timestamp)
+| summarize 
+    count = count(),
+    p50 = percentile(latencyMs, 50),
+    p95 = percentile(latencyMs, 95),
+    p99 = percentile(latencyMs, 99)
+  by name
+| order by p95 desc
 ```
 
 
