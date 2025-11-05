@@ -84,6 +84,8 @@ export const GAME_EVENT_NAMES = [
     'AI.Cost.SoftThresholdCrossed', // Soft budget threshold warning (does not block operation)
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid',
+    // Timing telemetry (M2 Observability - Issue #353)
+    'Timing.Op', // Ad-hoc operation timing measurement (op, ms, category?, error?)
     // Description layer telemetry (M4 Layering & Enrichment)
     'Description.Generate.Start', // Description generation initiated
     'Description.Generate.Success', // Description generated successfully

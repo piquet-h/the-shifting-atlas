@@ -3,14 +3,26 @@ import { trackGameEvent } from '../telemetry.js'
 
 /**
  * Lightweight timing helper (Issue #353) providing ad-hoc latency measurement without spans.
- * Usage:
+ * 
+ * New withTiming API - Usage:
+ *   const result = await withTiming('FetchPlayer', async () => {
+ *     return await playerRepo.get(id)
+ *   }, { category: 'repository', includeErrorFlag: true })
+ * 
+ * Legacy startTiming API (for manual instrumentation):
  *   const t = startTiming('ContainerSetup')
  *   // ... work ...
  *   t.stop({ extra: 'value' })
- * Emits event name `Timing.Op` with properties: opName, durationMs plus any extra properties supplied.
+ * 
+ * Emits event name `Timing.Op` with properties: op, ms, correlationId, category?, error?
  */
 export interface TimingHandle {
     stop(extraProperties?: Record<string, unknown>): void
+}
+
+export interface WithTimingOptions extends GameTelemetryOptions {
+    category?: string
+    includeErrorFlag?: boolean
 }
 
 // Test/debug sink (not used in production). Allows unit tests to observe emitted events
@@ -20,6 +32,50 @@ export function __setTimingDebugSink(sink: ((name: string, properties: Record<st
     debugSink = sink
 }
 
+/**
+ * Wraps a synchronous or asynchronous function with timing measurement.
+ * Automatically emits Timing.Op event on completion (success or error).
+ * Errors are re-thrown after emission when includeErrorFlag is true.
+ */
+export async function withTiming<T>(
+    op: string,
+    fn: () => T | Promise<T>,
+    opts?: WithTimingOptions
+): Promise<T> {
+    const started = Date.now()
+    let error: Error | undefined
+    try {
+        const result = await fn()
+        return result
+    } catch (err) {
+        error = err instanceof Error ? err : new Error(String(err))
+        throw error
+    } finally {
+        const ms = Date.now() - started
+        const properties: Record<string, unknown> = {
+            op,
+            ms
+        }
+        if (opts?.category) {
+            properties.category = opts.category
+        }
+        if (error && opts?.includeErrorFlag) {
+            properties.error = true
+        }
+        trackGameEvent('Timing.Op', properties, opts)
+        if (debugSink) {
+            debugSink('Timing.Op', {
+                ...properties,
+                ...(opts?.correlationId ? { correlationId: opts.correlationId } : {})
+            })
+        }
+    }
+}
+
+/**
+ * Legacy manual timing API (retained for backward compatibility).
+ * Prefer withTiming for new code.
+ */
 export function startTiming(opName: string, opts?: GameTelemetryOptions): TimingHandle {
     const started = Date.now()
     let stopped = false

@@ -3,6 +3,7 @@ import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IPlayerRepository } from '../repos/playerRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import { withTiming } from '../telemetry/timing.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 import { isValidGuid } from './utils/validation.js'
@@ -31,7 +32,14 @@ export class PlayerGetHandler extends BaseHandler {
                 correlationId: this.correlationId
             })
         }
-        const rec = await this.playerRepo.get(id)
+        
+        // Use withTiming to measure repository call latency
+        const rec = await withTiming(
+            'PlayerRepository.get',
+            () => this.playerRepo.get(id),
+            { category: 'repository', correlationId: this.correlationId }
+        )
+        
         if (!rec) {
             this.track('Player.Get', { playerGuid: id, status: 404 })
             return errorResponse(404, 'NotFound', 'Player not found', { correlationId: this.correlationId })
