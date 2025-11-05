@@ -35,7 +35,7 @@ export default {
         // Allow operationId manipulation only in telemetry helper files
         const isTelemetryHelper = 
             /backend\/src\/telemetry\.ts$/.test(filename) ||
-            /shared\/src\/telemetry.*\.ts$/.test(filename) ||
+            /shared\/src\/telemetry\.ts$/.test(filename) ||
             /frontend\/src\/services\/telemetry\.ts$/.test(filename)
         
         // Allow in test files (for mocking/assertions)

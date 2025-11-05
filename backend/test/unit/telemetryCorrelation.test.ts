@@ -46,7 +46,8 @@ describe('Telemetry Correlation', () => {
                 assert.ok(evt, 'Generated correlation event missing')
                 const cid = evt?.properties?.correlationId as string | undefined
                 assert.ok(cid, 'correlationId should be present')
-                assert.match(cid!, /^[0-9a-fA-F-]{20,}$/)
+                // UUID v4 format: 8-4-4-4-12 hex digits
+                assert.match(cid!, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
             }

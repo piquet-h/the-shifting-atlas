@@ -13,7 +13,6 @@
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { readFileSync } from 'node:fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -45,7 +44,22 @@ try {
     excludeArgs += ' --exclude="*.test.ts"' // Exclude test files
     excludeArgs += ' --exclude="*.test.tsx"'
     
-    const cmd = `cd "${rootDir}" && grep -rn "operationId:" backend/src shared/src frontend/src ${excludeArgs} --include="*.ts" --include="*.tsx" || true`
+    // Check if directories exist before grepping
+    const searchDirs = ['backend/src', 'shared/src', 'frontend/src'].filter(dir => {
+        try {
+            execSync(`cd "${rootDir}" && test -d ${dir}`, { encoding: 'utf-8' })
+            return true
+        } catch {
+            return false
+        }
+    })
+    
+    if (searchDirs.length === 0) {
+        console.log('⚠️  No source directories found to check.')
+        process.exit(0)
+    }
+    
+    const cmd = `cd "${rootDir}" && grep -rn "operationId:" ${searchDirs.join(' ')} ${excludeArgs} --include="*.ts" --include="*.tsx" || true`
     const output = execSync(cmd, { encoding: 'utf-8' })
     
     if (output.trim()) {
