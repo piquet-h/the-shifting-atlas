@@ -23,6 +23,49 @@ Player‑facing SPA prototype. Minimal health check call, simple navigation, Tai
 
 All Azure Functions now live in the separate `backend/` workspace. During local development call them directly (default host `http://localhost:7071`). If you need same‑origin requests, configure Vite's `server.proxy` to forward `/api` → `http://localhost:7071`.
 
+## Telemetry & Observability
+
+The frontend supports Application Insights telemetry for tracking user interactions and correlating with backend events.
+
+### Enabling Telemetry
+
+Set the `VITE_APPINSIGHTS_CONNECTION_STRING` environment variable in your `.env.development` or `.env.production` file:
+
+```bash
+VITE_APPINSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint=https://...
+```
+
+If not set, telemetry is gracefully disabled (no-op).
+
+### Correlation Headers
+
+When telemetry is enabled, the frontend automatically:
+
+- Generates a unique `correlationId` for each player action (move, look)
+- Attaches the `x-correlation-id` header to backend HTTP requests
+- Tracks UI events (`UI.Move.Command`, `UI.Location.Look`) with the correlationId
+- Enables Application Insights join queries across frontend and backend events
+
+### Implementation Details
+
+- **Correlation Utilities**: `src/utils/correlation.ts` - Generate and manage correlation IDs
+- **Telemetry Service**: `src/services/telemetry.ts` - Application Insights initialization and event tracking
+- **Instrumented Components**: `CommandInterface.tsx` - Movement and look commands with correlation
+
+### Querying Correlated Events
+
+In Application Insights, join frontend and backend events using the correlationId:
+
+```kusto
+let correlationId = "your-correlation-id";
+union
+    (customEvents | where timestamp > ago(1h) and customDimensions.correlationId == correlationId),
+    (requests | where timestamp > ago(1h) and customDimensions["x-correlation-id"] == correlationId)
+| order by timestamp asc
+```
+
+See `docs/observability.md` for full telemetry specifications.
+
 ## Styling
 
 Tailwind + basic palette (`tailwind.config.ts`).
