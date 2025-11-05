@@ -350,21 +350,137 @@ customEvents
 | order by timestamp desc
 ```
 
+
 ### Internal Timing Events
 
-`Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. It is deliberately not enumerated in the shared `GAME_EVENT_NAMES` list to keep domain event space clean. Properties:
+`Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. Properties:
 
-| Key          | Description                      |
-| ------------ | -------------------------------- |
-| `opName`     | Operation label (developer set)  |
-| `durationMs` | Elapsed time in milliseconds     |
-| (extras…)    | Any supplemental diagnostic keys |
+| Key            | Description                                  | Required |
+| -------------- | -------------------------------------------- | -------- |
+| `op`           | Operation label (developer set)              | Yes      |
+| `ms`           | Elapsed time in milliseconds                 | Yes      |
+| `category`     | Operation category (e.g., 'repository')      | No       |
+| `error`        | Boolean flag when operation threw error      | No       |
+| `correlationId`| Auto-generated or provided correlation ID    | Yes      |
 
-Usage guidance:
+#### Usage Pattern (withTiming API)
 
--   Prefer using existing domain events’ `latencyMs` dimension when measuring request/command duration.
--   Use `Timing.Op` for one-off internal instrumentation unlikely to persist long-term; migrate to a domain event if it becomes permanent.
--   Avoid high-cardinality `opName` values (do not embed dynamic IDs).
+Preferred for new code - automatically wraps sync/async functions:
+
+```typescript
+import { withTiming } from '../telemetry/timing.js'
+
+// Basic usage
+const result = await withTiming('PlayerRepository.get', async () => {
+    return await playerRepo.get(id)
+})
+
+// With category and correlation
+const result = await withTiming(
+    'PlayerRepository.get',
+    () => playerRepo.get(id),
+    { category: 'repository', correlationId: req.correlationId }
+)
+
+// With error tracking (error flag set, exception re-thrown)
+try {
+    await withTiming(
+        'RiskyOperation',
+        () => riskyCall(),
+        { includeErrorFlag: true }
+    )
+} catch (err) {
+    // Error was tracked with error: true flag before re-throw
+    handleError(err)
+}
+```
+
+#### Legacy Usage Pattern (startTiming API)
+
+Manual start/stop pattern (retained for backward compatibility):
+
+```typescript
+import { startTiming } from '../telemetry/timing.js'
+
+const t = startTiming('ContainerSetup')
+// ... work ...
+t.stop({ extra: 'value' })
+```
+
+#### Kusto Query Examples
+
+**Percentile latency by operation:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(24h)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms),
+         category = tostring(customDimensions.category),
+         error = tobool(customDimensions.error)
+| summarize
+    count = count(),
+    errors = countif(error == true),
+    p50 = percentile(ms, 50),
+    p95 = percentile(ms, 95),
+    p99 = percentile(ms, 99),
+    avg = avg(ms),
+    max = max(ms)
+  by op, category
+| order by p95 desc
+```
+
+**Slow operations (p95 > 500ms):**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(7d)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms)
+| summarize p95 = percentile(ms, 95), count = count() by op
+| where p95 > 500
+| order by p95 desc
+```
+
+**Error rate by operation:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(24h)
+| extend op = tostring(customDimensions.op),
+         error = tobool(customDimensions.error)
+| summarize
+    total = count(),
+    errors = countif(error == true),
+    errorRate = round(100.0 * countif(error == true) / count(), 2)
+  by op
+| where errorRate > 0
+| order by errorRate desc
+```
+
+**Latency trend over time:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(7d)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms)
+| summarize p95 = percentile(ms, 95) by op, bin(timestamp, 1h)
+| render timechart
+```
+
+#### Usage Guidance
+
+-   Prefer using existing domain events' `latencyMs` dimension when measuring request/command duration.
+-   Use `Timing.Op` for ad-hoc internal instrumentation or detailed operation profiling.
+-   Avoid high-cardinality `op` values (do not embed dynamic IDs or user data).
+-   Use `category` to group related operations (e.g., 'repository', 'handler', 'external-api').
+-   Enable `includeErrorFlag: true` for operations where failure tracking is important.
+-   Very fast operations (<1ms) may round to 0 or 1ms due to Date.now() precision.
 
 ### Sampling Configuration
 
