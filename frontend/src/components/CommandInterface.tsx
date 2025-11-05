@@ -5,6 +5,7 @@ import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
+import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
@@ -90,8 +91,18 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                         response = data?.echo || 'pong'
                     }
                 } else if (lower === 'look') {
+                    // Generate correlation ID for look request
+                    const correlationId = generateCorrelationId()
                     const url = buildLocationUrl(currentLocationId)
-                    const headers = buildHeaders()
+                    const headers = buildHeaders({
+                        ...buildCorrelationHeaders(correlationId)
+                    })
+                    // Track UI event BEFORE request to capture user intent (dispatch time)
+                    // Backend events will track processing outcome using the same correlationId
+                    trackGameEventClient('UI.Location.Look', {
+                        correlationId,
+                        locationId: currentLocationId || null
+                    })
                     const res = await fetch(url, { headers })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
@@ -112,9 +123,19 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     }
                 } else if (lower.startsWith('move ')) {
                     const dir = lower.split(/\s+/)[1]
+                    // Generate correlation ID for move request
+                    const correlationId = generateCorrelationId()
                     const moveRequest = buildMoveRequest(playerGuid, dir, currentLocationId)
                     const headers = buildHeaders({
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        ...buildCorrelationHeaders(correlationId)
+                    })
+                    // Track UI event BEFORE request to capture user intent (dispatch time)
+                    // Backend events will track processing outcome using the same correlationId
+                    trackGameEventClient('UI.Move.Command', {
+                        correlationId,
+                        direction: dir,
+                        fromLocationId: currentLocationId || null
                     })
                     const res = await fetch(moveRequest.url, {
                         method: moveRequest.method,
