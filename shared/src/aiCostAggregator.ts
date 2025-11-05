@@ -85,7 +85,7 @@ export interface AICostWindowSummary {
     totalCompletionTokens: number
     /** Total estimated cost in microdollars (USD * 1,000,000) */
     totalEstimatedCostMicros: number
-    /** True if flush occurred >1 hour after hour end (delayed) */
+    /** True if flush occurred >1 hour after hour end (indicates long idle period or health issue) */
     delayedFlush: boolean
 }
 
@@ -267,5 +267,8 @@ export function forceFlushAICostSummary(now: number = Date.now()): AICostWindowS
  * @internal
  */
 export function _resetAggregationForTests(): void {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') {
+        throw new Error('_resetAggregationForTests should not be called in production')
+    }
     aggregationStore.clear()
 }

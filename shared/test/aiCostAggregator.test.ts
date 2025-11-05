@@ -238,7 +238,7 @@ test('recordEstimatedAICost: should handle high model cardinality (≥10 models)
     assert.strictEqual(summaries.length, 10)
 
     // Flush should be fast (<100ms expected, but allow some overhead in CI)
-    assert.ok(flushTime < 500, `Flush took ${flushTime}ms, expected <500ms`)
+    assert.ok(flushTime < 200, `Flush took ${flushTime}ms, expected <200ms`)
 
     // Verify all models are present
     const modelIds = summaries.map((s) => s.modelId).sort()
