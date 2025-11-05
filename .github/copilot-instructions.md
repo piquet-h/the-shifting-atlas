@@ -205,7 +205,7 @@ Atomic issues: exactly 1 scope + 1 type label.
 Epics: exactly 1 scope label + the coordination label `epic` (no type label applied).
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
-Milestones: M0 Foundation → M5 Systems (narrative stages).
+Milestones: M0 Foundation → M6 Dungeon Runs (narrative stages). Can add more. If so, add here and to Section 8.1 table
 Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readiness, and scope impact.
 
 ### 8.1 Milestone ID vs Name Reference (IMPORTANT)
@@ -264,10 +264,6 @@ Run lint + typecheck before commit; (ordering drift checks removed).
 
 Compact guide stable; long narrative stays in `docs/`.
 Any new scope/milestone: update labels + roadmap + this file (minimal diff) + reference ADR.
-
-### Roadmap & Status Guardrails (Do NOT Manual Edit)
-
-`docs/roadmap.md` previously auto-generated via ordering automation; that system is deprecated. Edit roadmap content manually as needed (historical automation references can be ignored).
 
 ---
 
