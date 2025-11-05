@@ -6,12 +6,12 @@
 
 ## 1. Current Snapshot
 
-Closed: 20 / 64 (31%). Newly closed since prior update: #229 (versioning decision), #152 (description telemetry emission). Foundations done: #10 (registry), #79 (Gremlin RU/latency instrumentation), #71 (Gremlin health), #41 (initial correlation wiring), #257 (dead-letter storage), #33 (semantic exits), #299 (AI cost events registry), #300 (pricing & override infra), #230–#233 (API modernization batch), #281 (movement success rate dashboard), #282 (blocked reasons dashboard). Still OPEN (telemetry consolidation set): #311 (OTel removal), #312 (attribute enrichment), #315 (sampling configuration), #316 (final correlation enrichment), #353 (timing helper).
+Closed: 21 / 64 (33%). Newly closed since prior update: #311 (OTel removal), #229 (versioning decision), #152 (description telemetry emission). Foundations done: #10 (registry), #79 (Gremlin RU/latency instrumentation), #71 (Gremlin health), #41 (initial correlation wiring), #257 (dead-letter storage), #33 (semantic exits), #299 (AI cost events registry), #300 (pricing & override infra), #230–#233 (API modernization batch), #281 (movement success rate dashboard), #282 (blocked reasons dashboard). Telemetry consolidation: #311 (OTel removal) COMPLETE; remaining: #312 (attribute enrichment), #315 (sampling configuration), #316 (final correlation enrichment), #353 (timing helper).
 
 ## 2. Exit Criteria (Minimum to declare M2 complete)
 
 1. Movement success & blocked reason dashboards visible (done: #281, #282); RU/latency dashboard query surfaced (pending if separate panel not yet added).
-2. Telemetry consolidation baseline INCOMPLETE – remaining: remove OTel (#311), implement attribute enrichment (#312), configure sampling (#315), finalize correlation (operationId + correlationId) (#316), implement timing helper (#353).
+2. Telemetry consolidation baseline COMPLETE for OTel removal (#311); remaining: implement attribute enrichment (#312), configure sampling (#315), finalize correlation (operationId + correlationId) (#316), implement timing helper (#353).
 3. AI cost telemetry pipeline: estimation (#302) → calculator (#303) → hourly aggregation (#304) → guardrail (#305).
 4. Integrity chain after description telemetry: hash baseline (#153) → cache layer (#154) → simulation harness (#155) → anomaly alerting (#156).
 5. World event handlers registry functional (#258) beyond dead-letter routing.
@@ -24,11 +24,11 @@ Closed: 20 / 64 (31%). Newly closed since prior update: #229 (versioning decisio
 
 **Goal:** Remove obsolete tracing code, enrich events with domain attributes, enable sampling, finalize correlation identifiers, add timing helpers.
 
-**Dependencies:** Must complete #311 before #312/#316 to avoid pattern conflicts.
+**Dependencies:** ~~Must complete #311 before #312/#316 to avoid pattern conflicts.~~ **#311 COMPLETE** – #312/#316 now unblocked.
 
 **Issues (Sequence):**
 
-1. **#311 OTel Removal** (BLOCKING) – Remove `backend/src/instrumentation/opentelemetry.ts`, purge dependencies, switch fully to Application Insights single mode; establishes clean telemetry foundation.
+1. **#311 OTel Removal** ~~(BLOCKING)~~ **[DONE]** – Removed `backend/src/instrumentation/opentelemetry.ts`, purged dependencies, switched fully to Application Insights single mode; clean telemetry foundation established.
 2. **#312 Attribute Enrichment** (parallel after #311) – Add domain attributes (game.player.id, game.location.id, game.event.type) to events for queryability.
 3. **#315 Sampling Configuration** (parallel after #311) – Configure Application Insights sampling (env-driven APPINSIGHTS_SAMPLING_PERCENTAGE, default 15% prod / 100% dev).
 4. **#316 Correlation Finalization** (after #311) – Enrich events with operationId (from AI context when available) + correlationId for cross-request joins.
@@ -36,7 +36,7 @@ Closed: 20 / 64 (31%). Newly closed since prior update: #229 (versioning decisio
 
 **Parallel Work:** #315 and #353 can proceed alongside #312 after #311 completes.
 
-**Rationale:** Removing OTel (#311) first prevents duplicate pattern injection and simplifies correlation wiring. Enrichment, sampling, and correlation additive once OTel eliminated.
+**Rationale:** ~~Removing OTel (#311) first prevents duplicate pattern injection and simplifies correlation wiring.~~ **OTel removed** – enrichment, sampling, and correlation now additive without pattern conflicts.
 
 ---
 
@@ -171,10 +171,11 @@ Closed: 20 / 64 (31%). Newly closed since prior update: #229 (versioning decisio
 -   [x] Versioning decision (#229)
 -   [x] Movement dashboards (#281, #282)
 -   [x] Description telemetry emission (#152)
+-   [x] OTel removal (#311)
 
 **Phase 1: Telemetry Foundation Completion**
 
--   [ ] OTel removal (#311) – BLOCKING
+-   [x] OTel removal (#311) – **COMPLETE**
 -   [ ] Attribute enrichment (#312)
 -   [ ] App Insights sampling configured (#315)
 -   [ ] Final correlation enrichment (operationId + correlationId) (#316)
@@ -215,7 +216,7 @@ Closed: 20 / 64 (31%). Newly closed since prior update: #229 (versioning decisio
 
 ## 7. One-Line Status
 
-**Foundations complete (20/64 closed, 31%); execution now phased: (1) Telemetry consolidation (OTel removal BLOCKING #311 → enrichment/sampling/correlation/timing), (2) AI cost pipeline (sequential #302→#303→#304→#305), (3) RU/latency dashboards + alerts (parallel dashboards → sequential alerts), (4) Integrity hash baseline (#153 only, rest deferred), (5) World handlers + docs polish (#258, #284).** Critical path: Phase 1 (#311) unblocks rest of consolidation; Phase 2 and Phase 3 can parallel Phase 1 completion; Phase 4 minimal (hash only); Phase 5 cleanup. Defer optional enhancements (#154–#156 integrity extras, #306–#309 cost extras, #297/#298 tuning/automation) to post-M2 unless capacity remains.
+**Foundations complete (21/64 closed, 33%); execution now phased: (1) Telemetry consolidation – #311 OTel removal DONE, unblocked #312 enrichment/sampling #315/correlation #316/timing #353 (all can parallel), (2) AI cost pipeline (sequential #302→#303→#304→#305), (3) RU/latency dashboards + alerts (parallel dashboards → sequential alerts), (4) Integrity hash baseline (#153 only, rest deferred), (5) World handlers + docs polish (#258, #284).** Critical path: Phase 1 #311 complete; #312/#315/#316/#353 now parallel-ready; Phase 2 and Phase 3 can proceed simultaneously; Phase 4 minimal (hash only); Phase 5 cleanup. Defer optional enhancements (#154–#156 integrity extras, #306–#309 cost extras, #297/#298 tuning/automation) to post-M2 unless capacity remains.
 
 ---
 
