@@ -293,7 +293,7 @@ Planned lint rule: enforce membership & regex validation for any string literal 
 
 ## Consolidated Telemetry Mode (Application Insights Only)
 
-OpenTelemetry span tracing has been removed (issue #311). The system now relies solely on Application Insights automatic collection plus custom events. No span exporter / traceparent continuation is active. Placeholder OTel code will be fully deleted after final cleanup.
+OpenTelemetry span tracing has been removed (issue #311). The system now relies solely on Application Insights automatic collection plus custom events. No span exporter or traceparent continuation is active.
 
 ### Correlation Strategy
 
@@ -343,11 +343,6 @@ customEvents
 ```
 
 Compare sustained volume to expected request count to validate sampling effect.
-
-### Pending Cleanup
-
--   Remove legacy placeholder file `src/instrumentation/opentelemetry.ts` once all references are purged.
--   Delete neutralized span test files (currently blank) in next housekeeping PR.
 
 ### Do / Do Not
 

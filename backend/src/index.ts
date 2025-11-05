@@ -3,7 +3,6 @@ import { app, PreInvocationContext } from '@azure/functions'
 // Lightweight declaration to satisfy type checker if Node types resolution is delayed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any
-// OpenTelemetry instrumentation removed – consolidated on Application Insights only.
 // Import order matters: initialize App Insights before any user code for auto-collection.
 import appInsights from 'applicationinsights'
 import { Container } from 'inversify'

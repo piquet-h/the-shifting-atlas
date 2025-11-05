@@ -128,8 +128,6 @@ function hashPrefix(key: string): string {
 // --- Main Handler ------------------------------------------------------------
 
 export async function queueProcessWorldEvent(message: unknown, context: InvocationContext): Promise<void> {
-    // Attempt to continue trace from Service Bus applicationProperties
-    // Extract traceparent directly (shared utility not yet published; will migrate after version bump)
     // 1. Parse message (Azure Service Bus messages can be JSON or string)
     let rawEvent: unknown
     try {
