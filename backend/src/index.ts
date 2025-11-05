@@ -28,22 +28,55 @@ app.hook.appStart(async () => {
 
         // Sampling configuration (issue #315): environment-driven percentage.
         // Accept either whole number (e.g. 15) or ratio (e.g. 0.15) via several possible variable names.
-        const samplingEnv =
-            process.env.APPINSIGHTS_SAMPLING_PERCENTAGE ||
-            process.env.APPINSIGHTS_SAMPLING_PERCENT ||
-            process.env.APP_INSIGHTS_SAMPLING_PERCENT ||
-            process.env.APP_INSIGHTS_SAMPLING_RATIO
-        let samplingPercentage = 15 // default proposed 15% (0.15)
+        const samplingEnv = process.env.APPINSIGHTS_SAMPLING_PERCENTAGE
+        
+        // Environment-based default: 100% for dev/test, 15% for production
+        const nodeEnv = (process.env.NODE_ENV || 'production').toLowerCase()
+        const isDevelopment = nodeEnv === 'development' || nodeEnv === 'test'
+        const defaultSampling = isDevelopment ? 100 : 15
+        
+        let samplingPercentage = defaultSampling
+        let configAdjusted = false
+        let adjustmentReason = ''
+        
         if (samplingEnv) {
-            let raw = parseFloat(samplingEnv)
-            if (!Number.isNaN(raw)) {
+            const raw = parseFloat(samplingEnv)
+            if (Number.isNaN(raw)) {
+                // Non-numeric value triggers fallback
+                configAdjusted = true
+                adjustmentReason = 'non-numeric value'
+            } else {
                 // If value looks like a ratio (<=1), convert to percent
-                if (raw > 0 && raw <= 1) raw = raw * 100
-                samplingPercentage = Math.min(100, Math.max(0, raw))
+                let normalized = raw
+                if (raw > 0 && raw <= 1) {
+                    normalized = raw * 100
+                }
+                // Clamp to valid range [0..100]
+                const clamped = Math.min(100, Math.max(0, normalized))
+                if (clamped !== normalized) {
+                    configAdjusted = true
+                    adjustmentReason = 'out-of-range value clamped'
+                }
+                samplingPercentage = clamped
             }
         }
+        
         try {
             appInsights.defaultClient.config.samplingPercentage = samplingPercentage
+            
+            // Emit warning event if configuration was adjusted
+            if (configAdjusted) {
+                appInsights.defaultClient.trackEvent({
+                    name: 'Telemetry.Sampling.ConfigAdjusted',
+                    properties: {
+                        requestedValue: samplingEnv,
+                        appliedPercentage: samplingPercentage,
+                        reason: adjustmentReason,
+                        defaultSampling,
+                        nodeEnv
+                    }
+                })
+            }
         } catch {
             // ignore sampling configuration errors
         }

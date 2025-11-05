@@ -84,6 +84,7 @@ export const GAME_EVENT_NAMES = [
     'AI.Cost.SoftThresholdCrossed', // Soft budget threshold warning (does not block operation)
     // Internal / fallback diagnostics
     'Telemetry.EventName.Invalid',
+    'Telemetry.Sampling.ConfigAdjusted', // Sampling configuration adjusted (clamping or fallback)
     // Description layer telemetry (M4 Layering & Enrichment)
     'Description.Generate.Start', // Description generation initiated
     'Description.Generate.Success', // Description generated successfully
