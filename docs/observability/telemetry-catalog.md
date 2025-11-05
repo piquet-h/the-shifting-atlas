@@ -521,12 +521,16 @@ customEvents
 
 | Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File |
 | ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------- |
-| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [#281](https://github.com/piquet-h/the-shifting-atlas/issues/281) |
+| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [movement-success-rate-workbook.json](movement-success-rate-workbook.json) |
 | Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   | [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) |
 | Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283) |
 
-> Implementation: each panel derives from `customEvents` queries shown above. Workbook definitions are stored in [docs/observability/workbooks/](workbooks/) directory. See [workbooks/README.md](workbooks/README.md) for import instructions and query reference.
-> **Implementation**: The Movement Success Rate workbook is available at [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import instructions in [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md). Each panel derives from `customEvents` queries shown above with clear thresholds & annotations referencing issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10).
+> **Implementation**: Each panel derives from `customEvents` queries shown above with clear thresholds & annotations referencing issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10).
+> 
+> **Workbook Files:**
+> - **Movement Success Rate**: [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import guide at [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md)
+> - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
+> - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
 **Last Updated:** 2025-10-30  
 **Event Count:** 44 canonical events
