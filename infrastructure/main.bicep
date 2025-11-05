@@ -485,3 +485,13 @@ module workbookMovementBlockedReasons 'workbook-movement-blocked-reasons.bicep' 
     applicationInsightsId: applicationInsights.id
   }
 }
+
+// Workbook: Movement Success Rate
+module workbookMovementSuccessRate 'workbook-movement-success-rate.bicep' = {
+  name: 'workbook-movement-success-rate'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}

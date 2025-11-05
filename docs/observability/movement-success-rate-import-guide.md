@@ -7,7 +7,8 @@ This workbook provides comprehensive monitoring of player movement health in The
 ## Related Issues
 
 - [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10) - Telemetry Event Registry Expansion (dependency)
-- Implements requirements from Movement Success Rate Panel issue
+- [#281](https://github.com/piquet-h/the-shifting-atlas/issues/281) - Movement Success Rate Panel (this workbook)
+- [#282](https://github.com/piquet-h/the-shifting-atlas/issues/282) - Movement Blocked Reasons Breakdown (related dashboard)
 
 ## Events Tracked
 
@@ -51,15 +52,36 @@ See `docs/observability/telemetry-catalog.md` for full event specifications.
    - Blocked reasons breakdown helps identify patterns
    - Consider per-player analysis if spike detected
 
-## Import Procedure
+## Deployment
 
-### Method 1: Azure Portal Import
+### Primary Method: Bicep Infrastructure-as-Code (Recommended)
+
+The workbook is automatically deployed as part of the main infrastructure deployment:
+
+- **Module**: `infrastructure/workbook-movement-success-rate.bicep`
+- **Integration**: Included in `infrastructure/main.bicep`
+- **Workbook Definition**: `docs/observability/workbooks/movement-success-rate.workbook.json`
+
+Deploy the complete infrastructure stack to provision the workbook:
+
+```bash
+az deployment group create \
+  --resource-group <resource-group> \
+  --template-file infrastructure/main.bicep \
+  --parameters name=atlas location=<region>
+```
+
+The workbook will be automatically created and linked to the Application Insights resource.
+
+### Alternative: Manual Azure Portal Import
+
+For development or testing purposes, you can manually import the workbook:
 
 1. Navigate to Azure Portal → Application Insights resource
 2. Select **Workbooks** from left navigation
 3. Click **+ New** or **+ Open**
 4. Click **Advanced Editor** (</> icon)
-5. Copy contents of `movement-success-rate-workbook.json`
+5. Copy contents of `docs/observability/workbooks/movement-success-rate.workbook.json`
 6. Paste into the JSON editor
 7. Click **Apply**
 8. Click **Done Editing**
@@ -67,35 +89,7 @@ See `docs/observability/telemetry-catalog.md` for full event specifications.
 10. Select resource group and region
 11. Click **Save**
 
-### Method 2: ARM Template Deployment
-
-The workbook JSON can be deployed via ARM template or Bicep:
-
-```bicep
-resource workbook 'Microsoft.Insights/workbooks@2022-04-01' = {
-  name: guid('movement-success-rate-workbook')
-  location: location
-  kind: 'shared'
-  properties: {
-    displayName: 'Movement Success Rate Dashboard'
-    serializedData: loadTextContent('movement-success-rate-workbook.json')
-    sourceId: applicationInsights.id
-    category: 'workbook'
-  }
-}
-```
-
-### Method 3: Azure CLI
-
-```bash
-az monitor app-insights workbook create \
-  --resource-group <resource-group> \
-  --name "MovementSuccessRate" \
-  --display-name "Movement Success Rate Dashboard" \
-  --serialized-data @movement-success-rate-workbook.json \
-  --source-id <app-insights-resource-id> \
-  --category "The Shifting Atlas"
-```
+**Note**: Manual imports are not tracked in infrastructure-as-code and may be overwritten by automated deployments.
 
 ## Verification Steps
 
