@@ -116,8 +116,8 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 ### Usage Guidelines
 
-- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exitDirection`. Add `game.location.to` on success.
-- **World Events**: Always include `game.event.type`, `game.event.actorKind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
+- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
+- **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
 - **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
 - **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.* attributes during transition.
 
