@@ -89,6 +89,42 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 
 Add dimensions sparingly; prefer a single event with multiple dimensions over many granular events that fragment analysis.
 
+## Domain-Specific Attribute Naming Convention
+
+To improve queryability and correlation, domain-specific attributes follow a structured naming pattern: `game.<domain>.<attribute>`. These attributes complement standard dimensions and enable precise filtering by gameplay dimensions.
+
+### Approved Attribute Keys
+
+| Attribute Key                 | Purpose                                      | Example Value                          | Events                                   |
+| ----------------------------- | -------------------------------------------- | -------------------------------------- | ---------------------------------------- |
+| `game.player.id`              | Player GUID for identity correlation         | `9d2f...`                              | Navigation, Player, Auth events          |
+| `game.location.id`            | Location GUID (current or target)            | `a4d1c3f1-...`                         | Location, Navigation events              |
+| `game.location.from`          | Origin location ID for movement              | `a4d1c3f1-...`                         | Navigation.Move.Success/Blocked          |
+| `game.location.to`            | Destination location ID (when resolved)      | `b5e2d4g2-...`                         | Navigation.Move.Success                  |
+| `game.world.exit.direction`   | Movement direction (canonical)               | `north`, `south`, `east`, `west`       | Navigation.Move.Success/Blocked          |
+| `game.event.type`             | World event type for event processing        | `player.move`, `npc.action`            | World.Event.Processed/Duplicate          |
+| `game.event.actor.kind`       | Actor type (player, npc, system)             | `player`, `npc`, `system`              | World.Event.Processed                    |
+| `game.error.code`             | Domain error classification                  | `no-exit`, `from-missing`              | Navigation.Move.Blocked, error events    |
+
+### Attribute Naming Rules
+
+1. **Prefix Pattern**: All game domain attributes use `game.<domain>.<attribute>` namespace.
+2. **Lowercase Segments**: Use lowercase with dot separators (not camelCase in key names).
+3. **Semantic Clarity**: Attribute name should indicate entity type and role (e.g., `game.location.from` vs `game.location.to`).
+4. **Conditional Presence**: Omit attribute if value unavailable (e.g., `game.player.id` omitted when player context missing).
+5. **Type Consistency**: GUID attributes contain UUIDs; enums contain lowercase kebab-case values.
+
+### Usage Guidelines
+
+- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
+- **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
+- **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
+- **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.* attributes during transition.
+
+### Implementation
+
+Attribute enrichment implemented via centralized helper in `shared/src/telemetryAttributes.ts`. Backend handlers call enrichment helper before emitting events. See acceptance tests in `backend/test/integration/performMove.telemetry.test.ts` and `backend/test/unit/worldEventAttributes.test.ts`.
+
 ## Canonical Event Set (Current)
 
 | Event Name                                  | Purpose                                           |

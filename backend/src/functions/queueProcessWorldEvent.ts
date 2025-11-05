@@ -11,6 +11,7 @@
  */
 import { InvocationContext, app } from '@azure/functions'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
+import { enrichWorldEventAttributes } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
@@ -251,17 +252,18 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         })
 
         // Emit duplicate telemetry
-        trackGameEventStrict(
-            'World.Event.Duplicate',
-            {
-                eventType: event.type,
-                actorKind: event.actor.kind,
-                idempotencyKeyHash: hashPrefix(event.idempotencyKey),
-                correlationId: event.correlationId,
-                causationId: event.causationId
-            },
-            { correlationId: event.correlationId }
-        )
+        const props = {
+            eventType: event.type,
+            actorKind: event.actor.kind,
+            idempotencyKeyHash: hashPrefix(event.idempotencyKey),
+            correlationId: event.correlationId,
+            causationId: event.causationId
+        }
+        enrichWorldEventAttributes(props, {
+            eventType: event.type,
+            actorKind: event.actor.kind
+        })
+        trackGameEventStrict('World.Event.Duplicate', props, { correlationId: event.correlationId })
 
         return
     }
@@ -278,18 +280,19 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
     markProcessed(event.idempotencyKey, event.eventId)
 
     // 8. Emit telemetry
-    trackGameEventStrict(
-        'World.Event.Processed',
-        {
-            eventType: event.type,
-            actorKind: event.actor.kind,
-            latencyMs,
-            duplicate: false,
-            correlationId: event.correlationId,
-            causationId: event.causationId
-        },
-        { correlationId: event.correlationId }
-    )
+    const props = {
+        eventType: event.type,
+        actorKind: event.actor.kind,
+        latencyMs,
+        duplicate: false,
+        correlationId: event.correlationId,
+        causationId: event.causationId
+    }
+    enrichWorldEventAttributes(props, {
+        eventType: event.type,
+        actorKind: event.actor.kind
+    })
+    trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId })
 
     // TODO: Future type-specific payload processing and side effects
     // For now, this is a foundation processor that validates and tracks events
