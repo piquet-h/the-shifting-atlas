@@ -165,9 +165,87 @@ Attribute enrichment implemented via centralized helper in `shared/src/telemetry
 
 ## Sampling & Quotas
 
--   Default: no sampling (MVP volume negligible).
--   Introduce probabilistic sampling (e.g., 0.5) only if monthly ingestion nears free tier.
--   NEVER sample security/audit events (future auth-critical events).
+Application Insights sampling is configured during backend initialization to balance cost and diagnostic fidelity.
+
+### Configuration
+
+**Environment Variable:** `APPINSIGHTS_SAMPLING_PERCENTAGE`
+
+-   Accepts percentage values (0-100) or ratios (0.0-1.0)
+-   Values ≤1 are treated as ratios and converted to percentages (e.g., 0.15 → 15%)
+-   Out-of-range values are clamped to [0, 100] with a `Telemetry.Sampling.ConfigAdjusted` warning event
+-   Non-numeric values trigger fallback to environment default with warning
+
+**Defaults:**
+
+-   **Development/Test:** 100% sampling (complete visibility for debugging)
+-   **Production:** 15% sampling (balances cost with sufficient signal for monitoring)
+
+### Rationale
+
+-   **15% production sampling** provides adequate sample size for monitoring trends, latency percentiles, and error rates while reducing ingestion costs by 85%
+-   **100% dev/test sampling** ensures all events are captured during development and testing for comprehensive debugging
+-   Environment-based defaults eliminate configuration overhead for standard deployments
+
+### Kusto Query Adjustments
+
+When querying sampled data, adjust counts to estimate total population:
+
+```kusto
+// Adjust event counts for 15% sampling
+customEvents
+| where timestamp > ago(24h)
+| summarize sampledCount = count() by name
+| extend estimatedTotal = sampledCount / 0.15
+| project name, sampledCount, estimatedTotal
+```
+
+For accurate rate calculations (errors/requests), use ratios instead of raw counts:
+
+```kusto
+// Error rate is accurate even with sampling
+let totalRequests = requests | where timestamp > ago(1h) | count;
+let errorRequests = requests | where timestamp > ago(1h) and resultCode >= 400 | count;
+print errorRate = todouble(errorRequests) / todouble(totalRequests)
+```
+
+### Dashboard Guidance
+
+**Count Tiles:** Multiply displayed counts by `1/samplingPercentage` (e.g., × 6.67 for 15% sampling)
+
+**Rate/Percentage Tiles:** No adjustment needed—ratios remain accurate
+
+**Latency Percentiles:** No adjustment needed—distribution shape preserved
+
+**Example Workbook Parameter:**
+
+```json
+{
+    "name": "SamplingMultiplier",
+    "type": 1,
+    "value": "6.67",
+    "label": "Sampling multiplier (15% = 6.67x)"
+}
+```
+
+### Verification
+
+Check effective sampling configuration:
+
+```kusto
+customEvents
+| where name == "Telemetry.Sampling.ConfigAdjusted"
+| project timestamp, requestedValue=customDimensions.requestedValue,
+          appliedPercentage=customDimensions.appliedPercentage,
+          reason=customDimensions.reason
+| order by timestamp desc
+```
+
+### Sampling Rules
+
+-   **NEVER** sample security/audit events (auth, rate limiting)—these use separate ingestion paths if needed
+-   Sampling applies uniformly to all telemetry types (requests, dependencies, events, traces)
+-   Request sampling decisions are correlated—all telemetry for a sampled request is included
 
 ## Partition Signals (Reference)
 
