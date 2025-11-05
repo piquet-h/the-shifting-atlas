@@ -17,27 +17,32 @@
 ## Phase Details
 
 ### Phase 1: Telemetry Foundation ✅ COMPLETE
+
 [x] #311 OTel removal | [x] #312 attributes | [x] #315 sampling | [x] #316 correlation | [x] #353 timing
 
 ### Phase 2: AI Cost (1/4 – Sequential)
+
 [x] #302 token estimator | [ ] #303 calculator | [ ] #304 aggregation | [ ] #305 guardrails
 
 ### Phase 3: Dashboards/Alerts (0/9 – Parallel dashboards, then alerts)
+
 **Dashboards:** #289 RU/latency | #290 correlation | #291 partition | #296 success/RU | #283 movement  
 **Alerts:** #292 high RU | #293 429s | #294 partition | #295 latency
 
 ### Phase 4: Integrity (0/1)
+
 [ ] #153 hash baseline
 
 ### Phase 5: Polish (0/4)
+
 [ ] #258 handlers (ready) | [ ] #284 docs (ready) | #297 tuning (needs Phase 3) | #298 export (needs Phase 3)
 
 ---
 
 ## Decisions Needed
 
-- Dashboard deployment: simultaneous or stagger (suggest #289 first)
-- Threshold tuning baseline: 7 vs 14 days (#297)
+-   Dashboard deployment: simultaneous or stagger (suggest #289 first)
+-   Threshold tuning baseline: 7 vs 14 days (#297)
 
 ---
 
