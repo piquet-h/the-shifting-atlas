@@ -1,5 +1,6 @@
 import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import { injectable } from 'inversify'
+// Using local backend seed copy (shared consolidation deferred until shared package export is published)
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { ExitEdgeResult, IExitRepository, sortExits } from './exitRepository.js'
 import { computeContentHash } from './utils/index.js'

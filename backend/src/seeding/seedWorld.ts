@@ -1,4 +1,5 @@
 import { Location } from '@piquet-h/shared'
+// Using local backend seed copy (shared consolidation deferred until shared package export is published)
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { ILocationRepository } from '../repos/locationRepository.js'
 import { IPlayerRepository } from '../repos/playerRepository.js'

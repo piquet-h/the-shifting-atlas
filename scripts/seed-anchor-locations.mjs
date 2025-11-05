@@ -93,6 +93,7 @@ Examples:
 
         if (!dataPath) {
             // Default to villageLocations.json in backend
+            // Default local backend seed path (consolidation deferred)
             dataPath = resolve(projectRoot, 'backend/src/data/villageLocations.json')
         } else {
             // Resolve and normalize user-provided path
