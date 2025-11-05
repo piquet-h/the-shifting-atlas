@@ -477,18 +477,8 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
 }
 
 // Workbook: Movement Blocked Reasons Breakdown
-module workbookMovementBlockedReasons 'workbook-movement-blocked-reasons.bicep' = {
-  name: 'workbook-movement-blocked-reasons'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-  }
-}
-
-// Workbook: Movement Success Rate
-module workbookMovementSuccessRate 'workbook-movement-success-rate.bicep' = {
-  name: 'workbook-movement-success-rate'
+module workbookMovementBlockedReasons 'workbook-movement-navigation-dashboard.bicep' = {
+  name: 'workbook-movement-navigation-dashboard'
   params: {
     name: name
     location: location

@@ -7,16 +7,17 @@ param location string = resourceGroup().location
 @description('Application Insights resource ID to link the workbook to')
 param applicationInsightsId string
 
-var workbookName = 'movement-success-rate-${name}'
-var workbookDisplayName = 'Movement Success Rate'
+// Consolidated navigation workbook (success rate + blocked reasons)
+var workbookId = guid('movement-navigation-dashboard', name)
+var workbookDisplayName = 'Movement Navigation Overview'
 
 resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
-  name: workbookName
+  name: workbookId
   location: location
   kind: 'shared'
   properties: {
     displayName: workbookDisplayName
-    serializedData: string(loadJsonContent('../docs/observability/workbooks/movement-success-rate.workbook.json'))
+    serializedData: string(loadJsonContent('./workbooks/movement-navigation-dashboard.workbook.json'))
     sourceId: applicationInsightsId
     category: 'tsg'
     version: '1.0'
@@ -24,9 +25,11 @@ resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
       'M2-Observability'
       'Navigation'
       'Telemetry'
+      'Dashboard'
     ]
   }
 }
 
 output workbookId string = workbook.id
-output workbookName string = workbook.name
+output workbookGuid string = workbook.name
+output workbookDisplayName string = workbook.properties.displayName

@@ -224,6 +224,55 @@ Static source of truth: `shared/src/telemetryEvents.ts`. Any addition requires:
 2. Guest onboarding funnel (`Onboarding.GuestGuid.Started` → `Onboarding.GuestGuid.Created`).
 3. Command latency percentile (custom metric or derived from traces) – add only if latency becomes an issue.
 
+## Operational Dashboards (Consolidated Pattern)
+
+To avoid proliferation of narrowly scoped workbooks, operational analytics adopt a **consolidated-per-domain** model:
+
+### Principles
+
+| Principle            | Description                                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single Pane          | Combine closely related KPIs (rate, reasons, trends, summary) in one workbook file.                                                                 |
+| Deterministic Naming | Bicep resource name uses `guid('<slug>', name)` for idempotent deployments.                                                                         |
+| Stable Paths         | All workbook JSON artifacts reside under `docs/observability/workbooks/` with slug pattern `<domain>-<focus>-dashboard.workbook.json`.              |
+| Additive Panels      | New metrics extend existing domain dashboard instead of creating a new workbook, unless a distinct audience or retention policy demands separation. |
+| Issue Linking        | Dashboard issues reference the consolidated slug rather than creating parallel artifacts.                                                           |
+
+### Movement Navigation Dashboard
+
+Replaces prior separate movement success rate (#281) and blocked reasons (#282) workbook files with a unified artifact:
+
+-   File: `infrastructure/workbooks/movement-navigation-dashboard.workbook.json` (moved from `docs/observability/workbooks/` to colocate infra-managed JSON)
+-   Infra: `infrastructure/workbook-movement-navigation-dashboard.bicep`
+-   Panels included: success rate tiles & summary, blocked reasons table, blocked rate trend (7d), summary statistics, interpretation guide.
+-   Future additions (latency distribution, percentile overlays) should modify this file (see issue #283) rather than produce a new workbook.
+
+### Adding New Panels
+
+When implementing dashboard issues (e.g. partition pressure trend #291, RU vs latency correlation #290, operation RU/latency overview #289, success/failure RU cost table #296):
+
+1. Determine if panel fits an existing consolidated workbook (Movement, Performance, Cost).
+2. If yes, extend the JSON and reference the existing slug in the issue resolution.
+3. If genuinely distinct (different consumer, retention, or security scope), create a new slug with justification in PR description.
+
+### Deprecated Individual Workbooks
+
+Legacy movement workbook files (`movement-success-rate.workbook.json`, `movement-blocked-reasons.workbook.json`) and their Bicep deployments have been removed in favor of consolidation. Historical references in closed issues remain for audit.
+
+### Implementation Checklist (Dashboard Panel Addition)
+
+```
+Given an open dashboard issue
+When implementing the panel
+Then update existing consolidated workbook JSON (no new file unless justified)
+And ensure deterministic guid() naming retained in Bicep
+And include brief panel documentation (query purpose, thresholds) in issue comment
+```
+
+### Movement Event Naming Alignment
+
+The consolidated dashboard panels assume movement outcome events `Navigation.Move.Success` and `Navigation.Move.Blocked` (replacing the coarse `Location.Move`). Update queries accordingly when migrating panels.
+
 ## Open Questions
 
 Tracked externally in issues; keep this section empty or remove if stale.
