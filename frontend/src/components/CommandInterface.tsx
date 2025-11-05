@@ -97,7 +97,8 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                     const headers = buildHeaders({
                         ...buildCorrelationHeaders(correlationId)
                     })
-                    // Track UI event before request
+                    // Track UI event BEFORE request to capture user intent (dispatch time)
+                    // Backend events will track processing outcome using the same correlationId
                     trackGameEventClient('UI.Location.Look', {
                         correlationId,
                         locationId: currentLocationId || null
@@ -129,7 +130,8 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                         'Content-Type': 'application/json',
                         ...buildCorrelationHeaders(correlationId)
                     })
-                    // Track UI event before request
+                    // Track UI event BEFORE request to capture user intent (dispatch time)
+                    // Backend events will track processing outcome using the same correlationId
                     trackGameEventClient('UI.Move.Command', {
                         correlationId,
                         direction: dir,

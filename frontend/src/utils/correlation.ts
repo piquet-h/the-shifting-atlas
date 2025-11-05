@@ -16,6 +16,9 @@
  * Generate a unique correlation ID for a user action
  * Uses crypto.randomUUID() for uniqueness and standard format
  *
+ * Browser compatibility: Chrome 92+, Firefox 95+, Safari 15.4+, Edge 92+
+ * (All modern browsers support this API as of 2021-2022)
+ *
  * @returns A UUID string suitable for correlation tracking
  */
 export function generateCorrelationId(): string {
