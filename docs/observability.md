@@ -89,6 +89,42 @@ Action: Verb (Get/List) or Past-tense result (Created/Upgraded/Moved).
 
 Add dimensions sparingly; prefer a single event with multiple dimensions over many granular events that fragment analysis.
 
+## Domain-Specific Attribute Naming Convention
+
+To improve queryability and correlation, domain-specific attributes follow a structured naming pattern: `game.<domain>.<attribute>`. These attributes complement standard dimensions and enable precise filtering by gameplay dimensions.
+
+### Approved Attribute Keys
+
+| Attribute Key                 | Purpose                                      | Example Value                          | Events                                   |
+| ----------------------------- | -------------------------------------------- | -------------------------------------- | ---------------------------------------- |
+| `game.player.id`              | Player GUID for identity correlation         | `9d2f...`                              | Navigation, Player, Auth events          |
+| `game.location.id`            | Location GUID (current or target)            | `a4d1c3f1-...`                         | Location, Navigation events              |
+| `game.location.from`          | Origin location ID for movement              | `a4d1c3f1-...`                         | Navigation.Move.Success/Blocked          |
+| `game.location.to`            | Destination location ID (when resolved)      | `b5e2d4g2-...`                         | Navigation.Move.Success                  |
+| `game.world.exit.direction`   | Movement direction (canonical)               | `north`, `south`, `east`, `west`       | Navigation.Move.Success/Blocked          |
+| `game.event.type`             | World event type for event processing        | `player.move`, `npc.action`            | World.Event.Processed/Duplicate          |
+| `game.event.actor.kind`       | Actor type (player, npc, system)             | `player`, `npc`, `system`              | World.Event.Processed                    |
+| `game.error.code`             | Domain error classification                  | `no-exit`, `from-missing`              | Navigation.Move.Blocked, error events    |
+
+### Attribute Naming Rules
+
+1. **Prefix Pattern**: All game domain attributes use `game.<domain>.<attribute>` namespace.
+2. **Lowercase Segments**: Use lowercase with dot separators (not camelCase in key names).
+3. **Semantic Clarity**: Attribute name should indicate entity type and role (e.g., `game.location.from` vs `game.location.to`).
+4. **Conditional Presence**: Omit attribute if value unavailable (e.g., `game.player.id` omitted when player context missing).
+5. **Type Consistency**: GUID attributes contain UUIDs; enums contain lowercase kebab-case values.
+
+### Usage Guidelines
+
+- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
+- **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
+- **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
+- **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.* attributes during transition.
+
+### Implementation
+
+Attribute enrichment implemented via centralized helper in `shared/src/telemetryAttributes.ts`. Backend handlers call enrichment helper before emitting events. See acceptance tests in `backend/test/integration/performMove.telemetry.test.ts` and `backend/test/unit/worldEventAttributes.test.ts`.
+
 ## Canonical Event Set (Current)
 
 | Event Name                                  | Purpose                                           |
@@ -392,21 +428,137 @@ customEvents
 | order by timestamp desc
 ```
 
+
 ### Internal Timing Events
 
-`Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. It is deliberately not enumerated in the shared `GAME_EVENT_NAMES` list to keep domain event space clean. Properties:
+`Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. Properties:
 
-| Key          | Description                      |
-| ------------ | -------------------------------- |
-| `opName`     | Operation label (developer set)  |
-| `durationMs` | Elapsed time in milliseconds     |
-| (extras…)    | Any supplemental diagnostic keys |
+| Key            | Description                                  | Required |
+| -------------- | -------------------------------------------- | -------- |
+| `op`           | Operation label (developer set)              | Yes      |
+| `ms`           | Elapsed time in milliseconds                 | Yes      |
+| `category`     | Operation category (e.g., 'repository')      | No       |
+| `error`        | Boolean flag when operation threw error      | No       |
+| `correlationId`| Auto-generated or provided correlation ID    | Yes      |
 
-Usage guidance:
+#### Usage Pattern (withTiming API)
 
--   Prefer using existing domain events’ `latencyMs` dimension when measuring request/command duration.
--   Use `Timing.Op` for one-off internal instrumentation unlikely to persist long-term; migrate to a domain event if it becomes permanent.
--   Avoid high-cardinality `opName` values (do not embed dynamic IDs).
+Preferred for new code - automatically wraps sync/async functions:
+
+```typescript
+import { withTiming } from '../telemetry/timing.js'
+
+// Basic usage
+const result = await withTiming('PlayerRepository.get', async () => {
+    return await playerRepo.get(id)
+})
+
+// With category and correlation
+const result = await withTiming(
+    'PlayerRepository.get',
+    () => playerRepo.get(id),
+    { category: 'repository', correlationId: req.correlationId }
+)
+
+// With error tracking (error flag set, exception re-thrown)
+try {
+    await withTiming(
+        'RiskyOperation',
+        () => riskyCall(),
+        { includeErrorFlag: true }
+    )
+} catch (err) {
+    // Error was tracked with error: true flag before re-throw
+    handleError(err)
+}
+```
+
+#### Legacy Usage Pattern (startTiming API)
+
+Manual start/stop pattern (retained for backward compatibility):
+
+```typescript
+import { startTiming } from '../telemetry/timing.js'
+
+const t = startTiming('ContainerSetup')
+// ... work ...
+t.stop({ extra: 'value' })
+```
+
+#### Kusto Query Examples
+
+**Percentile latency by operation:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(24h)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms),
+         category = tostring(customDimensions.category),
+         error = tobool(customDimensions.error)
+| summarize
+    count = count(),
+    errors = countif(error == true),
+    p50 = percentile(ms, 50),
+    p95 = percentile(ms, 95),
+    p99 = percentile(ms, 99),
+    avg = avg(ms),
+    max = max(ms)
+  by op, category
+| order by p95 desc
+```
+
+**Slow operations (p95 > 500ms):**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(7d)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms)
+| summarize p95 = percentile(ms, 95), count = count() by op
+| where p95 > 500
+| order by p95 desc
+```
+
+**Error rate by operation:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(24h)
+| extend op = tostring(customDimensions.op),
+         error = tobool(customDimensions.error)
+| summarize
+    total = count(),
+    errors = countif(error == true),
+    errorRate = round(100.0 * countif(error == true) / count(), 2)
+  by op
+| where errorRate > 0
+| order by errorRate desc
+```
+
+**Latency trend over time:**
+
+```kusto
+customEvents
+| where name == 'Timing.Op'
+| where timestamp > ago(7d)
+| extend op = tostring(customDimensions.op),
+         ms = todouble(customDimensions.ms)
+| summarize p95 = percentile(ms, 95) by op, bin(timestamp, 1h)
+| render timechart
+```
+
+#### Usage Guidance
+
+-   Prefer using existing domain events' `latencyMs` dimension when measuring request/command duration.
+-   Use `Timing.Op` for ad-hoc internal instrumentation or detailed operation profiling.
+-   Avoid high-cardinality `op` values (do not embed dynamic IDs or user data).
+-   Use `category` to group related operations (e.g., 'repository', 'handler', 'external-api').
+-   Enable `includeErrorFlag: true` for operations where failure tracking is important.
+-   Very fast operations (<1ms) may round to 0 or 1ms due to Date.now() precision.
 
 ### Sampling Configuration
 
