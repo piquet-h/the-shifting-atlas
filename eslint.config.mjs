@@ -9,6 +9,7 @@ import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
+import noManualOperationIdRule from './eslint-rules/no-manual-operation-id.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
 import telemetryEventMembershipRule from './eslint-rules/telemetry-event-membership.mjs'
 import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
@@ -30,6 +31,7 @@ export default [
                     'telemetry-event-name': telemetryEventRule,
                     'telemetry-event-membership': telemetryEventMembershipRule,
                     'no-direct-track-event': noDirectTrackEventRule,
+                    'no-manual-operation-id': noManualOperationIdRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-direct-secret-access': noDirectSecretAccessRule
                 }
@@ -52,6 +54,7 @@ export default [
             ],
             'internal/telemetry-event-name': 'error',
             'internal/no-direct-track-event': 'error',
+            'internal/no-manual-operation-id': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'
         }
@@ -76,6 +79,7 @@ export default [
             'internal/telemetry-event-name': 'error',
             'internal/telemetry-event-membership': 'error',
             'internal/no-direct-track-event': 'error',
+            'internal/no-manual-operation-id': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'
         }
