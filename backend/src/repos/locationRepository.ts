@@ -11,6 +11,8 @@ export interface ILocationRepository {
     move(fromId: string, direction: string): Promise<{ status: 'ok'; location: Location } | { status: 'error'; reason: string }>
     /** Upsert (idempotent) a location vertex. Returns whether a new vertex was created and updated revision (if changed). */
     upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }>
+    /** List all known locations (used for reconciliation / migrations). */
+    listAll(): Promise<Location[]>
     /** Ensure an exit edge between two locations. Returns whether a new edge was created. */
     ensureExit(
         fromId: string,
@@ -28,6 +30,8 @@ export interface ILocationRepository {
     ): Promise<{ created: boolean; reciprocalCreated?: boolean }>
     /** Remove an exit edge. Returns whether an edge was actually removed. */
     removeExit(fromId: string, direction: string): Promise<{ removed: boolean }>
+    /** Delete a location vertex entirely (dangerous – requires explicit reconciliation flag). */
+    deleteLocation(id: string): Promise<{ deleted: boolean }>
     /** Batch apply multiple exits. Returns summary metrics. */
     applyExits(exits: Array<{ fromId: string; direction: string; toId: string; description?: string; reciprocal?: boolean }>): Promise<{
         exitsCreated: number
@@ -50,6 +54,10 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     constructor() {
         const locs = starterLocationsData as Location[]
         this.locations = new Map(locs.map((r) => [r.id, r]))
+    }
+
+    async listAll(): Promise<Location[]> {
+        return Array.from(this.locations.values())
     }
 
     /** Helper: Regenerate exits summary cache for a location */
@@ -193,6 +201,11 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
             await this.regenerateExitsSummaryCache(fromId)
         }
         return { removed }
+    }
+
+    async deleteLocation(id: string): Promise<{ deleted: boolean }> {
+        const existed = this.locations.delete(id)
+        return { deleted: existed }
     }
 
     async applyExits(exits: Array<{ fromId: string; direction: string; toId: string; description?: string; reciprocal?: boolean }>) {
