@@ -11,7 +11,7 @@ var workbookName = 'movement-blocked-reasons-${name}'
 var workbookDisplayName = 'Movement Blocked Reasons Breakdown'
 
 resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
-  name: guid(resourceGroup().id, workbookName)
+  name: workbookName
   location: location
   kind: 'shared'
   properties: {

@@ -11,7 +11,7 @@ var workbookName = 'movement-success-rate-${name}'
 var workbookDisplayName = 'Movement Success Rate'
 
 resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
-  name: guid(resourceGroup().id, workbookName)
+  name: workbookName
   location: location
   kind: 'shared'
   properties: {
