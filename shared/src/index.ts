@@ -1,6 +1,7 @@
 // Root barrel – intentionally concise. Prefer importing specific subpaths e.g. `@piquet-h/shared/auth` for better tree-shaking.
 // Grouped re-exports delegate to per-directory barrels to keep exports close to implementation.
 
+export * from './aiCostAggregator.js'
 export * from './aiCostCalculator.js'
 export * from './aiPricing.js'
 export * from './apiContracts.js'
