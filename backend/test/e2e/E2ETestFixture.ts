@@ -227,8 +227,7 @@ export class E2ETestFixture {
         // Log endpoint info for debugging (hide actual values for security)
         console.log(`E2E Setup: Gremlin endpoint length=${gremlinEndpoint.length}, SQL endpoint length=${sqlEndpoint.length}`)
         console.log(
-            `E2E Setup: Database=${process.env.GREMLIN_DATABASE_TEST || process.env.COSMOS_GREMLIN_DATABASE}, ` +
-                `Graph=${process.env.GREMLIN_GRAPH_TEST || process.env.COSMOS_GREMLIN_GRAPH}`
+            `E2E Setup: Database=${process.env.GREMLIN_DATABASE_TEST || process.env.COSMOS_GREMLIN_DATABASE}, Graph=${process.env.GREMLIN_GRAPH_TEST || process.env.COSMOS_GREMLIN_GRAPH}`
         )
 
         await this.baseFixture.setup()
