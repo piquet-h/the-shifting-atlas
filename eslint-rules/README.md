@@ -125,7 +125,65 @@ telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
 
 ---
 
-## Adding a New Rule
+### `no-raw-prompt-in-telemetry` (NEW - Issue #309)
+
+**Purpose:** **Security rule** that prevents inclusion of raw prompt or completion text in AI cost telemetry events to ensure PII safety.
+
+**Applies to:** All TypeScript files with telemetry emission calls
+
+**Forbidden fields (case-insensitive):**
+- `promptText`, `prompt`
+- `completionText`, `completion`, `response`, `responseText`
+- `text`, `content`, `message`
+
+**What it checks:**
+- `trackEvent()`, `emit()`, `log()`, `trace()` calls
+- Direct property assignment and `properties`/`customDimensions` objects
+- Nested object structures (recursive checking)
+
+**Example violations:**
+```typescript
+// ❌ VIOLATION: promptText in properties
+telemetryClient.trackEvent({
+    name: 'AI.Cost.Estimated',
+    properties: {
+        promptText: 'Generate a dungeon...',  // Flagged by ESLint
+        modelId: 'gpt-4o-mini'
+    }
+})
+
+// ❌ VIOLATION: completionText in nested object
+const props = {
+    completionText: 'The dark corridor...',  // Flagged by ESLint
+    tokens: 150
+}
+telemetryClient.emit('AI.Cost.Estimated', props)
+```
+
+**Example compliance:**
+```typescript
+// ✅ CORRECT: Use prepareAICostTelemetry to strip text
+import { prepareAICostTelemetry } from '@piquet-h/shared'
+
+const payload = prepareAICostTelemetry({
+    modelId: 'gpt-4o-mini',
+    promptText: rawPrompt,      // Text stays local
+    completionText: rawCompletion  // Not in payload
+})
+
+telemetryClient.trackEvent({
+    name: 'AI.Cost.Estimated',
+    properties: payload  // Only tokens, buckets, cost
+})
+```
+
+**When added:** November 2025  
+**Related:**
+- Audit script: `scripts/verify-ai-cost-payload.mjs`
+- Unit tests: `shared/test/aiCostPayloadSafety.test.ts`
+- Documentation: `docs/observability/ai-cost-telemetry.md`
+
+---
 
 1. Create a new `.mjs` file in this directory
 2. Export a rule object with `meta` and `create` properties

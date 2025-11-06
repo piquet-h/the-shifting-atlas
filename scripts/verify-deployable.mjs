@@ -4,6 +4,10 @@
 // Verifies deployable artifacts exist for SWA + Functions AND validates package references.
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execFileAsync = promisify(execFile)
 
 const checks = [
     { path: 'frontend/dist/index.html', required: true, desc: 'Frontend bundle (index.html)' },
@@ -61,32 +65,64 @@ function ensureNoSharedSeedFile() {
     return true
 }
 
-let failed = !validateBackendPackageJson()
-failed = !ensureNoSharedSeedFile() || failed
+// Verify AI cost telemetry payload safety (no PII, conforms to schema).
+async function verifyAICostPayloadSafety() {
+    const auditScriptPath = resolve(process.cwd(), 'scripts/verify-ai-cost-payload.mjs')
 
-for (const c of checks) {
-    const full = resolve(process.cwd(), c.path)
-    if (!existsSync(full)) {
-        process.stderr.write(`[verify-deployable] MISSING: ${c.desc} -> ${c.path}\n`)
-        failed = true
-        continue
+    if (!existsSync(auditScriptPath)) {
+        process.stderr.write('[verify-deployable] WARNING: AI cost payload audit script not found, skipping\n')
+        return true
     }
+
     try {
-        const s = statSync(full)
-        if (!s.isFile()) {
-            process.stderr.write(`[verify-deployable] NOT A FILE: ${c.path}\n`)
-            failed = true
-        } else {
-            process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
-        }
-    } catch (e) {
-        process.stderr.write(`[verify-deployable] ERROR reading ${c.path}: ${e.message}\n`)
-        failed = true
+        await execFileAsync('node', [auditScriptPath])
+        process.stdout.write('[verify-deployable] OK: AI cost telemetry payloads conform to safety schema\n')
+        return true
+    } catch (error) {
+        process.stderr.write('[verify-deployable] FAILED: AI cost payload safety audit\n')
+        if (error.stdout) process.stderr.write(error.stdout)
+        if (error.stderr) process.stderr.write(error.stderr)
+        return false
     }
 }
 
-if (failed) {
-    process.stderr.write('[verify-deployable] One or more required artifacts are missing.\n')
-    process.exit(1)
+async function main() {
+    let failed = !validateBackendPackageJson()
+    failed = !ensureNoSharedSeedFile() || failed
+
+    // Run AI cost payload safety audit (async)
+    const payloadSafetyResult = await verifyAICostPayloadSafety()
+    failed = !payloadSafetyResult || failed
+
+    for (const c of checks) {
+        const full = resolve(process.cwd(), c.path)
+        if (!existsSync(full)) {
+            process.stderr.write(`[verify-deployable] MISSING: ${c.desc} -> ${c.path}\n`)
+            failed = true
+            continue
+        }
+        try {
+            const s = statSync(full)
+            if (!s.isFile()) {
+                process.stderr.write(`[verify-deployable] NOT A FILE: ${c.path}\n`)
+                failed = true
+            } else {
+                process.stdout.write(`[verify-deployable] OK: ${c.desc}\n`)
+            }
+        } catch (e) {
+            process.stderr.write(`[verify-deployable] ERROR reading ${c.path}: ${e.message}\n`)
+            failed = true
+        }
+    }
+
+    if (failed) {
+        process.stderr.write('[verify-deployable] One or more required artifacts are missing.\n')
+        process.exit(1)
+    }
+    process.stdout.write('[verify-deployable] All required deployment artifacts present.\n')
 }
-process.stdout.write('[verify-deployable] All required deployment artifacts present.\n')
+
+main().catch((error) => {
+    process.stderr.write(`[verify-deployable] Unexpected error: ${error.message}\n`)
+    process.exit(1)
+})
