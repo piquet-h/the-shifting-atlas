@@ -75,9 +75,7 @@ async function verifyAICostPayloadSafety() {
     }
 
     try {
-        await execFileAsync('node', [auditScriptPath], {
-            timeout: 15000 // 15 second timeout (reduced from 30s)
-        })
+        await execFileAsync('node', [auditScriptPath])
         process.stdout.write('[verify-deployable] OK: AI cost telemetry payloads conform to safety schema\n')
         return true
     } catch (error) {
