@@ -446,14 +446,53 @@ Top Token Buckets:
 - Token estimation occurs in-memory; text discarded after counting
 - Telemetry payloads contain only token counts, buckets, and cost estimates
 - Unit tests assert `promptText` and `completionText` fields absent from emission
+- **Automated payload safety audit**: `scripts/verify-ai-cost-payload.mjs` validates all AI cost telemetry events
+
+**Audit Guarantees** (Issue #309):
+
+- **Schema Validation**: All payloads conform to minimal allowed field schemas (no extra fields)
+- **String Length Limits**: String fields capped at 200 characters (prevents raw text leakage)
+- **Forbidden Field Detection**: Keywords like `promptText`, `completionText`, `prompt`, `completion` trigger failures
+- **Primitive Types Only**: No nested objects or arrays (flat telemetry structure)
+- **ESLint Enforcement**: Custom rule `no-raw-prompt-in-telemetry` catches violations at compile time
+- **CI Integration**: Audit runs as part of `verify-deployable.mjs` chain before deployment
 
 **Privacy Validation:**
 
 ```bash
-# Grep check for prohibited fields in telemetry emission
+# Run manual audit (requires shared package built)
+npm run verify:ai-cost-payload --prefix shared
+
+# Or run directly
+node scripts/verify-ai-cost-payload.mjs
+
+# With verbose output
+VERBOSE=true node scripts/verify-ai-cost-payload.mjs
+
+# Grep check for prohibited fields in telemetry emission (legacy check)
 grep -r "promptText\|completionText" shared/src/aiCost*.ts
 # Expected result: no matches in telemetry payload preparation
 ```
+
+**Audit Coverage:**
+
+- `AI.Cost.Estimated`: modelId, tokens, cost, buckets, estimator metadata (NO text)
+- `AI.Cost.WindowSummary`: hourly aggregates (NO individual prompts/completions)
+- `AI.Cost.SoftThresholdCrossed`: threshold metadata (NO operational details)
+- `AI.Cost.InputAdjusted`: adjustment metadata (NO original input content)
+- `AI.Cost.InputCapped`: length metadata (NO capped text)
+- `AI.Cost.OverrideRejected`: error reason (providedValue truncated to 100 chars)
+
+**Unit Test Validation:**
+
+Dedicated test suite `shared/test/aiCostPayloadSafety.test.ts` validates:
+- ✅ Valid payloads pass audit (no false positives)
+- ✅ Payloads with raw prompt text are rejected
+- ✅ Payloads with disallowed fields are rejected
+- ✅ Payloads with large strings (>200 chars) are rejected
+- ✅ Empty payloads fail validation
+- ✅ Deeply nested objects are rejected
+- ✅ Extra numeric debug fields are rejected
 
 ### Audit Trail
 

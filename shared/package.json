@@ -73,6 +73,7 @@
         "test": "node --test --import=tsx test/*.test.ts",
         "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
         "smoke:traversal": "node --import=tsx scripts/smoke-traversal.ts",
+        "verify:ai-cost-payload": "node ../scripts/verify-ai-cost-payload.mjs",
         "prepublishOnly": "npm run build && npm run test"
     },
     "dependencies": {
