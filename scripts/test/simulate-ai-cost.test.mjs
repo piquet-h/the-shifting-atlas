@@ -5,13 +5,21 @@
 
 import assert from 'node:assert'
 import { execFile } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { describe, test } from 'node:test'
 import { promisify } from 'node:util'
 
 const execAsync = promisify(execFile)
 
-const SCRIPT_PATH = resolve(new URL('..', import.meta.url).pathname, 'simulate-ai-cost.mjs')
+const SCRIPT_PATH = resolve(fileURLToPath(new URL('..', import.meta.url)), 'simulate-ai-cost.mjs')
+
+// Expected output format patterns for validation
+const BUCKET_OUTPUT_PATTERN = /(\d+)\.\s+(\d+-\d+k?|\d+k?\+):\s+(\d+)\s+calls\s+\((\d+\.\d+)%\)/
+
+// Expected window summary format: "1. 2025-11-06T04:00:00.000Z [gpt-4o-mini]: 15 calls, 410µ$ (delayed: false)"
+const WINDOW_SUMMARY_PATTERN =
+    /\d+\.\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+\[([^\]]+)\]:\s+(\d+)\s+calls,\s+([\d,]+)µ\$\s+\(delayed:\s+(true|false)\)/
 
 describe('simulate-ai-cost.mjs CLI', () => {
     test('runs successfully with default configuration', async () => {
@@ -129,18 +137,16 @@ describe('simulate-ai-cost.mjs CLI', () => {
     test('token buckets show frequency and percentage', async () => {
         const { stdout } = await execAsync('node', [SCRIPT_PATH])
 
-        // Check that bucket output includes count and percentage
-        const bucketMatch = stdout.match(/(\d+)\.\s+(\d+-\d+k?|\d+k?\+):\s+(\d+)\s+calls\s+\((\d+\.\d+)%\)/)
+        // Check that bucket output includes count and percentage using pre-defined pattern
+        const bucketMatch = stdout.match(BUCKET_OUTPUT_PATTERN)
         assert.ok(bucketMatch, 'bucket line has expected format: "1. 33-128: 15 calls (100.0%)"')
     })
 
     test('emits window summary with correct fields', async () => {
         const { stdout } = await execAsync('node', [SCRIPT_PATH])
 
-        // Check window summary format
-        const summaryMatch = stdout.match(
-            /\d+\.\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+\[([^\]]+)\]:\s+(\d+)\s+calls,\s+([\d,]+)µ\$\s+\(delayed:\s+(true|false)\)/
-        )
+        // Check window summary format using pre-defined pattern
+        const summaryMatch = stdout.match(WINDOW_SUMMARY_PATTERN)
         assert.ok(summaryMatch, 'window summary has expected format')
         assert.ok(summaryMatch[1], 'has ISO timestamp')
         assert.ok(summaryMatch[2], 'has model ID')

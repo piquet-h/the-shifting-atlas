@@ -84,8 +84,14 @@ async function loadSharedPackage() {
  */
 async function loadPrompts() {
     try {
+        // Import from main shared package to avoid hard-coded dist paths
+        const sharedPath = resolve(__dirname, '../shared/dist/index.js')
+        const shared = await import(sharedPath)
+
+        // Try to get templates from prompts submodule
         const promptsPath = resolve(__dirname, '../shared/dist/prompts/worldTemplates.js')
         const prompts = await import(promptsPath)
+
         return [prompts.LOCATION_TEMPLATE, prompts.NPC_DIALOGUE_TEMPLATE, prompts.QUEST_TEMPLATE]
     } catch (error) {
         console.error('❌ Error: Could not load prompt templates.')
@@ -116,6 +122,13 @@ function parseConfig() {
 }
 
 /**
+ * Base text for synthetic completion generation.
+ * Repetitive but predictable for testing purposes.
+ */
+const COMPLETION_BASE_TEXT =
+    'The ancient corridors stretch endlessly. Shadows dance on weathered stone walls. Echoes of forgotten battles linger. '
+
+/**
  * Generate synthetic completion text based on prompt and ratio
  */
 function generateCompletion(promptText, ratio) {
@@ -126,12 +139,11 @@ function generateCompletion(promptText, ratio) {
     // Generate completion of specified length ratio
     const targetLength = Math.round(promptText.length * ratio)
 
-    // Create synthetic completion text (repetitive but predictable for testing)
-    const baseText = 'The ancient corridors stretch endlessly. Shadows dance on weathered stone walls. Echoes of forgotten battles linger. '
+    // Create synthetic completion text by repeating base text
     let completion = ''
 
     while (completion.length < targetLength) {
-        completion += baseText
+        completion += COMPLETION_BASE_TEXT
     }
 
     return completion.substring(0, targetLength)
