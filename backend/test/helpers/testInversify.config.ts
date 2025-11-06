@@ -76,13 +76,22 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration
-        // For E2E tests (NODE_ENV=test), use *_TEST env vars if available
+        // For E2E tests (NODE_ENV=test), prioritize *_TEST env vars, then standard COSMOS_GREMLIN_* names
         const isTestEnv = process.env.NODE_ENV === 'test'
 
         const gremlinConfig = {
-            endpoint: (isTestEnv ? process.env.GREMLIN_ENDPOINT_TEST : null) || process.env.GREMLIN_ENDPOINT || '',
-            database: (isTestEnv ? process.env.GREMLIN_DATABASE_TEST : null) || process.env.GREMLIN_DATABASE || '',
-            graph: (isTestEnv ? process.env.GREMLIN_GRAPH_TEST : null) || process.env.GREMLIN_GRAPH || ''
+            endpoint:
+                (isTestEnv ? process.env.GREMLIN_ENDPOINT_TEST : null) ||
+                process.env.COSMOS_GREMLIN_ENDPOINT ||
+                process.env.GREMLIN_ENDPOINT ||
+                '',
+            database:
+                (isTestEnv ? process.env.GREMLIN_DATABASE_TEST : null) ||
+                process.env.COSMOS_GREMLIN_DATABASE ||
+                process.env.GREMLIN_DATABASE ||
+                '',
+            graph:
+                (isTestEnv ? process.env.GREMLIN_GRAPH_TEST : null) || process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH || ''
         }
 
         container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue(gremlinConfig)
