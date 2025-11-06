@@ -405,6 +405,14 @@ Canonical enumeration source of truth:
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.
 
+### AI Cost Telemetry (M2 Observability)
+
+AI cost tracking telemetry events, pricing configuration, token buckets, and dashboard queries are documented in:
+
+-   `observability/ai-cost-telemetry.md` – Comprehensive guide to AI cost instrumentation
+
+Events include: `AI.Cost.Estimated`, `AI.Cost.WindowSummary`, `AI.Cost.SoftThresholdCrossed`, `AI.Cost.OverrideRejected`, `AI.Cost.InputAdjusted`, `AI.Cost.InputCapped`.
+
 ## Consolidated Telemetry Mode (Application Insights Only)
 
 OpenTelemetry span tracing has been removed (issue #311). The system now relies solely on Application Insights automatic collection plus custom events. No span exporter or traceparent continuation is active.
