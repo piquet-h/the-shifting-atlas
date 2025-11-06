@@ -393,7 +393,7 @@ customEvents
 
 ## Simulation Harness Usage
 
-**Script**: `scripts/simulate-ai-cost.mjs` (Issue #306 - in progress)
+**Script**: `scripts/simulate-ai-cost.mjs` (Issue #306)
 
 **Purpose**: Generate synthetic AI cost telemetry events for pre-integration validation and dashboard testing.
 
@@ -544,6 +544,7 @@ Future enhancement (not in current scope):
 | Pricing Table | `shared/src/aiPricing.ts` | Static pricing with JSON override |
 | Cost Calculator | `shared/src/aiCostCalculator.ts` | Cost calculation & payload preparation |
 | Aggregator | `shared/src/aiCostAggregator.ts` | Hourly summary accumulation & flush |
+| Guardrails | `shared/src/aiCostGuardrails.ts` | Soft threshold checking & event emission |
 
 ### Related Issues
 
@@ -555,8 +556,11 @@ Future enhancement (not in current scope):
 | #303 | AI Cost Telemetry: Cost Calculator & Event Emission | Closed |
 | #304 | AI Cost Telemetry: Hourly Aggregation & Window Summary | Closed |
 | #305 | AI Cost Telemetry: Soft Budget Guardrails | Closed |
-| #306 | AI Cost Telemetry: Simulation Harness | In Progress |
-| #50 | (Epic candidate) | Open |
+| #306 | AI Cost Telemetry: Simulation Harness | Closed |
+| #307 | AI Cost Telemetry: Documentation Section | Closed |
+| #308 | AI Cost Telemetry: Test Suite Consolidation | Closed |
+| #309 | AI Cost Telemetry: PII & Payload Safety Audit | Closed |
+| #50 | Pre-AI Cost Telemetry Framework (Epic) | Closed |
 
 ### Documentation Cross-References
 
@@ -579,4 +583,4 @@ Future enhancement (not in current scope):
 - Cost anomaly detection (ML-based spike detection)
 - Model recommendation engine (cost vs quality tradeoffs)
 
-_Last updated: 2025-11-06 (initial documentation from issues #299-#306)_
+_Last updated: 2025-11-06 (Epic #50 closure; all child issues #299-#309 completed)_
