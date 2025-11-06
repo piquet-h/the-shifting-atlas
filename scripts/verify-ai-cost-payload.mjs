@@ -104,6 +104,9 @@ const MAX_STRING_LENGTH = 200
 /**
  * Forbidden field names (case-insensitive).
  * These should NEVER appear in any AI cost telemetry payload.
+ *
+ * This comprehensive list covers common variations and PII fields.
+ * See also: shared/test/aiCostPayloadSafety.test.ts for test validation list.
  */
 const FORBIDDEN_FIELDS = [
     'prompttext',

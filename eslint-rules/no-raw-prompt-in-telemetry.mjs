@@ -67,6 +67,9 @@ export default {
         /**
          * Forbidden field names that indicate raw text content.
          * Case-insensitive matching.
+         *
+         * This list focuses on text content fields for ESLint catching.
+         * See also: scripts/verify-ai-cost-payload.mjs for comprehensive PII list.
          */
         const FORBIDDEN_FIELDS = [
             'prompttext',

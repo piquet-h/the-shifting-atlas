@@ -7,6 +7,10 @@ import { checkSoftThreshold, setSoftThreshold, _resetGuardrailsForTests } from '
 /**
  * Forbidden field names that should NEVER appear in telemetry payloads.
  * These fields could contain PII or sensitive content.
+ *
+ * This is a focused list for unit test validation.
+ * The audit script (verify-ai-cost-payload.mjs) has a more comprehensive case-insensitive list
+ * that includes additional PII fields like username, userid, email, playerid, sessionid.
  */
 const FORBIDDEN_FIELDS = ['promptText', 'completionText', 'prompt', 'completion', 'responseText', 'response', 'text', 'content']
 
