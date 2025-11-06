@@ -210,22 +210,25 @@ export class E2ETestFixture {
      */
     async setup(): Promise<void> {
         // Verify required environment variables
-        const gremlinEndpoint = process.env.GREMLIN_ENDPOINT_TEST || process.env.GREMLIN_ENDPOINT || process.env.COSMOS_GREMLIN_ENDPOINT
+        // Priority: *_TEST vars (test-specific) > COSMOS_* standard vars > legacy GREMLIN_* vars
+        const gremlinEndpoint =
+            process.env.GREMLIN_ENDPOINT_TEST || process.env.COSMOS_GREMLIN_ENDPOINT || process.env.GREMLIN_ENDPOINT
         const sqlEndpoint = process.env.COSMOS_SQL_ENDPOINT_TEST || process.env.COSMOS_SQL_ENDPOINT
 
         if (!gremlinEndpoint) {
-            throw new Error('E2E tests require GREMLIN_ENDPOINT_TEST (or GREMLIN_ENDPOINT or COSMOS_GREMLIN_ENDPOINT) environment variable')
+            throw new Error(
+                'E2E tests require GREMLIN_ENDPOINT_TEST (or COSMOS_GREMLIN_ENDPOINT or GREMLIN_ENDPOINT) environment variable'
+            )
         }
         if (!sqlEndpoint) {
             throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) environment variable')
         }
 
         // Log endpoint info for debugging (hide actual values for security)
+        console.log(`E2E Setup: Gremlin endpoint length=${gremlinEndpoint.length}, SQL endpoint length=${sqlEndpoint.length}`)
         console.log(
-            `E2E Setup: GREMLIN_ENDPOINT_TEST length=${gremlinEndpoint.length}, COSMOS_SQL_ENDPOINT_TEST length=${sqlEndpoint.length}`
-        )
-        console.log(
-            `E2E Setup: GREMLIN_DATABASE_TEST=${process.env.GREMLIN_DATABASE_TEST}, GREMLIN_GRAPH_TEST=${process.env.GREMLIN_GRAPH_TEST}`
+            `E2E Setup: Database=${process.env.GREMLIN_DATABASE_TEST || process.env.COSMOS_GREMLIN_DATABASE}, ` +
+                `Graph=${process.env.GREMLIN_GRAPH_TEST || process.env.COSMOS_GREMLIN_GRAPH}`
         )
 
         await this.baseFixture.setup()
