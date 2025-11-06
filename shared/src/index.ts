@@ -3,6 +3,7 @@
 
 export * from './aiCostAggregator.js'
 export * from './aiCostCalculator.js'
+export * from './aiCostGuardrails.js'
 export * from './aiPricing.js'
 export * from './apiContracts.js'
 export * from './auth/index.js'
