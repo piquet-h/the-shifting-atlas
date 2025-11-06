@@ -1,6 +1,6 @@
 {
     "name": "@piquet-h/shared",
-    "version": "0.3.45",
+    "version": "0.3.46",
     "private": false,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
@@ -73,6 +73,7 @@
         "test": "node --test --import=tsx test/*.test.ts",
         "test:cov": "c8 --reporter=text --reporter=lcov node --test --import=tsx test/*.test.ts || true",
         "smoke:traversal": "node --import=tsx scripts/smoke-traversal.ts",
+        "verify:ai-cost-payload": "node ../scripts/verify-ai-cost-payload.mjs",
         "prepublishOnly": "npm run build && npm run test"
     },
     "dependencies": {
