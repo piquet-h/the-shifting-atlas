@@ -417,7 +417,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Operation Success/Failure Rate & RU Cost Table (Issue #296)\nlet timeRange = 24h;\nlet minCalls = 10;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge),\n         latencyMs = todouble(customDimensions.latencyMs)\n| where isnotempty(operationName);\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend operationName = tostring(customDimensions.operationName)\n| where isnotempty(operationName);\n// Aggregate success\nlet successAgg = successEvents\n| summarize \n    SuccessCalls = count(),\n    TotalRU = sum(ruCharge),\n    MissingRU = countif(isnull(ruCharge)),\n    P95Latency = percentile(latencyMs, 95)\n  by operationName;\n// Aggregate failures\nlet failureAgg = failureEvents\n| summarize FailedCalls = count() by operationName;\n// Join and compute metrics\nsuccessAgg\n| join kind=leftouter failureAgg on operationName\n| extend FailedCalls = coalesce(FailedCalls, 0)\n| extend TotalCalls = SuccessCalls + FailedCalls\n| extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)\n| extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)\n| extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)\n| extend RUPerCallDisplay = iff(MissingRU > 0.3 * SuccessCalls, \"n/a\", tostring(RUPerCall))\n| extend Category = iff(TotalCalls < minCalls, \"Low Volume\", \"Normal\")\n| project operationName, SuccessCalls, FailedCalls, FailureRate, RUPerCallDisplay, P95Latency = round(P95Latency, 0), Category\n| order by TotalCalls = SuccessCalls + FailedCalls desc",
+                "query": "// Operation Success/Failure Rate & RU Cost Table (Issue #296)\nlet timeRange = 24h;\nlet minCalls = 10;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge),\n         latencyMs = todouble(customDimensions.latencyMs)\n| where isnotempty(operationName);\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend operationName = tostring(customDimensions.operationName)\n| where isnotempty(operationName);\n// Aggregate success\nlet successAgg = successEvents\n| summarize \n    SuccessCalls = count(),\n    TotalRU = sum(ruCharge),\n    MissingRU = countif(isnull(ruCharge)),\n    P95Latency = percentile(latencyMs, 95)\n  by operationName;\n// Aggregate failures\nlet failureAgg = failureEvents\n| summarize FailedCalls = count() by operationName;\n// Join and compute metrics\nsuccessAgg\n| join kind=leftouter failureAgg on operationName\n| extend FailedCalls = coalesce(FailedCalls, 0)\n| extend TotalCalls = SuccessCalls + FailedCalls\n| extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)\n| extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)\n| extend AvgRUDisplay = iff(MissingRU > 0.3 * SuccessCalls, \"n/a\", tostring(round(AvgRUSuccess, 2)))\n| extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)\n| extend RUPerCallDisplay = iff(MissingRU > 0.3 * SuccessCalls, \"n/a\", tostring(RUPerCall))\n| extend Category = iff(TotalCalls < minCalls, \"Low Volume\", \"Normal\")\n| project operationName, SuccessCalls, FailedCalls, FailureRate, AvgRUDisplay, RUPerCallDisplay, P95Latency = round(P95Latency, 0), Category\n| order by TotalCalls = SuccessCalls + FailedCalls desc",
                 "size": 0,
                 "title": "Operation Reliability & RU Cost (Last 24h)",
                 "queryType": 0,
@@ -458,6 +458,20 @@
                                     {
                                         "operator": "Default",
                                         "representation": "green"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "AvgRUDisplay",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "==",
+                                        "text": "n/a",
+                                        "representation": "gray"
                                     }
                                 ]
                             }
@@ -523,9 +537,95 @@
             "name": "operation-reliability-table"
         },
         {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Missing RU Warning Banner (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName);\nlet totalEvents = toscalar(successEvents | count);\nlet missingRU = toscalar(successEvents | where isnull(ruCharge) | count);\nlet missingPercent = iff(totalEvents > 0, round(100.0 * missingRU / totalEvents, 1), 0.0);\nlet showWarning = missingPercent > 30.0;\niff(showWarning,\n    datatable(Warning:string) [strcat(\"⚠️ RU DATA INCOMPLETE: \", missingPercent, \"% of success events missing ruCharge values. RU/Call metrics may be unreliable. Check Graph.Query.Executed telemetry instrumentation.\")],\n    datatable(Status:string) [\"✅ RU data coverage adequate (<30% missing)\"]\n)",
+                "size": 0,
+                "title": "RU Data Quality Check",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Warning",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "RU DATA INCOMPLETE",
+                                        "representation": "warning"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "Status",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "adequate",
+                                        "representation": "success"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "ru-data-quality-banner"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Overall Failure Rate Notes (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed';\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed';\nlet totalSuccess = toscalar(successEvents | count);\nlet totalFailure = toscalar(failureEvents | count);\nlet totalCalls = totalSuccess + totalFailure;\nlet overallFailureRate = iff(totalCalls > 0, round(100.0 * totalFailure / totalCalls, 2), 0.0);\nlet isLowPriority = overallFailureRate < 1.0 and totalCalls >= 100;\niff(isLowPriority,\n    datatable(Note:string) [strcat(\"ℹ️ LOW PRIORITY: Overall failure rate is \", overallFailureRate, \"% (<1%). System reliability is good. Optimization tasks may be deferred unless specific operations show high cost or latency.\")],\n    iff(totalCalls < 100,\n        datatable(Note:string) [strcat(\"ℹ️ INSUFFICIENT DATA: Only \", totalCalls, \" total operations in 24h. Wait for more traffic to assess priority.\")],\n        datatable(Note:string) [strcat(\"⚠️ MONITOR: Overall failure rate is \", overallFailureRate, \"% (≥1%). Review high-failure operations above.\")]\n    )\n)",
+                "size": 0,
+                "title": "Optimization Priority Assessment",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Note",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "LOW PRIORITY",
+                                        "representation": "info"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "INSUFFICIENT DATA",
+                                        "representation": "info"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "MONITOR",
+                                        "representation": "warning"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "optimization-priority-notes"
+        },
+        {
             "type": 1,
             "content": {
-                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n- Sample size warning: Correlations require ≥30 events per operation for statistical reliability\n\n**Edge Cases:**\n- **Missing ruCharge**: Events without RU data are omitted from scatter plot and correlation calculation. Check \"Missing RU count\" in warning messages.\n- **LatencyMs=0**: These rare events are filtered out to avoid skewing correlation calculations.\n- **High RU with low latency**: Legitimate pattern showing efficient high-throughput operations; correlation will be weak or negative (expected).\n- **Very high RU outliers**: Scatter plot may show extreme RU values. Future enhancement: outlier removal toggle (RU > median × configurable factor).\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics"
+                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n- Sample size warning: Correlations require ≥30 events per operation for statistical reliability\n\n**Edge Cases:**\n- **Missing ruCharge**: Events without RU data are omitted from scatter plot and correlation calculation. Check \"Missing RU count\" in warning messages.\n- **LatencyMs=0**: These rare events are filtered out to avoid skewing correlation calculations.\n- **High RU with low latency**: Legitimate pattern showing efficient high-throughput operations; correlation will be weak or negative (expected).\n- **Very high RU outliers**: Scatter plot may show extreme RU values. Future enhancement: outlier removal toggle (RU > median × configurable factor).\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics\n- AvgRU(Success): Average RU per successful call (excludes failures)\n- RU/Call Ratio: Same as AvgRU for cost-per-operation analysis\n\n**Export & Query Documentation:**\n- Full export instructions (CSV, JSON, Azure CLI): See `docs/observability.md` § Performance Operations Dashboard\n- Kusto query examples for external analysis tools (R, Python, Excel)\n- Workbook JSON configuration export via Azure Portal Advanced Editor"
             },
             "name": "interpretation-guide"
         }
