@@ -118,4 +118,16 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
         }
         return result
     }
+
+    async getAllLayers(): Promise<DescriptionLayer[]> {
+        // Return all layers from in-memory fallback (including archived)
+        return Array.from(this.fallback.values())
+    }
+
+    async updateIntegrityHash(layerId: string, integrityHash: string): Promise<{ updated: boolean }> {
+        const layer = this.fallback.get(layerId)
+        if (!layer) return { updated: false }
+        layer.integrityHash = integrityHash
+        return { updated: true }
+    }
 }
