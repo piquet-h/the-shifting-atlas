@@ -1,10 +1,14 @@
 # The Shifting Atlas: Core Tenets
 
-Non-negotiable principles guiding all design and implementation decisions. Adapted from the Microsoft Well-Architected Framework and tailored to the unique constraints of a multiplayer, AI-orchestrated text adventure.
+Non-negotiable principles guiding all design and implementation decisions. These tenets are adapted from the **[Microsoft Azure Well-Architected Framework](https://learn.microsoft.com/en-us/azure/well-architected/)** and tailored to the unique constraints of a multiplayer, AI-orchestrated text adventure.
+
+The Well-Architected Framework provides five pillars (Reliability, Security, Cost Optimization, Operational Excellence, Performance Efficiency) plus cross-cutting concerns. We extend these with two domain-specific tenets: **Accessibility** and **Narrative Consistency**.
 
 ---
 
 ## 1. Reliability
+
+**Well-Architected Framework Pillar**: [Reliability](https://learn.microsoft.com/en-us/azure/well-architected/reliability/)
 
 **Principle**: The world state is authoritative and recoverable. Functions are stateless; no session affinity required.
 
@@ -20,6 +24,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 
 ## 2. Security
 
+**Well-Architected Framework Pillar**: [Security](https://learn.microsoft.com/en-us/azure/well-architected/security/)
+
 **Principle**: Managed identity only. No raw keys, connection strings, or secrets in code or configuration files.
 
 **Application**:
@@ -33,6 +39,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 ---
 
 ## 3. Cost Optimization
+
+**Well-Architected Framework Pillar**: [Cost Optimization](https://learn.microsoft.com/en-us/azure/well-architected/cost-optimization/)
 
 **Principle**: Free-tier first. Modular scaling. Measure before upgrading.
 
@@ -48,6 +56,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 
 ## 4. Operational Excellence
 
+**Well-Architected Framework Pillar**: [Operational Excellence](https://learn.microsoft.com/en-us/azure/well-architected/operational-excellence/)
+
 **Principle**: Small PRs, design doc reference, automated validation. Ship incrementally.
 
 **Application**:
@@ -62,6 +72,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 
 ## 5. Performance Efficiency
 
+**Well-Architected Framework Pillar**: [Performance Efficiency](https://learn.microsoft.com/en-us/azure/well-architected/performance-efficiency/)
+
 **Principle**: Event-driven, not polling. Avoid tight loops; prefer asynchronous progression.
 
 **Application**:
@@ -75,6 +87,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 ---
 
 ## 6. Accessibility
+
+**Extended Tenet**: Not part of the original five Well-Architected pillars, but a critical requirement for this project.
 
 **Principle**: WCAG 2.2 AA baseline. Accessibility is not a polish phase.
 
@@ -91,6 +105,8 @@ Non-negotiable principles guiding all design and implementation decisions. Adapt
 ---
 
 ## 7. Narrative Consistency
+
+**Extended Tenet**: Domain-specific principle for AI-orchestrated storytelling.
 
 **Principle**: AI acts as the Dungeon Master voice. Immutable base prose; additive layers only.
 
@@ -163,7 +179,7 @@ Metrics that validate adherence to these tenets:
 
 | Topic                          | Document                                      |
 | ------------------------------ | --------------------------------------------- |
-| Vision & Experience Pillars    | `vision-and-tenets.md`                        |
+| Vision Statement               | Root `README.md` (Vision section)             |
 | Architecture Implementation    | `architecture/mvp-azure-architecture.md`      |
 | Partition Strategy (Cost)      | `adr/ADR-002-graph-partition-strategy.md`     |
 | Accessibility Requirements     | `ux/accessibility-guidelines.md`              |

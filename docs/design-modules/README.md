@@ -301,11 +301,11 @@ All design modules must:
 
 | Layer                  | Document                                     |
 | ---------------------- | -------------------------------------------- |
-| Vision (60k ft)        | `../vision-and-tenets.md` (Vision section)   |
+| Vision (60k ft)        | Root `README.md` (Vision section)            |
 | Tenets (50k ft)        | `../tenets.md`                               |
 | Architecture (30k ft)  | `../architecture/mvp-azure-architecture.md`  |
 | Roadmap (20k ft)       | `../roadmap.md`                              |
-| Examples (10k ft)      | `../examples/` (planned)                     |
+| Examples (10k ft)      | `../examples/`                               |
 
 ---
 

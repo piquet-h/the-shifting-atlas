@@ -2,19 +2,17 @@
 
 # The Shifting Atlas
 
-**A MMORPG implemented as a text adventure like Zork, but with Generative AI as the dungeon master in a fully open and immersive world.**
-
 ---
 
 ## Vision (60,000 ft)
 
-An experimental persistent‑world (MMO‑style) text adventure where **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
+**A MMORPG implemented as a text adventure like Zork, but with Generative AI as the dungeon master in a fully open and immersive world.**
+
+Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. The persistent graph (locations, players, NPCs, events) lives in Cosmos DB (Gremlin). **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
 
 The platform balances imaginative emergence with architectural discipline: a dual persistence model (immutable world graph + mutable SQL state), strict telemetry governance, and event-driven progression enable replay, observability, and safe extension.
 
 > **Core Tenet**: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see [`docs/ux/accessibility-guidelines.md`](docs/ux/accessibility-guidelines.md)) before merge.
-
-**Read more**: [Vision & Experience Pillars](docs/vision-and-tenets.md) | [Strategic Rationale](docs/vision-and-tenets.md#what-we-are-building)
 
 ---
 
@@ -24,7 +22,7 @@ Navigate the documentation by altitude—each layer serves a distinct purpose wi
 
 | Layer | Altitude | Purpose | Key Documents |
 |-------|----------|---------|---------------|
-| **1. Vision** | 60,000 ft | Inspire and set direction | [Vision & Tenets](docs/vision-and-tenets.md) (Vision section) |
+| **1. Vision** | 60,000 ft | Inspire and set direction | This README (Vision section above) |
 | **2. Tenets** | 50,000 ft | Non-negotiable decision-making rules | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework) |
 | **3. Design Modules** | 40,000 ft | Translate Vision + Tenets into concrete gameplay systems | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests) |
 | **4. Architecture** | 30,000 ft | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/) |

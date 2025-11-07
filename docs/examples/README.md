@@ -149,7 +149,7 @@ Stale examples are worse than no examples—delete if unmaintainable.
 
 | Layer                  | Altitude | Document                                     |
 | ---------------------- | -------- | -------------------------------------------- |
-| Vision                 | 60k ft   | `../vision-and-tenets.md` (Vision section)   |
+| Vision                 | 60k ft   | Root `README.md` (Vision section)            |
 | Tenets                 | 50k ft   | `../tenets.md`                               |
 | Design Modules         | 40k ft   | `../design-modules/README.md`                |
 | Architecture           | 30k ft   | `../architecture/mvp-azure-architecture.md`  |
