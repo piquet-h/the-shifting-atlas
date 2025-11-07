@@ -81,8 +81,8 @@ export async function computeDescriptionIntegrityHashes(
                         trackGameEventStrict('Description.Integrity.Mismatch', {
                             layerId: layer.id,
                             locationId: layer.locationId,
-                            storedHash: layer.integrityHash.slice(0, 16), // Truncate for logging
-                            currentHash: currentHash.slice(0, 16),
+                            storedHash: layer.integrityHash.slice(0, 32), // Truncate to 128 bits for logging
+                            currentHash: currentHash.slice(0, 32),
                             contentLength: layer.content.length
                         })
 
