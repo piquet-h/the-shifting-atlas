@@ -228,7 +228,7 @@
         {
             "type": 1,
             "content": {
-                "json": "## Partition Pressure Trend (RU% + 429 Overlay)\n\n**Purpose:** Detect sustained high RU utilization and throttling signals before migration actions are needed.\n\n**Thresholds (ADR-002):**\n- 🟡 RU% >70% (amber)\n- 🔴 RU% >80% (red)\n- 🚨 RU% >70% for ≥3 consecutive intervals → annotation\n\n**Note:** Requires `MAX_RU_PER_INTERVAL` configuration. If missing, % calculation is suppressed with informational banner."
+                "json": "## Partition Pressure Trend (RU% + 429 Overlay)\n\n**Purpose:** Detect sustained high RU utilization and throttling signals before migration actions are needed.\n\n**Thresholds (ADR-002):**\n- 🟡 RU% >70% (amber)\n- 🔴 RU% >80% (red)\n- 🚨 RU% >70% for ≥3 consecutive intervals → annotation\n\n**Configuration Required:** `MAX_RU_PER_INTERVAL` must be set. Current query uses placeholder value 1000.0.\n\n**Future Enhancement:** Consider adding workbook parameter for MAX_RU configuration to avoid manual JSON edits."
             },
             "name": "section-partition-pressure"
         },

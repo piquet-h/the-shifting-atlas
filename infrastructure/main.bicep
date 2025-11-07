@@ -476,7 +476,7 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
-// Workbook: Movement Navigation Dashboard
+// Workbook: Movement Navigation Dashboard (success rate + blocked reasons)
 module workbookMovementBlockedReasons 'workbook-movement-navigation-dashboard.bicep' = {
   name: 'workbook-movement-navigation-dashboard'
   params: {
