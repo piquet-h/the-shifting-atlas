@@ -15,8 +15,14 @@ import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------
 
-const BATCH_SIZE = parseInt(process.env.INTEGRITY_JOB_BATCH_SIZE || '100', 10)
+const DEFAULT_BATCH_SIZE = 100
+const BATCH_SIZE_RAW = parseInt(process.env.INTEGRITY_JOB_BATCH_SIZE || String(DEFAULT_BATCH_SIZE), 10)
+const BATCH_SIZE = Number.isNaN(BATCH_SIZE_RAW) || BATCH_SIZE_RAW <= 0 ? DEFAULT_BATCH_SIZE : BATCH_SIZE_RAW
 const RECOMPUTE_ALL = process.env.INTEGRITY_JOB_RECOMPUTE_ALL === 'true'
+
+// Truncate hashes to 128 bits (32 hex chars) for telemetry logging
+// Provides sufficient forensic value while keeping telemetry compact
+const HASH_TRUNCATE_LENGTH = 32
 
 // --- Handler -----------------------------------------------------------------
 
@@ -81,8 +87,8 @@ export async function computeDescriptionIntegrityHashes(
                         trackGameEventStrict('Description.Integrity.Mismatch', {
                             layerId: layer.id,
                             locationId: layer.locationId,
-                            storedHash: layer.integrityHash.slice(0, 32), // Truncate to 128 bits for logging
-                            currentHash: currentHash.slice(0, 32),
+                            storedHash: layer.integrityHash.slice(0, HASH_TRUNCATE_LENGTH),
+                            currentHash: currentHash.slice(0, HASH_TRUNCATE_LENGTH),
                             contentLength: layer.content.length
                         })
 
