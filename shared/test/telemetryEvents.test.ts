@@ -78,7 +78,7 @@ test('Description.Cache.Miss is registered', () => {
 
 test('Description events match telemetry pattern', () => {
     const descriptionEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Description.'))
-    assert.ok(descriptionEvents.length === 5, `Expected 5 Description events, found ${descriptionEvents.length}`)
+    assert.ok(descriptionEvents.length === 10, `Expected 10 Description events, found ${descriptionEvents.length}`)
 
     for (const event of descriptionEvents) {
         assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
