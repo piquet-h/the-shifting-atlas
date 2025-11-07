@@ -95,7 +95,13 @@ export const GAME_EVENT_NAMES = [
     'Description.Generate.Success', // Description generated successfully
     'Description.Generate.Failure', // Description generation failed
     'Description.Cache.Hit', // Description retrieved from cache
-    'Description.Cache.Miss' // Description not in cache, will generate
+    'Description.Cache.Miss', // Description not in cache, will generate
+    // Description integrity telemetry (M5 Systems - Issue #153)
+    'Description.Integrity.JobStart', // Integrity hash job started
+    'Description.Integrity.JobComplete', // Integrity hash job completed
+    'Description.Integrity.Computed', // Hash computed for a description
+    'Description.Integrity.Unchanged', // Description unchanged, hash skipped
+    'Description.Integrity.Mismatch' // Hash mismatch detected (potential corruption)
 ] as const
 
 // Future deprecations or renames should follow the pattern above:

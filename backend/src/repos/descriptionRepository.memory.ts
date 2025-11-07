@@ -114,4 +114,15 @@ export class InMemoryDescriptionRepository implements IDescriptionRepository {
         }
         return result
     }
+
+    async getAllLayers(): Promise<DescriptionLayer[]> {
+        return Array.from(this.layers.values())
+    }
+
+    async updateIntegrityHash(layerId: string, integrityHash: string): Promise<{ updated: boolean }> {
+        const layer = this.layers.get(layerId)
+        if (!layer) return { updated: false }
+        layer.integrityHash = integrityHash
+        return { updated: true }
+    }
 }
