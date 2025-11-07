@@ -103,5 +103,6 @@
         "editor.defaultFormatter": "ms-azuretools.vscode-bicep"
     },
     "chat.agent.maxRequests": 500,
-    "chat.useNestedAgentsMdFiles": true
+    "chat.useNestedAgentsMdFiles": true,
+    "github.copilot.chat.summarizeAgentConversationHistory.enabled": false
 }
