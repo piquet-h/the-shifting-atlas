@@ -361,6 +361,20 @@ Replaces prior separate movement success rate (#281) and blocked reasons (#282) 
 -   Panels included: success rate tiles & summary, blocked reasons table, blocked rate trend (7d), summary statistics, interpretation guide.
 -   Future additions (latency distribution, percentile overlays) should modify this file (see issue #283) rather than produce a new workbook.
 
+### Performance Operations Dashboard
+
+Consolidated workbook for Gremlin operation RU consumption, latency percentiles, partition pressure, and reliability monitoring:
+
+-   File: `infrastructure/workbooks/performance-operations-dashboard.workbook.json`
+-   Infra: `infrastructure/workbook-performance-operations-dashboard.bicep`
+-   Issues consolidated: #289 (RU & Latency Overview), #290 (RU vs Latency Correlation), #291 (Partition Pressure Trend), #296 (Success/Failure Rate & RU Cost)
+-   Panels included:
+    -   **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
+    -   **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
+    -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL configuration.
+    -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, RU/Call ratio, and P95 latency. Failure rate >2% (amber), >5% (red).
+-   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
+
 ### Adding New Panels
 
 When implementing dashboard issues (e.g. partition pressure trend #291, RU vs latency correlation #290, operation RU/latency overview #289, success/failure RU cost table #296):
