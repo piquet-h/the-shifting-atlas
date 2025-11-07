@@ -25,6 +25,8 @@ export interface DescriptionLayer {
     attributes?: Record<string, string | number | boolean>
     /** If true, layer is no longer active (superseded or explicitly removed). */
     archived?: boolean
+    /** SHA-256 integrity hash of the content (for corruption detection). */
+    integrityHash?: string
 }
 
 /**
@@ -59,6 +61,20 @@ export interface IDescriptionRepository {
      * @returns Map from locationId to array of active layers
      */
     getLayersForLocations(locationIds: string[]): Promise<Map<string, DescriptionLayer[]>>
+
+    /**
+     * Retrieve all layers (including archived) for integrity hash computation.
+     * @returns Array of all layers in the repository
+     */
+    getAllLayers(): Promise<DescriptionLayer[]>
+
+    /**
+     * Update the integrity hash for a specific layer (used by integrity job).
+     * @param layerId - Layer GUID
+     * @param integrityHash - Computed SHA-256 hash
+     * @returns Whether layer was found and updated
+     */
+    updateIntegrityHash(layerId: string, integrityHash: string): Promise<{ updated: boolean }>
 }
 
 // In-memory implementation for early testing (minimal storage)
@@ -96,6 +112,17 @@ class InMemoryDescriptionRepository implements IDescriptionRepository {
             result.set(locId, await this.getLayersForLocation(locId))
         }
         return result
+    }
+
+    async getAllLayers(): Promise<DescriptionLayer[]> {
+        return Array.from(this.layers.values())
+    }
+
+    async updateIntegrityHash(layerId: string, integrityHash: string): Promise<{ updated: boolean }> {
+        const layer = this.layers.get(layerId)
+        if (!layer) return { updated: false }
+        layer.integrityHash = integrityHash
+        return { updated: true }
     }
 }
 

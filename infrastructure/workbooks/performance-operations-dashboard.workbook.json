@@ -146,7 +146,9 @@
                 "visualization": "scatterchart",
                 "chartSettings": {
                     "xAxis": "ruCharge",
-                    "yAxis": ["latencyMs"],
+                    "yAxis": [
+                        "latencyMs"
+                    ],
                     "group": "operationName",
                     "seriesLabelSettings": []
                 }
@@ -157,7 +159,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet bucketSize = 5m;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Compute trend per bucket\nlet trend = events\n| summarize \n    AvgRU = avg(ruCharge),\n    P95Latency = percentile(latencyMs, 95),\n    Count = count()\n  by operationName, bucket = bin(timestamp, bucketSize)\n| order by bucket asc;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| where n >= 30\n| project operationName, correlation = round(correlation, 3), SampleSize = n\n| order by correlation desc;\n// Display correlation table\ncorrelations",
+                "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Count missing ruCharge for edge case tracking\nlet totalEvents = toscalar(customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| where isnotempty(tostring(customDimensions.operationName))\n| count);\nlet eventsWithRU = toscalar(events | count);\nlet missingRUCount = totalEvents - eventsWithRU;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| extend correlation = round(correlation, 3)\n| project operationName, correlation, SampleSize = n, MeetsThreshold = iff(n >= minSampleSize, \"Yes\", \"No\")\n| order by correlation desc;\nlet hasValidCorrelations = toscalar(correlations | where SampleSize >= minSampleSize | count);\n// Return warning if no operations have sufficient samples, else show correlations\niff(hasValidCorrelations == 0,\n    datatable(Notice:string) [strcat(\"⚠️ INSUFFICIENT SAMPLE WARNING: All operations have <\", minSampleSize, \" samples. Correlation coefficients unreliable. Wait for more data or check if telemetry is flowing. Missing RU count: \", missingRUCount)],\n    correlations\n)",
                 "size": 0,
                 "title": "Pearson Correlation: RU vs Latency (sample ≥30)",
                 "queryType": 0,
@@ -189,6 +191,29 @@
                             "formatOptions": {
                                 "palette": "blue"
                             }
+                        },
+                        {
+                            "columnMatch": "MeetsThreshold",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "==",
+                                        "text": "No",
+                                        "representation": "gray"
+                                    },
+                                    {
+                                        "operator": "==",
+                                        "text": "Yes",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "Notice",
+                            "formatter": 1
                         }
                     ]
                 }
@@ -207,7 +232,10 @@
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": ["AvgRU", "P95Latency"],
+                    "yAxis": [
+                        "AvgRU",
+                        "P95Latency"
+                    ],
                     "seriesLabelSettings": [
                         {
                             "seriesName": "AvgRU",
@@ -228,37 +256,155 @@
         {
             "type": 1,
             "content": {
-                "json": "## Partition Pressure Trend (RU% + 429 Overlay)\n\n**Purpose:** Detect sustained high RU utilization and throttling signals before migration actions are needed.\n\n**Thresholds (ADR-002):**\n- 🟡 RU% >70% (amber)\n- 🔴 RU% >80% (red)\n- 🚨 RU% >70% for ≥3 consecutive intervals → annotation\n\n**Configuration Required:** `MAX_RU_PER_INTERVAL` must be set. Current query uses placeholder value 1000.0.\n\n**Future Enhancement:** Consider adding workbook parameter for MAX_RU configuration to avoid manual JSON edits."
+                "json": "## Partition Pressure Trend (RU% + 429 Overlay)\n\n**Purpose:** Detect sustained high RU utilization and throttling signals before migration actions are needed.\n\n**Thresholds (ADR-002):**\n- 🟡 RU% >70% (amber)\n- 🔴 RU% >80% (red)\n- 🚨 RU% >70% for ≥3 consecutive intervals → requires investigation\n\n**Configuration:** Set `MAX_RU_PER_INTERVAL` parameter above (e.g., 1000 RU/s × 300s = 300000). If not configured, panel displays \"Baseline throughput not configured\" and suppresses % calculation.\n\n**Edge Cases Handled:**\n- Zero RU intervals → displays 0%\n- Sparse 429 occurrences → renders with appropriate scaling\n- Missing baseline → informational state (not error)"
             },
             "name": "section-partition-pressure"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "⚠️ **Baseline throughput not configured** - Set the `MAX_RU_PER_INTERVAL` parameter above to enable RU% calculation. Example: For 1000 RU/s provisioned throughput with 5-minute buckets, use 1000 × 300 = 300000."
+            },
+            "conditionalVisibility": {
+                "parameterName": "MaxRuPerInterval",
+                "comparison": "isEqualTo",
+                "value": ""
+            },
+            "name": "partition-pressure-config-banner"
         },
         {
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Partition Pressure Trend - RU% with 429 overlay (Issue #291)\n// Note: This query uses a placeholder MAX_RU value. Configure via workbook parameter or env.\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuPerInterval = 1000.0; // PLACEHOLDER: Replace with actual provisioned RU/s * (bucketSize in seconds)\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\nlet failures = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend statusCode = toint(customDimensions.statusCode)\n| where statusCode == 429;\n// Aggregate RU and 429 counts per bucket\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet throttleByBucket = failures\n| summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\n// Join and compute RU%\nruByBucket\n| join kind=leftouter throttleByBucket on bucket\n| extend ThrottleCount = coalesce(ThrottleCount, 0)\n| extend RUPercent = round(100.0 * TotalRU / maxRuPerInterval, 2)\n| project bucket, RUPercent, ThrottleCount\n| order by bucket asc",
+                "query": "// Partition Pressure Trend - RU% with 429 overlay (Issue #291)\n// Supports dynamic MAX_RU_PER_INTERVAL parameter with fallback handling\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Process RU events\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet failures = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend statusCode = toint(customDimensions.statusCode)\n| where statusCode == 429;\n\n// Aggregate RU and 429 counts per bucket (including zero-RU intervals)\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet throttleByBucket = failures\n| summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\n\n// Calculate RU% with proper zero handling\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         ThrottleCount = coalesce(ThrottleCount, 0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), todouble(null))\n| project timestamp = bucket, RUPercent, ThrottleCount, TotalRU, Threshold70 = 70.0, Threshold80 = 80.0\n| order by timestamp asc;\n\n// Return data (if config missing, RUPercent will be null and message shown in title)\npressureData",
                 "size": 0,
-                "title": "RU% and 429 Count (5-min buckets, 24h) - PLACEHOLDER MAX_RU",
+                "title": "RU% and 429 Count (5-min buckets, 24h) {MaxRuPerInterval:label}",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": ["RUPercent", "ThrottleCount"],
+                    "yAxis": [
+                        "RUPercent",
+                        "ThrottleCount"
+                    ],
                     "seriesLabelSettings": [
                         {
                             "seriesName": "RUPercent",
                             "label": "RU%",
-                            "color": "purple"
+                            "color": "blue"
                         },
                         {
                             "seriesName": "ThrottleCount",
                             "label": "429 Count",
+                            "color": "redBright"
+                        },
+                        {
+                            "seriesName": "Threshold70",
+                            "label": "70% Threshold",
+                            "color": "orange"
+                        },
+                        {
+                            "seriesName": "Threshold80",
+                            "label": "80% Threshold",
                             "color": "red"
                         }
                     ]
                 }
             },
             "name": "partition-pressure-chart"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Sustained High RU Annotation (Issue #291)\n// Detects RU% >70% for ≥3 consecutive 5-minute intervals\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Early exit if no config\nlet noConfig = datatable(Message:string) [\"ℹ️ Configure MAX_RU_PER_INTERVAL parameter to enable sustained pressure detection\"];\n\n// Calculate RU% per bucket\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), 0.0)\n| project timestamp = bucket, RUPercent\n| order by timestamp asc;\n\n// Detect sustained high RU (>=3 consecutive intervals >70%)\nlet sustainedHighRU = pressureData\n| extend IsHigh = RUPercent > 70.0\n| serialize rn = row_number()\n| extend prevIsHigh1 = prev(IsHigh, 1), prevIsHigh2 = prev(IsHigh, 2)\n| where IsHigh and prevIsHigh1 and prevIsHigh2\n| summarize \n    StartTime = min(timestamp), \n    EndTime = max(timestamp), \n    ConsecutiveIntervals = count(),\n    MaxRU = max(RUPercent),\n    AvgRU = round(avg(RUPercent), 1)\n| extend Message = strcat(\"🚨 SUSTAINED HIGH RU: \", ConsecutiveIntervals, \" consecutive intervals >70% (avg: \", AvgRU, \"%, max: \", MaxRU, \"%)\")\n| project StartTime, EndTime, ConsecutiveIntervals, AvgRU, MaxRU, Message;\n\n// Return no-config message or annotations\niff(not(hasValidConfig), noConfig, sustainedHighRU)",
+                "size": 0,
+                "title": "Sustained Pressure Alerts (RU >70% for ≥3 intervals)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Message",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "SUSTAINED HIGH RU",
+                                        "representation": "critical"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "info"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "ConsecutiveIntervals",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "red"
+                            }
+                        },
+                        {
+                            "columnMatch": "AvgRU",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "80",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "70",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "MaxRU",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "80",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "70",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "conditionalVisibility": {
+                "parameterName": "MaxRuPerInterval",
+                "comparison": "isNotEqualTo",
+                "value": ""
+            },
+            "name": "partition-pressure-annotation"
         },
         {
             "type": 1,
@@ -379,11 +525,22 @@
         {
             "type": 1,
             "content": {
-                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics"
+                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n- Sample size warning: Correlations require ≥30 events per operation for statistical reliability\n\n**Edge Cases:**\n- **Missing ruCharge**: Events without RU data are omitted from scatter plot and correlation calculation. Check \"Missing RU count\" in warning messages.\n- **LatencyMs=0**: These rare events are filtered out to avoid skewing correlation calculations.\n- **High RU with low latency**: Legitimate pattern showing efficient high-throughput operations; correlation will be weak or negative (expected).\n- **Very high RU outliers**: Scatter plot may show extreme RU values. Future enhancement: outlier removal toggle (RU > median × configurable factor).\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics"
             },
             "name": "interpretation-guide"
         }
     ],
     "fallbackResourceIds": [],
-    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json",
+    "parameters": [
+        {
+            "name": "MaxRuPerInterval",
+            "id": "maxru-param",
+            "type": 1,
+            "description": "Maximum RU capacity per 5-minute interval (e.g., 1000 RU/s * 300s = 300000). Leave empty to see configuration banner.",
+            "value": "",
+            "label": "MAX_RU_PER_INTERVAL",
+            "isRequired": false
+        }
+    ]
 }

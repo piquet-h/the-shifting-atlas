@@ -8,7 +8,7 @@ facet: concept
 
 # DM Persona Parsing & Humorous Action Engine
 
-Purpose: Lightweight foundation for a humorous Dungeon Master style interpreter converting free‑form player text into playful action frames. Execution facet coverage lives in `../execution/modules-implementation.md`.
+Purpose: Lightweight foundation for a humorous Dungeon Master style interpreter converting free‑form player text into playful action frames. Implementation planning tracked in roadmap milestones.
 
 ## Guiding Principles
 

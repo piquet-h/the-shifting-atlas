@@ -19,7 +19,7 @@ Keep long‑term truths (invariants, tone, normalization rules, dungeon run inte
 
 ## Boundaries
 
-Excluded: progress stage tables, atomic issue lists, deployment scripts, persistence technical details (see `../execution/` and `../architecture/`).
+Excluded: progress stage tables, atomic issue lists, deployment scripts, persistence technical details (see `../architecture/` and `../roadmap.md`).
 
 ## Change Rules
 
@@ -43,7 +43,7 @@ Issue classification heuristics:
 - Added invariant → feature issue (risk: RUNTIME-BEHAVIOR)
 - Removed invariant → refactor issue
 - New section heading → feature issue (system scope expansion)
-- Tenet line change in `vision-and-tenets.md` → docs issue
+- Tenet line change in `../tenets.md` → docs issue
 - Planning verbs detected in concept doc → refactor (CrossFacetLeak) issue
 
 Review Guidelines:
@@ -57,13 +57,14 @@ Add string `<!-- concept-automation:ignore -->` to a changed line to suppress de
 
 ---
 
-## Related Facets
+## Related Documentation
 
-| Facet           | Directory                 | Purpose                                           |
-| --------------- | ------------------------- | ------------------------------------------------- |
-| Architecture    | `../architecture/`        | Technical persistence, integration, mapping       |
-| Execution       | `../execution/`           | Mutable progress tracking & atomic issue clusters |
-| Vision & Tenets | `../vision-and-tenets.md` | High-level rationale & decision principles        |
+| Layer           | Document                        | Purpose                                    |
+| --------------- | ------------------------------- | ------------------------------------------ |
+| Vision          | Root `README.md`                | High-level vision and narrative            |
+| Tenets          | `../tenets.md`                  | Non-negotiable decision principles         |
+| Architecture    | `../architecture/`              | Technical persistence, integration         |
+| Roadmap         | `../roadmap.md`                 | Milestone planning and progress tracking   |
 
 ---
 

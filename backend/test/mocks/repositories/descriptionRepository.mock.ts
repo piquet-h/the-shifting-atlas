@@ -123,4 +123,15 @@ export class MockDescriptionRepository implements IDescriptionRepository {
         }
         return result
     }
+
+    async getAllLayers(): Promise<DescriptionLayer[]> {
+        return Array.from(this.mockLayers.values())
+    }
+
+    async updateIntegrityHash(layerId: string, integrityHash: string): Promise<{ updated: boolean }> {
+        const layer = this.mockLayers.get(layerId)
+        if (!layer) return { updated: false }
+        layer.integrityHash = integrityHash
+        return { updated: true }
+    }
 }

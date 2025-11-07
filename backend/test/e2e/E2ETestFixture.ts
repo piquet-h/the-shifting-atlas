@@ -211,14 +211,11 @@ export class E2ETestFixture {
     async setup(): Promise<void> {
         // Verify required environment variables
         // Priority: *_TEST vars (test-specific) > COSMOS_* standard vars > legacy GREMLIN_* vars
-        const gremlinEndpoint =
-            process.env.GREMLIN_ENDPOINT_TEST || process.env.COSMOS_GREMLIN_ENDPOINT || process.env.GREMLIN_ENDPOINT
+        const gremlinEndpoint = process.env.GREMLIN_ENDPOINT_TEST || process.env.COSMOS_GREMLIN_ENDPOINT || process.env.GREMLIN_ENDPOINT
         const sqlEndpoint = process.env.COSMOS_SQL_ENDPOINT_TEST || process.env.COSMOS_SQL_ENDPOINT
 
         if (!gremlinEndpoint) {
-            throw new Error(
-                'E2E tests require GREMLIN_ENDPOINT_TEST (or COSMOS_GREMLIN_ENDPOINT or GREMLIN_ENDPOINT) environment variable'
-            )
+            throw new Error('E2E tests require GREMLIN_ENDPOINT_TEST (or COSMOS_GREMLIN_ENDPOINT or GREMLIN_ENDPOINT) environment variable')
         }
         if (!sqlEndpoint) {
             throw new Error('E2E tests require COSMOS_SQL_ENDPOINT_TEST (or COSMOS_SQL_ENDPOINT) environment variable')

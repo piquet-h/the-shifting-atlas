@@ -2,73 +2,78 @@
 
 # The Shifting Atlas
 
-Experimental persistent‑world (MMO‑style) text adventure prototype on an Azure‑native, event‑driven stack. Code today = lightweight scaffolding; most domain depth lives in design docs and roadmap.
+---
 
-> Core Tenet: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see `docs/ux/accessibility-guidelines.md`) before merge.
+## Vision (60,000 ft)
+
+**A MMORPG implemented as a text adventure like Zork, but with Generative AI as the dungeon master in a fully open and immersive world.**
+
+Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. The persistent graph (locations, players, NPCs, events) lives in Cosmos DB (Gremlin). **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
+
+The platform balances imaginative emergence with architectural discipline: a dual persistence model (immutable world graph + mutable SQL state), strict telemetry governance, and event-driven progression enable replay, observability, and safe extension.
+
+> **Core Tenet**: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see [`docs/ux/accessibility-guidelines.md`](docs/ux/accessibility-guidelines.md)) before merge.
+
+---
+
+## Documentation Hierarchy (MECE: Mutually Exclusive, Collectively Exhaustive)
+
+Navigate the documentation by altitude—each layer serves a distinct purpose with no overlap:
+
+| Layer | Altitude | Purpose | Key Documents |
+|-------|----------|---------|---------------|
+| **1. Vision** | 60,000 ft | Inspire and set direction | This README (Vision section above) |
+| **2. Tenets** | 50,000 ft | Non-negotiable decision-making rules | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework) |
+| **3. Design Modules** | 40,000 ft | Translate Vision + Tenets into concrete gameplay systems | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests) |
+| **4. Architecture** | 30,000 ft | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/) |
+| **5. Roadmap** | 20,000 ft | Staged progression from Vision to Code (milestones M0–M6) | [Roadmap](docs/roadmap.md) |
+| **6. Examples** | 10,000 ft | Practical code walkthroughs and onboarding aids | [Examples](docs/examples/README.md) (function endpoints, Gremlin queries, seed scripts, a11y tests) |
+| **7. Code** | Ground Level | Runnable implementation | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
+
+**For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
 
 ---
 
 ## Table of Contents
 
-1. Vision & High-Level Concept
-2. Architecture Overview
-3. Repository Layout
-4. Current Implementation Status
-5. Quick Start (Local Dev)
-6. Development Workflow
-7. Roadmap
-8. Documentation Map
-9. Known Gaps & Technical Debt
-10. Contributing Guidelines
-    10.1 Issue Taxonomy (Simplified)
-11. License
-12. Accessibility (Core Tenet)
+1. [Quick Start (Local Dev)](#quick-start-local-dev)
+2. [Repository Layout](#repository-layout)
+3. [Current Implementation Status](#current-implementation-status)
+4. [Development Workflow](#development-workflow)
+5. [CI/CD Pipelines](#cicd-pipelines)
+6. [Contributing Guidelines](#contributing-guidelines)
+7. [Known Gaps & Technical Debt](#known-gaps--technical-debt)
+8. [License](#license)
 
 ---
 
-## 1. Vision & High-Level Concept
+## Quick Start (Local Dev)
 
-Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. The persistent graph (rooms, players, NPCs, events) will live in Cosmos DB (Gremlin). Azure Functions + Service Bus orchestrate state changes and narrative progress.
+---
 
-## 2. Architecture Overview
-
-Current implemented slice + planned extensions (details in `docs/architecture/mvp-azure-architecture.md`):
-
-Implemented now:
-
--   Static Web App (SWA) hosting the React (Vite) frontend only (no co‑located Functions; all server logic lives in the unified `backend/` Function App).
--   Bicep template provisioning SWA + Cosmos DB (Gremlin + SQL) using Managed Identity (AAD) – no runtime Cosmos keys.
-
-Planned (not yet in code):
-
--   Service Bus (world + NPC event queue).
--   Queue‑triggered Functions for world simulation & NPC behaviors (likely moved to `backend/`).
--   Application Insights telemetry (player actions, world mutations).
--   Managed identity / RBAC graph access (remove raw key usage entirely).
-
-Design principles:
-
--   Stateless Functions; authoritative world state lives in the graph + event stream.
--   Event emission drives progression (avoid tight loops / cron ticks).
--   Small, modular additions matched to a design doc before coding.
--   Start co‑located, then separate concerns when complexity warrants.
-
-## 3. Repository Layout
+## Repository Layout
 
 ```
-frontend/         React SPA
-backend/          Azure Functions App (HTTP + world / player endpoints, future queues)
-shared/           Shared domain models, telemetry, utilities (consumed by backend & frontend)
-infrastructure/   Bicep (SWA, Cosmos, Key Vault)
-docs/             Architecture & domain design modules
+frontend/         React SPA (Vite + Tailwind CSS)
+backend/          Azure Functions App (HTTP + queue endpoints)
+shared/           Shared domain models, telemetry, utilities (published to GitHub Packages)
+infrastructure/   Bicep templates (Azure resources: SWA, Functions, Cosmos DB, Key Vault, App Insights)
+docs/             Documentation (MECE hierarchy: vision → tenets → modules → architecture → roadmap → examples)
+scripts/          Automation (seed data, validation, deployment helpers)
 ```
 
-Notable:
+**Notable**:
+- `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
+- `backend/src/handlers/*` – Business logic (separated from routing)
+- `shared/src/` – Domain models, telemetry constants, direction normalizer
+- `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
+- `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
 
--   `backend/src/functions/*` – unified HTTP endpoints (player, location, movement, bootstrap, health).
--   `docs/modules/*` – domain design (future mechanics, keep as roadmap references).
+**Learn more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
 
-## 4. Current Implementation Status
+---
+
+## Current Implementation Status
 
 | Area                           | Status                      | Notes                                                               |
 | ------------------------------ | --------------------------- | ------------------------------------------------------------------- |
@@ -82,7 +87,14 @@ Notable:
 | CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)                  |
 | Tracing (OpenTelemetry)        | Baseline spans implemented  | Span lifecycle + safe end guard (#41); enrichment epic #310 planned |
 
-## 5. Quick Start (Local Dev)
+**Read more**: 
+- [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
+- [Roadmap](docs/roadmap.md) (Milestone status: M0–M6)
+- [Examples](docs/examples/README.md) (Practical code walkthroughs)
+
+---
+
+## Development Workflow
 
 Prerequisites:
 
@@ -234,42 +246,44 @@ An idempotent seed script is available for initializing anchor locations and exi
 node scripts/seed-anchor-locations.mjs
 ```
 
-The script is safe to re-run and outputs a summary of locations and exits processed. See `docs/developer-workflow/local-dev-setup.md` for detailed usage.
+The script is safe to re-run and outputs a summary of locations and exits processed. See [`docs/examples/seed-script-usage.md`](docs/examples/seed-script-usage.md) for detailed usage.
 
-## 7. Roadmap (Near / Mid Term)
+**Guidelines**:
+- Keep handlers small & stateless; extract shared helpers once they appear twice
+- Link a design doc section when opening a feature PR
+- Prefer enqueueing a world event over cascading direct mutations
 
-(Roadmap retained; see design docs for fuller detail.)
+**Read more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
 
-## 8. Documentation Map
+---
 
-Key starting points:
+## CI/CD Pipelines
 
--   MVP Azure Architecture: `docs/architecture/mvp-azure-architecture.md`
--   CI/CD: inspect `.github/workflows/*.yml` directly (no separate prose)
--   World Rules & Lore: `docs/modules/world-rules-and-lore.md`
--   Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
--   Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
--   Quests & Dialogue: `docs/modules/quest-and-dialogue-trees.md`
--   Economy & Trade: `docs/modules/economy-and-trade-systems.md`
+All workflows are defined in `.github/workflows/` and use GitHub Actions with Azure OIDC authentication (no raw secrets).
 
-## 9. Known Gaps & Technical Debt
+**Key workflows**:
+- **CI**: Lint, typecheck, test, accessibility scans (triggered on PRs/pushes)
+- **Infrastructure Deploy**: Bicep templates → Azure resources (Cosmos, Functions, SWA, Key Vault)
+- **Publish Shared**: Publish `@piquet-h/shared` to GitHub Packages
+- **Backend Deploy**: Build + deploy Functions (depends on shared package)
+- **Frontend Deploy**: Build + deploy Static Web App
 
-Current gaps:
+**Deployment order**: Infrastructure → Shared → Backend → Frontend
 
--   No Service Bus or queue processors.
--   No runtime Cosmos DB integration code (graph client, schema bootstrap).
--   Limited test coverage (backend + shared scaffolding present; expansion planned).
--   No managed identity consumption in Functions (uses key secret placeholder only).
--   Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default.
+**Read more**: [CI/CD Documentation](docs/developer-workflow/ci-cd.md) (links to all workflow files)
 
-## 10. Contributing Guidelines
+---
 
-1. Open an issue describing the change & referencing design doc section.
-2. Keep functions stateless; configuration via env only.
-3. Small focused PRs (single domain concern).
-4. Update docs/README when adding a new concept.
+## Contributing Guidelines
 
-### 10.1 Issue Taxonomy (Simplified)
+1. Open an issue describing the change & referencing design doc section
+2. Keep functions stateless; configuration via env only
+3. Small focused PRs (single domain concern)
+4. Follow [Tenets](docs/tenets.md) (reliability, security, cost, operational excellence, performance, accessibility, narrative consistency)
+5. Review [Design Modules](docs/design-modules/README.md) for gameplay contracts before implementing features
+6. Use [Examples](docs/examples/README.md) as templates for common patterns
+
+### Issue Taxonomy (Simplified)
 
 Project planning uses a deliberately **minimal label + milestone scheme** (see `docs/developer-workflow/issue-taxonomy.md` for full details). Only these axes exist (former numeric implementation ordering / predictive scheduling removed):
 
@@ -289,67 +303,33 @@ Migration (2025-09-27 final): Removed `priority:` axis (ordering automation sinc
 
 ### Coding Conventions (Early)
 
--   ES Modules everywhere (`"type": "module"`).
--   Async/await for all I/O.
--   Avoid premature framework additions; keep dependencies lean.
--   Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing.
+-   ES Modules everywhere (`"type": "module"`)
+-   Async/await for all I/O
+-   Avoid premature framework additions; keep dependencies lean
+-   Formatting (indentation, quotes, commas) is auto-enforced by Prettier/ESLint; run `npm run format` locally before pushing
 
-## 11. License
-
-MIT – see `LICENSE`.
-
-## 12. Accessibility (Core Tenet)
-
-Accessibility is treated as a first‑class requirement (not a polish phase). Refer to `docs/ux/accessibility-guidelines.md` for:
-
--   WCAG 2.2 AA mapping to game concerns
--   Required skip link, landmarks, focus management
--   Live announcement strategy for world events
--   Definition of Done checklist additions
-
-### Automated Axe Scan
-
-Run locally:
-
-```bash
-cd frontend && npm install
-npm run a11y  # runs vite dev server then axe scan of http://localhost:5173
-```
-
-GitHub Actions workflow `.github/workflows/a11y.yml` executes on PRs touching frontend code. Reports are saved as an artifact (`axe-report`). The command currently fails build on any violation (`--exit 1`). Adjust strategy later for severity filtering.
-
-PRs introducing UI or interaction changes must note: keyboard path validated, no new a11y lint violations, focus order predictable, and contrast checked. Regressions block merge.
-
-### Telemetry (Application Insights)
-
-Infrastructure now provisions an Application Insights resource and exposes its connection string as a deployment output.
-
-Backend (Functions): Automatic collection (requests, dependencies, exceptions, traces) is enabled when the environment variable `APPLICATIONINSIGHTS_CONNECTION_STRING` is present. The Static Web App's integrated Functions runtime receives this via app settings (set in Bicep). Local development: populate `backend/local.settings.json` with the connection string to enable telemetry; leave blank to disable.
-
-Frontend (React SPA): The web SDK initializes if `VITE_APPINSIGHTS_CONNECTION_STRING` is defined (e.g. in Static Web App configuration or a local `.env.local`). It auto-tracks page views, route changes, fetch/XHR, and JavaScript errors. No connection string = graceful no‑op.
-
-Local example `.env.local` (frontend):
-
-```bash
-VITE_APPINSIGHTS_CONNECTION_STRING="InstrumentationKey=...;IngestionEndpoint=...;LiveEndpoint=..."
-```
-
-Custom events (backend): import `trackEvent` from `backend/src/telemetry.ts`.
-Custom events (frontend): import `{ trackEvent }` from `src/services/telemetry.ts`.
-
-Sampling and PII: default 100% sampling; IP masking / personally identifying data not manually collected. Adjust later via SDK config (e.g. `setAutoCollectConsole(false)` or processor filters) before production scale.
-
-### Tracing (OpenTelemetry)
-
-Backend span tracing is initialized (baseline) for HTTP and internal operations: spans capture core request lifecycles and correlate with custom event telemetry. A guard prevents double-ending spans (#41). Upcoming enrichment (Epic #310) will add:
-
--   Production exporter wiring (Application Insights or OTLP) under configuration flag
--   Span attribute enrichment (player/location IDs, persistence mode, RU/latency metrics)
--   Outbound traceparent propagation to queued world events
--   Error status mapping + standardized span naming taxonomy
-
-Until Epic #310 lands, traces remain minimal (lifecycle + correlation only). Do not add ad‑hoc span attributes; defer to enrichment plan.
+**Read more**: [Developer Workflow](docs/developer-workflow/) | [Issue Taxonomy](docs/developer-workflow/issue-taxonomy.md)
 
 ---
 
-Return to top: [▲](#top)
+## Known Gaps & Technical Debt
+
+Current gaps:
+- No Service Bus or queue processors
+- No runtime Cosmos DB integration code (graph client, schema bootstrap)
+- Limited test coverage (backend + shared scaffolding present; expansion planned)
+- No managed identity consumption in Functions (uses key secret placeholder only)
+- Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default
+
+**Read more**: [Roadmap](docs/roadmap.md) (milestones M2–M6 address these gaps)
+
+---
+
+## License
+
+MIT – see [`LICENSE`](LICENSE).
+
+---
+
+**Return to top**: [▲](#top)
+
