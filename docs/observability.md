@@ -371,7 +371,7 @@ Consolidated workbook for Gremlin operation RU consumption, latency percentiles,
 -   Panels included:
     -   **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
     -   **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
-    -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL configuration.
+    -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
     -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, RU/Call ratio, and P95 latency. Failure rate >2% (amber), >5% (red).
 -   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
 
@@ -443,6 +443,94 @@ For external correlation analysis (R, Python, Excel):
 4. Import into analysis tool maintaining columns: operationName, ruCharge, latencyMs, timestamp
 
 **Note:** Exported queries may need adjustment for different Application Insights instances (e.g., update customDimensions key names if telemetry schema differs).
+
+##### Partition Pressure Trend Export
+
+To export Partition Pressure Trend data and queries for capacity planning:
+
+**Query Export (Kusto/KQL):**
+
+1. Navigate to Application Insights → Logs
+2. Copy the partition pressure query from the workbook:
+   ```kusto
+   let timeRange = 24h;
+   let bucketSize = 5m;
+   let maxRuPerInterval = 300000.0; // Replace with your MAX_RU_PER_INTERVAL value
+   let ruEvents = customEvents
+   | where timestamp > ago(timeRange)
+   | where name == 'Graph.Query.Executed'
+   | extend ruCharge = todouble(customDimensions.ruCharge)
+   | where isnotnull(ruCharge);
+   let failures = customEvents
+   | where timestamp > ago(timeRange)
+   | where name == 'Graph.Query.Failed'
+   | extend statusCode = toint(customDimensions.statusCode)
+   | where statusCode == 429;
+   let allBuckets = range timestamp from ago(timeRange) to now() step bucketSize
+   | project bucket = bin(timestamp, bucketSize);
+   let ruByBucket = ruEvents
+   | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);
+   let throttleByBucket = failures
+   | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);
+   allBuckets
+   | join kind=leftouter ruByBucket on bucket
+   | join kind=leftouter throttleByBucket on bucket
+   | extend TotalRU = coalesce(TotalRU, 0.0),
+            ThrottleCount = coalesce(ThrottleCount, 0),
+            RUPercent = round(100.0 * coalesce(TotalRU, 0.0) / maxRuPerInterval, 2)
+   | project timestamp = bucket, RUPercent, ThrottleCount, TotalRU
+   | order by timestamp asc
+   ```
+3. Export to CSV for historical trend analysis
+4. Adjust `timeRange` for longer analysis periods (7d, 30d)
+
+**Sustained Pressure Detection Query:**
+
+```kusto
+let timeRange = 24h;
+let bucketSize = 5m;
+let maxRuPerInterval = 300000.0; // Replace with your value
+let ruEvents = customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Graph.Query.Executed'
+| extend ruCharge = todouble(customDimensions.ruCharge)
+| where isnotnull(ruCharge);
+let allBuckets = range timestamp from ago(timeRange) to now() step bucketSize
+| project bucket = bin(timestamp, bucketSize);
+let ruByBucket = ruEvents
+| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);
+let pressureData = allBuckets
+| join kind=leftouter ruByBucket on bucket
+| extend TotalRU = coalesce(TotalRU, 0.0),
+         RUPercent = round(100.0 * coalesce(TotalRU, 0.0) / maxRuPerInterval, 2)
+| project timestamp = bucket, RUPercent
+| order by timestamp asc;
+pressureData
+| extend IsHigh = RUPercent > 70.0
+| serialize rn = row_number()
+| extend prevIsHigh1 = prev(IsHigh, 1), prevIsHigh2 = prev(IsHigh, 2)
+| where IsHigh and prevIsHigh1 and prevIsHigh2
+| summarize 
+    StartTime = min(timestamp), 
+    EndTime = max(timestamp), 
+    ConsecutiveIntervals = count(),
+    MaxRU = max(RUPercent),
+    AvgRU = round(avg(RUPercent), 1)
+| project StartTime, EndTime, ConsecutiveIntervals, AvgRU, MaxRU
+```
+
+**Configuration Notes:**
+
+- `MAX_RU_PER_INTERVAL` = Provisioned RU/s × bucket size in seconds
+- Example: 1000 RU/s × 300 seconds = 300,000
+- For auto-scale accounts, use maximum RU/s
+- Adjust `bucketSize` for different granularities (1m, 5m, 15m)
+
+**Edge Cases Verified:**
+
+- Zero RU intervals: Display as 0% (no divide-by-zero errors)
+- Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
+- Missing baseline: Chart displays with null RU% and configuration banner shown
 
 #### Future Enhancements
 
