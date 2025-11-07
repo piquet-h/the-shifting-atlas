@@ -375,6 +375,94 @@ Consolidated workbook for Gremlin operation RU consumption, latency percentiles,
     -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, RU/Call ratio, and P95 latency. Failure rate >2% (amber), >5% (red).
 -   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
 
+#### Export Instructions
+
+To export RU vs Latency Correlation panel queries and configuration for external analysis:
+
+**Query Export (Kusto/KQL):**
+
+1. Navigate to Application Insights → Logs
+2. Copy the correlation coefficient query from the workbook:
+   ```kusto
+   let timeRange = 2h;
+   let minSampleSize = 30;
+   let events = customEvents
+   | where timestamp > ago(timeRange)
+   | where name == 'Graph.Query.Executed'
+   | extend operationName = tostring(customDimensions.operationName),
+            latencyMs = todouble(customDimensions.latencyMs),
+            ruCharge = todouble(customDimensions.ruCharge)
+   | where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;
+   events
+   | summarize 
+       n = count(),
+       sumX = sum(ruCharge),
+       sumY = sum(latencyMs),
+       sumXY = sum(ruCharge * latencyMs),
+       sumX2 = sum(ruCharge * ruCharge),
+       sumY2 = sum(latencyMs * latencyMs)
+     by operationName
+   | extend 
+       numerator = (n * sumXY) - (sumX * sumY),
+       denomX = sqrt((n * sumX2) - (sumX * sumX)),
+       denomY = sqrt((n * sumY2) - (sumY * sumY))
+   | extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))
+   | extend correlation = round(correlation, 3)
+   | project operationName, correlation, SampleSize = n
+   | where SampleSize >= minSampleSize
+   | order by correlation desc
+   ```
+3. Export results via "Export to CSV" or "Export to Excel" buttons
+4. For scatter plot data, use the scatter query (replace timeRange as needed)
+
+**Workbook Configuration Export:**
+
+1. Open Performance Operations Dashboard in Azure Portal
+2. Navigate to Advanced Editor (toolbar icon)
+3. Copy JSON for the "RU vs Latency Correlation" section (items at indices for scatter plot, correlation table, trend chart)
+4. Save locally or import into another Application Insights workbook
+
+**Programmatic Export (Azure CLI):**
+
+```bash
+# Export workbook template
+az resource show \
+  --resource-group <rg-name> \
+  --resource-type "Microsoft.Insights/workbooks" \
+  --name <workbook-guid> \
+  --query properties.serializedData \
+  --output json > performance-dashboard-export.json
+```
+
+**Data Export for Analysis Tools:**
+
+For external correlation analysis (R, Python, Excel):
+1. Run scatter plot query with extended timeRange (e.g., 24h or 7d)
+2. Remove `| take 1000` limit if full dataset needed
+3. Export to CSV
+4. Import into analysis tool maintaining columns: operationName, ruCharge, latencyMs, timestamp
+
+**Note:** Exported queries may need adjustment for different Application Insights instances (e.g., update customDimensions key names if telemetry schema differs).
+
+#### Future Enhancements
+
+**Outlier Removal Toggle:**
+
+The RU vs Latency Correlation panel currently displays all data points without outlier filtering. A future enhancement could add an optional outlier removal toggle to help identify core patterns:
+
+- **Concept**: Filter out RU values exceeding `median_RU × OUTLIER_FACTOR` (e.g., OUTLIER_FACTOR = 3.0)
+- **Implementation approach**: Add workbook parameter for OUTLIER_FACTOR with default value and checkbox toggle
+- **Query modification**: 
+  ```kusto
+  let medianRU = toscalar(events | summarize percentile(ruCharge, 50));
+  let outlierThreshold = medianRU * outlierFactor;
+  events | where ruCharge <= outlierThreshold
+  ```
+- **Use case**: Focus correlation analysis on typical operations when occasional extreme RU spikes obscure patterns
+- **Tradeoff**: May hide legitimate high-cost operations that contribute to partition pressure
+
+This enhancement is **not required** for initial implementation (issue #290). Document as optional feature for future iteration if scatter plots show significant outlier noise affecting interpretation.
+
 ### Adding New Panels
 
 When implementing dashboard issues (e.g. partition pressure trend #291, RU vs latency correlation #290, operation RU/latency overview #289, success/failure RU cost table #296):

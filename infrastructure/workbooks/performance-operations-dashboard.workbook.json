@@ -157,7 +157,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet bucketSize = 5m;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Compute trend per bucket\nlet trend = events\n| summarize \n    AvgRU = avg(ruCharge),\n    P95Latency = percentile(latencyMs, 95),\n    Count = count()\n  by operationName, bucket = bin(timestamp, bucketSize)\n| order by bucket asc;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| where n >= 30\n| project operationName, correlation = round(correlation, 3), SampleSize = n\n| order by correlation desc;\n// Display correlation table\ncorrelations",
+                "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Count missing ruCharge for edge case tracking\nlet totalEvents = toscalar(customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| where isnotempty(tostring(customDimensions.operationName))\n| count);\nlet eventsWithRU = toscalar(events | count);\nlet missingRUCount = totalEvents - eventsWithRU;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| extend correlation = round(correlation, 3)\n| project operationName, correlation, SampleSize = n, MeetsThreshold = iff(n >= minSampleSize, \"Yes\", \"No\")\n| order by correlation desc;\nlet hasValidCorrelations = toscalar(correlations | where SampleSize >= minSampleSize | count);\n// Return warning if no operations have sufficient samples, else show correlations\niff(hasValidCorrelations == 0,\n    datatable(Notice:string) [strcat(\"⚠️ INSUFFICIENT SAMPLE WARNING: All operations have <\", minSampleSize, \" samples. Correlation coefficients unreliable. Wait for more data or check if telemetry is flowing. Missing RU count: \", missingRUCount)],\n    correlations\n)",
                 "size": 0,
                 "title": "Pearson Correlation: RU vs Latency (sample ≥30)",
                 "queryType": 0,
@@ -189,6 +189,29 @@
                             "formatOptions": {
                                 "palette": "blue"
                             }
+                        },
+                        {
+                            "columnMatch": "MeetsThreshold",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "==",
+                                        "text": "No",
+                                        "representation": "gray"
+                                    },
+                                    {
+                                        "operator": "==",
+                                        "text": "Yes",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "Notice",
+                            "formatter": 1
                         }
                     ]
                 }
@@ -379,7 +402,7 @@
         {
             "type": 1,
             "content": {
-                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics"
+                "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n- Sample size warning: Correlations require ≥30 events per operation for statistical reliability\n\n**Edge Cases:**\n- **Missing ruCharge**: Events without RU data are omitted from scatter plot and correlation calculation. Check \"Missing RU count\" in warning messages.\n- **LatencyMs=0**: These rare events are filtered out to avoid skewing correlation calculations.\n- **High RU with low latency**: Legitimate pattern showing efficient high-throughput operations; correlation will be weak or negative (expected).\n- **Very high RU outliers**: Scatter plot may show extreme RU values. Future enhancement: outlier removal toggle (RU > median × configurable factor).\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics"
             },
             "name": "interpretation-guide"
         }
