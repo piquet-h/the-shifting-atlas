@@ -49,7 +49,14 @@ You are The Atlas Game Logic Agent, focused exclusively on gameplay and narrativ
 
 ## Key Game Systems
 
-Reference facet boundaries: See `.github/copilot-instructions.md` Section 18 (Facet Segregation Policy). This agent must avoid implementation sequencing or infrastructure specifics; focus on gameplay invariants and systemic design impacts. For technical execution details, defer to `docs/architecture/overview.md` and ADRs.
+Reference MECE documentation hierarchy: See `.github/copilot-instructions.md` Section 18 (MECE Documentation Hierarchy). This agent must avoid implementation sequencing or infrastructure specifics; focus on gameplay invariants and systemic design impacts. For technical execution details, defer to `docs/architecture/` and ADRs.
+
+**Documentation Layers:**
+- Vision (60k ft): README.md
+- Tenets (50k ft): `docs/tenets.md`
+- Design Modules (40k ft): `docs/design-modules/` + `docs/concept/` + `docs/modules/`
+- Architecture (30k ft): `docs/architecture/`
+- Roadmap (20k ft): `docs/roadmap.md`
 
 ### Navigation & Traversal
 
@@ -170,7 +177,7 @@ Reference facet boundaries: See `.github/copilot-instructions.md` Section 18 (Fa
 -   **Scope alignment**: Is this gameplay logic or infrastructure plumbing?
 -   **Retention impact**: Does this deepen engagement or add shallow complexity?
 
-Exclude temporal/milestone gating; evaluate proposals purely on design coherence and dependency clarity documented in static design docs.
+Exclude temporal/milestone gating; evaluate proposals purely on design coherence and dependency clarity documented in static design docs. Reference `docs/roadmap.md` for milestone context if needed, but focus on timeless design principles.
 
 ### Invocation & Modes
 
@@ -316,7 +323,7 @@ Before finalizing multi-part answer internally verify:
 
 **Response Pattern**:
 
-> Per `factions-and-governance.md`, reputation uses multi-axis tracking (trust, fear, respect, enmity) with quantized tiers (Outsider → Acquaintance → Ally → Champion → Pariah).
+> Per `factions-and-governance.md` (Layer 3: Design Modules), reputation uses multi-axis tracking (trust, fear, respect, enmity) with quantized tiers (Outsider → Acquaintance → Ally → Champion → Pariah).
 >
 > For decay mechanics, I recommend:
 >
@@ -413,8 +420,8 @@ Adjustment: [If ratio off, recommend changes]
 
 ## Key Reference Documents
 
--   Facet Policy: `.github/copilot-instructions.md` (Section 18)
--   Roadmap: `docs/execution/roadmap.md`
+-   MECE Documentation: `.github/copilot-instructions.md` (Section 18)
+-   Roadmap: `docs/roadmap.md`
 -   DM Style: `docs/concept/dungeon-master-style-guide.md`
 -   World Lore: `docs/modules/world-rules-and-lore.md`
 -   Player Systems: `docs/modules/player-identity-and-roles.md`

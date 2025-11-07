@@ -741,70 +741,90 @@ Last reviewed: 2025-10-29
 
 ---
 
-## 18. Facet Segregation Policy (Authoritative)
+## 18. Documentation Hierarchy (MECE: Mutually Exclusive, Collectively Exhaustive)
 
-Purpose: Enforce durable separation between immutable player experience semantics (Concept), technical mechanics (Architecture), mutable planning (Execution), and guiding rationale (Vision & Tenets). Prevent leakage that couples long‑term invariants with short‑term implementation detail.
+Purpose: Enforce clear altitude-based documentation layers where each layer serves a distinct purpose with no overlap. Prevents coupling between strategic vision, decision rules, gameplay design, technical implementation, and planning.
 
-### 18.1 Facet Taxonomy & Directories
+### 18.1 MECE Layer Taxonomy
 
-| Facet           | Directory / File            | Core Intent                                           | Mutation Frequency |
-| --------------- | --------------------------- | ----------------------------------------------------- | ------------------ |
-| Concept         | `docs/concept/`             | Invariants, tone, systemic truths                     | Low                |
-| Architecture    | `docs/architecture/`        | Technical design, persistence, integration flows      | Medium             |
-| Execution       | `docs/execution/`           | Milestones, issue clusters, implementation sequencing | High               |
-| Vision & Tenets | `docs/vision-and-tenets.md` | Product purpose, decision tenets, experience pillars  | Very low           |
+| Layer | Altitude | Location | Purpose | Mutation Frequency |
+|-------|----------|----------|---------|-------------------|
+| **1. Vision** | 60,000 ft | `README.md` (Vision section) | Inspire and set strategic direction | Very low |
+| **2. Tenets** | 50,000 ft | `docs/tenets.md` | Non-negotiable decision-making rules (WAF-aligned) | Very low |
+| **3. Design Modules** | 40,000 ft | `docs/design-modules/` | Gameplay systems translating Vision + Tenets | Low |
+| **4. Architecture** | 30,000 ft | `docs/architecture/` | Technical design implementing modules | Medium |
+| **5. Roadmap** | 20,000 ft | `docs/roadmap.md` | Milestone progression (M0-M6) | High |
+| **6. Examples** | 10,000 ft | `docs/examples/` | Practical code walkthroughs | Medium |
+| **7. Code** | Ground | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation | High |
 
-### 18.2 Allowed vs Prohibited Content (Concept Facet)
+**Legacy References**: The old three-layer model (Concept/Architecture/Execution) has been superseded. `docs/execution/` removed, `docs/vision-and-tenets.md` split into README + tenets.md, `docs/modules/` consolidated into `docs/design-modules/`.
 
-Allowed (Concept):
+### 18.2 Allowed vs Prohibited Content (Design Modules Layer)
 
-- Player‑facing systemic invariants (e.g. exit directions, dungeon episodic logic)
-- Tone/style guidelines (narration voice, persona interpretation boundaries)
-- Normalization rules (direction resolution semantics)
-- Rationale for immutable experiential constraints
+**Allowed (Design Modules - 40k ft)**:
+- Gameplay mechanics and experiential rules
+- Player-facing systemic invariants (exit directions, dungeon logic)
+- Narrative voice and tone guidelines
+- Cross-module integration contracts
+- Rationale for immutable gameplay constraints
 
-Prohibited (Concept):
-
-- Implementation sequencing (milestones, sprints, backlog lists)
-- Architecture mechanics (Cosmos partition details, function trigger bindings)
-- Telemetry enumeration plans
-- Performance tuning notes
-- Unvalidated speculative future systems (archive separately)
+**Prohibited (Design Modules)**:
+- Implementation sequencing (milestones, sprints, backlogs) → use `docs/roadmap.md` (Layer 5)
+- Technical architecture details (Cosmos partitions, function triggers) → use `docs/architecture/` (Layer 4)
+- Telemetry enumeration plans → use `docs/observability.md`
+- Performance tuning specifics → use ADRs or architecture docs
+- Unvalidated speculative systems (archive separately)
 - Inline acceptance criteria / task checklists
 
-Planning / leakage indicator verbs (blockers if appearing in Concept docs): `implement`, `sequence`, `schedule`, `sprint`, `backlog`, `dependency`, `milestone`, `roadmap`, `optimize`, `telemetry task`, `story points`, `spike`.
+**Concept Subfolder**: `docs/concept/` contains detailed invariants for specific domains (exits, dungeons, direction resolution, DM persona). These feed into Design Modules but maintain granular detail.
 
-### 18.3 Mutation Rules
+Planning / leakage indicator verbs (blockers in Design Modules/Concept): `implement`, `sequence`, `schedule`, `sprint`, `backlog`, `dependency`, `milestone`, `roadmap`, `optimize`, `telemetry task`, `story points`, `spike`.
 
-1. Concept changes must reflect real shifts (not aspirational speculation).
-2. If a Concept change alters contracts or persistence assumptions → add/update ADR and cross‑link.
-3. Vision & Tenets updates require explicit justification referencing an external driver (user feedback, design review). Avoid churn.
-4. Execution facet may restructure freely WITHOUT modifying Concept wording for sequencing convenience.
-5. Architecture docs may link to Concept docs by filename ONLY (no content duplication).
+### 18.3 Mutation Rules (MECE Layers)
 
-### 18.4 Cross‑Facet Linking Guidelines
+1. **Vision (Layer 1)** changes require explicit justification referencing external driver (user feedback, design review). Avoid churn.
+2. **Tenets (Layer 2)** modifications must cite WAF pillar alignment and include tradeoff update. Require ADR if changing architectural principles.
+3. **Design Modules (Layer 3)** changes must reflect real gameplay shifts, not aspirational speculation. If altering contracts → add/update ADR.
+4. **Architecture (Layer 4)** may reference Design Modules/Concept by filename ONLY (no content duplication).
+5. **Roadmap (Layer 5)** may restructure freely WITHOUT modifying Design Module wording for sequencing convenience.
+6. **Examples (Layer 6)** should stay synchronized with code changes but never duplicate implementation logic.
+7. **Code (Layer 7)** is authoritative for runtime behavior; documentation describes intent, not line-by-line logic.
 
-Use relative links referencing filenames; never paste large blocks across facets. Example:
-`See gameplay invariants in ../concept/exits.md` (✔) vs copying the exit direction table (✘).
+### 18.4 Cross-Layer Linking Guidelines
+
+Use relative links referencing filenames; never paste large blocks across layers. 
+
+**Examples**:
+- ✔ `See gameplay invariants in ../design-modules/README.md#navigation`
+- ✔ `Refer to WAF alignment in ../tenets.md#reliability`
+- ✔ `Implementation details in ../../backend/src/functions/player.ts`
+- ✘ Copying the exit direction table from design-modules into architecture
+- ✘ Duplicating WAF pillar descriptions in multiple files
+
+**Navigation Shortcuts**:
+- README.md → Vision (60k ft) → links to all lower layers
+- Each layer doc includes "Related Documentation" table with altitude context
 
 ### 18.5 Agent Workflow Before Editing Docs
 
 ```
-Facet Decision Flow:
+MECE Layer Decision Flow:
 Input path →
-    if path starts with docs/concept/ → apply Concept rules (reject planning leakage)
-    else if path starts with docs/execution/ → ensure no invariants duplicated from concept
-    else if path starts with docs/architecture/ → ensure technical detail only, add ADR link if changing structure
-    else if path == docs/vision-and-tenets.md → require justification & minimal diff
+    if README.md (Vision section) → require justification, minimal diff
+    if docs/tenets.md → verify WAF alignment, update tradeoffs
+    if docs/design-modules/ or docs/concept/ → apply Design Module rules (reject planning leakage)
+    if docs/architecture/ → ensure technical detail only, add ADR link if changing structure
+    if docs/roadmap.md → allow milestone restructuring, no gameplay invariants
+    if docs/examples/ → verify code synchronization, no logic duplication
 ```
 
-PRE‑EDIT CHECKLIST (Agent):
-
-- Identify facet from path.
-- Search for prohibited verbs (case‑insensitive) if Concept.
-- Confirm no milestone tables inside Concept.
-- If adding new invariant heading in Concept → prepare atomic issue (script will also detect).
-- If editing Tenets → run dry diff to ensure only intended lines change.
+PRE-EDIT CHECKLIST (Agent):
+- Identify layer from path (use table in 18.1)
+- Search for prohibited verbs (case-insensitive) if Design Modules/Concept layer
+- Confirm no milestone tables inside Design Modules or Concept
+- If adding new gameplay invariant → prepare atomic issue (automation will detect)
+- If editing Tenets → run dry diff, ensure WAF pillar cited
+- Verify no cross-layer content duplication
 
 ### 18.6 Automation Integration
 
@@ -819,52 +839,74 @@ Opt‑out for benign editorial edits: add `<!-- concept-automation:ignore -->` t
 
 ### 18.7 ADR Escalation Triggers
 
-Create / update an ADR when a Concept change:
+Create / update an ADR when a change:
 
-- Alters persistence schema expectations (e.g., introducing new vertex/edge category).
-- Modifies traversal rules impacting existing function validation.
-- Introduces cross‑system dependency (e.g., economy influencing dungeon seed logic).
+- Alters persistence schema expectations (new vertex/edge category)
+- Modifies traversal rules impacting existing function validation
+- Introduces cross-system dependency (economy influencing dungeon seed logic)
+- Changes a core tenet tradeoff (security, reliability, cost, performance)
+- Impacts partition strategy or dual persistence model
 
 ### 18.8 Review Heuristics (PR Level)
 
 Reviewer / Agent should confirm:
 
-- Concept diff contains no planning verbs or issue sequencing.
-- Execution changes do not re‑declare invariants (link instead).
-- Architecture additions reference Concept but do not restate narrative tone.
-- Tenet modifications include rationale line in PR description.
-- No duplication: same invariant table exists only once (Concept).
+- Design Module/Concept diffs contain no planning verbs or issue sequencing
+- Roadmap changes do not re-declare gameplay invariants (link to Design Modules instead)
+- Architecture additions reference Design Modules/Concept but do not restate narrative tone
+- Tenet modifications include rationale line in PR description + WAF pillar citation
+- No duplication: same invariant table exists only once (Design Modules or Concept)
+- Vision changes cite external driver (user feedback, stakeholder input)
+- Examples synchronized with actual code, no fabricated implementations
 
 ### 18.9 Common Violations & Remedies
 
-| Violation                                    | Remedy                                                                  |
-| -------------------------------------------- | ----------------------------------------------------------------------- |
-| Milestone list added to Concept doc          | Move to `docs/execution/` and replace with invariant rationale sentence |
-| Partition key detail placed in Concept       | Relocate to `docs/architecture/persistence` document                    |
-| Tone guide pasted into Architecture overview | Replace with single link to `../concept/dungeon-master-style-guide.md`  |
-| Tenet weakened without rationale             | Add PR comment referencing user need or design principle                |
+| Violation | Remedy |
+|-----------|--------|
+| Milestone list added to Design Modules | Move to `docs/roadmap.md` (Layer 5) and replace with gameplay rationale |
+| Partition key detail in Design Modules | Relocate to `docs/architecture/` (Layer 4) |
+| Tone guide pasted into Architecture | Replace with link to `docs/concept/dungeon-master-style-guide.md` |
+| Tenet weakened without WAF citation | Add PR comment referencing WAF pillar + tradeoff update |
+| Vision statement buried in sub-doc | Extract to README.md Vision section (Layer 1) |
+| Code logic duplicated in Examples | Replace with semantic intent + file path reference |
 
 ### 18.10 Agent Enforcement Summary
 
-When editing any doc within `docs/concept/`:
+When editing documentation:
 
-- Abort adding implementation checklists.
-- Suggest relocation for any architecture or execution fragment detected.
-- Provide a dry run of concept issue generation (optional) if invariants change.
+- Abort adding implementation checklists to Design Modules/Concept
+- Suggest relocation for architecture or milestone content detected in wrong layer
+- Verify MECE: each change belongs to exactly one layer (mutually exclusive)
+- Confirm coverage: all content addressable through 7-layer hierarchy (collectively exhaustive)
 
-### 18.11 Definition of Done (Facet Change)
+### 18.11 Definition of Done (Documentation Change)
 
-- Facet identification logged in response.
-- No prohibited verbs (Concept facet).
-- ADR linked if contract/persistence changed.
-- Automation script would classify change correctly (manual dry run optional).
-- Diff minimal (only lines requiring semantic update).
+- MECE layer identified from path (use table 18.1)
+- No prohibited verbs in Design Modules/Concept layers
+- ADR linked if contract/persistence/tenet changed
+- WAF pillar cited if Tenets layer modified
+- Automation script would classify change correctly (dry run optional)
+- Diff minimal (only lines requiring semantic update)
+- Cross-references updated if paths changed
+- No cross-layer content duplication introduced
 
-### 18.12 Future Enhancements (Non‑Blocking)
+### 18.12 Navigation Quick Reference
 
-- Semantic similarity scan to prevent partial invariant duplication.
-- Automatic ADR stub creation when new vertex/edge pattern introduced.
-- Epic bundling if >3 related headings added in one PR.
+**For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
+
+**For Architects**: Focus on Layers 2 (Tenets) → 4 (Architecture) → 5 (Roadmap).
+
+**For Product Owners**: Read Layers 1 (Vision) → 3 (Design Modules) → 5 (Roadmap).
+
+**Entry Point**: Always start at README.md which contains Vision and links to all layers.
+
+### 18.13 Future Enhancements (Non-Blocking)
+
+- Semantic similarity scan to prevent partial invariant duplication across layers
+- Automatic ADR stub creation when new vertex/edge pattern introduced
+- MECE compliance checker: verify each doc belongs to exactly one layer
+- Layer transition validator: ensure proper altitude progression in cross-references
+- Epic bundling if >3 related Design Module headings added in one PR
 
 ---
 

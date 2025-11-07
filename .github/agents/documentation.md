@@ -49,11 +49,12 @@ Ensure every documentation artifact is:
 Order of authority (higher wins in conflicts):
 
 1. ADRs (`docs/adr/*.md` – active, non-archived)
-2. Architecture contracts (`docs/architecture/*.md`)
-3. Module specs (`docs/modules/*.md`)
-4. Roadmap (`docs/roadmap.md`)
-5. Implementation reality (existing code paths) – cited, not restated
-6. Archive materials (`docs/archive/`) – ignore unless needed to explain migration notes
+2. Tenets (`docs/tenets.md` – WAF-aligned decision principles)
+3. Architecture contracts (`docs/architecture/*.md`)
+4. Design Modules (`docs/design-modules/README.md` + `docs/concept/*.md`)
+5. Roadmap (`docs/roadmap.md`)
+6. Implementation reality (existing code paths) – cited, not restated
+7. Archive materials (`docs/archive/`) – ignore unless needed to explain migration notes
 
 If a lower source conflicts with a higher one → propose targeted removal or amendment.
 
@@ -147,20 +148,27 @@ Reconciliation:
 6. Re-run link + duplication scan
 ```
 
-## Reference Map (Existing Canonical Docs)
+## Reference Map (MECE Documentation Hierarchy)
 
--   Roadmap: `docs/roadmap.md`
+**Layer 1 (Vision - 60k ft)**: `README.md` (Vision section)
+**Layer 2 (Tenets - 50k ft)**: `docs/tenets.md` (WAF-aligned)
+**Layer 3 (Design Modules - 40k ft)**: `docs/design-modules/README.md`
+**Layer 4 (Architecture - 30k ft)**: `docs/architecture/mvp-azure-architecture.md`
+**Layer 5 (Roadmap - 20k ft)**: `docs/roadmap.md`
+**Layer 6 (Examples - 10k ft)**: `docs/examples/`
+**Layer 7 (Code - Ground)**: `backend/`, `frontend/`, `shared/`, `infrastructure/`
+
+**Key Architecture Docs**:
 -   ADR Partition Strategy: `docs/adr/ADR-002-graph-partition-strategy.md`
 -   Location Edge Migration: `docs/architecture/player-location-edge-migration.md`
 -   Exits (concept invariants): `docs/concept/exits.md`
--   Direction Resolution (normalization rules): `docs/concept/direction-resolution-rules.md`
+-   Direction Resolution: `docs/concept/direction-resolution-rules.md`
 -   Dungeon Concept: `docs/concept/dungeons.md`
+
+**Key Design Modules** (all under `docs/design-modules/` or `docs/modules/`):
 -   Description Layering: `docs/modules/description-layering-and-variation.md`
--   Factions & Governance: `docs/modules/factions-and-governance.md`
--   Economy & Trade: `docs/modules/economy-and-trade-systems.md`
 -   Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
 -   Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
--   Quest & Dialogue: `docs/modules/quest-and-dialogue-trees.md`
 -   World Rules & Lore: `docs/modules/world-rules-and-lore.md`
 -   AI Prompt Engineering: `docs/modules/ai-prompt-engineering.md`
 
@@ -184,34 +192,37 @@ Respond with: `Sorry, I can't assist with that.` only for disallowed/harmful con
 
 ```
 [LINK_INTEGRITY]
-- docs/modules/geospatial-and-hydrology.md (OK)
-- docs/modules/entity-promotion.md (OK)
-- docs/modules/nonexistent-file.md (MISSING - remove or replace)
+- docs/design-modules/README.md (OK)
+- docs/examples/function-endpoint-player.md (OK)
+- docs/nonexistent-file.md (MISSING - remove or replace)
 
 [DUPLICATION]
-- docs/concept/direction-resolution-rules.md is now authoritative – remove duplicated algorithm prose from architecture doc if still present
+- docs/concept/direction-resolution-rules.md is authoritative – remove duplicated algorithm from architecture if present
 
 [CONFLICTS]
-- ADR-002 vs modules/navigation-and-traversal.md (partition key phrasing differs) → prefer ADR wording
+- ADR-002 vs design-modules navigation wording differs → prefer ADR
+- Tenet description conflicts with WAF pillar → align with WAF
 
 [DRIFT]
 - docs/archive/obsolete-mechanics.md referenced in active module – remove link
+- Old execution/ directory references remain in some files → update to roadmap.md
 ```
 
 ### Example (Fix Plan)
 
 ```
 [PLAN]
-1. docs/modules/navigation-and-traversal.md – align partition key wording with ADR-002
-2. docs/architecture/direction-resolution-rules.md – ensure replaced with relocation notice pointing to concept doc
-3. Remove dead link to modules/nonexistent-file.md in docs/overview.md
+1. docs/design-modules/README.md – align partition key wording with ADR-002
+2. docs/architecture/overview.md – update cross-reference to use new design-modules/ path
+3. Remove dead link to execution/ directory in concept/README.md → update to roadmap.md
 
 [RISK] LOW
 
 [ACCEPTANCE]
 - [ ] ADR precedence reflected
-- [ ] All links valid
+- [ ] All links valid (no execution/ or vision-and-tenets.md references)
 - [ ] Code duplication removed
+- [ ] MECE compliance maintained (no layer overlap)
 ```
 
 ## Structured Tags (Optional)
@@ -230,16 +241,25 @@ Self QA: Links PASS | Duplication PASS | Conflicts Resolved yes | Assumptions Lo
 
 Focus relentlessly on clarity and delta minimization. All edits should be the smallest change that restores correctness and coherence.
 
-## Facet Segregation Alignment
+## MECE Layer Segregation Alignment
 
-When updating documentation:
+When updating documentation, respect the 7-layer MECE hierarchy:
 
--   Invariants & tone → keep in `docs/concept/` (do not migrate into architecture or execution)
--   Technical mechanics & persistence → `docs/architecture/`
--   Planning, milestones, sequencing → `docs/execution/`
--   Vision & tenets rationale → `docs/vision-and-tenets.md`
+-   **Vision (60k ft)** → `README.md` (strategic direction only)
+-   **Tenets (50k ft)** → `docs/tenets.md` (WAF-aligned decision rules)
+-   **Design Modules (40k ft)** → `docs/design-modules/` + `docs/concept/` (gameplay invariants & tone)
+-   **Architecture (30k ft)** → `docs/architecture/` (technical mechanics & persistence)
+-   **Roadmap (20k ft)** → `docs/roadmap.md` (milestone planning & sequencing)
+-   **Examples (10k ft)** → `docs/examples/` (practical walkthroughs)
+-   **Code (Ground)** → `backend/`, `frontend/`, `shared/`, `infrastructure/`
 
-If a change crosses facets improperly, propose relocation instead of duplication. Reference `.github/copilot-instructions.md` Section 18 for authoritative boundaries. Avoid introducing planning verbs (`milestone`, `backlog`, `sequence`) into Concept docs.
+**Prohibited Cross-Layer Content**:
+- Planning verbs (`milestone`, `backlog`, `sprint`) in Design Modules/Concept → move to Roadmap
+- Gameplay invariants duplicated in Roadmap → link to Design Modules instead
+- WAF pillar descriptions duplicated across files → cite `docs/tenets.md` only
+- Code logic restated in Examples → reference file paths instead
+
+If a change crosses layers improperly, propose relocation instead of duplication. Reference `.github/copilot-instructions.md` Section 18 for authoritative MECE boundaries.
 
 ## Last Updated Footer Policy
 
