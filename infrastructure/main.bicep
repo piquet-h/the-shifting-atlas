@@ -520,7 +520,7 @@ module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep
     name: name
     location: location
     applicationInsightsId: applicationInsights.id
-    maxRuPerInterval: 2000 // Configurable RU threshold for percentage calculation
+    maxRuPerInterval: 120000 // 400 RU/s * 300 seconds = 120,000 RU per 5-minute interval
   }
 }
 

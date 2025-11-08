@@ -19,21 +19,23 @@ param evaluationFrequencyMinutes int = 5
 @description('Alert severity (0=Critical, 1=Error, 2=Warning, 3=Informational)')
 param severity int = 2
 
+@description('Normal severity threshold: minimum 429 count to trigger normal alert')
+param normalThreshold429Count int = 5
+
+@description('High severity threshold: minimum 429 count to trigger high severity alert')
+param highThreshold429Count int = 10
+
 // Alert naming
 var alertName = 'gremlin-429-spike-${name}'
 var alertDisplayName = 'Gremlin 429 Throttling Spike Detection'
 var alertDescription = 'Detects abnormal Cosmos DB Gremlin throttling (HTTP 429) below expected RPS baseline, correlating with ADR-002 partition saturation thresholds.'
 
-// Alert thresholds
-var normalThreshold429Count = 5  // Normal severity: >=5 429s in window
-var highThreshold429Count = 10   // High severity: >=10 429s in window
-
 // KQL query to detect 429 spike with baseline RPS check
 var alertQuery = '''
-let evaluationWindow = ${string(evaluationFrequencyMinutes)}m;
-let baselineRps = ${string(baselineRps)};
-let normalThreshold = ${string(normalThreshold429Count)};
-let highThreshold = ${string(highThreshold429Count)};
+let evaluationWindow = ${evaluationFrequencyMinutes}m;
+let baselineRps = ${baselineRps};
+let normalThreshold = ${normalThreshold429Count};
+let highThreshold = ${highThreshold429Count};
 // Count 429 failures in the evaluation window
 let throttleCount = customEvents
 | where timestamp > ago(evaluationWindow)
@@ -61,7 +63,7 @@ throttleCount
 | extend AvgRU = toscalar(metrics | project AvgRU)
 | extend P95Latency = toscalar(metrics | project P95Latency)
 | extend TotalRU = toscalar(metrics | project TotalRU)
-| extend ExpectedQueries = baselineRps * ${string(evaluationFrequencyMinutes)} * 60
+| extend ExpectedQueries = baselineRps * ${evaluationFrequencyMinutes} * 60
 | extend BelowBaseline = TotalQueries < ExpectedQueries
 | extend AlertSeverity = case(
     Count429 >= highThreshold and BelowBaseline, "High",
