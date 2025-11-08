@@ -11,13 +11,77 @@ param applicationInsightsId string
 param actionGroupId string = ''
 
 @description('Maximum RU per 5-minute interval for percentage calculation')
-// Note: Used in KQL query via string interpolation (linter cannot detect)
-param maxRuPerInterval int = 2000
+param maxRuPerInterval int = 120000
 
 // Composite partition pressure alert (Issue #294)
 // Fires when RU% >70% AND 429s >=3 AND P95 latency increase >25% vs 24h baseline
 // Critical severity, distinct from individual RU or 429 alerts
 var alertName = 'alert-composite-partition-pressure-${name}'
+
+// Build the KQL query template with placeholder
+var alertQueryTemplate = '''
+// Composite Partition Pressure Alert Query
+// Step 1: Calculate RU metrics for current 5-min window
+let currentWindow = 5m;
+let baselineWindow = 24h;
+let minBaselineSamples = 100;
+let maxRuPerInterval = MAXRU_PLACEHOLDER;
+
+// Current window metrics
+let currentMetrics = customEvents
+| where timestamp > ago(currentWindow)
+| where name == "Graph.Query.Executed"
+| extend ruCharge = todouble(customDimensions.ruCharge)
+| extend latencyMs = todouble(customDimensions.durationMs)
+| extend operationName = tostring(customDimensions.operationName)
+| extend statusCode = toint(customDimensions.statusCode)
+| summarize 
+    totalRu = sum(ruCharge),
+    count429 = countif(statusCode == 429),
+    currentP95Latency = percentile(latencyMs, 95),
+    sampleCount = count(),
+    topOperations = make_list(pack("operation", operationName, "ru", ruCharge), 10)
+| extend ruPercent = (totalRu / maxRuPerInterval) * 100
+| project ruPercent, count429, currentP95Latency, sampleCount, topOperations;
+
+// Baseline P95 latency (24h window, excluding current hour to avoid skew)
+let baselineMetrics = customEvents
+| where timestamp between (ago(baselineWindow) .. ago(1h))
+| where name == "Graph.Query.Executed"
+| extend latencyMs = todouble(customDimensions.durationMs)
+| summarize 
+    baselineP95Latency = percentile(latencyMs, 95),
+    baselineSampleCount = count();
+
+// Combine current and baseline
+currentMetrics
+| extend dummy = 1
+| join kind=inner (
+    baselineMetrics | extend dummy = 1
+) on dummy
+| project-away dummy, dummy1
+| where baselineSampleCount >= minBaselineSamples // Suppress if insufficient baseline
+| extend latencyIncreasePct = ((currentP95Latency - baselineP95Latency) / baselineP95Latency) * 100
+| where ruPercent > 70 // RU threshold
+    and count429 >= 3 // 429 threshold
+    and latencyIncreasePct > 25 // Latency degradation threshold
+| project 
+    ruPercent = round(ruPercent, 2),
+    count429,
+    currentP95Latency = round(currentP95Latency, 2),
+    baselineP95Latency = round(baselineP95Latency, 2),
+    latencyIncreasePct = round(latencyIncreasePct, 2),
+    sampleCount,
+    baselineSampleCount,
+    topOperations = topOperations
+| extend 
+    top2Operations = array_slice(topOperations, 0, 2)
+| project-away topOperations
+'''
+
+// Replace placeholder with actual parameter value
+var maxRuPerIntervalString = string(maxRuPerInterval)
+var finalQuery = replace(alertQueryTemplate, 'MAXRU_PLACEHOLDER', maxRuPerIntervalString)
 
 resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
   name: alertName
@@ -35,65 +99,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
     criteria: {
       allOf: [
         {
-          query: '''
-            // Composite Partition Pressure Alert Query
-            // Step 1: Calculate RU metrics for current 5-min window
-            let currentWindow = 5m;
-            let baselineWindow = 24h;
-            let minBaselineSamples = 100;
-            let maxRuPerInterval = ${maxRuPerInterval};
-            
-            // Current window metrics
-            let currentMetrics = customEvents
-            | where timestamp > ago(currentWindow)
-            | where name == "Graph.Query.Executed"
-            | extend ruCharge = todouble(customDimensions.ruCharge)
-            | extend latencyMs = todouble(customDimensions.durationMs)
-            | extend operationName = tostring(customDimensions.operationName)
-            | extend statusCode = toint(customDimensions.statusCode)
-            | summarize 
-                totalRu = sum(ruCharge),
-                count429 = countif(statusCode == 429),
-                currentP95Latency = percentile(latencyMs, 95),
-                sampleCount = count(),
-                topOperations = make_list(pack("operation", operationName, "ru", ruCharge), 10)
-            | extend ruPercent = (totalRu / maxRuPerInterval) * 100
-            | project ruPercent, count429, currentP95Latency, sampleCount, topOperations;
-            
-            // Baseline P95 latency (24h window, excluding current hour to avoid skew)
-            let baselineMetrics = customEvents
-            | where timestamp between (ago(baselineWindow) .. ago(1h))
-            | where name == "Graph.Query.Executed"
-            | extend latencyMs = todouble(customDimensions.durationMs)
-            | summarize 
-                baselineP95Latency = percentile(latencyMs, 95),
-                baselineSampleCount = count();
-            
-            // Combine current and baseline
-            currentMetrics
-            | extend dummy = 1
-            | join kind=inner (
-                baselineMetrics | extend dummy = 1
-            ) on dummy
-            | project-away dummy, dummy1
-            | where baselineSampleCount >= minBaselineSamples // Suppress if insufficient baseline
-            | extend latencyIncreasePct = ((currentP95Latency - baselineP95Latency) / baselineP95Latency) * 100
-            | where ruPercent > 70 // RU threshold
-                and count429 >= 3 // 429 threshold
-                and latencyIncreasePct > 25 // Latency degradation threshold
-            | project 
-                ruPercent = round(ruPercent, 2),
-                count429,
-                currentP95Latency = round(currentP95Latency, 2),
-                baselineP95Latency = round(baselineP95Latency, 2),
-                latencyIncreasePct = round(latencyIncreasePct, 2),
-                sampleCount,
-                baselineSampleCount,
-                topOperations = topOperations
-            | extend 
-                top2Operations = array_slice(topOperations, 0, 2)
-            | project-away topOperations
-            '''
+          query: finalQuery
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
@@ -105,18 +111,20 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
         }
       ]
     }
-    autoMitigate: true
-    actions: actionGroupId != '' ? {
-      actionGroups: [
-        actionGroupId
-      ]
-      customProperties: {
-        alertType: 'CompositePartitionPressure'
-        severity: 'Critical'
-        dependsOn: 'Issues #292 (Sustained High RU), #293 (429 Spike)'
-        referenceDoc: 'ADR-002 thresholds'
-      }
-    } : {}
+    autoMitigate: false // Must be false when muteActionsDuration is set
+    actions: actionGroupId != ''
+      ? {
+          actionGroups: [
+            actionGroupId
+          ]
+          customProperties: {
+            alertType: 'CompositePartitionPressure'
+            severity: 'Critical'
+            dependsOn: 'Issues #292 (Sustained High RU), #293 (429 Spike)'
+            referenceDoc: 'ADR-002 thresholds'
+          }
+        }
+      : {}
     muteActionsDuration: 'PT15M' // Mute for 15 minutes after firing to avoid noise
   }
   tags: {
