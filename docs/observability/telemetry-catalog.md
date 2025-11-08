@@ -398,6 +398,30 @@ Central registry documenting all game domain telemetry events, including when th
 
 ---
 
+### Operation Latency Monitoring (M2 Observability)
+
+**Implementation Note:** Operation latency monitoring is implemented using native **Azure Monitor scheduled query alerts** rather than custom telemetry events. See [Operation Latency Monitoring Guide](./operation-latency-monitoring.md) for details.
+
+**Why No Custom Events:**
+- Azure Monitor alerts provide built-in alert lifecycle management
+- No custom code required (purely declarative Bicep)
+- Persistent state across restarts
+- Native action groups for notifications
+- Zero Function execution costs
+
+**Alert Configuration:**
+- **Monitored Operations**: location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create
+- **Critical Threshold**: P95 >600ms for 3 consecutive 10-min windows
+- **Warning Threshold**: P95 >500ms for 3 consecutive 10-min windows
+- **Auto-Resolution**: After 2 consecutive healthy windows (<450ms implicit via Azure alert clearing)
+- **Minimum Sample**: 20 calls per window (built into KQL query)
+
+**Data Source:** Uses existing `Graph.Query.Executed` events with no additional telemetry required.
+
+**Alert Management:** View and manage alerts in Azure Portal → Application Insights → Alerts.
+
+---
+
 ### Internal / Diagnostics
 
 #### `Telemetry.EventName.Invalid`
@@ -505,6 +529,129 @@ customEvents
 | extend latency = todouble(customDimensions.latency_ms)
 | summarize P95 = percentile(latency, 95) by name
 ```
+
+---
+
+## Alerts
+
+This section documents operational alerts configured in Azure Monitor that fire based on telemetry patterns, enabling proactive intervention before service degradation.
+
+### Alert: Sustained High RU Utilization
+
+**Purpose:** Early warning for Cosmos DB Gremlin graph partition pressure requiring migration or scale intervention before severe throttling (ADR-002 threshold monitoring).
+
+**Configuration:**
+- **File:** `infrastructure/alert-ru-utilization.bicep`
+- **Evaluation Frequency:** Every 5 minutes
+- **Window Size:** 15 minutes (3 consecutive 5-minute intervals)
+- **Severity:** Warning (Level 2)
+
+**Alert Condition:**
+- Fires when RU% >70% (derived metric: `totalRU / maxRuPerInterval * 100`) for 3 consecutive 5-minute intervals
+- `maxRuPerInterval` = Provisioned RU/s × 300 seconds (e.g., 400 RU/s × 300s = 120,000 RU per 5-min bucket)
+- Requires at least 70% of `Graph.Query.Executed` events to have `ruCharge` dimension populated
+
+**Auto-Resolve:**
+- Alert resolves automatically when RU% <65% for 2 consecutive 5-minute intervals
+
+**Alert Payload:**
+- `RUPercent`: Maximum RU percentage during the alert window
+- `TopOperations`: Top 3 `operationName` values by RU consumption during the window (JSON array)
+- `DataQuality`: Percentage of events with `ruCharge` data (0.0-1.0)
+- `Interval`: Number of consecutive intervals exceeding threshold (should be ≥3)
+
+**Edge Cases:**
+- **Intermittent single spike (<3 intervals):** Ignored. Alert only fires on sustained pressure (3+ consecutive intervals).
+- **Missing RU data (>30% of samples):** Evaluation aborted. Alert does not fire. Diagnostic event logged in Application Insights with `Status: 'insufficient-data'`.
+
+**Diagnostic Event (Data Quality Failure):**
+When >30% of `Graph.Query.Executed` events are missing `ruCharge`, the query emits a diagnostic row with:
+- `Status: 'insufficient-data'`
+- `DataQuality`: Actual percentage of events with RU data
+- Alert does **not** fire in this scenario (zero rows returned from alert query)
+
+**Operational Response:**
+1. Review top 3 operations by RU consumption in alert payload
+2. Check Performance Operations Dashboard for detailed RU trends and latency correlation
+3. If sustained >3 days at >70%, initiate region-based partition migration (ADR-002)
+4. Investigate missing RU data if DataQuality <70% (check Cosmos SDK version, telemetry wrapper)
+
+**Test Scenario:**
+See [RU Spike Simulation](#ru-spike-simulation-test-scenario) section below for local/staging test instructions.
+
+**References:**
+- ADR-002: Graph Partition Strategy (thresholds: >70% sustained RU for 3 days)
+- Telemetry events: `Graph.Query.Executed` (requires `ruCharge` dimension)
+- Infrastructure: `infrastructure/alert-ru-utilization.bicep`, `infrastructure/main.bicep`
+
+---
+
+### RU Spike Simulation (Test Scenario)
+
+**Purpose:** Validate alert firing behavior under sustained high RU consumption without impacting production.
+
+**Prerequisites:**
+- Access to non-production Application Insights instance
+- Ability to emit synthetic `Graph.Query.Executed` events or execute high-RU Gremlin queries
+
+**Approach 1: Synthetic Event Injection (Recommended for Local Dev)**
+
+Use the Application Insights SDK to emit synthetic `Graph.Query.Executed` events with controlled `ruCharge` values:
+
+```typescript
+// Test script: scripts/test-ru-alert.ts
+import { TelemetryClient } from 'applicationinsights';
+
+const client = new TelemetryClient('your-instrumentation-key');
+
+async function simulateRuSpike() {
+  // Emit high RU events over 15 minutes (3 intervals)
+  for (let i = 0; i < 15; i++) {
+    client.trackEvent({
+      name: 'Graph.Query.Executed',
+      properties: {
+        operationName: 'location.upsert.write',
+        ruCharge: '35000', // Simulate 35k RU per event
+        latencyMs: '450'
+      }
+    });
+    await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
+  }
+  client.flush();
+}
+
+simulateRuSpike();
+```
+
+**Expected Behavior:**
+- After 15 minutes (3 consecutive 5-min buckets >70% RU), alert fires
+- Alert payload includes `TopOperations` with `location.upsert.write`
+- Alert auto-resolves after emitting normal RU events (<65%) for 10 minutes (2 intervals)
+
+**Approach 2: Actual Query Load (Staging Environment)**
+
+Execute batch Gremlin operations that consume high RU:
+
+```gremlin
+// High-RU query: Large vertex property update
+g.V().has('partitionKey', 'world')
+  .property('bulkData', 'large-string-payload')
+  .iterate()
+```
+
+Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughput.
+
+**Validation Steps:**
+1. Monitor alert rule status in Azure Portal → Monitor → Alerts
+2. Verify alert fires after 3 consecutive high-RU intervals
+3. Check alert payload contains `TopOperations` JSON array
+4. Confirm auto-resolve after 2 consecutive low-RU intervals
+5. Test data quality abort: Emit events without `ruCharge` dimension, verify alert does not fire
+
+**Cleanup:**
+- Stop synthetic event emission
+- Wait for auto-resolve (2 intervals at normal RU)
+- Verify alert status returns to "Resolved" in Azure Portal
 
 ---
 
