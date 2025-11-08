@@ -372,7 +372,7 @@ Consolidated workbook for Gremlin operation RU consumption, latency percentiles,
     -   **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
     -   **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
     -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
-    -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, RU/Call ratio, and P95 latency. Failure rate >2% (amber), >5% (red).
+    -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
 -   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
 
 #### Export Instructions
@@ -531,6 +531,117 @@ pressureData
 - Zero RU intervals: Display as 0% (no divide-by-zero errors)
 - Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
 - Missing baseline: Chart displays with null RU% and configuration banner shown
+
+##### Operation Success/Failure Rate & RU Cost Table Export
+
+To export reliability and cost efficiency data for operational review:
+
+**Query Export (Kusto/KQL):**
+
+1. Navigate to Application Insights → Logs
+2. Copy the reliability table query from the workbook:
+   ```kusto
+   let timeRange = 24h;
+   let minCalls = 10;
+   let successEvents = customEvents
+   | where timestamp > ago(timeRange)
+   | where name == 'Graph.Query.Executed'
+   | extend operationName = tostring(customDimensions.operationName),
+            ruCharge = todouble(customDimensions.ruCharge),
+            latencyMs = todouble(customDimensions.latencyMs)
+   | where isnotempty(operationName);
+   let failureEvents = customEvents
+   | where timestamp > ago(timeRange)
+   | where name == 'Graph.Query.Failed'
+   | extend operationName = tostring(customDimensions.operationName)
+   | where isnotempty(operationName);
+   let successAgg = successEvents
+   | summarize 
+       SuccessCalls = count(),
+       TotalRU = sum(ruCharge),
+       MissingRU = countif(isnull(ruCharge)),
+       P95Latency = percentile(latencyMs, 95)
+     by operationName;
+   let failureAgg = failureEvents
+   | summarize FailedCalls = count() by operationName;
+   successAgg
+   | join kind=leftouter failureAgg on operationName
+   | extend FailedCalls = coalesce(FailedCalls, 0)
+   | extend TotalCalls = SuccessCalls + FailedCalls
+   | extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)
+   | extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)
+   | extend AvgRU = round(AvgRUSuccess, 2)
+   | extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)
+   | extend Category = iff(TotalCalls < minCalls, "Low Volume", "Normal")
+   | project operationName, SuccessCalls, FailedCalls, FailureRate, AvgRU, RUPerCall, P95Latency = round(P95Latency, 0), Category
+   | order by TotalCalls = SuccessCalls + FailedCalls desc
+   ```
+3. Export results via "Export to CSV" or "Export to Excel" buttons
+4. Adjust `timeRange` for historical analysis (7d, 30d)
+
+**Automated Alerting Setup:**
+
+Create alert rules for high-failure operations:
+
+```kusto
+// Alert when any operation exceeds 5% failure rate with ≥50 calls in 1h
+let timeRange = 1h;
+let minCalls = 50;
+let failureThreshold = 5.0;
+let successEvents = customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Graph.Query.Executed'
+| extend operationName = tostring(customDimensions.operationName)
+| where isnotempty(operationName);
+let failureEvents = customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Graph.Query.Failed'
+| extend operationName = tostring(customDimensions.operationName)
+| where isnotempty(operationName);
+let successAgg = successEvents | summarize SuccessCalls = count() by operationName;
+let failureAgg = failureEvents | summarize FailedCalls = count() by operationName;
+successAgg
+| join kind=leftouter failureAgg on operationName
+| extend FailedCalls = coalesce(FailedCalls, 0)
+| extend TotalCalls = SuccessCalls + FailedCalls
+| extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)
+| where TotalCalls >= minCalls and FailureRate > failureThreshold
+| project operationName, SuccessCalls, FailedCalls, FailureRate, TotalCalls
+| order by FailureRate desc
+```
+
+Use this query in Application Insights Alerts with appropriate threshold and notification channel.
+
+**Optimization Priority Assessment:**
+
+Export the priority assessment query for reporting:
+
+```kusto
+let timeRange = 24h;
+let successEvents = customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Graph.Query.Executed';
+let failureEvents = customEvents
+| where timestamp > ago(timeRange)
+| where name == 'Graph.Query.Failed';
+let totalSuccess = toscalar(successEvents | count);
+let totalFailure = toscalar(failureEvents | count);
+let totalCalls = totalSuccess + totalFailure;
+let overallFailureRate = iff(totalCalls > 0, round(100.0 * totalFailure / totalCalls, 2), 0.0);
+datatable(Metric:string, Value:string) [
+    "Total Success Calls", tostring(totalSuccess),
+    "Total Failed Calls", tostring(totalFailure),
+    "Overall Failure Rate (%)", tostring(overallFailureRate),
+    "Priority Level", iff(overallFailureRate < 1.0 and totalCalls >= 100, "Low (defer optimization)", "Monitor (review high-failure ops)")
+]
+```
+
+**Edge Cases Verified:**
+
+- All success (0% failure): RU metrics displayed normally
+- Missing RU >30%: "n/a" shown for AvgRU and RU/Call columns; warning banner displayed
+- Single failure in many successes: No amber if <2% threshold
+- Low volume operations (<10 calls): Listed in "Low Volume" category, not excluded
 
 #### Future Enhancements
 
