@@ -1,0 +1,638 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Performance Operations Dashboard\n\nConsolidated workbook for Gremlin operation performance monitoring: RU consumption, latency percentiles, partition pressure trends, and operation success/failure rates.\n\n**Telemetry Events:** `Graph.Query.Executed`, `Graph.Query.Failed`\n\n**Objective:** Provide comprehensive visibility into Cosmos DB Gremlin operations to detect partition pressure, cost anomalies, and performance degradation before they impact gameplay.\n\n**Related Issues:** #289 (RU & Latency Overview), #290 (RU vs Latency Correlation), #291 (Partition Pressure Trend), #296 (Success/Failure Rate & RU Cost)\n\n**References:** ADR-002 (partition pressure thresholds), docs/observability.md\n"
+      },
+      "name": "header"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Gremlin Operation RU & Latency Overview\n\n**Purpose:** Summarize RU charge and latency percentiles per critical Gremlin operation to spot emerging hot operations.\n\n**Thresholds:**\n- 🟡 P95 latency >500ms (amber)\n- 🔴 P95 latency >600ms (red)\n- 🟡 AvgRU >15 (amber - placeholder)\n- 🔴 AvgRU >20 (red - placeholder)\n\n**Note:** RU thresholds are placeholders; tune via issue #297 after baseline data collection."
+      },
+      "name": "section-ru-latency-overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Gremlin Operation RU & Latency Overview (Issue #289)\nlet timeRange = 24h;\nlet fallbackTimeRange = 6h;\nlet minEvents = 20;\n// First attempt 24h query\nlet events24h = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName);\nlet totalEvents24h = toscalar(events24h | count);\n// Fallback to 6h if low volume\nlet effectiveRange = iff(totalEvents24h >= minEvents, timeRange, fallbackTimeRange);\nlet effectiveEvents = iff(totalEvents24h >= minEvents, events24h, \n    customEvents\n    | where timestamp > ago(fallbackTimeRange)\n    | where name == 'Graph.Query.Executed'\n    | extend operationName = tostring(customDimensions.operationName),\n             latencyMs = todouble(customDimensions.latencyMs),\n             ruCharge = todouble(customDimensions.ruCharge)\n    | where isnotempty(operationName)\n);\nlet totalEffective = toscalar(effectiveEvents | count);\n// Show instability notice if still <20 events\nlet results = effectiveEvents\n| summarize \n    Calls = count(),\n    AvgRU = round(avg(ruCharge), 2),\n    MaxRU = round(max(ruCharge), 2),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0),\n    MissingRU = countif(isnull(ruCharge) or isnan(ruCharge))\n  by operationName\n| extend AvgRUDisplay = iff(MissingRU > 0.3 * Calls, \"n/a\", tostring(AvgRU)),\n         MaxRUDisplay = iff(MissingRU > 0.3 * Calls, \"n/a\", tostring(MaxRU))\n| project operationName, Calls, AvgRUDisplay, MaxRUDisplay, P50, P95, P99\n| order by Calls desc\n| take 10;\n// Return results or instability notice\niff(totalEffective < minEvents,\n    datatable(Notice:string) [\"⚠️ INSTABILITY NOTICE: <20 total events in last 24h. Percentiles unreliable. Wait for more data.\"],\n    results\n)",
+        "size": 0,
+        "title": "Top Operations by Call Volume (Last 24h, fallback to 6h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Calls",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "blue"
+              }
+            },
+            {
+              "columnMatch": "AvgRUDisplay",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "n/a",
+                    "representation": "gray"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "20",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "15",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "MaxRUDisplay",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "n/a",
+                    "representation": "gray"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "P95",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "600",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "500",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "P99",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "600",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "500",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "operation-ru-latency-table"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## RU vs Latency Correlation\n\n**Purpose:** Detect pressure-induced slowdowns by correlating RU charge to latency.\n\n**Interpretation:**\n- Pearson correlation >0.6: Strong positive correlation (rising RU → rising latency)\n- Correlation displayed only when sample size ≥30\n- Scatter plot helps identify outliers and operational clusters"
+      },
+      "name": "section-correlation"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// RU vs Latency Correlation - Scatter Plot (Issue #290)\nlet timeRange = 2h;\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0\n| project timestamp, operationName, ruCharge, latencyMs\n| order by timestamp desc\n| take 1000",
+        "size": 0,
+        "title": "RU vs Latency Scatter (Last 2h, max 1000 points)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "scatterchart",
+        "chartSettings": {
+          "xAxis": "ruCharge",
+          "yAxis": [
+            "latencyMs"
+          ],
+          "group": "operationName",
+          "seriesLabelSettings": []
+        }
+      },
+      "name": "ru-latency-scatter"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Count missing ruCharge for edge case tracking\nlet totalEvents = toscalar(customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| where isnotempty(tostring(customDimensions.operationName))\n| count);\nlet eventsWithRU = toscalar(events | count);\nlet missingRUCount = totalEvents - eventsWithRU;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| extend correlation = round(correlation, 3)\n| project operationName, correlation, SampleSize = n, MeetsThreshold = iff(n >= minSampleSize, \"Yes\", \"No\")\n| order by correlation desc;\nlet hasValidCorrelations = toscalar(correlations | where SampleSize >= minSampleSize | count);\n// Return warning if no operations have sufficient samples, else show correlations\niff(hasValidCorrelations == 0,\n    datatable(Notice:string) [strcat(\"⚠️ INSUFFICIENT SAMPLE WARNING: All operations have <\", minSampleSize, \" samples. Correlation coefficients unreliable. Wait for more data or check if telemetry is flowing. Missing RU count: \", missingRUCount)],\n    correlations\n)",
+        "size": 0,
+        "title": "Pearson Correlation: RU vs Latency (sample ≥30)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "correlation",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "0.6",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "SampleSize",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "blue"
+              }
+            },
+            {
+              "columnMatch": "MeetsThreshold",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "No",
+                    "representation": "gray"
+                  },
+                  {
+                    "operator": "==",
+                    "text": "Yes",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Notice",
+              "formatter": 1
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "correlation-coefficient-table"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// RU vs Latency Trend (dual axis) - 5-min buckets (Issue #290)\nlet timeRange = 2h;\nlet bucketSize = 5m;\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs)\n| summarize \n    AvgRU = avg(ruCharge),\n    P95Latency = percentile(latencyMs, 95)\n  by bucket = bin(timestamp, bucketSize)\n| order by bucket asc",
+        "size": 0,
+        "title": "Average RU vs P95 Latency Trend (5-min buckets, 2h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "linechart",
+        "chartSettings": {
+          "yAxis": [
+            "AvgRU",
+            "P95Latency"
+          ],
+          "seriesLabelSettings": [
+            {
+              "seriesName": "AvgRU",
+              "label": "Avg RU",
+              "color": "blue"
+            },
+            {
+              "seriesName": "P95Latency",
+              "label": "P95 Latency (ms)",
+              "color": "orange"
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "ru-latency-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Partition Pressure Trend (RU% + 429 Overlay)\n\n**Purpose:** Detect sustained high RU utilization and throttling signals before migration actions are needed.\n\n**Thresholds (ADR-002):**\n- 🟡 RU% >70% (amber)\n- 🔴 RU% >80% (red)\n- 🚨 RU% >70% for ≥3 consecutive intervals → requires investigation\n\n**Configuration:** Set `MAX_RU_PER_INTERVAL` parameter above (e.g., 1000 RU/s × 300s = 300000). If not configured, panel displays \"Baseline throughput not configured\" and suppresses % calculation.\n\n**Edge Cases Handled:**\n- Zero RU intervals → displays 0%\n- Sparse 429 occurrences → renders with appropriate scaling\n- Missing baseline → informational state (not error)"
+      },
+      "name": "section-partition-pressure"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "⚠️ **Baseline throughput not configured** - Set the `MAX_RU_PER_INTERVAL` parameter above to enable RU% calculation. Example: For 1000 RU/s provisioned throughput with 5-minute buckets, use 1000 × 300 = 300000."
+      },
+      "conditionalVisibility": {
+        "parameterName": "MaxRuPerInterval",
+        "comparison": "isEqualTo",
+        "value": ""
+      },
+      "name": "partition-pressure-config-banner"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Partition Pressure Trend - RU% with 429 overlay (Issue #291)\n// Supports dynamic MAX_RU_PER_INTERVAL parameter with fallback handling\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Process RU events\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet failures = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend statusCode = toint(customDimensions.statusCode)\n| where statusCode == 429;\n\n// Aggregate RU and 429 counts per bucket (including zero-RU intervals)\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet throttleByBucket = failures\n| summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\n\n// Calculate RU% with proper zero handling\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         ThrottleCount = coalesce(ThrottleCount, 0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), todouble(null))\n| project timestamp = bucket, RUPercent, ThrottleCount, TotalRU, Threshold70 = 70.0, Threshold80 = 80.0\n| order by timestamp asc;\n\n// Return data (if config missing, RUPercent will be null and message shown in title)\npressureData",
+        "size": 0,
+        "title": "RU% and 429 Count (5-min buckets, 24h) {MaxRuPerInterval:label}",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "linechart",
+        "chartSettings": {
+          "yAxis": [
+            "RUPercent",
+            "ThrottleCount"
+          ],
+          "seriesLabelSettings": [
+            {
+              "seriesName": "RUPercent",
+              "label": "RU%",
+              "color": "blue"
+            },
+            {
+              "seriesName": "ThrottleCount",
+              "label": "429 Count",
+              "color": "redBright"
+            },
+            {
+              "seriesName": "Threshold70",
+              "label": "70% Threshold",
+              "color": "orange"
+            },
+            {
+              "seriesName": "Threshold80",
+              "label": "80% Threshold",
+              "color": "red"
+            }
+          ]
+        }
+      },
+      "name": "partition-pressure-chart"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Sustained High RU Annotation (Issue #291)\n// Detects RU% >70% for ≥3 consecutive 5-minute intervals\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Early exit if no config\nlet noConfig = datatable(Message:string) [\"ℹ️ Configure MAX_RU_PER_INTERVAL parameter to enable sustained pressure detection\"];\n\n// Calculate RU% per bucket\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), 0.0)\n| project timestamp = bucket, RUPercent\n| order by timestamp asc;\n\n// Detect sustained high RU (>=3 consecutive intervals >70%)\nlet sustainedHighRU = pressureData\n| extend IsHigh = RUPercent > 70.0\n| serialize rn = row_number()\n| extend prevIsHigh1 = prev(IsHigh, 1), prevIsHigh2 = prev(IsHigh, 2)\n| where IsHigh and prevIsHigh1 and prevIsHigh2\n| summarize \n    StartTime = min(timestamp), \n    EndTime = max(timestamp), \n    ConsecutiveIntervals = count(),\n    MaxRU = max(RUPercent),\n    AvgRU = round(avg(RUPercent), 1)\n| extend Message = strcat(\"🚨 SUSTAINED HIGH RU: \", ConsecutiveIntervals, \" consecutive intervals >70% (avg: \", AvgRU, \"%, max: \", MaxRU, \"%)\")\n| project StartTime, EndTime, ConsecutiveIntervals, AvgRU, MaxRU, Message;\n\n// Return no-config message or annotations\niff(not(hasValidConfig), noConfig, sustainedHighRU)",
+        "size": 0,
+        "title": "Sustained Pressure Alerts (RU >70% for ≥3 intervals)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Message",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "SUSTAINED HIGH RU",
+                    "representation": "critical"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "info"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "ConsecutiveIntervals",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "red"
+              }
+            },
+            {
+              "columnMatch": "AvgRU",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "80",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "70",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "MaxRU",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "80",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "70",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "MaxRuPerInterval",
+        "comparison": "isNotEqualTo",
+        "value": ""
+      },
+      "name": "partition-pressure-annotation"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Operation Success/Failure Rate & RU Cost\n\n**Purpose:** Provide visibility into reliability and cost efficiency to prioritize high-cost or failure-prone operations.\n\n**Thresholds:**\n- 🟡 Failure Rate >2% (amber)\n- 🔴 Failure Rate >5% (red)\n\n**Note:** Operations with <10 total calls are listed separately as low-volume."
+      },
+      "name": "section-success-failure"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Operation Success/Failure Rate & RU Cost Table (Issue #296)\nlet timeRange = 24h;\nlet minCalls = 10;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge),\n         latencyMs = todouble(customDimensions.latencyMs)\n| where isnotempty(operationName);\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend operationName = tostring(customDimensions.operationName)\n| where isnotempty(operationName);\n// Aggregate success\nlet successAgg = successEvents\n| summarize \n    SuccessCalls = count(),\n    TotalRU = sum(ruCharge),\n    MissingRU = countif(isnull(ruCharge)),\n    P95Latency = percentile(latencyMs, 95)\n  by operationName;\n// Aggregate failures\nlet failureAgg = failureEvents\n| summarize FailedCalls = count() by operationName;\n// Join and compute metrics\nsuccessAgg\n| join kind=leftouter failureAgg on operationName\n| extend FailedCalls = coalesce(FailedCalls, 0)\n| extend TotalCalls = SuccessCalls + FailedCalls\n| extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)\n| extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)\n| extend AvgRUDisplay = iff(MissingRU > 0.3 * SuccessCalls, \"n/a\", tostring(round(AvgRUSuccess, 2)))\n| extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)\n| extend RUPerCallDisplay = iff(MissingRU > 0.3 * SuccessCalls, \"n/a\", tostring(RUPerCall))\n| extend Category = iff(TotalCalls < minCalls, \"Low Volume\", \"Normal\")\n| project operationName, SuccessCalls, FailedCalls, FailureRate, AvgRUDisplay, RUPerCallDisplay, P95Latency = round(P95Latency, 0), Category\n| order by TotalCalls = SuccessCalls + FailedCalls desc",
+        "size": 0,
+        "title": "Operation Reliability & RU Cost (Last 24h)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "SuccessCalls",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "green"
+              }
+            },
+            {
+              "columnMatch": "FailedCalls",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "red"
+              }
+            },
+            {
+              "columnMatch": "FailureRate",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "5",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "2",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "AvgRUDisplay",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "n/a",
+                    "representation": "gray"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "RUPerCallDisplay",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "n/a",
+                    "representation": "gray"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "P95Latency",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "600",
+                    "representation": "redBright"
+                  },
+                  {
+                    "operator": ">",
+                    "thresholdValue": "500",
+                    "representation": "orange"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "green"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Category",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "text": "Low Volume",
+                    "representation": "gray"
+                  },
+                  {
+                    "operator": "Default",
+                    "representation": "blue"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "operation-reliability-table"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Missing RU Warning Banner (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName);\nlet totalEvents = toscalar(successEvents | count);\nlet missingRU = toscalar(successEvents | where isnull(ruCharge) | count);\nlet missingPercent = iff(totalEvents > 0, round(100.0 * missingRU / totalEvents, 1), 0.0);\nlet showWarning = missingPercent > 30.0;\niff(showWarning,\n    datatable(Warning:string) [strcat(\"⚠️ RU DATA INCOMPLETE: \", missingPercent, \"% of success events missing ruCharge values. RU/Call metrics may be unreliable. Check Graph.Query.Executed telemetry instrumentation.\")],\n    datatable(Status:string) [\"✅ RU data coverage adequate (<30% missing)\"]\n)",
+        "size": 0,
+        "title": "RU Data Quality Check",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Warning",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "RU DATA INCOMPLETE",
+                    "representation": "warning"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "adequate",
+                    "representation": "success"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "ru-data-quality-banner"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// Overall Failure Rate Notes (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed';\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed';\nlet totalSuccess = toscalar(successEvents | count);\nlet totalFailure = toscalar(failureEvents | count);\nlet totalCalls = totalSuccess + totalFailure;\nlet overallFailureRate = iff(totalCalls > 0, round(100.0 * totalFailure / totalCalls, 2), 0.0);\nlet isLowPriority = overallFailureRate < 1.0 and totalCalls >= 100;\niff(isLowPriority,\n    datatable(Note:string) [strcat(\"ℹ️ LOW PRIORITY: Overall failure rate is \", overallFailureRate, \"% (<1%). System reliability is good. Optimization tasks may be deferred unless specific operations show high cost or latency.\")],\n    iff(totalCalls < 100,\n        datatable(Note:string) [strcat(\"ℹ️ INSUFFICIENT DATA: Only \", totalCalls, \" total operations in 24h. Wait for more traffic to assess priority.\")],\n        datatable(Note:string) [strcat(\"⚠️ MONITOR: Overall failure rate is \", overallFailureRate, \"% (≥1%). Review high-failure operations above.\")]\n    )\n)",
+        "size": 0,
+        "title": "Optimization Priority Assessment",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Note",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "LOW PRIORITY",
+                    "representation": "info"
+                  },
+                  {
+                    "operator": "contains",
+                    "text": "INSUFFICIENT DATA",
+                    "representation": "info"
+                  },
+                  {
+                    "operator": "contains",
+                    "text": "MONITOR",
+                    "representation": "warning"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "optimization-priority-notes"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### Interpretation Guide\n\n**RU & Latency Overview:**\n- High P95/P99 latency (>500ms): Operation may be bottlenecked or experiencing pressure\n- High AvgRU operations: Review query efficiency and consider optimization\n- \"n/a\" RU values: >30% events missing RU data; telemetry incomplete\n\n**Correlation Analysis:**\n- Strong correlation (>0.6): Rising RU directly impacts latency → potential partition pressure\n- Weak/negative correlation: Latency driven by factors other than RU (network, complexity)\n- Sample size warning: Correlations require ≥30 events per operation for statistical reliability\n\n**Edge Cases:**\n- **Missing ruCharge**: Events without RU data are omitted from scatter plot and correlation calculation. Check \"Missing RU count\" in warning messages.\n- **LatencyMs=0**: These rare events are filtered out to avoid skewing correlation calculations.\n- **High RU with low latency**: Legitimate pattern showing efficient high-throughput operations; correlation will be weak or negative (expected).\n- **Very high RU outliers**: Scatter plot may show extreme RU values. Future enhancement: outlier removal toggle (RU > median × configurable factor).\n\n**Partition Pressure:**\n- Sustained RU% >70%: Monitor closely; prepare migration plan\n- 429 spikes: Immediate throttling; review hot operations\n- Configure MAX_RU_PER_INTERVAL for accurate % calculation\n\n**Reliability & Cost:**\n- High failure rate (>5%): Investigate error patterns\n- High RU/Call with low success rate: Expensive failing operations\n- Low volume operations: Not enough data for reliable metrics\n- AvgRU(Success): Average RU per successful call (excludes failures)\n- RU/Call Ratio: Same as AvgRU for cost-per-operation analysis\n\n**Export & Query Documentation:**\n- Full export instructions (CSV, JSON, Azure CLI): See `docs/observability.md` § Performance Operations Dashboard\n- Kusto query examples for external analysis tools (R, Python, Excel)\n- Workbook JSON configuration export via Azure Portal Advanced Editor"
+      },
+      "name": "interpretation-guide"
+    }
+  ],
+  "_exportMetadata": {
+    "slug": "performance-operations-dashboard",
+    "exportedAt": "2025-11-08",
+    "note": "This file is auto-generated from Azure Application Insights workbook. Do not edit directly. Use scripts/observability/export-workbooks.mjs to update."
+  }
+}

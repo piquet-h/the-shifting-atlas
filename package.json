@@ -8,7 +8,9 @@
         "verify:instructions:json": "node scripts/verify-instructions.mjs --format json",
         "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs",
         "concept:issues:dry": "node scripts/generate-concept-issues.mjs",
-        "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs"
+        "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
+        "workbooks:export": "node scripts/observability/export-workbooks.mjs",
+        "workbooks:verify": "node scripts/observability/verify-workbooks.mjs"
     },
     "engines": {
         "node": ">=20"
