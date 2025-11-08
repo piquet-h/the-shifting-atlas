@@ -11,18 +11,23 @@ param applicationInsightsId string
 param actionGroupId string = ''
 
 @description('Maximum RU per 5-minute interval for percentage calculation')
+#disable-next-line no-unused-params
 param maxRuPerInterval int = 120000
 
 @description('RU percentage threshold for composite alert')
+#disable-next-line no-unused-params
 param ruPercentThreshold int = 70
 
 @description('Minimum 429 count threshold for composite alert')
+#disable-next-line no-unused-params
 param throttlingCountThreshold int = 3
 
 @description('Minimum P95 latency increase percentage vs 24h baseline')
+#disable-next-line no-unused-params
 param latencyIncreasePercentThreshold int = 25
 
 @description('Minimum baseline samples required for latency comparison')
+#disable-next-line no-unused-params
 param minBaselineSamples int = 100
 
 // Composite partition pressure alert (Issue #294)
@@ -36,11 +41,11 @@ var alertQueryTemplate = '''
 // Step 1: Calculate RU metrics for current 5-min window
 let currentWindow = 5m;
 let baselineWindow = 24h;
-let minBaselineSamples = ${minBaselineSamples};
-let maxRuPerInterval = ${maxRuPerInterval};
-let ruThreshold = ${ruPercentThreshold};
-let throttling429Threshold = ${throttlingCountThreshold};
-let latencyIncreaseThreshold = ${latencyIncreasePercentThreshold};
+let minBaselineSamples = ${string(minBaselineSamples)};
+let maxRuPerInterval = ${string(maxRuPerInterval)};
+let ruThreshold = ${string(ruPercentThreshold)};
+let throttling429Threshold = ${string(throttlingCountThreshold)};
+let latencyIncreaseThreshold = ${string(latencyIncreasePercentThreshold)};
 
 // Current window metrics
 let currentMetrics = customEvents
@@ -94,10 +99,6 @@ currentMetrics
 | project-away topOperations
 '''
 
-// Replace placeholder with actual parameter value
-var maxRuPerIntervalString = string(maxRuPerInterval)
-var finalQuery = replace(alertQueryTemplate, 'MAXRU_PLACEHOLDER', maxRuPerIntervalString)
-
 resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
   name: alertName
   location: location
@@ -114,7 +115,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
     criteria: {
       allOf: [
         {
-          query: finalQuery
+          query: alertQueryTemplate
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'

@@ -32,10 +32,10 @@ var alertDescription = 'Detects abnormal Cosmos DB Gremlin throttling (HTTP 429)
 
 // KQL query to detect 429 spike with baseline RPS check
 var alertQuery = '''
-let evaluationWindow = ${evaluationFrequencyMinutes}m;
-let baselineRps = ${baselineRps};
-let normalThreshold = ${normalThreshold429Count};
-let highThreshold = ${highThreshold429Count};
+let evaluationWindow = ${string(evaluationFrequencyMinutes)}m;
+let baselineRps = ${string(baselineRps)};
+let normalThreshold = ${string(normalThreshold429Count)};
+let highThreshold = ${string(highThreshold429Count)};
 // Count 429 failures in the evaluation window
 let throttleCount = customEvents
 | where timestamp > ago(evaluationWindow)
@@ -63,7 +63,7 @@ throttleCount
 | extend AvgRU = toscalar(metrics | project AvgRU)
 | extend P95Latency = toscalar(metrics | project P95Latency)
 | extend TotalRU = toscalar(metrics | project TotalRU)
-| extend ExpectedQueries = baselineRps * ${evaluationFrequencyMinutes} * 60
+| extend ExpectedQueries = baselineRps * ${string(evaluationFrequencyMinutes)} * 60
 | extend BelowBaseline = TotalQueries < ExpectedQueries
 | extend AlertSeverity = case(
     Count429 >= highThreshold and BelowBaseline, "High",
