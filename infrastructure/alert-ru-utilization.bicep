@@ -15,7 +15,7 @@ var maxRuPerInterval = provisionedRuPerSecond * 300
 // Build the KQL query with proper string interpolation
 var alertQuery = '''
 // Step 1: Calculate RU consumption per 5-minute bucket
-let timeRange = 15m; // 3 consecutive 5-min intervals
+let timeRange = 15m; // Time window for analysis
 let bucketSize = 5m;
 let maxRuPerInterval = ${maxRuPerIntervalString};
 let highThreshold = 70.0; // Fire alert at >70% RU
@@ -102,11 +102,11 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
   location: location
   properties: {
     displayName: 'Sustained High RU Utilization'
-    description: 'Alert fires when RU utilization exceeds 70% for 3 consecutive 5-minute intervals. Auto-resolves when RU% drops below 65% for 2 consecutive intervals. References ADR-002 partition pressure thresholds.'
+    description: 'Alert fires when RU utilization exceeds 70%. Auto-resolves when RU% drops below 65%. References ADR-002 partition pressure thresholds.'
     enabled: enabled
     severity: 2 // Warning
     evaluationFrequency: 'PT5M' // Evaluate every 5 minutes
-    windowSize: 'PT15M' // Look back 15 minutes (3 consecutive 5-min intervals)
+    windowSize: 'PT15M' // Look back 15 minutes
     scopes: [
       applicationInsightsId
     ]
@@ -117,6 +117,7 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
           timeAggregation: 'Count'
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
             numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1

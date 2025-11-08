@@ -24,7 +24,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
   location: location
   properties: {
     displayName: 'Composite Partition Pressure (RU + 429 + Latency)'
-    description: 'Multi-signal alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent intervention. Fires only when: RU% >70% AND 429s >=3 in last 5 min AND P95 latency increase >25% vs 24h baseline. Auto-resolves when any metric recovers below thresholds for 3 consecutive intervals.'
+    description: 'Multi-signal alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent intervention. Fires only when: RU% >70% AND 429s >=3 in last 5 min AND P95 latency increase >25% vs 24h baseline. Auto-resolves when any metric recovers below thresholds.'
     severity: 0 // Critical
     enabled: true
     evaluationFrequency: 'PT5M' // Every 5 minutes
@@ -98,8 +98,9 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
           dimensions: []
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
-            numberOfEvaluationPeriods: 3
+            numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1
           }
         }
@@ -191,6 +192,7 @@ resource baselineSuppressionDiagnostic 'Microsoft.Insights/scheduledQueryRules@2
           dimensions: []
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
             numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1
