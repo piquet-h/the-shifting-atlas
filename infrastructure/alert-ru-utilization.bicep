@@ -67,10 +67,8 @@ let eventsWithRu = toscalar(ruEvents | where isnotnull(ruCharge) | count);
 let dataQuality = iff(totalEvents > 0, todouble(eventsWithRu) / todouble(totalEvents), 0.0);
 // Abort evaluation if data quality is insufficient (<70%)
 let shouldAbort = dataQuality < minDataQuality;
-// If aborting, emit diagnostic event (return empty result set to prevent alert firing)
-let diagnosticResult = datatable(Timestamp:datetime, RUPercent:real, Interval:int, TopOperations:string, DataQuality:real, Status:string) [
-  now(), 0.0, 0, '', dataQuality, 'insufficient-data'
-];
+// If aborting, emit empty result set to prevent alert firing
+let diagnosticResult = datatable(Timestamp:datetime, RUPercent:real, Interval:int, TopOperations:string, DataQuality:real, Status:string) [];
 // Calculate RU percentage per bucket
 let ruByBucket = ruEvents
   | where isnotnull(ruCharge)
