@@ -495,3 +495,16 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
     applicationInsightsId: applicationInsights.id
   }
 }
+
+// Alert: Sustained High RU Utilization
+// References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
+module alertRuUtilization 'alert-ru-utilization.bicep' = {
+  name: 'alert-ru-utilization'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    provisionedRuPerSecond: 400 // Matches Gremlin graph throughput
+    enabled: true
+  }
+}
