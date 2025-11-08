@@ -2,6 +2,11 @@
 
 Lean specification for game/domain telemetry. Focus: consistent event grammar + minimal dimension set. Historical migration notes & phased expansion tables removed to keep this doc stable and referenceable.
 
+**Related Documentation:**
+- [Telemetry Event Catalog](./observability/telemetry-catalog.md) — Complete event definitions and dimensions
+- [Alerts Catalog](./observability/alerts-catalog.md) — Azure Monitor alert configurations and response guidance
+- [Infrastructure README](../infrastructure/README.md) — Bicep deployment and parameters
+
 ## Goals
 
 1. Consistent, low‑cardinality event names.

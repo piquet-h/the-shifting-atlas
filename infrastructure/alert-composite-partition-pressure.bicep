@@ -13,6 +13,18 @@ param actionGroupId string = ''
 @description('Maximum RU per 5-minute interval for percentage calculation')
 param maxRuPerInterval int = 120000
 
+@description('RU percentage threshold for composite alert')
+param ruPercentThreshold int = 70
+
+@description('Minimum 429 count threshold for composite alert')
+param throttlingCountThreshold int = 3
+
+@description('Minimum P95 latency increase percentage vs 24h baseline')
+param latencyIncreasePercentThreshold int = 25
+
+@description('Minimum baseline samples required for latency comparison')
+param minBaselineSamples int = 100
+
 // Composite partition pressure alert (Issue #294)
 // Fires when RU% >70% AND 429s >=3 AND P95 latency increase >25% vs 24h baseline
 // Critical severity, distinct from individual RU or 429 alerts
@@ -24,8 +36,11 @@ var alertQueryTemplate = '''
 // Step 1: Calculate RU metrics for current 5-min window
 let currentWindow = 5m;
 let baselineWindow = 24h;
-let minBaselineSamples = 100;
-let maxRuPerInterval = MAXRU_PLACEHOLDER;
+let minBaselineSamples = ${minBaselineSamples};
+let maxRuPerInterval = ${maxRuPerInterval};
+let ruThreshold = ${ruPercentThreshold};
+let throttling429Threshold = ${throttlingCountThreshold};
+let latencyIncreaseThreshold = ${latencyIncreasePercentThreshold};
 
 // Current window metrics
 let currentMetrics = customEvents
@@ -62,9 +77,9 @@ currentMetrics
 | project-away dummy, dummy1
 | where baselineSampleCount >= minBaselineSamples // Suppress if insufficient baseline
 | extend latencyIncreasePct = ((currentP95Latency - baselineP95Latency) / baselineP95Latency) * 100
-| where ruPercent > 70 // RU threshold
-    and count429 >= 3 // 429 threshold
-    and latencyIncreasePct > 25 // Latency degradation threshold
+| where ruPercent > ruThreshold // RU threshold
+    and count429 >= throttling429Threshold // 429 threshold
+    and latencyIncreasePct > latencyIncreaseThreshold // Latency degradation threshold
 | project 
     ruPercent = round(ruPercent, 2),
     count429,
@@ -120,6 +135,10 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
           customProperties: {
             alertType: 'CompositePartitionPressure'
             severity: 'Critical'
+            ruThreshold: '${ruPercentThreshold}%'
+            throttling429Threshold: string(throttlingCountThreshold)
+            latencyIncreaseThreshold: '${latencyIncreasePercentThreshold}%'
+            minBaselineSamples: string(minBaselineSamples)
             dependsOn: 'Issues #292 (Sustained High RU), #293 (429 Spike)'
             referenceDoc: 'ADR-002 thresholds'
           }

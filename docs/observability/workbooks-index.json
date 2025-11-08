@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Application Insights Workbooks Index",
+  "description": "Catalog of Application Insights workbooks for version control and automated export",
+  "workbooks": [
+    {
+      "id": "local-movement-navigation-dashboard",
+      "name": "Movement Navigation Overview",
+      "slug": "movement-navigation-dashboard",
+      "description": "Unified dashboard combining movement success rate & blocked reason analytics. Provides single pane of glass to monitor traversal health, friction sources, and trends.",
+      "owners": ["observability"],
+      "consolidated": true,
+      "panels": [
+        "Movement Success Rate (24h)",
+        "Movement Metrics Summary",
+        "Blocked Movement Reasons",
+        "Movement Success Rate Trend"
+      ],
+      "relatedIssues": [
+        10,
+        281,
+        282
+      ],
+      "telemetryEvents": [
+        "Navigation.Move.Success",
+        "Navigation.Move.Blocked"
+      ]
+    },
+    {
+      "id": "local-performance-operations-dashboard",
+      "name": "Performance Operations Dashboard",
+      "slug": "performance-operations-dashboard",
+      "description": "Consolidated workbook for Gremlin operation performance monitoring: RU consumption, latency percentiles, partition pressure trends, and operation success/failure rates.",
+      "owners": ["observability"],
+      "consolidated": true,
+      "panels": [
+        "Gremlin Operation RU & Latency Overview",
+        "RU vs Latency Correlation",
+        "Partition Pressure Trend",
+        "Operation Success/Failure Rate & RU Cost Table"
+      ],
+      "relatedIssues": [
+        289,
+        290,
+        291,
+        296
+      ],
+      "telemetryEvents": [
+        "Graph.Query.Executed",
+        "Graph.Query.Failed"
+      ]
+    }
+  ],
+  "notes": {
+    "idPlaceholders": "Workbook IDs are Azure resource identifiers. Replace 'placeholder-*' values with actual workbook resource IDs from Azure Portal.",
+    "consolidatedFlag": "When true, indicates this workbook combines multiple related metrics rather than being a single-purpose dashboard.",
+    "exportProcess": "Use scripts/observability/export-workbooks.mjs to export current workbook definitions to docs/observability/workbooks/<slug>.workbook.json"
+  }
+}

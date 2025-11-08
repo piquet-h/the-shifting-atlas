@@ -9,18 +9,35 @@ param provisionedRuPerSecond int = 400
 @description('Enable the alert rule')
 param enabled bool = true
 
+@description('Fire alert when RU percentage exceeds this threshold (sustained across consecutive windows)')
+param fireRuPercentThreshold int = 70
+
+@description('Auto-resolve alert when RU percentage drops below this threshold')
+param resolveRuPercentThreshold int = 65
+
+@description('Number of consecutive windows above fire threshold required to trigger alert')
+param consecutiveFireWindows int = 3
+
+@description('Number of consecutive windows below resolve threshold required to auto-resolve')
+param consecutiveResolveWindows int = 2
+
+@description('Minimum data quality percentage (events with RU data / total events)')
+param minDataQualityPercent int = 70
+
 // Calculate maximum RU per 5-minute interval (300 seconds) as a variable
+// Note: Used in KQL query via string interpolation (linter cannot detect)
+#disable-next-line no-unused-vars
 var maxRuPerInterval = provisionedRuPerSecond * 300
 
 // Build the KQL query with proper string interpolation
 var alertQuery = '''
 // Step 1: Calculate RU consumption per 5-minute bucket
-let timeRange = 15m; // 3 consecutive 5-min intervals
+let timeRange = 15m; // Time window for analysis
 let bucketSize = 5m;
-let maxRuPerInterval = ${maxRuPerIntervalString};
-let highThreshold = 70.0; // Fire alert at >70% RU
-let resolveThreshold = 65.0; // Auto-resolve at <65% RU
-let minDataQuality = 0.70; // Require 70% of samples to have ruCharge data
+let maxRuPerInterval = ${maxRuPerInterval};
+let highThreshold = ${fireRuPercentThreshold}.0; // Fire alert at >${fireRuPercentThreshold}% RU
+let resolveThreshold = ${resolveRuPercentThreshold}.0; // Auto-resolve at <${resolveRuPercentThreshold}% RU
+let minDataQuality = ${minDataQualityPercent / 100.0}; // Require ${minDataQualityPercent}% of samples to have ruCharge data
 // Collect Graph.Query.Executed events with RU charge
 let ruEvents = customEvents
   | where timestamp > ago(timeRange)
@@ -56,7 +73,7 @@ let sustainedHigh = recentBuckets
   | count;
 // Check if last 2 intervals are below resolve threshold (for auto-resolve)
 let recentResolved = recentBuckets
-  | where interval <= 2
+  | where interval <= ${consecutiveResolveWindows}
   | where RUPercent < resolveThreshold
   | count;
 // Extract top 3 operations by RU consumption across all buckets
@@ -79,8 +96,8 @@ let alertCondition = iff(shouldAbort,
       ResolvedCount = toscalar(recentResolved),
       TopOps = toscalar(topOperations | project TopOps)
   | extend Status = case(
-      SustainedHighCount >= 3, 'alert', // Fire alert
-      ResolvedCount >= 2, 'resolved', // Auto-resolve
+      SustainedHighCount >= ${consecutiveFireWindows}, 'alert', // Fire alert
+      ResolvedCount >= ${consecutiveResolveWindows}, 'resolved', // Auto-resolve
       'normal' // No action
     )
   | project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
@@ -93,30 +110,28 @@ alertCondition
 | project Timestamp, RUPercent, Interval, TopOperations, DataQuality
 '''
 
-var maxRuPerIntervalString = string(maxRuPerInterval)
-var finalQuery = replace(alertQuery, '\${maxRuPerIntervalString}', maxRuPerIntervalString)
-
 // Scheduled query rule for sustained high RU utilization
 resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
   name: 'alert-ru-utilization-${name}'
   location: location
   properties: {
     displayName: 'Sustained High RU Utilization'
-    description: 'Alert fires when RU utilization exceeds 70% for 3 consecutive 5-minute intervals. Auto-resolves when RU% drops below 65% for 2 consecutive intervals. References ADR-002 partition pressure thresholds.'
+    description: 'Alert fires when RU utilization exceeds 70%. Auto-resolves when RU% drops below 65%. References ADR-002 partition pressure thresholds.'
     enabled: enabled
     severity: 2 // Warning
     evaluationFrequency: 'PT5M' // Evaluate every 5 minutes
-    windowSize: 'PT15M' // Look back 15 minutes (3 consecutive 5-min intervals)
+    windowSize: 'PT15M' // Look back 15 minutes
     scopes: [
       applicationInsightsId
     ]
     criteria: {
       allOf: [
         {
-          query: finalQuery
+          query: alertQuery
           timeAggregation: 'Count'
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
             numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1
@@ -131,7 +146,11 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
       ]
       customProperties: {
         alert_type: 'ru_utilization'
-        threshold: '70%'
+        fireThreshold: '${fireRuPercentThreshold}%'
+        resolveThreshold: '${resolveRuPercentThreshold}%'
+        consecutiveFireWindows: string(consecutiveFireWindows)
+        consecutiveResolveWindows: string(consecutiveResolveWindows)
+        minDataQuality: '${minDataQualityPercent}%'
         adr_reference: 'ADR-002'
       }
     }

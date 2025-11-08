@@ -143,6 +143,57 @@ PERSISTENCE_MODE=cosmos node scripts/mosswell-migration.mjs \
 
 ---
 
+### `observability/export-workbooks.mjs`
+
+Exports Application Insights workbook definitions to version-controlled JSON files.
+
+**Usage:**
+
+```bash
+node scripts/observability/export-workbooks.mjs
+```
+
+**Purpose:**
+- Read workbook configuration from `docs/observability/workbooks-index.json`
+- Export current workbook definitions from Azure (or local source for MVP)
+- Normalize JSON: remove volatile fields, sort keys, stable formatting
+- Write to `docs/observability/workbooks/<slug>.workbook.json`
+
+**When to Use:**
+- After creating a new workbook in Azure Portal
+- After modifying queries, thresholds, or visualizations
+- Before committing workbook changes to ensure sync
+
+**Exit Codes:**
+- 0 - All workbooks exported successfully (or skipped with placeholder IDs)
+- 1 - One or more exports failed
+
+**See also:** `docs/observability/workbooks.md` for detailed workflow documentation.
+
+---
+
+### `observability/verify-workbooks.mjs`
+
+Verifies that committed workbook files match current export state (drift detection).
+
+**Usage:**
+
+```bash
+node scripts/observability/verify-workbooks.mjs
+```
+
+**Purpose:**
+- Prevent drift between Azure workbook definitions and version-controlled files
+- Run manually or in CI to catch uncommitted workbook changes
+
+**Exit Codes:**
+- 0 - All workbooks match committed state
+- 1 - Drift detected (re-export needed)
+
+**See also:** `docs/observability/workbooks.md` for workflow details.
+
+---
+
 ## Testing
 
 Script tests are located in `scripts/test/` directory.
