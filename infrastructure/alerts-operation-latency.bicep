@@ -55,14 +55,14 @@ resource alertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' 
     criteria: {
       allOf: [
         {
-          query: '''
+          query: replace('''
             let threshold = 600;
             let minSampleSize = 20;
             customEvents
             | where name == 'Graph.Query.Executed'
             | extend operationName = tostring(customDimensions.operationName)
             | extend latencyMs = todouble(customDimensions.latencyMs)
-            | where operationName == '${operation}'
+            | where operationName == '__OPERATION__'
             | where isnotempty(latencyMs)
             | summarize 
                 P95 = percentile(latencyMs, 95),
@@ -72,7 +72,7 @@ resource alertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' 
             | where SampleSize >= minSampleSize
             | where P95 > threshold
             | project P95, SampleSize, AvgLatency, MaxLatency, Threshold = threshold
-          '''
+          ''', '__OPERATION__', operation)
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
@@ -113,14 +113,14 @@ resource warningAlertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-pr
     criteria: {
       allOf: [
         {
-          query: '''
+          query: replace('''
             let threshold = 500;
             let minSampleSize = 20;
             customEvents
             | where name == 'Graph.Query.Executed'
             | extend operationName = tostring(customDimensions.operationName)
             | extend latencyMs = todouble(customDimensions.latencyMs)
-            | where operationName == '${operation}'
+            | where operationName == '__OPERATION__'
             | where isnotempty(latencyMs)
             | summarize 
                 P95 = percentile(latencyMs, 95),
@@ -130,7 +130,7 @@ resource warningAlertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-pr
             | where SampleSize >= minSampleSize
             | where P95 > threshold
             | project P95, SampleSize, AvgLatency, MaxLatency, Threshold = threshold
-          '''
+          ''', '__OPERATION__', operation)
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'

@@ -17,7 +17,7 @@ var alertQuery = '''
 // Step 1: Calculate RU consumption per 5-minute bucket
 let timeRange = 15m; // 3 consecutive 5-min intervals
 let bucketSize = 5m;
-let maxRuPerInterval = ${maxRuPerIntervalString};
+let maxRuPerInterval = __MAXRUINTERVAL__;
 let highThreshold = 70.0; // Fire alert at >70% RU
 let resolveThreshold = 65.0; // Auto-resolve at <65% RU
 let minDataQuality = 0.70; // Require 70% of samples to have ruCharge data
@@ -36,7 +36,7 @@ let dataQuality = iff(totalEvents > 0, todouble(eventsWithRu) / todouble(totalEv
 let shouldAbort = dataQuality < minDataQuality;
 // If aborting, emit diagnostic event (return empty result set to prevent alert firing)
 let diagnosticResult = datatable(Timestamp:datetime, RUPercent:real, Interval:int, TopOperations:string, DataQuality:real, Status:string) [
-  now(), 0.0, 0, '', dataQuality, 'insufficient-data'
+  datetime(null), 0.0, 0, '', dataQuality, 'insufficient-data'
 ];
 // Calculate RU percentage per bucket
 let ruByBucket = ruEvents
@@ -94,7 +94,7 @@ alertCondition
 '''
 
 var maxRuPerIntervalString = string(maxRuPerInterval)
-var finalQuery = replace(alertQuery, '\${maxRuPerIntervalString}', maxRuPerIntervalString)
+var finalQuery = replace(alertQuery, '__MAXRUINTERVAL__', maxRuPerIntervalString)
 
 // Scheduled query rule for sustained high RU utilization
 resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {

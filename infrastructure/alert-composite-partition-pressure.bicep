@@ -35,13 +35,13 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
     criteria: {
       allOf: [
         {
-          query: '''
+          query: replace('''
             // Composite Partition Pressure Alert Query
             // Step 1: Calculate RU metrics for current 5-min window
             let currentWindow = 5m;
             let baselineWindow = 24h;
             let minBaselineSamples = 100;
-            let maxRuPerInterval = ${maxRuPerInterval};
+            let maxRuPerInterval = __MAXRUINTERVAL__;
             
             // Current window metrics
             let currentMetrics = customEvents
@@ -93,7 +93,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
             | extend 
                 top2Operations = array_slice(topOperations, 0, 2)
             | project-away topOperations
-            '''
+            ''', '__MAXRUINTERVAL__', string(maxRuPerInterval))
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
@@ -105,7 +105,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
         }
       ]
     }
-    autoMitigate: true
+    autoMitigate: false // Must be false when action suppression (muteActionsDuration) is set
     actions: actionGroupId != '' ? {
       actionGroups: [
         actionGroupId
@@ -145,12 +145,12 @@ resource baselineSuppressionDiagnostic 'Microsoft.Insights/scheduledQueryRules@2
     criteria: {
       allOf: [
         {
-          query: '''
+          query: replace('''
             // Check for insufficient baseline samples that would suppress composite alert
             let currentWindow = 5m;
             let baselineWindow = 24h;
             let minBaselineSamples = 100;
-            let maxRuPerInterval = ${maxRuPerInterval};
+            let maxRuPerInterval = __MAXRUINTERVAL__;
             
             // Current window metrics (check if conditions would trigger)
             let currentMetrics = customEvents
@@ -186,7 +186,7 @@ resource baselineSuppressionDiagnostic 'Microsoft.Insights/scheduledQueryRules@2
                 requiredSamples = minBaselineSamples,
                 currentRuPercent = ruPercent,
                 current429Count = count429
-            '''
+            ''', '__MAXRUINTERVAL__', string(maxRuPerInterval))
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
