@@ -49,6 +49,10 @@ Update `workbooks-index.json` with the actual resource ID.
 To export current workbook definitions from Azure:
 
 ```bash
+# Using npm script (recommended)
+npm run workbooks:export
+
+# Or directly
 node scripts/observability/export-workbooks.mjs
 ```
 
@@ -80,6 +84,10 @@ Run the export script after:
 To verify that committed files match current export state:
 
 ```bash
+# Using npm script (recommended)
+npm run workbooks:verify
+
+# Or directly
 node scripts/observability/verify-workbooks.mjs
 ```
 
@@ -114,7 +122,7 @@ _Note: CI integration is deferred to a future issue._
 
 2. **Export Changes**
    ```bash
-   node scripts/observability/export-workbooks.mjs
+   npm run workbooks:export
    ```
 
 3. **Review Diff**
@@ -140,7 +148,7 @@ _Note: CI integration is deferred to a future issue._
 
 3. **Export**
    ```bash
-   node scripts/observability/export-workbooks.mjs
+   npm run workbooks:export
    ```
 
 4. **Commit Both Files**
