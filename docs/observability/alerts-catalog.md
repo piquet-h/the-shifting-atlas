@@ -184,6 +184,7 @@ This alert complements the **Performance Operations Dashboard** (`workbook-perfo
 ## Related Documentation
 
 -   [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
+-   [Threshold Tuning Report](./threshold-tuning.md) — Baseline metrics and threshold calibration methodology (Issue #297)
 -   [Infrastructure README](../../infrastructure/README.md) — Bicep deployment parameters
 -   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition thresholds
 -   [Observability Overview](../observability.md) — High-level monitoring strategy

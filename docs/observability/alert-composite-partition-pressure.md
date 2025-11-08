@@ -118,7 +118,7 @@ Thresholds were selected based on ADR-002 guidance:
 - **3x 429 in 5 min**: Signal of sustained throttling, not transient network issues
 - **25% latency increase**: Significant degradation indicating partition stress
 
-These thresholds may be adjusted based on observed baseline metrics (see Issue #297: Post-Baseline Threshold Tuning).
+These thresholds may be adjusted based on observed baseline metrics. See [Threshold Tuning Report](./threshold-tuning.md) for baseline collection methodology and proposed adjustments (Issue #297: Post-Baseline Threshold Tuning).
 
 ### Troubleshooting
 
