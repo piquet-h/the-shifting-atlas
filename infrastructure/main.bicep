@@ -5,6 +5,9 @@ param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 @description('Optional additional AAD principal object IDs (users, service principals, managed identities) to receive Cosmos DB Built-in Data Contributor on both Gremlin and SQL accounts for local dev or tooling.')
 param additionalCosmosDataContributors array = []
 
+@description('Expected baseline RPS for Gremlin queries (set to 0 to disable 429 spike alert)')
+param gremlinBaselineRps int = 50
+
 var storageName = toLower('st${name}${unique}')
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -493,5 +496,18 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
     name: name
     location: location
     applicationInsightsId: applicationInsights.id
+  }
+}
+
+// Alert: Gremlin 429 Throttling Spike Detection (M2 Observability)
+module alertGremlin429Spike 'alert-gremlin-429-spike.bicep' = {
+  name: 'alert-gremlin-429-spike'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    baselineRps: gremlinBaselineRps
+    evaluationFrequencyMinutes: 5
+    severity: 2  // Warning severity
   }
 }

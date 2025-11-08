@@ -398,6 +398,35 @@ Central registry documenting all game domain telemetry events, including when th
 
 ---
 
+### Graph Operations (Cosmos DB Gremlin)
+
+#### `Graph.Query.Executed`
+
+**Trigger:** Successful Gremlin query execution  
+**Dimensions:** `operationName`, `latencyMs`, `ruCharge`, `resultCount`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track Gremlin query performance; measure RU consumption for ADR-002 partition thresholds  
+**Alert:** P95 latency >300ms sustained OR RU consumption >70% of provisioned throughput  
+**Retention:** 90 days
+
+#### `Graph.Query.Failed`
+
+**Trigger:** Gremlin query execution failure  
+**Dimensions:** `operationName`, `latencyMs`, `errorMessage`, `httpStatusCode`, `correlation_id`  
+**Severity:** Error (429 = Warning for throttling detection)  
+**Purpose:** Track Gremlin query failures; detect throttling (429) and connectivity issues  
+**Alert:** 
+- **429 Spike Detection**: >=5 429s in 5-min window AND total queries < BASELINE_RPS (see issue #[TBD])
+- **High Severity**: >=10 429s in 5-min window
+- **General Failures**: >10 non-429 failures per hour  
+**Retention:** 90 days  
+**Notes:** 
+- `httpStatusCode` dimension added for 429 throttling detection (extracted from error message)
+- 429 errors indicate Cosmos DB rate limiting (Request Rate Too Large)
+- Correlates with ADR-002 partition saturation thresholds
+
+---
+
 ### Internal / Diagnostics
 
 #### `Telemetry.EventName.Invalid`
