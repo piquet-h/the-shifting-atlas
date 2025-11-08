@@ -45,7 +45,8 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
     criteria: {
       allOf: [
         {
-          query: format('''
+          query: format(
+            '''
 // Step 1: Calculate RU consumption per 5-minute bucket
 let timeRange = 15m; // Time window for analysis
 let bucketSize = 5m;
@@ -123,7 +124,14 @@ let alertCondition = iff(shouldAbort,
 alertCondition
 | where Status == 'alert'
 | project Timestamp, RUPercent, Interval, TopOperations, DataQuality
-''', maxRuPerInterval, fireRuPercentThreshold, resolveRuPercentThreshold, minDataQualityPercent, consecutiveFireWindows, consecutiveResolveWindows)
+''',
+            maxRuPerInterval,
+            fireRuPercentThreshold,
+            resolveRuPercentThreshold,
+            minDataQualityPercent,
+            consecutiveFireWindows,
+            consecutiveResolveWindows
+          )
           timeAggregation: 'Count'
           operator: 'GreaterThan'
           threshold: 0

@@ -50,7 +50,8 @@ resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if 
     criteria: {
       allOf: [
         {
-          query: format('''
+          query: format(
+            '''
 let evaluationWindow = {0}m;
 let baselineRps = {1};
 let normalThreshold = {2};
@@ -99,7 +100,12 @@ throttleCount
     AvgRU,
     P95Latency,
     TotalRU
-''', evaluationFrequencyMinutes, baselineRps, normalThreshold429Count, highThreshold429Count)
+''',
+            evaluationFrequencyMinutes,
+            baselineRps,
+            normalThreshold429Count,
+            highThreshold429Count
+          )
           timeAggregation: 'Count'
           dimensions: [
             {
