@@ -214,15 +214,16 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 
 GitHub milestones have both a numeric ID and a display name. The GitHub MCP search tools require the ID.
 
-| Milestone Name           | Milestone ID | Search Example                                           |
-| ------------------------ | ------------ | -------------------------------------------------------- |
-| M0 Foundation            | 1            | `milestone:"M0 Foundation"` or filter by ID 1            |
-| M1 Traversal             | 2            | `milestone:"M1 Traversal"` or filter by ID 2             |
-| M2 Observability         | 3            | `milestone:"M2 Observability"` or filter by ID 3         |
-| M3 AI Read               | 4            | `milestone:"M3 AI Read"` or filter by ID 4               |
-| M4 Layering & Enrichment | 5            | `milestone:"M4 Layering & Enrichment"` or filter by ID 5 |
-| M5 Systems               | 7            | `milestone:"M5 Systems"` or filter by ID 7               |
-| M6 Dungeon Runs          | 8            | `milestone:"M6 Dungeon Runs"` or filter by ID 8          |
+| Milestone Name            | Milestone ID | Search Example                                            |
+| ------------------------- | ------------ | --------------------------------------------------------- |
+| M0 Foundation             | 1            | `milestone:"M0 Foundation"` or filter by ID 1             |
+| M1 Traversal              | 2            | `milestone:"M1 Traversal"` or filter by ID 2              |
+| M2 Observability          | 3            | `milestone:"M2 Observability"` or filter by ID 3          |
+| M3 AI Read                | 4            | `milestone:"M3 AI Read"` or filter by ID 4                |
+| M4 Layering & Enrichment  | 5            | `milestone:"M4 Layering & Enrichment"` or filter by ID 5  |
+| M5 Systems                | 7            | `milestone:"M5 Systems"` or filter by ID 7                |
+| M6 Dungeon Runs           | 8            | `milestone:"M6 Dungeon Runs"` or filter by ID 8           |
+| M7 Post-MVP Extensibility | 9            | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9 |
 
 **Example confusion to avoid:**
 
