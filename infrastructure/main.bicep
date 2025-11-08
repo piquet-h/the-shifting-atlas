@@ -496,6 +496,19 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
   }
 }
 
+// Alert: Sustained High RU Utilization
+// References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
+module alertRuUtilization 'alert-ru-utilization.bicep' = {
+  name: 'alert-ru-utilization'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    provisionedRuPerSecond: 400 // Matches Gremlin graph throughput
+    enabled: true
+  }
+}
+
 // Operation Latency Monitoring Alerts (Issue #295)
 // Monitors P95 latency for non-movement Gremlin operations
 // Alerts on 3 consecutive 10-min windows >600ms (critical) or >500ms (warning)
