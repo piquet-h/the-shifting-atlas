@@ -20,9 +20,7 @@ backend/
 
 ## API Endpoints
 
-For complete API documentation including RESTful routes, request/response formats, error handling, and migration guidance, see:
-
-**[API Reference](../docs/architecture/api-reference.md)**
+API contracts are defined in TypeScript interfaces (`shared/src/apiContracts.ts`). Route patterns are declared in `src/functions/*.ts`. Request/response validation and behavior is documented through handler code and integration tests (`test/integration/restfulEndpoints.test.ts`).
 
 ## Adding New Functions
 
