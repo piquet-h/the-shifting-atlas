@@ -62,10 +62,20 @@ export abstract class CosmosGremlinRepository {
             return result.items
         } catch (error) {
             const latencyMs = Date.now() - startTime
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+            
+            // Extract HTTP status code from error message for alerting (especially 429 throttling)
+            let httpStatusCode: number | undefined
+            const statusMatch = errorMessage.match(/\((\d{3})\)/)
+            if (statusMatch) {
+                httpStatusCode = parseInt(statusMatch[1], 10)
+            }
+            
             trackGameEventStrict('Graph.Query.Failed', {
                 operationName,
                 latencyMs,
-                errorMessage: error instanceof Error ? error.message : 'Unknown error'
+                errorMessage,
+                httpStatusCode
             })
             throw error
         } finally {

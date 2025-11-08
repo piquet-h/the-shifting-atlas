@@ -13,11 +13,13 @@ Provisioned resources:
 | Azure Key Vault                | Stores Cosmos primary key secrets.                               | Access policy grants SWA and Function App system identities get/list for secrets. Stores both `cosmos-primary-key` and `cosmos-sql-primary-key`. |
 | Azure Application Insights     | Telemetry and observability.                                     | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                         |
 | Azure Workbooks                | Pre-configured dashboards for observability (M2).                | Movement Blocked Reasons Breakdown panel linked to Application Insights. See `docs/observability/workbooks/`.                                    |
+| Azure Monitor Alerts           | Scheduled query rules for anomaly detection (M2).                | Includes Gremlin 429 throttling spike detection. Configurable via `gremlinBaselineRps` parameter.                                                |
 
 Files:
 
--   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks
+-   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks + Alerts
 -   `workbook-movement-blocked-reasons.bicep` – Movement Blocked Reasons dashboard workbook module
+-   `alert-gremlin-429-spike.bicep` – Gremlin 429 throttling spike detection alert module
 -   `parameters.json` – example / placeholder (not required; inline params acceptable)
 
 The backend Function App handles all synchronous HTTP endpoints and async queue processing; the Static Web App serves only static frontend assets.
@@ -59,28 +61,30 @@ g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').pr
 
 ## Parameters
 
-| Name                              | Type   | Default                 | Required | Description                                                   |
-| --------------------------------- | ------ | ----------------------- | -------- | ------------------------------------------------------------- |
-| `location`                        | string | resource group location | No       | Region (override).                                            |
-| `staticWebAppSku`                 | string | Standard                | No       | SWA tier (`Free` or `Standard`).                              |
-| `staticWebAppName`                | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
-| `cosmosAccountName`               | string | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden.   |
-| `cosmosSqlAccountName`            | string | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.       |
-| `keyVaultName`                    | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
-| `appInsightsName`                 | string | derived unique string   | No       | Auto‑generated if not overridden.                             |
-| `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                        |
-| `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                           |
-| `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).                 |
-| `cosmosSqlDatabaseName`           | string | game                    | No       | SQL API database name.                                        |
-| `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                       |
-| `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                     |
-| `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                            |
-| `cosmosSqlEventsContainerName`    | string | worldEvents             | No       | World events container name.                                  |
-| `serviceBusNamespaceName`         | string | derived unique string   | No       | Service Bus namespace name. Auto‑generated if not overridden. |
-| `serviceBusQueueName`             | string | world-events            | No       | Service Bus queue name for world events.                      |
-| `functionAppName`                 | string | derived unique string   | No       | Function App name. Auto‑generated if not overridden.          |
-| `storageAccountName`              | string | derived unique string   | No       | Storage account name. Auto‑generated if not overridden.       |
-| `appServicePlanName`              | string | derived unique string   | No       | App Service Plan name. Auto‑generated if not overridden.      |
+| Name                              | Type   | Default                 | Required | Description                                                                              |
+| --------------------------------- | ------ | ----------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `location`                        | string | resource group location | No       | Region (override).                                                                       |
+| `staticWebAppSku`                 | string | Standard                | No       | SWA tier (`Free` or `Standard`).                                                         |
+| `staticWebAppName`                | string | derived unique string   | No       | Auto‑generated if not overridden.                                                        |
+| `cosmosAccountName`               | string | derived unique string   | No       | Gremlin API account name. Auto‑generated if not overridden.                              |
+| `cosmosSqlAccountName`            | string | derived unique string   | No       | SQL API account name. Auto‑generated if not overridden.                                  |
+| `keyVaultName`                    | string | derived unique string   | No       | Auto‑generated if not overridden.                                                        |
+| `appInsightsName`                 | string | derived unique string   | No       | Auto‑generated if not overridden.                                                        |
+| `cosmosGremlinDatabaseName`       | string | game                    | No       | Gremlin database name.                                                                   |
+| `cosmosGremlinGraphName`          | string | world                   | No       | Gremlin graph name.                                                                      |
+| `cosmosGremlinGraphThroughput`    | int    | 400                     | No       | Provisioned RU/s for Gremlin graph (min 400).                                            |
+| `cosmosSqlDatabaseName`           | string | game                    | No       | SQL API database name.                                                                   |
+| `cosmosSqlPlayersContainerName`   | string | players                 | No       | Players container name.                                                                  |
+| `cosmosSqlInventoryContainerName` | string | inventory               | No       | Inventory container name.                                                                |
+| `cosmosSqlLayersContainerName`    | string | descriptionLayers       | No       | Description layers container name.                                                       |
+| `cosmosSqlEventsContainerName`    | string | worldEvents             | No       | World events container name.                                                             |
+| `serviceBusNamespaceName`         | string | derived unique string   | No       | Service Bus namespace name. Auto‑generated if not overridden.                            |
+| `serviceBusQueueName`             | string | world-events            | No       | Service Bus queue name for world events.                                                 |
+| `functionAppName`                 | string | derived unique string   | No       | Function App name. Auto‑generated if not overridden.                                     |
+| `storageAccountName`              | string | derived unique string   | No       | Storage account name. Auto‑generated if not overridden.                                  |
+| `appServicePlanName`              | string | derived unique string   | No       | App Service Plan name. Auto‑generated if not overridden.                                 |
+| `gremlinBaselineRps`              | int    | 50                      | No       | Expected baseline RPS for Gremlin queries. Set to 0 to disable 429 spike alert (M2).    |
+| `additionalCosmosDataContributors`| array  | []                      | No       | Additional AAD principal IDs for Cosmos DB data contributor role (local dev/tooling).    |
 
 Secrets/keys are injected via Key Vault; no repository URL parameter is currently required because CI handles deployment.
 
