@@ -500,6 +500,14 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
 // Issue #294: Multi-signal alert for partition pressure escalation
 module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
   name: 'alert-composite-partition-pressure'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    maxRuPerInterval: 2000 // Configurable RU threshold for percentage calculation
+  }
+}
+
 // Alert: Sustained High RU Utilization
 // References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
 module alertRuUtilization 'alert-ru-utilization.bicep' = {
@@ -508,7 +516,6 @@ module alertRuUtilization 'alert-ru-utilization.bicep' = {
     name: name
     location: location
     applicationInsightsId: applicationInsights.id
-    maxRuPerInterval: 2000 // Configurable RU threshold for percentage calculation
     provisionedRuPerSecond: 400 // Matches Gremlin graph throughput
     enabled: true
   }
