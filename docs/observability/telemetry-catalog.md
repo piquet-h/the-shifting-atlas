@@ -400,64 +400,25 @@ Central registry documenting all game domain telemetry events, including when th
 
 ### Operation Latency Monitoring (M2 Observability)
 
-#### `Monitoring.OperationLatency.Alert`
+**Implementation Note:** Operation latency monitoring is implemented using native **Azure Monitor scheduled query alerts** rather than custom telemetry events. See [Operation Latency Monitoring Guide](./operation-latency-monitoring.md) for details.
 
-**Trigger:** P95 latency for a monitored operation exceeded threshold for 3 consecutive 10-minute windows  
-**Dimensions:** `operationName`, `currentP95Ms`, `baselineP95Ms`, `sampleSize`, `alertLevel` (warning|critical), `thresholdMs`, `consecutiveWindows`  
-**Severity:** Warning (500ms threshold) or Critical (600ms threshold)  
-**Purpose:** Detect persistence degradation for non-movement operations before it impacts player experience  
-**Alert:** Immediate notification on critical alerts; aggregate warnings for review  
-**Retention:** 90 days
+**Why No Custom Events:**
+- Azure Monitor alerts provide built-in alert lifecycle management
+- No custom code required (purely declarative Bicep)
+- Persistent state across restarts
+- Native action groups for notifications
+- Zero Function execution costs
 
-**Monitored Operations:**
-- `location.upsert.check` - Location vertex existence check
-- `location.upsert.write` - Location vertex upsert
-- `exit.ensureExit.check` - Exit edge existence check
-- `exit.ensureExit.create` - Exit edge creation
-- `player.create` - Player vertex creation
+**Alert Configuration:**
+- **Monitored Operations**: location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create
+- **Critical Threshold**: P95 >600ms for 3 consecutive 10-min windows
+- **Warning Threshold**: P95 >500ms for 3 consecutive 10-min windows
+- **Auto-Resolution**: After 2 consecutive healthy windows (<450ms implicit via Azure alert clearing)
+- **Minimum Sample**: 20 calls per window (built into KQL query)
 
-**Thresholds:**
-| Level | P95 Latency | Consecutive Windows | Impact |
-|-------|-------------|---------------------|--------|
-| Warning | >500ms | 3 | Degrading performance, investigate |
-| Critical | >600ms | 3 | Severe degradation, immediate action |
-| Resolved | <450ms | 2 | Auto-resolve after healthy windows |
+**Data Source:** Uses existing `Graph.Query.Executed` events with no additional telemetry required.
 
-**Minimum Sample Size:** 20 calls per 10-minute window (windows with fewer calls emit `InsufficientData` diagnostic)
-
-#### `Monitoring.OperationLatency.Resolved`
-
-**Trigger:** P95 latency for a monitored operation dropped below 450ms for 2 consecutive 10-minute windows  
-**Dimensions:** `operationName`, `currentP95Ms`, `baselineP95Ms`, `sampleSize`, `thresholdMs`, `consecutiveWindows`  
-**Severity:** Informational  
-**Purpose:** Auto-resolve alerts when latency returns to healthy levels  
-**Retention:** 90 days
-
-#### `Monitoring.OperationLatency.InsufficientData`
-
-**Trigger:** Monitoring window had fewer than 20 calls for an operation  
-**Dimensions:** `operationName`, `sampleSize`, `minimumRequired`, `windowMinutes`  
-**Severity:** Informational  
-**Purpose:** Track low-volume windows that are skipped from alert evaluation to prevent false positives  
-**Retention:** 30 days
-
-#### `Monitoring.OperationLatency.Error`
-
-**Trigger:** Error during latency monitoring execution for a specific operation  
-**Dimensions:** `operationName`, `errorMessage`  
-**Severity:** Error  
-**Purpose:** Detect monitoring system failures  
-**Alert:** Multiple errors in 1 hour  
-**Retention:** 90 days
-
-#### `Monitoring.OperationLatency.Complete`
-
-**Trigger:** Monitoring cycle completed (every 10 minutes)  
-**Dimensions:** `monitored` (count), `alerts` (count), `resolutions` (count), `insufficientData` (count), `durationMs`, `success`, `errorMessage` (if failed)  
-**Severity:** Informational  
-**Purpose:** Track monitoring job health and execution metrics  
-**Alert:** Success rate <95% over 1 hour  
-**Retention:** 30 days
+**Alert Management:** View and manage alerts in Azure Portal → Application Insights → Alerts.
 
 ---
 
@@ -595,8 +556,8 @@ customEvents
 > - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
 > - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
-**Last Updated:** 2025-11-08  
-**Event Count:** 49 canonical events
+**Last Updated:** 2025-10-30  
+**Event Count:** 44 canonical events
 
 ## Deprecated Events
 

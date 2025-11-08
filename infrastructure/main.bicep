@@ -134,7 +134,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR: 'true'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
-      APPINSIGHTS_WORKSPACE_ID: applicationInsights.properties.AppId
 
       CosmosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
@@ -494,5 +493,17 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
     name: name
     location: location
     applicationInsightsId: applicationInsights.id
+  }
+}
+
+// Operation Latency Monitoring Alerts (Issue #295)
+// Monitors P95 latency for non-movement Gremlin operations
+// Alerts on 3 consecutive 10-min windows >600ms (critical) or >500ms (warning)
+// Auto-resolves after 2 consecutive healthy windows
+module operationLatencyAlerts 'alerts-operation-latency.bicep' = {
+  name: 'alerts-operation-latency'
+  params: {
+    applicationInsightsId: applicationInsights.id
+    location: location
   }
 }

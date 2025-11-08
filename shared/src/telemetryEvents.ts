@@ -101,13 +101,7 @@ export const GAME_EVENT_NAMES = [
     'Description.Integrity.JobComplete', // Integrity hash job completed
     'Description.Integrity.Computed', // Hash computed for a description
     'Description.Integrity.Unchanged', // Description unchanged, hash skipped
-    'Description.Integrity.Mismatch', // Hash mismatch detected (potential corruption)
-    // Operation latency monitoring telemetry (M2 Observability - Issue #10)
-    'Monitoring.OperationLatency.Alert', // P95 latency exceeded threshold for consecutive windows
-    'Monitoring.OperationLatency.Resolved', // P95 latency returned to healthy levels
-    'Monitoring.OperationLatency.InsufficientData', // Window had insufficient sample size (<20 calls)
-    'Monitoring.OperationLatency.Error', // Error during monitoring execution
-    'Monitoring.OperationLatency.Complete' // Monitoring cycle completed (success or failure)
+    'Description.Integrity.Mismatch' // Hash mismatch detected (potential corruption)
 ] as const
 
 // Future deprecations or renames should follow the pattern above:

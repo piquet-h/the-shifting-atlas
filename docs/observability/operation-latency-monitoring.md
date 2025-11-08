@@ -1,11 +1,23 @@
-# Operation Latency Monitoring Setup
+# Operation Latency Monitoring with Azure Monitor Alerts
 
 ## Overview
 
-Timer-triggered Azure Function that monitors P95 latency for non-movement Gremlin operations to detect persistence degradation before it impacts player experience.
+Native Azure Monitor scheduled query alerts that monitor P95 latency for non-movement Gremlin operations to detect persistence degradation.
 
-**Issue:** #10 (M2 Observability)  
-**Related:** ADR-002 latency guidance, #79
+**Issue:** #295 (M2 Observability)  
+**Related:** ADR-002 latency guidance
+
+## Why Azure Monitor Alerts?
+
+This implementation uses native Azure Monitor alerts instead of custom timer functions for several key advantages:
+
+✅ **Zero Custom Code** - Purely declarative Bicep infrastructure  
+✅ **No Maintenance Burden** - Azure manages alert evaluation and state  
+✅ **No Execution Costs** - No Function compute charges for monitoring  
+✅ **Built-in Features** - Alert lifecycle, action groups, auto-resolution  
+✅ **Persistent State** - Survives restarts and deployments  
+✅ **Native UI** - Manage alerts in Azure Portal  
+✅ **Action Groups** - Email, webhook, SMS notifications out-of-the-box
 
 ## Monitored Operations
 
@@ -19,234 +31,210 @@ The following Gremlin operations are monitored for latency degradation:
 
 These operations are tracked via `Graph.Query.Executed` telemetry events emitted by the `queryWithTelemetry` method in repository classes.
 
-## Alert Thresholds
+## Alert Configuration
 
-| Level | P95 Latency | Consecutive Windows | Action |
-|-------|-------------|---------------------|--------|
-| **Warning** | >500ms | 3 (30 minutes) | Investigate performance |
-| **Critical** | >600ms | 3 (30 minutes) | Immediate action required |
-| **Resolved** | <450ms | 2 (20 minutes) | Auto-resolve alert |
+### Thresholds
 
-**Minimum Sample Size:** 20 calls per 10-minute window (windows with fewer calls are skipped with diagnostic telemetry)
+| Severity | P95 Latency | Consecutive Windows | Auto-Resolve |
+|----------|-------------|---------------------|--------------|
+| **Critical** | >600ms | 3 (30 minutes) | 2 healthy windows (20 minutes) |
+| **Warning** | >500ms | 3 (30 minutes) | 2 healthy windows (20 minutes) |
 
-## Configuration
+**Minimum Sample Size:** 20 calls per 10-minute window (windows with fewer calls are ignored)
 
-### Environment Variables
+### Evaluation Schedule
 
-#### Required
-- `APPINSIGHTS_WORKSPACE_ID` - Application Insights workspace/app ID for querying telemetry
-  - Automatically configured in Bicep: `applicationInsights.properties.AppId`
-  - Used by Azure Monitor Query SDK to access telemetry data
+- **Frequency**: Every 10 minutes
+- **Time Window**: 10 minutes
+- **Consecutive Periods**: 3 windows must exceed threshold before alert fires
+- **Auto-Mitigation**: Alert automatically resolves after threshold clears for 2 consecutive windows
 
-#### Optional
-- `OPERATION_LATENCY_MONITOR_SCHEDULE` - NCRONTAB schedule expression
-  - Default: `"0 */10 * * * *"` (every 10 minutes)
-  - Format: `{second} {minute} {hour} {day} {month} {day-of-week}`
-  - Examples:
-    - `"0 */5 * * * *"` - Every 5 minutes
-    - `"0 0 * * * *"` - Every hour
-    - `"0 */15 * * * *"` - Every 15 minutes
+### Alert Rules
 
-### Deployment
+**Total Rules**: 10 (5 operations × 2 severity levels)
 
-The monitoring function is automatically deployed with the backend Azure Functions app. No manual configuration is required beyond the environment variables.
+Each operation has two alert rules:
+1. Critical alert (Severity 1) - P95 >600ms
+2. Warning alert (Severity 2) - P95 >500ms
 
-#### Bicep Configuration
+## Deployment
 
-Added to `infrastructure/main.bicep`:
+### Bicep Module
+
+Alert rules are defined in `infrastructure/alerts-operation-latency.bicep` and referenced in `main.bicep`:
+
 ```bicep
-APPINSIGHTS_WORKSPACE_ID: applicationInsights.properties.AppId
-```
-
-#### Permissions
-
-The function uses Managed Identity (`DefaultAzureCredential`) to authenticate with Azure Monitor. The Function App's system-assigned managed identity needs the **Monitoring Reader** role on the Application Insights component:
-
-```bash
-# Grant Monitoring Reader role to Function App identity
-az role assignment create \
-  --assignee <function-app-principal-id> \
-  --role "Monitoring Reader" \
-  --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group>/providers/Microsoft.Insights/components/<app-insights-name>
-```
-
-Or via Bicep:
-```bicep
-resource monitoringRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(backendFunctionApp.id, 'MonitoringReader', applicationInsights.id)
-  scope: applicationInsights
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '43d0d8ad-25c7-4714-9337-8ba259a9fe05') // Monitoring Reader
-    principalId: backendFunctionApp.identity.principalId
-    principalType: 'ServicePrincipal'
+module operationLatencyAlerts 'alerts-operation-latency.bicep' = {
+  name: 'alerts-operation-latency'
+  params: {
+    applicationInsightsId: applicationInsights.id
+    location: location
   }
 }
 ```
 
-## Telemetry Events
+### No Additional Configuration Required
 
-### Monitoring.OperationLatency.Alert
+Unlike custom timer functions, Azure Monitor alerts require:
+- ❌ No environment variables
+- ❌ No RBAC role assignments
+- ❌ No Managed Identity permissions
+- ❌ No Function app dependencies
+- ❌ No custom code maintenance
 
-Emitted when P95 latency exceeds thresholds for 3 consecutive windows.
+Azure manages everything automatically.
 
-**Dimensions:**
-- `operationName` - Name of the monitored operation
-- `currentP95Ms` - Current window P95 latency
-- `baselineP95Ms` - 24-hour baseline P95 for comparison
-- `sampleSize` - Number of operations in current window
-- `alertLevel` - `"warning"` or `"critical"`
-- `thresholdMs` - Threshold that was exceeded
-- `consecutiveWindows` - Number of consecutive windows (3)
+## KQL Query Logic
 
-### Monitoring.OperationLatency.Resolved
-
-Emitted when P95 latency drops below 450ms for 2 consecutive windows.
-
-**Dimensions:**
-- `operationName`
-- `currentP95Ms`
-- `baselineP95Ms`
-- `sampleSize`
-- `thresholdMs` (450)
-- `consecutiveWindows` (2)
-
-### Monitoring.OperationLatency.InsufficientData
-
-Emitted when a monitoring window has fewer than 20 operations (skipped from alert evaluation).
-
-**Dimensions:**
-- `operationName`
-- `sampleSize` - Actual number of operations
-- `minimumRequired` (20)
-- `windowMinutes` (10)
-
-### Monitoring.OperationLatency.Error
-
-Emitted when an error occurs during monitoring for a specific operation.
-
-**Dimensions:**
-- `operationName`
-- `errorMessage`
-
-### Monitoring.OperationLatency.Complete
-
-Emitted after each monitoring cycle (every 10 minutes).
-
-**Dimensions:**
-- `monitored` - Number of operations monitored
-- `alerts` - Number of new alerts triggered
-- `resolutions` - Number of alerts resolved
-- `insufficientData` - Number of operations skipped due to low volume
-- `durationMs` - Monitoring cycle duration
-- `success` - `true` or `false`
-- `errorMessage` - If `success` is false
-
-## Querying in Application Insights
-
-### View Current Alerts
+Each alert rule uses this query pattern:
 
 ```kusto
+let threshold = 600; // or 500 for warning
+let minSampleSize = 20;
 customEvents
-| where timestamp > ago(1h)
-| where name == 'Monitoring.OperationLatency.Alert'
-| project 
-    timestamp,
-    operationName = tostring(customDimensions.operationName),
-    alertLevel = tostring(customDimensions.alertLevel),
-    currentP95Ms = todouble(customDimensions.currentP95Ms),
-    baselineP95Ms = todouble(customDimensions.baselineP95Ms),
-    sampleSize = toint(customDimensions.sampleSize)
-| order by timestamp desc
-```
-
-### View Alert History (Last 7 Days)
-
-```kusto
-let timeRange = 7d;
-customEvents
-| where timestamp > ago(timeRange)
-| where name in ('Monitoring.OperationLatency.Alert', 'Monitoring.OperationLatency.Resolved')
-| extend 
-    operationName = tostring(customDimensions.operationName),
-    eventType = case(name == 'Monitoring.OperationLatency.Alert', 'Alert', 'Resolved'),
-    alertLevel = tostring(customDimensions.alertLevel),
-    currentP95Ms = todouble(customDimensions.currentP95Ms)
-| project timestamp, operationName, eventType, alertLevel, currentP95Ms
-| order by operationName, timestamp asc
-```
-
-### Monitoring Job Health
-
-```kusto
-customEvents
-| where timestamp > ago(24h)
-| where name == 'Monitoring.OperationLatency.Complete'
-| project 
-    timestamp,
-    success = tobool(customDimensions.success),
-    monitored = toint(customDimensions.monitored),
-    alerts = toint(customDimensions.alerts),
-    resolutions = toint(customDimensions.resolutions),
-    durationMs = todouble(customDimensions.durationMs)
+| where name == 'Graph.Query.Executed'
+| extend operationName = tostring(customDimensions.operationName)
+| extend latencyMs = todouble(customDimensions.latencyMs)
+| where operationName == 'location.upsert.check' // operation-specific
+| where isnotempty(latencyMs)
 | summarize 
-    TotalRuns = count(),
-    SuccessfulRuns = countif(success == true),
-    FailedRuns = countif(success == false),
-    AvgDurationMs = avg(durationMs),
-    TotalAlerts = sum(alerts),
-    TotalResolutions = sum(resolutions)
-| extend SuccessRate = round(100.0 * SuccessfulRuns / TotalRuns, 2)
+    P95 = percentile(latencyMs, 95),
+    SampleSize = count(),
+    AvgLatency = avg(latencyMs),
+    MaxLatency = max(latencyMs)
+| where SampleSize >= minSampleSize
+| where P95 > threshold
+| project P95, SampleSize, AvgLatency, MaxLatency, Threshold = threshold
+```
+
+The alert fires when the query returns any results (indicating P95 exceeded the threshold).
+
+## Managing Alerts
+
+### View Active Alerts
+
+**Azure Portal:**
+1. Navigate to your Application Insights resource
+2. Select **Alerts** in the left menu
+3. View fired alerts and their history
+
+**CLI:**
+```bash
+az monitor metrics alert list \
+  --resource-group <resource-group> \
+  --query "[?starts_with(name, 'alert-latency')]"
+```
+
+### Query Alert History
+
+```kusto
+AzureActivity
+| where OperationNameValue contains "Microsoft.Insights/ScheduledQueryRules"
+| where ActivityStatusValue == "Success"
+| project TimeGenerated, OperationNameValue, Properties
+| order by TimeGenerated desc
+```
+
+### View Alert Details
+
+When an alert fires, it includes:
+- **P95 Latency** - Current P95 value that triggered the alert
+- **Sample Size** - Number of operations in the window
+- **Avg Latency** - Average latency for context
+- **Max Latency** - Maximum latency observed
+- **Threshold** - The threshold that was exceeded
+
+### Action Groups (Optional)
+
+To receive notifications when alerts fire, create an action group:
+
+```bash
+# Create action group for email notifications
+az monitor action-group create \
+  --name "operation-latency-alerts" \
+  --resource-group <resource-group> \
+  --short-name "OpLatency" \
+  --email-receiver \
+    name="DevOps Team" \
+    email-address="devops@example.com"
+
+# Update alert rules to use action group (in Bicep)
+actions: {
+  actionGroups: [
+    '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Insights/actionGroups/operation-latency-alerts'
+  ]
+}
 ```
 
 ## Troubleshooting
 
-### No monitoring data appearing
+### No Alerts Firing (Expected Behavior)
 
-1. **Check timer execution:**
-   ```kusto
-   traces
-   | where timestamp > ago(1h)
-   | where message contains "Operation latency monitoring"
-   | order by timestamp desc
-   ```
+If operations are healthy (P95 <500ms), no alerts will fire. This is correct.
 
-2. **Verify workspace ID is configured:**
-   ```bash
-   az functionapp config appsettings list \
-     --name <function-app-name> \
-     --resource-group <resource-group> \
-     --query "[?name=='APPINSIGHTS_WORKSPACE_ID'].value"
-   ```
+To verify alerts are configured correctly:
+1. Check alert rules exist in Azure Portal
+2. Verify Application Insights is receiving `Graph.Query.Executed` events
+3. Confirm operations have sufficient volume (>20 calls per 10 minutes)
 
-3. **Check permissions:** Verify Function App has Monitoring Reader role
+### Check Graph.Query.Executed Events
 
-4. **Review error telemetry:**
-   ```kusto
-   customEvents
-   | where timestamp > ago(1h)
-   | where name == 'Monitoring.OperationLatency.Error'
-   | project timestamp, customDimensions
-   ```
+```kusto
+customEvents
+| where timestamp > ago(1h)
+| where name == 'Graph.Query.Executed'
+| extend operationName = tostring(customDimensions.operationName)
+| summarize Count = count(), AvgLatency = avg(todouble(customDimensions.latencyMs)) by operationName
+| order by Count desc
+```
 
-### Frequent "InsufficientData" events
+### Simulate Latency Degradation (Testing)
 
-This is normal for:
-- New deployments with low traffic
-- Operations that run infrequently
-- Off-peak hours
+To test alerts in a non-production environment:
 
-Consider adjusting `MIN_SAMPLE_SIZE` threshold in code if needed (currently 20 calls per 10 minutes).
+1. Artificially slow down operations (add delays)
+2. Wait 30 minutes (3 evaluation periods)
+3. Check alert fires in Azure Portal
+4. Remove delays
+5. Wait 20 minutes (2 evaluation periods)
+6. Confirm alert auto-resolves
 
-### False positive alerts
+### Alert Fired But Latency Looks OK
 
-If alerts trigger but manual investigation shows acceptable latency:
-- Check baseline comparison - spikes may be relative to historical performance
-- Verify `consecutiveWindows` logic is working (requires 3 consecutive windows)
-- Review sample size in alert dimensions
+Check:
+- Is this a **trailing alert** from earlier degradation?
+- Auto-mitigation takes 20 minutes after latency improves
+- View alert timeline to see when condition first occurred
+
+### Too Many Alerts
+
+If alerts fire frequently:
+- Review actual P95 latency - may indicate real performance issue
+- Consider adjusting thresholds if current levels are too sensitive
+- Add **mute actions** period in alert rule (default: none)
+
+## Comparison with Custom Function Approach
+
+| Aspect | Azure Monitor Alerts | Custom Timer Function |
+|--------|---------------------|----------------------|
+| Code Complexity | Zero (Bicep only) | ~400 lines TypeScript |
+| Maintenance | Azure-managed | Manual code maintenance |
+| Execution Cost | None | Function compute charges |
+| State Management | Persistent (Azure) | In-memory (lost on restart) |
+| Testing Required | None (declarative) | Unit + integration tests |
+| RBAC Setup | None | Monitoring Reader role |
+| Alert UI | Azure Portal built-in | Custom telemetry queries |
+| Notifications | Action Groups | Custom implementation |
+| Deployment | Single Bicep module | Function + dependencies |
 
 ## Related Documentation
 
-- [Telemetry Catalog](./telemetry-catalog.md) - Complete event documentation
+- [Azure Monitor Scheduled Query Alerts](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-types#log-alerts)
+- [Telemetry Catalog](./telemetry-catalog.md) - Graph.Query.Executed event
 - ADR-002 - Graph partition strategy and latency guidance
-- Issue #10 - M2 Observability milestone
-- Issue #79 - Movement latency monitoring (related pattern)
+- Issue #295 - M2 Observability milestone
+
+---
+
+**Last Updated:** 2025-11-08  
+**Implementation:** Azure Monitor native alerts (no custom code)
