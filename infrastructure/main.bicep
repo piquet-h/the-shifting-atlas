@@ -495,3 +495,40 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
     applicationInsightsId: applicationInsights.id
   }
 }
+
+// Alert: Composite Partition Pressure (RU + 429 + Latency)
+// Issue #294: Multi-signal alert for partition pressure escalation
+module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
+  name: 'alert-composite-partition-pressure'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    maxRuPerInterval: 2000 // Configurable RU threshold for percentage calculation
+  }
+}
+
+// Alert: Sustained High RU Utilization
+// References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
+module alertRuUtilization 'alert-ru-utilization.bicep' = {
+  name: 'alert-ru-utilization'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    provisionedRuPerSecond: 400 // Matches Gremlin graph throughput
+    enabled: true
+  }
+}
+
+// Operation Latency Monitoring Alerts (Issue #295)
+// Monitors P95 latency for non-movement Gremlin operations
+// Alerts on 3 consecutive 10-min windows >600ms (critical) or >500ms (warning)
+// Auto-resolves after 2 consecutive healthy windows
+module operationLatencyAlerts 'alerts-operation-latency.bicep' = {
+  name: 'alerts-operation-latency'
+  params: {
+    applicationInsightsId: applicationInsights.id
+    location: location
+  }
+}
