@@ -140,20 +140,22 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
       ]
     }
     autoMitigate: true
-    actions: empty(actionGroupId) ? {} : {
-      actionGroups: [
-        actionGroupId
-      ]
-      customProperties: {
-        alert_type: 'ru_utilization'
-        fireThreshold: '${fireRuPercentThreshold}%'
-        resolveThreshold: '${resolveRuPercentThreshold}%'
-        consecutiveFireWindows: string(consecutiveFireWindows)
-        consecutiveResolveWindows: string(consecutiveResolveWindows)
-        minDataQuality: '${minDataQualityPercent}%'
-        adr_reference: 'ADR-002'
-      }
-    }
+    actions: empty(actionGroupId)
+      ? {}
+      : {
+          actionGroups: [
+            actionGroupId
+          ]
+          customProperties: {
+            alert_type: 'ru_utilization'
+            fireThreshold: '${fireRuPercentThreshold}%'
+            resolveThreshold: '${resolveRuPercentThreshold}%'
+            consecutiveFireWindows: string(consecutiveFireWindows)
+            consecutiveResolveWindows: string(consecutiveResolveWindows)
+            minDataQuality: '${minDataQualityPercent}%'
+            adr_reference: 'ADR-002'
+          }
+        }
   }
 }
 

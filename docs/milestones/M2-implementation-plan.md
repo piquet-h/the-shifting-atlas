@@ -1,21 +1,47 @@
-# M2 Observability – Implementation Plan
+# M2 Data Foundations – Implementation Plan
 
-> **Status:** 46/59 (78%) | Phase 1 🔨 Phase 2 ✅ Phase 3 🔨 | Zero blockers | Updated 2025-11-08
+> **Status:** 38/50 (76%) | Telemetry ✅ Dual Persistence 🔨 | Critical Path: #408→#404-407→#409 | Updated 2025-11-09
 
 ## Active Work
 
-**Phase 3 (Dashboards/Alerts):** ✅ 8/10 complete (dashboards done, alerts in progress)
+**CRITICAL PATH: Dual Persistence Implementation** (0/9 complete, blocks M3)
 
--   ✅ COMPLETE: #289 Performance Ops (consolidated), #283 movement, #290 RU correlation, #291 partition pressure, #296 success/failure, #292 high RU, #294 composite alert, #295 latency
--   🔨 IN PROGRESS: #293 Gremlin 429 spike detection (1 remaining)
--   📋 QUEUED: #298 workbook export automation (2 comments, ~80% ready)
+-   📋 FOUNDATION: #408 SQL API Repository Abstraction (prerequisite for all below)
+-   📋 PERSISTENCE: #404 Player State, #405 Inventory, #406 Description Layers, #407 World Events Timeline
+-   📋 MIGRATION: #410 Data Migration Script (Gremlin → SQL)
+-   📋 VALIDATION: #409 Integration Tests
+-   📋 DOCS: #403 Architecture docs, #412 ADR updates
 
-**Phase 4 (Integrity):** ✅ COMPLETE (#153 hash baseline closed Nov 7)  
-**Phase 5 (Polish):** #258 handlers, #284 docs, #285 deprecation ready | #297, #298 workbook automation ready  
-**Phase 6-8 (Frontend, Events, Persistence):** 0/26 remaining - ready to start after Phase 3/5
+**Telemetry & Observability:** ✅ COMPLETE (38/38)
 
-**Optional remaining:** #318 event naming  
-**Moved to M3:** #317, #313, #314 | **Moved to M4:** #154–#156
+-   Phase 1 (Foundation): #10, #11, #41, #79, #311, #312, #315, #316 ✅
+-   Phase 2 (AI Cost): #50, #299-309 ✅
+-   Phase 3 (Dashboards/Alerts): #283, #289-298 ✅
+-   Duplicates closed: #395-397 (duplicates of #154-156 in M5) ✅
+
+**Integrity Foundation:** (3/3 complete)
+
+-   #69 Epic (umbrella) ✅
+-   #152 Description telemetry events ✅
+-   #153 Integrity hash computation ✅
+
+**Remaining M2 Scope:** (0 non-blocking issues — all deferred to M5)
+
+**Moved to M3:** #258 (handlers), #313 (queue correlation), #314 (error normalization), #317 (frontend correlation)
+**Moved to M5:** #154-156 (integrity cache/simulation/alerting), #284-286 (telemetry docs/deprecation), #256 (relative direction), #318 (event naming), #347 (account security), #393 (humor telemetry)
+**Telemetry & Observability:** ✅ COMPLETE (38/38)
+
+-   Phase 1 (Foundation): #10, #11, #41, #79, #311, #312, #315, #316 ✅
+-   Phase 2 (AI Cost): #50, #299-309 ✅
+-   Phase 3 (Dashboards/Alerts): #283, #289-298 ✅
+-   Duplicates closed: #395-397 (duplicates of #154-156 in M5) ✅
+
+**Remaining M2 Scope:** (4 issues)
+
+-   #256 Relative Direction Support, #318 Event Naming, #347 Account Security, #393 Humor Telemetry
+
+**Moved to M3:** #258 (handlers), #313 (queue correlation), #314 (error normalization), #317 (frontend correlation)
+**Moved to M5:** #154-156 (integrity cache/simulation/alerting), #284-285 (telemetry docs/deprecation)
 
 ---
 
@@ -62,72 +88,100 @@ _Note: #289 consolidated four related panels into single Performance Operations 
 
 ---
 
-### Phase 6: Frontend Experience (0/13)
+### Phase 6: Miscellaneous M2 Scope (0/4)
 
-[ ] #413 game view | [ ] #414 description rendering | [ ] #415 command input  
-[ ] #416 directional nav UI | [ ] #417 status panel | [ ] #418 auth flow  
-[ ] #419 routing | [ ] #420 accessibility | [ ] #421 responsive layout  
-[ ] #422 frontend telemetry | [ ] #423 E2E tests | [ ] #424 docs  
-[ ] #347 account switching security (localStorage persistence fix)
+[ ] #256 Relative Direction Support (N3 semantic navigation)  
+[ ] #318 Domain Telemetry Event Naming Consistency  
+[ ] #347 Account Switching Security (localStorage persistence fix)  
+[ ] #393 Humor Telemetry Enumeration & Emission
 
-**Epic:** #389 Frontend Player Experience
+**Note:** These items remain in M2 milestone but are not blocking M3. Can be deferred to M5 if needed to accelerate dual persistence work.
 
-### Phase 7: World Event Processing (0/4)
+---
 
-[ ] #398 emission helper & correlation | [ ] #400 idempotency & deduplication  
-[ ] #401 DLQ handling & retry | [ ] #402 integration tests
+## Issues Moved to Other Milestones
 
-**Epic:** #385 World Event Processing Infrastructure  
-**Note:** #403 (documentation) and #258 (type-specific handlers) in Phase 5
+### Moved to M3 (Core Loop)
 
-### Phase 8: Dual Persistence (0/9)
+-   #258 World Event Type-Specific Payload Handlers
+-   #313 Backend: Queue Message CorrelationId Injection
+-   #314 Backend: Error Telemetry Normalization
+-   #317 Frontend: Telemetry Correlation Headers
 
-[ ] #404 player state migration | [ ] #405 inventory persistence  
-[ ] #406 description layers storage | [ ] #407 world events timeline  
-[ ] #408 repository abstraction | [ ] #409 integration tests  
-[ ] #410 data migration script | [ ] #411 partition validation  
-[ ] #412 documentation
+### Moved to M5 (Quality & Depth)
 
-**Epic:** #386 Cosmos Dual Persistence Implementation
+-   #154 Integrity Cache Layer
+-   #155 Corruption Simulation Harness
+-   #156 Integrity Anomaly Alerting Logic
+-   #284 Docs: Update Telemetry Catalog & Navigation Events
+-   #285 Deprecate Telemetry Event Location.Move (Phase 1)
+-   #286 Remove Telemetry Event Location.Move (Phase 2 - Post Retention)
+-   #256 Relative Direction Support (N3 semantic navigation)
+-   #318 Domain Telemetry Event Naming Consistency
+-   #347 Account Switching Security (localStorage persistence)
+-   #393 Humor Telemetry Enumeration & Emission
+
+---
+
+## Frontend, World Event Processing, Partition Monitoring (Moved to M3)
+
+These clusters were originally listed in M2 implementation plan but belong to M3 Core Loop milestone:
+
+**Frontend Player Experience** (Epic #389) - Issues #413-424 → M3  
+**World Event Processing** (Epic #385) - Issues #398-402 → M3  
+**Partition Monitoring** - Issue #411 → M3
 
 ---
 
 ## Decisions Needed
 
--   Alert #293 (429 spike): finalize threshold logic (needs 1 implementation cycle)
--   Dashboard threshold tuning baseline: 7 vs 14 days (#297) – defer until Phase 3 complete
--   Workbook export automation (#298): schedule after Phase 3 alerts done
+-   **Dual Persistence Sequencing**: Start with #408 (abstraction layer) before container-specific implementations
+-   **Migration Strategy**: Determine if #410 (data migration) runs before or after container implementations (#404-407)
+-   **Testing Approach**: Integration tests (#409) should cover both Gremlin + SQL consistency
 
 ---
 
-## Defer / Out of Scope
+## Risk Flags
 
-**Optional (M2 if capacity):** #318 event naming  
-**Moved to M3:** #317 frontend correlation, #313 queue correlation, #314 error normalization  
-**Moved to M4:** #154–#156 integrity extras (cache, simulation, alerting) – Phase 10 in roadmap but properly sequenced after M4 layering  
-**Out of Scope:** #256 relative direction, #328/#329/#337/#393 humor telemetry, #172–#174 Learn More/SEO  
-**Duplicate Issues (close as duplicates):** #395–#397 (duplicates of #154–#156, which are correctly in M4)
+-   **Critical Path Blocked**: M3 Core Loop cannot start until #407 (World Events Timeline) complete
+-   **Zero Progress**: Dual persistence cluster (9 issues) has no completed items
+-   **Focused Scope**: All non-blocking issues (#256, #318, #347, #393) deferred to M5 to accelerate dual persistence
+-   **Estimate Drift**: Original 4-6 week M2 estimate may be optimistic given 0/9 progress on core work
+-   **Dependency Uncertainty**: #410 migration script may reveal schema issues requiring rework
 
 ---
 
-**Complete:** #10, #79, #71, #41, #257, #33, #299–#300, #229–#233, #281–#282, #152, #302–#309, #311–#312, #315–#316, #353, #310, #50, #289–#290, #291–#292, #294–#296, #283, #153  
-**Next:** #293 (alert), #298 (workbook export), then #285, #258, #284, #297 (polish phase), then #347, #398, #400–#424 (frontend + events + persistence)
+## Out of Scope / Deferred
+
+**Deferred to M5:** #256 relative direction, #318 event naming, #347 account security, #393 humor telemetry, #154–156 integrity cache/simulation/alerting, #284-286 telemetry docs/deprecation  
+**Moved to M3:** #258 handlers, #313 queue correlation, #314 error normalization, #317 frontend correlation
+
+---
+
+**Complete (38/50):** #10, #11, #33, #41, #50, #69, #71, #79, #108, #111, #152, #153, #228-233, #257, #290, #296-309, #311-312, #315-316, #395-397 (duplicates)  
+**Next Critical Path:** #408 (SQL abstraction) → #404-407 (container implementations) → #409 (tests) → #410 (migration)  
+**Remaining:** 12 issues total, 9 dual persistence + 3 infrastructure/docs (#403, #411, #412)
 
 ---
 
 ## Total M2 Scope
 
-**Original plan:** 56 implementation items (includes Epic #310 parent + 55 child/atomic issues)  
-**Revised scope:** 59 implementation items (56 + 3 newly identified: #285, #347, #398)  
-**Current status:** 46 complete, 13 remaining (3 moved to M4 for proper sequencing)  
-**Effective M2:** 56 items (59 - 3 moved to M4)
+**GitHub Milestone:** 50 issues total (4 deferred to M5 for focus)  
+**Status:** 38 closed ✅, 12 open 🔨  
+**Completion:** 76% (38/50)
 
-**Missing issues now added:**
+**Phase Breakdown:**
 
--   #285 (Deprecate Location.Move telemetry event) - Phase 1/5
--   #347 (Account switching security) - Phase 6
--   #398 (World event emission helper) - Phase 7
+-   Phase 1 (Telemetry Foundation): 11/11 ✅
+-   Phase 2 (AI Cost): 10/10 ✅
+-   Phase 3 (Dashboards/Alerts): 14/14 ✅
+-   Phase 4 (Dual Persistence): 0/9 🔨 **CRITICAL PATH**
+-   Phase 5 (Integrity Foundation): 3/3 ✅
+-   Phase 6 (Miscellaneous): 0/4 → **ALL DEFERRED TO M5**
 
-**Duplicate issues identified:**
+**Issues Reassigned:**
 
--   #395-#397 are duplicates of #154-#156 (created Nov 7, should be closed)
+-   To M3: #258, #313, #314, #317 (event processing & frontend telemetry)
+-   To M5: #154-156, #284-286 (integrity optimizations & telemetry docs), #256, #318, #347, #393 (non-blocking enhancements)
+
+**Duplicates Closed:** #395-397 (duplicates of #154-156 in M5) ✅
