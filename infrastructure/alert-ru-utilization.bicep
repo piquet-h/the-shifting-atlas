@@ -89,7 +89,7 @@ let sustainedHigh = recentBuckets
   | count;
 // Check if last 2 intervals are below resolve threshold (for auto-resolve)
 let recentResolved = recentBuckets
-  | where interval <= {6}
+  | where interval <= {5}
   | where RUPercent < resolveThreshold
   | count;
 // Extract top 3 operations by RU consumption across all buckets
@@ -112,8 +112,8 @@ let alertCondition = iff(shouldAbort,
       ResolvedCount = toscalar(recentResolved),
       TopOps = toscalar(topOperations | project TopOps)
   | extend Status = case(
-      SustainedHighCount >= {5}, 'alert', // Fire alert
-      ResolvedCount >= {6}, 'resolved', // Auto-resolve
+      SustainedHighCount >= {4}, 'alert', // Fire alert
+      ResolvedCount >= {5}, 'resolved', // Auto-resolve
       'normal' // No action
     )
   | project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
