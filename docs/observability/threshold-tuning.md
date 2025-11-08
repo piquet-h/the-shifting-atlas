@@ -31,8 +31,11 @@ This document records the methodology and outcomes of threshold tuning for obser
 
 **Bicep Module:** `infrastructure/alert-ru-utilization.bicep`  
 **Current Configuration:**
-- **Fire Threshold:** RU% >70% for 3 consecutive 5-minute windows (15 minutes sustained)
-- **Resolve Threshold:** RU% <65% for 2 consecutive windows (10 minutes)
+- **Fire Threshold:** `fireRuPercentThreshold` = 70% (default)
+- **Resolve Threshold:** `resolveRuPercentThreshold` = 65% (default)
+- **Consecutive Fire Windows:** `consecutiveFireWindows` = 3 (default, 15 minutes sustained)
+- **Consecutive Resolve Windows:** `consecutiveResolveWindows` = 2 (default, 10 minutes)
+- **Min Data Quality:** `minDataQualityPercent` = 70% (default)
 - **Provisioned RU:** 400 RU/s (default)
 - **Max RU per 5-min interval:** 120,000 RU (400 RU/s × 300 seconds)
 
@@ -46,15 +49,22 @@ This document records the methodology and outcomes of threshold tuning for obser
 - [ ] What is the 95th percentile RU% during peak intervals?
 - [ ] How many false positive alerts fired during baseline period?
 - [ ] What was the actual RU% during genuine performance issues?
+- [ ] Is 70% data quality requirement appropriate given telemetry reliability?
+
+**Parameters to Adjust:**
+- Decrease `fireRuPercentThreshold` if early warning needed (e.g., 60%)
+- Increase `consecutiveFireWindows` to filter more transient spikes (e.g., 4)
+- Adjust `resolveRuPercentThreshold` to maintain 5-10% gap below fire threshold
 
 ### 2. Gremlin 429 Spike Detection Alert (#293)
 
 **Bicep Module:** `infrastructure/alert-gremlin-429-spike.bicep`  
 **Current Configuration:**
-- **Normal Severity:** >=5 HTTP 429 responses in 5-minute window
-- **High Severity:** >=10 HTTP 429 responses in 5-minute window
-- **Additional Condition:** Total queries < baseline RPS × 300 (default: 50 RPS = 15,000 queries/5min)
-- **Evaluation Frequency:** Every 5 minutes
+- **Normal Severity Threshold:** `normalThreshold429Count` = 5 (default)
+- **High Severity Threshold:** `highThreshold429Count` = 10 (default)
+- **Baseline RPS:** `gremlinBaselineRps` = 50 RPS (default, configured in main.bicep)
+- **Additional Condition:** Total queries < baseline RPS × 300 (15,000 queries/5min)
+- **Evaluation Frequency:** `evaluationFrequencyMinutes` = 5 (default)
 
 **Rationale:**
 - Detects throttling below expected traffic baseline (indicates partition hot-spotting)
@@ -67,15 +77,21 @@ This document records the methodology and outcomes of threshold tuning for obser
 - [ ] What is the actual baseline RPS observed (vs. 50 RPS default)?
 - [ ] How many windows had 429s but were excluded by baseline RPS check?
 
+**Parameters to Adjust:**
+- Increase `gremlinBaselineRps` to match actual normal traffic (e.g., 100 RPS)
+- Increase `normalThreshold429Count` if transient throttling is acceptable (e.g., 10)
+- Adjust `highThreshold429Count` to ~2x normal threshold (e.g., 20)
+
 ### 3. Composite Partition Pressure Alert (#294)
 
 **Bicep Module:** `infrastructure/alert-composite-partition-pressure.bicep`  
 **Current Configuration:**
-- **Condition 1:** RU% >70%
-- **Condition 2:** 429 count >=3 in 5-minute window
-- **Condition 3:** P95 latency increase >25% vs. 24-hour baseline
+- **RU% Threshold:** `ruPercentThreshold` = 70 (default)
+- **429 Count Threshold:** `throttlingCountThreshold` = 3 (default)
+- **Latency Increase Threshold:** `latencyIncreasePercentThreshold` = 25% (default)
+- **Min Baseline Samples:** `minBaselineSamples` = 100 (default)
+- **Max RU per Interval:** `maxRuPerInterval` = 120,000 (400 RU/s × 300s)
 - **Trigger:** All three conditions met simultaneously
-- **Minimum Baseline Samples:** 100 `Graph.Query.Executed` events in 24-hour window
 - **Auto-Resolve:** Any one condition drops below threshold for 3 consecutive periods (15 minutes)
 
 **Rationale:**
@@ -88,6 +104,13 @@ This document records the methodology and outcomes of threshold tuning for obser
 - [ ] What was the typical P95 latency baseline (by time of day)?
 - [ ] Were there periods where 2 conditions met but alert didn't fire?
 - [ ] Was the 25% latency increase threshold appropriate for detected issues?
+- [ ] Was baseline sample count consistently ≥100 for reliable comparison?
+
+**Parameters to Adjust:**
+- Align `ruPercentThreshold` with RU utilization alert (default: 70)
+- Decrease `throttlingCountThreshold` for more sensitive detection (e.g., 2)
+- Decrease `latencyIncreasePercentThreshold` if latency impact is critical (e.g., 20%)
+- Increase `minBaselineSamples` for more reliable baseline (e.g., 200)
 
 ### 4. Non-Movement Operation Latency Degradation Alert (#295)
 
@@ -297,16 +320,21 @@ customEvents
 
 ### Summary Table
 
-| Alert | Current Threshold | Proposed Threshold | Rationale | Issue Reference |
-|-------|------------------|-------------------|-----------|----------------|
-| RU Utilization | >70% | TBD | TBD | #292 |
-| 429 Spike (Normal) | >=5 per 5min | TBD | TBD | #293 |
-| 429 Spike (High) | >=10 per 5min | TBD | TBD | #293 |
-| Composite Pressure (RU) | >70% | TBD | TBD | #294 |
-| Composite Pressure (429) | >=3 per 5min | TBD | TBD | #294 |
-| Composite Pressure (Latency) | +25% vs baseline | TBD | TBD | #294 |
-| Operation Latency (Critical) | >600ms | TBD | TBD | #295 |
-| Operation Latency (Warning) | >500ms | TBD | TBD | #295 |
+| Alert | Parameter Name | Current Threshold | Proposed Threshold | Rationale | Issue Reference |
+|-------|---------------|------------------|-------------------|-----------|----------------|
+| RU Utilization (Fire) | `fireRuPercentThreshold` | 70% | TBD | TBD | #292 |
+| RU Utilization (Resolve) | `resolveRuPercentThreshold` | 65% | TBD | TBD | #292 |
+| RU Utilization (Windows) | `consecutiveFireWindows` | 3 | TBD | TBD | #292 |
+| RU Utilization (Data Quality) | `minDataQualityPercent` | 70% | TBD | TBD | #292 |
+| 429 Spike (Normal) | `normalThreshold429Count` | 5 per 5min | TBD | TBD | #293 |
+| 429 Spike (High) | `highThreshold429Count` | 10 per 5min | TBD | TBD | #293 |
+| 429 Spike (Baseline RPS) | `gremlinBaselineRps` | 50 RPS | TBD | TBD | #293 |
+| Composite Pressure (RU) | `ruPercentThreshold` | 70% | TBD | TBD | #294 |
+| Composite Pressure (429) | `throttlingCountThreshold` | 3 per 5min | TBD | TBD | #294 |
+| Composite Pressure (Latency) | `latencyIncreasePercentThreshold` | 25% | TBD | TBD | #294 |
+| Composite Pressure (Baseline) | `minBaselineSamples` | 100 | TBD | TBD | #294 |
+| Operation Latency (Critical) | (hard-coded) | >600ms | TBD | TBD | #295 |
+| Operation Latency (Warning) | (hard-coded) | >500ms | TBD | TBD | #295 |
 
 ### Detailed Recommendations
 

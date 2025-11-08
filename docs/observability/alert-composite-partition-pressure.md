@@ -54,14 +54,26 @@ The alert auto-resolves when **any one** of the following conditions is met for 
 **Module**: `alertCompositePartitionPressure` in `main.bicep`
 
 **Configurable Parameters**:
-- `maxRuPerInterval`: Maximum RU per 5-minute interval for percentage calculation (default: 2000)
-- `actionGroupId`: Optional action group for notifications (email, SMS, etc.)
+
+| Parameter | Default | Purpose | Tuning Notes |
+|-----------|---------|---------|--------------|
+| `maxRuPerInterval` | 120000 | Maximum RU per 5-minute interval (400 RU/s × 300s) | Must match provisioned throughput × 300 |
+| `ruPercentThreshold` | 70 | RU% threshold for composite condition | Align with RU utilization alert |
+| `throttlingCountThreshold` | 3 | Minimum 429 count for composite condition | Lower = more sensitive |
+| `latencyIncreasePercentThreshold` | 25 | Minimum P95 latency increase % vs baseline | Lower = more sensitive |
+| `minBaselineSamples` | 100 | Minimum baseline samples required | Higher = more reliable comparison |
+| `actionGroupId` | (empty) | Optional action group for notifications | Email, SMS, webhook, etc. |
 
 **Tags**:
 - `M2-Observability`: true
 - `Issue`: 294
 - `AlertType`: CompositePartitionPressure
 - `Severity`: Critical
+
+**Parameter Suppression Logic**:
+- Alert is **suppressed** if baseline sample count < `minBaselineSamples`
+- Diagnostic alert fires instead to track suppression reason
+- After 24 hours of telemetry, alert becomes active
 
 ### Dependencies
 
@@ -76,9 +88,9 @@ This alert builds upon and correlates with:
 The alert queries `Graph.Query.Executed` custom events with the following dimensions:
 
 - `customDimensions.ruCharge`: RU charge for the operation (numeric)
-- `customDimensions.durationMs`: Operation duration in milliseconds (numeric)
+- `customDimensions.latencyMs` or `customDimensions.durationMs`: Operation duration in milliseconds (numeric, uses coalesce for compatibility)
 - `customDimensions.operationName`: Operation identifier (string)
-- `customDimensions.statusCode`: HTTP status code (numeric, 429 for throttling)
+- `customDimensions.statusCode` or `customDimensions.httpStatusCode`: HTTP status code (numeric, uses coalesce for compatibility, 429 for throttling)
 
 ### Edge Cases
 
