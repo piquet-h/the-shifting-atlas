@@ -13,7 +13,19 @@ param actionGroupId string = ''
 @description('Maximum RU per 5-minute interval for percentage calculation')
 // Note: Used in KQL query via string interpolation (linter cannot detect)
 #disable-next-line no-unused-params
-param maxRuPerInterval int = 2000
+param maxRuPerInterval int = 120000
+
+@description('RU percentage threshold for composite alert')
+param ruPercentThreshold int = 70
+
+@description('Minimum 429 count threshold for composite alert')
+param throttlingCountThreshold int = 3
+
+@description('Minimum P95 latency increase percentage vs 24h baseline')
+param latencyIncreasePercentThreshold int = 25
+
+@description('Minimum baseline samples required for latency comparison')
+param minBaselineSamples int = 100
 
 // Composite partition pressure alert (Issue #294)
 // Fires when RU% >70% AND 429s >=3 AND P95 latency increase >25% vs 24h baseline
@@ -41,17 +53,20 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
             // Step 1: Calculate RU metrics for current 5-min window
             let currentWindow = 5m;
             let baselineWindow = 24h;
-            let minBaselineSamples = 100;
+            let minBaselineSamples = ${minBaselineSamples};
             let maxRuPerInterval = ${maxRuPerInterval};
+            let ruThreshold = ${ruPercentThreshold};
+            let throttling429Threshold = ${throttlingCountThreshold};
+            let latencyIncreaseThreshold = ${latencyIncreasePercentThreshold};
             
             // Current window metrics
             let currentMetrics = customEvents
             | where timestamp > ago(currentWindow)
             | where name == "Graph.Query.Executed"
             | extend ruCharge = todouble(customDimensions.ruCharge)
-            | extend latencyMs = todouble(customDimensions.durationMs)
+            | extend latencyMs = todouble(coalesce(customDimensions.latencyMs, customDimensions.durationMs))
             | extend operationName = tostring(customDimensions.operationName)
-            | extend statusCode = toint(customDimensions.statusCode)
+            | extend statusCode = toint(coalesce(customDimensions.statusCode, customDimensions.httpStatusCode))
             | summarize 
                 totalRu = sum(ruCharge),
                 count429 = countif(statusCode == 429),
@@ -65,7 +80,7 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
             let baselineMetrics = customEvents
             | where timestamp between (ago(baselineWindow) .. ago(1h))
             | where name == "Graph.Query.Executed"
-            | extend latencyMs = todouble(customDimensions.durationMs)
+            | extend latencyMs = todouble(coalesce(customDimensions.latencyMs, customDimensions.durationMs))
             | summarize 
                 baselineP95Latency = percentile(latencyMs, 95),
                 baselineSampleCount = count();
@@ -79,9 +94,9 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
             | project-away dummy, dummy1
             | where baselineSampleCount >= minBaselineSamples // Suppress if insufficient baseline
             | extend latencyIncreasePct = ((currentP95Latency - baselineP95Latency) / baselineP95Latency) * 100
-            | where ruPercent > 70 // RU threshold
-                and count429 >= 3 // 429 threshold
-                and latencyIncreasePct > 25 // Latency degradation threshold
+            | where ruPercent > ruThreshold // RU threshold
+                and count429 >= throttling429Threshold // 429 threshold
+                and latencyIncreasePct > latencyIncreaseThreshold // Latency degradation threshold
             | project 
                 ruPercent = round(ruPercent, 2),
                 count429,
@@ -115,6 +130,10 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
       customProperties: {
         alertType: 'CompositePartitionPressure'
         severity: 'Critical'
+        ruThreshold: '${ruPercentThreshold}%'
+        throttling429Threshold: string(throttlingCountThreshold)
+        latencyIncreaseThreshold: '${latencyIncreasePercentThreshold}%'
+        minBaselineSamples: string(minBaselineSamples)
         dependsOn: 'Issues #292 (Sustained High RU), #293 (429 Spike)'
         referenceDoc: 'ADR-002 thresholds'
       }
@@ -151,20 +170,22 @@ resource baselineSuppressionDiagnostic 'Microsoft.Insights/scheduledQueryRules@2
             // Check for insufficient baseline samples that would suppress composite alert
             let currentWindow = 5m;
             let baselineWindow = 24h;
-            let minBaselineSamples = 100;
+            let minBaselineSamples = ${minBaselineSamples};
             let maxRuPerInterval = ${maxRuPerInterval};
+            let ruThreshold = ${ruPercentThreshold};
+            let throttling429Threshold = ${throttlingCountThreshold};
             
             // Current window metrics (check if conditions would trigger)
             let currentMetrics = customEvents
             | where timestamp > ago(currentWindow)
             | where name == "Graph.Query.Executed"
             | extend ruCharge = todouble(customDimensions.ruCharge)
-            | extend statusCode = toint(customDimensions.statusCode)
+            | extend statusCode = toint(coalesce(customDimensions.statusCode, customDimensions.httpStatusCode))
             | summarize 
                 totalRu = sum(ruCharge),
                 count429 = countif(statusCode == 429)
             | extend ruPercent = (totalRu / maxRuPerInterval) * 100
-            | where ruPercent > 70 and count429 >= 3
+            | where ruPercent > ruThreshold and count429 >= throttling429Threshold
             | project ruPercent, count429;
             
             // Baseline sample count
