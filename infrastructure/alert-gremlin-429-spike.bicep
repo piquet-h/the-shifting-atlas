@@ -135,9 +135,9 @@ resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if 
     }
   }
   tags: {
-    'M2-Observability': 'true'
-    'Alert-Type': 'Throttling'
-    'Service': 'Cosmos-Gremlin'
+    M2_Observability: 'true'
+    Alert_Type: 'Throttling'
+    Service: 'Cosmos-Gremlin'
   }
 }
 

@@ -12,6 +12,7 @@ param actionGroupId string = ''
 
 @description('Maximum RU per 5-minute interval for percentage calculation')
 // Note: Used in KQL query via string interpolation (linter cannot detect)
+#disable-next-line no-unused-params
 param maxRuPerInterval int = 2000
 
 // Composite partition pressure alert (Issue #294)
