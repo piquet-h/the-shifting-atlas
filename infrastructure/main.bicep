@@ -495,3 +495,15 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
     applicationInsightsId: applicationInsights.id
   }
 }
+
+// Alert: Composite Partition Pressure (RU + 429 + Latency)
+// Issue #294: Multi-signal alert for partition pressure escalation
+module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
+  name: 'alert-composite-partition-pressure'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    maxRuPerInterval: 2000 // Configurable RU threshold for percentage calculation
+  }
+}
