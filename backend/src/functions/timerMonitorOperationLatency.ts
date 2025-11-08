@@ -4,11 +4,11 @@
  * Scheduled job to monitor P95 latency for non-movement Gremlin operations.
  * Default schedule: Every 10 minutes (configurable via env var).
  *
- * Schedule format: NCRONTAB expression (6 fields: {second} {minute} {hour} {day} {month} {day-of-week})
- * Default: "0 */10 * * * *" = Every 10 minutes
+ * Schedule format: NCRONTAB expression (6 fields: second, minute, hour, day, month, day-of-week)
+ * Default: Every 10 minutes (see SCHEDULE constant below)
  *
  * Configuration (env vars):
- * - OPERATION_LATENCY_MONITOR_SCHEDULE: NCRONTAB schedule expression (default: "0 */10 * * * *")
+ * - OPERATION_LATENCY_MONITOR_SCHEDULE: NCRONTAB schedule expression (default: every 10 minutes)
  * - APPINSIGHTS_WORKSPACE_ID: Application Insights workspace ID for querying telemetry
  *
  * Monitored Operations:

@@ -21,7 +21,7 @@ describe('Operation Latency Monitoring', () => {
         // 4. State transitions (none → warning → critical → none)
         // 5. Minimum sample size filtering
         // 6. Baseline P95 comparison
-        
+
         assert.ok(true, 'Monitoring implementation pending testable refactor')
     })
 
@@ -68,7 +68,7 @@ describe('Operation Latency State Transitions', () => {
         // 3. critical → none (2 windows at 400ms)
         // 4. warning → none (2 windows at 400ms)
         // 5. Oscillating latency (prevents spurious alerts)
-        
+
         assert.ok(true, 'State transition tests pending implementation')
     })
 })
@@ -79,7 +79,7 @@ describe('Insufficient Data Handling', () => {
         // 1. Do not increment consecutive window counters
         // 2. Emit InsufficientData telemetry event
         // 3. Log diagnostic message
-        
+
         assert.ok(true, 'Sample size filtering tests pending implementation')
     })
 })
@@ -90,7 +90,7 @@ describe('Baseline Comparison', () => {
         // 1. Queried for each operation
         // 2. Included in alert telemetry
         // 3. Handles missing baseline gracefully (new operations)
-        
+
         assert.ok(true, 'Baseline comparison tests pending implementation')
     })
 })

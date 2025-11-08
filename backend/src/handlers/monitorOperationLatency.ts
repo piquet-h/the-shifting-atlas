@@ -133,11 +133,7 @@ async function queryOperationLatency(
 /**
  * Query baseline P95 latency (24h window) for comparison.
  */
-async function queryBaselineLatency(
-    client: LogsQueryClient,
-    workspaceId: string,
-    operation: string
-): Promise<number | null> {
+async function queryBaselineLatency(client: LogsQueryClient, workspaceId: string, operation: string): Promise<number | null> {
     const query = `
         customEvents
         | where timestamp > ago(${BASELINE_HOURS}h)
@@ -165,9 +161,7 @@ async function queryBaselineLatency(
 
         return null
     } catch (error) {
-        throw new Error(
-            `Failed to query baseline latency for ${operation}: ${error instanceof Error ? error.message : String(error)}`
-        )
+        throw new Error(`Failed to query baseline latency for ${operation}: ${error instanceof Error ? error.message : String(error)}`)
     }
 }
 
@@ -218,18 +212,14 @@ function updateOperationState(
         shouldAlert = true
         alertLevel = 'critical'
         state.currentAlertLevel = 'critical'
-    } else if (
-        state.consecutiveWarningWindows >= CONSECUTIVE_WINDOWS.ALERT &&
-        state.currentAlertLevel === 'none'
-    ) {
+    } else if (state.consecutiveWarningWindows >= CONSECUTIVE_WINDOWS.ALERT && state.currentAlertLevel === 'none') {
         shouldAlert = true
         alertLevel = 'warning'
         state.currentAlertLevel = 'warning'
     }
 
     // Check if we should resolve
-    const shouldResolve =
-        state.consecutiveHealthyWindows >= CONSECUTIVE_WINDOWS.RESOLVE && state.currentAlertLevel !== 'none'
+    const shouldResolve = state.consecutiveHealthyWindows >= CONSECUTIVE_WINDOWS.RESOLVE && state.currentAlertLevel !== 'none'
 
     if (shouldResolve) {
         state.currentAlertLevel = 'none'
