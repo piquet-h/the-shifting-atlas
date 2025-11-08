@@ -17,8 +17,8 @@
  * Alert Configuration:
  * - Evaluation Frequency: Every 10 minutes
  * - Time Window: 10 minutes
- * - Consecutive Periods: 3 windows to alert
- * - Auto-Mitigation: After 2 consecutive healthy windows (20 minutes)
+ * - Consecutive Periods: Managed by ops/config, not code
+ * - Auto-Mitigation: Enabled (timing controlled by Azure)
  * - Minimum Sample Size: 20 calls per window
  * 
  * Severity Levels:
@@ -47,7 +47,7 @@ resource alertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' 
   location: location
   properties: {
     displayName: 'Operation Latency: ${operation} (Critical)'
-    description: 'Alerts when P95 latency exceeds 600ms for ${operation} over 3 consecutive 10-minute windows. Auto-resolves after 2 consecutive healthy windows.'
+    description: 'Alerts when P95 latency exceeds 600ms for ${operation}. Auto-resolves when condition clears.'
     severity: 1
     enabled: true
     evaluationFrequency: 'PT10M'
@@ -77,9 +77,10 @@ resource alertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' 
           dimensions: []
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
-            numberOfEvaluationPeriods: 3
-            minFailingPeriodsToAlert: 3
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
           }
         }
       ]
@@ -105,7 +106,7 @@ resource warningAlertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-pr
   location: location
   properties: {
     displayName: 'Operation Latency: ${operation} (Warning)'
-    description: 'Alerts when P95 latency exceeds 500ms for ${operation} over 3 consecutive 10-minute windows. Auto-resolves after 2 consecutive healthy windows.'
+    description: 'Alerts when P95 latency exceeds 500ms for ${operation}. Auto-resolves when condition clears.'
     severity: 2
     enabled: true
     evaluationFrequency: 'PT10M'
@@ -135,9 +136,10 @@ resource warningAlertRules 'Microsoft.Insights/scheduledQueryRules@2023-03-15-pr
           dimensions: []
           operator: 'GreaterThan'
           threshold: 0
+          // Game code does not set multi-window evaluation periods; consecutive windows are ops/config.
           failingPeriods: {
-            numberOfEvaluationPeriods: 3
-            minFailingPeriodsToAlert: 3
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
           }
         }
       ]
