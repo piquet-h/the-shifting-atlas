@@ -25,19 +25,34 @@ param consecutiveResolveWindows int = 2
 param minDataQualityPercent int = 70
 
 // Calculate maximum RU per 5-minute interval (300 seconds) as a variable
-// Note: Used in KQL query via string interpolation (linter cannot detect)
 #disable-next-line no-unused-vars
 var maxRuPerInterval = provisionedRuPerSecond * 300
 
-// Build the KQL query with proper string interpolation
-var alertQuery = '''
+// Scheduled query rule for sustained high RU utilization
+resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
+  name: 'alert-ru-utilization-${name}'
+  location: location
+  properties: {
+    displayName: 'Sustained High RU Utilization'
+    description: 'Alert fires when RU utilization exceeds 70%. Auto-resolves when RU% drops below 65%. References ADR-002 partition pressure thresholds.'
+    enabled: enabled
+    severity: 2 // Warning
+    evaluationFrequency: 'PT5M' // Evaluate every 5 minutes
+    windowSize: 'PT15M' // Look back 15 minutes
+    scopes: [
+      applicationInsightsId
+    ]
+    criteria: {
+      allOf: [
+        {
+          query: '''
 // Step 1: Calculate RU consumption per 5-minute bucket
 let timeRange = 15m; // Time window for analysis
 let bucketSize = 5m;
-let maxRuPerInterval = ${string(maxRuPerInterval)};
-let highThreshold = ${string(fireRuPercentThreshold)}.0; // Fire alert at >${string(fireRuPercentThreshold)}% RU
-let resolveThreshold = ${string(resolveRuPercentThreshold)}.0; // Auto-resolve at <${string(resolveRuPercentThreshold)}% RU
-let minDataQuality = ${string(minDataQualityPercent / 100.0)}; // Require ${string(minDataQualityPercent)}% of samples to have ruCharge data
+let maxRuPerInterval = ${maxRuPerInterval};
+let highThreshold = ${fireRuPercentThreshold}.0; // Fire alert at >${fireRuPercentThreshold}% RU
+let resolveThreshold = ${resolveRuPercentThreshold}.0; // Auto-resolve at <${resolveRuPercentThreshold}% RU
+let minDataQuality = ${minDataQualityPercent / 100.0}; // Require ${minDataQualityPercent}% of samples to have ruCharge data
 // Collect Graph.Query.Executed events with RU charge
 let ruEvents = customEvents
   | where timestamp > ago(timeRange)
@@ -96,8 +111,8 @@ let alertCondition = iff(shouldAbort,
       ResolvedCount = toscalar(recentResolved),
       TopOps = toscalar(topOperations | project TopOps)
   | extend Status = case(
-      SustainedHighCount >= ${string(consecutiveFireWindows)}, 'alert', // Fire alert
-      ResolvedCount >= ${string(consecutiveResolveWindows)}, 'resolved', // Auto-resolve
+      SustainedHighCount >= ${consecutiveFireWindows}, 'alert', // Fire alert
+      ResolvedCount >= ${consecutiveResolveWindows}, 'resolved', // Auto-resolve
       'normal' // No action
     )
   | project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
@@ -109,25 +124,6 @@ alertCondition
 | where Status == 'alert'
 | project Timestamp, RUPercent, Interval, TopOperations, DataQuality
 '''
-
-// Scheduled query rule for sustained high RU utilization
-resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
-  name: 'alert-ru-utilization-${name}'
-  location: location
-  properties: {
-    displayName: 'Sustained High RU Utilization'
-    description: 'Alert fires when RU utilization exceeds 70%. Auto-resolves when RU% drops below 65%. References ADR-002 partition pressure thresholds.'
-    enabled: enabled
-    severity: 2 // Warning
-    evaluationFrequency: 'PT5M' // Evaluate every 5 minutes
-    windowSize: 'PT15M' // Look back 15 minutes
-    scopes: [
-      applicationInsightsId
-    ]
-    criteria: {
-      allOf: [
-        {
-          query: alertQuery
           timeAggregation: 'Count'
           operator: 'GreaterThan'
           threshold: 0

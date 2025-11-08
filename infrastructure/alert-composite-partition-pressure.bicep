@@ -35,17 +35,32 @@ param minBaselineSamples int = 100
 // Critical severity, distinct from individual RU or 429 alerts
 var alertName = 'alert-composite-partition-pressure-${name}'
 
-// Build the KQL query template with placeholder
-var alertQueryTemplate = '''
+resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
+  name: alertName
+  location: location
+  properties: {
+    displayName: 'Composite Partition Pressure (RU + 429 + Latency)'
+    description: 'Multi-signal alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent intervention. Fires only when: RU% >70% AND 429s >=3 in last 5 min AND P95 latency increase >25% vs 24h baseline. Auto-resolves when any metric recovers below thresholds for 3 consecutive intervals.'
+    severity: 0 // Critical
+    enabled: true
+    evaluationFrequency: 'PT5M' // Every 5 minutes
+    windowSize: 'PT5M' // 5-minute window
+    scopes: [
+      applicationInsightsId
+    ]
+    criteria: {
+      allOf: [
+        {
+          query: '''
 // Composite Partition Pressure Alert Query
 // Step 1: Calculate RU metrics for current 5-min window
 let currentWindow = 5m;
 let baselineWindow = 24h;
-let minBaselineSamples = ${string(minBaselineSamples)};
-let maxRuPerInterval = ${string(maxRuPerInterval)};
-let ruThreshold = ${string(ruPercentThreshold)};
-let throttling429Threshold = ${string(throttlingCountThreshold)};
-let latencyIncreaseThreshold = ${string(latencyIncreasePercentThreshold)};
+let minBaselineSamples = ${minBaselineSamples};
+let maxRuPerInterval = ${maxRuPerInterval};
+let ruThreshold = ${ruPercentThreshold};
+let throttling429Threshold = ${throttlingCountThreshold};
+let latencyIncreaseThreshold = ${latencyIncreasePercentThreshold};
 
 // Current window metrics
 let currentMetrics = customEvents
@@ -98,24 +113,6 @@ currentMetrics
     top2Operations = array_slice(topOperations, 0, 2)
 | project-away topOperations
 '''
-
-resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
-  name: alertName
-  location: location
-  properties: {
-    displayName: 'Composite Partition Pressure (RU + 429 + Latency)'
-    description: 'Multi-signal alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent intervention. Fires only when: RU% >70% AND 429s >=3 in last 5 min AND P95 latency increase >25% vs 24h baseline. Auto-resolves when any metric recovers below thresholds for 3 consecutive intervals.'
-    severity: 0 // Critical
-    enabled: true
-    evaluationFrequency: 'PT5M' // Every 5 minutes
-    windowSize: 'PT5M' // 5-minute window
-    scopes: [
-      applicationInsightsId
-    ]
-    criteria: {
-      allOf: [
-        {
-          query: alertQueryTemplate
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'

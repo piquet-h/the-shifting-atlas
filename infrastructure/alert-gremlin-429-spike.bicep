@@ -30,12 +30,31 @@ var alertName = 'gremlin-429-spike-${name}'
 var alertDisplayName = 'Gremlin 429 Throttling Spike Detection'
 var alertDescription = 'Detects abnormal Cosmos DB Gremlin throttling (HTTP 429) below expected RPS baseline, correlating with ADR-002 partition saturation thresholds.'
 
-// KQL query to detect 429 spike with baseline RPS check
-var alertQuery = '''
-let evaluationWindow = ${string(evaluationFrequencyMinutes)}m;
-let baselineRps = ${string(baselineRps)};
-let normalThreshold = ${string(normalThreshold429Count)};
-let highThreshold = ${string(highThreshold429Count)};
+// Create scheduled query rule for 429 spike detection
+resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (baselineRps > 0) {
+  name: alertName
+  location: location
+  properties: {
+    displayName: alertDisplayName
+    description: alertDescription
+    severity: severity
+    enabled: true
+    evaluationFrequency: 'PT${evaluationFrequencyMinutes}M'
+    windowSize: 'PT${evaluationFrequencyMinutes}M'
+    scopes: [
+      applicationInsightsId
+    ]
+    targetResourceTypes: [
+      'Microsoft.Insights/components'
+    ]
+    criteria: {
+      allOf: [
+        {
+          query: format('''
+let evaluationWindow = {0}m;
+let baselineRps = {1};
+let normalThreshold = {2};
+let highThreshold = {3};
 // Count 429 failures in the evaluation window
 let throttleCount = customEvents
 | where timestamp > ago(evaluationWindow)
@@ -63,7 +82,7 @@ throttleCount
 | extend AvgRU = toscalar(metrics | project AvgRU)
 | extend P95Latency = toscalar(metrics | project P95Latency)
 | extend TotalRU = toscalar(metrics | project TotalRU)
-| extend ExpectedQueries = baselineRps * ${string(evaluationFrequencyMinutes)} * 60
+| extend ExpectedQueries = baselineRps * {0} * 60
 | extend BelowBaseline = TotalQueries < ExpectedQueries
 | extend AlertSeverity = case(
     Count429 >= highThreshold and BelowBaseline, "High",
@@ -80,29 +99,7 @@ throttleCount
     AvgRU,
     P95Latency,
     TotalRU
-'''
-
-// Create scheduled query rule for 429 spike detection
-resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (baselineRps > 0) {
-  name: alertName
-  location: location
-  properties: {
-    displayName: alertDisplayName
-    description: alertDescription
-    severity: severity
-    enabled: true
-    evaluationFrequency: 'PT${evaluationFrequencyMinutes}M'
-    windowSize: 'PT${evaluationFrequencyMinutes}M'
-    scopes: [
-      applicationInsightsId
-    ]
-    targetResourceTypes: [
-      'Microsoft.Insights/components'
-    ]
-    criteria: {
-      allOf: [
-        {
-          query: alertQuery
+''', evaluationFrequencyMinutes, baselineRps, normalThreshold429Count, highThreshold429Count)
           timeAggregation: 'Count'
           dimensions: [
             {
