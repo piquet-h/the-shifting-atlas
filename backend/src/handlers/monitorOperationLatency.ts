@@ -22,7 +22,7 @@
  */
 import type { InvocationContext } from '@azure/functions'
 import { DefaultAzureCredential } from '@azure/identity'
-import { LogsQueryClient, type LogsTable } from '@azure/monitor-query'
+import { LogsQueryClient } from '@azure/monitor-query'
 import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------

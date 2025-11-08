@@ -134,6 +134,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR: 'true'
 
       APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
+      APPINSIGHTS_WORKSPACE_ID: applicationInsights.properties.AppId
 
       CosmosGraphAccount__endpoint: cosmosGraphAccount.properties.documentEndpoint
       CosmosSqlAccount__endpoint: cosmosSqlAccount.properties.documentEndpoint
