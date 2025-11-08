@@ -45,14 +45,14 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
     criteria: {
       allOf: [
         {
-          query: '''
+          query: format('''
 // Step 1: Calculate RU consumption per 5-minute bucket
 let timeRange = 15m; // Time window for analysis
 let bucketSize = 5m;
-let maxRuPerInterval = ${maxRuPerInterval};
-let highThreshold = ${fireRuPercentThreshold}.0; // Fire alert at >${fireRuPercentThreshold}% RU
-let resolveThreshold = ${resolveRuPercentThreshold}.0; // Auto-resolve at <${resolveRuPercentThreshold}% RU
-let minDataQuality = ${minDataQualityPercent / 100.0}; // Require ${minDataQualityPercent}% of samples to have ruCharge data
+let maxRuPerInterval = {0};
+let highThreshold = {1}.0; // Fire alert at >{1}% RU
+let resolveThreshold = {2}.0; // Auto-resolve at <{2}% RU
+let minDataQuality = {3} / 100.0; // Require {3}% of samples to have ruCharge data
 // Collect Graph.Query.Executed events with RU charge
 let ruEvents = customEvents
   | where timestamp > ago(timeRange)
@@ -88,7 +88,7 @@ let sustainedHigh = recentBuckets
   | count;
 // Check if last 2 intervals are below resolve threshold (for auto-resolve)
 let recentResolved = recentBuckets
-  | where interval <= ${string(consecutiveResolveWindows)}
+  | where interval <= {6}
   | where RUPercent < resolveThreshold
   | count;
 // Extract top 3 operations by RU consumption across all buckets
@@ -111,8 +111,8 @@ let alertCondition = iff(shouldAbort,
       ResolvedCount = toscalar(recentResolved),
       TopOps = toscalar(topOperations | project TopOps)
   | extend Status = case(
-      SustainedHighCount >= ${consecutiveFireWindows}, 'alert', // Fire alert
-      ResolvedCount >= ${consecutiveResolveWindows}, 'resolved', // Auto-resolve
+      SustainedHighCount >= {5}, 'alert', // Fire alert
+      ResolvedCount >= {6}, 'resolved', // Auto-resolve
       'normal' // No action
     )
   | project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
@@ -123,7 +123,7 @@ let alertCondition = iff(shouldAbort,
 alertCondition
 | where Status == 'alert'
 | project Timestamp, RUPercent, Interval, TopOperations, DataQuality
-'''
+''', maxRuPerInterval, fireRuPercentThreshold, resolveRuPercentThreshold, minDataQualityPercent, consecutiveFireWindows, consecutiveResolveWindows)
           timeAggregation: 'Count'
           operator: 'GreaterThan'
           threshold: 0

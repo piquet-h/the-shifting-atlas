@@ -51,16 +51,16 @@ resource compositePartitionPressureAlert 'Microsoft.Insights/scheduledQueryRules
     criteria: {
       allOf: [
         {
-          query: '''
+          query: format('''
 // Composite Partition Pressure Alert Query
 // Step 1: Calculate RU metrics for current 5-min window
 let currentWindow = 5m;
 let baselineWindow = 24h;
-let minBaselineSamples = ${minBaselineSamples};
-let maxRuPerInterval = ${maxRuPerInterval};
-let ruThreshold = ${ruPercentThreshold};
-let throttling429Threshold = ${throttlingCountThreshold};
-let latencyIncreaseThreshold = ${latencyIncreasePercentThreshold};
+let minBaselineSamples = {0};
+let maxRuPerInterval = {1};
+let ruThreshold = {2};
+let throttling429Threshold = {3};
+let latencyIncreaseThreshold = {4};
 
 // Current window metrics
 let currentMetrics = customEvents
@@ -112,7 +112,7 @@ currentMetrics
 | extend 
     top2Operations = array_slice(topOperations, 0, 2)
 | project-away topOperations
-'''
+''', minBaselineSamples, maxRuPerInterval, ruPercentThreshold, throttlingCountThreshold, latencyIncreasePercentThreshold)
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
