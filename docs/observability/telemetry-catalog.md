@@ -398,6 +398,30 @@ Central registry documenting all game domain telemetry events, including when th
 
 ---
 
+### Operation Latency Monitoring (M2 Observability)
+
+**Implementation Note:** Operation latency monitoring is implemented using native **Azure Monitor scheduled query alerts** rather than custom telemetry events. See [Operation Latency Monitoring Guide](./operation-latency-monitoring.md) for details.
+
+**Why No Custom Events:**
+- Azure Monitor alerts provide built-in alert lifecycle management
+- No custom code required (purely declarative Bicep)
+- Persistent state across restarts
+- Native action groups for notifications
+- Zero Function execution costs
+
+**Alert Configuration:**
+- **Monitored Operations**: location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create
+- **Critical Threshold**: P95 >600ms for 3 consecutive 10-min windows
+- **Warning Threshold**: P95 >500ms for 3 consecutive 10-min windows
+- **Auto-Resolution**: After 2 consecutive healthy windows (<450ms implicit via Azure alert clearing)
+- **Minimum Sample**: 20 calls per window (built into KQL query)
+
+**Data Source:** Uses existing `Graph.Query.Executed` events with no additional telemetry required.
+
+**Alert Management:** View and manage alerts in Azure Portal → Application Insights → Alerts.
+
+---
+
 ### Internal / Diagnostics
 
 #### `Telemetry.EventName.Invalid`
