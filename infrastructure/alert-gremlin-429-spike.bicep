@@ -27,8 +27,6 @@ var alertDescription = 'Detects abnormal Cosmos DB Gremlin throttling (HTTP 429)
 // Alert thresholds
 var normalThreshold429Count = 5  // Normal severity: >=5 429s in window
 var highThreshold429Count = 10   // High severity: >=10 429s in window
-var autoResolveThreshold = 2     // Auto-resolve when <2 429s in window
-var autoResolveWindowMinutes = 15
 
 // KQL query to detect 429 spike with baseline RPS check
 var alertQuery = '''
@@ -131,8 +129,6 @@ resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if 
         baselineRps: string(baselineRps)
         normalThreshold: string(normalThreshold429Count)
         highThreshold: string(highThreshold429Count)
-        autoResolveThreshold: string(autoResolveThreshold)
-        autoResolveWindow: '${string(autoResolveWindowMinutes)}m'
         adrReference: 'ADR-002'
         documentationUrl: 'https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/telemetry-catalog.md#graphqueryfailed'
       }
@@ -144,19 +140,6 @@ resource alert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if 
     'Service': 'Cosmos-Gremlin'
   }
 }
-
-// Auto-resolve rule (separate query for when 429s drop below threshold)
-var autoResolveQuery = '''
-let resolveWindow = ${string(autoResolveWindowMinutes)}m;
-let resolveThreshold = ${string(autoResolveThreshold)};
-customEvents
-| where timestamp > ago(resolveWindow)
-| where name == "Graph.Query.Failed"
-| where customDimensions.httpStatusCode == "429"
-| summarize Count429 = count()
-| where Count429 < resolveThreshold
-| project ResolveConditionMet = true
-'''
 
 output alertId string = baselineRps > 0 ? alert.id : ''
 output alertName string = baselineRps > 0 ? alert.name : ''

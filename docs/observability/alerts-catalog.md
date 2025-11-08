@@ -30,7 +30,8 @@ Detect abnormal Cosmos DB Gremlin throttling (HTTP 429 responses) below expected
 
 -   **Frequency**: Every 5 minutes
 -   **Window Size**: 5 minutes (rolling)
--   **Auto-Resolve**: After 15 minutes with `<2` HTTP 429s per 5-minute window
+-   **Auto-Resolve**: When alert condition no longer met (Count429 < 5 or query volume at/above baseline)
+    -   Note: Azure Monitor scheduled query rules use the same threshold for firing and resolution. The issue requirement specifies "<2 429s per window" for resolution, but this is not directly supported. Alert resolves when the firing condition is no longer true.
 
 **Alert Payload Context:**
 
