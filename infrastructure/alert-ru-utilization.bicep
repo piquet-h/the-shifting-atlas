@@ -65,10 +65,6 @@ let ruEvents = customEvents
 let totalEvents = toscalar(ruEvents | count);
 let eventsWithRu = toscalar(ruEvents | where isnotnull(ruCharge) | count);
 let dataQuality = iff(totalEvents > 0, todouble(eventsWithRu) / todouble(totalEvents), 0.0);
-// Abort evaluation if data quality is insufficient (<70%)
-let shouldAbort = dataQuality < minDataQuality;
-// If aborting, emit empty result set to prevent alert firing
-let diagnosticResult = datatable(Timestamp:datetime, RUPercent:real, Interval:int, TopOperations:string, DataQuality:real, Status:string) [];
 // Calculate RU percentage per bucket
 let ruByBucket = ruEvents
   | where isnotnull(ruCharge)
@@ -97,31 +93,23 @@ let topOperations = ruEvents
   | top 3 by TotalRU desc
   | project operationName, TotalRU = round(TotalRU, 2)
   | summarize TopOps = make_list(pack('op', operationName, 'ru', TotalRU));
-// Final result: Fire alert if sustained high (3 intervals >70%)
-// Auto-resolve if recent 2 intervals <65%
-// Abort if data quality insufficient
-let alertCondition = iff(shouldAbort, 
-  diagnosticResult,
-  recentBuckets
-  | summarize 
-      LatestTimestamp = max(bucket),
-      MaxRUPercent = max(RUPercent),
-      SustainedHighCount = toscalar(sustainedHigh),
-      ResolvedCount = toscalar(recentResolved),
-      TopOps = toscalar(topOperations | project TopOps)
-  | extend Status = case(
-      SustainedHighCount >= {4}, 'alert', // Fire alert
-      ResolvedCount >= {5}, 'resolved', // Auto-resolve
-      'normal' // No action
-    )
-  | project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
-           Interval = SustainedHighCount, TopOperations = tostring(TopOps), 
-           DataQuality = dataQuality, Status
-);
-// Return rows only when alert should fire (Status = 'alert')
-alertCondition
-| where Status == 'alert'
-| project Timestamp, RUPercent, Interval, TopOperations, DataQuality
+// Final result: Fire alert if sustained high (3 intervals >70%) AND data quality sufficient
+recentBuckets
+| where dataQuality >= minDataQuality // Skip if data quality too low
+| summarize 
+  // Final result: Fire alert if sustained high (3 intervals >70%) AND data quality sufficient
+recentBuckets
+| where dataQuality >= minDataQuality // Skip if data quality too low
+| summarize 
+    LatestTimestamp = max(bucket),
+    MaxRUPercent = max(RUPercent),
+    SustainedHighCount = toscalar(sustainedHigh),
+    ResolvedCount = toscalar(recentResolved),
+    TopOps = toscalar(topOperations | project TopOps)
+| where SustainedHighCount >= {4} // Fire only if 3 consecutive high periods
+| project Timestamp = LatestTimestamp, RUPercent = MaxRUPercent, 
+         Interval = SustainedHighCount, TopOperations = tostring(TopOps), 
+         DataQuality = dataQuality
 ''',
             maxRuPerInterval,
             fireRuPercentThreshold,
