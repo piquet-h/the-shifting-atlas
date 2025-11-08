@@ -72,13 +72,14 @@ let currentMetrics = customEvents
 | extend operationName = tostring(customDimensions.operationName)
 | extend statusCode = toint(customDimensions.statusCode)
 | summarize 
+    EventTimestamp = max(timestamp),
     totalRu = sum(ruCharge),
     count429 = countif(statusCode == 429),
     currentP95Latency = percentile(latencyMs, 95),
     sampleCount = count(),
     topOperations = make_list(pack("operation", operationName, "ru", ruCharge), 10)
 | extend ruPercent = (totalRu / maxRuPerInterval) * 100
-| project ruPercent, count429, currentP95Latency, sampleCount, topOperations;
+| project EventTimestamp, ruPercent, count429, currentP95Latency, sampleCount, topOperations;
 
 // Baseline P95 latency (24h window, excluding current hour to avoid skew)
 let baselineMetrics = customEvents
@@ -102,6 +103,7 @@ currentMetrics
     and count429 >= throttling429Threshold // 429 threshold
     and latencyIncreasePct > latencyIncreaseThreshold // Latency degradation threshold
 | project 
+    TimeGenerated = EventTimestamp,
     ruPercent = round(ruPercent, 2),
     count429,
     currentP95Latency = round(currentP95Latency, 2),
