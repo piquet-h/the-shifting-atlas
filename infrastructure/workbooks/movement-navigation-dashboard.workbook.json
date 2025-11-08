@@ -4,7 +4,7 @@
         {
             "type": 1,
             "content": {
-                "json": "# Movement Navigation Overview\n\nUnified dashboard combining movement success rate & blocked reason analytics.\n\n**Telemetry Events:** `Navigation.Move.Success`, `Navigation.Move.Blocked`\n\n**Objective:** Provide a single pane of glass to monitor traversal health, friction sources, and trends to guide world connectivity & normalization improvements.\n\n**Thresholds:**\n- 🟢 SuccessRate ≥ 95%: Healthy\n- 🟡 90% ≤ SuccessRate < 95%: Warning\n- 🔴 SuccessRate < 90%: Critical\n\n**Related Issues:** #10, #281, #282\n"
+                "json": "# Movement Navigation Overview\n\nUnified dashboard combining movement success rate & blocked reason analytics.\n\n**Telemetry Events:** `Navigation.Move.Success`, `Navigation.Move.Blocked`\n\n**Objective:** Provide a single pane of glass to monitor traversal health, friction sources, and trends to guide world connectivity & normalization improvements.\n\n**Thresholds:**\n- \ud83d\udfe2 SuccessRate \u2265 95%: Healthy\n- \ud83d\udfe1 90% \u2264 SuccessRate < 95%: Warning\n- \ud83d\udd34 SuccessRate < 90%: Critical\n\n**Related Issues:** #10, #281, #282\n"
             },
             "name": "header"
         },
@@ -12,16 +12,31 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"✓ Normal\", iff(SuccessRate >= 90, \"⚠ Warning\", \"🔴 Critical\"))\n| project Success, Blocked, Total, SuccessRate, BlockedRate, Status",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"\u2713 Normal\", iff(SuccessRate >= 90, \"\u26a0 Warning\", \"\ud83d\udd34 Critical\"))\n| project Success, Blocked, Total, SuccessRate, BlockedRate, Status",
                 "size": 0,
                 "title": "Movement Success Rate (Last 24h)",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "tiles",
                 "tileSettings": {
-                    "titleContent": { "columnMatch": "Success", "formatter": 1 },
-                    "leftContent": { "columnMatch": "Success", "formatter": 12, "formatOptions": { "palette": "green" } },
-                    "secondaryContent": { "columnMatch": "SuccessRate", "formatter": 12, "formatOptions": { "palette": "greenRed" } },
+                    "titleContent": {
+                        "columnMatch": "Success",
+                        "formatter": 1
+                    },
+                    "leftContent": {
+                        "columnMatch": "Success",
+                        "formatter": 12,
+                        "formatOptions": {
+                            "palette": "green"
+                        }
+                    },
+                    "secondaryContent": {
+                        "columnMatch": "SuccessRate",
+                        "formatter": 12,
+                        "formatOptions": {
+                            "palette": "greenRed"
+                        }
+                    },
                     "showBorder": true
                 }
             },
@@ -32,7 +47,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"✓ Normal\", iff(SuccessRate >= 90, \"⚠ Warning\", \"🔴 Critical\"))\n| project Status, Success, Blocked, Total, SuccessRate, BlockedRate",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"),\n            Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| extend BlockedRate = round(100.0 * Blocked / iff(Total == 0, 1, Total), 2)\n| extend Status = iff(SuccessRate >= 95, \"\u2713 Normal\", iff(SuccessRate >= 90, \"\u26a0 Warning\", \"\ud83d\udd34 Critical\"))\n| project Status, Success, Blocked, Total, SuccessRate, BlockedRate",
                 "size": 0,
                 "title": "Movement Metrics Summary",
                 "queryType": 0,
@@ -46,14 +61,42 @@
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
                                 "thresholdsGrid": [
-                                    { "operator": "contains", "text": "Normal", "representation": "green" },
-                                    { "operator": "contains", "text": "Warning", "representation": "yellow" },
-                                    { "operator": "contains", "text": "Critical", "representation": "redBright" }
+                                    {
+                                        "operator": "contains",
+                                        "text": "Normal",
+                                        "representation": "green"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "Warning",
+                                        "representation": "yellow"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "Critical",
+                                        "representation": "redBright"
+                                    }
                                 ]
                             }
                         },
-                        { "columnMatch": "SuccessRate", "formatter": 8, "formatOptions": { "min": 0, "max": 100, "palette": "greenRed" } },
-                        { "columnMatch": "BlockedRate", "formatter": 8, "formatOptions": { "min": 0, "max": 100, "palette": "redGreen" } }
+                        {
+                            "columnMatch": "SuccessRate",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "min": 0,
+                                "max": 100,
+                                "palette": "greenRed"
+                            }
+                        },
+                        {
+                            "columnMatch": "BlockedRate",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "min": 0,
+                                "max": 100,
+                                "palette": "redGreen"
+                            }
+                        }
                     ]
                 }
             },
@@ -70,7 +113,15 @@
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
-                "chartSettings": { "yAxis": ["SuccessRate"], "ySettings": { "min": 0, "max": 100 } }
+                "chartSettings": {
+                    "yAxis": [
+                        "SuccessRate"
+                    ],
+                    "ySettings": {
+                        "min": 0,
+                        "max": 100
+                    }
+                }
             },
             "name": "success-rate-trend"
         },
@@ -78,7 +129,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Blocked Reasons Table (Last 24h)\nlet timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);\nlet reasonCounts = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason;\nlet totalCount = toscalar(reasonCounts | summarize sum(Count));\nreasonCounts\n| extend TotalCount = totalCount\n| extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)\n| extend Alert = iff(PercentageShare > 50.0, '⚠️ HIGH', '')\n| project \n    Reason = normalizedReason,\n    Count,\n    [\"% Share\"] = PercentageShare,\n    Alert\n| order by Count desc",
+                "query": "// Blocked Reasons Table (Last 24h)\nlet timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction', 'from-missing', 'no-exit', 'move-failed']);\nlet reasonCounts = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason;\nlet totalCount = toscalar(reasonCounts | summarize sum(Count));\nreasonCounts\n| extend TotalCount = totalCount\n| extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)\n| extend Alert = iff(PercentageShare > 50.0, '\u26a0\ufe0f HIGH', '')\n| project \n    Reason = normalizedReason,\n    Count,\n    [\"% Share\"] = PercentageShare,\n    Alert\n| order by Count desc",
                 "size": 0,
                 "title": "Blocked Events by Reason (24h)",
                 "queryType": 0,
@@ -86,18 +137,41 @@
                 "visualization": "table",
                 "gridSettings": {
                     "formatters": [
-                        { "columnMatch": "Count", "formatter": 4, "formatOptions": { "palette": "blue" } },
-                        { "columnMatch": "% Share", "formatter": 8, "formatOptions": { "palette": "redGreen" } },
+                        {
+                            "columnMatch": "Count",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "% Share",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "redGreen"
+                            }
+                        },
                         {
                             "columnMatch": "Alert",
                             "formatter": 18,
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
-                                "thresholdsGrid": [{ "operator": "contains", "thresholdValue": "HIGH", "representation": "redBright" }]
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "thresholdValue": "HIGH",
+                                        "representation": "redBright"
+                                    }
+                                ]
                             }
                         }
                     ],
-                    "sortBy": [{ "itemKey": "Count", "sortOrder": 2 }]
+                    "sortBy": [
+                        {
+                            "itemKey": "Count",
+                            "sortOrder": 2
+                        }
+                    ]
                 }
             },
             "name": "blocked-reasons-table"
@@ -113,30 +187,186 @@
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "seriesLabelSettings": [{ "seriesName": "BlockedRate", "label": "Blocked Rate %", "color": "orange" }],
-                    "ySettings": { "numberFormatSettings": { "unit": 0, "options": { "style": "decimal", "useGrouping": true } } }
+                    "seriesLabelSettings": [
+                        {
+                            "seriesName": "BlockedRate",
+                            "label": "Blocked Rate %",
+                            "color": "orange"
+                        }
+                    ],
+                    "ySettings": {
+                        "numberFormatSettings": {
+                            "unit": 0,
+                            "options": {
+                                "style": "decimal",
+                                "useGrouping": true
+                            }
+                        }
+                    }
                 }
             },
             "name": "blocked-rate-trend"
         },
         {
+            "type": 1,
+            "content": {
+                "json": "## Movement Latency Distribution\n\n**Purpose:** Monitor P95/P99 latency for `Navigation.Move.Success` and `Navigation.Move.Blocked` events to detect performance regressions in persistence or normalization.\n\n**Thresholds:**\n- \ud83d\udfe2 P95 Success Latency < 400ms: Normal\n- \ud83d\udfe1 400ms \u2264 P95 Success Latency < 600ms: Warning\n- \ud83d\udd34 P95 Success Latency \u2265 600ms: Critical\n\n**Related Issues:** #10, #281, #282, #283"
+            },
+            "name": "latency-section-header"
+        },
+        {
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Summary Statistics (24h)\nlet timeRange = 24h;\nlet blockedEvents = customEvents | where timestamp > ago(timeRange) | where name == 'Navigation.Move.Blocked';\nlet totalBlocked = toscalar(blockedEvents | count);\nlet topReason = toscalar(blockedEvents | extend reason = tostring(customDimensions.reason) | summarize Count = count() by reason | top 1 by Count desc | project reason);\nprint ['Total Blocked Events'] = iff(totalBlocked == 0, 'No traversal friction detected ✓', strcat(totalBlocked, ' events')), ['Most Common Reason'] = iff(totalBlocked == 0, 'N/A', topReason), ['Time Range'] = '24 hours'",
+                "query": "// Movement Latency Percentiles - 1h & 24h comparison (Issue #283)\nlet timeRange1h = 1h;\nlet timeRange24h = 24h;\nlet minEvents = 20;\n// 1h window\nlet events1h = customEvents\n| where timestamp > ago(timeRange1h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count1h = toscalar(events1h | count);\nlet percentiles1h = events1h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '1h';\n// 24h window\nlet events24h = customEvents\n| where timestamp > ago(timeRange24h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count24h = toscalar(events24h | count);\nlet percentiles24h = events24h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '24h';\n// Union both windows\nlet results = union percentiles1h, percentiles24h\n| extend P95Status = iff(EventName == 'Navigation.Move.Success',\n    iff(P95 < 400, '\ud83d\udfe2 Normal',\n        iff(P95 < 600, '\ud83d\udfe1 Warning', '\ud83d\udd34 Critical')),\n    'n/a')\n| extend StabilityWarning = iff(Count < minEvents, '\u26a0\ufe0f Low Volume (<20)', '')\n| project TimeWindow, EventName, Count, P50, P95, P99, P95Status, StabilityWarning\n| order by TimeWindow desc, EventName asc;\n// Show instability notice if both windows have low volume\niff(count1h < minEvents and count24h < minEvents,\n    datatable(Notice:string) ['\u26a0\ufe0f INSTABILITY NOTICE: <20 total events in last 24h. Percentiles unreliable. Wait for more data.'],\n    results\n)",
+                "size": 0,
+                "title": "Latency Percentiles: 1h vs 24h",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Count",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "P50",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "min": 0,
+                                "max": 1000,
+                                "palette": "greenRed"
+                            }
+                        },
+                        {
+                            "columnMatch": "P95",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "min": 0,
+                                "max": 1000,
+                                "palette": "greenRed"
+                            }
+                        },
+                        {
+                            "columnMatch": "P99",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "min": 0,
+                                "max": 1000,
+                                "palette": "greenRed"
+                            }
+                        },
+                        {
+                            "columnMatch": "P95Status",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "Normal",
+                                        "representation": "green"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "Warning",
+                                        "representation": "yellow"
+                                    },
+                                    {
+                                        "operator": "contains",
+                                        "text": "Critical",
+                                        "representation": "redBright"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "StabilityWarning",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "contains",
+                                        "text": "Low Volume",
+                                        "representation": "orange"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "latency-percentiles-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Latency Distribution Comparative Chart (Issue #283)\nlet timeRange = 24h;\nlet bucketSize = 1h;\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0\n| summarize \n    P50 = percentile(latencyMs, 50),\n    P95 = percentile(latencyMs, 95),\n    P99 = percentile(latencyMs, 99),\n    Count = count()\n  by EventName = name, bucket = bin(timestamp, bucketSize)\n| extend EventType = iff(EventName == 'Navigation.Move.Success', 'Success', 'Blocked')\n| project bucket, EventType, P50, P95, P99, Count\n| order by bucket asc, EventType asc",
+                "size": 0,
+                "title": "Latency Trend: P95 Success vs Blocked (Last 24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "linechart",
+                "chartSettings": {
+                    "seriesLabelSettings": [
+                        {
+                            "seriesName": "Success",
+                            "label": "Success P95",
+                            "color": "green"
+                        },
+                        {
+                            "seriesName": "Blocked",
+                            "label": "Blocked P95",
+                            "color": "orange"
+                        }
+                    ],
+                    "yAxis": [
+                        "P95"
+                    ],
+                    "ySettings": {
+                        "numberFormatSettings": {
+                            "unit": 23,
+                            "options": {
+                                "style": "decimal",
+                                "useGrouping": true
+                            }
+                        }
+                    }
+                }
+            },
+            "name": "latency-p95-trend"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Summary Statistics (24h)\nlet timeRange = 24h;\nlet blockedEvents = customEvents | where timestamp > ago(timeRange) | where name == 'Navigation.Move.Blocked';\nlet totalBlocked = toscalar(blockedEvents | count);\nlet topReason = toscalar(blockedEvents | extend reason = tostring(customDimensions.reason) | summarize Count = count() by reason | top 1 by Count desc | project reason);\nprint ['Total Blocked Events'] = iff(totalBlocked == 0, 'No traversal friction detected \u2713', strcat(totalBlocked, ' events')), ['Most Common Reason'] = iff(totalBlocked == 0, 'N/A', topReason), ['Time Range'] = '24 hours'",
                 "size": 0,
                 "title": "Summary Statistics",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "table",
-                "gridSettings": { "formatters": [{ "columnMatch": "Total Blocked Events", "formatter": 1 }] }
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Total Blocked Events",
+                            "formatter": 1
+                        }
+                    ]
+                }
             },
             "name": "summary-table"
         },
         {
             "type": 1,
             "content": {
-                "json": "### Interpretation Guide\n\n- High `invalid-direction` (>30%): Improve normalization & input UX.\n- High `no-exit` (>40%): World connectivity gaps; inspect graph.\n- High `from-missing` (>5%): Data integrity risk (player-location sync).\n- High `move-failed` (>10%): System reliability / repository errors.\n\n**Alert Threshold:** Any single reason >50% flagged as ⚠️ HIGH.\n\n**Empty State:** No blocked events → \"No traversal friction detected ✓\"."
+                "json": "### Interpretation Guide\n\n- High `invalid-direction` (>30%): Improve normalization & input UX.\n- High `no-exit` (>40%): World connectivity gaps; inspect graph.\n- High `from-missing` (>5%): Data integrity risk (player-location sync).\n- High `move-failed` (>10%): System reliability / repository errors.\n\n**Alert Threshold:** Any single reason >50% flagged as \u26a0\ufe0f HIGH.\n\n**Empty State:** No blocked events \u2192 \"No traversal friction detected \u2713\"."
             },
             "name": "interpretation-guide"
         }
