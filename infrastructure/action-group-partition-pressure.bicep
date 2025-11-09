@@ -18,16 +18,20 @@ resource actionGroupPartitionPressure 'Microsoft.Insights/actionGroups@2023-01-0
   properties: {
     groupShortName: 'PartPress' // Max 12 chars
     enabled: enabled
-    emailReceivers: [for (email, i) in emailReceivers: {
-      name: 'Email${i}'
-      emailAddress: email
-      useCommonAlertSchema: true
-    }]
-    webhookReceivers: [for (webhook, i) in webhookReceivers: {
-      name: 'Webhook${i}'
-      serviceUri: webhook
-      useCommonAlertSchema: true
-    }]
+    emailReceivers: [
+      for (email, i) in emailReceivers: {
+        name: 'Email${i}'
+        emailAddress: email
+        useCommonAlertSchema: true
+      }
+    ]
+    webhookReceivers: [
+      for (webhook, i) in webhookReceivers: {
+        name: 'Webhook${i}'
+        serviceUri: webhook
+        useCommonAlertSchema: true
+      }
+    ]
   }
 }
 

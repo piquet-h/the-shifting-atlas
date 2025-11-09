@@ -75,7 +75,8 @@ resource alertLatencyCritical 'Microsoft.Insights/scheduledQueryRules@2023-03-15
     criteria: {
       allOf: [
         {
-          query: format('''
+          query: format(
+            '''
 let threshold = {0};
 let minSampleSize = {1};
 let monitoredOperations = dynamic([{2}]);
@@ -95,7 +96,11 @@ customEvents
 | where P95 > threshold
 | project operationName, P95 = round(P95, 2), SampleSize, AvgLatency = round(AvgLatency, 2), MaxLatency = round(MaxLatency, 2), Threshold = threshold
 | order by P95 desc
-''', criticalThresholdMs, minSampleSize, operationsForKql)
+''',
+            criticalThresholdMs,
+            minSampleSize,
+            operationsForKql
+          )
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
@@ -112,23 +117,25 @@ customEvents
     scopes: [
       applicationInsightsId
     ]
-    actions: actionGroupId != '' ? {
-      actionGroups: [actionGroupId]
-      customProperties: {
-        thresholdMs: string(criticalThresholdMs)
-        severityLevel: 'critical'
-        alertType: 'ConsolidatedOperationLatency'
-        monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
-      }
-    } : {
-      actionGroups: []
-      customProperties: {
-        thresholdMs: string(criticalThresholdMs)
-        severityLevel: 'critical'
-        alertType: 'ConsolidatedOperationLatency'
-        monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
-      }
-    }
+    actions: actionGroupId != ''
+      ? {
+          actionGroups: [actionGroupId]
+          customProperties: {
+            thresholdMs: string(criticalThresholdMs)
+            severityLevel: 'critical'
+            alertType: 'ConsolidatedOperationLatency'
+            monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
+          }
+        }
+      : {
+          actionGroups: []
+          customProperties: {
+            thresholdMs: string(criticalThresholdMs)
+            severityLevel: 'critical'
+            alertType: 'ConsolidatedOperationLatency'
+            monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
+          }
+        }
   }
 }
 
@@ -146,7 +153,8 @@ resource alertLatencyWarning 'Microsoft.Insights/scheduledQueryRules@2023-03-15-
     criteria: {
       allOf: [
         {
-          query: format('''
+          query: format(
+            '''
 let threshold = {0};
 let minSampleSize = {1};
 let monitoredOperations = dynamic([{2}]);
@@ -166,7 +174,11 @@ customEvents
 | where P95 > threshold
 | project operationName, P95 = round(P95, 2), SampleSize, AvgLatency = round(AvgLatency, 2), MaxLatency = round(MaxLatency, 2), Threshold = threshold
 | order by P95 desc
-''', warningThresholdMs, minSampleSize, operationsForKql)
+''',
+            warningThresholdMs,
+            minSampleSize,
+            operationsForKql
+          )
           timeAggregation: 'Count'
           dimensions: []
           operator: 'GreaterThan'
@@ -183,23 +195,25 @@ customEvents
     scopes: [
       applicationInsightsId
     ]
-    actions: actionGroupId != '' ? {
-      actionGroups: [actionGroupId]
-      customProperties: {
-        thresholdMs: string(warningThresholdMs)
-        severityLevel: 'warning'
-        alertType: 'ConsolidatedOperationLatency'
-        monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
-      }
-    } : {
-      actionGroups: []
-      customProperties: {
-        thresholdMs: string(warningThresholdMs)
-        severityLevel: 'warning'
-        alertType: 'ConsolidatedOperationLatency'
-        monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
-      }
-    }
+    actions: actionGroupId != ''
+      ? {
+          actionGroups: [actionGroupId]
+          customProperties: {
+            thresholdMs: string(warningThresholdMs)
+            severityLevel: 'warning'
+            alertType: 'ConsolidatedOperationLatency'
+            monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
+          }
+        }
+      : {
+          actionGroups: []
+          customProperties: {
+            thresholdMs: string(warningThresholdMs)
+            severityLevel: 'warning'
+            alertType: 'ConsolidatedOperationLatency'
+            monitoredOperations: 'location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create'
+          }
+        }
   }
 }
 
