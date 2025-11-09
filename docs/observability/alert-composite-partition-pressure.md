@@ -2,16 +2,68 @@
 
 This document catalogs alerts configured for partition pressure detection and performance monitoring in The Shifting Atlas.
 
-## Alert: Composite Partition Pressure (Critical)
+**Last Updated**: 2025-11-09  
+**Alert Count**: 3 active alerts (down from 13)  
+**Architecture**: Action Group + Alert Processing Rule for composite escalation
+
+---
+
+## Alert: Composite Partition Pressure (Critical) - ACTION GROUP
 
 **Issue**: #294  
-**Severity**: Critical (0)  
-**Evaluation Frequency**: Every 5 minutes  
-**Window Size**: 5 minutes
+**Implementation**: Action Group + Alert Processing Rule (replaces complex KQL query)  
+**Status**: ✅ Active (deployed 2025-11-09)
 
 ### Purpose
 
-Multi-signal alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent partition pressure requiring intervention. Provides higher-confidence escalation beyond single-metric alerts.
+Correlates multiple partition pressure signals (RU%, 429s, latency) to fire critical escalation only when 2+ signals detected simultaneously within 10 minutes. Reduces false positives while maintaining high-confidence detection.
+
+### Architecture
+
+**Components**:
+1. **Action Group**: `ag-partition-pressure-atlas`
+   - Email/webhook receivers (configurable)
+   - Rate limiting enabled
+
+2. **Alert Processing Rule**: `apr-composite-partition-pressure-atlas`
+   - Monitors: RU Utilization + 429 Spike + Operation Latency alerts
+   - Fires when: ≥2 alerts active within 10-minute window
+   - Conditions:
+     - AlertRuleName contains: `alert-ru-utilization`, `gremlin-429-spike`, `latency-`
+     - Severity: Sev2 or Sev3
+
+### Benefits Over Previous Complex Query Approach
+
+- ✅ No format() validation issues
+- ✅ Simpler maintenance (native Azure features)
+- ✅ Better operational visibility (see which specific metrics triggered)
+- ✅ $0 additional query cost (reuses existing alerts)
+- ✅ Easy to adjust correlation logic without KQL changes
+
+### Configuration
+
+**Bicep File**: `infrastructure/action-group-partition-pressure.bicep`  
+**Module**: `actionGroupPartitionPressure` in `main.bicep`
+
+**Configurable Parameters**:
+- `emailReceivers`: Array of email addresses for notifications
+- `webhookReceivers`: Array of webhook URLs (Slack, PagerDuty, etc.)
+- `enabled`: Toggle action group on/off
+
+**Tags**:
+- `M2-Observability`: true
+- `Issue`: 294
+- `AlertType`: CompositePartitionPressure
+
+### Related Alerts (Inputs to Composite)
+
+- **Issue #292**: Sustained High RU Utilization alert
+- **Issue #293**: Gremlin 429 Spike Detection alert  
+- **Issue #295**: Operation Latency alerts (consolidated)
+
+---
+
+## Alert: Sustained High RU Utilization (Warning)
 
 ### Conditions
 
@@ -201,6 +253,101 @@ az deployment group create \
 
 ---
 
-**Last Updated**: 2025-11-08  
+## Alert: Consolidated Operation Latency (Critical & Warning)
+
+**Issue**: #295  
+**Implementation**: Consolidated multi-operation alerts (2 alerts replace 10)  
+**Status**: ✅ Active (deployed 2025-11-09)
+
+### Purpose
+
+Monitors P95 latency across all non-movement Gremlin operations with consolidated alerting. Single query checks multiple operations and reports all that exceed thresholds, providing better operational visibility and 83% cost reduction.
+
+### Architecture
+
+**Two Severity Levels**:
+1. **Critical Alert**: `alert-latency-consolidated-critical`
+   - Severity: 1 (Critical)
+   - Threshold: P95 > 600ms
+   - Replaces: 5 individual critical alerts
+
+2. **Warning Alert**: `alert-latency-consolidated-warning`
+   - Severity: 2 (Warning)
+   - Threshold: P95 > 500ms
+   - Replaces: 5 individual warning alerts
+
+### Monitored Operations
+
+- `location.upsert.check`
+- `location.upsert.write`
+- `exit.ensureExit.check`
+- `exit.ensureExit.create`
+- `player.create`
+
+### Query Strategy
+
+```kql
+let monitoredOperations = dynamic([...]);
+customEvents
+| where name == 'Graph.Query.Executed'
+| where operationName in (monitoredOperations)
+| summarize P95 = percentile(latencyMs, 95), SampleSize = count() by operationName
+| where SampleSize >= 20
+| where P95 > threshold
+| order by P95 desc  // Worst operations first
+```
+
+### Alert Payload
+
+Shows **all** operations exceeding threshold in single alert:
+- `operationName`: Operation that exceeded threshold
+- `P95`: 95th percentile latency (ms)
+- `SampleSize`: Number of samples in evaluation window
+- `AvgLatency`: Average latency (ms)
+- `MaxLatency`: Maximum observed latency (ms)
+- `Threshold`: Applied threshold (600ms critical, 500ms warning)
+
+### Benefits Over Individual Alerts
+
+- ✅ **Cost**: 83% query reduction (60 → 10 queries/hour)
+- ✅ **UX**: See all affected operations in one alert
+- ✅ **Prioritization**: Operations ordered by severity (worst first)
+- ✅ **Maintenance**: Single query to update per severity level
+- ✅ **Coverage**: Identical monitoring (no gaps)
+
+### Configuration
+
+**Bicep File**: `infrastructure/alerts-operation-latency-consolidated.bicep`  
+**Module**: `operationLatencyAlerts` in `main.bicep`
+
+**Configurable Parameters**:
+- `criticalThresholdMs`: Critical threshold (default: 600)
+- `warningThresholdMs`: Warning threshold (default: 500)
+- `minSampleSize`: Minimum samples required (default: 20)
+- `operations`: Array of operation names to monitor
+- `actionGroupId`: Optional action group for notifications
+
+**Evaluation**:
+- Frequency: Every 10 minutes
+- Window: 10 minutes
+- Auto-mitigation: Enabled
+
+### Testing
+
+**Induce Latency Test**:
+1. Run complex traversal queries (large depth, no limits)
+2. Verify operations appear in alert payload when P95 > threshold
+3. Check operations ordered by P95 (worst first)
+4. Reduce query complexity
+5. Verify alert auto-resolves
+
+**Multi-Operation Test**:
+1. Induce latency in 2+ operations simultaneously
+2. Verify single alert shows all affected operations
+3. Confirm SampleSize ≥ 20 for each operation
+
+---
+
+**Last Updated**: 2025-11-09  
 **Status**: Active  
 **Milestone**: M2 Observability
