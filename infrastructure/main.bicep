@@ -498,16 +498,16 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
 
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
-// TEMPORARILY DISABLED: Azure query validator runs before ARM format() evaluation
-// module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
-//   name: 'alert-composite-partition-pressure'
-//   params: {
-//     name: name
-//     location: location
-//     applicationInsightsId: applicationInsights.id
-//     maxRuPerInterval: 120000 // 400 RU/s * 300 seconds = 120,000 RU per 5-minute interval
-//   }
-// }
+// Replaced complex KQL query with Action Group correlation (alert processing rule)
+module actionGroupPartitionPressure 'action-group-partition-pressure.bicep' = {
+  name: 'action-group-partition-pressure'
+  params: {
+    name: name
+    emailReceivers: [] // Configure via parameter override or portal
+    webhookReceivers: []
+    enabled: true
+  }
+}
 
 // Alert: Sustained High RU Utilization
 // References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
@@ -519,6 +519,7 @@ module alertRuUtilization 'alert-ru-utilization.bicep' = {
     applicationInsightsId: applicationInsights.id
     provisionedRuPerSecond: 400 // Matches Gremlin graph throughput
     enabled: true
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
   }
 }
 
