@@ -246,22 +246,25 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 -   [x] ✅ Complete mode deployment to remove orphaned alerts
 
 **Results Achieved**:
-- **Alert reduction**: 13 → 3 alerts (77% reduction)
-- **Query reduction**: ~84 → 34 queries/hour (60% reduction)
-- **Estimated savings**: ~$10-15/month
-- **Deployment time**: 1m 38s (Complete mode)
-- **Infrastructure status**: Fully managed by IaC (main.bicep)
+
+-   **Alert reduction**: 13 → 3 alerts (77% reduction)
+-   **Query reduction**: ~84 → 34 queries/hour (60% reduction)
+-   **Estimated savings**: ~$10-15/month
+-   **Deployment time**: 1m 38s (Complete mode)
+-   **Infrastructure status**: Fully managed by IaC (main.bicep)
 
 **Key Learnings**:
+
 1. Action Groups + Alert Processing Rules work perfectly for composite alerting (no complex KQL needed)
 2. Consolidated multi-operation alerts provide better UX (see all affected operations in single payload)
 3. Complete mode deployment essential to clean up orphaned resources
 4. format() function works reliably in Bicep for KQL parameterization
 
 **Files Created**:
-- `infrastructure/action-group-partition-pressure.bicep`
-- `infrastructure/alerts-operation-latency-consolidated.bicep`
-- `docs/observability/alert-optimization-plan.md` (this document)
+
+-   `infrastructure/action-group-partition-pressure.bicep`
+-   `infrastructure/alerts-operation-latency-consolidated.bicep`
+-   `docs/observability/alert-optimization-plan.md` (this document)
 
 ### Phase 2: Data Optimization 🔄 PLANNED
 
@@ -296,11 +299,11 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 ## Cost Breakdown Projection
 
 | Item                | Before Phase 1    | After Phase 1 ✅  | After Phase 2 (Projected) | Total Savings     |
-| ------------------- | ----------------- | ---------------- | ------------------------- | ----------------- |
-| Query execution     | $15-25/month      | $6-10/month      | $4-6/month                | **~$12-19/month** |
-| Data ingestion      | $50-100/month     | $50-100/month    | $30-60/month              | **~$25-40/month** |
-| Alert notifications | $0 (email)        | $0               | $0                        | $0                |
-| **Total**           | **$65-125/month** | **$56-110/month**| **$34-66/month**          | **~$37-59/month** |
+| ------------------- | ----------------- | ----------------- | ------------------------- | ----------------- |
+| Query execution     | $15-25/month      | $6-10/month       | $4-6/month                | **~$12-19/month** |
+| Data ingestion      | $50-100/month     | $50-100/month     | $30-60/month              | **~$25-40/month** |
+| Alert notifications | $0 (email)        | $0                | $0                        | $0                |
+| **Total**           | **$65-125/month** | **$56-110/month** | **$34-66/month**          | **~$37-59/month** |
 
 **Phase 1 ROI**: ~15% cost reduction (alerts only)  
 **Phase 1+2 ROI**: ~45-50% total cost reduction
@@ -312,20 +315,20 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 Track these KPIs to measure improvement:
 
 1. **Alert Volume**: Total alerts fired per week
-   - Baseline: TBD (measure for 1 week)
-   - Target: <10 for non-critical
+    - Baseline: TBD (measure for 1 week)
+    - Target: <10 for non-critical
 2. **False Positive Rate**: Alerts that don't require action
-   - Target: <20%
+    - Target: <20%
 3. **Mean Time to Detect (MTTD)**: Time from issue start to alert
-   - Current: ~5 minutes (consolidated alerts)
-   - Target: Maintain <5 min
+    - Current: ~5 minutes (consolidated alerts)
+    - Target: Maintain <5 min
 4. **Mean Time to Resolve (MTTR)**: Time from alert to resolution
-   - Baseline: TBD
-   - Target: <30 min for critical
+    - Baseline: TBD
+    - Target: <30 min for critical
 5. **Cost per Alert**: Monthly cost / total meaningful alerts
-   - Before: ~$5-10 per meaningful alert
-   - After Phase 1: ~$3-5 per meaningful alert
-   - Target (Phase 2): <$2 per meaningful alert
+    - Before: ~$5-10 per meaningful alert
+    - After Phase 1: ~$3-5 per meaningful alert
+    - Target (Phase 2): <$2 per meaningful alert
 
 **Monitoring Period**: 2025-11-09 to 2025-11-16 (1 week baseline)
 
