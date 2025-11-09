@@ -97,10 +97,6 @@ let topOperations = ruEvents
 recentBuckets
 | where dataQuality >= minDataQuality // Skip if data quality too low
 | summarize 
-  // Final result: Fire alert if sustained high (3 intervals >70%) AND data quality sufficient
-recentBuckets
-| where dataQuality >= minDataQuality // Skip if data quality too low
-| summarize 
     LatestTimestamp = max(bucket),
     MaxRUPercent = max(RUPercent),
     SustainedHighCount = toscalar(sustainedHigh),
