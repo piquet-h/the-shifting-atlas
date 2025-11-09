@@ -172,7 +172,7 @@ A companion diagnostic alert (severity: Informational) fires when the composite 
 
 - **ADR-002**: Graph Partition Strategy - defines RU thresholds and partition pressure triggers
 - **Copilot Instructions Section 9**: Code generation heuristics for alerts
-- **M2 Observability Milestone**: Performance monitoring and alerting expansion
+- **M5 Quality & Depth Milestone**: Comprehensive observability and alert optimization
 
 ### Threshold Tuning
 
@@ -350,4 +350,4 @@ Shows **all** operations exceeding threshold in single alert:
 
 **Last Updated**: 2025-11-09  
 **Status**: Active  
-**Milestone**: M2 Observability
+**Milestone**: M5 Quality & Depth
