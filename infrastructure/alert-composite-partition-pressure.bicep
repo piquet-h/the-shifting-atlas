@@ -127,7 +127,7 @@ currentMetrics
           operator: 'GreaterThan'
           threshold: 0
           failingPeriods: {
-            numberOfEvaluationPeriods: 3
+            numberOfEvaluationPeriods: 1
             minFailingPeriodsToAlert: 1
           }
         }
