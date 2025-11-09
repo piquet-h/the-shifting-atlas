@@ -498,15 +498,16 @@ module workbookPerformanceOperations 'workbook-performance-operations-dashboard.
 
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
-module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
-  name: 'alert-composite-partition-pressure'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-    maxRuPerInterval: 120000 // 400 RU/s * 300 seconds = 120,000 RU per 5-minute interval
-  }
-}
+// TEMPORARILY DISABLED: Azure query validator runs before ARM format() evaluation
+// module alertCompositePartitionPressure 'alert-composite-partition-pressure.bicep' = {
+//   name: 'alert-composite-partition-pressure'
+//   params: {
+//     name: name
+//     location: location
+//     applicationInsightsId: applicationInsights.id
+//     maxRuPerInterval: 120000 // 400 RU/s * 300 seconds = 120,000 RU per 5-minute interval
+//   }
+// }
 
 // Alert: Sustained High RU Utilization
 // References ADR-002 partition pressure thresholds (>70% sustained RU consumption)
