@@ -146,9 +146,7 @@
                 "visualization": "scatterchart",
                 "chartSettings": {
                     "xAxis": "ruCharge",
-                    "yAxis": [
-                        "latencyMs"
-                    ],
+                    "yAxis": ["latencyMs"],
                     "group": "operationName",
                     "seriesLabelSettings": []
                 }
@@ -232,10 +230,7 @@
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": [
-                        "AvgRU",
-                        "P95Latency"
-                    ],
+                    "yAxis": ["AvgRU", "P95Latency"],
                     "seriesLabelSettings": [
                         {
                             "seriesName": "AvgRU",
@@ -283,10 +278,7 @@
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": [
-                        "RUPercent",
-                        "ThrottleCount"
-                    ],
+                    "yAxis": ["RUPercent", "ThrottleCount"],
                     "seriesLabelSettings": [
                         {
                             "seriesName": "RUPercent",

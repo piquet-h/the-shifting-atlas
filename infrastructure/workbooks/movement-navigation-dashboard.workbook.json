@@ -114,9 +114,7 @@
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": [
-                        "SuccessRate"
-                    ],
+                    "yAxis": ["SuccessRate"],
                     "ySettings": {
                         "min": 0,
                         "max": 100
@@ -326,9 +324,7 @@
                             "color": "orange"
                         }
                     ],
-                    "yAxis": [
-                        "P95"
-                    ],
+                    "yAxis": ["P95"],
                     "ySettings": {
                         "numberFormatSettings": {
                             "unit": 23,
