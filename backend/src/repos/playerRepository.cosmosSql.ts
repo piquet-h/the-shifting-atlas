@@ -214,42 +214,6 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
     }
 
     /**
-     * Update player location (for player movement)
-     * @param id - Player ID
-     * @param locationId - New location ID
-     */
-    async updateLocation(id: string, locationId: string): Promise<PlayerRecord | undefined> {
-        const startTime = Date.now()
-
-        const existing = await this.get(id)
-        if (!existing) {
-            trackGameEvent('Player.UpdateLocation', {
-                playerId: id,
-                updated: false,
-                reason: 'player-not-found',
-                latencyMs: Date.now() - startTime
-            })
-            return undefined
-        }
-
-        const updatedPlayer: PlayerDocument = {
-            ...existing,
-            currentLocationId: locationId,
-            updatedUtc: new Date().toISOString()
-        } as PlayerDocument
-
-        const { resource } = await this.upsert(updatedPlayer)
-        trackGameEvent('Player.UpdateLocation', {
-            playerId: id,
-            locationId,
-            updated: true,
-            latencyMs: Date.now() - startTime
-        })
-
-        return resource
-    }
-
-    /**
      * Migrate a player from Gremlin to SQL API
      * @param player - Player record from Gremlin
      */
