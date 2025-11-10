@@ -47,6 +47,11 @@
             "import": "./dist/types/playerRepository.js",
             "types": "./dist/types/playerRepository.d.ts",
             "default": "./dist/types/playerRepository.js"
+        },
+        "./types/inventoryRepository": {
+            "import": "./dist/types/inventoryRepository.js",
+            "types": "./dist/types/inventoryRepository.d.ts",
+            "default": "./dist/types/inventoryRepository.js"
         }
     },
     "browser": {
