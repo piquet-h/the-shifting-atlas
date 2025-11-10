@@ -52,6 +52,11 @@
             "import": "./dist/types/inventoryRepository.js",
             "types": "./dist/types/inventoryRepository.d.ts",
             "default": "./dist/types/inventoryRepository.js"
+        },
+        "./types/layerRepository": {
+            "import": "./dist/types/layerRepository.js",
+            "types": "./dist/types/layerRepository.d.ts",
+            "default": "./dist/types/layerRepository.js"
         }
     },
     "browser": {

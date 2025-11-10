@@ -25,6 +25,9 @@ import { CosmosExitRepository, IExitRepository } from './repos/exitRepository.js
 import { CosmosInventoryRepository } from './repos/inventoryRepository.cosmos.js'
 import { IInventoryRepository } from './repos/inventoryRepository.js'
 import { MemoryInventoryRepository } from './repos/inventoryRepository.memory.js'
+import { CosmosLayerRepository } from './repos/layerRepository.cosmos.js'
+import { ILayerRepository } from './repos/layerRepository.js'
+import { MemoryLayerRepository } from './repos/layerRepository.memory.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository } from './repos/locationRepository.js'
 import { InMemoryLocationRepository } from './repos/locationRepository.memory.js'
@@ -111,6 +114,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // Explicit bindings; share same instance for exit + location repository via dynamic value
@@ -122,6 +126,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
     }
 
     return container
