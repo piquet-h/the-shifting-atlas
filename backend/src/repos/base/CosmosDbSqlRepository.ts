@@ -8,13 +8,7 @@
 
 import { CosmosClient, Container, Database, ItemResponse, FeedResponse, SqlParameter } from '@azure/cosmos'
 import { DefaultAzureCredential } from '@azure/identity'
-import {
-    CosmosException,
-    NotFoundException,
-    translateCosmosError,
-    ConcurrencyException,
-    RetryableException
-} from '@piquet-h/shared'
+import { translateCosmosError } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import { trackGameEventStrict } from '../../telemetry.js'
 
@@ -277,11 +271,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
      * @param maxResults - Maximum number of results
      * @returns Array of matching entities with total RU charge
      */
-    protected async query(
-        query: string,
-        parameters?: Array<SqlParameter>,
-        maxResults?: number
-    ): Promise<{ items: T[]; ruCharge: number }> {
+    protected async query(query: string, parameters?: Array<SqlParameter>, maxResults?: number): Promise<{ items: T[]; ruCharge: number }> {
         const operationName = `${this.containerName}.Query`
         const startTime = Date.now()
         let totalRU = 0
