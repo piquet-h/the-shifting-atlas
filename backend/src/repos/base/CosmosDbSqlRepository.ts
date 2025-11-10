@@ -4,49 +4,36 @@
  *
  * Purpose: Zero direct @azure/cosmos SDK calls outside repository layer.
  * All SQL API operations should extend this class.
+ *
+ * Pattern: Follows same dependency injection approach as CosmosGremlinRepository.
+ * Concrete repositories inject container name via constructor and receive CosmosClient from DI.
  */
 
-import { CosmosClient, Container, Database, ItemResponse, FeedResponse, SqlParameter } from '@azure/cosmos'
-import { DefaultAzureCredential } from '@azure/identity'
+import type { Container, ItemResponse, FeedResponse, SqlParameter } from '@azure/cosmos'
 import { translateCosmosError } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import { trackGameEventStrict } from '../../telemetry.js'
-
-/**
- * Configuration for Cosmos SQL client
- */
-export interface CosmosDbSqlConfig {
-    endpoint: string
-    database: string
-    container: string
-    useKeyVault?: boolean
-    key?: string
-}
+import type { ICosmosDbSqlClient } from './cosmosDbSqlClient.js'
 
 /**
  * Base repository for SQL API operations
  */
 @injectable()
 export abstract class CosmosDbSqlRepository<T extends { id: string }> {
-    protected client: CosmosClient
-    protected database: Database
     protected container: Container
     protected containerName: string
-    protected databaseName: string
 
-    constructor(config: CosmosDbSqlConfig) {
-        // Use Managed Identity (DefaultAzureCredential) for authentication unless key provided
-        if (config.key) {
-            this.client = new CosmosClient({ endpoint: config.endpoint, key: config.key })
-        } else {
-            const credential = new DefaultAzureCredential()
-            this.client = new CosmosClient({ endpoint: config.endpoint, aadCredentials: credential })
-        }
-
-        this.databaseName = config.database
-        this.containerName = config.container
-        this.database = this.client.database(config.database)
-        this.container = this.database.container(config.container)
+    /**
+     * Constructor receives SQL client via dependency injection (like GremlinClient pattern)
+     * @param client - Injected Cosmos SQL client
+     * @param containerName - Container name for this repository
+     */
+    constructor(
+        protected client: ICosmosDbSqlClient,
+        containerName: string
+    ) {
+        this.containerName = containerName
+        this.container = client.getContainer(containerName)
     }
 
     /**

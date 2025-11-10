@@ -78,12 +78,8 @@ export interface IPlayerSqlRepository {
 // backend/src/repos/playerSqlRepository.cosmos.ts
 @injectable()
 export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecord> implements IPlayerSqlRepository {
-    constructor(@inject('PersistenceConfig') config: IPersistenceConfig) {
-        super({
-            endpoint: config.cosmos.sqlEndpoint,
-            database: config.cosmos.sqlDatabase,
-            container: 'players'
-        })
+    constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient) {
+        super(client, 'players')  // Container name
     }
 
     async getById(id: string): Promise<PlayerRecord | null> {
@@ -108,6 +104,22 @@ export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecor
 ```typescript
 // backend/src/inversify.config.ts
 if (resolvedMode === 'cosmos') {
+    const persistenceConfig = container.get<IPersistenceConfig>('PersistenceConfig')
+    
+    // Register SQL client configuration
+    container
+        .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
+        .toConstantValue({
+            endpoint: persistenceConfig.cosmos.sqlEndpoint,
+            database: 'game'
+        })
+    
+    // Register SQL client (singleton)
+    container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient')
+        .to(CosmosDbSqlClient)
+        .inSingletonScope()
+    
+    // Register repository (singleton)
     container.bind<IPlayerSqlRepository>('IPlayerSqlRepository')
         .to(CosmosPlayerSqlRepository)
         .inSingletonScope()
@@ -150,6 +162,8 @@ export class MockSqlRepository<T extends { id: string }> {
     private items = new Map<string, T>()
     public telemetryEvents: Array<{ event: string; data: Record<string, unknown> }> = []
 
+    constructor(private containerName: string) {}
+
     async getById(id: string, partitionKey: string): Promise<T | null> {
         const key = `${partitionKey}:${id}`
         return this.items.get(key) || null
@@ -167,11 +181,7 @@ describe('Player Repository', () => {
     let repo: MockSqlRepository<PlayerRecord>
 
     beforeEach(() => {
-        repo = new MockSqlRepository({
-            endpoint: 'https://test.documents.azure.com',
-            database: 'testdb',
-            container: 'players'
-        })
+        repo = new MockSqlRepository('players')
     })
 
     test('should retrieve player by id', async () => {

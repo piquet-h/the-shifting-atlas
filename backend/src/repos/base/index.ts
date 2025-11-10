@@ -2,4 +2,5 @@
  * Base repository classes and utilities.
  */
 export { CosmosGremlinRepository } from './CosmosGremlinRepository.js'
-export { CosmosDbSqlRepository, type CosmosDbSqlConfig } from './CosmosDbSqlRepository.js'
+export { CosmosDbSqlRepository } from './CosmosDbSqlRepository.js'
+export { CosmosDbSqlClient, type ICosmosDbSqlClient, type CosmosDbSqlClientConfig } from './cosmosDbSqlClient.js'

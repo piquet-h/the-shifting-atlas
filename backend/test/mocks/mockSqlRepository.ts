@@ -3,7 +3,6 @@
  * Provides in-memory storage without requiring Azure credentials.
  */
 
-import { CosmosDbSqlConfig } from '../repos/base/CosmosDbSqlRepository.js'
 import { NotFoundException, ConcurrencyException } from '@piquet-h/shared'
 import { SqlParameter } from '@azure/cosmos'
 
@@ -12,11 +11,11 @@ import { SqlParameter } from '@azure/cosmos'
  */
 export class MockSqlRepository<T extends { id: string }> {
     private items = new Map<string, T>()
-    private config: CosmosDbSqlConfig
+    private containerName: string
     public telemetryEvents: Array<{ event: string; data: Record<string, unknown> }> = []
 
-    constructor(config: CosmosDbSqlConfig) {
-        this.config = config
+    constructor(containerName: string) {
+        this.containerName = containerName
     }
 
     /**
@@ -29,7 +28,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.GetById`,
+                operationName: `${this.containerName}.GetById`,
                 resultCount: item ? 1 : 0,
                 ruCharge: 1.0
             }
@@ -48,7 +47,7 @@ export class MockSqlRepository<T extends { id: string }> {
             this.telemetryEvents.push({
                 event: 'SQL.Query.Failed',
                 data: {
-                    operationName: `${this.config.container}.Create`,
+                    operationName: `${this.containerName}.Create`,
                     httpStatusCode: 409
                 }
             })
@@ -60,7 +59,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.Create`,
+                operationName: `${this.containerName}.Create`,
                 resultCount: 1,
                 ruCharge: 5.0
             }
@@ -79,7 +78,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.Upsert`,
+                operationName: `${this.containerName}.Upsert`,
                 resultCount: 1,
                 ruCharge: 5.5
             }
@@ -99,7 +98,7 @@ export class MockSqlRepository<T extends { id: string }> {
             this.telemetryEvents.push({
                 event: 'SQL.Query.Failed',
                 data: {
-                    operationName: `${this.config.container}.Replace`,
+                    operationName: `${this.containerName}.Replace`,
                     httpStatusCode: 404
                 }
             })
@@ -111,7 +110,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.Replace`,
+                operationName: `${this.containerName}.Replace`,
                 resultCount: 1,
                 ruCharge: 5.0
             }
@@ -134,7 +133,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.Delete`,
+                operationName: `${this.containerName}.Delete`,
                 resultCount: existed ? 1 : 0,
                 ruCharge: existed ? 5.0 : 0
             }
@@ -161,7 +160,7 @@ export class MockSqlRepository<T extends { id: string }> {
         this.telemetryEvents.push({
             event: 'SQL.Query.Executed',
             data: {
-                operationName: `${this.config.container}.Query`,
+                operationName: `${this.containerName}.Query`,
                 resultCount: results.length,
                 ruCharge: Math.max(1.0, results.length * 2.0)
             }

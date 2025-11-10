@@ -18,11 +18,7 @@ describe('CosmosDbSqlRepository Base Class', () => {
     let repo: MockSqlRepository<TestEntity>
 
     beforeEach(() => {
-        repo = new MockSqlRepository<TestEntity>({
-            endpoint: 'https://test.documents.azure.com:443/',
-            database: 'testdb',
-            container: 'testcontainer'
-        })
+        repo = new MockSqlRepository<TestEntity>('testcontainer')
     })
 
     describe('getById', () => {
