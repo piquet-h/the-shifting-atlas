@@ -11,6 +11,7 @@
 
 import type { Container } from 'inversify'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
+import type { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
@@ -65,6 +66,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getDescriptionRepository(): Promise<IDescriptionRepository> {
         const container = await this.getContainer()
         return container.get<IDescriptionRepository>('IDescriptionRepository')
+    }
+
+    /** Get InventoryRepository instance from DI container */
+    async getInventoryRepository(): Promise<IInventoryRepository> {
+        const container = await this.getContainer()
+        return container.get<IInventoryRepository>('IInventoryRepository')
     }
 
     /**

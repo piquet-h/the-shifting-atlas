@@ -21,6 +21,9 @@ import { CosmosDescriptionRepository } from './repos/descriptionRepository.cosmo
 import { IDescriptionRepository } from './repos/descriptionRepository.js'
 import { InMemoryDescriptionRepository } from './repos/descriptionRepository.memory.js'
 import { CosmosExitRepository, IExitRepository } from './repos/exitRepository.js'
+import { CosmosInventoryRepository } from './repos/inventoryRepository.cosmos.js'
+import { IInventoryRepository } from './repos/inventoryRepository.js'
+import { MemoryInventoryRepository } from './repos/inventoryRepository.memory.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository, InMemoryLocationRepository } from './repos/locationRepository.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from './repos/base/cosmosDbSqlClient.js'
@@ -106,6 +109,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
+        container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // Explicit bindings; share same instance for exit + location repository via dynamic value
@@ -116,6 +120,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
             .inSingletonScope()
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
+        container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
     }
 
     return container
