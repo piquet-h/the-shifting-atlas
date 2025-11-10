@@ -34,7 +34,13 @@
                         "columnMatch": "SuccessRate",
                         "formatter": 12,
                         "formatOptions": {
-                            "palette": "redGreen"
+                            "palette": "greenRed"
+                        },
+                        "numberFormat": {
+                            "unit": 1,
+                            "options": {
+                                "style": "decimal"
+                            }
                         }
                     },
                     "showBorder": true
