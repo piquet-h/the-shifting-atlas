@@ -73,6 +73,9 @@ export const GAME_EVENT_NAMES = [
     // Graph operations (Gremlin RU & latency tracking for ADR-002 partition thresholds)
     'Graph.Query.Executed',
     'Graph.Query.Failed',
+    // SQL API operations (Cosmos SQL API RU & latency tracking for dual persistence)
+    'SQL.Query.Executed',
+    'SQL.Query.Failed',
     // Security
     'Security.RateLimit.Exceeded',
     'Security.Validation.Failed',
