@@ -104,6 +104,16 @@ Use Appendix A checklist before committing: trigger chosen, validation, telemetr
 
 ### 0.12 When to Refactor vs Defer
 
+### 0.13 Workbook Parameter Rules (Dashboards)
+
+Before creating or modifying an Application Insights workbook:
+
+1. Mirror parameters in BOTH root `parameters[]` and any `KqlParameterItem` control (P1).
+2. Guard KQL against placeholder tokens (e.g. `{Param:escape}`) AND blank strings before parsing (P2).
+3. Provide deploy-time defaults for analytical thresholds (base %, offset) so workbook is immediately usable (P3).
+4. Include concise descriptions (calculation, unit) – no narrative – to reduce misconfiguration (P4).
+   If baseline missing → emit info banner + null metric (never fabricate 0%). Overlay series only when threshold breached. See `docs/architecture/workbook-parameter-guidelines.md`.
+
 Refactor only if directly enabling the goal OR reducing clear, measured complexity (≥20% LOC reduction or removal of duplication impacting change). Else, defer and note in Next Steps.
 
 ---

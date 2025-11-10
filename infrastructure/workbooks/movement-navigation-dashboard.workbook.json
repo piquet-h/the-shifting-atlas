@@ -34,7 +34,7 @@
                         "columnMatch": "SuccessRate",
                         "formatter": 12,
                         "formatOptions": {
-                            "palette": "greenRed"
+                            "palette": "redGreen"
                         }
                     },
                     "showBorder": true
@@ -85,7 +85,7 @@
                             "formatOptions": {
                                 "min": 0,
                                 "max": 100,
-                                "palette": "greenRed"
+                                "palette": "redGreen"
                             }
                         },
                         {
@@ -94,7 +94,7 @@
                             "formatOptions": {
                                 "min": 0,
                                 "max": 100,
-                                "palette": "redGreen"
+                                "palette": "greenRed"
                             }
                         }
                     ]

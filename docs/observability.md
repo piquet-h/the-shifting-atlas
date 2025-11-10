@@ -3,9 +3,10 @@
 Lean specification for game/domain telemetry. Focus: consistent event grammar + minimal dimension set. Historical migration notes & phased expansion tables removed to keep this doc stable and referenceable.
 
 **Related Documentation:**
-- [Telemetry Event Catalog](./observability/telemetry-catalog.md) — Complete event definitions and dimensions
-- [Alerts Catalog](./observability/alerts-catalog.md) — Azure Monitor alert configurations and response guidance
-- [Infrastructure README](../infrastructure/README.md) — Bicep deployment and parameters
+
+-   [Telemetry Event Catalog](./observability/telemetry-catalog.md) — Complete event definitions and dimensions
+-   [Alerts Catalog](./observability/alerts-catalog.md) — Azure Monitor alert configurations and response guidance
+-   [Infrastructure README](../infrastructure/README.md) — Bicep deployment and parameters
 
 ## Goals
 
@@ -100,16 +101,16 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 ### Approved Attribute Keys
 
-| Attribute Key                 | Purpose                                      | Example Value                          | Events                                   |
-| ----------------------------- | -------------------------------------------- | -------------------------------------- | ---------------------------------------- |
-| `game.player.id`              | Player GUID for identity correlation         | `9d2f...`                              | Navigation, Player, Auth events          |
-| `game.location.id`            | Location GUID (current or target)            | `a4d1c3f1-...`                         | Location, Navigation events              |
-| `game.location.from`          | Origin location ID for movement              | `a4d1c3f1-...`                         | Navigation.Move.Success/Blocked          |
-| `game.location.to`            | Destination location ID (when resolved)      | `b5e2d4g2-...`                         | Navigation.Move.Success                  |
-| `game.world.exit.direction`   | Movement direction (canonical)               | `north`, `south`, `east`, `west`       | Navigation.Move.Success/Blocked          |
-| `game.event.type`             | World event type for event processing        | `player.move`, `npc.action`            | World.Event.Processed/Duplicate          |
-| `game.event.actor.kind`       | Actor type (player, npc, system)             | `player`, `npc`, `system`              | World.Event.Processed                    |
-| `game.error.code`             | Domain error classification                  | `no-exit`, `from-missing`              | Navigation.Move.Blocked, error events    |
+| Attribute Key               | Purpose                                 | Example Value                    | Events                                |
+| --------------------------- | --------------------------------------- | -------------------------------- | ------------------------------------- |
+| `game.player.id`            | Player GUID for identity correlation    | `9d2f...`                        | Navigation, Player, Auth events       |
+| `game.location.id`          | Location GUID (current or target)       | `a4d1c3f1-...`                   | Location, Navigation events           |
+| `game.location.from`        | Origin location ID for movement         | `a4d1c3f1-...`                   | Navigation.Move.Success/Blocked       |
+| `game.location.to`          | Destination location ID (when resolved) | `b5e2d4g2-...`                   | Navigation.Move.Success               |
+| `game.world.exit.direction` | Movement direction (canonical)          | `north`, `south`, `east`, `west` | Navigation.Move.Success/Blocked       |
+| `game.event.type`           | World event type for event processing   | `player.move`, `npc.action`      | World.Event.Processed/Duplicate       |
+| `game.event.actor.kind`     | Actor type (player, npc, system)        | `player`, `npc`, `system`        | World.Event.Processed                 |
+| `game.error.code`           | Domain error classification             | `no-exit`, `from-missing`        | Navigation.Move.Blocked, error events |
 
 ### Attribute Naming Rules
 
@@ -121,10 +122,10 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 ### Usage Guidelines
 
-- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
-- **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
-- **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
-- **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.* attributes during transition.
+-   **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
+-   **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
+-   **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
+-   **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.\* attributes during transition.
 
 ### Implementation
 
@@ -377,8 +378,41 @@ Consolidated workbook for Gremlin operation RU consumption, latency percentiles,
     -   **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
     -   **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
     -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
-    -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
+-   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
 -   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
+
+#### Recent Enhancements (Nov 2025)
+
+| Area               | Enhancement                                   | Rationale                                     | Edge Case Handling                                        |
+| ------------------ | --------------------------------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| Partition Pressure | Dynamic thresholds (Base + Offset parameters) | Tune red threshold without redeploy           | Missing baseline → info banner; blank offset → default 10 |
+| Partition Pressure | High overlay series (`RUPercentHigh`)         | Visual salience for critical exceedances      | Null unless RU% > high threshold & baseline valid         |
+| Sustained Alerts   | Baseline guard + informative row              | Avoids misleading % when baseline unset       | Emits info row instead of empty result                    |
+| Parameters UX      | Tooltips + defaults for all threshold params  | Immediate usability & consistent onboarding   | Defaults applied automatically                            |
+| Reliability Table  | RU data quality banner (>30% missing)         | Prevents misinterpretation of RU/Call metrics | Switches AvgRU/RUPerCall to "n/a"                         |
+| Correlation Panel  | Sample-size suppression (<30)                 | Blocks statistically weak correlations        | Warning explains missing RU counts                        |
+| Percentiles        | Unified conditional color thresholds          | Consistent cross-panel visual grammar         | Stability notice for low volume                           |
+| Query Safety       | Defensive coalesce / null guards              | Keeps panels rendering under sparse data      | RU% null when baseline invalid                            |
+
+Principles Reinforced:
+
+1. Parameter-first adaptability (threshold tuning via workbook params, not code).
+2. Explicit informational states (baseline missing, sparse samples) instead of silent blanks.
+3. Layered signal design: primary series (RU%), overlay for critical breach, annotation for sustained conditions.
+4. Fail-soft queries (no divide-by-zero, null-safe arithmetic) preserving user trust.
+
+Recommended Future Iterations:
+
+-   Outlier filtering toggle for RU vs Latency (median × factor) when noise obscures trend.
+-   Optional amber overlay (`RUPercentBase`) mirroring high overlay pattern.
+-   Telemetry emission on parameter change (`Dashboard.Parameter.Changed`) for audit.
+-   Heuristic auto-suggestion of baseline from observed peak RU when unset.
+
+Closed Issues Backreferenced: #289 #290 #291 #296 (all folded improvements reflected here; future tuning notes should extend this subsection rather than duplicating rationale in new issues).
+
+##### Workbook Parameter Architecture Reference
+
+For technical implementation rules (dual parameter surfaces, placeholder guarding, deploy-time defaults, descriptive tooltips) see `architecture/workbook-parameter-guidelines.md`. Future panels must conform to P1–P4 principles before adding new metrics.
 
 #### Export Instructions
 
@@ -388,35 +422,35 @@ To export RU vs Latency Correlation panel queries and configuration for external
 
 1. Navigate to Application Insights → Logs
 2. Copy the correlation coefficient query from the workbook:
-   ```kusto
-   let timeRange = 2h;
-   let minSampleSize = 30;
-   let events = customEvents
-   | where timestamp > ago(timeRange)
-   | where name == 'Graph.Query.Executed'
-   | extend operationName = tostring(customDimensions.operationName),
-            latencyMs = todouble(customDimensions.latencyMs),
-            ruCharge = todouble(customDimensions.ruCharge)
-   | where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;
-   events
-   | summarize 
-       n = count(),
-       sumX = sum(ruCharge),
-       sumY = sum(latencyMs),
-       sumXY = sum(ruCharge * latencyMs),
-       sumX2 = sum(ruCharge * ruCharge),
-       sumY2 = sum(latencyMs * latencyMs)
-     by operationName
-   | extend 
-       numerator = (n * sumXY) - (sumX * sumY),
-       denomX = sqrt((n * sumX2) - (sumX * sumX)),
-       denomY = sqrt((n * sumY2) - (sumY * sumY))
-   | extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))
-   | extend correlation = round(correlation, 3)
-   | project operationName, correlation, SampleSize = n
-   | where SampleSize >= minSampleSize
-   | order by correlation desc
-   ```
+    ```kusto
+    let timeRange = 2h;
+    let minSampleSize = 30;
+    let events = customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Graph.Query.Executed'
+    | extend operationName = tostring(customDimensions.operationName),
+             latencyMs = todouble(customDimensions.latencyMs),
+             ruCharge = todouble(customDimensions.ruCharge)
+    | where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;
+    events
+    | summarize
+        n = count(),
+        sumX = sum(ruCharge),
+        sumY = sum(latencyMs),
+        sumXY = sum(ruCharge * latencyMs),
+        sumX2 = sum(ruCharge * ruCharge),
+        sumY2 = sum(latencyMs * latencyMs)
+      by operationName
+    | extend
+        numerator = (n * sumXY) - (sumX * sumY),
+        denomX = sqrt((n * sumX2) - (sumX * sumX)),
+        denomY = sqrt((n * sumY2) - (sumY * sumY))
+    | extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))
+    | extend correlation = round(correlation, 3)
+    | project operationName, correlation, SampleSize = n
+    | where SampleSize >= minSampleSize
+    | order by correlation desc
+    ```
 3. Export results via "Export to CSV" or "Export to Excel" buttons
 4. For scatter plot data, use the scatter query (replace timeRange as needed)
 
@@ -442,6 +476,7 @@ az resource show \
 **Data Export for Analysis Tools:**
 
 For external correlation analysis (R, Python, Excel):
+
 1. Run scatter plot query with extended timeRange (e.g., 24h or 7d)
 2. Remove `| take 1000` limit if full dataset needed
 3. Export to CSV
@@ -457,35 +492,35 @@ To export Partition Pressure Trend data and queries for capacity planning:
 
 1. Navigate to Application Insights → Logs
 2. Copy the partition pressure query from the workbook:
-   ```kusto
-   let timeRange = 24h;
-   let bucketSize = 5m;
-   let maxRuPerInterval = 300000.0; // Replace with your MAX_RU_PER_INTERVAL value
-   let ruEvents = customEvents
-   | where timestamp > ago(timeRange)
-   | where name == 'Graph.Query.Executed'
-   | extend ruCharge = todouble(customDimensions.ruCharge)
-   | where isnotnull(ruCharge);
-   let failures = customEvents
-   | where timestamp > ago(timeRange)
-   | where name == 'Graph.Query.Failed'
-   | extend statusCode = toint(customDimensions.statusCode)
-   | where statusCode == 429;
-   let allBuckets = range timestamp from ago(timeRange) to now() step bucketSize
-   | project bucket = bin(timestamp, bucketSize);
-   let ruByBucket = ruEvents
-   | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);
-   let throttleByBucket = failures
-   | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);
-   allBuckets
-   | join kind=leftouter ruByBucket on bucket
-   | join kind=leftouter throttleByBucket on bucket
-   | extend TotalRU = coalesce(TotalRU, 0.0),
-            ThrottleCount = coalesce(ThrottleCount, 0),
-            RUPercent = round(100.0 * coalesce(TotalRU, 0.0) / maxRuPerInterval, 2)
-   | project timestamp = bucket, RUPercent, ThrottleCount, TotalRU
-   | order by timestamp asc
-   ```
+    ```kusto
+    let timeRange = 24h;
+    let bucketSize = 5m;
+    let maxRuPerInterval = 300000.0; // Replace with your MAX_RU_PER_INTERVAL value
+    let ruEvents = customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Graph.Query.Executed'
+    | extend ruCharge = todouble(customDimensions.ruCharge)
+    | where isnotnull(ruCharge);
+    let failures = customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Graph.Query.Failed'
+    | extend statusCode = toint(customDimensions.statusCode)
+    | where statusCode == 429;
+    let allBuckets = range timestamp from ago(timeRange) to now() step bucketSize
+    | project bucket = bin(timestamp, bucketSize);
+    let ruByBucket = ruEvents
+    | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);
+    let throttleByBucket = failures
+    | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);
+    allBuckets
+    | join kind=leftouter ruByBucket on bucket
+    | join kind=leftouter throttleByBucket on bucket
+    | extend TotalRU = coalesce(TotalRU, 0.0),
+             ThrottleCount = coalesce(ThrottleCount, 0),
+             RUPercent = round(100.0 * coalesce(TotalRU, 0.0) / maxRuPerInterval, 2)
+    | project timestamp = bucket, RUPercent, ThrottleCount, TotalRU
+    | order by timestamp asc
+    ```
 3. Export to CSV for historical trend analysis
 4. Adjust `timeRange` for longer analysis periods (7d, 30d)
 
@@ -515,9 +550,9 @@ pressureData
 | serialize rn = row_number()
 | extend prevIsHigh1 = prev(IsHigh, 1), prevIsHigh2 = prev(IsHigh, 2)
 | where IsHigh and prevIsHigh1 and prevIsHigh2
-| summarize 
-    StartTime = min(timestamp), 
-    EndTime = max(timestamp), 
+| summarize
+    StartTime = min(timestamp),
+    EndTime = max(timestamp),
     ConsecutiveIntervals = count(),
     MaxRU = max(RUPercent),
     AvgRU = round(avg(RUPercent), 1)
@@ -526,16 +561,16 @@ pressureData
 
 **Configuration Notes:**
 
-- `MAX_RU_PER_INTERVAL` = Provisioned RU/s × bucket size in seconds
-- Example: 1000 RU/s × 300 seconds = 300,000
-- For auto-scale accounts, use maximum RU/s
-- Adjust `bucketSize` for different granularities (1m, 5m, 15m)
+-   `MAX_RU_PER_INTERVAL` = Provisioned RU/s × bucket size in seconds
+-   Example: 1000 RU/s × 300 seconds = 300,000
+-   For auto-scale accounts, use maximum RU/s
+-   Adjust `bucketSize` for different granularities (1m, 5m, 15m)
 
 **Edge Cases Verified:**
 
-- Zero RU intervals: Display as 0% (no divide-by-zero errors)
-- Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
-- Missing baseline: Chart displays with null RU% and configuration banner shown
+-   Zero RU intervals: Display as 0% (no divide-by-zero errors)
+-   Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
+-   Missing baseline: Chart displays with null RU% and configuration banner shown
 
 ##### Operation Success/Failure Rate & RU Cost Table Export
 
@@ -545,42 +580,42 @@ To export reliability and cost efficiency data for operational review:
 
 1. Navigate to Application Insights → Logs
 2. Copy the reliability table query from the workbook:
-   ```kusto
-   let timeRange = 24h;
-   let minCalls = 10;
-   let successEvents = customEvents
-   | where timestamp > ago(timeRange)
-   | where name == 'Graph.Query.Executed'
-   | extend operationName = tostring(customDimensions.operationName),
-            ruCharge = todouble(customDimensions.ruCharge),
-            latencyMs = todouble(customDimensions.latencyMs)
-   | where isnotempty(operationName);
-   let failureEvents = customEvents
-   | where timestamp > ago(timeRange)
-   | where name == 'Graph.Query.Failed'
-   | extend operationName = tostring(customDimensions.operationName)
-   | where isnotempty(operationName);
-   let successAgg = successEvents
-   | summarize 
-       SuccessCalls = count(),
-       TotalRU = sum(ruCharge),
-       MissingRU = countif(isnull(ruCharge)),
-       P95Latency = percentile(latencyMs, 95)
-     by operationName;
-   let failureAgg = failureEvents
-   | summarize FailedCalls = count() by operationName;
-   successAgg
-   | join kind=leftouter failureAgg on operationName
-   | extend FailedCalls = coalesce(FailedCalls, 0)
-   | extend TotalCalls = SuccessCalls + FailedCalls
-   | extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)
-   | extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)
-   | extend AvgRU = round(AvgRUSuccess, 2)
-   | extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)
-   | extend Category = iff(TotalCalls < minCalls, "Low Volume", "Normal")
-   | project operationName, SuccessCalls, FailedCalls, FailureRate, AvgRU, RUPerCall, P95Latency = round(P95Latency, 0), Category
-   | order by TotalCalls = SuccessCalls + FailedCalls desc
-   ```
+    ```kusto
+    let timeRange = 24h;
+    let minCalls = 10;
+    let successEvents = customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Graph.Query.Executed'
+    | extend operationName = tostring(customDimensions.operationName),
+             ruCharge = todouble(customDimensions.ruCharge),
+             latencyMs = todouble(customDimensions.latencyMs)
+    | where isnotempty(operationName);
+    let failureEvents = customEvents
+    | where timestamp > ago(timeRange)
+    | where name == 'Graph.Query.Failed'
+    | extend operationName = tostring(customDimensions.operationName)
+    | where isnotempty(operationName);
+    let successAgg = successEvents
+    | summarize
+        SuccessCalls = count(),
+        TotalRU = sum(ruCharge),
+        MissingRU = countif(isnull(ruCharge)),
+        P95Latency = percentile(latencyMs, 95)
+      by operationName;
+    let failureAgg = failureEvents
+    | summarize FailedCalls = count() by operationName;
+    successAgg
+    | join kind=leftouter failureAgg on operationName
+    | extend FailedCalls = coalesce(FailedCalls, 0)
+    | extend TotalCalls = SuccessCalls + FailedCalls
+    | extend FailureRate = round(100.0 * FailedCalls / TotalCalls, 2)
+    | extend AvgRUSuccess = iff(MissingRU > 0.3 * SuccessCalls, 0.0, TotalRU / SuccessCalls)
+    | extend AvgRU = round(AvgRUSuccess, 2)
+    | extend RUPerCall = iff(AvgRUSuccess > 0, round(AvgRUSuccess, 2), 0.0)
+    | extend Category = iff(TotalCalls < minCalls, "Low Volume", "Normal")
+    | project operationName, SuccessCalls, FailedCalls, FailureRate, AvgRU, RUPerCall, P95Latency = round(P95Latency, 0), Category
+    | order by TotalCalls = SuccessCalls + FailedCalls desc
+    ```
 3. Export results via "Export to CSV" or "Export to Excel" buttons
 4. Adjust `timeRange` for historical analysis (7d, 30d)
 
@@ -643,10 +678,10 @@ datatable(Metric:string, Value:string) [
 
 **Edge Cases Verified:**
 
-- All success (0% failure): RU metrics displayed normally
-- Missing RU >30%: "n/a" shown for AvgRU and RU/Call columns; warning banner displayed
-- Single failure in many successes: No amber if <2% threshold
-- Low volume operations (<10 calls): Listed in "Low Volume" category, not excluded
+-   All success (0% failure): RU metrics displayed normally
+-   Missing RU >30%: "n/a" shown for AvgRU and RU/Call columns; warning banner displayed
+-   Single failure in many successes: No amber if <2% threshold
+-   Low volume operations (<10 calls): Listed in "Low Volume" category, not excluded
 
 #### Future Enhancements
 
@@ -654,16 +689,16 @@ datatable(Metric:string, Value:string) [
 
 The RU vs Latency Correlation panel currently displays all data points without outlier filtering. A future enhancement could add an optional outlier removal toggle to help identify core patterns:
 
-- **Concept**: Filter out RU values exceeding `median_RU × OUTLIER_FACTOR` (e.g., OUTLIER_FACTOR = 3.0)
-- **Implementation approach**: Add workbook parameter for OUTLIER_FACTOR with default value and checkbox toggle
-- **Query modification**: 
-  ```kusto
-  let medianRU = toscalar(events | summarize percentile(ruCharge, 50));
-  let outlierThreshold = medianRU * outlierFactor;
-  events | where ruCharge <= outlierThreshold
-  ```
-- **Use case**: Focus correlation analysis on typical operations when occasional extreme RU spikes obscure patterns
-- **Tradeoff**: May hide legitimate high-cost operations that contribute to partition pressure
+-   **Concept**: Filter out RU values exceeding `median_RU × OUTLIER_FACTOR` (e.g., OUTLIER_FACTOR = 3.0)
+-   **Implementation approach**: Add workbook parameter for OUTLIER_FACTOR with default value and checkbox toggle
+-   **Query modification**:
+    ```kusto
+    let medianRU = toscalar(events | summarize percentile(ruCharge, 50));
+    let outlierThreshold = medianRU * outlierFactor;
+    events | where ruCharge <= outlierThreshold
+    ```
+-   **Use case**: Focus correlation analysis on typical operations when occasional extreme RU spikes obscure patterns
+-   **Tradeoff**: May hide legitimate high-cost operations that contribute to partition pressure
 
 This enhancement is **not required** for initial implementation (issue #290). Document as optional feature for future iteration if scatter plots show significant outlier noise affecting interpretation.
 
@@ -764,7 +799,7 @@ union customEvents, requests, dependencies
     ""
 )
 | where correlationId == eventCorrelationId
-| project timestamp, 
+| project timestamp,
          itemType = iff(itemType == "", "customEvent", itemType),
          name,
          correlationId,
@@ -823,7 +858,7 @@ requests
 | where timestamp > ago(1h)
 | join kind=inner eventsWithOp on $left.operation_Id == $right.operationId
 | extend latencyMs = datetime_diff('millisecond', eventTimestamp, timestamp)
-| summarize 
+| summarize
     count = count(),
     p50 = percentile(latencyMs, 50),
     p95 = percentile(latencyMs, 95),
@@ -832,18 +867,17 @@ requests
 | order by p95 desc
 ```
 
-
 ### Internal Timing Events
 
 `Timing.Op` is an internal helper event emitted by the timing utility (Issue #353) for ad-hoc latency measurement without spans. Properties:
 
-| Key            | Description                                  | Required |
-| -------------- | -------------------------------------------- | -------- |
-| `op`           | Operation label (developer set)              | Yes      |
-| `ms`           | Elapsed time in milliseconds                 | Yes      |
-| `category`     | Operation category (e.g., 'repository')      | No       |
-| `error`        | Boolean flag when operation threw error      | No       |
-| `correlationId`| Auto-generated or provided correlation ID    | Yes      |
+| Key             | Description                               | Required |
+| --------------- | ----------------------------------------- | -------- |
+| `op`            | Operation label (developer set)           | Yes      |
+| `ms`            | Elapsed time in milliseconds              | Yes      |
+| `category`      | Operation category (e.g., 'repository')   | No       |
+| `error`         | Boolean flag when operation threw error   | No       |
+| `correlationId` | Auto-generated or provided correlation ID | Yes      |
 
 #### Usage Pattern (withTiming API)
 
@@ -858,19 +892,14 @@ const result = await withTiming('PlayerRepository.get', async () => {
 })
 
 // With category and correlation
-const result = await withTiming(
-    'PlayerRepository.get',
-    () => playerRepo.get(id),
-    { category: 'repository', correlationId: req.correlationId }
-)
+const result = await withTiming('PlayerRepository.get', () => playerRepo.get(id), {
+    category: 'repository',
+    correlationId: req.correlationId
+})
 
 // With error tracking (error flag set, exception re-thrown)
 try {
-    await withTiming(
-        'RiskyOperation',
-        () => riskyCall(),
-        { includeErrorFlag: true }
-    )
+    await withTiming('RiskyOperation', () => riskyCall(), { includeErrorFlag: true })
 } catch (err) {
     // Error was tracked with error: true flag before re-throw
     handleError(err)
