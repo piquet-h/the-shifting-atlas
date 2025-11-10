@@ -23,7 +23,9 @@ import { InMemoryDescriptionRepository } from './repos/descriptionRepository.mem
 import { CosmosExitRepository, IExitRepository } from './repos/exitRepository.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository, InMemoryLocationRepository } from './repos/locationRepository.js'
+import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from './repos/base/cosmosDbSqlClient.js'
 import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
+import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
@@ -81,9 +83,28 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
             .toConstantValue({ endpoint: gremlinEndpoint, database: gremlinDatabase, graph: gremlinGraph })
         container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
 
+        // Cosmos SQL API client configuration (dual persistence)
+        const sqlEndpoint = persistenceConfig.cosmosSql?.endpoint?.trim() || ''
+        const sqlDatabase = persistenceConfig.cosmosSql?.database || ''
+        if (sqlEndpoint && sqlDatabase) {
+            container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({ endpoint: sqlEndpoint, database: sqlDatabase })
+            container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+
+            // Bind Gremlin player repository as fallback for migration period
+            container.bind<IPlayerRepository>('IPlayerRepository:Gremlin').to(CosmosPlayerRepository).inSingletonScope()
+
+            // Bind SQL player repository as primary
+            container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
+        } else {
+            console.warn(
+                'Cosmos SQL API configuration incomplete (endpoint|database). Player repository will use Gremlin only. Verify COSMOS_SQL_* variables.'
+            )
+            // Fall back to Gremlin-only player repository
+            container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepository).inSingletonScope()
+        }
+
         container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
-        container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
