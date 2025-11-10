@@ -4,7 +4,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { reconcile } from '../../scripts/reconcile-world.ts'
 import { setupContainer } from '../../src/inversify.config.js'
-import { ILocationRepository, InMemoryLocationRepository } from '../../src/repos/locationRepository.js'
+import { ILocationRepository } from '../../src/repos/locationRepository.js'
+import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 
 test('reconcileWorld: removes obsolete exit (direction)', async () => {

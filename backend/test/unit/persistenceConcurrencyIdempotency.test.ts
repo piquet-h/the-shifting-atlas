@@ -18,7 +18,7 @@
 import { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { InMemoryLocationRepository } from '../../src/repos/locationRepository.js'
+import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
 
 describe('Persistence Concurrency Idempotency', () => {
     /**

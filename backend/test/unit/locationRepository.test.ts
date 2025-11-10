@@ -3,7 +3,7 @@ import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
-import { InMemoryLocationRepository } from '../../src/repos/locationRepository.js'
+import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
 
 describe('Location Repository', () => {
     // Mock GremlinClient for unit testing CosmosLocationRepository

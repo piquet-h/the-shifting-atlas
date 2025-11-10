@@ -137,4 +137,13 @@ export class MockLocationRepository implements ILocationRepository {
 
         location.exitsSummaryCache = generateExitsSummary(exits)
     }
+
+    async listAll(): Promise<Location[]> {
+        return Array.from(this.mockLocations.values())
+    }
+
+    async deleteLocation(id: string): Promise<{ deleted: boolean }> {
+        const existed = this.mockLocations.delete(id)
+        return { deleted: existed }
+    }
 }

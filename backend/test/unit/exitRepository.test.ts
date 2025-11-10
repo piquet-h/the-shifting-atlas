@@ -4,7 +4,7 @@ import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import type { IGremlinClient } from '../../src/gremlin/index.js'
 import { CosmosExitRepository, sortExits } from '../../src/repos/exitRepository.js'
-import { InMemoryLocationRepository } from '../../src/repos/locationRepository.js'
+import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
 
 type ExitData = { direction: string; toLocationId: string; description?: string; kind?: string; state?: string }
 
