@@ -1,33 +1,40 @@
 # M2 Data Foundations – Implementation Plan
 
-> **Status:** 38/50 (76%) | Telemetry ✅ Dual Persistence 🔨 | Critical Path: #408→#404-407→#409 | Updated 2025-11-09
+> **Status:** 39/50 (78%) | Telemetry ✅ Dual Persistence 🔨 | Critical Path: #408→#404-407→#409→#410 | Updated 2025-11-10
 
 ## Active Work
 
-**CRITICAL PATH: Dual Persistence Implementation** (0/9 complete, blocks M3)
+**CRITICAL PATH: Dual Persistence Implementation** (0/7 core, blocks M3)
 
--   📋 FOUNDATION: #408 SQL API Repository Abstraction (prerequisite for all below)
--   📋 PERSISTENCE: #404 Player State, #405 Inventory, #406 Description Layers, #407 World Events Timeline
--   📋 MIGRATION: #410 Data Migration Script (Gremlin → SQL)
--   📋 VALIDATION: #409 Integration Tests
--   📋 DOCS: #403 Architecture docs, #412 ADR updates
+**Dependency Chain:** #408 → (#404, #405, #406, #407) → #410 → #409
 
-**Telemetry & Observability:** ✅ COMPLETE (38/38)
+-   📋 **FOUNDATION (start here):** #408 SQL API Repository Abstraction
+-   📋 **PERSISTENCE (parallel after #408):** #404 Player State, #405 Inventory, #406 Description Layers, #407 World Events Timeline **[BLOCKS M3]**
+-   📋 **MIGRATION (after persistence):** #410 Data Migration Script (Gremlin → SQL backfill)
+-   📋 **VALIDATION (after migration):** #409 Integration Tests
+-   📋 **INFRASTRUCTURE:** #411 Partition Monitoring, #412 Documentation
+
+**Telemetry & Observability:** ✅ COMPLETE (39/39)
 
 -   Phase 1 (Foundation): #10, #11, #41, #79, #311, #312, #315, #316 ✅
 -   Phase 2 (AI Cost): #50, #299-309 ✅
 -   Phase 3 (Dashboards/Alerts): #283, #289-298 ✅
+-   Infrastructure: #403 Architecture docs ✅
 -   Duplicates closed: #395-397 (duplicates of #154-156 in M5) ✅
 
-**Integrity Foundation:** (3/3 complete)
+**Integrity Foundation:** ✅ COMPLETE (3/3)
 
 -   #69 Epic (umbrella) ✅
 -   #152 Description telemetry events ✅
 -   #153 Integrity hash computation ✅
 
-**Remaining M2 Scope:** (0 non-blocking issues — all deferred to M5)
+**Remaining M2 Scope:** 11 issues (9 dual persistence + 2 epic trackers)
 
-**Moved to M3:** #258 (handlers), #313 (queue correlation), #314 (error normalization), #317 (frontend correlation)
+-   **Core Path:** #408, #404-407, #410, #409 (7 issues)
+-   **Infrastructure:** #411, #412 (2 issues)
+-   **Epic Trackers:** #69, #310 (2 issues - umbrella only)
+
+**Moved to M3:** #258 (handlers), #313 (queue correlation), #314 (error normalization), #317 (frontend correlation)  
 **Moved to M5:** #154-156 (integrity cache/simulation/alerting), #284-286 (telemetry docs/deprecation), #256 (relative direction), #318 (event naming), #347 (account security), #393 (humor telemetry)
 **Telemetry & Observability:** ✅ COMPLETE (38/38)
 
@@ -133,21 +140,33 @@ These clusters were originally listed in M2 implementation plan but belong to M3
 
 ---
 
-## Decisions Needed
+## Implementation Sequence (Dependency-Driven)
 
--   **Dual Persistence Sequencing**: Start with #408 (abstraction layer) before container-specific implementations
--   **Migration Strategy**: Determine if #410 (data migration) runs before or after container implementations (#404-407)
--   **Testing Approach**: Integration tests (#409) should cover both Gremlin + SQL consistency
+**Phase 1 - Foundation (1 issue):**
+
+1. #408 SQL API Repository Abstraction Layer ← **START HERE**
+
+**Phase 2 - Container Implementations (4 issues, parallel after #408):** 2. #404 Player State Migration (PK: `/id`) 3. #405 Inventory Persistence (PK: `/playerId`) 4. #406 Description Layers Storage (PK: `/locationId`) 5. #407 World Events Timeline (PK: `/scopeKey`) ← **BLOCKS M3**
+
+**Phase 3 - Data Migration (1 issue, after Phase 2):** 6. #410 Data Migration Script (backfill Gremlin → SQL)
+
+**Phase 4 - Validation (1 issue, after Phase 3):** 7. #409 Dual Persistence Integration Tests (Gremlin + SQL consistency)
+
+**Phase 5 - Infrastructure (2 issues, can parallel with Phase 2-4):**
+
+-   #411 Partition Key Strategy Validation & Monitoring
+-   #412 Dual Persistence Documentation Update
 
 ---
 
 ## Risk Flags
 
--   **Critical Path Blocked**: M3 Core Loop cannot start until #407 (World Events Timeline) complete
--   **Zero Progress**: Dual persistence cluster (9 issues) has no completed items
--   **Focused Scope**: All non-blocking issues (#256, #318, #347, #393) deferred to M5 to accelerate dual persistence
--   **Estimate Drift**: Original 4-6 week M2 estimate may be optimistic given 0/9 progress on core work
--   **Dependency Uncertainty**: #410 migration script may reveal schema issues requiring rework
+-   **M3 Blocker**: M3 Core Loop cannot start until #407 (World Events Timeline) complete
+-   **Zero Progress**: Dual persistence cluster (7 core issues) has no completed items
+-   **Focused Scope**: All non-blocking work deferred to M5; M2 is 100% dual persistence
+-   **Sequential Dependencies**: #408 must complete before #404-407 can start
+-   **Migration Risk**: #410 script may reveal schema issues requiring container rework
+-   **Estimate**: Remaining 7 core issues ≈ 3-4 weeks (1 foundation + 4 containers + 1 migration + 1 tests)
 
 ---
 
@@ -158,26 +177,27 @@ These clusters were originally listed in M2 implementation plan but belong to M3
 
 ---
 
-**Complete (38/50):** #10, #11, #33, #41, #50, #69, #71, #79, #108, #111, #152, #153, #228-233, #257, #290, #296-309, #311-312, #315-316, #395-397 (duplicates)  
-**Next Critical Path:** #408 (SQL abstraction) → #404-407 (container implementations) → #409 (tests) → #410 (migration)  
-**Remaining:** 12 issues total, 9 dual persistence + 3 infrastructure/docs (#403, #411, #412)
+**Complete (39/50):** #10, #11, #33, #41, #50, #69, #71, #79, #108, #111, #152, #153, #228-233, #257, #290, #296-309, #311-312, #315-316, #395-397 (duplicates), #403 (docs)  
+**Critical Path:** #408 → (#404-407 parallel) → #410 → #409 | Infrastructure: #411, #412  
+**Remaining:** 11 issues (7 core path + 2 infrastructure + 2 epic trackers)
 
 ---
 
 ## Total M2 Scope
 
 **GitHub Milestone:** 50 issues total (4 deferred to M5 for focus)  
-**Status:** 38 closed ✅, 12 open 🔨  
-**Completion:** 76% (38/50)
+**Status:** 39 closed ✅, 11 open 🔨  
+**Completion:** 78% (39/50)
 
 **Phase Breakdown:**
 
--   Phase 1 (Telemetry Foundation): 11/11 ✅
--   Phase 2 (AI Cost): 10/10 ✅
--   Phase 3 (Dashboards/Alerts): 14/14 ✅
--   Phase 4 (Dual Persistence): 0/9 🔨 **CRITICAL PATH**
--   Phase 5 (Integrity Foundation): 3/3 ✅
--   Phase 6 (Miscellaneous): 0/4 → **ALL DEFERRED TO M5**
+-   Telemetry Foundation: 11/11 ✅
+-   AI Cost: 10/10 ✅
+-   Dashboards/Alerts: 14/14 ✅
+-   Integrity Foundation: 3/3 ✅
+-   Infrastructure: 1/3 (closed: #403; remaining: #411, #412)
+-   **Dual Persistence: 0/7 🔨 CRITICAL PATH**
+-   Miscellaneous: 0/4 → **ALL DEFERRED TO M5**
 
 **Issues Reassigned:**
 

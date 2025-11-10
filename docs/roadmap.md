@@ -8,7 +8,7 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 | ----------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **M0 Foundation** ✅    | Prove deploy + minimal loop viability      | Ping, guest GUID bootstrap, telemetry scaffold                                          | **CLOSED** 2025-10-19              | Player gets GUID & receives ping consistently                                                       |
 | **M1 Traversal** ✅     | Persistent movement across locations       | Location persistence, exit model, move/look commands, direction normalization           | **CLOSED** 2025-10-30              | Player can move across ≥3 persisted locations; telemetry for move success/failure                   |
-| **M2 Data Foundations** | Dual persistence + telemetry modernization | SQL API containers, dual persistence implementation, telemetry consolidation            | **50 issues** (38 closed, 12 open) | All mutable data in SQL API; telemetry events enriched with correlation; migration script validated |
+| **M2 Data Foundations** | Dual persistence + telemetry modernization | SQL API containers, dual persistence implementation, telemetry consolidation            | **50 issues** (39 closed, 11 open) | All mutable data in SQL API; telemetry events enriched with correlation; migration script validated |
 | **M3 Core Loop**        | Event processing + player UI               | World event processing, frontend game view, command input, navigation UI                | **20 issues** (0 closed, 20 open)  | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces         |
 | **M4 AI Read**          | Safe advisory AI context only              | MCP servers (world-query, prompt-template), prompt registry, intent parser foundations  | **10 issues** (0 closed, 10 open)  | AI can query world state via MCP; prompts versioned & hashed; intent parser handles basic commands  |
 | **M5 Quality & Depth**  | Content enrichment + observability         | Description layering engine, layer validation, dashboards, alerts, integrity monitoring | **30 issues** (5 closed, 25 open)  | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                   |
@@ -80,7 +80,7 @@ graph TD
 
 ## M2 Data Foundations (Current Focus)
 
-**Status**: 50 issues (38 closed, 12 open) — 76% complete  
+**Status**: 50 issues (39 closed, 11 open) — 78% complete  
 **Goal**: Implement dual persistence (Cosmos SQL API + Gremlin) and modernize telemetry infrastructure  
 **Dependencies**: M1 Traversal (CLOSED)  
 **Blocks**: M3 Core Loop (#407 World Events Timeline), M5 Dashboards (telemetry complete)  
@@ -88,18 +88,29 @@ graph TD
 
 ### Critical Path Issues
 
-**Cluster A: Dual Persistence Implementation** (12 issues) 🔨 **IN PROGRESS (0/9 core + 3 infrastructure)**
+**Cluster A: Dual Persistence Implementation** (11 issues) 🔨 **IN PROGRESS (0/7 core + 2 infrastructure + 2 epics)**
 
--   #408 SQL API Repository Abstraction Layer → Foundation for all SQL operations
--   #404 Player State Migration to SQL API → PK: `/id`
--   #405 Inventory Persistence SQL API → PK: `/playerId`
--   #406 Description Layers Storage SQL API → PK: `/locationId`
--   #407 World Events Timeline SQL API → PK: `/scopeKey` pattern **[BLOCKS M3]**
--   #410 Data Migration Script (Gremlin → SQL) → Backfill existing player/location data
--   #409 Dual Persistence Integration Tests → Validate Gremlin + SQL consistency
--   #403 World Event Documentation → Architecture docs
+**Core Path (7 issues, dependency-driven sequence):**
+
+1. #408 SQL API Repository Abstraction Layer → **START HERE** (foundation)
+2. #404 Player State Migration to SQL API → PK: `/id`
+3. #405 Inventory Persistence SQL API → PK: `/playerId`
+4. #406 Description Layers Storage SQL API → PK: `/locationId`
+5. #407 World Events Timeline SQL API → PK: `/scopeKey` **[BLOCKS M3]**
+6. #410 Data Migration Script (Gremlin → SQL) → After container implementations
+7. #409 Dual Persistence Integration Tests → After migration
+
+**Infrastructure (2 issues, can parallel with core):**
+
 -   #411 Partition Key Strategy Validation & Monitoring
 -   #412 Dual Persistence Documentation → Container schemas, ADR updates
+
+**Epic Trackers (2 issues, umbrella only):**
+
+-   #69 Epic: Description Telemetry & Integrity Monitoring
+-   #310 Epic: Telemetry Consolidation & Event Enrichment
+
+**Completed:** #403 ✅ World Event Documentation (closed 2025-11-10)
 
 **Cluster B: Telemetry Consolidation** (11 issues) ✅ **COMPLETE (11/11)**
 
@@ -149,12 +160,22 @@ graph TD
 ### Dependency Chains
 
 ```
-#408 (Abstraction) ──> #404, #405, #406, #407 (Persistence) ──> #410 (Migration) ──> #409 (Tests) ──> #403, #411, #412 (Docs)
+#408 (Abstraction) ──> #404, #405, #406, #407 (Containers, parallel) ──> #410 (Migration) ──> #409 (Tests)
                                                    │
                                                    └──> M3 #101 (Event Schema) [BLOCKED until #407]
 
+Infrastructure (parallel with above): #411 (Partition Monitoring), #412 (Documentation)
+
 #10-#316 (Telemetry Complete) ──> M3 #313, #314, #317 (Queue/Error/Frontend) ──> M3 #422 (Frontend Telemetry)
 ```
+
+**Sequencing Rationale:**
+
+-   #408 must complete first (foundation layer for all containers)
+-   #404-407 can proceed in parallel once #408 is done
+-   #410 migration requires containers to exist
+-   #409 tests validate both Gremlin + SQL consistency after migration
+-   #411-412 can proceed in parallel with core work
 
 ### Exit Criteria
 
@@ -172,13 +193,20 @@ graph TD
 
 ### Current Status Summary
 
--   **Complete**: Clusters B (Telemetry), C (AI Cost), D (Dashboards), E (Integrity) — 38 issues ✅
--   **In Progress**: Cluster A (Dual Persistence) — 0/12 started 🔨 (9 core + 3 infrastructure/docs)
+-   **Complete**: Clusters B (Telemetry), C (AI Cost), D (Dashboards), E (Integrity) — 39 issues ✅
+-   **In Progress**: Cluster A (Dual Persistence) — 0/7 core started 🔨
+-   **Infrastructure**: 1/3 complete (#403 ✅; remaining: #411, #412)
 -   **Deferred to M5**: 4 non-blocking issues (#256, #318, #347, #393) to focus on critical path
 -   **Reassigned**: 7 issues moved to M3/M5 for proper sequencing
 -   **Duplicates**: #395-397 closed ✅
 
 **M2 Now Focused Entirely on Dual Persistence Critical Path**
+
+**Estimated Time to Complete:** 3-4 weeks
+
+-   Week 1: #408 (abstraction layer)
+-   Week 2-3: #404-407 (containers, parallel), #410 (migration)
+-   Week 4: #409 (tests), #411-412 (infrastructure/docs)
 
 ---
 
@@ -448,4 +476,4 @@ Use GitHub REST API to manage milestone assignments and issue dependencies (MCP 
 
 ---
 
-**Last updated**: 2025-11-09 (M2 refocused: 50 issues total, 38 closed, 12 open [76%]; #256, #318, #347, #393 deferred to M5 to accelerate dual persistence; M2 now entirely focused on critical path blocking M3)
+**Last updated**: 2025-11-10 (M2 status: 50 issues, 39 closed, 11 open [78%]; #403 documentation completed; 7 core dual persistence issues + 2 infrastructure + 2 epic trackers remaining; clear dependency sequence established for final push)
