@@ -37,7 +37,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
         // Validate metadata size (edge case: metadata exceeds size limit)
         const metadataJson = item.metadata ? JSON.stringify(item.metadata) : '{}'
         const MAX_METADATA_SIZE = 100_000 // 100KB limit
-        
+
         let truncatedMetadata = item.metadata
         if (metadataJson.length > MAX_METADATA_SIZE) {
             console.warn(`Inventory metadata for item ${item.id} exceeds ${MAX_METADATA_SIZE} bytes, truncating`)
