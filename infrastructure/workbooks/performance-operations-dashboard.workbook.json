@@ -9,11 +9,46 @@
             "name": "header"
         },
         {
-            "type": 1,
+            "type": 9,
             "content": {
-                "json": "## Gremlin Operation RU & Latency Overview\n\n**Purpose:** Summarize RU charge and latency percentiles per critical Gremlin operation to spot emerging hot operations.\n\n**Thresholds:**\n- 🟡 P95 latency >500ms (amber)\n- 🔴 P95 latency >600ms (red)\n- 🟡 AvgRU >15 (amber - placeholder)\n- 🔴 AvgRU >20 (red - placeholder)\n\n**Note:** RU thresholds are placeholders; tune via issue #297 after baseline data collection."
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "maxru-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "MaxRuPerInterval",
+                        "type": 1,
+                        "label": "MAX_RU_PER_INTERVAL",
+                        "timeContext": { "durationMs": 86400000 },
+                        "description": "Total RU capacity per 5-min interval (RU/s * 300). Enables RU% calculations.",
+                        "value": "120000"
+                    },
+                    {
+                        "id": "threshold-base-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "SustainedThresholdPercent",
+                        "type": 1,
+                        "label": "SUSTAINED_THRESHOLD_PERCENT",
+                        "timeContext": { "durationMs": 86400000 },
+                        "description": "Base sustained RU% threshold (amber). High threshold adds offset.",
+                        "value": "70"
+                    },
+                    {
+                        "id": "high-threshold-offset-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "HighThresholdOffset",
+                        "type": 1,
+                        "label": "HIGH_THRESHOLD_OFFSET",
+                        "timeContext": { "durationMs": 86400000 },
+                        "description": "Additional percent above base for red threshold (default 10).",
+                        "value": "10"
+                    }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components"
             },
-            "name": "section-ru-latency-overview"
+            "name": "sustained-threshold-parameter-control"
         },
         {
             "type": 3,
@@ -30,9 +65,7 @@
                         {
                             "columnMatch": "Calls",
                             "formatter": 4,
-                            "formatOptions": {
-                                "palette": "blue"
-                            }
+                            "formatOptions": { "palette": "blue" }
                         },
                         {
                             "columnMatch": "AvgRUDisplay",
@@ -40,25 +73,10 @@
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
                                 "thresholdsGrid": [
-                                    {
-                                        "operator": "==",
-                                        "text": "n/a",
-                                        "representation": "gray"
-                                    },
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "20",
-                                        "representation": "redBright"
-                                    },
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "15",
-                                        "representation": "orange"
-                                    },
-                                    {
-                                        "operator": "Default",
-                                        "representation": "green"
-                                    }
+                                    { "operator": "==", "text": "n/a", "representation": "gray" },
+                                    { "operator": ">", "thresholdValue": "20", "representation": "redBright" },
+                                    { "operator": ">", "thresholdValue": "15", "representation": "orange" },
+                                    { "operator": "Default", "representation": "green" }
                                 ]
                             }
                         },
@@ -67,13 +85,7 @@
                             "formatter": 18,
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
-                                "thresholdsGrid": [
-                                    {
-                                        "operator": "==",
-                                        "text": "n/a",
-                                        "representation": "gray"
-                                    }
-                                ]
+                                "thresholdsGrid": [{ "operator": "==", "text": "n/a", "representation": "gray" }]
                             }
                         },
                         {
@@ -82,20 +94,9 @@
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
                                 "thresholdsGrid": [
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "600",
-                                        "representation": "redBright"
-                                    },
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "500",
-                                        "representation": "orange"
-                                    },
-                                    {
-                                        "operator": "Default",
-                                        "representation": "green"
-                                    }
+                                    { "operator": ">", "thresholdValue": "600", "representation": "redBright" },
+                                    { "operator": ">", "thresholdValue": "500", "representation": "orange" },
+                                    { "operator": "Default", "representation": "green" }
                                 ]
                             }
                         },
@@ -105,20 +106,9 @@
                             "formatOptions": {
                                 "thresholdsOptions": "colors",
                                 "thresholdsGrid": [
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "600",
-                                        "representation": "redBright"
-                                    },
-                                    {
-                                        "operator": ">",
-                                        "thresholdValue": "500",
-                                        "representation": "orange"
-                                    },
-                                    {
-                                        "operator": "Default",
-                                        "representation": "green"
-                                    }
+                                    { "operator": ">", "thresholdValue": "600", "representation": "redBright" },
+                                    { "operator": ">", "thresholdValue": "500", "representation": "orange" },
+                                    { "operator": "Default", "representation": "green" }
                                 ]
                             }
                         }
@@ -328,14 +318,14 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Partition Pressure Trend - RU% with 429 overlay (Issue #291, parameter-safe)\n// Works even if MAX_RU_PER_INTERVAL parameter not set; RUPercent becomes null and chart still renders TotalRU + ThrottleCount.\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet rawParam = '{MaxRuPerInterval:escape}';\nlet hasConfig = rawParam != '' and rawParam != '{MaxRuPerInterval:escape}';\nlet maxRuParam = iff(hasConfig, todouble(rawParam), real(null));\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet failures = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Failed'\n  | extend statusCode = toint(customDimensions.statusCode)\n  | where statusCode == 429;\nlet allBuckets = range t from ago(timeRange) to now() step bucketSize | project bucket = bin(t, bucketSize);\nlet ruByBucket = ruEvents | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet throttleByBucket = failures | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\nallBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0), ThrottleCount = coalesce(ThrottleCount, 0)\n| extend RUPercent = iff(isnotnull(maxRuParam) and maxRuParam > 0, round(100.0 * TotalRU / maxRuParam, 2), real(null))\n| project timestamp = bucket, RUPercent, ThrottleCount, TotalRU, Threshold70 = 70.0, Threshold80 = 80.0\n| order by timestamp asc",
+                "query": "// Partition Pressure Trend - RU% with 429 overlay (dynamic thresholds + high overlay)\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet rawMax = '{MaxRuPerInterval:escape}';\nlet hasMax = rawMax != '' and rawMax != '{MaxRuPerInterval:escape}';\nlet parsedMax = todouble(rawMax);\nlet maxRuParam = iff(hasMax and parsedMax > 0, parsedMax, real(null));\nlet baseStr = '{SustainedThresholdPercent:escape}';\nlet baseThreshold = iff(baseStr == '' or baseStr == '{SustainedThresholdPercent:escape}', 70.0, todouble(baseStr));\nlet offsetStr = '{HighThresholdOffset:escape}';\nlet offsetVal = iff(offsetStr == '' or offsetStr == '{HighThresholdOffset:escape}', 10.0, todouble(offsetStr));\nlet highThreshold = baseThreshold + offsetVal;\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet failures = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Failed'\n  | extend statusCode = toint(customDimensions.statusCode)\n  | where statusCode == 429;\nlet allBuckets = range t from ago(timeRange) to now() step bucketSize | project bucket = bin(t, bucketSize);\nlet ruByBucket = ruEvents | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet throttleByBucket = failures | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\nallBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0), ThrottleCount = coalesce(ThrottleCount, 0)\n| extend RUPercent = iff(isnotnull(maxRuParam) and maxRuParam > 0, round(100.0 * TotalRU / maxRuParam, 2), real(null))\n| extend RUPercentHigh = iff(isnotnull(RUPercent) and RUPercent > highThreshold, RUPercent, real(null))\n| project timestamp = bucket, RUPercent, RUPercentHigh, ThrottleCount, TotalRU, ThresholdBase = baseThreshold, ThresholdHigh = highThreshold\n| order by timestamp asc",
                 "size": 0,
-                "title": "RU% and 429 Count (5-min buckets, 24h)",
+                "title": "RU% and 429 Count (5-min buckets, 24h) – Dynamic Thresholds",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "linechart",
                 "chartSettings": {
-                    "yAxis": ["RUPercent", "ThrottleCount"],
+                    "yAxis": ["RUPercent", "RUPercentHigh", "ThrottleCount"],
                     "seriesLabelSettings": [
                         {
                             "seriesName": "RUPercent",
@@ -343,18 +333,23 @@
                             "color": "blue"
                         },
                         {
+                            "seriesName": "RUPercentHigh",
+                            "label": "RU% (High)",
+                            "color": "redBright"
+                        },
+                        {
                             "seriesName": "ThrottleCount",
                             "label": "429 Count",
                             "color": "redBright"
                         },
                         {
-                            "seriesName": "Threshold70",
-                            "label": "70% Threshold",
+                            "seriesName": "ThresholdBase",
+                            "label": "Base Threshold (%)",
                             "color": "orange"
                         },
                         {
-                            "seriesName": "Threshold80",
-                            "label": "80% Threshold",
+                            "seriesName": "ThresholdHigh",
+                            "label": "+Offset Threshold (%)",
                             "color": "red"
                         }
                     ]
@@ -366,9 +361,9 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "// Sustained High RU Hotspots (Issue #291, Option A Simplification)\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval:escape}';\nlet hasConfig = maxRuStr != '' and maxRuStr != '{MaxRuPerInterval:escape}';\nlet maxRu = iff(hasConfig, todouble(maxRuStr), 0.0);\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet ruByBucket = ruEvents\n  | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet high = ruByBucket\n  | where hasConfig and maxRu > 0\n  | extend RUPercent = round(100.0 * TotalRU / maxRu, 2)\n  | where RUPercent > 70\n  | project StartTime = bucket, Message = strcat('RU% >70 at ', tostring(bucket), ' (', RUPercent, '%)'), include = true;\nlet info = print Message = 'ℹ️ Configure MAX_RU_PER_INTERVAL parameter to enable sustained pressure detection' | extend StartTime = datetime(null), include = not(hasConfig);\nunion high, info | where include | project StartTime, Message | order by StartTime asc nulls last",
+                "query": "// Sustained High RU Hotspots (dynamic thresholds & baseline guard)\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet rawMax = '{MaxRuPerInterval:escape}';\nlet hasMax = rawMax != '' and rawMax != '{MaxRuPerInterval:escape}';\nlet parsedMax = todouble(rawMax);\nlet maxRu = iff(hasMax and parsedMax > 0, parsedMax, 0.0);\nlet baseStr = '{SustainedThresholdPercent:escape}';\nlet baseThreshold = iff(baseStr == '' or baseStr == '{SustainedThresholdPercent:escape}', 70.0, todouble(baseStr));\nlet offsetStr = '{HighThresholdOffset:escape}';\nlet offsetVal = iff(offsetStr == '' or offsetStr == '{HighThresholdOffset:escape}', 10.0, todouble(offsetStr));\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet ruByBucket = ruEvents\n  | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet high = ruByBucket\n  | where maxRu > 0\n  | extend RUPercent = round(100.0 * TotalRU / maxRu, 2)\n  | where RUPercent > baseThreshold\n  | project StartTime = bucket, Message = strcat('RU% >', tostring(baseThreshold), ' at ', tostring(bucket), ' (', RUPercent, '%)'), include = true;\nlet info = print StartTime=datetime(null), Message= strcat('ℹ️ Configure MAX_RU_PER_INTERVAL (>0) and/or adjust thresholds Base=', tostring(baseThreshold), ' Offset=', tostring(offsetVal), ' to enable sustained alerts'), include = maxRu == 0;\nunion high, info | where include | project StartTime, Message | order by StartTime asc nulls last",
                 "size": 0,
-                "title": "Sustained Pressure Alerts (RU >70% for ≥3 intervals)",
+                "title": "Sustained Pressure Alerts (RU >ThresholdBase%)",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
                 "visualization": "table",
@@ -447,11 +442,6 @@
                         }
                     ]
                 }
-            },
-            "conditionalVisibility": {
-                "parameterName": "MaxRuPerInterval",
-                "comparison": "isNotEqualTo",
-                "value": ""
             },
             "name": "partition-pressure-annotation"
         },
@@ -686,9 +676,27 @@
             "name": "MaxRuPerInterval",
             "id": "maxru-param",
             "type": 1,
-            "description": "Maximum RU capacity per 5-minute interval (e.g., 1000 RU/s * 300s = 300000). Leave empty to see configuration banner.",
+            "description": "Maximum RU capacity per 5-minute interval (e.g., 1000 RU/s * 300s = 300000).",
             "value": "120000",
             "label": "MAX_RU_PER_INTERVAL",
+            "isRequired": false
+        },
+        {
+            "name": "SustainedThresholdPercent",
+            "id": "sustained-threshold-param",
+            "type": 1,
+            "description": "Base sustained partition pressure threshold percentage (second threshold is +10).",
+            "value": "70",
+            "label": "SUSTAINED_THRESHOLD_PERCENT",
+            "isRequired": false
+        },
+        {
+            "name": "HighThresholdOffset",
+            "id": "high-threshold-offset-param",
+            "type": 1,
+            "description": "Offset added to base threshold to compute high (red) threshold.",
+            "value": "10",
+            "label": "HIGH_THRESHOLD_OFFSET",
             "isRequired": false
         }
     ]
