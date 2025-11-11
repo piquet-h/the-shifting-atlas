@@ -4,7 +4,7 @@ This directory contains one-time migration scripts for the Shifting Atlas data p
 
 ## Gremlin to SQL API Migration
 
-**Script**: `gremlin-to-sql-migration.ts`
+**Script**: `backend/scripts/migrations/gremlin-to-sql-migration.ts`
 
 **Purpose**: One-time migration to backfill existing Gremlin player/inventory data into SQL API containers for cost-efficient mutable data storage (ADR-002: Dual Persistence).
 
@@ -13,84 +13,92 @@ This directory contains one-time migration scripts for the Shifting Atlas data p
 ### Prerequisites
 
 1. **Environment variables** configured (see `backend/local.settings.cosmos.json` for reference):
-   - `COSMOS_GREMLIN_ENDPOINT`
-   - `COSMOS_GREMLIN_DATABASE`
-   - `COSMOS_GREMLIN_GRAPH`
-   - `COSMOS_SQL_ENDPOINT`
-   - `COSMOS_SQL_DATABASE`
-   - `COSMOS_SQL_CONTAINER_PLAYERS` (default: `players`)
-   - `COSMOS_SQL_CONTAINER_INVENTORY` (default: `inventory`)
+
+    - `COSMOS_GREMLIN_ENDPOINT`
+    - `COSMOS_GREMLIN_DATABASE`
+    - `COSMOS_GREMLIN_GRAPH`
+    - `COSMOS_SQL_ENDPOINT`
+    - `COSMOS_SQL_DATABASE`
+    - `COSMOS_SQL_CONTAINER_PLAYERS` (default: `players`)
+    - `COSMOS_SQL_CONTAINER_INVENTORY` (default: `inventory`)
 
 2. **Azure credentials** via DefaultAzureCredential:
-   - Local: `az login`
-   - Production: Managed Identity
+
+    - Local: `az login`
+    - Production: Managed Identity
 
 3. **Dependencies** installed:
-   ```bash
-   cd backend
-   npm install
-   ```
+    ```bash
+    cd backend
+    npm install
+    ```
 
 ### Usage
 
 **Dry run** (preview without writes):
+
 ```bash
 cd backend
-npx tsx ../scripts/migrations/gremlin-to-sql-migration.ts --dry-run
+npx tsx scripts/migrations/gremlin-to-sql-migration.ts --dry-run
 ```
 
 **Actual migration**:
+
 ```bash
 cd backend
-npx tsx ../scripts/migrations/gremlin-to-sql-migration.ts
+npx tsx scripts/migrations/gremlin-to-sql-migration.ts
 ```
 
 **Custom batch size** (for progress tracking):
+
 ```bash
 cd backend
-npx tsx ../scripts/migrations/gremlin-to-sql-migration.ts --batch-size=50
+npx tsx scripts/migrations/gremlin-to-sql-migration.ts --batch-size=50
 ```
 
 **Help**:
+
 ```bash
 cd backend
-npx tsx ../scripts/migrations/gremlin-to-sql-migration.ts --help
+npx tsx scripts/migrations/gremlin-to-sql-migration.ts --help
 ```
 
 ### Options
 
-- `--dry-run`: Preview operations without writing to SQL API
-- `--batch-size=N`: Entities per progress report (default: 100)
-- `--max-retries=N`: Max retry attempts for throttled requests (default: 5)
-- `--help, -h`: Show help message
+-   `--dry-run`: Preview operations without writing to SQL API
+-   `--batch-size=N`: Entities per progress report (default: 100)
+-   `--max-retries=N`: Max retry attempts for throttled requests (default: 5)
+-   `--help, -h`: Show help message
 
 ### Migration Process
 
 1. **Players**: Reads all player vertices from Gremlin `g.V().hasLabel('player')`
-   - Maps Gremlin properties to SQL API document schema
-   - Upserts to SQL API `players` container (idempotent)
-   - Progress logged every 100 players (configurable)
-   - Errors logged but don't halt migration
+
+    - Maps Gremlin properties to SQL API document schema
+    - Upserts to SQL API `players` container (idempotent)
+    - Progress logged every 100 players (configurable)
+    - Errors logged but don't halt migration
 
 2. **Inventory**: Checks for legacy inventory edges in Gremlin
-   - Modern inventory is already in SQL API
-   - Script handles legacy `(player)-[:owns_item]->(item)` edges if they exist
-   - Upserts to SQL API `inventory` container
+    - Modern inventory is already in SQL API
+    - Script handles legacy `(player)-[:owns_item]->(item)` edges if they exist
+    - Upserts to SQL API `inventory` container
 
 ### Idempotency
 
 The migration uses **upsert semantics** (not insert), so it can be re-run without creating duplicates:
 
-- If a player already exists in SQL API with the same ID, it will be updated
-- Re-running after partial failure will resume from where it left off
-- Safe to run multiple times
+-   If a player already exists in SQL API with the same ID, it will be updated
+-   Re-running after partial failure will resume from where it left off
+-   Safe to run multiple times
 
 ### Error Handling
 
 **Throttling (429 errors)**: Exponential backoff with configurable retries
-- Base delay: 1 second
-- Exponential: 1s → 2s → 4s → 8s → 16s
-- Max retries: 5 (configurable)
+
+-   Base delay: 1 second
+-   Exponential: 1s → 2s → 4s → 8s → 16s
+-   Max retries: 5 (configurable)
 
 **Malformed data**: Logged and skipped, migration continues
 
@@ -98,8 +106,8 @@ The migration uses **upsert semantics** (not insert), so it can be re-run withou
 
 ### Exit Codes
 
-- `0`: Success (all entities migrated or skipped in dry-run)
-- `1`: Configuration error, migration failure, or entities failed
+-   `0`: Success (all entities migrated or skipped in dry-run)
+-   `1`: Configuration error, migration failure, or entities failed
 
 ### Output Example
 
@@ -188,12 +196,14 @@ During migration, monitor:
 After successful migration:
 
 1. Verify player count matches:
-   ```gremlin
-   g.V().hasLabel('player').count()
-   ```
-   ```sql
-   SELECT VALUE COUNT(1) FROM c
-   ```
+
+    ```gremlin
+    g.V().hasLabel('player').count()
+    ```
+
+    ```sql
+    SELECT VALUE COUNT(1) FROM c
+    ```
 
 2. Spot-check player data integrity (compare 5-10 random players)
 
@@ -205,7 +215,7 @@ After successful migration:
 
 ### References
 
-- [ADR-002: Graph Partition Strategy](../../docs/adr/ADR-002-graph-partition-strategy.md)
-- [SQL Repository Pattern](../../docs/architecture/sql-repository-pattern.md)
-- [Player Repository (Gremlin)](../../backend/src/repos/playerRepository.cosmos.ts)
-- [Player Repository (SQL)](../../backend/src/repos/playerRepository.cosmosSql.ts)
+-   [ADR-002: Graph Partition Strategy](../../docs/adr/ADR-002-graph-partition-strategy.md)
+-   [SQL Repository Pattern](../../docs/architecture/sql-repository-pattern.md)
+-   [Player Repository (Gremlin)](../../backend/src/repos/playerRepository.cosmos.ts)
+-   [Player Repository (SQL)](../../backend/src/repos/playerRepository.cosmosSql.ts)

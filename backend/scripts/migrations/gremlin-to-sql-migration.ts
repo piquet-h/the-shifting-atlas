@@ -30,6 +30,8 @@
 import { CosmosClient } from '@azure/cosmos'
 import { DefaultAzureCredential } from '@azure/identity'
 import gremlin from 'gremlin'
+import WebSocket from 'ws'
+;(globalThis as any).WebSocket = WebSocket
 
 // Configuration from environment
 interface MigrationConfig {
