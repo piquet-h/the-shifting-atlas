@@ -218,6 +218,51 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
+### 11. Character-Driven Roleplaying
+
+**Focus**: Narrative capability assessment without universal skill mechanics
+
+**Key Invariants**:
+
+-   No standardized skill lists (Persuasion, Athletics, etc.)
+-   Character backgrounds grant narrative authorities, not numerical bonuses
+-   AI DM adjudicates based on character fiction and established capabilities
+-   Player commands describe what character does and why they can do it
+-   Outcomes framed narratively (natural consequences, not mechanical pass/fail)
+
+**Key Contracts**:
+
+-   Character creation stores background + narrative capabilities as metadata
+-   Intent parsing extracts `justification` and `backgroundReference` from player text
+-   AI DM prompts include character context for plausibility evaluation
+-   Demonstrated capabilities tracked over time (emergent recognition)
+-   No skill proficiency ratings, ability modifiers, or dice roll mechanics
+
+**Philosophy**:
+
+Inspired by early D&D approaches (vs. 5e universal skills), players declare actions based on **who their character is** rather than selecting from skill lists. The AI Dungeon Master evaluates plausibility contextually:
+
+-   "As a former sailor, I climb the rigging" → Background supports this
+-   "My cartographic training helps me read this map" → Narrative authority applies
+-   Not: "I roll Investigation with +2 bonus" → No mechanical skill system
+
+**Benefits**:
+
+-   Richer characterization (players think about identity, not stat optimization)
+-   Emergent stories (backgrounds create natural adventure hooks)
+-   Accessibility (new players don't need to learn skill rules)
+-   Unique characters (no two "rogues" mechanically identical)
+
+**Status**: Planned (M5+ for full implementation; philosophy documented now)
+
+**Document**: `../concept/character-driven-roleplaying.md`
+
+**Depends On**: Player Identity (character creation), Player Interaction (intent parsing), AI Prompt Engineering (capability adjudication prompts)
+
+**Reference**: [ADD for 5e Players: What Drove Me Away](https://sage-jim.com/2023/05/20/add-for-5e-players-what-drove-me-away/) – foundational philosophy article
+
+---
+
 ## Supporting Concept Documents
 
 These documents define immutable rules and semantic constraints (not gameplay features):
@@ -264,6 +309,7 @@ Vision & Tenets
 | Description Layering                 | M4                | 🚧 Planned                    |
 | AI Prompt Engineering                | M3–M4             | 🚧 Read-only (M3), Write (M4) |
 | Narrative Voice Guidelines           | M3–M4             | 🚧 Concurrent with AI         |
+| Character-Driven Roleplaying         | M5+               | 📋 Philosophy documented      |
 | Quest & Dialogue Trees               | M5+               | 📋 Deferred                   |
 | Economy & Trade                      | M5+               | 📋 Deferred                   |
 | Factions & Governance                | M5+               | 📋 Deferred                   |

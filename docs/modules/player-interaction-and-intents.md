@@ -59,25 +59,112 @@ Backend Intent Adjudicator → (Validation + Policy + Optional Server LLM Escala
 
 Each atomic **Intent** represents one actionable world operation.
 
-| Field               | Type       | Required                                   | Description                                                      |
-| ------------------- | ---------- | ------------------------------------------ | ---------------------------------------------------------------- |
-| `id`                | GUID       | optional (client may omit; server assigns) | Stable identifier for telemetry + referencing in clarifications. |
-| `verb`              | enum       | yes                                        | Canonical action (see Verb Set).                                 |
-| `order`             | int        | yes                                        | Primary sequence index (0+).                                     |
-| `concurrencyGroup`  | string     | no                                         | Identifies intents intended to run in parallel at same `order`.  |
-| `targetEntityId`    | GUID       | conditional                                | Resolved existing entity (e.g., dragon) if known.                |
-| `surfaceTargetName` | string     | conditional                                | Raw text target placeholder when unresolved.                     |
-| `objectItemId`      | GUID       | conditional                                | Item used (e.g., specific coin) if resolved.                     |
-| `surfaceItemName`   | string     | conditional                                | Raw name when item unresolved.                                   |
-| `direction`         | enum       | conditional                                | Movement direction (normalized).                                 |
-| `quantity`          | number     | no                                         | Numeric quantity (e.g., number of coins).                        |
-| `modifiers`         | string[]   | no                                         | Adverbs / tactical qualifiers (`slowly`, `shield_up`).           |
-| `tacticalRole`      | string     | no                                         | High-level purpose (`distraction`, `retreat_cover`).             |
-| `conditions`        | string[]   | no                                         | Pre-conditions (`while_retreating`, `if_attacked`).              |
-| `priority`          | int        | no                                         | Tie-break within same order (lower processes first).             |
-| `confidence`        | 0–1        | yes (client-estimated or server)           | Extraction plausibility score.                                   |
-| `issues`            | IssueRef[] | no                                         | IDs of ambiguity / validation issues affecting this intent.      |
-| `meta`              | object     | no                                         | `{ sourceModel, processingStage }` (diagnostics only).           |
+| Field                 | Type       | Required                                   | Description                                                                   |
+| --------------------- | ---------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `id`                  | GUID       | optional (client may omit; server assigns) | Stable identifier for telemetry + referencing in clarifications.              |
+| `verb`                | enum       | yes                                        | Canonical action (see Verb Set).                                              |
+| `order`               | int        | yes                                        | Primary sequence index (0+).                                                  |
+| `concurrencyGroup`    | string     | no                                         | Identifies intents intended to run in parallel at same `order`.               |
+| `targetEntityId`      | GUID       | conditional                                | Resolved existing entity (e.g., dragon) if known.                             |
+| `surfaceTargetName`   | string     | conditional                                | Raw text target placeholder when unresolved.                                  |
+| `objectItemId`        | GUID       | conditional                                | Item used (e.g., specific coin) if resolved.                                  |
+| `surfaceItemName`     | string     | conditional                                | Raw name when item unresolved.                                                |
+| `direction`           | enum       | conditional                                | Movement direction (normalized).                                              |
+| `quantity`            | number     | no                                         | Numeric quantity (e.g., number of coins).                                     |
+| `modifiers`           | string[]   | no                                         | Adverbs / tactical qualifiers (`slowly`, `shield_up`).                        |
+| `tacticalRole`        | string     | no                                         | High-level purpose (`distraction`, `retreat_cover`).                          |
+| `conditions`          | string[]   | no                                         | Pre-conditions (`while_retreating`, `if_attacked`).                           |
+| `priority`            | int        | no                                         | Tie-break within same order (lower processes first).                          |
+| `confidence`          | 0–1        | yes (client-estimated or server)           | Extraction plausibility score.                                                |
+| `issues`              | IssueRef[] | no                                         | IDs of ambiguity / validation issues affecting this intent.                   |
+| `justification`       | string     | no                                         | Player's stated reasoning for capability (character-driven context).          |
+| `backgroundReference` | string     | no                                         | Explicit background invocation if mentioned (e.g., "sailor", "cartographer"). |
+| `meta`                | object     | no                                         | `{ sourceModel, processingStage }` (diagnostics only).                        |
+
+### Character-Driven Context (PI-2+)
+
+To support **character-driven roleplaying** (see [`../concept/character-driven-roleplaying.md`](../concept/character-driven-roleplaying.md)), parsed intents should extract **justification context** from player declarations:
+
+**Purpose**: Enable the AI DM to evaluate action plausibility based on character background and narrative capability rather than mechanical skill checks.
+
+**Fields**:
+
+-   `justification`: Player's stated reasoning for why they can perform the action
+-   `backgroundReference`: Explicit mention of character background, class, or past experience
+
+**Example Parse**:
+
+```json
+{
+    "verb": "climb",
+    "order": 0,
+    "rawText": "I climb the wall using techniques from my time on ships",
+    "justification": "time on ships",
+    "backgroundReference": "sailor",
+    "confidence": 0.85,
+    "meta": {
+        "extractionMethod": "local-llm",
+        "characterDrivenParse": true
+    }
+}
+```
+
+**Implementation Notes**:
+
+-   Parser should detect phrases like:
+    -   "my experience as a..."
+    -   "from my time as..."
+    -   "having trained in..."
+    -   "my background in..."
+    -   "as a former..."
+-   If background reference is extracted, flag the intent for character-driven adjudication
+-   AI DM receives this context along with player's stored background metadata
+-   No mechanical bonuses applied; purely narrative context for plausibility evaluation
+
+**Example with Multiple Intents**:
+
+```
+Player Input: "As a former thief, I check the strongbox for false bottoms while keeping watch on the door"
+
+Parsed Intents:
+[
+  {
+    "verb": "examine",
+    "targetEntityId": "<strongbox-guid>",
+    "order": 0,
+    "concurrencyGroup": "simultaneous",
+    "justification": "former thief checking for false bottoms",
+    "backgroundReference": "thief",
+    "confidence": 0.92
+  },
+  {
+    "verb": "guard",
+    "targetEntityId": "<door-guid>",
+    "order": 0,
+    "concurrencyGroup": "simultaneous",
+    "confidence": 0.88
+  }
+]
+```
+
+The AI DM evaluates the `examine` intent considering:
+
+1. Player's background includes "Former Street Urchin" or similar thief archetype
+2. Justification explicitly references relevant experience
+3. Situational plausibility (is there a strongbox present?)
+4. Narrative coherence (does this fit the character's established capabilities?)
+
+**Clarification Handling**:
+If background reference is unclear or contradicts stored player profile:
+
+```json
+{
+    "issueType": "background_mismatch",
+    "spanText": "as a former thief",
+    "prompt": "Your character profile doesn't mention thievery background. Did you mean to reference a different experience, or would you like to update your character history?",
+    "critical": false
+}
+```
 
 ### Verb Set (Initial Canonical Enum)
 
