@@ -20,6 +20,7 @@ export interface PlayerRecord {
 export interface IPlayerRepository {
     get(id: string): Promise<PlayerRecord | undefined>
     getOrCreate(id?: string): Promise<{ record: PlayerRecord; created: boolean }>
+    update(player: PlayerRecord): Promise<PlayerRecord>
     linkExternalId(
         id: string,
         externalId: string

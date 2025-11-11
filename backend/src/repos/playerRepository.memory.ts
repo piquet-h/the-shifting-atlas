@@ -84,6 +84,21 @@ export class InMemoryPlayerRepository implements IPlayerRepository {
         return undefined
     }
 
+    async update(player: PlayerRecord): Promise<PlayerRecord> {
+        const existing = this.players.get(player.id)
+        if (!existing) {
+            throw new Error(`Player ${player.id} not found`)
+        }
+
+        const updated: PlayerRecord = {
+            ...player,
+            updatedUtc: new Date().toISOString()
+        }
+
+        this.players.set(player.id, updated)
+        return updated
+    }
+
     private make(id: string): PlayerRecord {
         const now = new Date().toISOString()
         return {

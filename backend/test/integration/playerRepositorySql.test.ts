@@ -79,18 +79,49 @@ describe('Player Repository SQL API', () => {
         })
     })
 
-    describe('Update Player Location', () => {
+    describe('Update Player', () => {
         test('validates player has starting location', async () => {
             const repo = await fixture.getPlayerRepository()
             const { record: player } = await repo.getOrCreate()
 
-            // Note: updateLocation is not in the IPlayerRepository interface
-            // Location updates in production happen via PlayerMoveHandler
-            // This test validates the data model supports location storage
             const originalLocation = player.currentLocationId
 
             assert.ok(originalLocation, 'expected original location to be set')
             assert.strictEqual(originalLocation, STARTER_LOCATION_ID, 'expected starting location')
+        })
+
+        test('updates player location successfully', async () => {
+            const repo = await fixture.getPlayerRepository()
+            const { record: player } = await repo.getOrCreate()
+
+            const newLocationId = crypto.randomUUID()
+            player.currentLocationId = newLocationId
+
+            const updated = await repo.update(player)
+
+            assert.ok(updated, 'expected updated player')
+            assert.strictEqual(updated.currentLocationId, newLocationId, 'expected new location')
+            assert.ok(updated.updatedUtc, 'expected updatedUtc to be set')
+
+            // Verify persistence
+            const retrieved = await repo.get(player.id)
+            assert.ok(retrieved, 'expected player to be retrievable')
+            assert.strictEqual(retrieved.currentLocationId, newLocationId, 'expected location persisted')
+        })
+
+        test('throws error for non-existent player', async () => {
+            const repo = await fixture.getPlayerRepository()
+            const fakePlayer = {
+                id: crypto.randomUUID(),
+                createdUtc: new Date().toISOString(),
+                updatedUtc: new Date().toISOString(),
+                guest: true,
+                currentLocationId: STARTER_LOCATION_ID
+            }
+
+            await assert.rejects(async () => {
+                await repo.update(fakePlayer)
+            }, 'expected update to fail for non-existent player')
         })
     })
 
