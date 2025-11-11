@@ -10,6 +10,7 @@ import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
+import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
@@ -32,7 +33,8 @@ export interface MoveResult {
 export class MoveHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
-        @inject('ILocationRepository') private locationRepo: ILocationRepository
+        @inject('ILocationRepository') private locationRepo: ILocationRepository,
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
     ) {
         super(telemetry)
     }
@@ -232,6 +234,34 @@ export class MoveHandler extends BaseHandler {
 
         // Update heading
         if (this.playerGuid) headingStore.setLastHeading(this.playerGuid, dir)
+
+        // Update player location in persistent storage
+        if (this.playerGuid) {
+            try {
+                const player = await this.playerRepo.get(this.playerGuid)
+                if (player) {
+                    player.currentLocationId = result.location.id
+                    await this.playerRepo.update(player)
+                } else {
+                    // Player document missing - log warning but allow move to complete
+                    this.track('Player.Update', {
+                        playerId: this.playerGuid,
+                        success: false,
+                        reason: 'player-not-found',
+                        toLocationId: result.location.id
+                    })
+                }
+            } catch (error) {
+                // Update failed - log error but allow move to complete (stateless still works)
+                this.track('Player.Update', {
+                    playerId: this.playerGuid,
+                    success: false,
+                    reason: 'update-failed',
+                    toLocationId: result.location.id,
+                    error: error instanceof Error ? error.message : String(error)
+                })
+            }
+        }
 
         const latencyMs = Date.now() - started
         const props = {

@@ -100,6 +100,31 @@ export class CosmosPlayerRepository extends CosmosGremlinRepository implements I
         if (!rows.length) return undefined
         return mapVertexToPlayer(rows[0])
     }
+
+    async update(player: PlayerRecord): Promise<PlayerRecord> {
+        const existing = await this.get(player.id)
+        if (!existing) {
+            throw new Error(`Player ${player.id} not found`)
+        }
+
+        const updatedIso = new Date().toISOString()
+        await this.query(
+            "g.V(pid).hasLabel('player').property('updatedUtc', updated).property('currentLocationId', loc).property('guest', g).property('name', n)",
+            {
+                pid: player.id,
+                updated: updatedIso,
+                loc: player.currentLocationId || STARTER_LOCATION_ID,
+                g: player.guest,
+                n: player.name || null
+            }
+        )
+
+        const updated = await this.get(player.id)
+        if (!updated) {
+            throw new Error(`Failed to retrieve updated player ${player.id}`)
+        }
+        return updated
+    }
 }
 
 function mapVertexToPlayer(v: Record<string, unknown>): PlayerRecord {

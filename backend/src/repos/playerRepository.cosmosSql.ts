@@ -189,6 +189,34 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         return { updated: true, record: resource }
     }
 
+    async update(player: PlayerRecord): Promise<PlayerRecord> {
+        const startTime = Date.now()
+
+        const now = new Date().toISOString()
+        const updated: PlayerDocument = {
+            ...player,
+            updatedUtc: now,
+            guest: player.guest,
+            currentLocationId: player.currentLocationId || STARTER_LOCATION_ID
+        } as PlayerDocument
+
+        try {
+            const { resource } = await this.upsert(updated)
+            trackGameEvent('Player.Update', {
+                playerId: player.id,
+                latencyMs: Date.now() - startTime
+            })
+            return resource
+        } catch (error) {
+            trackGameEvent('Player.Update', {
+                playerId: player.id,
+                success: false,
+                latencyMs: Date.now() - startTime
+            })
+            throw error
+        }
+    }
+
     async findByExternalId(externalId: string): Promise<PlayerRecord | undefined> {
         const startTime = Date.now()
 
