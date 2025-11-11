@@ -86,11 +86,7 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Verify player location was updated in repository
         const updatedPlayer = await playerRepo.get(player.id)
         assert.ok(updatedPlayer, 'player should still exist')
-        assert.strictEqual(
-            updatedPlayer.currentLocationId,
-            result.location?.id,
-            'player location should be updated to new location'
-        )
+        assert.strictEqual(updatedPlayer.currentLocationId, result.location?.id, 'player location should be updated to new location')
         assert.notStrictEqual(updatedPlayer.currentLocationId, hubLocation.id, 'player should have moved from hub')
     })
 
@@ -135,11 +131,7 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Simulate reconnect - new handler instance, fetch player from repo
         const reconnectedPlayer = await playerRepo.get(player.id)
         assert.ok(reconnectedPlayer, 'player should be retrievable')
-        assert.strictEqual(
-            reconnectedPlayer.currentLocationId,
-            newLocationId,
-            'player location should persist across sessions'
-        )
+        assert.strictEqual(reconnectedPlayer.currentLocationId, newLocationId, 'player location should persist across sessions')
 
         // Second move from new location (reconnected session)
         const handler2 = container.get(MoveHandler)
