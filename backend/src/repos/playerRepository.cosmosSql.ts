@@ -192,6 +192,18 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
     async update(player: PlayerRecord): Promise<PlayerRecord> {
         const startTime = Date.now()
 
+        // Check if player exists
+        const existing = await this.get(player.id)
+        if (!existing) {
+            trackGameEvent('Player.Update', {
+                playerId: player.id,
+                success: false,
+                reason: 'player-not-found',
+                latencyMs: Date.now() - startTime
+            })
+            throw new Error(`Player ${player.id} not found`)
+        }
+
         const now = new Date().toISOString()
         const updated: PlayerDocument = {
             ...player,

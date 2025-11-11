@@ -58,7 +58,7 @@ describe('PlayerRepository.update()', () => {
             const { record: player } = await repo.getOrCreate()
 
             const originalUpdatedUtc = player.updatedUtc
-            
+
             // Wait a tiny bit to ensure timestamp changes
             await new Promise((resolve) => setTimeout(resolve, 10))
 
@@ -67,10 +67,7 @@ describe('PlayerRepository.update()', () => {
 
             assert.notStrictEqual(updated.updatedUtc, originalUpdatedUtc, 'updatedUtc should change')
             if (updated.updatedUtc && originalUpdatedUtc) {
-                assert.ok(
-                    new Date(updated.updatedUtc) > new Date(originalUpdatedUtc),
-                    'updatedUtc should be more recent'
-                )
+                assert.ok(new Date(updated.updatedUtc) > new Date(originalUpdatedUtc), 'updatedUtc should be more recent')
             }
         })
 
@@ -94,7 +91,7 @@ describe('PlayerRepository.update()', () => {
         test('should preserve other fields when updating location', async () => {
             const repo = new InMemoryPlayerRepository()
             const { record: player } = await repo.getOrCreate()
-            
+
             // Set some fields
             player.name = 'OriginalName'
             player.externalId = 'external-123'
