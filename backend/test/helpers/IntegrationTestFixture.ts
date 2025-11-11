@@ -15,6 +15,7 @@ import type { IInventoryRepository } from '../../src/repos/inventoryRepository.j
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { BaseTestFixture } from './TestFixture.js'
@@ -79,6 +80,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getLayerRepository(): Promise<ILayerRepository> {
         const container = await this.getContainer()
         return container.get<ILayerRepository>('ILayerRepository')
+    }
+
+    /** Get WorldEventRepository instance from DI container */
+    async getWorldEventRepository(): Promise<IWorldEventRepository> {
+        const container = await this.getContainer()
+        return container.get<IWorldEventRepository>('IWorldEventRepository')
     }
 
     /**

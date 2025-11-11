@@ -35,6 +35,9 @@ import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
+import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
+import { IWorldEventRepository } from './repos/worldEventRepository.js'
+import { MemoryWorldEventRepository } from './repos/worldEventRepository.memory.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 
@@ -115,6 +118,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
+        container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // Explicit bindings; share same instance for exit + location repository via dynamic value
@@ -127,6 +131,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
+        container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
     }
 
     return container
