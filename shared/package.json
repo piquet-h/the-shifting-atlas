@@ -1,6 +1,6 @@
 {
     "name": "@piquet-h/shared",
-    "version": "0.3.49",
+    "version": "0.3.53",
     "private": false,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
@@ -52,6 +52,16 @@
             "import": "./dist/types/inventoryRepository.js",
             "types": "./dist/types/inventoryRepository.d.ts",
             "default": "./dist/types/inventoryRepository.js"
+        },
+        "./types/layerRepository": {
+            "import": "./dist/types/layerRepository.js",
+            "types": "./dist/types/layerRepository.d.ts",
+            "default": "./dist/types/layerRepository.js"
+        },
+        "./types/worldEventRepository": {
+            "import": "./dist/types/worldEventRepository.js",
+            "types": "./dist/types/worldEventRepository.d.ts",
+            "default": "./dist/types/worldEventRepository.js"
         }
     },
     "browser": {

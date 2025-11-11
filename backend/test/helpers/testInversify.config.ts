@@ -28,6 +28,9 @@ import { CosmosExitRepository, IExitRepository } from '../../src/repos/exitRepos
 import { CosmosInventoryRepository } from '../../src/repos/inventoryRepository.cosmos.js'
 import { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
 import { MemoryInventoryRepository } from '../../src/repos/inventoryRepository.memory.js'
+import { CosmosLayerRepository } from '../../src/repos/layerRepository.cosmos.js'
+import { ILayerRepository } from '../../src/repos/layerRepository.js'
+import { MemoryLayerRepository } from '../../src/repos/layerRepository.memory.js'
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
@@ -106,6 +109,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -113,6 +117,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IPlayerRepository>('IPlayerRepository').to(MockPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(MockDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -122,6 +127,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
     }
 
     return container
