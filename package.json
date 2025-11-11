@@ -13,7 +13,7 @@
         "workbooks:verify": "node scripts/observability/verify-workbooks.mjs"
     },
     "engines": {
-        "node": ">=20"
+        "node": "22.x"
     },
     "devDependencies": {
         "@octokit/core": "^5.0.0",

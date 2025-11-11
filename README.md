@@ -20,15 +20,15 @@ The platform balances imaginative emergence with architectural discipline: a dua
 
 Navigate the documentation by altitude—each layer serves a distinct purpose with no overlap:
 
-| Layer | Altitude | Purpose | Key Documents |
-|-------|----------|---------|---------------|
-| **1. Vision** | 60,000 ft | Inspire and set direction | This README (Vision section above) |
-| **2. Tenets** | 50,000 ft | Non-negotiable decision-making rules | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework) |
-| **3. Design Modules** | 40,000 ft | Translate Vision + Tenets into concrete gameplay systems | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests) |
-| **4. Architecture** | 30,000 ft | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/) |
-| **5. Roadmap** | 20,000 ft | Staged progression from Vision to Code (milestones M0–M6) | [Roadmap](docs/roadmap.md) |
-| **6. Examples** | 10,000 ft | Practical code walkthroughs and onboarding aids | [Examples](docs/examples/README.md) (function endpoints, Gremlin queries, seed scripts, a11y tests) |
-| **7. Code** | Ground Level | Runnable implementation | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
+| Layer                 | Altitude     | Purpose                                                     | Key Documents                                                                                                |
+| --------------------- | ------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **1. Vision**         | 60,000 ft    | Inspire and set direction                                   | This README (Vision section above)                                                                           |
+| **2. Tenets**         | 50,000 ft    | Non-negotiable decision-making rules                        | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework)                                 |
+| **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                        |
+| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                     |
+| **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                   |
+| **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md) (function endpoints, Gremlin queries, seed scripts, a11y tests)          |
+| **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
 
 **For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
 
@@ -63,11 +63,12 @@ scripts/          Automation (seed data, validation, deployment helpers)
 ```
 
 **Notable**:
-- `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
-- `backend/src/handlers/*` – Business logic (separated from routing)
-- `shared/src/` – Domain models, telemetry constants, direction normalizer
-- `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
-- `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
+
+-   `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
+-   `backend/src/handlers/*` – Business logic (separated from routing)
+-   `shared/src/` – Domain models, telemetry constants, direction normalizer
+-   `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
+-   `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
 
 **Learn more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
 
@@ -87,10 +88,11 @@ scripts/          Automation (seed data, validation, deployment helpers)
 | CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)                  |
 | Tracing (OpenTelemetry)        | Baseline spans implemented  | Span lifecycle + safe end guard (#41); enrichment epic #310 planned |
 
-**Read more**: 
-- [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
-- [Roadmap](docs/roadmap.md) (Milestone status: M0–M6)
-- [Examples](docs/examples/README.md) (Practical code walkthroughs)
+**Read more**:
+
+-   [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
+-   [Roadmap](docs/roadmap.md) (Milestone status: M0–M6)
+-   [Examples](docs/examples/README.md) (Practical code walkthroughs)
 
 ---
 
@@ -98,7 +100,7 @@ scripts/          Automation (seed data, validation, deployment helpers)
 
 Prerequisites:
 
--   Node.js >= 20
+-   Node.js >= 22 (Azure Functions currently supports 22.x; do not use 24.x yet)
 -   (Optional) Azure Functions Core Tools v4 (for direct Functions host runs)
 -   **GitHub Personal Access Token** with `read:packages` scope (for accessing `@piquet-h/shared` from GitHub Packages)
 
@@ -249,9 +251,10 @@ node scripts/seed-anchor-locations.mjs
 The script is safe to re-run and outputs a summary of locations and exits processed. See [`docs/examples/seed-script-usage.md`](docs/examples/seed-script-usage.md) for detailed usage.
 
 **Guidelines**:
-- Keep handlers small & stateless; extract shared helpers once they appear twice
-- Link a design doc section when opening a feature PR
-- Prefer enqueueing a world event over cascading direct mutations
+
+-   Keep handlers small & stateless; extract shared helpers once they appear twice
+-   Link a design doc section when opening a feature PR
+-   Prefer enqueueing a world event over cascading direct mutations
 
 **Read more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
 
@@ -262,11 +265,12 @@ The script is safe to re-run and outputs a summary of locations and exits proces
 All workflows are defined in `.github/workflows/` and use GitHub Actions with Azure OIDC authentication (no raw secrets).
 
 **Key workflows**:
-- **CI**: Lint, typecheck, test, accessibility scans (triggered on PRs/pushes)
-- **Infrastructure Deploy**: Bicep templates → Azure resources (Cosmos, Functions, SWA, Key Vault)
-- **Publish Shared**: Publish `@piquet-h/shared` to GitHub Packages
-- **Backend Deploy**: Build + deploy Functions (depends on shared package)
-- **Frontend Deploy**: Build + deploy Static Web App
+
+-   **CI**: Lint, typecheck, test, accessibility scans (triggered on PRs/pushes)
+-   **Infrastructure Deploy**: Bicep templates → Azure resources (Cosmos, Functions, SWA, Key Vault)
+-   **Publish Shared**: Publish `@piquet-h/shared` to GitHub Packages
+-   **Backend Deploy**: Build + deploy Functions (depends on shared package)
+-   **Frontend Deploy**: Build + deploy Static Web App
 
 **Deployment order**: Infrastructure → Shared → Backend → Frontend
 
@@ -315,11 +319,12 @@ Migration (2025-09-27 final): Removed `priority:` axis (ordering automation sinc
 ## Known Gaps & Technical Debt
 
 Current gaps:
-- No Service Bus or queue processors
-- No runtime Cosmos DB integration code (graph client, schema bootstrap)
-- Limited test coverage (backend + shared scaffolding present; expansion planned)
-- No managed identity consumption in Functions (uses key secret placeholder only)
-- Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default
+
+-   No Service Bus or queue processors
+-   No runtime Cosmos DB integration code (graph client, schema bootstrap)
+-   Limited test coverage (backend + shared scaffolding present; expansion planned)
+-   No managed identity consumption in Functions (uses key secret placeholder only)
+-   Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default
 
 **Read more**: [Roadmap](docs/roadmap.md) (milestones M2–M6 address these gaps)
 
@@ -332,4 +337,3 @@ MIT – see [`LICENSE`](LICENSE).
 ---
 
 **Return to top**: [▲](#top)
-

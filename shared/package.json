@@ -61,7 +61,7 @@
         "dist"
     ],
     "engines": {
-        "node": "20.x",
+        "node": "22.x",
         "npm": ">=10.0.0"
     },
     "scripts": {
@@ -85,7 +85,7 @@
         "zod": "^4.1.12"
     },
     "devDependencies": {
-        "@types/node": "^20.19.23",
+        "@types/node": "^22.0.0",
         "@typescript-eslint/eslint-plugin": "^8.44.0",
         "@typescript-eslint/parser": "^8.44.0",
         "c8": "^10.1.2",

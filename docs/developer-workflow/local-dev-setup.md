@@ -4,7 +4,7 @@ This guide shows how to run the frontend SPA and the unified backend Azure Funct
 
 ## Prerequisites
 
--   Node.js >= 20
+-   Node.js >= 22 (Functions runtime currently supports 22.x; 24.x not yet available)
 -   (Optional) Azure Functions Core Tools v4 (the SWA CLI will auto‑install if missing)
 
 ## Install Dependencies (Per Package)
@@ -220,7 +220,7 @@ See [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) for complete doc
 | Symptom                                        | Fix                                                             |
 | ---------------------------------------------- | --------------------------------------------------------------- |
 | Port 5173 in use                               | Close previous Vite instance or set a custom port via `--port`. |
-| Functions host fails to start                  | Reinstall dependencies or ensure Node 20+.                      |
+| Functions host fails to start                  | Reinstall dependencies or ensure Node 22+.                      |
 | 404 on `/api/...` while using plain `vite dev` | Configure Vite proxy to backend (see `vite.config.ts`).         |
 
 ## Related Documentation
