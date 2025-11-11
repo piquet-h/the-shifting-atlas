@@ -9,6 +9,10 @@
  *
  * Epic: piquet-h/the-shifting-atlas#386 (Cosmos Dual Persistence Implementation)
  * Goal: ≥90% integration test coverage for dual persistence paths
+ *
+ * Test Modes:
+ * - Runs against both 'memory' and 'cosmos' persistence modes
+ * - Validates behavior consistency across mock and real Cosmos DB implementations
  */
 
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
@@ -17,14 +21,34 @@ import type { InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import type { ContainerMode } from '../helpers/testInversify.config.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
-describe('Dual Persistence Integration', () => {
+/**
+ * Run test suite against both memory and cosmos modes
+ * Cosmos mode tests will skip gracefully if infrastructure is not available
+ */
+function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
+    const modes: ContainerMode[] = ['memory', 'cosmos']
+
+    for (const mode of modes) {
+        describe(`${suiteName} [${mode}]`, () => {
+            // Skip cosmos tests if PERSISTENCE_MODE is not explicitly set to 'cosmos'
+            // This allows tests to run in CI without requiring Cosmos DB credentials
+            if (mode === 'cosmos' && process.env.PERSISTENCE_MODE !== 'cosmos') {
+                test.skip('Cosmos tests skipped (PERSISTENCE_MODE != cosmos)', () => {})
+                return
+            }
+            testFn(mode)
+        })
+    }
+}
+
+describeForBothModes('Dual Persistence Integration', (mode) => {
     let fixture: IntegrationTestFixture
 
     beforeEach(async () => {
-        // Use memory mode for isolation and speed
-        fixture = new IntegrationTestFixture('memory')
+        fixture = new IntegrationTestFixture(mode)
         await fixture.setup()
     })
 
@@ -88,6 +112,51 @@ describe('Dual Persistence Integration', () => {
             assert.ok(location, 'expected location to exist')
 
             // Edge case: Multiple player references to same location (acceptable pattern)
+        })
+
+        // CRITICAL TEST: Player location persistence after movement
+        // BLOCKED by issue #494 - IPlayerRepository has no update() method
+        // Move handler doesn't persist location changes to SQL API
+        test.skip('should update player currentLocationId in SQL API after movement', async () => {
+            const playerRepo = await fixture.getPlayerRepository()
+            const locationRepo = await fixture.getLocationRepository()
+
+            // Given: Player at location A with SQL document currentLocationId = A
+            const { record: player } = await playerRepo.getOrCreate()
+            const startLocation = await locationRepo.get(player.currentLocationId)
+            assert.ok(startLocation, 'Start location should exist')
+
+            // Find an exit from start location
+            const exit = startLocation.exits?.[0]
+            assert.ok(exit, 'Start location should have at least one exit')
+
+            // When: Player moves to location B
+            // NOTE: This test assumes a move() method exists. Actual implementation TBD in #494
+            // For now, this documents the expected behavior:
+            // const moveResult = await someMoveMechanism(player.id, exit.direction)
+            // assert.strictEqual(moveResult.status, 'ok', 'Move should succeed')
+
+            // Then: SQL API document should be UPDATED with new currentLocationId
+            // const updatedPlayer = await playerRepo.get(player.id)
+            // assert.strictEqual(
+            //     updatedPlayer?.currentLocationId,
+            //     moveResult.location.id,
+            //     'Player currentLocationId should be updated in SQL API after movement'
+            // )
+
+            // And: Player reconnect should return correct location (no snap-back)
+            // const reconnectedPlayer = await playerRepo.get(player.id)
+            // assert.strictEqual(
+            //     reconnectedPlayer?.currentLocationId,
+            //     moveResult.location.id,
+            //     'Player should remain at new location after reconnect'
+            // )
+
+            // BLOCKED: Cannot implement until:
+            // 1. IPlayerRepository.update() method exists
+            // 2. Move handler calls update after successful move
+            // 3. Migration script can safely copy players knowing locations will persist
+            // See issue #494 for implementation plan
         })
     })
 
