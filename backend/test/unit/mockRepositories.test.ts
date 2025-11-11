@@ -41,6 +41,46 @@ describe('Mock Repositories', () => {
             assert.ok(found)
             assert.equal(found.id, 'test-player-1')
         })
+
+        test('update method', async () => {
+            const repo = new MockPlayerRepository()
+
+            // Create a player first
+            const { record: player } = await repo.getOrCreate('test-player-update')
+            const originalLocationId = player.currentLocationId
+
+            // Update the player location
+            player.currentLocationId = 'new-location-123'
+            const updated = await repo.update(player)
+
+            // Verify update succeeded
+            assert.equal(updated.currentLocationId, 'new-location-123')
+            assert.notEqual(updated.currentLocationId, originalLocationId)
+            assert.ok(updated.updatedUtc, 'updatedUtc should be set')
+
+            // Verify persistence
+            const retrieved = await repo.get('test-player-update')
+            assert.ok(retrieved, 'player should still exist')
+            assert.equal(retrieved.currentLocationId, 'new-location-123')
+        })
+
+        test('update throws error for non-existent player', async () => {
+            const repo = new MockPlayerRepository()
+
+            const fakePlayer = {
+                id: 'non-existent-player',
+                createdUtc: new Date().toISOString(),
+                updatedUtc: new Date().toISOString(),
+                guest: true,
+                currentLocationId: 'some-location'
+            }
+
+            await assert.rejects(
+                async () => await repo.update(fakePlayer),
+                /Player.*not found/,
+                'should throw error for non-existent player'
+            )
+        })
     })
 
     describe('MockLocationRepository', () => {
