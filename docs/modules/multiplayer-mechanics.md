@@ -6,28 +6,41 @@ Create a living, multiplayer world where collaboration, conflict, and shared sto
 
 ## 🧑‍🤝‍🧑 Multiplayer Mechanics: Syncing player states, cooperative exploration
 
-- Real-time state synchronization
-- Party formation and shared objectives
-- PvP and PvE mechanics
-- Instance management and matchmaking
+-   Real-time state synchronization
+-   Party formation and shared objectives
+-   PvP and PvE mechanics
+-   Instance management and matchmaking
 
 ### Real-time state synchronization
 
-- Real-time vs. async updates
-- Shared quest progression and NPC memory
-- Location syncing and party movement logic
+-   Real-time vs. async updates
+-   Shared quest progression and NPC memory
+-   Location syncing and party movement logic
+-   **Temporal reconciliation**: When players reunite after asynchronous play (one online, one offline), their individual timelines must align. See [World Time & Temporal Reconciliation Framework](./world-time-temporal-reconciliation.md) for details on reconciliation policies (wait/slow/compress) and narrative generation for "time passes" scenarios.
+
+**Key Principle**: Players act asynchronously, accumulating personal time offsets. When they meet at a shared location, the temporal system reconciles their clocks to a common anchor, ensuring consistent shared reality without breaking narrative flow.
+
+**Example Scenario**:
+
+-   Player A offline for 8 hours (real-time) → drift applied → player clock advances by 8 in-game hours
+-   Player B active, advances clock by 2 in-game hours via actions
+-   Player A reconnects, moves to same location as Player B
+-   Reconciliation: Both players' clocks align to location anchor (max of both offsets)
+-   Narrative: "Hours pass as you catch up with your companion..."
+
+See Epic #497 for temporal reconciliation implementation status.
 
 ### Party formation and shared objectives
 
-- Invite/accept/kick flow
-- Shared loot rules and quest objectives
-- Role-based bonuses and synergy effects
+-   Invite/accept/kick flow
+-   Shared loot rules and quest objectives
+-   Role-based bonuses and synergy effects
 
 ### PvP and PvE mechanics
 
-- Combat rules, stat scaling, and faction modifiers
-- Instance logic for dungeons, arenas, and boss fights
-- Reputation impact and griefing mitigation
+-   Combat rules, stat scaling, and faction modifiers
+-   Instance logic for dungeons, arenas, and boss fights
+-   Reputation impact and griefing mitigation
 
 ### Instance management and matchmaking
 
@@ -48,9 +61,9 @@ Multiplayer visibility of evolving locations leverages the **immutable base + ad
 
 ### Consistency Model
 
-- **Location Snapshot**: Server composes ordered layers → hash → clients diff apply.
-- **Delta Broadcast**: Only new/removed layer IDs + changed exit states.
-- **Conflict Avoidance**: Player-authored micro-layers (future) require optimistic version; reject on mismatch.
+-   **Location Snapshot**: Server composes ordered layers → hash → clients diff apply.
+-   **Delta Broadcast**: Only new/removed layer IDs + changed exit states.
+-   **Conflict Avoidance**: Player-authored micro-layers (future) require optimistic version; reject on mismatch.
 
 ### Traversal Event Flow (Simplified)
 
@@ -75,20 +88,20 @@ Griefing signals (quest sabotage, harassment patterns) reduce _layer publication
 
 Canonical events (see `shared/src/telemetryEvents.ts`; all emitted via `trackGameEventStrict`):
 
-- `Multiplayer.LayerDelta.Sent` (layerCount, bytes, recipients)
-- `Multiplayer.LocationSnapshot.HashMismatch` (clientHash, serverHash)
-- `Multiplayer.Movement.Latency` (serverMs, networkMs)
+-   `Multiplayer.LayerDelta.Sent` (layerCount, bytes, recipients)
+-   `Multiplayer.LocationSnapshot.HashMismatch` (clientHash, serverHash)
+-   `Multiplayer.Movement.Latency` (serverMs, networkMs)
 
 ### Open Considerations
 
-- Regional batching of broadcast vs per-location micro-packets.
-- Predictive prefetch of adjacent location layer sets for fast parties.
-- Privacy gates for secret layers (individual vs group discovery state).
+-   Regional batching of broadcast vs per-location micro-packets.
+-   Predictive prefetch of adjacent location layer sets for fast parties.
+-   Privacy gates for secret layers (individual vs group discovery state).
 
 ---
 
 _Multiplayer layer synchronization section added 2025-09-25 to align with AI-first world crystallization._
 
-- Shard logic: local vs. global state
-- Matchmaking protocols and encounter scaling
-- World event triggers and resolution tracking
+-   Shard logic: local vs. global state
+-   Matchmaking protocols and encounter scaling
+-   World event triggers and resolution tracking
