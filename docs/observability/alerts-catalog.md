@@ -10,6 +10,129 @@ Central registry documenting all configured Azure Monitor alerts, including trig
 
 ## Alert Categories
 
+### SQL API Operations / Hot Partitions
+
+#### SQL API Hot Partition Detection
+
+**Alert ID:** `alert-sql-hot-partition-{name}`  
+**Bicep Module:** `infrastructure/alert-sql-hot-partition.bicep`  
+**Status:** Active (M2 Observability, Issue #387)
+
+**Purpose:**  
+Detect hot partitions in Cosmos DB SQL API containers when a single partition key consumes disproportionate RU share (>80% of total). Prevents performance degradation and throttling due to partition skew. Supports partition key strategy validation for dual persistence architecture.
+
+**Trigger Conditions:**
+
+-   **Error Severity**: Single partition consuming `>80%` of total container RU in 5-minute window
+-   **Minimum Operations**: Container must have `>=1000` operations in window (suppresses new container false positives)
+-   **Evaluation**: Every 5 minutes (rolling window)
+
+**Evaluation:**
+
+-   **Frequency**: Every 5 minutes
+-   **Window Size**: 5 minutes (rolling)
+-   **Auto-Resolve**: When partition RU consumption drops below 70% threshold
+    -   Azure Monitor auto-mitigate enabled: alert resolves when firing condition no longer met
+
+**Alert Payload Context:**
+
+-   `containerName`: Affected SQL container (`players`, `inventory`, `descriptionLayers`, `worldEvents`)
+-   `partitionKey`: Hot partition key value (player GUID, location GUID, etc.)
+-   `ruPercent`: Percentage of total container RU consumed by this partition
+-   `partitionRU`: Total RU consumed by partition in window
+-   `totalContainerRU`: Total RU consumed by container in window
+-   `operationCount`: Number of operations on partition
+-   `avgLatency`: Average latency for partition operations (ms)
+-   `p95Latency`: 95th percentile latency (ms)
+-   `topOperations`: Top 5 operations by RU consumption (operation name + RU)
+-   `alertThreshold`: Configured threshold percentage (default: 80)
+
+**Configuration:**
+
+-   **Main Parameters** (in `infrastructure/main.bicep`):
+    -   `hotPartitionThreshold`: RU percentage threshold for alert (default: 80)
+    -   `resolutionThreshold`: Percentage below which alert auto-resolves (default: 70)
+    -   `minDocumentCount`: Minimum operations to enable alert (default: 1000)
+
+-   **Module Parameters** (in `infrastructure/alert-sql-hot-partition.bicep`):
+    -   `evaluationFrequencyMinutes`: How often to evaluate condition (default: 5)
+    -   `severity`: Alert severity level - 0=Critical, 1=Error, 2=Warning, 3=Informational (default: 1 Error)
+
+**Parameter Tuning Table:**
+
+| Parameter | Default | Purpose | Tuning Guidance |
+|-----------|---------|---------|----------------|
+| `hotPartitionThreshold` | 80 | RU% to trigger alert | Increase if acceptable concentration pattern |
+| `resolutionThreshold` | 70 | RU% for auto-resolution | Should be <hotPartitionThreshold, ~10% buffer |
+| `minDocumentCount` | 1000 | Min operations to enable | Increase for high-volume containers |
+| `evaluationFrequencyMinutes` | 5 | Evaluation window size | Match to typical response time |
+
+**Edge Cases Handled:**
+
+-   **New Containers**: Alert suppressed until container reaches minimum operation count (avoids bootstrap false positives)
+-   **Cross-Partition Queries**: Excluded from calculation (flagged with `crossPartitionQuery: true` dimension)
+-   **Player Activity Spikes**: Expected for player-centric partitions during login storms; review `operationName` distribution
+-   **Starter Location Hotspot**: Known for location-based partitions; consider caching or partition strategy adjustment
+
+**Data Source:**
+
+-   `SQL.Query.Executed` events with `containerName` and `partitionKey` dimensions (added Issue #387)
+-   `SQL.Query.Failed` events for failure correlation (429 throttling)
+
+**Related Telemetry Events:**
+
+-   [`SQL.Query.Executed`](./telemetry-catalog.md#sqlqueryexecuted)
+-   [`SQL.Query.Failed`](./telemetry-catalog.md#sqlqueryfailed)
+
+**Related Documentation:**
+
+-   [Partition Key Monitoring](./partition-key-monitoring.md) — Comprehensive partition monitoring guide
+-   [SQL API Partition Monitoring Dashboard](#workbook-troubleshooting) — Dedicated workbook for troubleshooting
+-   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition strategy principles (Gremlin-focused, applies to SQL API)
+
+**Workbook Troubleshooting:**
+
+When this alert fires, open the **SQL API Partition Monitoring Dashboard** in Application Insights:
+
+1. Navigate to: Azure Portal → Application Insights → Workbooks → "SQL API Partition Monitoring"
+2. Set time range to alert window (default: last 24h)
+3. Filter to affected container using "Container Filter" parameter
+4. Review panels in order:
+   - **Partition Key Cardinality**: Assess overall distribution health
+   - **Top Hot Partitions**: Identify concentration patterns and operation percentages
+   - **Partition Distribution Chart**: Visualize RU consumption split
+   - **429 Throttling Table**: Check for active throttling on hot partition
+   - **Latency Percentiles**: Assess performance impact
+5. Follow **Alert Troubleshooting Guide** section at bottom of workbook
+
+**Response Guidance:**
+
+1. **Identify Hot Partition**: Check `partitionKey` in alert payload
+    - If player GUID: Review player activity patterns (bot detection, load testing?)
+    - If location GUID: Check if starter location or popular destination
+    - If scope key: Review event distribution (concentrated player activity?)
+2. **Analyze Operation Types**: Review `topOperations` list
+    - Frequent reads: Consider caching at application layer
+    - Frequent writes: Review write amplification (batch operations?)
+    - Cross-partition queries: Refactor to partition-scoped queries
+3. **Check for Throttling**: Query for 429 errors on affected partition
+    ```kusto
+    customEvents
+    | where name == 'SQL.Query.Failed'
+    | where tostring(customDimensions.containerName) == '{containerName}'
+    | where tostring(customDimensions.partitionKey) == '{partitionKey}'
+    | where toint(customDimensions.httpStatusCode) == 429
+    | summarize count() by bin(timestamp, 5m)
+    ```
+4. **Assess Distribution**: Run partition validation script
+    ```bash
+    npm run validate:partitions -- --container {containerName}
+    ```
+5. **Remediation Options**:
+    - **Short-term**: Increase provisioned RU/s (temporary relief)
+    - **Medium-term**: Implement caching for popular entities
+    - **Long-term**: Evaluate partition key migration (see [Partition Key Monitoring](./partition-key-monitoring.md) for migration guide)
+
 ### Graph Operations / Throttling
 
 #### Gremlin 429 Throttling Spike Detection
