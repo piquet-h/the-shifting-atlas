@@ -55,7 +55,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                     operationName,
                     latencyMs,
                     ruCharge: response.requestCharge,
-                    resultCount: 1
+                    resultCount: 1,
+                    partitionKey,
+                    containerName: this.containerName
                 })
                 return response.resource
             }
@@ -71,7 +73,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                     operationName,
                     latencyMs,
                     ruCharge: 0,
-                    resultCount: 0
+                    resultCount: 0,
+                    partitionKey,
+                    containerName: this.containerName
                 })
                 return null
             }
@@ -79,7 +83,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                partitionKey,
+                containerName: this.containerName
             })
 
             throw translateCosmosError(error, operationName)
@@ -103,7 +109,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
-                resultCount: 1
+                resultCount: 1,
+                partitionKey: entity.id,
+                containerName: this.containerName
             })
 
             return {
@@ -117,7 +125,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                partitionKey: entity.id,
+                containerName: this.containerName
             })
 
             throw translateCosmosError(error, operationName)
@@ -141,7 +151,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
-                resultCount: 1
+                resultCount: 1,
+                partitionKey: entity.id,
+                containerName: this.containerName
             })
 
             return {
@@ -155,7 +167,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                partitionKey: entity.id,
+                containerName: this.containerName
             })
 
             throw translateCosmosError(error, operationName)
@@ -183,7 +197,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
-                resultCount: 1
+                resultCount: 1,
+                partitionKey,
+                containerName: this.containerName
             })
 
             return {
@@ -197,7 +213,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                partitionKey,
+                containerName: this.containerName
             })
 
             throw translateCosmosError(error, operationName)
@@ -222,7 +240,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
-                resultCount: 1
+                resultCount: 1,
+                partitionKey,
+                containerName: this.containerName
             })
 
             return true
@@ -236,7 +256,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                     operationName,
                     latencyMs,
                     ruCharge: 0,
-                    resultCount: 0
+                    resultCount: 0,
+                    partitionKey,
+                    containerName: this.containerName
                 })
                 return false
             }
@@ -244,7 +266,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                partitionKey,
+                containerName: this.containerName
             })
 
             throw translateCosmosError(error, operationName)
@@ -286,7 +310,10 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 operationName,
                 latencyMs,
                 ruCharge: totalRU,
-                resultCount: results.length
+                resultCount: results.length,
+                containerName: this.containerName,
+                // Note: queries may span multiple partitions, partitionKey not included
+                crossPartitionQuery: true
             })
 
             return {
@@ -300,7 +327,9 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
-                httpStatusCode: cosmosError.code
+                httpStatusCode: cosmosError.code,
+                containerName: this.containerName,
+                crossPartitionQuery: true
             })
 
             throw translateCosmosError(error, operationName)

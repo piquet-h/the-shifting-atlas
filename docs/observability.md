@@ -257,6 +257,93 @@ customEvents
 
 Scaling thresholds live in `adr/ADR-002-graph-partition-strategy.md`. Emit partition health only if a decision boundary nears—do not pre‑emptively stream RU/vertex counts each request.
 
+### SQL API Partition Key Monitoring (M2 Observability)
+
+Starting in M2, SQL API operations emit partition key values in telemetry to enable partition distribution monitoring and hot partition detection. See [Partition Key Monitoring](./observability/partition-key-monitoring.md) for comprehensive guidance on partition key strategies, validation queries, and remediation procedures.
+
+**Instrumented Containers:**
+
+-   `players` - Partition key: `/id` (player GUID)
+-   `inventory` - Partition key: `/playerId` (player GUID)
+-   `descriptionLayers` - Partition key: `/locationId` (location GUID)
+-   `worldEvents` - Partition key: `/scopeKey` (scope pattern: `loc:<id>` or `player:<id>`)
+
+**Event Schema:**
+
+```typescript
+// Success event with partition key
+{
+  eventName: 'SQL.Query.Executed',
+  operationName: 'players.GetById',
+  containerName: 'players',
+  partitionKey: '9d2f7c8a-...',  // Partition key value used
+  latencyMs: 12,
+  ruCharge: 2.8,
+  resultCount: 1
+}
+
+// Failure event
+{
+  eventName: 'SQL.Query.Failed',
+  operationName: 'inventory.Query',
+  containerName: 'inventory',
+  partitionKey: 'a4d1c3f1-...',
+  latencyMs: 85,
+  httpStatusCode: 429  // Throttling
+}
+
+// Cross-partition query (no specific partition key)
+{
+  eventName: 'SQL.Query.Executed',
+  operationName: 'players.Query',
+  containerName: 'players',
+  crossPartitionQuery: true,  // Indicates spans multiple partitions
+  latencyMs: 150,
+  ruCharge: 25.4,
+  resultCount: 50
+}
+```
+
+**Query Snippet (Application Insights Analytics):**
+
+```kusto
+// Partition key cardinality by container
+customEvents
+| where name == 'SQL.Query.Executed'
+| where timestamp > ago(24h)
+| extend containerName = tostring(customDimensions.containerName),
+         partitionKey = tostring(customDimensions.partitionKey)
+| where isnotempty(partitionKey)
+| summarize 
+    uniquePartitions = dcount(partitionKey),
+    totalOps = count(),
+    totalRU = sum(todouble(customDimensions.ruCharge))
+  by containerName
+| project containerName, uniquePartitions, totalOps, totalRU,
+          avgOpsPerPartition = round(todouble(totalOps) / uniquePartitions, 1)
+```
+
+**Alert Thresholds:**
+
+-   Single partition >80% of total RU in 5-minute window (hot partition)
+-   Container with <10 unique partition keys and >1000 operations
+-   Partition key cardinality decreasing over time (consolidation indicator)
+
+**Validation Script:**
+
+```bash
+# Analyze partition distribution across all containers
+npm run validate:partitions
+
+# Analyze specific container
+npm run validate:partitions -- --container players
+
+# Export report to CSV for analysis
+npm run validate:partitions -- --format=csv > partition-report.csv
+```
+
+See [Partition Key Monitoring](./observability/partition-key-monitoring.md) for detailed queries, alert configuration, and migration guidance.
+
 ### Gremlin RU & Latency Tracking (M2 Observability)
 
 Starting in M2, critical Gremlin operations emit `Graph.Query.Executed` and `Graph.Query.Failed` events with RU consumption and latency metrics. This enables pre-migration monitoring of partition pressure (ADR-002 thresholds: >50k vertices OR sustained RU >70% for 3 days OR 429 throttling).
