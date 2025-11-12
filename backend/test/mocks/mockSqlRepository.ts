@@ -30,7 +30,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.GetById`,
                 resultCount: item ? 1 : 0,
-                ruCharge: 1.0
+                ruCharge: 1.0,
+                partitionKey,
+                containerName: this.containerName
             }
         })
 
@@ -48,7 +50,9 @@ export class MockSqlRepository<T extends { id: string }> {
                 event: 'SQL.Query.Failed',
                 data: {
                     operationName: `${this.containerName}.Create`,
-                    httpStatusCode: 409
+                    httpStatusCode: 409,
+                    partitionKey: entity.id,
+                    containerName: this.containerName
                 }
             })
             throw new ConcurrencyException(`Item with id ${entity.id} already exists`)
@@ -61,7 +65,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.Create`,
                 resultCount: 1,
-                ruCharge: 5.0
+                ruCharge: 5.0,
+                partitionKey: entity.id,
+                containerName: this.containerName
             }
         })
 
@@ -80,7 +86,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.Upsert`,
                 resultCount: 1,
-                ruCharge: 5.5
+                ruCharge: 5.5,
+                partitionKey: entity.id,
+                containerName: this.containerName
             }
         })
 
@@ -99,7 +107,9 @@ export class MockSqlRepository<T extends { id: string }> {
                 event: 'SQL.Query.Failed',
                 data: {
                     operationName: `${this.containerName}.Replace`,
-                    httpStatusCode: 404
+                    httpStatusCode: 404,
+                    partitionKey,
+                    containerName: this.containerName
                 }
             })
             throw new NotFoundException(`Item with id ${id} not found`)
@@ -112,7 +122,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.Replace`,
                 resultCount: 1,
-                ruCharge: 5.0
+                ruCharge: 5.0,
+                partitionKey,
+                containerName: this.containerName
             }
         })
 
@@ -135,7 +147,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.Delete`,
                 resultCount: existed ? 1 : 0,
-                ruCharge: existed ? 5.0 : 0
+                ruCharge: existed ? 5.0 : 0,
+                partitionKey,
+                containerName: this.containerName
             }
         })
 
@@ -162,7 +176,9 @@ export class MockSqlRepository<T extends { id: string }> {
             data: {
                 operationName: `${this.containerName}.Query`,
                 resultCount: results.length,
-                ruCharge: Math.max(1.0, results.length * 2.0)
+                ruCharge: Math.max(1.0, results.length * 2.0),
+                containerName: this.containerName,
+                crossPartitionQuery: true
             }
         })
 

@@ -60,6 +60,19 @@ describe('CosmosDbSqlRepository Base Class', () => {
             assert.strictEqual(events.length, 1)
             assert.strictEqual(events[0].data.resultCount, 0)
         })
+
+        test('should include partition key in getById telemetry', async () => {
+            const entity: TestEntity = { id: 'test-1', name: 'Test', value: 1 }
+            await repo.create(entity, 'partition-xyz')
+            repo.telemetryEvents = [] // Clear creation events
+
+            await repo.getById('test-1', 'partition-xyz')
+
+            const events = repo.telemetryEvents.filter((e) => e.event === 'SQL.Query.Executed')
+            assert.strictEqual(events.length, 1)
+            assert.strictEqual(events[0].data.partitionKey, 'partition-xyz')
+            assert.strictEqual(events[0].data.containerName, 'testcontainer')
+        })
     })
 
     describe('create', () => {
@@ -242,6 +255,20 @@ describe('CosmosDbSqlRepository Base Class', () => {
             const queryEvent = events.find((e) => e.data.operationName === 'testcontainer.Query')
             assert.ok(queryEvent)
             assert.ok((queryEvent!.data.ruCharge as number) > 0)
+        })
+
+        test('should mark cross-partition queries in telemetry', async () => {
+            const entity: TestEntity = { id: 'test-1', name: 'Test', value: 1 }
+            await repo.create(entity, 'partition1')
+            repo.telemetryEvents = [] // Clear creation events
+
+            await repo.query('SELECT * FROM c')
+
+            const events = repo.telemetryEvents.filter((e) => e.event === 'SQL.Query.Executed')
+            const queryEvent = events.find((e) => e.data.operationName === 'testcontainer.Query')
+            assert.ok(queryEvent)
+            assert.strictEqual(queryEvent!.data.crossPartitionQuery, true)
+            assert.strictEqual(queryEvent!.data.containerName, 'testcontainer')
         })
     })
 
