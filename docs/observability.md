@@ -441,7 +441,7 @@ To avoid proliferation of narrowly scoped workbooks, operational analytics adopt
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Single Pane          | Combine closely related KPIs (rate, reasons, trends, summary) in one workbook file.                                                                 |
 | Deterministic Naming | Bicep resource name uses `guid('<slug>', name)` for idempotent deployments.                                                                         |
-| Stable Paths         | All workbook JSON artifacts reside under `docs/observability/workbooks/` with slug pattern `<domain>-<focus>-dashboard.workbook.json`.              |
+| Stable Paths         | All workbook JSON artifacts reside under `infrastructure/workbooks/` with slug pattern `<domain>-<focus>-dashboard.workbook.json`.              |
 | Additive Panels      | New metrics extend existing domain dashboard instead of creating a new workbook, unless a distinct audience or retention policy demands separation. |
 | Issue Linking        | Dashboard issues reference the consolidated slug rather than creating parallel artifacts.                                                           |
 
@@ -449,7 +449,7 @@ To avoid proliferation of narrowly scoped workbooks, operational analytics adopt
 
 Replaces prior separate movement success rate (#281) and blocked reasons (#282) workbook files with a unified artifact:
 
--   File: `infrastructure/workbooks/movement-navigation-dashboard.workbook.json` (moved from `docs/observability/workbooks/` to colocate infra-managed JSON)
+-   File: `infrastructure/workbooks/movement-navigation-dashboard.workbook.json`
 -   Infra: `infrastructure/workbook-movement-navigation-dashboard.bicep`
 -   Panels included: success rate tiles & summary, blocked reasons table, blocked rate trend (7d), summary statistics, interpretation guide.
 -   Future additions (latency distribution, percentile overlays) should modify this file (see issue #283) rather than produce a new workbook.
@@ -467,6 +467,29 @@ Consolidated workbook for Gremlin operation RU consumption, latency percentiles,
     -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
 -   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
 -   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
+
+### SQL API Partition Monitoring Dashboard
+
+Dedicated workbook for SQL API partition key distribution monitoring and hot partition troubleshooting (Issue #387):
+
+-   File: `infrastructure/workbooks/sql-partition-monitoring-dashboard.workbook.json`
+-   Infra: `infrastructure/workbook-sql-partition-monitoring-dashboard.bicep`
+-   **Purpose**: Detect partition skew and hot partitions before throttling impacts users. Complements `alert-sql-hot-partition` alert.
+-   **Panels included**:
+    -   **Partition Key Cardinality**: Unique partition keys per container with health indicators (green: >10, amber: 5-10, red: <5)
+    -   **Top Hot Partitions**: Partitions consuming >5% of operations, ranked by RU consumption with percentage thresholds
+    -   **Partition Distribution Chart**: Visual RU split across top 10 partitions
+    -   **RU Consumption Trend**: Hourly RU trend for top 5 partitions
+    -   **429 Throttling Analysis**: Throttling errors by partition key
+    -   **Latency Percentiles**: P50/P95/P99 latency for hot partitions
+    -   **Alert Troubleshooting Guide**: Step-by-step response workflow when hot partition alert fires
+-   **When to Use**: 
+    - After hot partition alert fires (immediate troubleshooting)
+    - Weekly partition health reviews
+    - Before/after partition key migrations
+    - Capacity planning for high-growth containers
+-   **Filters**: Time range (1h-7d), container selection (All or specific)
+-   References: docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)
 
 #### Recent Enhancements (Nov 2025)
 

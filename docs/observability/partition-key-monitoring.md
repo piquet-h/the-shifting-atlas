@@ -2,10 +2,27 @@
 
 **Purpose**: Monitor partition key distribution and detect hot partitions in Cosmos DB SQL API containers to prevent performance degradation and throttling.
 
+**Workbook**: SQL API Partition Monitoring Dashboard (`infrastructure/workbook-sql-partition-monitoring-dashboard.bicep`)
+
 **Related**:
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
 - [Observability Overview](../observability.md)
 - [Alerts Catalog](./alerts-catalog.md)
+
+---
+
+## Quick Start: Using the Dashboard
+
+**Access**: Azure Portal → Application Insights → Workbooks → "SQL API Partition Monitoring"
+
+The dedicated workbook provides real-time visibility into:
+1. **Partition Key Cardinality** - Number of unique partition keys per container (health indicator)
+2. **Hot Partition Detection** - Partitions consuming >5% of operations (alert threshold: >80% RU)
+3. **Throttling Analysis** - 429 errors by partition key
+4. **Latency Impact** - Performance degradation on hot partitions
+5. **Troubleshooting Guide** - Step-by-step response when alert fires
+
+**When Alert Fires**: Open workbook, filter to affected container, review "Alert Troubleshooting Guide" section.
 
 ---
 

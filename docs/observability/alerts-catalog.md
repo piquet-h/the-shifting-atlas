@@ -87,7 +87,23 @@ Detect hot partitions in Cosmos DB SQL API containers when a single partition ke
 **Related Documentation:**
 
 -   [Partition Key Monitoring](./partition-key-monitoring.md) — Comprehensive partition monitoring guide
+-   [SQL API Partition Monitoring Dashboard](#workbook-troubleshooting) — Dedicated workbook for troubleshooting
 -   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition strategy principles (Gremlin-focused, applies to SQL API)
+
+**Workbook Troubleshooting:**
+
+When this alert fires, open the **SQL API Partition Monitoring Dashboard** in Application Insights:
+
+1. Navigate to: Azure Portal → Application Insights → Workbooks → "SQL API Partition Monitoring"
+2. Set time range to alert window (default: last 24h)
+3. Filter to affected container using "Container Filter" parameter
+4. Review panels in order:
+   - **Partition Key Cardinality**: Assess overall distribution health
+   - **Top Hot Partitions**: Identify concentration patterns and operation percentages
+   - **Partition Distribution Chart**: Visualize RU consumption split
+   - **429 Throttling Table**: Check for active throttling on hot partition
+   - **Latency Percentiles**: Assess performance impact
+5. Follow **Alert Troubleshooting Guide** section at bottom of workbook
 
 **Response Guidance:**
 
