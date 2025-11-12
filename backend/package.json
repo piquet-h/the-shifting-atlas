@@ -21,6 +21,7 @@
         "reconcile:world": "PERSISTENCE_MODE=memory tsx scripts/reconcile-world.ts --dry-run",
         "scan:graph-consistency": "node ../scripts/scan-exits-consistency.mjs",
         "query:deadletters": "tsx scripts/query-deadletters.ts",
+        "validate:partitions": "tsx ../scripts/validate-partition-distribution.ts",
         "use:memory": "cp local.settings.memory.json local.settings.json && echo '✓ Switched to MEMORY mode'",
         "use:cosmos": "cp local.settings.cosmos.json local.settings.json && echo '✓ Switched to COSMOS mode'",
         "predev": "npm run build",

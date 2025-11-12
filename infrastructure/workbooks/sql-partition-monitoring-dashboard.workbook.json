@@ -1,0 +1,414 @@
+{
+    "version": "Notebook/1.0",
+    "items": [
+        {
+            "type": 1,
+            "content": {
+                "json": "# SQL API Partition Monitoring Dashboard\n\nDedicated workbook for monitoring partition key distribution and detecting hot partitions in Cosmos DB SQL API containers.\n\n**Telemetry Events:** `SQL.Query.Executed`, `SQL.Query.Failed`\n\n**Objective:** Detect partition skew, hot partitions, and uneven distribution before they cause throttling or performance degradation.\n\n**Related Alert:** `alert-sql-hot-partition` (fires when single partition >80% of container RU)\n\n**Related Issues:** #387 (Partition Key Strategy Validation & Monitoring)\n\n**References:** docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)\n"
+            },
+            "name": "header"
+        },
+        {
+            "type": 9,
+            "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "timerange-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "TimeRange",
+                        "type": 4,
+                        "label": "Time Range",
+                        "value": {
+                            "durationMs": 86400000
+                        },
+                        "typeSettings": {
+                            "selectableValues": [
+                                {
+                                    "durationMs": 3600000
+                                },
+                                {
+                                    "durationMs": 14400000
+                                },
+                                {
+                                    "durationMs": 43200000
+                                },
+                                {
+                                    "durationMs": 86400000
+                                },
+                                {
+                                    "durationMs": 172800000
+                                },
+                                {
+                                    "durationMs": 604800000
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "container-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "Container",
+                        "type": 2,
+                        "label": "Container Filter",
+                        "query": "customEvents\n| where timestamp > ago(7d)\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName)\n| where isnotempty(containerName)\n| distinct containerName\n| order by containerName asc",
+                        "value": "All",
+                        "typeSettings": {
+                            "additionalResourceOptions": [
+                                "value::all"
+                            ],
+                            "showDefault": false
+                        },
+                        "timeContext": {
+                            "durationMs": 604800000
+                        },
+                        "queryType": 0,
+                        "resourceType": "microsoft.insights/components"
+                    }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components"
+            },
+            "name": "parameters"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Partition Key Cardinality by Container\nlet events = customEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(partitionKey) and isnotempty(containerName);\nevents\n| summarize \n    uniquePartitionKeys = dcount(partitionKey),\n    totalOperations = count(),\n    totalRU = sum(ruCharge)\n  by containerName\n| where '{Container}' == 'All' or containerName == '{Container}'\n| extend avgOpsPerPartition = round(todouble(totalOperations) / uniquePartitionKeys, 1),\n         avgRUPerPartition = round(totalRU / uniquePartitionKeys, 1)\n| project containerName, uniquePartitionKeys, totalOperations, totalRU, avgOpsPerPartition, avgRUPerPartition\n| order by uniquePartitionKeys asc",
+                "size": 0,
+                "title": "Partition Key Cardinality by Container",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "uniquePartitionKeys",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "<",
+                                        "thresholdValue": "5",
+                                        "representation": "redBright",
+                                        "text": "{0} (Critical)"
+                                    },
+                                    {
+                                        "operator": "<",
+                                        "thresholdValue": "10",
+                                        "representation": "orange",
+                                        "text": "{0} (Warning)"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green",
+                                        "text": "{0}"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "totalOperations",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "totalRU",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "purple"
+                            }
+                        },
+                        {
+                            "columnMatch": "avgOpsPerPartition",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "100",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "customWidth": "100",
+            "name": "cardinality-table"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Hot Partition Detection\n\nIdentify partitions consuming disproportionate share of operations and RU. **Alert threshold: >80% of container RU in 5-minute window.**"
+            },
+            "name": "hot-partition-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Top Hot Partitions by Operation Count and RU\nlet containerFilter = iff('{Container}' == 'All', '', '{Container}');\nlet events = customEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge),\n         latencyMs = todouble(customDimensions.latencyMs)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| where containerFilter == '' or containerName == containerFilter;\nlet containerTotals = events\n| summarize containerTotal = count() by containerName;\nevents\n| summarize \n    operationCount = count(),\n    totalRU = sum(ruCharge),\n    avgRU = round(avg(ruCharge), 2),\n    p95Latency = round(percentile(latencyMs, 95), 0)\n  by containerName, partitionKey\n| join kind=inner containerTotals on containerName\n| extend operationPct = round(100.0 * operationCount / containerTotal, 2)\n| where operationPct > 5.0\n| project containerName, partitionKey, operationCount, operationPct, totalRU, avgRU, p95Latency\n| order by totalRU desc\n| take 20",
+                "size": 0,
+                "title": "Top 20 Hot Partitions (>5% of operations)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "partitionKey",
+                            "formatter": 5
+                        },
+                        {
+                            "columnMatch": "operationCount",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "operationPct",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "40",
+                                        "representation": "redBright",
+                                        "text": "{0}% (Critical)"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "20",
+                                        "representation": "orange",
+                                        "text": "{0}% (Warning)"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green",
+                                        "text": "{0}%"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "totalRU",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "purple"
+                            }
+                        },
+                        {
+                            "columnMatch": "avgRU",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "orange"
+                            }
+                        },
+                        {
+                            "columnMatch": "p95Latency",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "500",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "300",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "customWidth": "100",
+            "name": "hot-partitions-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Partition Distribution Chart (Top 10 by RU)\nlet containerFilter = iff('{Container}' == 'All', '', '{Container}');\nlet events = customEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| where containerFilter == '' or containerName == containerFilter;\nevents\n| summarize totalRU = sum(ruCharge) by containerName, partitionKey\n| top 10 by totalRU desc\n| extend shortKey = substring(partitionKey, 0, 8)\n| project strcat(containerName, ': ', shortKey, '...'), totalRU",
+                "size": 1,
+                "title": "Partition Distribution (Top 10 by RU Consumption)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "partition-distribution-chart"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// RU Consumption Trend by Top Partitions\nlet containerFilter = iff('{Container}' == 'All', '', '{Container}');\nlet topPartitions = customEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| where containerFilter == '' or containerName == containerFilter\n| summarize totalRU = sum(ruCharge) by containerName, partitionKey\n| top 5 by totalRU desc\n| project containerName, partitionKey;\ncustomEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| join kind=inner topPartitions on containerName, partitionKey\n| summarize totalRU = sum(ruCharge) by bin(timestamp, 1h), partitionKey, containerName\n| extend label = strcat(containerName, ': ', substring(partitionKey, 0, 8), '...')\n| project timestamp, label, totalRU",
+                "size": 1,
+                "title": "RU Consumption Trend (Top 5 Partitions)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "partition-trend-chart"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Throttling & Performance Impact\n\nDetect 429 throttling errors and latency degradation on specific partitions."
+            },
+            "name": "throttling-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// 429 Throttling by Partition\nlet containerFilter = iff('{Container}' == 'All', '', '{Container}');\ncustomEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Failed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         httpStatusCode = toint(customDimensions.httpStatusCode)\n| where httpStatusCode == 429\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| where containerFilter == '' or containerName == containerFilter\n| summarize throttleCount = count() by containerName, partitionKey\n| order by throttleCount desc\n| take 20",
+                "size": 0,
+                "title": "Partitions with 429 Throttling Errors",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "partitionKey",
+                            "formatter": 5
+                        },
+                        {
+                            "columnMatch": "throttleCount",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "10",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "5",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "customWidth": "50",
+            "name": "throttling-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Latency Distribution by Top Partitions\nlet containerFilter = iff('{Container}' == 'All', '', '{Container}');\nlet topPartitions = customEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| where containerFilter == '' or containerName == containerFilter\n| summarize totalRU = sum(ruCharge) by containerName, partitionKey\n| top 10 by totalRU desc;\ncustomEvents\n| where timestamp > {TimeRange:start}\n| where name == 'SQL.Query.Executed'\n| extend containerName = tostring(customDimensions.containerName),\n         partitionKey = tostring(customDimensions.partitionKey),\n         latencyMs = todouble(customDimensions.latencyMs)\n| where isnotempty(partitionKey) and isnotempty(containerName)\n| join kind=inner topPartitions on containerName, partitionKey\n| summarize \n    p50 = percentile(latencyMs, 50),\n    p95 = percentile(latencyMs, 95),\n    p99 = percentile(latencyMs, 99)\n  by containerName, partitionKey\n| extend shortKey = substring(partitionKey, 0, 8)\n| project strcat(containerName, ': ', shortKey, '...'), p50, p95, p99\n| order by p95 desc",
+                "size": 0,
+                "title": "Latency Percentiles (Top 10 Partitions by RU)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "p50",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "p95",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "500",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "300",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "p99",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "1000",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "600",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            "customWidth": "50",
+            "name": "latency-table"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Alert Troubleshooting Guide\n\n**When Hot Partition Alert Fires:**\n\n1. **Identify Hot Partition**: Check alert payload for `partitionKey` and `containerName`\n2. **Assess Impact**: Review \"Partitions with 429 Throttling\" table above\n3. **Analyze Operations**: Check \"Top Hot Partitions\" table for operation patterns\n4. **Review Trend**: Use \"RU Consumption Trend\" chart to determine if sustained or spike\n5. **Check Latency**: Review \"Latency Percentiles\" to assess performance impact\n\n**Immediate Actions:**\n- If player-based partition: Check for bot activity or load testing\n- If location-based partition: Verify if starter location or popular destination\n- If sustained (>1 hour): Consider caching popular entities\n- If spike: Monitor for resolution; may be legitimate burst\n\n**Long-term Solutions:**\n- Run validation script: `npm run validate:partitions -- --container <name>`\n- Review partition key strategy in `docs/observability/partition-key-monitoring.md`\n- Consider partition key migration if structural issue confirmed\n\n**Thresholds:**\n- 🟢 **Healthy**: No partition >15% operations, cardinality >10\n- 🟡 **Warning**: Any partition >15% OR cardinality <5\n- 🔴 **Critical**: Any partition >25% OR sustained >80% RU for 1+ hour"
+            },
+            "name": "troubleshooting-guide"
+        }
+    ],
+    "fallbackResourceIds": [
+        "/subscriptions/your-subscription-id/resourceGroups/your-rg/providers/microsoft.insights/components/your-appinsights"
+    ],
+    "fromTemplateId": "sentinel-UserWorkbook",
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
