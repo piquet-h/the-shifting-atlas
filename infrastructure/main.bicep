@@ -533,6 +533,22 @@ module alertRuUtilization 'alert-ru-utilization.bicep' = {
   }
 }
 
+// Alert: SQL API Hot Partition Detection (Issue #387)
+// Detects hot partitions when single partition consumes >80% of total container RU
+// Suppresses alerts for new containers (<1000 operations) to avoid bootstrap false positives
+module alertSqlHotPartition 'alert-sql-hot-partition.bicep' = {
+  name: 'alert-sql-hot-partition'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    hotPartitionThreshold: 80
+    resolutionThreshold: 70
+    minDocumentCount: 1000
+  }
+}
+
 // Operation Latency Monitoring Alerts (Issue #295)
 // CONSOLIDATED: 10 alerts → 2 alerts (83% query reduction, ~$10-15/month savings)
 // Monitors P95 latency for non-movement Gremlin operations
