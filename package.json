@@ -10,7 +10,8 @@
         "concept:issues:dry": "node scripts/generate-concept-issues.mjs",
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
         "workbooks:export": "node scripts/observability/export-workbooks.mjs",
-        "workbooks:verify": "node scripts/observability/verify-workbooks.mjs"
+        "workbooks:verify": "node scripts/observability/verify-workbooks.mjs",
+        "validate:partitions": "tsx scripts/validate-partition-distribution.ts"
     },
     "engines": {
         "node": "22.x"
