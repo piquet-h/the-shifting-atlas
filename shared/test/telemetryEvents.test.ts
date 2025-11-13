@@ -84,3 +84,26 @@ test('Description events match telemetry pattern', () => {
         assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
     }
 })
+
+// DM (Dungeon Master) humor telemetry events tests
+test('DM.Humor.QuipShown is registered', () => {
+    assert.ok(isGameEventName('DM.Humor.QuipShown'), 'DM.Humor.QuipShown should be recognized')
+})
+
+test('DM.Humor.QuipSuppressed is registered', () => {
+    assert.ok(isGameEventName('DM.Humor.QuipSuppressed'), 'DM.Humor.QuipSuppressed should be recognized')
+})
+
+test('DM.Humor events match telemetry pattern', () => {
+    const humorEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('DM.Humor.'))
+    assert.ok(humorEvents.length === 2, `Expected 2 DM.Humor events, found ${humorEvents.length}`)
+
+    for (const event of humorEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown DM.Humor.* variant rejected', () => {
+    assert.equal(isGameEventName('DM.Humor.Unknown'), false, 'Unknown DM.Humor.* variant should be rejected')
+    assert.equal(isGameEventName('DM.Humor.InvalidEvent'), false, 'Invalid DM.Humor.* variant should be rejected')
+})

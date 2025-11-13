@@ -28,7 +28,15 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     /** Actor type (player, npc, system) */
     EVENT_ACTOR_KIND: 'game.event.actor.kind',
     /** Domain error classification */
-    ERROR_CODE: 'game.error.code'
+    ERROR_CODE: 'game.error.code',
+    /** Humor quip identifier (UUID) */
+    HUMOR_QUIP_ID: 'game.humor.quip.id',
+    /** Player action type that triggered humor */
+    HUMOR_ACTION_TYPE: 'game.humor.action.type',
+    /** Probability value used for humor gate (0.0-1.0) */
+    HUMOR_PROBABILITY_USED: 'game.humor.probability.used',
+    /** Reason for quip suppression (serious|exhausted|probability) */
+    HUMOR_SUPPRESSION_REASON: 'game.humor.suppression.reason'
 } as const
 
 export type TelemetryAttributeKey = (typeof TELEMETRY_ATTRIBUTE_KEYS)[keyof typeof TELEMETRY_ATTRIBUTE_KEYS]
@@ -65,6 +73,16 @@ export interface WorldEventAttributes {
  */
 export interface ErrorEventAttributes {
     errorCode?: string | null
+}
+
+/**
+ * Options for enriching humor (DM) events
+ */
+export interface HumorEventAttributes {
+    quipId?: string | null
+    actionType?: string | null
+    probabilityUsed?: number | null
+    suppressionReason?: string | null
 }
 
 /**
@@ -144,6 +162,31 @@ export function enrichWorldEventAttributes(properties: Record<string, unknown>, 
 export function enrichErrorAttributes(properties: Record<string, unknown>, attrs: ErrorEventAttributes): Record<string, unknown> {
     if (attrs.errorCode) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    return properties
+}
+
+/**
+ * Enrich telemetry properties with humor (DM) attributes.
+ * Includes quip ID, action type, probability, and suppression reason.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Humor attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichHumorAttributes(properties: Record<string, unknown>, attrs: HumorEventAttributes): Record<string, unknown> {
+    if (attrs.quipId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HUMOR_QUIP_ID] = attrs.quipId
+    }
+    if (attrs.actionType) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HUMOR_ACTION_TYPE] = attrs.actionType
+    }
+    if (attrs.probabilityUsed !== null && attrs.probabilityUsed !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HUMOR_PROBABILITY_USED] = attrs.probabilityUsed
+    }
+    if (attrs.suppressionReason) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HUMOR_SUPPRESSION_REASON] = attrs.suppressionReason
     }
     return properties
 }
