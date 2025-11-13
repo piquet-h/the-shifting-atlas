@@ -192,7 +192,7 @@ customEvents
 
 **Alert ID**: `alert-sql-hot-partition-{name}`  
 **Bicep Module**: `infrastructure/alert-sql-hot-partition.bicep`  
-**Status**: Pending implementation (Issue #387)
+**Status**: Active (deployed in main.bicep, Issue #387)
 
 **Trigger Conditions**:
 - Single partition consuming >80% of total RU in 5-minute window
@@ -225,7 +225,7 @@ customEvents
 
 ## Validation Script
 
-**Script**: `scripts/validate-partition-distribution.ts` (pending creation)
+**Script**: `scripts/validate-partition-distribution.ts`
 
 **Purpose**: Analyze partition key distribution across SQL containers and identify potential hotspots.
 
@@ -411,4 +411,4 @@ Migrate partition key strategy if:
 
 ---
 
-_Last Updated: 2025-11-12_
+_Last Updated: 2025-11-13 (Issue #387 implementation completed)_
