@@ -10,10 +10,7 @@
 
 import { DefaultAzureCredential } from '@azure/identity'
 import { CosmosClient, Database } from '@azure/cosmos'
-import type {
-    IProcessedEventRepository,
-    ProcessedEventRecord
-} from '@piquet-h/shared/types/processedEventRepository'
+import type { IProcessedEventRepository, ProcessedEventRecord } from '@piquet-h/shared/types/processedEventRepository'
 import { injectable } from 'inversify'
 
 @injectable()
@@ -90,7 +87,8 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
         } catch (error) {
             // If container doesn't exist or other errors, return null (not found)
             // This implements "availability over consistency" - proceed with processing
-            if ((error as any).code === 404) {
+            const cosmosError = error as { code?: number }
+            if (cosmosError.code === 404) {
                 return null
             }
             throw error
@@ -107,7 +105,8 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
             const { resource } = await container.item(id, idempotencyKey).read<ProcessedEventRecord>()
             return resource || null
         } catch (error) {
-            if ((error as any).code === 404) {
+            const cosmosError = error as { code?: number }
+            if (cosmosError.code === 404) {
                 return null
             }
             throw error

@@ -5,10 +5,7 @@
  * Does not persist across restarts (matches original in-memory cache behavior).
  */
 
-import type {
-    IProcessedEventRepository,
-    ProcessedEventRecord
-} from '@piquet-h/shared/types/processedEventRepository'
+import type { IProcessedEventRepository, ProcessedEventRecord } from '@piquet-h/shared/types/processedEventRepository'
 import { injectable } from 'inversify'
 
 @injectable()

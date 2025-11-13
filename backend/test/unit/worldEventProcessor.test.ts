@@ -164,7 +164,12 @@ describe('World Event Queue Processor', () => {
             await queueProcessWorldEvent(event, ctx2 as any)
 
             const logs2 = ctx2.getLogs()
-            const duplicateLog = logs2.find((l) => l[0] === 'Duplicate world event (idempotency skip)')
+            // Updated to match new log message format (cache or registry detection)
+            const duplicateLog = logs2.find(
+                (l) =>
+                    l[0] === 'Duplicate world event detected (in-memory cache)' ||
+                    l[0] === 'Duplicate world event detected (durable registry)'
+            )
             assert.ok(duplicateLog, 'Should detect and log duplicate event')
         })
 
