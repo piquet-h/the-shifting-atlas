@@ -9,6 +9,7 @@ import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectSecretAccessRule from './eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from './eslint-rules/no-direct-track-event.mjs'
+import noInlineHumorEventsRule from './eslint-rules/no-inline-humor-events.mjs'
 import noManualOperationIdRule from './eslint-rules/no-manual-operation-id.mjs'
 import noRawPromptInTelemetryRule from './eslint-rules/no-raw-prompt-in-telemetry.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
@@ -35,6 +36,7 @@ export default [
                     'no-manual-operation-id': noManualOperationIdRule,
                     'no-raw-prompt-in-telemetry': noRawPromptInTelemetryRule,
                     'no-room-telemetry': noRoomTelemetryRule,
+                    'no-inline-humor-events': noInlineHumorEventsRule,
                     'no-direct-secret-access': noDirectSecretAccessRule
                 }
             }
@@ -59,6 +61,7 @@ export default [
             'internal/no-manual-operation-id': 'error',
             'internal/no-raw-prompt-in-telemetry': 'error',
             'internal/no-room-telemetry': 'error',
+            'internal/no-inline-humor-events': 'error',
             'internal/no-direct-secret-access': 'error'
         }
     },
@@ -85,6 +88,7 @@ export default [
             'internal/no-manual-operation-id': 'error',
             'internal/no-raw-prompt-in-telemetry': 'error',
             'internal/no-room-telemetry': 'error',
+            'internal/no-inline-humor-events': 'error',
             'internal/no-direct-secret-access': 'error'
         }
     },

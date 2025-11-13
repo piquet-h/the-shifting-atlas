@@ -185,6 +185,58 @@ telemetryClient.trackEvent({
 
 ---
 
+### `no-inline-humor-events`
+
+**Purpose:** Enforces that DM (Dungeon Master) humor telemetry event names are referenced from the `GAME_EVENT_NAMES` enumeration rather than being used as inline string literals.
+
+**When added:** November 2025  
+**Related issues:** Issue #393 (Humor Telemetry Enumeration & Emission)
+
+**Applies to:** All telemetry tracking calls (`trackGameEventClient`, `trackGameEvent`, `trackGameEventStrict`, `trackEvent`)
+
+**What it checks:**
+
+-   Detects inline usage of `DM.Humor.QuipShown` and `DM.Humor.QuipSuppressed` event names
+-   Enforces import and usage of constants from `GAME_EVENT_NAMES`
+-   Allows inline usage only in `telemetryEvents.ts` where the enum is defined
+
+**Example violations:**
+
+```typescript
+// ❌ VIOLATION: inline humor event name
+trackGameEvent('DM.Humor.QuipShown', {
+    quipId: 'quip-123',
+    actionType: 'move'
+})
+
+// ❌ VIOLATION: inline suppression event name
+trackGameEvent('DM.Humor.QuipSuppressed', {
+    suppressionReason: 'serious'
+})
+```
+
+**Example compliance:**
+
+```typescript
+// ✅ CORRECT: Use constants from GAME_EVENT_NAMES
+import { GAME_EVENT_NAMES } from '@piquet-h/shared'
+
+trackGameEvent(GAME_EVENT_NAMES[108], {
+    // DM.Humor.QuipShown
+    quipId: 'quip-123',
+    actionType: 'move'
+})
+
+trackGameEvent(GAME_EVENT_NAMES[109], {
+    // DM.Humor.QuipSuppressed
+    suppressionReason: 'serious'
+})
+```
+
+---
+
+## Adding New Rules
+
 1. Create a new `.mjs` file in this directory
 2. Export a rule object with `meta` and `create` properties
 3. Import the rule in `backend/eslint.config.mjs`

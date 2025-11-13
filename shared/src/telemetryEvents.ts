@@ -105,7 +105,10 @@ export const GAME_EVENT_NAMES = [
     'Description.Integrity.JobComplete', // Integrity hash job completed
     'Description.Integrity.Computed', // Hash computed for a description
     'Description.Integrity.Unchanged', // Description unchanged, hash skipped
-    'Description.Integrity.Mismatch' // Hash mismatch detected (potential corruption)
+    'Description.Integrity.Mismatch', // Hash mismatch detected (potential corruption)
+    // DM (Dungeon Master) humor telemetry (M5 Quality & Depth - Issue #393)
+    'DM.Humor.QuipShown', // Quip shown to player (includes quipId, actionType, probabilityUsed)
+    'DM.Humor.QuipSuppressed' // Quip suppressed (includes suppressionReason: serious|exhausted|probability)
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
