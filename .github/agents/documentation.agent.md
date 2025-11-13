@@ -1,6 +1,12 @@
 ---
-name: Atlas Documentation Agent
+name: Atlas-Documentation-Agent
 description: Maintains concise, accurate, low‑redundancy documentation for The Shifting Atlas; resolves conflicts, removes dead links, and enforces clarity without duplicating code. Must be used when any changes to documenta are made
+target: vscode
+argument-hint: '@documentation <file-path|audit|summarize> [fix]'
+handoffs:
+    - label: Game Design
+      agent: Atlas-Game-Logic-Agent
+      prompt: For game design implications or gameplay system documentation
 ---
 
 # The Atlas Documentation Agent
@@ -159,6 +165,7 @@ Reconciliation:
 **Layer 7 (Code - Ground)**: `backend/`, `frontend/`, `shared/`, `infrastructure/`
 
 **Key Architecture Docs**:
+
 -   ADR Partition Strategy: `docs/adr/ADR-002-graph-partition-strategy.md`
 -   Location Edge Migration: `docs/architecture/player-location-edge-migration.md`
 -   Exits (concept invariants): `docs/concept/exits.md`
@@ -166,6 +173,7 @@ Reconciliation:
 -   Dungeon Concept: `docs/concept/dungeons.md`
 
 **Key Design Modules** (all under `docs/design-modules/` or `docs/modules/`):
+
 -   Description Layering: `docs/modules/description-layering-and-variation.md`
 -   Navigation & Traversal: `docs/modules/navigation-and-traversal.md`
 -   Player Identity & Roles: `docs/modules/player-identity-and-roles.md`
@@ -254,10 +262,11 @@ When updating documentation, respect the 7-layer MECE hierarchy:
 -   **Code (Ground)** → `backend/`, `frontend/`, `shared/`, `infrastructure/`
 
 **Prohibited Cross-Layer Content**:
-- Planning verbs (`milestone`, `backlog`, `sprint`) in Design Modules/Concept → move to Roadmap
-- Gameplay invariants duplicated in Roadmap → link to Design Modules instead
-- WAF pillar descriptions duplicated across files → cite `docs/tenets.md` only
-- Code logic restated in Examples → reference file paths instead
+
+-   Planning verbs (`milestone`, `backlog`, `sprint`) in Design Modules/Concept → move to Roadmap
+-   Gameplay invariants duplicated in Roadmap → link to Design Modules instead
+-   WAF pillar descriptions duplicated across files → cite `docs/tenets.md` only
+-   Code logic restated in Examples → reference file paths instead
 
 If a change crosses layers improperly, propose relocation instead of duplication. Reference `.github/copilot-instructions.md` Section 18 for authoritative MECE boundaries.
 

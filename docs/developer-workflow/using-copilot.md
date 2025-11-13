@@ -2,6 +2,21 @@
 
 Copilot should accelerate tactical coding (scaffolds, small functions, tests) while you enforce architectural and gameplay boundaries defined in `docs/`.
 
+## Specialized Agents
+
+This repository includes custom Copilot agents (located in `.github/agents/`) that provide domain-specific expertise:
+
+| Agent                                    | File                                             | Purpose                                                                                |
+| ---------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| **Atlas Documentation Agent**            | `documentation.agent.md`                         | Maintains concise, accurate documentation; resolves conflicts; enforces MECE hierarchy |
+| **Atlas Game Logic Agent**               | `gamelogic.agent.md`                             | Expert in game mechanics, narrative design, D&D systems, faction/economy design        |
+| **Azure Static Web App**                 | `Azure_Static_Web_App.agent.md`                  | Specialized in SWA development, deployment, and configuration                          |
+| **Azure Functions Codegen & Deployment** | `Azure_function_codegen_and_deployment.agent.md` | Enterprise-grade Azure Functions workflow with IaC                                     |
+
+**To use a specialized agent**: Mention it by name in your prompt (e.g., "@documentation" or "@gamelogic") or select it from the agent picker in VS Code.
+
+**Agent File Format** (v1.106): Agents use the `.agent.md` or `.agents.md` suffix with `````chatagent` code fence format. VS Code v1.106 (October 2025) renamed "chat modes" to "custom agents" and added new properties like `target`, `argument-hint`, and `handoffs` for enhanced workflows.
+
 ## Core Principles
 
 1. Always anchor a change in a design doc (architecture module, gameplay system, or world rule) – reference the file path in your PR description.
@@ -35,17 +50,17 @@ Run frontend & backend separately (in separate terminals: `cd frontend && npm ru
 
 ## Style & Conventions
 
-- ES Modules only.
-- Async/await I/O, no nested promise chains.
-- Short, intention‑revealing function names: `enqueueWorldEvent`, `validateExitDirection`.
+-   ES Modules only.
+-   Async/await I/O, no nested promise chains.
+-   Short, intention‑revealing function names: `enqueueWorldEvent`, `validateExitDirection`.
 
 ## Rejecting Low-Quality Suggestions
 
 Discard suggestions that:
 
-- Introduce stateful singletons without clear need.
-- Add libraries outside project scope (heavy ORMs, large utility libs).
-- Duplicate domain logic already defined elsewhere.
+-   Introduce stateful singletons without clear need.
+-   Add libraries outside project scope (heavy ORMs, large utility libs).
+-   Duplicate domain logic already defined elsewhere.
 
 ## Updating Copilot Instructions
 
@@ -53,21 +68,21 @@ If you add major architecture components (e.g., Cosmos graph schema utilities), 
 
 ## Security & Secrets
 
-- Never hardcode secrets. Use environment variables / future Key Vault integration.
-- Do not accept suggestions injecting analytics / network calls without design approval.
+-   Never hardcode secrets. Use environment variables / future Key Vault integration.
+-   Do not accept suggestions injecting analytics / network calls without design approval.
 
 ## Helpful Aliases
 
-| Command                        | Purpose                          |
-| ------------------------------ | -------------------------------- |
-| `cd frontend && npm run build` | Build production bundle.         |
-| `cd backend && npm run build`  | Build backend functions.         |
-| `cd shared && npm run build`   | Build shared package.            |
+| Command                        | Purpose                            |
+| ------------------------------ | ---------------------------------- |
+| `cd frontend && npm run build` | Build production bundle.           |
+| `cd backend && npm run build`  | Build backend functions.           |
+| `cd shared && npm run build`   | Build shared package.              |
 | `npm run typecheck`            | TypeScript validation per package. |
 
 ## Next Improvements
 
-- Add prompt templates for queue/event patterns.
-- Provide a shared util for Gremlin queries (once introduced) with documented patterns to steer Copilot.
+-   Add prompt templates for queue/event patterns.
+-   Provide a shared util for Gremlin queries (once introduced) with documented patterns to steer Copilot.
 
 Use Copilot as a speed boost, not an architectural decision maker.

@@ -1,6 +1,15 @@
 ---
-name: Atlas Game Logic Agent
+name: Atlas-Game-Logic-Agent
 description: Expert in game mechanics, narrative design, and business logic for The Shifting Atlas MMO text adventure.
+target: vscode
+argument-hint: '@gamelogic <brainstorm|design|spec> <feature-description>'
+handoffs:
+    - label: Documentation
+      agent: Atlas-Documentation-Agent
+      prompt: To document finalized game mechanics or system designs
+    - label: Backend Implementation
+      agent: Azure-Functions-Codegen-Deployment
+      prompt: To implement backend logic for approved game mechanics
 ---
 
 # The Atlas Game Logic Agent
@@ -52,11 +61,12 @@ You are The Atlas Game Logic Agent, focused exclusively on gameplay and narrativ
 Reference MECE documentation hierarchy: See `.github/copilot-instructions.md` Section 18 (MECE Documentation Hierarchy). This agent must avoid implementation sequencing or infrastructure specifics; focus on gameplay invariants and systemic design impacts. For technical execution details, defer to `docs/architecture/` and ADRs.
 
 **Documentation Layers:**
-- Vision (60k ft): README.md
-- Tenets (50k ft): `docs/tenets.md`
-- Design Modules (40k ft): `docs/design-modules/` + `docs/concept/` + `docs/modules/`
-- Architecture (30k ft): `docs/architecture/`
-- Roadmap (20k ft): `docs/roadmap.md`
+
+-   Vision (60k ft): README.md
+-   Tenets (50k ft): `docs/tenets.md`
+-   Design Modules (40k ft): `docs/design-modules/` + `docs/concept/` + `docs/modules/`
+-   Architecture (30k ft): `docs/architecture/`
+-   Roadmap (20k ft): `docs/roadmap.md`
 
 ### Navigation & Traversal
 
