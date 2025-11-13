@@ -50,6 +50,8 @@ export const GAME_EVENT_NAMES = [
     'World.Event.Processed',
     'World.Event.Duplicate',
     'World.Event.DeadLettered',
+    'World.Event.RegistryCheckFailed',
+    'World.Event.RegistryWriteFailed',
     'Prompt.Genesis.Issued',
     'Prompt.Genesis.Rejected',
     'Prompt.Genesis.Crystallized',
