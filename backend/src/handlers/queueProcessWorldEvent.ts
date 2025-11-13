@@ -2,33 +2,38 @@
  * World Event Queue Processor Handler
  *
  * Asynchronous world evolution event processor. Validates incoming events,
- * enforces idempotency, and emits telemetry. Foundation for AI/NPC event ingestion.
+ * enforces idempotency via durable registry, and emits telemetry.
  *
  * Configuration (env vars):
- * - WORLD_EVENT_DUPE_TTL_MS: Idempotency cache TTL in milliseconds (default: 600000 = 10 minutes)
+ * - PROCESSED_EVENTS_TTL_SECONDS: TTL for processed events registry (default: 604800 = 7 days)
+ * - WORLD_EVENT_DUPE_TTL_MS: In-memory cache TTL in milliseconds (default: 600000 = 10 minutes)
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
- * - WORLD_EVENT_DEADLETTER_MODE: Future dead-letter mode flag (not implemented yet, placeholder: 'log-only')
  */
 import type { InvocationContext } from '@azure/functions'
 import { enrichWorldEventAttributes } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
+import { v4 as uuidv4 } from 'uuid'
 import { loadPersistenceConfigAsync, resolvePersistenceMode } from '../persistenceConfig.js'
 import { CosmosDeadLetterRepository } from '../repos/deadLetterRepository.cosmos.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import { MemoryDeadLetterRepository } from '../repos/deadLetterRepository.memory.js'
+import { CosmosProcessedEventRepository } from '../repos/processedEventRepository.cosmos.js'
+import { MemoryProcessedEventRepository } from '../repos/processedEventRepository.memory.js'
+import type { IProcessedEventRepository } from '../repos/processedEventRepository.js'
 import { trackGameEventStrict } from '../telemetry.js'
 
 // --- Configuration -----------------------------------------------------------
 
-const DUPE_TTL_MS = parseInt(process.env.WORLD_EVENT_DUPE_TTL_MS || '600000', 10)
+const PROCESSED_EVENTS_TTL_SECONDS = parseInt(process.env.PROCESSED_EVENTS_TTL_SECONDS || '604800', 10) // 7 days
+const DUPE_TTL_MS = parseInt(process.env.WORLD_EVENT_DUPE_TTL_MS || '600000', 10) // 10 minutes
 const CACHE_MAX_SIZE = parseInt(process.env.WORLD_EVENT_CACHE_MAX_SIZE || '10000', 10)
-const DEADLETTER_MODE = process.env.WORLD_EVENT_DEADLETTER_MODE || 'log-only'
 
-// --- Dead-Letter Repository Initialization -----------------------------------
+// --- Repository Initialization -----------------------------------------------
 
 let deadLetterRepo: IDeadLetterRepository | null = null
+let processedEventRepo: IProcessedEventRepository | null = null
 
 /**
  * Initialize dead-letter repository lazily on first validation failure
@@ -58,7 +63,35 @@ async function getDeadLetterRepository(): Promise<IDeadLetterRepository> {
     return deadLetterRepo
 }
 
-// --- In-Memory Idempotency Guard ---------------------------------------------
+/**
+ * Initialize processed event repository lazily on first idempotency check
+ */
+async function getProcessedEventRepository(): Promise<IProcessedEventRepository> {
+    if (processedEventRepo) {
+        return processedEventRepo
+    }
+
+    const mode = resolvePersistenceMode()
+    if (mode === 'cosmos') {
+        const config = await loadPersistenceConfigAsync()
+        if (config.cosmosSql) {
+            processedEventRepo = new CosmosProcessedEventRepository(
+                config.cosmosSql.endpoint,
+                config.cosmosSql.database,
+                config.cosmosSql.containers.processedEvents
+            )
+        } else {
+            // Fallback to memory if SQL config missing
+            processedEventRepo = new MemoryProcessedEventRepository(PROCESSED_EVENTS_TTL_SECONDS)
+        }
+    } else {
+        processedEventRepo = new MemoryProcessedEventRepository(PROCESSED_EVENTS_TTL_SECONDS)
+    }
+
+    return processedEventRepo
+}
+
+// --- In-Memory Cache (Fast-Path Optimization) --------------------------------
 
 interface CacheEntry {
     eventId: string
@@ -190,8 +223,7 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             code: String(e.code)
         }))
         context.error('World event envelope validation failed', {
-            errors,
-            deadLetterMode: DEADLETTER_MODE
+            errors
         })
 
         // Store dead-letter record with redacted payload
@@ -244,9 +276,10 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         causationId: event.causationId || undefined
     })
 
-    // 4. Idempotency check
+    // 4. Idempotency check (two-tier: in-memory cache + durable registry)
+    // Fast path: check in-memory cache first
     if (isDuplicate(event.idempotencyKey)) {
-        context.log('Duplicate world event (idempotency skip)', {
+        context.log('Duplicate world event detected (in-memory cache)', {
             eventId: event.eventId,
             idempotencyKeyHash: hashPrefix(event.idempotencyKey)
         })
@@ -257,7 +290,8 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
             actorKind: event.actor.kind,
             idempotencyKeyHash: hashPrefix(event.idempotencyKey),
             correlationId: event.correlationId,
-            causationId: event.causationId
+            causationId: event.causationId,
+            detectedVia: 'cache'
         }
         enrichWorldEventAttributes(props, {
             eventType: event.type,
@@ -268,6 +302,62 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
         return
     }
 
+    // Slow path: check durable registry (survives processor restarts)
+    try {
+        const repo = await getProcessedEventRepository()
+        const existing = await repo.checkProcessed(event.idempotencyKey)
+
+        if (existing) {
+            context.log('Duplicate world event detected (durable registry)', {
+                eventId: event.eventId,
+                originalEventId: existing.eventId,
+                originalProcessedUtc: existing.processedUtc,
+                idempotencyKeyHash: hashPrefix(event.idempotencyKey)
+            })
+
+            // Cache for future fast-path checks
+            markProcessed(event.idempotencyKey, event.eventId)
+
+            // Emit duplicate telemetry
+            const props = {
+                eventType: event.type,
+                actorKind: event.actor.kind,
+                idempotencyKeyHash: hashPrefix(event.idempotencyKey),
+                correlationId: event.correlationId,
+                causationId: event.causationId,
+                detectedVia: 'registry',
+                originalEventId: existing.eventId,
+                originalProcessedUtc: existing.processedUtc
+            }
+            enrichWorldEventAttributes(props, {
+                eventType: event.type,
+                actorKind: event.actor.kind
+            })
+            trackGameEventStrict('World.Event.Duplicate', props, { correlationId: event.correlationId })
+
+            return
+        }
+    } catch (registryError) {
+        // Availability over consistency: proceed with processing if registry lookup fails
+        context.warn('Failed to check processed event registry (proceeding with processing)', {
+            eventId: event.eventId,
+            idempotencyKeyHash: hashPrefix(event.idempotencyKey),
+            error: String(registryError)
+        })
+
+        // Emit telemetry for registry failure
+        trackGameEventStrict(
+            'World.Event.RegistryCheckFailed',
+            {
+                eventType: event.type,
+                eventId: event.eventId,
+                correlationId: event.correlationId,
+                errorMessage: String(registryError)
+            },
+            { correlationId: event.correlationId }
+        )
+    }
+
     // 5. First-time processing: set ingestedUtc if missing
     if (!event.ingestedUtc) {
         event.ingestedUtc = new Date().toISOString()
@@ -276,8 +366,53 @@ export async function queueProcessWorldEvent(message: unknown, context: Invocati
     // 6. Calculate latency (occurred -> ingested)
     const latencyMs = event.ingestedUtc ? new Date(event.ingestedUtc).getTime() - new Date(event.occurredUtc).getTime() : undefined
 
-    // 7. Mark as processed in idempotency cache
-    markProcessed(event.idempotencyKey, event.eventId)
+    // 7. Mark as processed in durable registry + in-memory cache
+    const processedUtc = new Date().toISOString()
+
+    try {
+        const repo = await getProcessedEventRepository()
+        await repo.markProcessed({
+            id: uuidv4(),
+            idempotencyKey: event.idempotencyKey,
+            eventId: event.eventId,
+            eventType: event.type,
+            correlationId: event.correlationId,
+            processedUtc,
+            actorKind: event.actor.kind,
+            actorId: event.actor.id,
+            version: 1
+        })
+
+        // Also cache in memory for fast-path checks
+        markProcessed(event.idempotencyKey, event.eventId)
+
+        context.log('Event marked as processed in registry', {
+            eventId: event.eventId,
+            idempotencyKeyHash: hashPrefix(event.idempotencyKey)
+        })
+    } catch (registryError) {
+        // Availability over consistency: continue processing even if registry write fails
+        context.warn('Failed to mark event as processed in registry (continuing)', {
+            eventId: event.eventId,
+            idempotencyKeyHash: hashPrefix(event.idempotencyKey),
+            error: String(registryError)
+        })
+
+        // Cache in memory as fallback
+        markProcessed(event.idempotencyKey, event.eventId)
+
+        // Emit telemetry for registry failure
+        trackGameEventStrict(
+            'World.Event.RegistryWriteFailed',
+            {
+                eventType: event.type,
+                eventId: event.eventId,
+                correlationId: event.correlationId,
+                errorMessage: String(registryError)
+            },
+            { correlationId: event.correlationId }
+        )
+    }
 
     // 8. Emit telemetry
     const props = {
