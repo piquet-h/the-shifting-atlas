@@ -153,6 +153,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_INVENTORY: 'inventory'
       COSMOS_SQL_CONTAINER_LAYERS: 'descriptionLayers'
       COSMOS_SQL_CONTAINER_EVENTS: 'worldEvents'
+      COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
     }
   }
 }
@@ -315,6 +316,22 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
             kind: 'Hash'
             version: 2
           }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlProcessedEvents 'containers' = {
+      name: 'processedEvents'
+      properties: {
+        resource: {
+          id: 'processedEvents'
+          partitionKey: {
+            paths: ['/idempotencyKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: 604800 // 7 days in seconds (7 * 24 * 60 * 60)
         }
         options: {}
       }
