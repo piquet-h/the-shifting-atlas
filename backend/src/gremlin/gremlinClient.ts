@@ -12,6 +12,10 @@ export interface GremlinClientConfig {
     endpoint: string
     database: string
     graph: string
+    /** Timeout for individual operations in milliseconds (default: 30000) */
+    operationTimeoutMs?: number
+    /** Timeout for WebSocket connection in milliseconds (default: 10000) */
+    connectionTimeoutMs?: number
 }
 
 /**
@@ -53,6 +57,13 @@ export interface IGremlinClient {
      * Should be called during cleanup to properly release resources.
      */
     close(): Promise<void>
+
+    /**
+     * Tests connectivity to Cosmos DB Gremlin API.
+     * Returns true if connection succeeds, false otherwise.
+     * Useful for pre-flight checks before running operations.
+     */
+    healthCheck(): Promise<boolean>
 }
 
 /**
@@ -75,8 +86,13 @@ interface GremlinInternalClient<T = unknown> {
 @injectable()
 export class GremlinClient implements IGremlinClient {
     private connection: DriverRemoteConnection | undefined
+    private readonly operationTimeoutMs: number
+    private readonly connectionTimeoutMs: number
 
-    constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {}
+    constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {
+        this.operationTimeoutMs = config.operationTimeoutMs ?? 30000
+        this.connectionTimeoutMs = config.connectionTimeoutMs ?? 10000
+    }
 
     async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
         const result = await this.submitWithMetrics<T>(query, bindings)
@@ -94,7 +110,13 @@ export class GremlinClient implements IGremlinClient {
         try {
             // Access the internal _client that's not exposed in the public type definitions
             const internalClient = this.connection as unknown as GremlinInternalClient<T>
-            const raw = await internalClient._client.submit(query, bindings)
+
+            // Wrap the query execution with a timeout to prevent indefinite hangs
+            const raw = await this.withTimeout(
+                internalClient._client.submit(query, bindings),
+                this.operationTimeoutMs,
+                'Gremlin query execution'
+            )
 
             // Extract request charge from response attributes if available
             // Cosmos DB Gremlin API returns this in the response attributes
@@ -136,7 +158,8 @@ export class GremlinClient implements IGremlinClient {
     async close(): Promise<void> {
         if (this.connection) {
             try {
-                await this.connection.close()
+                // Close with timeout to prevent hanging on cleanup
+                await this.withTimeout(this.connection.close(), 5000, 'Gremlin connection close')
             } catch (error) {
                 // Log but don't throw - cleanup should be best-effort
                 console.warn('Error closing Gremlin connection:', error)
@@ -145,8 +168,25 @@ export class GremlinClient implements IGremlinClient {
         }
     }
 
+    async healthCheck(): Promise<boolean> {
+        try {
+            console.log('[GremlinClient] Running health check...')
+            await this.submit('g.V().limit(1)')
+            console.log('[GremlinClient] Health check passed')
+            return true
+        } catch (error) {
+            console.error('[GremlinClient] Health check failed:', error instanceof Error ? error.message : String(error))
+            return false
+        }
+    }
+
     private async initialize(): Promise<void> {
-        const token = await this.getAzureADToken()
+        console.log('[GremlinClient] Initializing connection...')
+
+        const token = await this.withTimeout(this.getAzureADToken(), this.connectionTimeoutMs, 'Azure AD token acquisition')
+
+        console.log('[GremlinClient] Azure AD token acquired successfully')
+
         const authenticator = this.createAuthenticator(token)
         const trimmed = (this.config.endpoint || '').trim()
         if (!trimmed) {
@@ -156,28 +196,74 @@ export class GremlinClient implements IGremlinClient {
         }
         const wsEndpoint = validateGremlinEndpoint(trimmed)
 
+        console.log(`[GremlinClient] Connecting to ${wsEndpoint.split('.')[0]}...`)
+
         this.connection = new driver.DriverRemoteConnection(wsEndpoint, {
             authenticator,
             traversalsource: 'g',
-            mimeType: 'application/vnd.gremlin-v2.0+json' // Azure Cosmos DB requires GraphSON v2
+            mimeType: 'application/vnd.gremlin-v2.0+json', // Azure Cosmos DB requires GraphSON v2
+            connectOnStartup: true,
+            // Connection pool settings for better reliability
+            maxContentLength: 10485760, // 10MB
+            maxIdleTime: 900000, // 15 minutes
+            maxReconnectAttempts: 3,
+            reconnectInterval: 1000
         })
+
+        console.log('[GremlinClient] Connection established')
     }
 
     private async getAzureADToken(): Promise<string> {
+        console.log('[GremlinClient] Acquiring Azure AD token...')
         const credential = new DefaultAzureCredential()
         const scope = 'https://cosmos.azure.com/.default'
-        const token = await credential.getToken(scope)
 
-        if (!token?.token) {
-            throw new Error('Failed to acquire Azure AD token for Cosmos DB Gremlin API. Ensure Managed Identity is configured.')
+        try {
+            const token = await credential.getToken(scope)
+
+            if (!token?.token) {
+                throw new Error(
+                    'Failed to acquire Azure AD token for Cosmos DB Gremlin API. Ensure Managed Identity or OIDC is configured.'
+                )
+            }
+
+            console.log(`[GremlinClient] Token acquired (expires: ${new Date(token.expiresOnTimestamp).toISOString()})`)
+            return token.token
+        } catch (error) {
+            console.error('[GremlinClient] Token acquisition failed:', error instanceof Error ? error.message : String(error))
+            throw new Error(
+                `Azure AD authentication failed: ${error instanceof Error ? error.message : String(error)}. ` +
+                    'Verify AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_SUBSCRIPTION_ID are set for OIDC, or Managed Identity is enabled.'
+            )
         }
-
-        return token.token
     }
 
     private createAuthenticator(token: string): PlainTextSaslAuthenticator {
         const resourcePath = `/dbs/${this.config.database}/colls/${this.config.graph}`
         return new driver.auth.PlainTextSaslAuthenticator(resourcePath, token)
+    }
+
+    /**
+     * Wraps a promise with a timeout to prevent indefinite hangs.
+     * Throws a timeout error if the operation exceeds the specified time limit.
+     */
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+        let timeoutHandle: NodeJS.Timeout
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(() => {
+                reject(new Error(`${operationName} timed out after ${timeoutMs}ms`))
+            }, timeoutMs)
+        })
+
+        try {
+            const result = await Promise.race([promise, timeoutPromise])
+            clearTimeout(timeoutHandle!)
+            return result
+        } catch (error) {
+            clearTimeout(timeoutHandle!)
+            throw error
+        }
     }
 
     /**

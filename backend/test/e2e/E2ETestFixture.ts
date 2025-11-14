@@ -206,7 +206,7 @@ export class E2ETestFixture {
     }
 
     /**
-     * Setup hook - initializes container in cosmos mode
+     * Setup hook - initializes container in cosmos mode and verifies connectivity
      */
     async setup(): Promise<void> {
         // Verify required environment variables
@@ -228,6 +228,25 @@ export class E2ETestFixture {
         )
 
         await this.baseFixture.setup()
+
+        // Perform health check to verify connectivity before running tests
+        try {
+            console.log('E2E Setup: Running Cosmos DB connectivity check...')
+            const container = await this.getContainer()
+            const gremlinClient = container.get<IGremlinClient>('GremlinClient')
+
+            const isHealthy = await gremlinClient.healthCheck()
+            if (!isHealthy) {
+                throw new Error('Cosmos DB Gremlin API health check failed. Check authentication and network connectivity.')
+            }
+            console.log('E2E Setup: Cosmos DB connectivity verified ✓')
+        } catch (error) {
+            console.error('E2E Setup: Connectivity check failed:', error)
+            throw new Error(
+                `Failed to establish connection to Cosmos DB: ${error instanceof Error ? error.message : String(error)}. ` +
+                    'Verify AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_SUBSCRIPTION_ID are set correctly for OIDC authentication.'
+            )
+        }
     }
 
     /**

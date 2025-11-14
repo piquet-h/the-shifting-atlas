@@ -68,16 +68,49 @@ export async function cleanupGremlinTestData(gremlinClient: IGremlinClient, idPr
 }
 
 /**
+ * Retry a cleanup operation with exponential backoff
+ * @param operation - The async operation to retry
+ * @param maxRetries - Maximum number of retry attempts (default: 3)
+ * @param initialDelayMs - Initial delay between retries in ms (default: 1000)
+ * @returns Result of the operation
+ */
+async function retryWithBackoff<T>(operation: () => Promise<T>, maxRetries: number = 3, initialDelayMs: number = 1000): Promise<T> {
+    let lastError: Error | undefined
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation()
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error))
+
+            if (attempt < maxRetries) {
+                const delay = initialDelayMs * Math.pow(2, attempt)
+                console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms...`)
+                await new Promise((resolve) => setTimeout(resolve, delay))
+            }
+        }
+    }
+
+    throw lastError
+}
+
+/**
  * Clean up test data by ID sets
  *
  * This is the primary cleanup method used by E2ETestFixture.
  * Accepts explicit ID sets for vertices and documents to avoid prefix-matching errors.
+ * Includes retry logic with exponential backoff for transient failures.
  *
  * @param gremlinClient - Gremlin client instance
  * @param locationIds - Set of location vertex IDs to delete
+ * @param maxRetries - Maximum retry attempts per delete operation (default: 3)
  * @returns Cleanup statistics
  */
-export async function cleanupTestDataByIds(gremlinClient: IGremlinClient, locationIds: Set<string>): Promise<CleanupStats> {
+export async function cleanupTestDataByIds(
+    gremlinClient: IGremlinClient,
+    locationIds: Set<string>,
+    maxRetries: number = 3
+): Promise<CleanupStats> {
     const stats: CleanupStats = {
         verticesDeleted: 0,
         edgesDeleted: 0,
@@ -87,12 +120,22 @@ export async function cleanupTestDataByIds(gremlinClient: IGremlinClient, locati
     // Clean up Gremlin vertices
     if (locationIds.size > 0) {
         console.log(`Cleaning up ${locationIds.size} test location vertices...`)
+
         for (const locationId of locationIds) {
             try {
-                await gremlinClient.submit(`g.V(vid).drop()`, { vid: locationId })
+                await retryWithBackoff(
+                    async () => {
+                        await gremlinClient.submit(`g.V(vid).drop()`, { vid: locationId })
+                    },
+                    maxRetries,
+                    1000
+                )
                 stats.verticesDeleted++
+
+                // Small delay between deletions to avoid overwhelming Cosmos DB
+                await new Promise((resolve) => setTimeout(resolve, 100))
             } catch (error) {
-                const errorMsg = `Failed to delete location vertex ${locationId}: ${error instanceof Error ? error.message : String(error)}`
+                const errorMsg = `Failed to delete location vertex ${locationId} after ${maxRetries} retries: ${error instanceof Error ? error.message : String(error)}`
                 console.error(errorMsg)
                 stats.errors.push(errorMsg)
             }
