@@ -693,7 +693,7 @@ Decomposition Rationale: <1–2 sentences>
 Non-Goals: <bullets>
 ```
 
-Epic must NOT contain implementation acceptance criteria; it is closed only when all child issues closed (automation can verify via checklist).
+Epic must NOT contain implementation acceptance criteria; it is closed only when all child issues closed (automation can verify via checklist). Child issues must be created separately with their own templates and attached to the Epic as sub-issues.
 
 ### 17.5 Splitting Algorithm (Pseudo)
 
@@ -725,6 +725,8 @@ else:
 -   If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
 -   Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
 -   Avoid reshuffling active work unless a dependency block emerges.
+-   If user specifies priority (e.g., “high priority telemetry”), reflect in Epic child checklist order.
+-   If an issue blocks or is blocked by another issue, you must create that blocking relationship via GitHub API (see Section 8.2).
 
 ### 17.8 Telemetry & Security Separation When Splitting
 
@@ -776,7 +778,7 @@ Last reviewed: 2025-10-29
 
 ## 18. Documentation Hierarchy (MECE: Mutually Exclusive, Collectively Exhaustive)
 
-Purpose: Enforce clear altitude-based documentation layers where each layer serves a distinct purpose with no overlap. Prevents coupling between strategic vision, decision rules, gameplay design, technical implementation, and planning.
+Purpose: Enforce clear altitude-based documentation layers where each layer serves a distinct purpose with no overlap. Prevents coupling between strategic vision, decision rules, gameplay design, technical implementation, and planning. Use all markdown syntax features (headings, tables, links) to organize content clearly. Also use mermaid diagrams where helpful. Prefer Mermaid over ASCII art.
 
 ### 18.1 MECE Layer Taxonomy
 
@@ -789,8 +791,6 @@ Purpose: Enforce clear altitude-based documentation layers where each layer serv
 | **5. Roadmap**        | 20,000 ft | `docs/roadmap.md`                                     | Milestone progression (M0-M6)                      | High               |
 | **6. Examples**       | 10,000 ft | `docs/examples/`                                      | Practical code walkthroughs                        | Medium             |
 | **7. Code**           | Ground    | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                            | High               |
-
-**Legacy References**: The old three-layer model (Concept/Architecture/Execution) has been superseded. `docs/execution/` removed, `docs/vision-and-tenets.md` split into README + tenets.md, `docs/modules/` consolidated into `docs/design-modules/`.
 
 ### 18.2 Allowed vs Prohibited Content (Design Modules Layer)
 

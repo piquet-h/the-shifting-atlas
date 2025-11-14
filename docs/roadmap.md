@@ -4,16 +4,16 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 
 ## Milestone Overview
 
-| Milestone               | Objective (Why)                            | Core Increments                                                                         | Status                             | Exit Criteria                                                                                       |
-| ----------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **M0 Foundation** ✅    | Prove deploy + minimal loop viability      | Ping, guest GUID bootstrap, telemetry scaffold                                          | **CLOSED** 2025-10-19              | Player gets GUID & receives ping consistently                                                       |
-| **M1 Traversal** ✅     | Persistent movement across locations       | Location persistence, exit model, move/look commands, direction normalization           | **CLOSED** 2025-10-30              | Player can move across ≥3 persisted locations; telemetry for move success/failure                   |
-| **M2 Data Foundations** | Dual persistence + telemetry modernization | SQL API containers, dual persistence implementation, telemetry consolidation            | **50 issues** (39 closed, 11 open) | All mutable data in SQL API; telemetry events enriched with correlation; migration script validated |
-| **M3 Core Loop**        | Event processing + player UI               | World event processing, frontend game view, command input, navigation UI                | **20 issues** (0 closed, 20 open)  | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces         |
-| **M4 AI Read**          | Safe advisory AI context only              | MCP servers (world-query, prompt-template), prompt registry, intent parser foundations  | **10 issues** (0 closed, 10 open)  | AI can query world state via MCP; prompts versioned & hashed; intent parser handles basic commands  |
-| **M5 Quality & Depth**  | Content enrichment + observability         | Description layering engine, layer validation, dashboards, alerts, integrity monitoring | **30 issues** (5 closed, 25 open)  | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                   |
-| **M6 Systems**          | Advanced features + episodic content       | Dungeons, humor layer, entity promotion, Learn More page                                | **25 issues** (0 closed, 25 open)  | At least one dungeon traversable; humor feedback captured; emergent entities promoted               |
-| **M7 Post-MVP**         | Extensibility + scale                      | Multiplayer, quests, economy, AI write path, region sharding                            | **TBD**                            | Extensibility hooks functional; multiplayer party coordination prototype                            |
+| Milestone               | Objective (Why)                            | Core Increments                                                                         | Status                            | Exit Criteria                                                                                                               |
+| ----------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **M0 Foundation** ✅    | Prove deploy + minimal loop viability      | Ping, guest GUID bootstrap, telemetry scaffold                                          | **CLOSED** 2025-10-19             | Player gets GUID & receives ping consistently                                                                               |
+| **M1 Traversal** ✅     | Persistent movement across locations       | Location persistence, exit model, move/look commands, direction normalization           | **CLOSED** 2025-10-30             | Player can move across ≥3 persisted locations; telemetry for move success/failure                                           |
+| **M2 Data Foundations** | Dual persistence + telemetry modernization | SQL API containers, dual persistence implementation, telemetry consolidation            | **54 issues** (49 closed, 5 open) | All mutable data in SQL API; telemetry events enriched with correlation; migration script validated                         |
+| **M3 Core Loop**        | Event processing + player UI + time        | World event processing, frontend game view, command input, temporal reconciliation      | **71 issues** (4 closed, 67 open) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational |
+| **M4 AI Read**          | Safe advisory AI context only              | MCP servers (world-query, prompt-template), prompt registry, intent parser foundations  | **32 issues** (8 closed, 24 open) | AI can query world state via MCP; prompts versioned & hashed; intent parser handles basic commands                          |
+| **M5 Quality & Depth**  | Content enrichment + observability         | Description layering engine, layer validation, dashboards, alerts, integrity monitoring | **30 issues** (5 closed, 25 open) | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                           |
+| **M6 Systems**          | Advanced features + episodic content       | Dungeons, humor layer, entity promotion, Learn More page                                | **25 issues** (0 closed, 25 open) | At least one dungeon traversable; humor feedback captured; emergent entities promoted                                       |
+| **M7 Post-MVP**         | Extensibility + scale                      | Multiplayer, quests, economy, AI write path, region sharding                            | **TBD**                           | Extensibility hooks functional; multiplayer party coordination prototype                                                    |
 
 ## Dependency Graph (Critical Path to MVP)
 
@@ -65,10 +65,10 @@ graph TD
 
 ### Critical Path Analysis
 
-**Bottleneck**: M2 Data Foundations (17 issues) blocks everything downstream
+**Bottleneck**: M2 Data Foundations (5 issues remaining) blocks everything downstream
 
--   **Duration estimate**: 4-6 weeks
--   **Parallelization**: Limited; most work is sequential (schema → migration → repositories)
+-   **Duration estimate**: 2-3 weeks (most work complete)
+-   **Parallelization**: Limited; remaining work is sequential (schema → repositories → migration)
 -   **Risk**: Schema changes after M2 are expensive; prioritize correctness over speed
 
 **Parallel work opportunities**:
@@ -76,41 +76,37 @@ graph TD
 -   M5 Dashboards can start after M2 telemetry consolidation completes
 -   M6 Systems planning/design can start during M4 (no code dependencies)
 
-**MVP Completion Path**: M2 (6 weeks) → M3 (5 weeks) → M4 (3 weeks) = **14-16 weeks to MVP**
+**MVP Completion Path**: M2 (2-3 weeks) → M3 (5 weeks) → M4 (3 weeks) = **10-11 weeks to MVP**
 
 ## M2 Data Foundations (Current Focus)
 
-**Status**: 50 issues (39 closed, 11 open) — 78% complete  
+**Status**: 54 issues (49 closed, 5 open) — 91% complete  
 **Goal**: Implement dual persistence (Cosmos SQL API + Gremlin) and modernize telemetry infrastructure  
 **Dependencies**: M1 Traversal (CLOSED)  
 **Blocks**: M3 Core Loop (#407 World Events Timeline), M5 Dashboards (telemetry complete)  
-**Focus**: All non-blocking issues (#256, #318, #347, #393) deferred to M5 to accelerate dual persistence
+**Focus**: Remaining issues are atomic player persistence (#517-519) and epic coordination (#69, #310)
 
 ### Critical Path Issues
 
-**Cluster A: Dual Persistence Implementation** (11 issues) 🔨 **IN PROGRESS (0/7 core + 2 infrastructure + 2 epics)**
+**Cluster A: Dual Persistence Implementation** (5 issues) 🔨 **IN PROGRESS (3 atomic + 2 epics)**
 
-**Core Path (7 issues, dependency-driven sequence):**
+**Player Persistence (3 atomic issues, dependency-driven sequence):**
 
-1. #408 SQL API Repository Abstraction Layer → **START HERE** (foundation)
-2. #404 Player State Migration to SQL API → PK: `/id`
-3. #405 Inventory Persistence SQL API → PK: `/playerId`
-4. #406 Description Layers Storage SQL API → PK: `/locationId`
-5. #407 World Events Timeline SQL API → PK: `/scopeKey` **[BLOCKS M3]**
-6. #410 Data Migration Script (Gremlin → SQL) → After container implementations
-7. #409 Dual Persistence Integration Tests → After migration
-
-**Infrastructure (2 issues, can parallel with core):**
-
--   #411 Partition Key Strategy Validation & Monitoring
--   #412 Dual Persistence Documentation → Container schemas, ADR updates
+1. #517 PlayerDoc Schema & Repository Core → Data model + CRUD (PK: `/id`)
+2. #518 Player Write-Through Logic (Gremlin → SQL API) → Dual persistence sync
+3. #519 Gremlin Player Vertex Feature Flag → Migration cutover control
 
 **Epic Trackers (2 issues, umbrella only):**
 
 -   #69 Epic: Description Telemetry & Integrity Monitoring
 -   #310 Epic: Telemetry Consolidation & Event Enrichment
 
-**Completed:** #403 ✅ World Event Documentation (closed 2025-11-10)
+**Completed (49 issues):**
+
+-   #403 ✅ World Event Documentation
+-   #404-412 ✅ All SQL API containers implemented
+-   #44, #77, #465 ✅ Split into atomic issues (see #517-521 M2/M4)
+-   Clusters B (Telemetry), C (AI Cost), D (Dashboards), E (Integrity) — all complete
 
 **Cluster B: Telemetry Consolidation** (11 issues) ✅ **COMPLETE (11/11)**
 
@@ -160,31 +156,30 @@ graph TD
 ### Dependency Chains
 
 ```
-#408 (Abstraction) ──> #404, #405, #406, #407 (Containers, parallel) ──> #410 (Migration) ──> #409 (Tests)
+#517 (PlayerDoc Schema) ──> #518 (Write-Through) ──> #519 (Feature Flag)
                                                    │
-                                                   └──> M3 #101 (Event Schema) [BLOCKED until #407]
-
-Infrastructure (parallel with above): #411 (Partition Monitoring), #412 (Documentation)
+                                                   └──> Player migration complete
 
 #10-#316 (Telemetry Complete) ──> M3 #313, #314, #317 (Queue/Error/Frontend) ──> M3 #422 (Frontend Telemetry)
+
+Note: #404-412 (SQL containers) ✅ Complete — all containers provisioned
 ```
 
 **Sequencing Rationale:**
 
--   #408 must complete first (foundation layer for all containers)
--   #404-407 can proceed in parallel once #408 is done
--   #410 migration requires containers to exist
--   #409 tests validate both Gremlin + SQL consistency after migration
--   #411-412 can proceed in parallel with core work
+-   #517 establishes PlayerDoc schema (foundation for dual persistence)
+-   #518 adds write-through from Gremlin to SQL (dual writes)
+-   #519 provides feature flag to toggle off Gremlin writes (migration cutover)
+-   Sequential dependency: each issue builds on the previous
 
 ### Exit Criteria
 
--   🔨 All Cosmos SQL API containers provisioned and accessible
--   🔨 Player, Inventory, Layers, Events migrated to SQL API
--   🔨 Dual persistence integration tests pass
+-   ✅ All Cosmos SQL API containers provisioned and accessible
+-   🔨 Player state migrated to SQL API (PlayerDoc schema + write-through)
+-   ✅ Inventory, Layers, Events already migrated to SQL API
+-   🔨 Feature flag enables migration cutover
 -   ✅ Telemetry events enriched with operationId + correlationId
--   🔨 Error telemetry follows classification taxonomy (moved to M3)
--   🔨 Architecture documentation updated with container schemas
+-   ✅ Architecture documentation updated with container schemas
 
 ### MECE Validation
 
@@ -193,27 +188,27 @@ Infrastructure (parallel with above): #411 (Partition Monitoring), #412 (Documen
 
 ### Current Status Summary
 
--   **Complete**: Clusters B (Telemetry), C (AI Cost), D (Dashboards), E (Integrity) — 39 issues ✅
--   **In Progress**: Cluster A (Dual Persistence) — 0/7 core started 🔨
--   **Infrastructure**: 1/3 complete (#403 ✅; remaining: #411, #412)
--   **Deferred to M5**: 4 non-blocking issues (#256, #318, #347, #393) to focus on critical path
--   **Reassigned**: 7 issues moved to M3/M5 for proper sequencing
+-   **Complete**: Clusters B (Telemetry), C (AI Cost), D (Dashboards), E (Integrity), SQL Containers — 49 issues ✅
+-   **In Progress**: Cluster A (Player Persistence) — 3 atomic issues 🔨
+-   **Epic Coordination**: 2 epics remain open (#69, #310) for child issue tracking
+-   **Atomicity Refactor**: Split #44, #77, #465 into atomic issues (#517-521)
+-   **Deferred to M5**: 4 non-blocking issues (#256, #318, #347, #393)
 -   **Duplicates**: #395-397 closed ✅
 
-**M2 Now Focused Entirely on Dual Persistence Critical Path**
+**M2 Final Sprint: Player Persistence Only**
 
-**Estimated Time to Complete:** 3-4 weeks
+**Estimated Time to Complete:** 2-3 weeks
 
--   Week 1: #408 (abstraction layer)
--   Week 2-3: #404-407 (containers, parallel), #410 (migration)
--   Week 4: #409 (tests), #411-412 (infrastructure/docs)
+-   Week 1: #517 (PlayerDoc schema + repository)
+-   Week 2: #518 (write-through logic)
+-   Week 3: #519 (feature flag + migration validation)
 
 ---
 
 ## M3 Core Loop
 
-**Status**: 20 issues (0 closed, 20 open)  
-**Goal**: Enable player interaction via web UI with event-driven world processing  
+**Status**: 71 issues (4 closed, 67 open)  
+**Goal**: Enable player interaction via web UI with event-driven world processing, plus temporal reconciliation  
 **Dependencies**: M2 Data Foundations (Cluster A: #407 World Events Timeline)  
 **Blocks**: M4 AI Read
 
@@ -245,6 +240,34 @@ Infrastructure (parallel with above): #411 (Partition Monitoring), #412 (Documen
 -   #423 Frontend Integration & E2E Tests (Playwright + RTL) → _(Can defer to M5)_
 -   #424 Frontend Architecture Documentation → _(Can defer to M5)_
 
+**Cluster E: World Time & Temporal Reconciliation** (10 issues from Epic #497)
+
+-   #498 WorldClockService Implementation → Global tick advancement, query, history
+-   #499 PlayerClockAPI Implementation → Advance, drift, reconcile per-player time
+-   #500 LocationClockManager Implementation → Temporal anchors for reconciliation points
+-   #501 ActionRegistry (Duration Tables) → Time costs for player actions
+-   #502 ReconcileEngine (Wait/Slow/Compress Policies) → Timeline alignment algorithms
+-   #503 NarrativeLayer Temporal Compression → "Time passes" text generation
+-   #504 TemporalLedger Storage & Audit Trail → Immutable temporal event logging
+-   #505 Temporal Telemetry Events Enumeration → Clock/drift/reconciliation observability
+-   #506 World Time Integration Tests → Multi-player reconciliation validation
+
+**Cluster F: Epic Coordination** (5 epics)
+
+-   #385 Epic: World Event Processing Infrastructure (8 child issues)
+-   #386 Epic: Cosmos Dual Persistence Implementation (9 child issues, 100% complete)
+-   #387 Epic: MCP Server Implementation (coordination for M4)
+-   #388 Epic: Prompt Template Registry (coordination for M4)
+-   #389 Epic: Frontend Player Experience (coordination for Cluster D)
+-   #322 Epic: Playable MVP Experience Loop (5 child issues)
+-   #323 Epic: Humorous DM Interaction Layer (8 child issues)
+-   #324 Epic: Emergent Entity Promotion Pipeline (10 child issues)
+
+**Other Issues**
+
+-   #466 Narrative Generator Server (P0, scope:mcp)
+-   #240 Reconcile dual WorldEvent models (scope:core, docs)
+
 ### Dependency Chains
 
 ```
@@ -255,6 +278,15 @@ M2:#407 (Events Timeline) ──> #101 (Schema) ──> #102 (Processor) ──>
 M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414-#417, #419 (UI Components)
                                            │
                                            └──> #422 (Telemetry)
+
+#498 (WorldClock) ──┬──> #499 (PlayerClock) ──┬──> #502 (ReconcileEngine) ──> #503 (Narrative)
+                    │                          │
+                    └──> #500 (LocationClock) ─┘
+
+#501 (ActionRegistry) ──> #499 (PlayerClock)
+#504 (TemporalLedger) ── parallel with above
+#505 (Temporal Telemetry) ── parallel with above
+#506 (Integration Tests) ── after all temporal components
 ```
 
 ### Exit Criteria
@@ -265,20 +297,26 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 -   ✅ Command input accepts player commands with validation
 -   ✅ Frontend telemetry shows client → backend correlation
 -   ✅ At least one event type (e.g., Player.Move) processes with domain logic
+-   🔨 World clock advances and player clocks track action duration
+-   🔨 Player timelines reconcile at location entry (wait/slow/compress policies)
+-   🔨 Temporal narrative ("time passes" text) generated for drift/reconciliation
+-   🔨 Temporal events logged immutably to TemporalLedger container
 
 ### MECE Validation
 
--   **Mutually Exclusive**: Backend event processing (Cluster C) vs Frontend UI (Cluster D)
--   **Collectively Exhaustive**: Covers event-driven architecture + player interaction surface
+-   **Mutually Exclusive**: Backend event processing (Cluster C) vs Frontend UI (Cluster D) vs Temporal mechanics (Cluster E) vs Epic coordination (Cluster F)
+-   **Collectively Exhaustive**: Covers event-driven architecture + player interaction surface + temporal simulation + cross-cutting epics
 
 ---
 
 ## M4 AI Read
 
-**Status**: 10 issues (0 closed, 10 open)  
+**Status**: 32 issues (8 closed, 24 open)  
 **Goal**: Enable AI to query world state and use versioned prompts (read-only)  
 **Dependencies**: M2 Data Foundations (#434 needs SQL), M3 Core Loop (UI for testing)  
 **Blocks**: M5 Layering (AI generation), M6 Systems (AI-driven content)
+
+**Note**: Issue count increased due to atomicity review — #465 split into #514-516 (World Context MCP)
 
 ### Critical Path Issues
 
@@ -290,13 +328,39 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 -   #436 Prompt Hashing & Integrity → Ensure reproducibility
 -   #438 Prompt Cost Telemetry → Track AI model invocation costs
 
-**Cluster E2: MCP Servers** (5 issues)
+**Cluster E2: MCP Servers** (8 issues)
 
+-   #514 World Context MCP Foundation → Server scaffold + routing
+-   #515 Location, Player & Atmosphere Context Operations → Core context queries
+-   #516 Spatial Graph & Event Timeline Operations → N-hop traversal + event history
 -   #425 MCP World Query Tools → Read-only access to locations, exits, players
 -   #426 MCP Prompt Template Access → Template retrieval via MCP
 -   #427 MCP Telemetry Query → Recent telemetry for AI context
 -   #428 MCP Authentication → Identity propagation for auditing
 -   #430 MCP Integration Tests → Validate tool contracts
+
+**Cluster E3: Intent Parser** (3 issues)
+
+-   #462 Intent Parser PI-0: Heuristic Baseline Parser → Zero-cost regex/keyword parsing
+-   #463 Intent Parser PI-1: Local LLM Enhancement → Client-side WebLLM with entity promotion
+-   #464 Intent Parser PI-2: Server-Side LLM Escalation → GPT-4o for ambiguous commands
+
+**Cluster E4: DevX & Learn More** (4 issues)
+
+-   #452 Learn More Page Implementation → Frontend page with dynamic content
+-   #453 Weekly Learn More Content Regeneration → Automated content sync
+-   #454 Roadmap Embedding Component → Interactive milestone visualization
+-   #455 Learn More SEO & Analytics Instrumentation → Indexing + tracking
+
+**Cluster E5: Ambient Context** (2 issues)
+
+-   #449 Ambient Context Registry Fallback Resolution Chain
+-   #450 Ambient Registry Benchmark & Coverage Framework
+
+**Epic Coordination** (2 epics)
+
+-   #471 Epic: Intent Parser Phased Implementation → PI-0/PI-1/PI-2 coordination
+-   #472 Epic: D&D 5e Agent Framework Foundation → Mechanics Oracle + Entity State Query
 
 ### Dependency Chains
 
@@ -305,9 +369,15 @@ M2:#403 (SQL Infra) ──> #433 (Schema) ──> #434 (Storage) ──> #435 (A
                                                               │
                                                               └──> #438 (Cost)
 
-M2:#404-#407 (Data) ──> #425 (World Query) ──┬──> #428 (Auth) ──> #430 (Tests)
-                        #434 (Prompts) ───────┤
-                        M2:#312 (Telemetry) ──┘
+M2:#517-519 (Player) ──> #514 (MCP Foundation) ──> #515 (Location/Player Ops) ──> #516 (Spatial/Events)
+                                                   │
+                                                   └──> #425 (World Query) ──┬──> #428 (Auth) ──> #430 (Tests)
+                                                        #434 (Prompts) ───────┤
+                                                        M2:#312 (Telemetry) ──┘
+
+#462 (PI-0 Baseline) ──> #463 (PI-1 Local LLM) ──> #464 (PI-2 Escalation)
+
+#452 (Learn More Page) ──> #453 (Weekly Regen) ──> #454 (Roadmap Embed) ──> #455 (SEO)
 ```
 
 ### Exit Criteria
@@ -476,4 +546,4 @@ Use GitHub REST API to manage milestone assignments and issue dependencies (MCP 
 
 ---
 
-**Last updated**: 2025-11-10 (M2 status: 50 issues, 39 closed, 11 open [78%]; #403 documentation completed; 7 core dual persistence issues + 2 infrastructure + 2 epic trackers remaining; clear dependency sequence established for final push)
+**Last updated**: 2025-11-14 (Atomicity review complete: M2 status: 54 issues, 49 closed, 5 open [91%]; M4 status: 32 issues, 8 closed, 24 open; Issues #44, #77, #465 split into atomic issues #514-521; M3 status: 71 issues, 4 closed, 67 open; World Time framework (#497-506) assigned to M3; All epics properly tracked)
