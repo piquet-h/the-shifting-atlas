@@ -8,8 +8,8 @@
  */
 
 import type { InvocationContext } from '@azure/functions'
-import type appInsights from 'applicationinsights'
 import { mock } from 'node:test'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 
 /** Base class for all test fixtures with common setup/teardown patterns */
 export abstract class BaseTestFixture {
@@ -37,7 +37,7 @@ export abstract class BaseTestFixture {
 
 /** Mock tracking result from telemetry client */
 export interface TelemetryMockResult {
-    client: appInsights.TelemetryClient
+    client: ITelemetryClient
     getEvents: () => Array<{ name: string; properties?: Record<string, unknown> }>
     getExceptions: () => Array<{ exception: Error; properties?: Record<string, unknown> }>
 }
@@ -72,8 +72,9 @@ export class TestMocks {
             trackTrace: mock.fn(),
             trackDependency: mock.fn(),
             trackRequest: mock.fn(),
-            flush: mock.fn()
-        } as unknown as appInsights.TelemetryClient
+            flush: mock.fn(),
+            addTelemetryProcessor: mock.fn()
+        } as unknown as ITelemetryClient
 
         return {
             client,

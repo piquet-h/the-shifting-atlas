@@ -1,8 +1,17 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import appInsights from 'applicationinsights'
 import { telemetryClient, trackGameEvent, trackGameEventStrict } from '../../src/telemetry.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+
+// Mock appInsights module to prevent initialization issues in tests
+const mockAppInsights = {
+    defaultClient: null as null | {
+        context: {
+            tags: Record<string, string>
+            keys: { operationId: string }
+        }
+    }
+}
 
 describe('Telemetry Correlation', () => {
     let fixture: UnitTestFixture
@@ -73,7 +82,7 @@ describe('Telemetry Correlation', () => {
         test('trackGameEvent attaches operationId when available from Application Insights context', async () => {
             const mockTelemetry = await fixture.getTelemetryClient()
             const originalTrackEvent = telemetryClient.trackEvent
-            const originalDefaultClient = appInsights.defaultClient
+            const originalDefaultClient = mockAppInsights.defaultClient
 
             try {
                 // Mock Application Insights context with operationId
@@ -87,10 +96,10 @@ describe('Telemetry Correlation', () => {
                             operationId: 'ai.operation.id'
                         }
                     }
-                } as unknown as typeof appInsights.defaultClient
+                }
 
                 // Replace defaultClient with mock
-                Object.defineProperty(appInsights, 'defaultClient', {
+                mockAppInsights.defaultClient = mockClient
                     value: mockClient,
                     writable: true,
                     configurable: true
@@ -106,26 +115,18 @@ describe('Telemetry Correlation', () => {
                 assert.ok(evt?.properties?.correlationId, 'correlationId should also be present')
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: originalDefaultClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = originalDefaultClient
             }
         })
 
         test('trackGameEvent omits operationId when Application Insights context unavailable', async () => {
             const mockTelemetry = await fixture.getTelemetryClient()
             const originalTrackEvent = telemetryClient.trackEvent
-            const originalDefaultClient = appInsights.defaultClient
+            const originalDefaultClient = mockAppInsights.defaultClient
 
             try {
                 // Simulate no Application Insights client (test/queue handler scenario)
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: null,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = null
 
                 telemetryClient.trackEvent = mockTelemetry.trackEvent.bind(mockTelemetry)
 
@@ -137,18 +138,14 @@ describe('Telemetry Correlation', () => {
                 assert.ok(evt?.properties?.correlationId, 'correlationId should be present even without operationId')
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: originalDefaultClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = originalDefaultClient
             }
         })
 
         test('trackGameEventStrict attaches operationId when available', async () => {
             const mockTelemetry = await fixture.getTelemetryClient()
             const originalTrackEvent = telemetryClient.trackEvent
-            const originalDefaultClient = appInsights.defaultClient
+            const originalDefaultClient = mockAppInsights.defaultClient
 
             try {
                 const mockOperationId = 'mock-operation-strict-456'
@@ -161,13 +158,9 @@ describe('Telemetry Correlation', () => {
                             operationId: 'ai.operation.id'
                         }
                     }
-                } as unknown as typeof appInsights.defaultClient
+                }
 
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: mockClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = mockClient
 
                 telemetryClient.trackEvent = mockTelemetry.trackEvent.bind(mockTelemetry)
 
@@ -178,18 +171,14 @@ describe('Telemetry Correlation', () => {
                 assert.equal(evt?.properties?.operationId, mockOperationId, 'operationId should be attached')
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: originalDefaultClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = originalDefaultClient
             }
         })
 
         test('trackGameEvent does not overwrite explicit operationId property', async () => {
             const mockTelemetry = await fixture.getTelemetryClient()
             const originalTrackEvent = telemetryClient.trackEvent
-            const originalDefaultClient = appInsights.defaultClient
+            const originalDefaultClient = mockAppInsights.defaultClient
 
             try {
                 const mockOperationId = 'mock-operation-789'
@@ -202,13 +191,9 @@ describe('Telemetry Correlation', () => {
                             operationId: 'ai.operation.id'
                         }
                     }
-                } as unknown as typeof appInsights.defaultClient
+                }
 
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: mockClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = mockClient
 
                 telemetryClient.trackEvent = mockTelemetry.trackEvent.bind(mockTelemetry)
 
@@ -219,18 +204,14 @@ describe('Telemetry Correlation', () => {
                 assert.equal(evt?.properties?.operationId, 'explicit-op-id', 'Should preserve explicit operationId')
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: originalDefaultClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = originalDefaultClient
             }
         })
 
         test('trackGameEvent handles missing context.tags gracefully', async () => {
             const mockTelemetry = await fixture.getTelemetryClient()
             const originalTrackEvent = telemetryClient.trackEvent
-            const originalDefaultClient = appInsights.defaultClient
+            const originalDefaultClient = mockAppInsights.defaultClient
 
             try {
                 // Mock client with missing tags
@@ -240,13 +221,9 @@ describe('Telemetry Correlation', () => {
                             operationId: 'ai.operation.id'
                         }
                     }
-                } as unknown as typeof appInsights.defaultClient
+                }
 
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: mockClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = mockClient as typeof mockAppInsights.defaultClient
 
                 telemetryClient.trackEvent = mockTelemetry.trackEvent.bind(mockTelemetry)
 
@@ -258,11 +235,7 @@ describe('Telemetry Correlation', () => {
                 assert.ok(evt?.properties?.correlationId, 'correlationId should be present')
             } finally {
                 telemetryClient.trackEvent = originalTrackEvent
-                Object.defineProperty(appInsights, 'defaultClient', {
-                    value: originalDefaultClient,
-                    writable: true,
-                    configurable: true
-                })
+                mockAppInsights.defaultClient = originalDefaultClient
             }
         })
     })

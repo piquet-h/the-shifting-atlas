@@ -3,9 +3,9 @@
  * This approach is useful when testing services that receive TelemetryClient via DI
  */
 
-import type appInsights from 'applicationinsights'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import { createMockTelemetryClient, createTestContainer } from '../helpers/containerHelpers.js'
 
@@ -50,14 +50,14 @@ describe('Telemetry Inversify Integration', () => {
         const { client } = createMockTelemetryClient()
         const container = createTestContainer({ telemetryClient: client })
 
-        const retrievedClient = container.get<appInsights.TelemetryClient>('TelemetryClient')
+        const retrievedClient = container.get<ITelemetryClient>('ITelemetryClient')
         assert.strictEqual(retrievedClient, client, 'Should retrieve the same mock client')
     })
 
     test('complete DI pattern: service with injected TelemetryClient', () => {
         // Example: Testing a hypothetical service that uses TelemetryClient via DI
         class ExampleService {
-            constructor(private telemetry: appInsights.TelemetryClient) {}
+            constructor(private telemetry: ITelemetryClient) {}
 
             doWork() {
                 this.telemetry.trackEvent({ name: 'ExampleService.Work', properties: { action: 'completed' } })

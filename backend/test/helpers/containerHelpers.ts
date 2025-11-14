@@ -2,11 +2,11 @@
  * Test helpers for creating Inversify containers with mocked dependencies
  */
 
-import type appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import { mock } from 'node:test'
 import type { IGremlinClient } from '../../src/gremlin/index.js'
 import type { IPersistenceConfig } from '../../src/persistenceConfig.js'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 
 /**
  * Creates a test container with mocked IGremlinClient
@@ -26,7 +26,7 @@ import type { IPersistenceConfig } from '../../src/persistenceConfig.js'
  */
 export function createTestContainer(options?: {
     gremlinClient?: IGremlinClient
-    telemetryClient?: appInsights.TelemetryClient
+    telemetryClient?: ITelemetryClient
     persistenceMode?: 'memory' | 'cosmos'
 }): Container {
     const container = new Container()
@@ -44,7 +44,7 @@ export function createTestContainer(options?: {
 
     // If a mock TelemetryClient is provided, bind it
     if (options?.telemetryClient) {
-        container.bind<appInsights.TelemetryClient>('TelemetryClient').toConstantValue(options.telemetryClient)
+        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(options.telemetryClient)
     }
 
     return container
@@ -93,7 +93,7 @@ export function createMockGremlinClient(data: Record<string, unknown[]>): IGreml
  * ```
  */
 export function createMockTelemetryClient(): {
-    client: appInsights.TelemetryClient
+    client: ITelemetryClient
     getEvents: () => Array<{ name: string; properties?: Record<string, unknown> }>
     getExceptions: () => Array<{ exception: Error; properties?: Record<string, unknown> }>
 } {
@@ -111,8 +111,9 @@ export function createMockTelemetryClient(): {
         trackTrace: mock.fn(),
         trackDependency: mock.fn(),
         trackRequest: mock.fn(),
-        flush: mock.fn()
-    } as unknown as appInsights.TelemetryClient
+        flush: mock.fn(),
+        addTelemetryProcessor: mock.fn()
+    } as unknown as ITelemetryClient
 
     return {
         client,
