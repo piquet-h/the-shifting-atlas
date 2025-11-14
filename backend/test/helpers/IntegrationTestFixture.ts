@@ -10,6 +10,7 @@
  */
 
 import type { Container } from 'inversify'
+import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import type { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
@@ -158,6 +159,19 @@ export class IntegrationTestFixture extends BaseTestFixture {
 
     /** Teardown hook - cleans up resources */
     async teardown(): Promise<void> {
+        // Close Gremlin connection if in cosmos mode to prevent WebSocket hang
+        if (this.container && this.persistenceMode === 'cosmos') {
+            try {
+                const gremlinClient = this.container.get<IGremlinClient>('GremlinClient')
+                if (gremlinClient && typeof gremlinClient.close === 'function') {
+                    await gremlinClient.close()
+                }
+            } catch (error) {
+                // GremlinClient might not be bound in all test scenarios
+                console.warn('Error closing Gremlin client during teardown:', error)
+            }
+        }
+
         // Clear the telemetry mock if it's a MockTelemetryClient
         const client = this.container?.get<ITelemetryClient>('ITelemetryClient')
         if (client && 'clear' in client) {
