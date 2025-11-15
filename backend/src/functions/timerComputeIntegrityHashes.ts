@@ -12,11 +12,12 @@
  * - INTEGRITY_JOB_BATCH_SIZE: Number of descriptions to process per batch (default: 100)
  * - INTEGRITY_JOB_RECOMPUTE_ALL: If 'true', recompute all hashes even if already set (default: false)
  */
-import { app } from '@azure/functions'
 import type { InvocationContext, Timer } from '@azure/functions'
+import { app } from '@azure/functions'
 import type { Container } from 'inversify'
-import type { IDescriptionRepository } from '../repos/descriptionRepository.js'
 import { computeDescriptionIntegrityHashes } from '../handlers/computeIntegrityHashes.js'
+import type { IDescriptionRepository } from '../repos/descriptionRepository.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 
 const SCHEDULE = process.env.INTEGRITY_JOB_SCHEDULE || '0 0 2 * * *'
 
@@ -33,8 +34,9 @@ app.timer('TimerComputeIntegrityHashes', {
 
         // Get description repository from DI container
         const repository = container.get<IDescriptionRepository>('IDescriptionRepository')
+        const telemetryService = container.get<TelemetryService>('TelemetryService')
 
         // Execute the integrity hash computation job
-        await computeDescriptionIntegrityHashes(repository, context)
+        await computeDescriptionIntegrityHashes(repository, telemetryService, context)
     }
 })

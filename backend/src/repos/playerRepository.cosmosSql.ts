@@ -8,7 +8,7 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
-import { trackGameEvent } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { IPlayerRepository as IGremlinPlayerRepository } from './playerRepository.js'
@@ -30,6 +30,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
+        @inject('TelemetryService') private telemetryService: TelemetryService,
         @inject('IPlayerRepository:Gremlin') gremlinFallback?: IGremlinPlayerRepository
     ) {
         super(sqlClient, 'players')
@@ -42,7 +43,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         // Try SQL API first
         const sqlPlayer = await this.getById(id, id)
         if (sqlPlayer) {
-            trackGameEvent('Player.Get', {
+            this.telemetryService.trackGameEvent('Player.Get', {
                 playerId: id,
                 source: 'sql',
                 latencyMs: Date.now() - startTime
@@ -54,7 +55,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         if (this.gremlinFallback) {
             const gremlinPlayer = await this.gremlinFallback.get(id)
             if (gremlinPlayer) {
-                trackGameEvent('Player.Get', {
+                this.telemetryService.trackGameEvent('Player.Get', {
                     playerId: id,
                     source: 'gremlin-fallback',
                     latencyMs: Date.now() - startTime
@@ -67,7 +68,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
             }
         }
 
-        trackGameEvent('Player.Get', {
+        this.telemetryService.trackGameEvent('Player.Get', {
             playerId: id,
             source: 'not-found',
             latencyMs: Date.now() - startTime
@@ -84,7 +85,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         if (id) {
             const existing = await this.get(id)
             if (existing) {
-                trackGameEvent('Player.GetOrCreate', {
+                this.telemetryService.trackGameEvent('Player.GetOrCreate', {
                     playerId: id,
                     created: false,
                     latencyMs: Date.now() - startTime
@@ -105,7 +106,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
         try {
             const { resource } = await this.create(newPlayer)
-            trackGameEvent('Player.GetOrCreate', {
+            this.telemetryService.trackGameEvent('Player.GetOrCreate', {
                 playerId,
                 created: true,
                 latencyMs: Date.now() - startTime
@@ -117,7 +118,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
             if (cosmosError.code === 409) {
                 const existing = await this.get(playerId)
                 if (existing) {
-                    trackGameEvent('Player.GetOrCreate', {
+                    this.telemetryService.trackGameEvent('Player.GetOrCreate', {
                         playerId,
                         created: false,
                         conflict: true,
@@ -138,7 +139,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
         const existing = await this.get(id)
         if (!existing) {
-            trackGameEvent('Player.LinkExternalId', {
+            this.telemetryService.trackGameEvent('Player.LinkExternalId', {
                 playerId: id,
                 updated: false,
                 reason: 'player-not-found',
@@ -149,7 +150,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
         // Idempotent: if already linked to this externalId, no-op
         if (existing.externalId === externalId) {
-            trackGameEvent('Player.LinkExternalId', {
+            this.telemetryService.trackGameEvent('Player.LinkExternalId', {
                 playerId: id,
                 updated: false,
                 reason: 'already-linked',
@@ -161,7 +162,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         // Conflict detection: check if externalId is already linked to a different player
         const existingExternal = await this.findByExternalId(externalId)
         if (existingExternal && existingExternal.id !== id) {
-            trackGameEvent('Player.LinkExternalId', {
+            this.telemetryService.trackGameEvent('Player.LinkExternalId', {
                 playerId: id,
                 updated: false,
                 conflict: true,
@@ -180,7 +181,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         } as PlayerDocument
 
         const { resource } = await this.upsert(updatedPlayer)
-        trackGameEvent('Player.LinkExternalId', {
+        this.telemetryService.trackGameEvent('Player.LinkExternalId', {
             playerId: id,
             updated: true,
             latencyMs: Date.now() - startTime
@@ -195,7 +196,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         // Check if player exists
         const existing = await this.get(player.id)
         if (!existing) {
-            trackGameEvent('Player.Update', {
+            this.telemetryService.trackGameEvent('Player.Update', {
                 playerId: player.id,
                 success: false,
                 reason: 'player-not-found',
@@ -214,13 +215,13 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
         try {
             const { resource } = await this.upsert(updated)
-            trackGameEvent('Player.Update', {
+            this.telemetryService.trackGameEvent('Player.Update', {
                 playerId: player.id,
                 latencyMs: Date.now() - startTime
             })
             return resource
         } catch (error) {
-            trackGameEvent('Player.Update', {
+            this.telemetryService.trackGameEvent('Player.Update', {
                 playerId: player.id,
                 success: false,
                 latencyMs: Date.now() - startTime
@@ -238,14 +239,14 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         const { items } = await this.query(queryText, parameters, 1)
 
         if (items.length > 0) {
-            trackGameEvent('Player.FindByExternalId', {
+            this.telemetryService.trackGameEvent('Player.FindByExternalId', {
                 found: true,
                 latencyMs: Date.now() - startTime
             })
             return items[0]
         }
 
-        trackGameEvent('Player.FindByExternalId', {
+        this.telemetryService.trackGameEvent('Player.FindByExternalId', {
             found: false,
             latencyMs: Date.now() - startTime
         })
@@ -274,14 +275,14 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
             // Use upsert to avoid conflicts if player was migrated concurrently
             await this.upsert(playerDoc)
 
-            trackGameEvent('Player.Migrate', {
+            this.telemetryService.trackGameEvent('Player.Migrate', {
                 playerId: player.id,
                 success: true,
                 latencyMs: Date.now() - startTime
             })
         } catch (error) {
             // Log migration failure but don't throw (player read still succeeds via Gremlin)
-            trackGameEvent('Player.Migrate', {
+            this.telemetryService.trackGameEvent('Player.Migrate', {
                 playerId: player.id,
                 success: false,
                 latencyMs: Date.now() - startTime

@@ -11,7 +11,7 @@
 import type { InvocationContext } from '@azure/functions'
 import type { IDescriptionRepository } from '../repos/descriptionRepository.js'
 import { computeIntegrityHash, verifyIntegrityHash } from '../repos/utils/integrityHash.js'
-import { trackGameEventStrict } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 
 // --- Configuration -----------------------------------------------------------
 
@@ -32,12 +32,13 @@ const HASH_TRUNCATE_LENGTH = 32
  */
 export async function computeDescriptionIntegrityHashes(
     repository: IDescriptionRepository,
+    telemetryService: TelemetryService,
     context: InvocationContext
 ): Promise<{ processed: number; updated: number; mismatches: number; skipped: number }> {
     const jobStartTime = Date.now()
 
     // Emit job start telemetry
-    trackGameEventStrict('Description.Integrity.JobStart', {
+    telemetryService.trackGameEventStrict('Description.Integrity.JobStart', {
         batchSize: BATCH_SIZE,
         recomputeAll: RECOMPUTE_ALL
     })
@@ -76,7 +77,7 @@ export async function computeDescriptionIntegrityHashes(
                     if (isValid) {
                         // Hash unchanged, skip update
                         skipped++
-                        trackGameEventStrict('Description.Integrity.Unchanged', {
+                        telemetryService.trackGameEventStrict('Description.Integrity.Unchanged', {
                             layerId: layer.id,
                             locationId: layer.locationId
                         })
@@ -84,7 +85,7 @@ export async function computeDescriptionIntegrityHashes(
                     } else {
                         // Hash mismatch detected - potential corruption
                         mismatches++
-                        trackGameEventStrict('Description.Integrity.Mismatch', {
+                        telemetryService.trackGameEventStrict('Description.Integrity.Mismatch', {
                             layerId: layer.id,
                             locationId: layer.locationId,
                             storedHash: layer.integrityHash.slice(0, HASH_TRUNCATE_LENGTH),
@@ -104,7 +105,7 @@ export async function computeDescriptionIntegrityHashes(
 
                 if (result.updated) {
                     updated++
-                    trackGameEventStrict('Description.Integrity.Computed', {
+                    telemetryService.trackGameEventStrict('Description.Integrity.Computed', {
                         layerId: layer.id,
                         locationId: layer.locationId,
                         hashLength: currentHash.length,
@@ -125,7 +126,7 @@ export async function computeDescriptionIntegrityHashes(
         const durationMs = Date.now() - jobStartTime
 
         // Emit job completion telemetry
-        trackGameEventStrict('Description.Integrity.JobComplete', {
+        telemetryService.trackGameEventStrict('Description.Integrity.JobComplete', {
             processed,
             updated,
             mismatches,
@@ -147,7 +148,7 @@ export async function computeDescriptionIntegrityHashes(
         const durationMs = Date.now() - jobStartTime
 
         // Emit failure telemetry
-        trackGameEventStrict('Description.Integrity.JobComplete', {
+        telemetryService.trackGameEventStrict('Description.Integrity.JobComplete', {
             processed,
             updated,
             mismatches,

@@ -3,9 +3,11 @@
  */
 
 import type { HttpRequest, HttpResponseInit } from '@azure/functions'
-import { err } from '@piquet-h/shared'
+import { err, GameEventName } from '@piquet-h/shared'
+import { extractCorrelationId, extractPlayerGuid, type GameTelemetryOptions } from '../telemetry/TelemetryService.js'
 import type { RateLimiter } from './rateLimiter.js'
-import { trackGameEventStrict, extractCorrelationId, extractPlayerGuid } from '../telemetry.js'
+
+export type TrackGameEventFn = (name: GameEventName, properties: Record<string, unknown>, opts?: GameTelemetryOptions) => void
 
 /**
  * Extract client identifier from request
@@ -35,9 +37,15 @@ export function extractClientId(req: HttpRequest): string {
  * @param req - HTTP request
  * @param limiter - Rate limiter instance
  * @param route - Route name for telemetry
+ * @param trackGameEvent - Optional telemetry tracking function
  * @returns null if allowed, 429 response if rate limited
  */
-export function checkRateLimit(req: HttpRequest, limiter: RateLimiter, route: string): HttpResponseInit | null {
+export function checkRateLimit(
+    req: HttpRequest,
+    limiter: RateLimiter,
+    route: string,
+    trackGameEvent?: TrackGameEventFn
+): HttpResponseInit | null {
     const clientId = extractClientId(req)
     const allowed = limiter.check(clientId)
 
@@ -46,21 +54,23 @@ export function checkRateLimit(req: HttpRequest, limiter: RateLimiter, route: st
         const violation = limiter.getViolation(clientId, route)
         const retryAfter = limiter.getResetTime(clientId)
 
-        // Emit telemetry
-        trackGameEventStrict(
-            'Security.RateLimit.Exceeded',
-            {
-                route,
-                limit: violation.limit,
-                windowMs: violation.windowMs,
-                requestCount: violation.requestCount,
-                clientId: violation.clientId
-            },
-            {
-                playerGuid: extractPlayerGuid(req.headers),
-                correlationId
-            }
-        )
+        // Emit telemetry if callback provided
+        if (trackGameEvent) {
+            trackGameEvent(
+                'Security.RateLimit.Exceeded',
+                {
+                    route,
+                    limit: violation.limit,
+                    windowMs: violation.windowMs,
+                    requestCount: violation.requestCount,
+                    clientId: violation.clientId
+                },
+                {
+                    playerGuid: extractPlayerGuid(req.headers),
+                    correlationId
+                }
+            )
+        }
 
         // Return 429 response
         return {

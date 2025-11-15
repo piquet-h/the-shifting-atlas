@@ -9,7 +9,7 @@
 
 import type { IInventoryRepository, InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import { inject, injectable } from 'inversify'
-import { trackGameEvent } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 
@@ -27,7 +27,10 @@ interface InventoryDocument extends InventoryItem {
 
 @injectable()
 export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDocument> implements IInventoryRepository {
-    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient) {
+    constructor(
+        @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
+        @inject('TelemetryService') private telemetryService: TelemetryService
+    ) {
         super(sqlClient, 'inventory')
     }
 
@@ -56,7 +59,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
         // Use upsert to handle create or update
         const { resource } = await this.upsert(doc)
 
-        trackGameEvent('Inventory.AddItem', {
+        this.telemetryService.trackGameEvent('Inventory.AddItem', {
             playerId: item.playerId,
             itemId: item.id,
             itemType: item.itemType,
@@ -73,7 +76,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
         // Delete the item document
         const deleted = await this.delete(itemId, playerId)
 
-        trackGameEvent('Inventory.RemoveItem', {
+        this.telemetryService.trackGameEvent('Inventory.RemoveItem', {
             playerId,
             itemId,
             deleted,
@@ -92,7 +95,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
 
         const { items } = await this.query(queryText, parameters)
 
-        trackGameEvent('Inventory.ListItems', {
+        this.telemetryService.trackGameEvent('Inventory.ListItems', {
             playerId,
             itemCount: items.length,
             latencyMs: Date.now() - startTime
@@ -107,7 +110,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
 
         const item = await this.getById(itemId, playerId)
 
-        trackGameEvent('Inventory.GetItem', {
+        this.telemetryService.trackGameEvent('Inventory.GetItem', {
             playerId,
             itemId,
             found: item !== null,

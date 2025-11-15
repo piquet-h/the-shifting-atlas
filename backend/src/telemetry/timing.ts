@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { GameTelemetryOptions } from '../telemetry.js'
-import { trackGameEvent } from '../telemetry.js'
+import type { GameTelemetryOptions, TelemetryService } from './TelemetryService.js'
 
 /**
  * Lightweight timing helper (Issue #353) providing ad-hoc latency measurement without spans.
@@ -8,10 +7,10 @@ import { trackGameEvent } from '../telemetry.js'
  * New withTiming API - Usage:
  *   const result = await withTiming('FetchPlayer', async () => {
  *     return await playerRepo.get(id)
- *   }, { category: 'repository', includeErrorFlag: true })
+ *   }, { telemetryService, category: 'repository', includeErrorFlag: true })
  *
  * Legacy startTiming API (for manual instrumentation):
- *   const t = startTiming('ContainerSetup')
+ *   const t = startTiming('ContainerSetup', { telemetryService })
  *   // ... work ...
  *   t.stop({ extra: 'value' })
  *
@@ -24,6 +23,7 @@ export interface TimingHandle {
 export interface WithTimingOptions extends GameTelemetryOptions {
     category?: string
     includeErrorFlag?: boolean
+    telemetryService?: TelemetryService
 }
 
 // Test/debug sink (not used in production). Allows unit tests to observe emitted events
@@ -60,11 +60,14 @@ export async function withTiming<T>(op: string, fn: () => T | Promise<T>, opts?:
             properties.error = true
         }
 
-        // Generate correlationId if not provided (matching trackGameEvent behavior)
+        // Generate correlationId if not provided
         const correlationId = opts?.correlationId || randomUUID()
-        const enrichedOpts = { ...opts, correlationId }
 
-        trackGameEvent('Timing.Op', properties, enrichedOpts)
+        // Emit telemetry if service provided
+        if (opts?.telemetryService) {
+            opts.telemetryService.trackGameEvent('Timing.Op', properties, { ...opts, correlationId })
+        }
+
         if (debugSink) {
             debugSink('Timing.Op', {
                 ...properties,
@@ -78,7 +81,7 @@ export async function withTiming<T>(op: string, fn: () => T | Promise<T>, opts?:
  * Legacy manual timing API (retained for backward compatibility).
  * Prefer withTiming for new code.
  */
-export function startTiming(opName: string, opts?: GameTelemetryOptions): TimingHandle {
+export function startTiming(opName: string, opts?: WithTimingOptions): TimingHandle {
     const started = Date.now()
     let stopped = false
     return {
@@ -86,15 +89,12 @@ export function startTiming(opName: string, opts?: GameTelemetryOptions): Timing
             if (stopped) return
             stopped = true
             const durationMs = Date.now() - started
-            trackGameEvent(
-                'Timing.Op',
-                {
-                    opName,
-                    durationMs,
-                    ...(extraProperties || {})
-                },
-                opts
-            )
+
+            // Emit telemetry if service provided
+            if (opts?.telemetryService) {
+                opts.telemetryService.trackGameEvent('Timing.Op', { opName, durationMs, ...(extraProperties || {}) }, opts)
+            }
+
             if (debugSink) {
                 debugSink('Timing.Op', {
                     opName,

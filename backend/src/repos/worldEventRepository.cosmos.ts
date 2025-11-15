@@ -15,7 +15,7 @@ import type {
     WorldEventRecord
 } from '@piquet-h/shared/types/worldEventRepository'
 import { inject, injectable } from 'inversify'
-import { trackGameEvent } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 
@@ -58,7 +58,10 @@ class WorldEventSqlHelper extends CosmosDbSqlRepository<WorldEventDocument> {
 export class CosmosWorldEventRepository implements IWorldEventRepository {
     private sql: WorldEventSqlHelper
 
-    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient) {
+    constructor(
+        @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
+        @inject('TelemetryService') private telemetryService: TelemetryService
+    ) {
         this.sql = new WorldEventSqlHelper(sqlClient)
     }
 
@@ -73,7 +76,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const result = await this.sql.upsertEvent(doc)
 
-        trackGameEvent('WorldEvent.Create', {
+        this.telemetryService.trackGameEvent('WorldEvent.Create', {
             eventId: event.id,
             scopeKey: event.scopeKey,
             eventType: event.eventType,
@@ -93,7 +96,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const existing = await this.sql.getEvent(eventId, scopeKey)
         if (!existing) {
-            trackGameEvent('WorldEvent.UpdateStatus', {
+            this.telemetryService.trackGameEvent('WorldEvent.UpdateStatus', {
                 eventId,
                 scopeKey,
                 status: updates.status,
@@ -112,7 +115,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const result = await this.sql.upsertEvent(updated)
 
-        trackGameEvent('WorldEvent.UpdateStatus', {
+        this.telemetryService.trackGameEvent('WorldEvent.UpdateStatus', {
             eventId,
             scopeKey,
             status: updates.status,
@@ -129,7 +132,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const event = await this.sql.getEvent(eventId, scopeKey)
 
-        trackGameEvent('WorldEvent.GetById', {
+        this.telemetryService.trackGameEvent('WorldEvent.GetById', {
             eventId,
             scopeKey,
             found: !!event,
@@ -172,7 +175,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const totalLatencyMs = Date.now() - startTime
 
-        trackGameEvent('WorldEvent.QueryByScope', {
+        this.telemetryService.trackGameEvent('WorldEvent.QueryByScope', {
             scopeKey,
             resultCount: events.length,
             hasMore,
@@ -194,7 +197,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
         const queryText = 'SELECT * FROM c ORDER BY c.occurredUtc DESC'
         const { items, ruCharge } = await this.sql.queryEvents(queryText, [], limit)
 
-        trackGameEvent('WorldEvent.GetRecent', {
+        this.telemetryService.trackGameEvent('WorldEvent.GetRecent', {
             resultCount: items.length,
             ruCharge,
             latencyMs: Date.now() - startTime,
@@ -212,7 +215,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
         const { items, ruCharge } = await this.sql.queryEvents(queryText, parameters, 1)
 
-        trackGameEvent('WorldEvent.GetByIdempotencyKey', {
+        this.telemetryService.trackGameEvent('WorldEvent.GetByIdempotencyKey', {
             idempotencyKey,
             found: items.length > 0,
             ruCharge,

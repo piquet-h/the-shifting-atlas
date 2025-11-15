@@ -1,5 +1,5 @@
-import { injectable } from 'inversify'
-import { trackGameEventStrict } from '../telemetry.js'
+import { inject, injectable } from 'inversify'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepository.js'
 
 /**
@@ -14,6 +14,8 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
     // TODO: Inject Cosmos SQL client when implementing
     private fallback = new Map<string, DescriptionLayer>()
 
+    constructor(@inject('TelemetryService') private telemetryService: TelemetryService) {}
+
     async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
         const started = Date.now()
         const result: DescriptionLayer[] = []
@@ -26,13 +28,13 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
 
         // Emit cache status based on results
         if (result.length > 0) {
-            trackGameEventStrict('Description.Cache.Hit', {
+            this.telemetryService.trackGameEventStrict('Description.Cache.Hit', {
                 locationId,
                 layerCount: result.length,
                 durationMs: Date.now() - started
             })
         } else {
-            trackGameEventStrict('Description.Cache.Miss', {
+            this.telemetryService.trackGameEventStrict('Description.Cache.Miss', {
                 locationId,
                 durationMs: Date.now() - started
             })
@@ -44,7 +46,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
     async addLayer(layer: DescriptionLayer): Promise<{ created: boolean; id: string }> {
         const started = Date.now()
 
-        trackGameEventStrict('Description.Generate.Start', {
+        this.telemetryService.trackGameEventStrict('Description.Generate.Start', {
             locationId: layer.locationId,
             layerId: layer.id,
             layerType: layer.type
@@ -52,7 +54,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
 
         try {
             if (this.fallback.has(layer.id)) {
-                trackGameEventStrict('Description.Generate.Success', {
+                this.telemetryService.trackGameEventStrict('Description.Generate.Success', {
                     locationId: layer.locationId,
                     layerId: layer.id,
                     created: false,
@@ -63,7 +65,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
 
             // Validate that content is not empty
             if (!layer.content || layer.content.trim().length === 0) {
-                trackGameEventStrict('Description.Generate.Failure', {
+                this.telemetryService.trackGameEventStrict('Description.Generate.Failure', {
                     locationId: layer.locationId,
                     layerId: layer.id,
                     reason: 'empty-content',
@@ -74,7 +76,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
 
             this.fallback.set(layer.id, { ...layer })
 
-            trackGameEventStrict('Description.Generate.Success', {
+            this.telemetryService.trackGameEventStrict('Description.Generate.Success', {
                 locationId: layer.locationId,
                 layerId: layer.id,
                 created: true,
@@ -94,7 +96,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
                 }
             }
 
-            trackGameEventStrict('Description.Generate.Failure', {
+            this.telemetryService.trackGameEventStrict('Description.Generate.Failure', {
                 locationId: layer.locationId,
                 layerId: layer.id,
                 reason,

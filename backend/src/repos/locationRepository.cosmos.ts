@@ -2,7 +2,7 @@ import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDire
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
-import { trackGameEventStrict } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosGremlinRepository } from './base/index.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash, firstScalar } from './utils/index.js'
@@ -10,7 +10,10 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 @injectable()
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
-    constructor(@inject('GremlinClient') client: IGremlinClient) {
+    constructor(
+        @inject('GremlinClient') client: IGremlinClient,
+        @inject('TelemetryService') private telemetryService: TelemetryService
+    ) {
         super(client)
     }
 
@@ -175,7 +178,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         // Input validation
         if (!location.id || !location.name || location.description === undefined) {
             const error = new Error('Location missing required fields (id, name, description)')
-            trackGameEventStrict('World.Location.Upsert', {
+            this.telemetryService.trackGameEventStrict('World.Location.Upsert', {
                 locationId: location.id || 'unknown',
                 latencyMs: 0,
                 success: false,
@@ -267,7 +270,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             throw error
         } finally {
             const latencyMs = Date.now() - startTime
-            trackGameEventStrict('World.Location.Upsert', {
+            this.telemetryService.trackGameEventStrict('World.Location.Upsert', {
                 locationId: location.id,
                 latencyMs,
                 success,
@@ -324,7 +327,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         }
 
         // Emit telemetry for actual creation
-        trackGameEventStrict('World.Exit.Created', {
+        this.telemetryService.trackGameEventStrict('World.Exit.Created', {
             fromLocationId: fromId,
             toLocationId: toId,
             dir: direction,
@@ -377,7 +380,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         await this.regenerateExitsSummaryCache(fromId)
 
         // Emit telemetry for actual removal
-        trackGameEventStrict('World.Exit.Removed', {
+        this.telemetryService.trackGameEventStrict('World.Exit.Removed', {
             fromLocationId: fromId,
             dir: direction,
             toLocationId

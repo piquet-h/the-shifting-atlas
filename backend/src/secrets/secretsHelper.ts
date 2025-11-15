@@ -2,7 +2,7 @@
 
 import { DefaultAzureCredential } from '@azure/identity'
 import { SecretClient } from '@azure/keyvault-secrets'
-import { trackGameEvent } from '../telemetry.js'
+import type { TelemetryService } from '../telemetry/TelemetryService.js'
 
 /** Allowlisted secret keys that can be retrieved */
 export const ALLOWED_SECRET_KEYS = [
@@ -26,9 +26,11 @@ interface SecretFetchOptions {
     initialRetryDelayMs?: number
     /** Cache TTL in ms (default: 5 minutes) */
     cacheTtlMs?: number
+    /** Optional telemetry service for emitting secret fetch events */
+    telemetryService?: TelemetryService
 }
 
-const DEFAULT_OPTIONS: Required<SecretFetchOptions> = {
+const DEFAULT_OPTIONS: Required<Omit<SecretFetchOptions, 'telemetryService'>> = {
     maxRetries: 3,
     initialRetryDelayMs: 1000,
     cacheTtlMs: 5 * 60 * 1000 // 5 minutes
@@ -106,7 +108,7 @@ function getLocalFallback(secretKey: AllowedSecretKey): string | undefined {
 async function fetchSecretWithRetry(
     client: SecretClient,
     secretKey: AllowedSecretKey,
-    options: Required<SecretFetchOptions>
+    options: Required<Omit<SecretFetchOptions, 'telemetryService'>> & { telemetryService?: TelemetryService }
 ): Promise<string> {
     let lastError: Error | null = null
 
@@ -123,12 +125,14 @@ async function fetchSecretWithRetry(
             // Don't retry on the last attempt
             if (attempt < options.maxRetries) {
                 const delayMs = options.initialRetryDelayMs * Math.pow(2, attempt)
-                trackGameEvent('Secret.Fetch.Retry', {
-                    secretKey,
-                    attempt,
-                    delayMs,
-                    error: lastError.message
-                })
+                if (options.telemetryService) {
+                    options.telemetryService.trackGameEvent('Secret.Fetch.Retry', {
+                        secretKey,
+                        attempt,
+                        delayMs,
+                        error: lastError.message
+                    })
+                }
                 await sleep(delayMs)
             }
         }
@@ -160,11 +164,15 @@ export async function getSecret(secretKey: string, options: SecretFetchOptions =
     // Check cache
     const cached = secretCache.get(secretKey)
     if (cached && now - cached.fetchedAt < opts.cacheTtlMs) {
-        trackGameEvent('Secret.Cache.Hit', { secretKey })
+        if (opts.telemetryService) {
+            opts.telemetryService.trackGameEvent('Secret.Cache.Hit', { secretKey })
+        }
         return cached.value
     }
 
-    trackGameEvent('Secret.Cache.Miss', { secretKey })
+    if (opts.telemetryService) {
+        opts.telemetryService.trackGameEvent('Secret.Cache.Miss', { secretKey })
+    }
 
     // Try Key Vault first
     const client = getSecretClient()
@@ -176,19 +184,25 @@ export async function getSecret(secretKey: string, options: SecretFetchOptions =
             // Update cache
             secretCache.set(secretKey, { value, fetchedAt: now })
 
-            trackGameEvent('Secret.Fetch.Success', { secretKey, source: 'keyvault' })
+            if (opts.telemetryService) {
+                opts.telemetryService.trackGameEvent('Secret.Fetch.Success', { secretKey, source: 'keyvault' })
+            }
             return value
         } catch (err) {
-            trackGameEvent('Secret.Fetch.Failure', {
-                secretKey,
-                source: 'keyvault',
-                error: (err as Error).message
-            })
+            if (opts.telemetryService) {
+                opts.telemetryService.trackGameEvent('Secret.Fetch.Failure', {
+                    secretKey,
+                    source: 'keyvault',
+                    error: (err as Error).message
+                })
+            }
 
             // Try local fallback
             const fallback = getLocalFallback(secretKey)
             if (fallback) {
-                trackGameEvent('Secret.Fetch.Fallback', { secretKey, source: 'env' })
+                if (opts.telemetryService) {
+                    opts.telemetryService.trackGameEvent('Secret.Fetch.Fallback', { secretKey, source: 'env' })
+                }
                 // Don't cache fallback values (they might change during development)
                 return fallback
             }
@@ -200,15 +214,19 @@ export async function getSecret(secretKey: string, options: SecretFetchOptions =
     // Local development mode - use environment variables
     const localValue = getLocalFallback(secretKey)
     if (localValue) {
-        trackGameEvent('Secret.Fetch.Success', { secretKey, source: 'local-env' })
+        if (opts.telemetryService) {
+            opts.telemetryService.trackGameEvent('Secret.Fetch.Success', { secretKey, source: 'local-env' })
+        }
         return localValue
     }
 
-    trackGameEvent('Secret.Fetch.Failure', {
-        secretKey,
-        source: 'none',
-        error: 'No Key Vault configured and no local fallback found'
-    })
+    if (opts.telemetryService) {
+        opts.telemetryService.trackGameEvent('Secret.Fetch.Failure', {
+            secretKey,
+            source: 'none',
+            error: 'No Key Vault configured and no local fallback found'
+        })
+    }
 
     throw new Error(`Secret ${secretKey} not found. Configure KEYVAULT_NAME for production or set environment variable for local dev.`)
 }
@@ -216,9 +234,11 @@ export async function getSecret(secretKey: string, options: SecretFetchOptions =
 /**
  * Clear the secret cache (useful for testing or forcing refresh)
  */
-export function clearSecretCache(): void {
+export function clearSecretCache(telemetryService?: TelemetryService): void {
     secretCache.clear()
-    trackGameEvent('Secret.Cache.Clear', {})
+    if (telemetryService) {
+        telemetryService.trackGameEvent('Secret.Cache.Clear', {})
+    }
 }
 
 /**
