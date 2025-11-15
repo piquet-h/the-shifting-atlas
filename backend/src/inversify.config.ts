@@ -89,8 +89,8 @@ export const setupContainer = async (container: Container) => {
         container.bind<ITelemetryClient>('ITelemetryClient').to(NullTelemetryClient).inSingletonScope()
     } else if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
         // Production with App Insights: real Application Insights (already initialized in index.ts)
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const appInsights = require('applicationinsights')
+        const appInsightsModule = await import('applicationinsights')
+        const appInsights = appInsightsModule.default
         container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
     } else {
         // Production without App Insights: null telemetry client
