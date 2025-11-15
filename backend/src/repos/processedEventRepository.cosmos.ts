@@ -8,26 +8,15 @@
  * TTL: 7 days default (configurable via container)
  */
 
-import { DefaultAzureCredential } from '@azure/identity'
-import { CosmosClient, Database } from '@azure/cosmos'
 import type { IProcessedEventRepository, ProcessedEventRecord } from '@piquet-h/shared/types/processedEventRepository'
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
+import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
+import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 
 @injectable()
-export class CosmosProcessedEventRepository implements IProcessedEventRepository {
-    private client: CosmosClient
-    private database: Database
-    private containerName: string
-
-    constructor(endpoint: string, databaseName: string, containerName: string) {
-        // Use Managed Identity authentication
-        const credential = new DefaultAzureCredential()
-        this.client = new CosmosClient({
-            endpoint,
-            aadCredentials: credential
-        })
-        this.database = this.client.database(databaseName)
-        this.containerName = containerName
+export class CosmosProcessedEventRepository extends CosmosDbSqlRepository<ProcessedEventRecord> implements IProcessedEventRepository {
+    constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient, @inject('CosmosContainer:ProcessedEvents') containerName: string) {
+        super(client, containerName)
     }
 
     /**
@@ -35,8 +24,6 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
      * TTL is set by container default (7 days).
      */
     async markProcessed(record: ProcessedEventRecord): Promise<ProcessedEventRecord> {
-        const container = this.database.container(this.containerName)
-
         // Ensure partition key matches document property
         const document = {
             id: record.id,
@@ -51,7 +38,7 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
             // TTL is inherited from container default (7 days)
         }
 
-        const { resource } = await container.items.create(document)
+        const { resource } = await this.container.items.create(document)
         return resource as ProcessedEventRecord
     }
 
@@ -60,8 +47,6 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
      * Uses point read with idempotencyKey as partition key for efficiency.
      */
     async checkProcessed(idempotencyKey: string): Promise<ProcessedEventRecord | null> {
-        const container = this.database.container(this.containerName)
-
         try {
             // Query by partition key (efficient single-partition query)
             // Note: We can't use point read (.item(id, pk).read()) because we don't know the id
@@ -76,7 +61,7 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
                 ]
             }
 
-            const { resources } = await container.items
+            const { resources } = await this.container.items
                 .query(querySpec, {
                     partitionKey: idempotencyKey,
                     maxItemCount: 1
@@ -99,10 +84,8 @@ export class CosmosProcessedEventRepository implements IProcessedEventRepository
      * Get a specific processed event by ID (for debugging).
      */
     async getById(id: string, idempotencyKey: string): Promise<ProcessedEventRecord | null> {
-        const container = this.database.container(this.containerName)
-
         try {
-            const { resource } = await container.item(id, idempotencyKey).read<ProcessedEventRecord>()
+            const { resource } = await this.container.item(id, idempotencyKey).read<ProcessedEventRecord>()
             return resource || null
         } catch (error) {
             const cosmosError = error as { code?: number }

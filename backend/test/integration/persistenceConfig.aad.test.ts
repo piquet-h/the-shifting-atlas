@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import process from 'node:process'
-import { beforeEach, describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 
 /**
@@ -21,6 +21,11 @@ describe('persistenceConfig Gremlin AAD auth (keyless)', () => {
         process.env.COSMOS_SQL_CONTAINER_INVENTORY = 'inventory'
         process.env.COSMOS_SQL_CONTAINER_LAYERS = 'descriptionLayers'
         process.env.COSMOS_SQL_CONTAINER_EVENTS = 'worldEvents'
+    })
+
+    afterEach(() => {
+        // Restore original environment to avoid leaking cosmos mode into other tests
+        process.env = { ...prev }
     })
 
     test('returns config with no key property', async () => {

@@ -5,6 +5,7 @@
 
 import { Container } from 'inversify'
 import 'reflect-metadata'
+import { WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS } from '../../src/config/worldEventProcessorConfig.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
 import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from '../../src/handlers/containerHealth.js'
@@ -20,7 +21,12 @@ import { PlayerCreateHandler } from '../../src/handlers/playerCreate.js'
 import { PlayerGetHandler } from '../../src/handlers/playerGet.js'
 import { PlayerLinkHandler } from '../../src/handlers/playerLink.js'
 import { PlayerMoveHandler } from '../../src/handlers/playerMove.js'
+import { QueueProcessWorldEventHandler } from '../../src/handlers/queueProcessWorldEvent.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
+import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
+import { CosmosDeadLetterRepository } from '../../src/repos/deadLetterRepository.cosmos.js'
+import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
+import { MemoryDeadLetterRepository } from '../../src/repos/deadLetterRepository.memory.js'
 import { CosmosDescriptionRepository } from '../../src/repos/descriptionRepository.cosmos.js'
 import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import { InMemoryDescriptionRepository } from '../../src/repos/descriptionRepository.memory.js'
@@ -37,6 +43,9 @@ import { InMemoryLocationRepository } from '../../src/repos/locationRepository.m
 import { CosmosPlayerRepository } from '../../src/repos/playerRepository.cosmos.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memory.js'
+import { CosmosProcessedEventRepository } from '../../src/repos/processedEventRepository.cosmos.js'
+import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
+import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRepository.memory.js'
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
@@ -83,6 +92,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
+    container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - production configuration
@@ -114,6 +124,29 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
+
+        const sqlConfig = container.get<IPersistenceConfig>('PersistenceConfig').cosmosSql
+        if (sqlConfig?.endpoint && sqlConfig?.database) {
+            container
+                .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
+                .toConstantValue({ endpoint: sqlConfig.endpoint, database: sqlConfig.database })
+            container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+        }
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.deadLetters) {
+            container.bind<string>('CosmosContainer:DeadLetters').toConstantValue(sqlConfig.containers.deadLetters)
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').to(CosmosDeadLetterRepository).inSingletonScope()
+        } else {
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        }
+
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.processedEvents) {
+            container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(sqlConfig.containers.processedEvents)
+            container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()
+        } else {
+            container
+                .bind<IProcessedEventRepository>('IProcessedEventRepository')
+                .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -123,6 +156,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
+        container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        container
+            .bind<IProcessedEventRepository>('IProcessedEventRepository')
+            .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -134,6 +171,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
+        container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        container
+            .bind<IProcessedEventRepository>('IProcessedEventRepository')
+            .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
     }
 
     return container

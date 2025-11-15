@@ -5,27 +5,21 @@
  * Handles storage failures gracefully (logs but does not throw).
  */
 
-import { CosmosClient, Database, Container } from '@azure/cosmos'
-import { DefaultAzureCredential } from '@azure/identity'
 import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
+import { inject, injectable } from 'inversify'
+import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
+import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { IDeadLetterRepository } from './deadLetterRepository.js'
 
 /**
  * Cosmos SQL implementation of dead-letter repository
  */
-export class CosmosDeadLetterRepository implements IDeadLetterRepository {
-    private client: CosmosClient
-    private database: Database
-    private container: Container
-    private containerName: string
+const DEADLETTER_PARTITION_KEY = 'deadletter'
 
-    constructor(endpoint: string, databaseName: string, containerName: string) {
-        // Use Managed Identity (DefaultAzureCredential) for authentication
-        const credential = new DefaultAzureCredential()
-        this.client = new CosmosClient({ endpoint, aadCredentials: credential })
-        this.database = this.client.database(databaseName)
-        this.containerName = containerName
-        this.container = this.database.container(containerName)
+@injectable()
+export class CosmosDeadLetterRepository extends CosmosDbSqlRepository<DeadLetterRecord> implements IDeadLetterRepository {
+    constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient, @inject('CosmosContainer:DeadLetters') containerName: string) {
+        super(client, containerName)
     }
 
     /**
@@ -77,7 +71,7 @@ export class CosmosDeadLetterRepository implements IDeadLetterRepository {
      */
     async getById(id: string): Promise<DeadLetterRecord | null> {
         try {
-            const { resource } = await this.container.item(id, 'deadletter').read<DeadLetterRecord>()
+            const { resource } = await this.container.item(id, DEADLETTER_PARTITION_KEY).read<DeadLetterRecord>()
             return resource || null
         } catch (error) {
             // 404 is expected if record doesn't exist

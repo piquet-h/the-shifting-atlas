@@ -2,9 +2,11 @@
 /**
  * Tests for World Event Queue Processor
  */
+import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
+import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('World Event Queue Processor', () => {
@@ -240,6 +242,33 @@ describe('World Event Queue Processor', () => {
                 const errors = ctx.getErrors()
                 assert.strictEqual(errors.length, 0, `Event type ${type} should be valid`)
             }
+        })
+    })
+
+    describe('Dependency Injection', () => {
+        test('should use dead-letter repository from DI container', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const container = ctx.extraInputs.get('container') as Container
+            const stored: unknown[] = []
+
+            const fakeRepo: IDeadLetterRepository = {
+                async store(record) {
+                    stored.push(record)
+                },
+                async queryByTimeRange() {
+                    return []
+                },
+                async getById() {
+                    return null
+                }
+            }
+
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(fakeRepo)
+
+            await queueProcessWorldEvent('not valid json {', ctx as any)
+
+            assert.strictEqual(stored.length, 1, 'Dead-letter repository from DI should capture stored record')
         })
     })
 })

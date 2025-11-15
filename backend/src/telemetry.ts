@@ -6,7 +6,6 @@
  * In test mode (NODE_ENV=test), Application Insights is completely disabled to avoid slow initialization and network timeouts.
  */
 import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
-import appInsights from 'applicationinsights'
 import { randomUUID } from 'node:crypto'
 
 // Expose a telemetryClient even without a configured connection (tests / local)
@@ -31,18 +30,6 @@ export function __setTelemetryEventInterceptor(interceptor: ((name: string, prop
     eventInterceptor = interceptor
 }
 
-/**
- * Low-level event emission (no enrichment). Exposed for rare cases where domain
- * enrichment is handled externally. Lint rule forbids direct use of the old
- * trackEvent helper; use this or (preferably) trackGameEvent / trackGameEventStrict.
- */
-function trackEventClient(name: string, properties?: Record<string, unknown>) {
-    telemetryClient?.trackEvent({ name, properties })
-    if (eventInterceptor) {
-        eventInterceptor(name, properties || {})
-    }
-}
-
 export function trackException(error: Error, properties?: Record<string, unknown>) {
     telemetryClient?.trackException({ exception: error, properties })
 }
@@ -52,6 +39,7 @@ export interface GameTelemetryOptions {
     persistenceMode?: string | null
     serviceOverride?: string
     correlationId?: string | null
+    telemetryClient?: AppInsightsClient | null
 }
 
 function inferService(): string {
@@ -79,7 +67,13 @@ export function trackGameEvent(name: string, properties?: Record<string, unknown
     // Attach operationId if available from Application Insights context
     const opId = getOperationId()
     if (opId && finalProps.operationId === undefined) finalProps.operationId = opId
-    trackEventClient(name, finalProps)
+
+    const client = opts?.telemetryClient || telemetryClient
+    client.trackEvent({ name, properties: finalProps })
+
+    if (eventInterceptor) {
+        eventInterceptor(name, finalProps || {})
+    }
 }
 
 /**
@@ -99,7 +93,13 @@ export function trackGameEventStrict(name: GameEventName, properties: Record<str
     if (finalProps.correlationId === undefined) finalProps.correlationId = opts?.correlationId || randomUUID()
     const opId = getOperationId()
     if (opId && finalProps.operationId === undefined) finalProps.operationId = opId
-    trackEventClient(name, finalProps)
+
+    const client = opts?.telemetryClient || telemetryClient
+    client.trackEvent({ name, properties: finalProps })
+
+    if (eventInterceptor) {
+        eventInterceptor(name, finalProps || {})
+    }
 }
 
 export const CORRELATION_HEADER = 'x-correlation-id'
@@ -123,7 +123,15 @@ export function extractPlayerGuid(headers: { get(name: string): string | null | 
 }
 
 function getOperationId(): string | undefined {
+    // Skip in test mode to avoid importing applicationinsights module
+    if (process.env.NODE_ENV === 'test') {
+        return undefined
+    }
+
     try {
+        // Dynamically require to avoid module-level side effects
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const appInsights = require('applicationinsights')
         const client = appInsights.defaultClient
         if (!client) return undefined
         const tags = client.context?.tags

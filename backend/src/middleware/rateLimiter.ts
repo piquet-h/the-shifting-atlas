@@ -123,8 +123,14 @@ export class RateLimiter {
     /**
      * Start periodic cleanup of expired client records
      * Runs every minute to prevent memory growth
+     * Skipped in test mode to avoid keeping Node process alive
      */
     private startCleanup(): void {
+        // Skip cleanup interval in test mode
+        if (process.env.NODE_ENV === 'test') {
+            return
+        }
+
         // Run cleanup every minute
         this.cleanupInterval = setInterval(() => {
             const now = Date.now()

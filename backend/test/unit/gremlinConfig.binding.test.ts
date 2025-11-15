@@ -1,6 +1,6 @@
 import { Container } from 'inversify'
 import assert from 'node:assert'
-import { beforeEach, describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { GremlinClientConfig } from '../../src/gremlin/gremlinClient.js'
 import { setupContainer } from '../../src/inversify.config.js'
 
@@ -9,6 +9,11 @@ describe('GremlinConfig Binding', () => {
 
     beforeEach(() => {
         // Reset env each test
+        process.env = { ...ORIGINAL_ENV }
+    })
+
+    afterEach(() => {
+        // Restore baseline after each test to avoid leaking settings
         process.env = { ...ORIGINAL_ENV }
     })
 

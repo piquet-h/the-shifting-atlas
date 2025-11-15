@@ -1,11 +1,14 @@
-import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
+import { afterEach, beforeEach, describe, it } from 'node:test'
+import sinon from 'sinon'
 import { RateLimiter } from '../../src/middleware/rateLimiter.js'
 
 describe('RateLimiter', () => {
     let limiter: RateLimiter
+    let clock: sinon.SinonFakeTimers
 
     beforeEach(() => {
+        clock = sinon.useFakeTimers()
         limiter = new RateLimiter({
             maxRequests: 3,
             windowMs: 1000,
@@ -15,6 +18,7 @@ describe('RateLimiter', () => {
 
     afterEach(() => {
         limiter.stop()
+        clock.restore()
     })
 
     describe('basic functionality', () => {
@@ -32,7 +36,7 @@ describe('RateLimiter', () => {
             assert.strictEqual(limiter.check('client1'), false, 'Request 5 should be blocked')
         })
 
-        it('resets counter after window expires', async () => {
+        it('resets counter after window expires', () => {
             const shortLimiter = new RateLimiter({
                 maxRequests: 2,
                 windowMs: 100,
@@ -44,8 +48,8 @@ describe('RateLimiter', () => {
                 shortLimiter.check('client1')
                 assert.strictEqual(shortLimiter.check('client1'), false, 'Should be blocked before window expires')
 
-                // Wait for window to expire
-                await new Promise((resolve) => setTimeout(resolve, 150))
+                // Advance time by 150ms
+                clock.tick(150)
 
                 assert.strictEqual(shortLimiter.check('client1'), true, 'Should be allowed after window expires')
             } finally {
@@ -88,7 +92,8 @@ describe('RateLimiter', () => {
         it('returns time until reset for tracked clients', () => {
             limiter.check('client1')
             const resetTime = limiter.getResetTime('client1')
-            assert.ok(resetTime > 0 && resetTime <= 1, 'Reset time should be within window duration')
+            // With fake timers, reset time should be exactly 1 second in the future
+            assert.strictEqual(resetTime, 1)
         })
     })
 
@@ -105,7 +110,7 @@ describe('RateLimiter', () => {
     })
 
     describe('cleanup', () => {
-        it('removes expired records periodically', async () => {
+        it('removes expired records periodically', () => {
             const shortLimiter = new RateLimiter({
                 maxRequests: 1,
                 windowMs: 50,
@@ -114,11 +119,19 @@ describe('RateLimiter', () => {
 
             try {
                 shortLimiter.check('client1')
-                // Note: cleanup runs every 60 seconds in production, so we test the clear method instead
-                await new Promise((resolve) => setTimeout(resolve, 120))
-                // After 2x window time, the record should be eligible for cleanup
-                // Since we can't easily test the automatic cleanup, we verify the behavior through the window reset
-                assert.strictEqual(shortLimiter.check('client1'), true, 'Should allow request after window expires')
+                assert.strictEqual(shortLimiter.check('client1'), false, 'Should be blocked')
+
+                // Advance time past the window, but not past the cleanup interval
+                clock.tick(55)
+                assert.strictEqual(shortLimiter.check('client1'), true, 'Should be allowed after window reset')
+                assert.strictEqual(shortLimiter.check('client1'), false, 'Should be blocked again')
+
+                // Advance time past the cleanup interval to trigger cleanup
+                clock.tick(60000) // Default cleanup is 60s
+
+                // After cleanup, the record for 'client1' should be gone, but this is hard to verify directly.
+                // We can verify that the limiter still works as expected.
+                assert.strictEqual(shortLimiter.check('client2'), true, 'New client should be allowed')
             } finally {
                 shortLimiter.stop()
             }

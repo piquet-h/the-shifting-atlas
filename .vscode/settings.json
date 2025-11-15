@@ -104,5 +104,11 @@
     },
     "chat.agent.maxRequests": 500,
     "chat.useNestedAgentsMdFiles": true,
-    "github.copilot.chat.summarizeAgentConversationHistory.enabled": false
+    "github.copilot.chat.summarizeAgentConversationHistory.enabled": false,
+    "chat.agent.thinkingStyle": "fixedScrolling",
+    "chat.customAgentInSubagent.enabled": true,
+    "chat.editing.autoAcceptDelay": 10,
+    "chat.agentSessionsViewLocation": "view",
+    "chat.edits2.enabled": true,
+    "chat.extensionUnification.enabled": true
 }

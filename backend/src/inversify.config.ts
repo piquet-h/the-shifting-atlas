@@ -1,6 +1,6 @@
-import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import 'reflect-metadata'
+import { WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS } from './config/worldEventProcessorConfig.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/index.js'
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from './handlers/containerHealth.js'
@@ -16,8 +16,12 @@ import { PlayerCreateHandler } from './handlers/playerCreate.js'
 import { PlayerGetHandler } from './handlers/playerGet.js'
 import { PlayerLinkHandler } from './handlers/playerLink.js'
 import { PlayerMoveHandler } from './handlers/playerMove.js'
+import { QueueProcessWorldEventHandler } from './handlers/queueProcessWorldEvent.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from './persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from './repos/base/cosmosDbSqlClient.js'
+import { CosmosDeadLetterRepository } from './repos/deadLetterRepository.cosmos.js'
+import type { IDeadLetterRepository } from './repos/deadLetterRepository.js'
+import { MemoryDeadLetterRepository } from './repos/deadLetterRepository.memory.js'
 import { CosmosDescriptionRepository } from './repos/descriptionRepository.cosmos.js'
 import { IDescriptionRepository } from './repos/descriptionRepository.js'
 import { InMemoryDescriptionRepository } from './repos/descriptionRepository.memory.js'
@@ -35,6 +39,9 @@ import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { InMemoryPlayerRepository } from './repos/playerRepository.memory.js'
+import { CosmosProcessedEventRepository } from './repos/processedEventRepository.cosmos.js'
+import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
+import { MemoryProcessedEventRepository } from './repos/processedEventRepository.memory.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from './repos/worldEventRepository.memory.js'
@@ -55,9 +62,12 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     }
 
     // Register ITelemetryClient: use null client in memory mode (local dev), real client in cosmos mode
-    if (resolvedMode === 'memory') {
+    if (resolvedMode === 'memory' || process.env.NODE_ENV === 'test') {
         container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(new NullTelemetryClient())
     } else {
+        // Dynamically require to avoid module-level side effects in test mode
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const appInsights = require('applicationinsights')
         container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
     }
 
@@ -76,6 +86,7 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
     container.bind(PlayerCreateHandler).toSelf()
     container.bind(PlayerGetHandler).toSelf()
     container.bind(ContainerHealthHandler).toSelf()
+    container.bind(QueueProcessWorldEventHandler).toSelf()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - prefer already loaded persistence configuration for consistency
@@ -119,6 +130,25 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
+
+        const sqlConfig = persistenceConfig.cosmosSql
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.deadLetters) {
+            container.bind<string>('CosmosContainer:DeadLetters').toConstantValue(sqlConfig.containers.deadLetters)
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').to(CosmosDeadLetterRepository).inSingletonScope()
+        } else {
+            console.warn('[container] Cosmos SQL config missing for dead-letter repository; falling back to memory implementation')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        }
+
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.processedEvents) {
+            container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(sqlConfig.containers.processedEvents)
+            container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()
+        } else {
+            console.warn('[container] Cosmos SQL config missing for processed event repository; using memory implementation')
+            container
+                .bind<IProcessedEventRepository>('IProcessedEventRepository')
+                .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+        }
     } else {
         // Memory mode - integration tests and local development
         // Explicit bindings; share same instance for exit + location repository via dynamic value
@@ -132,6 +162,10 @@ export const setupContainer = async (container: Container, mode?: ContainerMode)
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
+        container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        container
+            .bind<IProcessedEventRepository>('IProcessedEventRepository')
+            .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
     }
 
     return container
