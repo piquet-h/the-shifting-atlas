@@ -12,11 +12,13 @@ import { injectable } from 'inversify'
 export class MemoryProcessedEventRepository implements IProcessedEventRepository {
     private store: Map<string, ProcessedEventRecord>
     private ttlMs: number
+    private timers: Map<string, NodeJS.Timeout>
 
     constructor(ttlSeconds: number = 604800) {
         // Default TTL: 7 days = 604800 seconds
         this.store = new Map()
         this.ttlMs = ttlSeconds * 1000
+        this.timers = new Map()
     }
 
     async markProcessed(record: ProcessedEventRecord): Promise<ProcessedEventRecord> {
@@ -27,10 +29,20 @@ export class MemoryProcessedEventRepository implements IProcessedEventRepository
         }
         this.store.set(record.idempotencyKey, recordWithTtl)
 
+        // Clear any existing timer for this key
+        const existingTimer = this.timers.get(record.idempotencyKey)
+        if (existingTimer) {
+            clearTimeout(existingTimer)
+        }
+
         // Schedule automatic cleanup after TTL
-        setTimeout(() => {
+        // Use unref() so timer doesn't keep event loop alive
+        const timer = setTimeout(() => {
             this.store.delete(record.idempotencyKey)
+            this.timers.delete(record.idempotencyKey)
         }, this.ttlMs)
+        timer.unref()
+        this.timers.set(record.idempotencyKey, timer)
 
         return recordWithTtl
     }
@@ -64,6 +76,11 @@ export class MemoryProcessedEventRepository implements IProcessedEventRepository
      * Clear all processed events (for testing)
      */
     clear(): void {
+        // Clear all timers
+        for (const timer of this.timers.values()) {
+            clearTimeout(timer)
+        }
+        this.timers.clear()
         this.store.clear()
     }
 

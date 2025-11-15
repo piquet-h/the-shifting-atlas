@@ -116,6 +116,48 @@ Before creating or modifying an Application Insights workbook:
 
 Refactor only if directly enabling the goal OR reducing clear, measured complexity (≥20% LOC reduction or removal of duplication impacting change). Else, defer and note in Next Steps.
 
+### 0.14 Diagnostics-First Debugging Protocol
+
+When investigating **runtime behavior issues** (hanging, performance, memory leaks, unexpected delays):
+
+**MANDATORY: Gather evidence BEFORE hypothesizing**
+
+#### Hanging Process
+```bash
+# Get PID, wait for symptom, then immediately:
+lsof -p $PID | head -50              # Open file descriptors
+lsof -p $PID | grep -v "REG|DIR|CHR" # Active connections/sockets
+kill -SIGUSR1 $PID                   # Trigger diagnostic dump (if supported)
+npx why-is-node-running              # Node-specific event loop analysis
+```
+
+#### Memory Leak
+```bash
+node --expose-gc --inspect your-script.js
+# Then use Chrome DevTools → Memory → Take heap snapshot
+```
+
+#### Performance Degradation
+```bash
+node --prof your-script.js
+node --prof-process isolate-*-v8.log
+```
+
+**Prohibited without evidence**:
+- Implementing architectural changes based solely on keywords in error messages
+- "This component is commonly associated with X problem" reasoning
+- Assuming previous similar issues have identical root causes without verification
+
+**Required sequence**: 
+1. **Evidence** (diagnostics output) → 2. **Hypothesis** (based on evidence) → 3. **Minimal fix** → 4. **Verify**
+
+**Exception**: If evidence gathering requires >5 minutes setup, you may attempt ONE quick hypothesis test first, but:
+- Document it as speculative in the response
+- Revert immediately if it doesn't resolve the symptom
+- Then proceed to evidence gathering
+
+**Trigger keywords**: "hanging", "won't exit", "memory leak", "slow", "timeout", "blocked", "frozen", "stuck", "never returns"
+
 ---
 
 ## 1. Platform Architecture
@@ -298,7 +340,25 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ## 12. Anti‑Patterns
 
-Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**.
+Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**; **long-running timers without `.unref()`**.
+
+### Timer/Interval Anti-Pattern
+
+Any `setTimeout` or `setInterval` in production code with TTL > 1 minute MUST use `.unref()` unless explicitly required to keep process alive. 
+
+**Why**: Unreferenced timers prevent Node.js from exiting even after all meaningful work is done. This causes tests to hang and prevents clean process shutdown.
+
+**Pattern**:
+```typescript
+const timer = setTimeout(() => {
+    // cleanup logic
+}, longDelayMs)
+timer.unref()  // REQUIRED for background cleanup timers
+```
+
+**Common culprits**: Memory repository implementations with hour/day TTL cleanup timers.
+
+**Test symptom**: Tests pass but `npm test` never returns to prompt (requires Ctrl+C).
 
 ---
 

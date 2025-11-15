@@ -26,6 +26,7 @@ import starterLocationsData from '../src/data/villageLocations.json' with { type
 import { setupContainer } from '../src/inversify.config.js'
 import { ILocationRepository } from '../src/repos/locationRepository.js'
 import { IPlayerRepository } from '../src/repos/playerRepository.js'
+import { setupTestContainer } from '../test/helpers/testInversify.config.js'
 
 interface Args {
     mode: 'memory' | 'cosmos'
@@ -62,7 +63,8 @@ interface ReconcileOpts {
 }
 
 async function reconcile(args: Args, opts?: ReconcileOpts) {
-    const container = await setupContainer(new Container(), args.mode)
+    // Use test config for memory mode, production config for cosmos
+    const container = args.mode === 'memory' ? await setupTestContainer(new Container(), 'memory') : await setupContainer(new Container())
     const locRepo = container.get<ILocationRepository>('ILocationRepository')
     const playerRepo = container.get<IPlayerRepository>('IPlayerRepository')
 

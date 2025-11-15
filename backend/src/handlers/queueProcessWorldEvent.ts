@@ -19,8 +19,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { WORLD_EVENT_CACHE_MAX_SIZE, WORLD_EVENT_DUPLICATE_TTL_MS } from '../config/worldEventProcessorConfig.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../repos/processedEventRepository.js'
-import { trackGameEventStrict } from '../telemetry.js'
-import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { getContainer } from './utils/contextHelpers.js'
 
 // --- In-Memory Cache (Fast-Path Optimization) --------------------------------
@@ -98,7 +97,7 @@ export class QueueProcessWorldEventHandler {
     constructor(
         @inject('IDeadLetterRepository') private deadLetterRepository: IDeadLetterRepository,
         @inject('IProcessedEventRepository') private processedEventRepository: IProcessedEventRepository,
-        @inject('ITelemetryClient') private telemetry: ITelemetryClient
+        @inject(TelemetryService) private telemetryService: TelemetryService
     ) {}
 
     async handle(message: unknown, context: InvocationContext): Promise<void> {
@@ -129,14 +128,14 @@ export class QueueProcessWorldEventHandler {
                 await this.deadLetterRepository.store(deadLetterRecord)
 
                 // Emit dead-letter telemetry
-                trackGameEventStrict(
+                this.telemetryService.trackGameEventStrict(
                     'World.Event.DeadLettered',
                     {
                         reason: 'json-parse',
                         errorCount: 1,
                         recordId: deadLetterRecord.id
                     },
-                    { correlationId: context.invocationId, telemetryClient: this.telemetry }
+                    { correlationId: context.invocationId }
                 )
 
                 context.log('Dead-letter record created for JSON parse failure', {
@@ -175,7 +174,7 @@ export class QueueProcessWorldEventHandler {
                 await this.deadLetterRepository.store(deadLetterRecord)
 
                 // Emit dead-letter telemetry
-                trackGameEventStrict(
+                this.telemetryService.trackGameEventStrict(
                     'World.Event.DeadLettered',
                     {
                         reason: 'schema-validation',
@@ -184,10 +183,10 @@ export class QueueProcessWorldEventHandler {
                         eventType: deadLetterRecord.eventType,
                         correlationId: deadLetterRecord.correlationId
                     },
-                    { correlationId: deadLetterRecord.correlationId, telemetryClient: this.telemetry }
+                    { correlationId: deadLetterRecord.correlationId }
                 )
 
-                context.log('Dead-letter record created', {
+                context.log('Dead-letter record created for schema validation failure', {
                     recordId: deadLetterRecord.id,
                     errorCount: errors.length
                 })
@@ -235,7 +234,7 @@ export class QueueProcessWorldEventHandler {
                 eventType: event.type,
                 actorKind: event.actor.kind
             })
-            trackGameEventStrict('World.Event.Duplicate', props, { correlationId: event.correlationId, telemetryClient: this.telemetry })
+            this.telemetryService.trackGameEventStrict('World.Event.Duplicate', props, { correlationId: event.correlationId })
 
             return
         }
@@ -270,9 +269,8 @@ export class QueueProcessWorldEventHandler {
                     eventType: event.type,
                     actorKind: event.actor.kind
                 })
-                trackGameEventStrict('World.Event.Duplicate', props, {
-                    correlationId: event.correlationId,
-                    telemetryClient: this.telemetry
+                this.telemetryService.trackGameEventStrict('World.Event.Duplicate', props, {
+                    correlationId: event.correlationId
                 })
 
                 return
@@ -286,7 +284,7 @@ export class QueueProcessWorldEventHandler {
             })
 
             // Emit telemetry for registry failure
-            trackGameEventStrict(
+            this.telemetryService.trackGameEventStrict(
                 'World.Event.RegistryCheckFailed',
                 {
                     eventType: event.type,
@@ -294,11 +292,11 @@ export class QueueProcessWorldEventHandler {
                     correlationId: event.correlationId,
                     errorMessage: String(registryError)
                 },
-                { correlationId: event.correlationId, telemetryClient: this.telemetry }
+                { correlationId: event.correlationId }
             )
         }
 
-        // 5. First-time processing: set ingestedUtc if missing
+        // 6. Prevent cache overflow by evicting oldest entries
         if (!event.ingestedUtc) {
             event.ingestedUtc = new Date().toISOString()
         }
@@ -341,7 +339,7 @@ export class QueueProcessWorldEventHandler {
             markProcessed(event.idempotencyKey, event.eventId)
 
             // Emit telemetry for registry failure
-            trackGameEventStrict(
+            this.telemetryService.trackGameEventStrict(
                 'World.Event.RegistryWriteFailed',
                 {
                     eventType: event.type,
@@ -349,11 +347,11 @@ export class QueueProcessWorldEventHandler {
                     correlationId: event.correlationId,
                     errorMessage: String(registryError)
                 },
-                { correlationId: event.correlationId, telemetryClient: this.telemetry }
+                { correlationId: event.correlationId }
             )
         }
 
-        // 8. Emit telemetry
+        // 8. Emit telemetry with enriched attributes
         const props = {
             eventType: event.type,
             actorKind: event.actor.kind,
@@ -366,7 +364,7 @@ export class QueueProcessWorldEventHandler {
             eventType: event.type,
             actorKind: event.actor.kind
         })
-        trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId, telemetryClient: this.telemetry })
+        this.telemetryService.trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId })
 
         // TODO: Future type-specific payload processing and side effects
         // For now, this is a foundation processor that validates and tracks events

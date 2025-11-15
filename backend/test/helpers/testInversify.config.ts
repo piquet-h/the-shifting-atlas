@@ -1,6 +1,14 @@
 /**
  * Test-specific Inversify configuration
- * Extends the main inversify config but imports mocks from the test folder
+ *
+ * This configuration is ONLY for tests (unit and integration).
+ * Production code should use src/inversify.config.ts instead.
+ *
+ * Key differences from production config:
+ * - ALWAYS uses MockTelemetryClient (never real Application Insights)
+ * - Supports 'mock' mode with simplified mock repositories
+ * - Supports 'memory' mode for integration tests
+ * - Supports 'cosmos' mode for E2E tests (but still mocks telemetry)
  */
 
 import { Container } from 'inversify'
@@ -50,6 +58,7 @@ import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
+import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 // Import mocks from test folder
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
@@ -73,9 +82,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
     }
 
-    // Register ITelemetryClient - always use mock in tests to avoid real App Insights calls
-    // This includes E2E tests (cosmos mode) to prevent test telemetry pollution
+    // Register ITelemetryClient - ALWAYS use mock in tests (never real Application Insights)
+    // This applies to ALL test modes (mock, memory, cosmos) to prevent:
+    // - Test telemetry pollution in production App Insights
+    // - Hanging tests due to Application Insights background processes
     container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
+
+    // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
+    container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
 
     // Register handlers - these extend BaseHandler which has @injectable and constructor injection
     container.bind(MoveHandler).toSelf().inSingletonScope()

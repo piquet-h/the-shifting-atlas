@@ -3,10 +3,10 @@ import { Container } from 'inversify'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { reconcile } from '../../scripts/reconcile-world.ts'
-import { setupContainer } from '../../src/inversify.config.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import { setupTestContainer } from '../helpers/testInversify.config.js'
 
 test('reconcileWorld: removes obsolete exit (direction)', async () => {
     const repo: ILocationRepository = new InMemoryLocationRepository()
@@ -34,7 +34,7 @@ test('reconcileWorld script: skips deletion of demo/current or starter location'
     // Prepare memory mode container & add an extra location not in blueprint
     process.env.PERSISTENCE_MODE = 'memory'
     const extraLocationId = '00000000-0000-4000-8000-0000000000AA'
-    const container = await setupContainer(new Container(), 'memory')
+    const container = await setupTestContainer(new Container(), 'memory')
     const locRepo = container.get<ILocationRepository>('ILocationRepository')
     // Ensure extra location exists (candidate for pruning)
     await locRepo.upsert({ id: extraLocationId, name: 'Temp', description: 'To be pruned', exits: [] })

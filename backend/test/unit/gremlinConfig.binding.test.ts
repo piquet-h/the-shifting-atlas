@@ -2,7 +2,7 @@ import { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { GremlinClientConfig } from '../../src/gremlin/gremlinClient.js'
-import { setupContainer } from '../../src/inversify.config.js'
+import { setupTestContainer } from '../helpers/testInversify.config.js'
 
 describe('GremlinConfig Binding', () => {
     const ORIGINAL_ENV = { ...process.env }
@@ -28,7 +28,7 @@ describe('GremlinConfig Binding', () => {
         process.env.GREMLIN_GRAPH = 'legacyGraph'
 
         const c = new Container()
-        await setupContainer(c)
+        await setupTestContainer(c, 'cosmos')
         const cfg = c.get<GremlinClientConfig>('GremlinConfig')
         assert.equal(cfg.endpoint, 'https://acct.documents.azure.com')
         assert.equal(cfg.database, 'game')
@@ -42,7 +42,7 @@ describe('GremlinConfig Binding', () => {
         process.env.GREMLIN_GRAPH = 'world'
 
         const c = new Container()
-        await setupContainer(c)
+        await setupTestContainer(c, 'cosmos')
         const cfg = c.get<GremlinClientConfig>('GremlinConfig')
         assert.equal(cfg.endpoint, 'https://legacy.documents.azure.com')
         assert.equal(cfg.database, 'game')
