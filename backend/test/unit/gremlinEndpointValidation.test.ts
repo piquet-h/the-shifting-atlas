@@ -11,7 +11,7 @@ test('validateGremlinEndpoint converts documents endpoint to gremlin websocket',
 // Already gremlin form
 test('validateGremlinEndpoint preserves already gremlin cosmos endpoint', () => {
     const ws = validateGremlinEndpoint('https://example.gremlin.cosmos.azure.com:443/')
-    assert.equal(ws.startsWith('wss://example.gremlin.cosmos.azure.com'), true)
+    assert.equal(new URL(ws).host, 'example.gremlin.cosmos.azure.com')
 })
 
 // Empty / whitespace
