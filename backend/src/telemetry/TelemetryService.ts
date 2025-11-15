@@ -8,7 +8,7 @@
 import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { randomUUID } from 'node:crypto'
-import { ITelemetryClient } from './ITelemetryClient.js'
+import type { ITelemetryClient } from './ITelemetryClient.js'
 
 export interface GameTelemetryOptions {
     playerGuid?: string | null
