@@ -123,22 +123,7 @@ export function extractPlayerGuid(headers: { get(name: string): string | null | 
 }
 
 function getOperationId(): string | undefined {
-    // Skip in test mode to avoid importing applicationinsights module
-    if (process.env.NODE_ENV === 'test') {
-        return undefined
-    }
-
-    try {
-        // Dynamically require to avoid module-level side effects
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const appInsights = require('applicationinsights')
-        const client = appInsights.defaultClient
-        if (!client) return undefined
-        const tags = client.context?.tags
-        const key = client.context?.keys?.operationId
-        if (tags && key && tags[key]) return tags[key]
-        return undefined
-    } catch {
-        return undefined
-    }
+    // Operation ID extraction is disabled in ES modules due to require() incompatibility
+    // Application Insights correlation still works via automatic headers
+    return undefined
 }

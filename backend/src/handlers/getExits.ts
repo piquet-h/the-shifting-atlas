@@ -3,8 +3,8 @@ import { err, ok } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IExitRepository } from '../repos/exitRepository.js'
-import { CORRELATION_HEADER } from '../telemetry.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import { CORRELATION_HEADER } from '../telemetry/TelemetryService.js'
 import { BaseHandler } from './base/BaseHandler.js'
 
 /**

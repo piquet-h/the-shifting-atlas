@@ -10,11 +10,31 @@ import { inject, injectable } from 'inversify'
 import { randomUUID } from 'node:crypto'
 import type { ITelemetryClient } from './ITelemetryClient.js'
 
+export const CORRELATION_HEADER = 'x-correlation-id'
+
 export interface GameTelemetryOptions {
     playerGuid?: string | null
     persistenceMode?: string | null
     serviceOverride?: string
     correlationId?: string | null
+}
+
+export function extractCorrelationId(headers: { get(name: string): string | null | undefined } | undefined): string {
+    try {
+        const correlationId = headers?.get(CORRELATION_HEADER) || undefined
+        return correlationId || randomUUID()
+    } catch {
+        return randomUUID()
+    }
+}
+
+export function extractPlayerGuid(headers: { get(name: string): string | null | undefined } | undefined): string | undefined {
+    try {
+        const guid = headers?.get('x-player-guid') || undefined
+        return guid || undefined
+    } catch {
+        return undefined
+    }
 }
 
 @injectable()

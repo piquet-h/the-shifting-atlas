@@ -2,8 +2,8 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
 import { err, isDirection, ok } from '@piquet-h/shared'
 import { Container, inject, injectable } from 'inversify'
 import type { ILocationRepository } from '../repos/locationRepository.js'
-import { CORRELATION_HEADER } from '../telemetry.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import { CORRELATION_HEADER } from '../telemetry/TelemetryService.js'
 import { BaseHandler } from './base/BaseHandler.js'
 
 /**
