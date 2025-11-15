@@ -99,6 +99,18 @@ export class IntegrationTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Create a mock invocation context with container in extraInputs
+     * Required for handler testing with dependency injection
+     */
+    async createInvocationContext(overrides?: Partial<any>): Promise<any> {
+        const container = await this.getContainer()
+        const { TestMocks } = await import('./TestFixture.js')
+        const context = TestMocks.createInvocationContext(overrides)
+        context.extraInputs.set('container', container)
+        return context
+    }
+
+    /**
      * Track performance metric for an operation (optional)
      * Only records if performance tracking is enabled in constructor
      */

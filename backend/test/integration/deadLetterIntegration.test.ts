@@ -5,13 +5,13 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
-import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Queue Processor Dead-Letter Integration', () => {
-    let fixture: UnitTestFixture
+    let fixture: IntegrationTestFixture
 
     beforeEach(async () => {
-        fixture = new UnitTestFixture()
+        fixture = new IntegrationTestFixture('memory')
         await fixture.setup()
         __resetIdempotencyCacheForTests()
     })
@@ -44,7 +44,7 @@ describe('Queue Processor Dead-Letter Integration', () => {
             const validationError = errors.find((e) => e[0] === 'World event envelope validation failed')
             assert.ok(validationError, 'Should log validation failure')
 
-            const deadLetterLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created')
+            const deadLetterLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created for schema validation failure')
             assert.ok(deadLetterLog, 'Should log dead-letter record creation')
         })
 
@@ -90,7 +90,7 @@ describe('Queue Processor Dead-Letter Integration', () => {
             await queueProcessWorldEvent(invalidEvent, ctx as any)
 
             const logs = ctx.getLogs()
-            const deadLetterLog = logs.find((l) => l[0] === 'Dead-letter record created')
+            const deadLetterLog = logs.find((l) => l[0] === 'Dead-letter record created for schema validation failure')
             assert.ok(deadLetterLog, 'Should create dead-letter record')
 
             // Verify redaction occurred (check log data if available)
@@ -136,7 +136,7 @@ describe('Queue Processor Dead-Letter Integration', () => {
             await queueProcessWorldEvent(invalidEvent, ctx as any)
 
             // Check that dead-letter processing completed
-            const deadLetterLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created')
+            const deadLetterLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created for schema validation failure')
             assert.ok(deadLetterLog, 'Should emit dead-letter telemetry event')
         })
     })
