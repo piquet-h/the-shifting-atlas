@@ -207,7 +207,10 @@ export class GremlinClient implements IGremlinClient {
             maxContentLength: 10485760, // 10MB
             maxIdleTime: 900000, // 15 minutes
             maxReconnectAttempts: 3,
-            reconnectInterval: 1000
+            reconnectInterval: 1000,
+            // Force use of the ws package instead of global WebSocket (Node.js environment)
+            // This prevents compatibility issues with browser WebSocket polyfills
+            rejectUnauthorized: true // ws-specific option to force ws package usage
         })
 
         console.log('[GremlinClient] Connection established')
