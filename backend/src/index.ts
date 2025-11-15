@@ -1,4 +1,6 @@
-// Telemetry MUST be initialized first (Application Insights auto-collection before any user code)
+// reflect-metadata MUST be imported first for InversifyJS decorator metadata to work
+import 'reflect-metadata'
+// Telemetry MUST be initialized second (Application Insights auto-collection before any user code)
 import { app, PreInvocationContext } from '@azure/functions'
 // Lightweight declaration to satisfy type checker if Node types resolution is delayed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
