@@ -29,7 +29,7 @@ interface InventoryDocument extends InventoryItem {
 export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDocument> implements IInventoryRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') private telemetryService: TelemetryService
+        @inject('TelemetryService') protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'inventory')
     }

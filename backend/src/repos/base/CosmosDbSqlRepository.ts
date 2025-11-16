@@ -9,10 +9,10 @@
  * Concrete repositories inject container name via constructor and receive CosmosClient from DI.
  */
 
-import type { Container, ItemResponse, FeedResponse, SqlParameter } from '@azure/cosmos'
+import type { Container, FeedResponse, ItemResponse, SqlParameter } from '@azure/cosmos'
 import { translateCosmosError } from '@piquet-h/shared'
 import { injectable } from 'inversify'
-import { trackGameEventStrict } from '../../telemetry.js'
+import type { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { ICosmosDbSqlClient } from './cosmosDbSqlClient.js'
 
 /**
@@ -22,18 +22,22 @@ import type { ICosmosDbSqlClient } from './cosmosDbSqlClient.js'
 export abstract class CosmosDbSqlRepository<T extends { id: string }> {
     protected container: Container
     protected containerName: string
+    protected telemetryService?: TelemetryService
 
     /**
      * Constructor receives SQL client via dependency injection (like GremlinClient pattern)
      * @param client - Injected Cosmos SQL client
      * @param containerName - Container name for this repository
+     * @param telemetryService - Optional telemetry service for database operation metrics (dashboards & alerts)
      */
     constructor(
         protected client: ICosmosDbSqlClient,
-        containerName: string
+        containerName: string,
+        telemetryService?: TelemetryService
     ) {
         this.containerName = containerName
         this.container = client.getContainer(containerName)
+        this.telemetryService = telemetryService
     }
 
     /**
@@ -51,7 +55,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const latencyMs = Date.now() - startTime
 
             if (response.resource) {
-                trackGameEventStrict('SQL.Query.Executed', {
+                this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                     operationName,
                     latencyMs,
                     ruCharge: response.requestCharge,
@@ -69,7 +73,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
 
             // 404 is expected for not found, don't throw
             if (cosmosError.code === 404) {
-                trackGameEventStrict('SQL.Query.Executed', {
+                this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                     operationName,
                     latencyMs,
                     ruCharge: 0,
@@ -80,7 +84,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 return null
             }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,
@@ -105,7 +109,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const response: ItemResponse<T> = await this.container.items.create<T>(entity)
             const latencyMs = Date.now() - startTime
 
-            trackGameEventStrict('SQL.Query.Executed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
@@ -122,7 +126,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const latencyMs = Date.now() - startTime
             const cosmosError = error as { code?: number }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,
@@ -147,7 +151,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const response: ItemResponse<T> = await this.container.items.upsert<T>(entity)
             const latencyMs = Date.now() - startTime
 
-            trackGameEventStrict('SQL.Query.Executed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
@@ -164,7 +168,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const latencyMs = Date.now() - startTime
             const cosmosError = error as { code?: number }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,
@@ -193,7 +197,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const response: ItemResponse<T> = await this.container.item(id, partitionKey).replace<T>(entity, options)
             const latencyMs = Date.now() - startTime
 
-            trackGameEventStrict('SQL.Query.Executed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
@@ -210,7 +214,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const latencyMs = Date.now() - startTime
             const cosmosError = error as { code?: number }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,
@@ -236,7 +240,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const response = await this.container.item(id, partitionKey).delete()
             const latencyMs = Date.now() - startTime
 
-            trackGameEventStrict('SQL.Query.Executed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                 operationName,
                 latencyMs,
                 ruCharge: response.requestCharge,
@@ -252,7 +256,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
 
             // 404 means already deleted
             if (cosmosError.code === 404) {
-                trackGameEventStrict('SQL.Query.Executed', {
+                this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                     operationName,
                     latencyMs,
                     ruCharge: 0,
@@ -263,7 +267,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
                 return false
             }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,
@@ -306,7 +310,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
 
             const latencyMs = Date.now() - startTime
 
-            trackGameEventStrict('SQL.Query.Executed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Executed', {
                 operationName,
                 latencyMs,
                 ruCharge: totalRU,
@@ -324,7 +328,7 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
             const latencyMs = Date.now() - startTime
             const cosmosError = error as { code?: number }
 
-            trackGameEventStrict('SQL.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('SQL.Query.Failed', {
                 operationName,
                 latencyMs,
                 httpStatusCode: cosmosError.code,

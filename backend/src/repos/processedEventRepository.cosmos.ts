@@ -16,7 +16,7 @@ import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 @injectable()
 export class CosmosProcessedEventRepository extends CosmosDbSqlRepository<ProcessedEventRecord> implements IProcessedEventRepository {
     constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient, @inject('CosmosContainer:ProcessedEvents') containerName: string) {
-        super(client, containerName)
+        super(client, containerName) // No telemetry for idempotency tracking
     }
 
     /**

@@ -13,6 +13,7 @@
 import type { InvocationContext } from '@azure/functions'
 import { Container } from 'inversify'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
+import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { BaseTestFixture, TestMocks, type InvocationContextMockResult } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'
@@ -45,11 +46,31 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get TelemetryService instance from DI container
+     * Returns TelemetryService for injecting into mocks
+     */
+    async getTelemetryService(): Promise<TelemetryService> {
+        const container = await this.getContainer()
+        const { TelemetryService: TelemetryServiceClass } = await import('../../src/telemetry/TelemetryService.js')
+        return container.get(TelemetryServiceClass)
+    }
+
+    /**
      * Get DescriptionRepository instance from DI container
+     * Automatically wires TelemetryService to MockDescriptionRepository
      */
     async getDescriptionRepository(): Promise<IDescriptionRepository> {
         const container = await this.getContainer()
-        return container.get<IDescriptionRepository>('IDescriptionRepository')
+        const repo = container.get<IDescriptionRepository>('IDescriptionRepository')
+
+        // Wire telemetry service to mock if it's a MockDescriptionRepository
+        if ('setTelemetryService' in repo) {
+            const telemetryService = await this.getTelemetryService()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(repo as any).setTelemetryService(telemetryService)
+        }
+
+        return repo
     }
 
     /**

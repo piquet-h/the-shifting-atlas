@@ -1,10 +1,9 @@
+import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { InvocationContext } from '@azure/functions'
 import { computeDescriptionIntegrityHashes } from '../../src/handlers/computeIntegrityHashes.js'
 import { computeIntegrityHash } from '../../src/repos/utils/integrityHash.js'
-import { __setTelemetryEventInterceptor } from '../../src/telemetry.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
@@ -18,11 +17,6 @@ describe('Integrity Hash Computation Handler', () => {
         await fixture.setup()
         telemetry = await fixture.getTelemetryClient()
 
-        // Set up interceptor to capture trackGameEventStrict calls
-        __setTelemetryEventInterceptor((name, properties) => {
-            telemetry.trackEvent({ name, properties })
-        })
-
         // Create mock invocation context
         mockContext = {
             log: () => {},
@@ -32,8 +26,8 @@ describe('Integrity Hash Computation Handler', () => {
         } as unknown as InvocationContext
     })
 
-    afterEach(() => {
-        __setTelemetryEventInterceptor(null)
+    afterEach(async () => {
+        await fixture.teardown()
     })
 
     test('computes hashes for all descriptions', async () => {
@@ -59,7 +53,8 @@ describe('Integrity Hash Computation Handler', () => {
             createdAt: new Date().toISOString()
         })
 
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         assert.equal(result.processed, 2, 'Should process 2 layers')
         assert.equal(result.updated, 2, 'Should update 2 layers (no existing hashes)')
@@ -92,7 +87,8 @@ describe('Integrity Hash Computation Handler', () => {
         })
 
         telemetry.clear()
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         assert.equal(result.processed, 1, 'Should process 1 layer')
         assert.equal(result.updated, 0, 'Should not update layer with valid hash')
@@ -122,7 +118,8 @@ describe('Integrity Hash Computation Handler', () => {
         })
 
         telemetry.clear()
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         assert.equal(result.processed, 1, 'Should process 1 layer')
         assert.equal(result.updated, 1, 'Should update layer with mismatched hash')
@@ -155,7 +152,8 @@ describe('Integrity Hash Computation Handler', () => {
         // Archive the layer
         await repo.archiveLayer(layerId)
 
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         // Should still process archived layers for complete integrity baseline
         assert.equal(result.processed, 1, 'Should process archived layer')
@@ -169,7 +167,8 @@ describe('Integrity Hash Computation Handler', () => {
     test('handles empty repository gracefully', async () => {
         const repo = await fixture.getDescriptionRepository()
 
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         assert.equal(result.processed, 0, 'Should process 0 layers')
         assert.equal(result.updated, 0, 'Should update 0 layers')
@@ -194,7 +193,8 @@ describe('Integrity Hash Computation Handler', () => {
         })
 
         telemetry.clear()
-        await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         // Verify job start event
         const jobStartEvents = telemetry.events.filter((e) => e.name === 'Description.Integrity.JobStart')
@@ -237,7 +237,8 @@ describe('Integrity Hash Computation Handler', () => {
 
             // Need to reload the module to pick up env var change
             // For this test, we'll just verify the behavior without reloading
-            const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+            const telemetryService = await fixture.getTelemetryService()
+            const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
             // In RECOMPUTE_ALL mode, should still process even with valid hash
             assert.equal(result.processed, 1, 'Should process layer')
@@ -266,7 +267,8 @@ describe('Integrity Hash Computation Handler', () => {
             createdAt: new Date().toISOString()
         })
 
-        const result = await computeDescriptionIntegrityHashes(repo, mockContext)
+        const telemetryService = await fixture.getTelemetryService()
+        const result = await computeDescriptionIntegrityHashes(repo, telemetryService, mockContext)
 
         assert.equal(result.processed, 1, 'Should process large description')
         assert.equal(result.updated, 1, 'Should compute hash for large description')

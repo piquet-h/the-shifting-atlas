@@ -89,7 +89,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
 
     // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
+    // Bind both by class (for direct gets) and by string (for @inject('TelemetryService') decorators)
     container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
+    container.bind<TelemetryService>('TelemetryService').toService(TelemetryService)
 
     // Register handlers - these extend BaseHandler which has @injectable and constructor injection
     container.bind(MoveHandler).toSelf().inSingletonScope()

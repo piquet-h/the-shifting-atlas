@@ -5,11 +5,18 @@
 import { inject, injectable } from 'inversify'
 import type { GremlinQueryResult, IGremlinClient } from '../../gremlin/gremlinClient.js'
 import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../../persistence/graphPartition.js'
-import { trackGameEventStrict } from '../../telemetry.js'
+import type { TelemetryService } from '../../telemetry/TelemetryService.js'
 
 @injectable()
 export abstract class CosmosGremlinRepository {
-    constructor(@inject('GremlinClient') protected client: IGremlinClient) {}
+    protected telemetryService?: TelemetryService
+
+    constructor(
+        @inject('GremlinClient') protected client: IGremlinClient,
+        telemetryService?: TelemetryService
+    ) {
+        this.telemetryService = telemetryService
+    }
 
     /**
      * Get the partition key value for the current environment.
@@ -71,7 +78,7 @@ export abstract class CosmosGremlinRepository {
                 httpStatusCode = parseInt(statusMatch[1], 10)
             }
 
-            trackGameEventStrict('Graph.Query.Failed', {
+            this.telemetryService?.trackGameEventStrict('Graph.Query.Failed', {
                 operationName,
                 latencyMs,
                 errorMessage,
@@ -80,7 +87,7 @@ export abstract class CosmosGremlinRepository {
             throw error
         } finally {
             if (success && result) {
-                trackGameEventStrict('Graph.Query.Executed', {
+                this.telemetryService?.trackGameEventStrict('Graph.Query.Executed', {
                     operationName,
                     latencyMs: result.latencyMs,
                     ruCharge: result.requestCharge,

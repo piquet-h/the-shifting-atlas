@@ -19,7 +19,7 @@ const DEADLETTER_PARTITION_KEY = 'deadletter'
 @injectable()
 export class CosmosDeadLetterRepository extends CosmosDbSqlRepository<DeadLetterRecord> implements IDeadLetterRepository {
     constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient, @inject('CosmosContainer:DeadLetters') containerName: string) {
-        super(client, containerName)
+        super(client, containerName) // No telemetry for dead-letter storage
     }
 
     /**

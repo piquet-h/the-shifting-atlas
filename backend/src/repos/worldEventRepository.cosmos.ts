@@ -60,7 +60,7 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') private telemetryService: TelemetryService
+        @inject('TelemetryService') protected telemetryService: TelemetryService
     ) {
         this.sql = new WorldEventSqlHelper(sqlClient)
     }

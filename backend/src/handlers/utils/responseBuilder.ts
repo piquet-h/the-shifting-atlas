@@ -4,7 +4,7 @@
  */
 import { HttpResponseInit } from '@azure/functions'
 import { err, ok } from '@piquet-h/shared'
-import { CORRELATION_HEADER } from '../../telemetry.js'
+import { CORRELATION_HEADER } from '../../telemetry/TelemetryService.js'
 
 export interface ResponseOptions {
     correlationId: string

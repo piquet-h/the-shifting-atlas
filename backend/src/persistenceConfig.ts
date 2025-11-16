@@ -1,7 +1,5 @@
 /** Persistence configuration & mode resolution */
 
-import { trackGameEvent, trackGameEventStrict } from './telemetry.js'
-
 export type PersistenceMode = 'memory' | 'cosmos'
 
 export interface IPersistenceConfig {
@@ -62,11 +60,6 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                 if (!database) missingVars.push('COSMOS_GREMLIN_DATABASE')
                 if (!graph) missingVars.push('COSMOS_GREMLIN_GRAPH')
 
-                trackGameEventStrict('Persistence.Mode.StrictFail', {
-                    reason: 'gremlin-config-incomplete',
-                    missingVars: missingVars.join(', ')
-                })
-
                 throw new Error(
                     `PERSISTENCE_STRICT enabled but Cosmos Gremlin configuration incomplete. Missing: ${missingVars.join(', ')}`
                 )
@@ -85,11 +78,6 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                 if (!sqlContainerInventory) missingVars.push('COSMOS_SQL_CONTAINER_INVENTORY')
                 if (!sqlContainerLayers) missingVars.push('COSMOS_SQL_CONTAINER_LAYERS')
                 if (!sqlContainerEvents) missingVars.push('COSMOS_SQL_CONTAINER_EVENTS')
-
-                trackGameEventStrict('Persistence.Mode.StrictFail', {
-                    reason: 'sql-config-incomplete',
-                    missingVars: missingVars.join(', ')
-                })
 
                 throw new Error(
                     `PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete. Missing: ${missingVars.join(', ')}`
@@ -113,11 +101,6 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
             const multiModelOptIn =
                 process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === '1' || process.env.COSMOS_MULTI_MODEL_SINGLE_ACCOUNT === 'true'
             if (!multiModelOptIn && sqlEndpoint.trim() === endpoint.trim()) {
-                // Non-strict telemetry to avoid cross-package version bump for new event name
-                trackGameEvent('Persistence.SqlEndpoint.Misconfigured', {
-                    reason: 'sql-endpoint-equals-gremlin-endpoint',
-                    endpoint
-                })
                 console.warn(
                     '[persistenceConfig] COSMOS_SQL_ENDPOINT equals COSMOS_GREMLIN_ENDPOINT. Assigning separate accounts is recommended. ' +
                         'If intentional (single multi-model account), set COSMOS_MULTI_MODEL_SINGLE_ACCOUNT=1 to suppress this warning.'

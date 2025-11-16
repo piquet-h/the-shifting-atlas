@@ -6,8 +6,8 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
 import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
-import { extractCorrelationId, extractPlayerGuid } from '../../telemetry.js'
 import type { ITelemetryClient } from '../../telemetry/ITelemetryClient.js'
+import { extractCorrelationId, extractPlayerGuid } from '../../telemetry/TelemetryService.js'
 
 @injectable()
 export abstract class BaseHandler {

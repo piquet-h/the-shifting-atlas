@@ -12,9 +12,9 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
     constructor(
         @inject('GremlinClient') client: IGremlinClient,
-        @inject('TelemetryService') private telemetryService: TelemetryService
+        @inject('TelemetryService') protected telemetryService: TelemetryService
     ) {
-        super(client)
+        super(client, telemetryService)
     }
 
     /** Helper: Regenerate and update exits summary cache for a location */
@@ -178,7 +178,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         // Input validation
         if (!location.id || !location.name || location.description === undefined) {
             const error = new Error('Location missing required fields (id, name, description)')
-            this.telemetryService.trackGameEventStrict('World.Location.Upsert', {
+            this.telemetryService?.trackGameEventStrict('World.Location.Upsert', {
                 locationId: location.id || 'unknown',
                 latencyMs: 0,
                 success: false,
@@ -270,7 +270,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             throw error
         } finally {
             const latencyMs = Date.now() - startTime
-            this.telemetryService.trackGameEventStrict('World.Location.Upsert', {
+            this.telemetryService?.trackGameEventStrict('World.Location.Upsert', {
                 locationId: location.id,
                 latencyMs,
                 success,
@@ -327,7 +327,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         }
 
         // Emit telemetry for actual creation
-        this.telemetryService.trackGameEventStrict('World.Exit.Created', {
+        this.telemetryService?.trackGameEventStrict('World.Exit.Created', {
             fromLocationId: fromId,
             toLocationId: toId,
             dir: direction,
@@ -380,7 +380,7 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         await this.regenerateExitsSummaryCache(fromId)
 
         // Emit telemetry for actual removal
-        this.telemetryService.trackGameEventStrict('World.Exit.Removed', {
+        this.telemetryService?.trackGameEventStrict('World.Exit.Removed', {
             fromLocationId: fromId,
             dir: direction,
             toLocationId

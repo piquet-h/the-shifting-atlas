@@ -14,7 +14,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
     // TODO: Inject Cosmos SQL client when implementing
     private fallback = new Map<string, DescriptionLayer>()
 
-    constructor(@inject('TelemetryService') private telemetryService: TelemetryService) {}
+    constructor(@inject('TelemetryService') protected telemetryService: TelemetryService) {}
 
     async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
         const started = Date.now()

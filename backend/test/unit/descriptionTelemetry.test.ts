@@ -2,7 +2,6 @@ import assert from 'node:assert'
 import { randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { DescriptionLayer } from '../../src/repos/descriptionRepository.js'
-import { __setTelemetryEventInterceptor } from '../../src/telemetry.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
@@ -14,15 +13,10 @@ describe('Description Telemetry Events', () => {
         fixture = new UnitTestFixture()
         await fixture.setup()
         telemetry = await fixture.getTelemetryClient()
-
-        // Set up interceptor to capture trackGameEventStrict calls
-        __setTelemetryEventInterceptor((name, properties) => {
-            telemetry.trackEvent({ name, properties })
-        })
     })
 
-    afterEach(() => {
-        __setTelemetryEventInterceptor(null)
+    afterEach(async () => {
+        await fixture.teardown()
     })
 
     test('emits Description.Generate.Start when adding a layer', async () => {

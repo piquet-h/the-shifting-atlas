@@ -9,6 +9,7 @@
  * - Optional performance tracking for regression detection
  */
 
+import type { InvocationContext } from '@azure/functions'
 import type { Container } from 'inversify'
 import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
@@ -18,8 +19,9 @@ import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
+import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
-import { BaseTestFixture } from './TestFixture.js'
+import { BaseTestFixture, type InvocationContextMockResult } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'
 import type { ContainerMode } from './testInversify.config.js'
 
@@ -68,7 +70,16 @@ export class IntegrationTestFixture extends BaseTestFixture {
     /** Get DescriptionRepository instance from DI container */
     async getDescriptionRepository(): Promise<IDescriptionRepository> {
         const container = await this.getContainer()
-        return container.get<IDescriptionRepository>('IDescriptionRepository')
+        const repo = container.get<IDescriptionRepository>('IDescriptionRepository')
+
+        // Wire telemetry service to mock if it's a MockDescriptionRepository
+        if ('setTelemetryService' in repo) {
+            const telemetryService = await this.getTelemetryService()
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(repo as any).setTelemetryService(telemetryService)
+        }
+
+        return repo
     }
 
     /** Get InventoryRepository instance from DI container */
@@ -99,10 +110,20 @@ export class IntegrationTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get TelemetryService instance from DI container
+     * Returns TelemetryService for injecting into mocks
+     */
+    async getTelemetryService(): Promise<TelemetryService> {
+        const container = await this.getContainer()
+        const { TelemetryService: TelemetryServiceClass } = await import('../../src/telemetry/TelemetryService.js')
+        return container.get(TelemetryServiceClass)
+    }
+
+    /**
      * Create a mock invocation context with container in extraInputs
      * Required for handler testing with dependency injection
      */
-    async createInvocationContext(overrides?: Partial<any>): Promise<any> {
+    async createInvocationContext(overrides?: Partial<InvocationContext>): Promise<InvocationContextMockResult> {
         const container = await this.getContainer()
         const { TestMocks } = await import('./TestFixture.js')
         const context = TestMocks.createInvocationContext(overrides)

@@ -30,7 +30,7 @@ interface LayerDocument extends DescriptionLayer {
 export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> implements ILayerRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') private telemetryService: TelemetryService
+        @inject('TelemetryService') protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'descriptionLayers')
     }
