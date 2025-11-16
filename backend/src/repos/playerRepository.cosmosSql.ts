@@ -14,9 +14,9 @@ import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { IPlayerRepository as IGremlinPlayerRepository } from './playerRepository.js'
 
 /**
- * SQL API document schema for player (matches PlayerRecord interface)
+ * SQL API document schema for player (extends PlayerRecord with required fields)
  */
-interface PlayerDocument extends PlayerRecord {
+interface PlayerSqlDocument extends PlayerRecord {
     id: string
     createdUtc: string
     updatedUtc: string
@@ -25,7 +25,7 @@ interface PlayerDocument extends PlayerRecord {
 }
 
 @injectable()
-export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocument> implements IPlayerRepository {
+export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDocument> implements IPlayerRepository {
     private gremlinFallback?: IGremlinPlayerRepository
 
     constructor(
@@ -96,7 +96,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
 
         // Create new player in SQL API
         const now = new Date().toISOString()
-        const newPlayer: PlayerDocument = {
+        const newPlayer: PlayerSqlDocument = {
             id: playerId,
             createdUtc: now,
             updatedUtc: now,
@@ -173,12 +173,12 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         }
 
         // Update player with external ID
-        const updatedPlayer: PlayerDocument = {
+        const updatedPlayer: PlayerSqlDocument = {
             ...existing,
             externalId,
             guest: false,
             updatedUtc: new Date().toISOString()
-        } as PlayerDocument
+        } as PlayerSqlDocument
 
         const { resource } = await this.upsert(updatedPlayer)
         this.telemetryService.trackGameEvent('Player.LinkExternalId', {
@@ -206,12 +206,12 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         }
 
         const now = new Date().toISOString()
-        const updated: PlayerDocument = {
+        const updated: PlayerSqlDocument = {
             ...player,
             updatedUtc: now,
             guest: player.guest,
             currentLocationId: player.currentLocationId || STARTER_LOCATION_ID
-        } as PlayerDocument
+        } as PlayerSqlDocument
 
         try {
             const { resource } = await this.upsert(updated)
@@ -262,7 +262,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerDocum
         const startTime = Date.now()
 
         try {
-            const playerDoc: PlayerDocument = {
+            const playerDoc: PlayerSqlDocument = {
                 id: player.id,
                 createdUtc: player.createdUtc,
                 updatedUtc: player.updatedUtc || player.createdUtc,
