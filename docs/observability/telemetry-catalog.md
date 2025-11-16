@@ -78,6 +78,74 @@ Central registry documenting all game domain telemetry events, including when th
 **Purpose:** Legacy event; superseded by onboarding funnel events  
 **Retention:** 30 days
 
+#### `Player.Update`
+
+**Trigger:** Player document updated in Cosmos SQL  
+**Dimensions:** `player_id`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track player state mutations  
+**Retention:** 90 days
+
+---
+
+### Dual Persistence (Cosmos SQL API + Gremlin Migration)
+
+> **Context:** ADR-002 dual persistence implementation tracks player data migration and write-through synchronization between SQL API (primary) and Gremlin (legacy/fallback).
+
+#### `Player.Migrate.Success`
+
+**Trigger:** Player data successfully migrated from Gremlin vertex to Cosmos SQL document  
+**Dimensions:** `player_id`, `source` (gremlin), `target` (sql), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track migration progress during dual persistence rollout; measure migration success rate  
+**Alert:** Migration failure rate >5% sustained (see `Player.Migrate.Failed`)  
+**Retention:** 180 days
+
+#### `Player.Migrate.Failed`
+
+**Trigger:** Player data migration from Gremlin to SQL API failed  
+**Dimensions:** `player_id`, `error_message`, `error_code`, `latency_ms`, `correlation_id`  
+**Severity:** Error  
+**Purpose:** Detect migration issues; identify players requiring manual intervention  
+**Alert:** >10 migration failures per hour OR sustained failure rate >5%  
+**Retention:** 180 days
+
+#### `Player.WriteThrough.Success`
+
+**Trigger:** Player update successfully written to both SQL API and Gremlin (dual write during transition period)  
+**Dimensions:** `player_id`, `operation` (create|update), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track dual-write synchronization success; measure write-through overhead  
+**Alert:** Write-through latency >300ms (p95) sustained  
+**Retention:** 90 days
+
+#### `Player.WriteThrough.Failed`
+
+**Trigger:** Player update failed to synchronize between SQL API and Gremlin  
+**Dimensions:** `player_id`, `operation`, `failed_target` (sql|gremlin), `error_message`, `correlation_id`  
+**Severity:** Error  
+**Purpose:** Detect synchronization failures requiring reconciliation; track data consistency issues  
+**Alert:** Any occurrence (critical consistency issue)  
+**Retention:** 180 days
+
+#### `Player.Get.SourceSql`
+
+**Trigger:** Player data successfully read from Cosmos SQL API (primary source)  
+**Dimensions:** `player_id`, `cache_status` (hit|miss), `latency_ms`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track SQL API read patterns; measure primary persistence layer performance  
+**Alert:** >200ms (p95) for SQL reads sustained  
+**Retention:** 90 days
+
+#### `Player.Get.SourceGremlinFallback`
+
+**Trigger:** Player data read from Gremlin graph (fallback when SQL unavailable or player not yet migrated)  
+**Dimensions:** `player_id`, `fallback_reason` (sql-unavailable|not-migrated), `latency_ms`, `correlation_id`  
+**Severity:** Warning (sql-unavailable), Informational (not-migrated)  
+**Purpose:** Track fallback frequency; detect SQL API availability issues; monitor migration completeness  
+**Alert:** Fallback rate >10% sustained (sql-unavailable reason only)  
+**Retention:** 180 days
+
 ---
 
 ### Player Traversal & Location Access
@@ -708,8 +776,8 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 > - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
 > - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
-**Last Updated:** 2025-10-30  
-**Event Count:** 44 canonical events
+**Last Updated:** 2025-11-16  
+**Event Count:** 82 canonical events
 
 ## Deprecated Events
 
