@@ -24,6 +24,14 @@ export const GAME_EVENT_NAMES = [
     'Player.Get',
     'Player.Created',
     'Player.Update',
+    // Dual persistence (Cosmos SQL API + Gremlin migration - ADR-002)
+    // Track player data migration and write-through synchronization between persistence layers
+    'Player.Migrate.Success', // Player data migrated from Gremlin to SQL API successfully
+    'Player.Migrate.Failed', // Player data migration from Gremlin to SQL API failed
+    'Player.WriteThrough.Success', // Player write-through to SQL API succeeded
+    'Player.WriteThrough.Failed', // Player write-through to SQL API failed
+    'Player.Get.SourceSql', // Player data read from SQL API (primary source)
+    'Player.Get.SourceGremlinFallback', // Player data read from Gremlin (fallback when SQL unavailable)
     // Player traversal + location access (non-genesis)
     'Location.Get',
     // Deprecated (2025-10-30): Location.Move → replaced by Navigation.Move.Success / Navigation.Move.Blocked.
