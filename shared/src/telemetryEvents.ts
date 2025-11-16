@@ -32,6 +32,9 @@ export const GAME_EVENT_NAMES = [
     'Player.WriteThrough.Failed', // Player write-through to SQL API failed
     'Player.Get.SourceSql', // Player data read from SQL API (primary source)
     'Player.Get.SourceGremlinFallback', // Player data read from Gremlin (fallback when SQL unavailable)
+    // PlayerDoc operations (SQL API projection)
+    'PlayerDoc.Read', // PlayerDoc read operation from SQL API
+    'PlayerDoc.Upsert', // PlayerDoc upsert operation to SQL API
     // Player traversal + location access (non-genesis)
     'Location.Get',
     // Deprecated (2025-10-30): Location.Move → replaced by Navigation.Move.Success / Navigation.Move.Blocked.
