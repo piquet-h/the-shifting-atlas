@@ -110,5 +110,6 @@
     "chat.editing.autoAcceptDelay": 10,
     "chat.agentSessionsViewLocation": "view",
     "chat.edits2.enabled": true,
-    "chat.extensionUnification.enabled": true
+    "chat.extensionUnification.enabled": true,
+    "postman.settings.dotenv-detection-notification-visibility": false
 }
