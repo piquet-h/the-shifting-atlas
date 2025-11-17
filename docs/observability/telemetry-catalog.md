@@ -94,39 +94,50 @@ Central registry documenting all game domain telemetry events, including when th
 
 #### `Player.Migrate.Success`
 
+**Status:** DEPRECATED (migration complete as of #519 on 2025-11-17)  
 **Trigger:** Player data successfully migrated from Gremlin vertex to Cosmos SQL document  
 **Dimensions:** `player_id`, `source` (gremlin), `target` (sql), `latency_ms`, `correlation_id`  
 **Severity:** Informational  
 **Purpose:** Track migration progress during dual persistence rollout; measure migration success rate  
 **Alert:** Migration failure rate >5% sustained (see `Player.Migrate.Failed`)  
-**Retention:** 180 days
+**Retention:** 180 days  
+**Note:** One-time migration completed; no new events emitted after cutover
 
 #### `Player.Migrate.Failed`
 
+**Status:** DEPRECATED (migration complete as of #519 on 2025-11-17)  
+**Trigger:** Player data migration from Gremlin to SQL API failed17)  
 **Trigger:** Player data migration from Gremlin to SQL API failed  
 **Dimensions:** `player_id`, `error_message`, `error_code`, `latency_ms`, `correlation_id`  
 **Severity:** Error  
 **Purpose:** Detect migration issues; identify players requiring manual intervention  
 **Alert:** >10 migration failures per hour OR sustained failure rate >5%  
-**Retention:** 180 days
+**Retention:** 180 days  
+**Note:** One-time migration completed; no new events emitted after cutover
 
 #### `Player.WriteThrough.Success`
 
+**Status:** DEPRECATED (Gremlin writes removed in #519 on 2025-11-17)  
+**Trigger:** Player update successfully written to both SQL API and Gremlin (dual write during transition period)
 **Trigger:** Player update successfully written to both SQL API and Gremlin (dual write during transition period)  
 **Dimensions:** `player_id`, `operation` (create|update), `latency_ms`, `correlation_id`  
 **Severity:** Informational  
 **Purpose:** Track dual-write synchronization success; measure write-through overhead  
 **Alert:** Write-through latency >300ms (p95) sustained  
-**Retention:** 90 days
+**Retention:** 90 days  
+**Note:** All player writes now SQL-only; event no longer emitted
 
 #### `Player.WriteThrough.Failed`
 
+**Status:** DEPRECATED (Gremlin writes removed in #519 on 2025-11-17)  
+**Trigger:** Player update failed to synchronize between SQL API and Gremlin
 **Trigger:** Player update failed to synchronize between SQL API and Gremlin  
 **Dimensions:** `player_id`, `operation`, `failed_target` (sql|gremlin), `error_message`, `correlation_id`  
 **Severity:** Error  
 **Purpose:** Detect synchronization failures requiring reconciliation; track data consistency issues  
 **Alert:** Any occurrence (critical consistency issue)  
-**Retention:** 180 days
+**Retention:** 180 days  
+**Note:** All player writes now SQL-only; event no longer emitted
 
 #### `Player.Get.SourceSql`
 
@@ -139,12 +150,13 @@ Central registry documenting all game domain telemetry events, including when th
 
 #### `Player.Get.SourceGremlinFallback`
 
-**Trigger:** Player data read from Gremlin graph (fallback when SQL unavailable or player not yet migrated)  
-**Dimensions:** `player_id`, `fallback_reason` (sql-unavailable|not-migrated), `latency_ms`, `correlation_id`  
-**Severity:** Warning (sql-unavailable), Informational (not-migrated)  
-**Purpose:** Track fallback frequency; detect SQL API availability issues; monitor migration completeness  
+**Trigger:** Player data read from Gremlin graph (read-only disaster recovery fallback, no new Gremlin vertices created after 2025-11-17)  
+**Dimensions:** `player_id`, `fallback_reason` (sql-unavailable|legacy-player), `latency_ms`, `correlation_id`  
+**Severity:** Warning (sql-unavailable), Informational (legacy-player)  
+**Purpose:** Track fallback frequency for legacy players; detect SQL API availability issues  
 **Alert:** Fallback rate >10% sustained (sql-unavailable reason only)  
-**Retention:** 180 days
+**Retention:** 180 days  
+**Note:** All new players created in SQL API; Gremlin fallback for disaster recovery only (issue #519)
 
 ---
 
@@ -483,15 +495,16 @@ Central registry documenting all game domain telemetry events, including when th
 **Dimensions:** `operationName`, `latencyMs`, `errorMessage`, `httpStatusCode`, `correlation_id`  
 **Severity:** Error (429 = Warning for throttling detection)  
 **Purpose:** Track Gremlin query failures; detect throttling (429) and connectivity issues  
-**Alert:** 
-- **429 Spike Detection**: >=5 429s in 5-min window AND total queries < BASELINE_RPS (see issue #[TBD])
-- **High Severity**: >=10 429s in 5-min window
-- **General Failures**: >10 non-429 failures per hour  
-**Retention:** 90 days  
-**Notes:** 
-- `httpStatusCode` dimension added for 429 throttling detection (extracted from error message)
-- 429 errors indicate Cosmos DB rate limiting (Request Rate Too Large)
-- Correlates with ADR-002 partition saturation thresholds
+**Alert:**
+
+-   **429 Spike Detection**: >=5 429s in 5-min window AND total queries < BASELINE_RPS (see issue #[TBD])
+-   **High Severity**: >=10 429s in 5-min window
+-   **General Failures**: >10 non-429 failures per hour  
+    **Retention:** 90 days  
+    **Notes:**
+-   `httpStatusCode` dimension added for 429 throttling detection (extracted from error message)
+-   429 errors indicate Cosmos DB rate limiting (Request Rate Too Large)
+-   Correlates with ADR-002 partition saturation thresholds
 
 ---
 
@@ -500,18 +513,20 @@ Central registry documenting all game domain telemetry events, including when th
 **Implementation Note:** Operation latency monitoring is implemented using native **Azure Monitor scheduled query alerts** rather than custom telemetry events. See [Operation Latency Monitoring Guide](./operation-latency-monitoring.md) for details.
 
 **Why No Custom Events:**
-- Azure Monitor alerts provide built-in alert lifecycle management
-- No custom code required (purely declarative Bicep)
-- Persistent state across restarts
-- Native action groups for notifications
-- Zero Function execution costs
+
+-   Azure Monitor alerts provide built-in alert lifecycle management
+-   No custom code required (purely declarative Bicep)
+-   Persistent state across restarts
+-   Native action groups for notifications
+-   Zero Function execution costs
 
 **Alert Configuration:**
-- **Monitored Operations**: location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create
-- **Critical Threshold**: P95 >600ms for 3 consecutive 10-min windows
-- **Warning Threshold**: P95 >500ms for 3 consecutive 10-min windows
-- **Auto-Resolution**: After 2 consecutive healthy windows (<450ms implicit via Azure alert clearing)
-- **Minimum Sample**: 20 calls per window (built into KQL query)
+
+-   **Monitored Operations**: location.upsert.check, location.upsert.write, exit.ensureExit.check, exit.ensureExit.create, player.create
+-   **Critical Threshold**: P95 >600ms for 3 consecutive 10-min windows
+-   **Warning Threshold**: P95 >500ms for 3 consecutive 10-min windows
+-   **Auto-Resolution**: After 2 consecutive healthy windows (<450ms implicit via Azure alert clearing)
+-   **Minimum Sample**: 20 calls per window (built into KQL query)
 
 **Data Source:** Uses existing `Graph.Query.Executed` events with no additional telemetry required.
 
@@ -590,7 +605,7 @@ reasonCounts
 | extend TotalCount = totalCount
 | extend PercentageShare = round(100.0 * Count / iff(TotalCount == 0, 1, TotalCount), 2)
 | extend IsHighConcentration = iff(PercentageShare > 50.0, '⚠️ HIGH', '')
-| project 
+| project
     Reason = normalizedReason,
     Count,
     PercentageShare,
@@ -599,11 +614,12 @@ reasonCounts
 ```
 
 **Interpretation:**
-- `invalid-direction` >30% → Tune direction normalization
-- `no-exit` >40% → World connectivity gaps
-- `from-missing` >5% → Data integrity issue (critical)
-- `move-failed` >10% → System reliability concern
-- Any reason >50% → Immediate investigation (⚠️ HIGH)
+
+-   `invalid-direction` >30% → Tune direction normalization
+-   `no-exit` >40% → World connectivity gaps
+-   `from-missing` >5% → Data integrity issue (critical)
+-   `move-failed` >10% → System reliability concern
+-   Any reason >50% → Immediate investigation (⚠️ HIGH)
 
 ### Example: Direction Normalization Failures
 
@@ -638,36 +654,43 @@ This section documents operational alerts configured in Azure Monitor that fire 
 **Purpose:** Early warning for Cosmos DB Gremlin graph partition pressure requiring migration or scale intervention before severe throttling (ADR-002 threshold monitoring).
 
 **Configuration:**
-- **File:** `infrastructure/alert-ru-utilization.bicep`
-- **Evaluation Frequency:** Every 5 minutes
-- **Window Size:** 15 minutes (3 consecutive 5-minute intervals)
-- **Severity:** Warning (Level 2)
+
+-   **File:** `infrastructure/alert-ru-utilization.bicep`
+-   **Evaluation Frequency:** Every 5 minutes
+-   **Window Size:** 15 minutes (3 consecutive 5-minute intervals)
+-   **Severity:** Warning (Level 2)
 
 **Alert Condition:**
-- Fires when RU% >70% (derived metric: `totalRU / maxRuPerInterval * 100`) for 3 consecutive 5-minute intervals
-- `maxRuPerInterval` = Provisioned RU/s × 300 seconds (e.g., 400 RU/s × 300s = 120,000 RU per 5-min bucket)
-- Requires at least 70% of `Graph.Query.Executed` events to have `ruCharge` dimension populated
+
+-   Fires when RU% >70% (derived metric: `totalRU / maxRuPerInterval * 100`) for 3 consecutive 5-minute intervals
+-   `maxRuPerInterval` = Provisioned RU/s × 300 seconds (e.g., 400 RU/s × 300s = 120,000 RU per 5-min bucket)
+-   Requires at least 70% of `Graph.Query.Executed` events to have `ruCharge` dimension populated
 
 **Auto-Resolve:**
-- Alert resolves automatically when RU% <65% for 2 consecutive 5-minute intervals
+
+-   Alert resolves automatically when RU% <65% for 2 consecutive 5-minute intervals
 
 **Alert Payload:**
-- `RUPercent`: Maximum RU percentage during the alert window
-- `TopOperations`: Top 3 `operationName` values by RU consumption during the window (JSON array)
-- `DataQuality`: Percentage of events with `ruCharge` data (0.0-1.0)
-- `Interval`: Number of consecutive intervals exceeding threshold (should be ≥3)
+
+-   `RUPercent`: Maximum RU percentage during the alert window
+-   `TopOperations`: Top 3 `operationName` values by RU consumption during the window (JSON array)
+-   `DataQuality`: Percentage of events with `ruCharge` data (0.0-1.0)
+-   `Interval`: Number of consecutive intervals exceeding threshold (should be ≥3)
 
 **Edge Cases:**
-- **Intermittent single spike (<3 intervals):** Ignored. Alert only fires on sustained pressure (3+ consecutive intervals).
-- **Missing RU data (>30% of samples):** Evaluation aborted. Alert does not fire. Diagnostic event logged in Application Insights with `Status: 'insufficient-data'`.
+
+-   **Intermittent single spike (<3 intervals):** Ignored. Alert only fires on sustained pressure (3+ consecutive intervals).
+-   **Missing RU data (>30% of samples):** Evaluation aborted. Alert does not fire. Diagnostic event logged in Application Insights with `Status: 'insufficient-data'`.
 
 **Diagnostic Event (Data Quality Failure):**
 When >30% of `Graph.Query.Executed` events are missing `ruCharge`, the query emits a diagnostic row with:
-- `Status: 'insufficient-data'`
-- `DataQuality`: Actual percentage of events with RU data
-- Alert does **not** fire in this scenario (zero rows returned from alert query)
+
+-   `Status: 'insufficient-data'`
+-   `DataQuality`: Actual percentage of events with RU data
+-   Alert does **not** fire in this scenario (zero rows returned from alert query)
 
 **Operational Response:**
+
 1. Review top 3 operations by RU consumption in alert payload
 2. Check Performance Operations Dashboard for detailed RU trends and latency correlation
 3. If sustained >3 days at >70%, initiate region-based partition migration (ADR-002)
@@ -677,9 +700,10 @@ When >30% of `Graph.Query.Executed` events are missing `ruCharge`, the query emi
 See [RU Spike Simulation](#ru-spike-simulation-test-scenario) section below for local/staging test instructions.
 
 **References:**
-- ADR-002: Graph Partition Strategy (thresholds: >70% sustained RU for 3 days)
-- Telemetry events: `Graph.Query.Executed` (requires `ruCharge` dimension)
-- Infrastructure: `infrastructure/alert-ru-utilization.bicep`, `infrastructure/main.bicep`
+
+-   ADR-002: Graph Partition Strategy (thresholds: >70% sustained RU for 3 days)
+-   Telemetry events: `Graph.Query.Executed` (requires `ruCharge` dimension)
+-   Infrastructure: `infrastructure/alert-ru-utilization.bicep`, `infrastructure/main.bicep`
 
 ---
 
@@ -688,8 +712,9 @@ See [RU Spike Simulation](#ru-spike-simulation-test-scenario) section below for 
 **Purpose:** Validate alert firing behavior under sustained high RU consumption without impacting production.
 
 **Prerequisites:**
-- Access to non-production Application Insights instance
-- Ability to emit synthetic `Graph.Query.Executed` events or execute high-RU Gremlin queries
+
+-   Access to non-production Application Insights instance
+-   Ability to emit synthetic `Graph.Query.Executed` events or execute high-RU Gremlin queries
 
 **Approach 1: Synthetic Event Injection (Recommended for Local Dev)**
 
@@ -697,33 +722,34 @@ Use the Application Insights SDK to emit synthetic `Graph.Query.Executed` events
 
 ```typescript
 // Test script: scripts/test-ru-alert.ts
-import { TelemetryClient } from 'applicationinsights';
+import { TelemetryClient } from 'applicationinsights'
 
-const client = new TelemetryClient('your-instrumentation-key');
+const client = new TelemetryClient('your-instrumentation-key')
 
 async function simulateRuSpike() {
-  // Emit high RU events over 15 minutes (3 intervals)
-  for (let i = 0; i < 15; i++) {
-    client.trackEvent({
-      name: 'Graph.Query.Executed',
-      properties: {
-        operationName: 'location.upsert.write',
-        ruCharge: '35000', // Simulate 35k RU per event
-        latencyMs: '450'
-      }
-    });
-    await new Promise(resolve => setTimeout(resolve, 60000)); // Wait 1 minute
-  }
-  client.flush();
+    // Emit high RU events over 15 minutes (3 intervals)
+    for (let i = 0; i < 15; i++) {
+        client.trackEvent({
+            name: 'Graph.Query.Executed',
+            properties: {
+                operationName: 'location.upsert.write',
+                ruCharge: '35000', // Simulate 35k RU per event
+                latencyMs: '450'
+            }
+        })
+        await new Promise((resolve) => setTimeout(resolve, 60000)) // Wait 1 minute
+    }
+    client.flush()
 }
 
-simulateRuSpike();
+simulateRuSpike()
 ```
 
 **Expected Behavior:**
-- After 15 minutes (3 consecutive 5-min buckets >70% RU), alert fires
-- Alert payload includes `TopOperations` with `location.upsert.write`
-- Alert auto-resolves after emitting normal RU events (<65%) for 10 minutes (2 intervals)
+
+-   After 15 minutes (3 consecutive 5-min buckets >70% RU), alert fires
+-   Alert payload includes `TopOperations` with `location.upsert.write`
+-   Alert auto-resolves after emitting normal RU events (<65%) for 10 minutes (2 intervals)
 
 **Approach 2: Actual Query Load (Staging Environment)**
 
@@ -739,6 +765,7 @@ g.V().has('partitionKey', 'world')
 Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughput.
 
 **Validation Steps:**
+
 1. Monitor alert rule status in Azure Portal → Monitor → Alerts
 2. Verify alert fires after 3 consecutive high-RU intervals
 3. Check alert payload contains `TopOperations` JSON array
@@ -746,9 +773,10 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 5. Test data quality abort: Emit events without `ruCharge` dimension, verify alert does not fire
 
 **Cleanup:**
-- Stop synthetic event emission
-- Wait for auto-resolve (2 intervals at normal RU)
-- Verify alert status returns to "Resolved" in Azure Portal
+
+-   Stop synthetic event emission
+-   Wait for auto-resolve (2 intervals at normal RU)
+-   Verify alert status returns to "Resolved" in Azure Portal
 
 ---
 
@@ -763,18 +791,19 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 
 ### Dashboard Recommendations (M2 Observability)
 
-| Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File |
-| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------- |
-| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [movement-success-rate-workbook.json](movement-success-rate-workbook.json) |
+| Panel                         | Query Basis                               | Purpose                                         | Refresh | Workbook File                                                                              |
+| ----------------------------- | ----------------------------------------- | ----------------------------------------------- | ------- | ------------------------------------------------------------------------------------------ |
+| Movement Success Rate         | Success vs Blocked events                 | Detect traversal friction & regressions         | 5 min   | [movement-success-rate-workbook.json](movement-success-rate-workbook.json)                 |
 | Blocked Reasons Breakdown     | Navigation.Move.Blocked grouped by reason | Prioritize fixes (no-exit vs invalid-direction) | 5 min   | [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) |
-| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283) |
+| Movement Latency Distribution | Success event latency_ms percentiles      | Monitor core loop responsiveness                | 5 min   | [#283](https://github.com/piquet-h/the-shifting-atlas/issues/283)                          |
 
 > **Implementation**: Each panel derives from `customEvents` queries shown above with clear thresholds & annotations referencing issue [#10](https://github.com/piquet-h/the-shifting-atlas/issues/10).
-> 
+>
 > **Workbook Files:**
-> - **Movement Success Rate**: [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import guide at [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md)
-> - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
-> - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
+>
+> -   **Movement Success Rate**: [movement-success-rate-workbook.json](./movement-success-rate-workbook.json) with import guide at [movement-success-rate-import-guide.md](./movement-success-rate-import-guide.md)
+> -   **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
+> -   **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
 **Last Updated:** 2025-11-16  
 **Event Count:** 82 canonical events
