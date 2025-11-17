@@ -31,7 +31,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {
+                players: {
                     [playerId]: expectedPlayer
                 }
             })
@@ -50,7 +50,7 @@ describe('PlayerDocRepository', () => {
 
         test('returns null when player not found', async () => {
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {}
+                players: {}
             })
 
             const mockTelemetry = createMockTelemetryService()
@@ -75,7 +75,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {}
+                players: {}
             })
 
             const mockTelemetry = createMockTelemetryService()
@@ -102,7 +102,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': { [playerId]: { ...originalPlayer } }
+                players: { [playerId]: { ...originalPlayer } }
             })
 
             const mockTelemetry = createMockTelemetryService()
@@ -137,7 +137,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {}
+                players: {}
             })
 
             const mockTelemetry = createMockTelemetryService()
@@ -164,7 +164,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {}
+                players: {}
             })
 
             const mockTelemetry = createMockTelemetryService()
@@ -197,7 +197,7 @@ describe('PlayerDocRepository', () => {
             }
 
             const mockClient = createMockCosmosDbSqlClient({
-                'players': {}
+                players: {}
             })
 
             const mockTelemetry = createMockTelemetryService()

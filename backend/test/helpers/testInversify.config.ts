@@ -149,7 +149,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
                 .toConstantValue({ endpoint: sqlConfig.endpoint, database: sqlConfig.database })
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
-            
+
             // Bind PlayerDocRepository (SQL API player projection)
             container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
         } else {

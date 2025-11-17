@@ -45,7 +45,7 @@ export class BootstrapPlayerHandler extends BaseHandler {
 
         if (created) {
             this.track('Onboarding.GuestGuid.Created', { phase: 'bootstrap' })
-            
+
             // Write-through to SQL API (ADR-002 dual persistence)
             // Gremlin is still source of truth; SQL failure logged but doesn't block
             try {
@@ -61,9 +61,9 @@ export class BootstrapPlayerHandler extends BaseHandler {
                 this.track('Player.WriteThrough.Success', { playerId: record.id })
             } catch (error) {
                 // Log error but continue - Gremlin remains authoritative during migration
-                this.track('Player.WriteThrough.Failed', { 
-                    playerId: record.id, 
-                    error: error instanceof Error ? error.message : 'Unknown error' 
+                this.track('Player.WriteThrough.Failed', {
+                    playerId: record.id,
+                    error: error instanceof Error ? error.message : 'Unknown error'
                 })
                 // Do not throw - degraded mode allows Gremlin-only operation
             }

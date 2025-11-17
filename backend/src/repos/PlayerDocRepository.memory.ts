@@ -18,7 +18,7 @@ export class MemoryPlayerDocRepository implements IPlayerDocRepository {
     async upsertPlayer(playerDoc: PlayerDoc): Promise<void> {
         // Idempotent upsert (create or update)
         const existing = this.players.get(playerDoc.id)
-        
+
         if (existing) {
             // Update existing player with last-write-wins semantics
             this.players.set(playerDoc.id, { ...playerDoc })
