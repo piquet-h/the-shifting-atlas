@@ -148,8 +148,8 @@ export const setupContainer = async (container: Container) => {
     // Bind PlayerDocRepository (SQL API player projection)
     container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
 
-    // Bind Gremlin player repository as fallback for migration period
-    container.bind<IPlayerRepository>('IPlayerRepository:Gremlin').to(CosmosPlayerRepository).inSingletonScope()
+    // Bind Gremlin player repository as read-only fallback (disaster recovery, no writes)
+    container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
 
     // Bind SQL player repository as primary
     container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()

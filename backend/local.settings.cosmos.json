@@ -15,6 +15,7 @@
         "COSMOS_SQL_CONTAINER_INVENTORY": "inventory",
         "COSMOS_SQL_CONTAINER_LAYERS": "descriptionLayers",
         "COSMOS_SQL_CONTAINER_EVENTS": "worldEvents",
-        "COSMOS_SQL_CONTAINER_PROCESSED_EVENTS": "processedEvents"
+        "COSMOS_SQL_CONTAINER_PROCESSED_EVENTS": "processedEvents",
+        "ENABLE_PLAYER_GREMLIN_WRITE": "false"
     }
 }

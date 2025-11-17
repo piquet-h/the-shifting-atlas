@@ -51,6 +51,7 @@ import { InMemoryLocationRepository } from '../../src/repos/locationRepository.m
 import { IPlayerDocRepository, PlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
 import { MemoryPlayerDocRepository } from '../../src/repos/PlayerDocRepository.memory.js'
 import { CosmosPlayerRepository } from '../../src/repos/playerRepository.cosmos.js'
+import { CosmosPlayerRepositorySql } from '../../src/repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memory.js'
 import { CosmosProcessedEventRepository } from '../../src/repos/processedEventRepository.cosmos.js'
@@ -137,7 +138,6 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
         container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
-        container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
@@ -149,6 +149,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
                 .toConstantValue({ endpoint: sqlConfig.endpoint, database: sqlConfig.database })
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+
+            // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)
+            container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
+            container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
 
             // Bind PlayerDocRepository (SQL API player projection)
             container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
