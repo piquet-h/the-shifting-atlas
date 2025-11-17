@@ -12,6 +12,7 @@
 import type { InvocationContext } from '@azure/functions'
 import type { Container } from 'inversify'
 import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
+import type { IPlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import type { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
@@ -65,6 +66,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getPlayerRepository(): Promise<IPlayerRepository> {
         const container = await this.getContainer()
         return container.get<IPlayerRepository>('IPlayerRepository')
+    }
+
+    /** Get PlayerDocRepository instance from DI container */
+    async getPlayerDocRepository(): Promise<IPlayerDocRepository> {
+        const container = await this.getContainer()
+        return container.get<IPlayerDocRepository>('IPlayerDocRepository')
     }
 
     /** Get DescriptionRepository instance from DI container */

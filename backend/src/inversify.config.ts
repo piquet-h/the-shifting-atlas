@@ -44,6 +44,7 @@ import { CosmosLayerRepository } from './repos/layerRepository.cosmos.js'
 import { ILayerRepository } from './repos/layerRepository.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository } from './repos/locationRepository.js'
+import { IPlayerDocRepository, PlayerDocRepository } from './repos/PlayerDocRepository.js'
 import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
@@ -143,6 +144,9 @@ export const setupContainer = async (container: Container) => {
 
     container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({ endpoint: sqlEndpoint, database: sqlDatabase })
     container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+
+    // Bind PlayerDocRepository (SQL API player projection)
+    container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
 
     // Bind Gremlin player repository as fallback for migration period
     container.bind<IPlayerRepository>('IPlayerRepository:Gremlin').to(CosmosPlayerRepository).inSingletonScope()

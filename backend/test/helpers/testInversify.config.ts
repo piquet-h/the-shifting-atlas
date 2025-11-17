@@ -48,6 +48,8 @@ import { MemoryLayerRepository } from '../../src/repos/layerRepository.memory.js
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
+import { IPlayerDocRepository, PlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
+import { MemoryPlayerDocRepository } from '../../src/repos/PlayerDocRepository.memory.js'
 import { CosmosPlayerRepository } from '../../src/repos/playerRepository.cosmos.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memory.js'
@@ -147,6 +149,12 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
                 .toConstantValue({ endpoint: sqlConfig.endpoint, database: sqlConfig.database })
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+
+            // Bind PlayerDocRepository (SQL API player projection)
+            container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
+        } else {
+            // Fallback to memory implementation if SQL config missing
+            container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
         }
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.deadLetters) {
             container.bind<string>('CosmosContainer:DeadLetters').toConstantValue(sqlConfig.containers.deadLetters)
@@ -173,6 +181,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
         container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
         container
             .bind<IProcessedEventRepository>('IProcessedEventRepository')
             .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
@@ -188,6 +197,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
         container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
         container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+        container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
         container
             .bind<IProcessedEventRepository>('IProcessedEventRepository')
             .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
