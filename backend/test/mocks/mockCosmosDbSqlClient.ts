@@ -18,7 +18,7 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
     // Initialize containers with provided data
     for (const [containerName, entities] of Object.entries(initialData)) {
         const containerMap = new Map<string, T>()
-        for (const [entityId, entity] of Object.entries(entities)) {
+        for (const [, entity] of Object.entries(entities)) {
             // Store with partition key (assuming id is the partition key for most cases)
             containerMap.set(`${entity.id}:${entity.id}`, entity)
         }
