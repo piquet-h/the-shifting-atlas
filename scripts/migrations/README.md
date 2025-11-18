@@ -2,17 +2,80 @@
 
 This directory contains one-time migration scripts for the Shifting Atlas data persistence layer.
 
-## Gremlin to SQL API Migration
+## Active Scripts
 
-**Script**: `backend/scripts/migrations/gremlin-to-sql-migration.ts`
+### migrate-players-to-sql.mjs (Current)
+
+**Status**: ✅ ACTIVE (post-#519 cutover)
+
+**Script**: `scripts/migrations/migrate-players-to-sql.mjs`
+
+**Purpose**: Proactively migrate all player vertices from Gremlin to Cosmos SQL API after the #519 cutover. Works with the current SQL-only architecture using read-only Gremlin access.
+
+**When to use**:
+
+-   After deploying #519 (Gremlin write cutover) to production
+-   To avoid lazy migration during user access
+-   To validate migration before fully decommissioning Gremlin
+
+#### Quick Start
+
+```bash
+# Dry run (preview)
+node scripts/migrations/migrate-players-to-sql.mjs --dry-run
+
+# Live migration
+node scripts/migrations/migrate-players-to-sql.mjs
+```
+
+See detailed instructions below.
+
+---
+
+## Archived Scripts
+
+### gremlin-to-sql-migration.ts (Archived)
+
+**Status**: ⚠️ ARCHIVED (2025-11-17) - Dependencies removed in #519
+
+**Original location**: `backend/scripts/migrations/gremlin-to-sql-migration.ts`  
+**Archived to**: `docs/archive/migrations/gremlin-to-sql-migration.ts`
 
 **Purpose**: One-time migration to backfill existing Gremlin player/inventory data into SQL API containers for cost-efficient mutable data storage (ADR-002: Dual Persistence).
 
-**Goal**: Zero data loss; completes in <10 minutes for 1000 players.
+**Why archived**: Script depends on `CosmosPlayerRepository` write methods (`getOrCreate()`, `update()`) that were removed in #519. Migration should now use `migrate-players-to-sql.mjs` instead.
+
+---
+
+## migrate-players-to-sql.mjs - Detailed Instructions
 
 ### Prerequisites
 
-1. **Environment variables** configured (see `backend/local.settings.cosmos.json` for reference):
+1. **Environment variables** (load from `backend/local.settings.cosmos.json`):
+
+```bash
+export COSMOS_GREMLIN_ENDPOINT="https://cosmosgraph-atlas.documents.azure.com:443/"
+export COSMOS_GREMLIN_DATABASE="game"
+export COSMOS_GREMLIN_GRAPH="world"
+export COSMOS_SQL_ENDPOINT="https://cosmossql-atlas.documents.azure.com:443/"
+export COSMOS_SQL_DATABASE="game"
+export COSMOS_SQL_CONTAINER_PLAYERS="players"
+```
+
+2. **Authentication**: Either:
+
+    - Set `COSMOS_KEY` environment variable with SQL API primary key
+    - OR ensure `az login` is completed for DefaultAzureCredential
+
+3. **Dependencies**:
+
+```bash
+npm install  # Installs @azure/cosmos, @azure/identity, gremlin
+```
+
+### Usage
+
+#### Dry Run (Recommended First)
 
     - `COSMOS_GREMLIN_ENDPOINT`
     - `COSMOS_GREMLIN_DATABASE`

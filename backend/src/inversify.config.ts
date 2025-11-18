@@ -99,7 +99,7 @@ export const setupContainer = async (container: Container) => {
     }
 
     // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
-    container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
+    container.bind<TelemetryService>('TelemetryService').to(TelemetryService).inSingletonScope()
 
     // Register handlers as transient (no shared mutable state across requests)
     container.bind(MoveHandler).toSelf()

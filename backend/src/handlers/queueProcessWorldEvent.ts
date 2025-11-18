@@ -97,7 +97,7 @@ export class QueueProcessWorldEventHandler {
     constructor(
         @inject('IDeadLetterRepository') private deadLetterRepository: IDeadLetterRepository,
         @inject('IProcessedEventRepository') private processedEventRepository: IProcessedEventRepository,
-        @inject(TelemetryService) private telemetryService: TelemetryService
+        @inject('TelemetryService') private telemetryService: TelemetryService
     ) {}
 
     async handle(message: unknown, context: InvocationContext): Promise<void> {

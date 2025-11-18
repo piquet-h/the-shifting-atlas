@@ -137,28 +137,45 @@ container.bind(TYPES.TelemetryClient).toConstantValue(appInsightsClient)
 
 **Exception:** When external SDK must be initialized before DI (e.g., Application Insights auto-collection), use `.toConstantValue()` but document why.
 
-## Symbol Tokens (Required)
+## Identifier Tokens (Required)
+
+**Current convention: Use string identifiers for service bindings.**
 
 ```typescript
-// backend/src/di/types.ts
-export const TYPES = {
-    // Infrastructure
-    GremlinClient: Symbol.for('IGremlinClient'),
-    TelemetryClient: Symbol.for('ITelemetryClient'),
-    PersistenceConfig: Symbol.for('IPersistenceConfig'),
+// CURRENT PATTERN (string identifiers)
+container.bind<TelemetryService>('TelemetryService').to(TelemetryService).inSingletonScope()
+container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
+container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
 
-    // Repositories
-    LocationRepository: Symbol.for('ILocationRepository'),
-    PlayerRepository: Symbol.for('IPlayerRepository'),
-    ExitRepository: Symbol.for('IExitRepository')
+// Injection
+@injectable()
+export class MoveHandler {
+    constructor(
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
+        @inject('TelemetryService') private telemetry: TelemetryService
+    ) {}
 }
 ```
 
-**Why Symbols:**
+**CRITICAL: Binding identifier must match injection string exactly**
 
--   Avoid naming collisions
--   Enable multiple implementations of same interface
--   Clear separation from concrete types
+```typescript
+// WRONG - Mismatch causes "No bindings found" error in production
+container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
+@inject('TelemetryService') private telemetry: TelemetryService  // ❌ String doesn't match class token
+
+// RIGHT - String identifier in both places
+container.bind<TelemetryService>('TelemetryService').to(TelemetryService).inSingletonScope()
+@inject('TelemetryService') private telemetry: TelemetryService  // ✅ Matches
+```
+
+**Why string identifiers:**
+
+-   Simpler: No separate TYPES symbol dictionary to maintain
+-   Explicit: Identifier visible at injection site
+-   Consistent: Same pattern in production and test containers
+
+**Note:** Legacy code may use `Symbol.for()` tokens. When refactoring, prefer string identifiers for consistency.
 
 ## Anti-Patterns (FORBIDDEN)
 
