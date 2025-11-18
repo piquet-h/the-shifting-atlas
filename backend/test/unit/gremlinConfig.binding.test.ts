@@ -1,10 +1,8 @@
-import { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { GremlinClientConfig } from '../../src/gremlin/gremlinClient.js'
-import { setupTestContainer } from '../helpers/testInversify.config.js'
+import { loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 
-describe('GremlinConfig Binding', () => {
+describe('Gremlin Config Precedence', () => {
     const ORIGINAL_ENV = { ...process.env }
 
     beforeEach(() => {
@@ -27,12 +25,14 @@ describe('GremlinConfig Binding', () => {
         process.env.GREMLIN_DATABASE = 'legacyDb'
         process.env.GREMLIN_GRAPH = 'legacyGraph'
 
-        const c = new Container()
-        await setupTestContainer(c, 'cosmos')
-        const cfg = c.get<GremlinClientConfig>('GremlinConfig')
-        assert.equal(cfg.endpoint, 'https://acct.documents.azure.com')
-        assert.equal(cfg.database, 'game')
-        assert.equal(cfg.graph, 'world')
+        // Test the config loading function directly (not container binding)
+        const config = await loadPersistenceConfigAsync()
+
+        assert.strictEqual(config.mode, 'cosmos')
+        assert.ok(config.cosmos, 'should have cosmos config')
+        assert.strictEqual(config.cosmos!.endpoint, 'https://acct.documents.azure.com')
+        assert.strictEqual(config.cosmos!.database, 'game')
+        assert.strictEqual(config.cosmos!.graph, 'world')
     })
 
     test('falls back to legacy GREMLIN_* when COSMOS_GREMLIN_* unset', async () => {
@@ -41,11 +41,26 @@ describe('GremlinConfig Binding', () => {
         process.env.GREMLIN_DATABASE = 'game'
         process.env.GREMLIN_GRAPH = 'world'
 
-        const c = new Container()
-        await setupTestContainer(c, 'cosmos')
-        const cfg = c.get<GremlinClientConfig>('GremlinConfig')
-        assert.equal(cfg.endpoint, 'https://legacy.documents.azure.com')
-        assert.equal(cfg.database, 'game')
-        assert.equal(cfg.graph, 'world')
+        // Test the config loading function directly (not container binding)
+        const config = await loadPersistenceConfigAsync()
+
+        assert.strictEqual(config.mode, 'cosmos')
+        assert.ok(config.cosmos, 'should have cosmos config')
+        assert.strictEqual(config.cosmos!.endpoint, 'https://legacy.documents.azure.com')
+        assert.strictEqual(config.cosmos!.database, 'game')
+        assert.strictEqual(config.cosmos!.graph, 'world')
+    })
+
+    test('COSMOS_ENDPOINT is accepted as fallback for COSMOS_GREMLIN_ENDPOINT', async () => {
+        process.env.PERSISTENCE_MODE = 'cosmos'
+        process.env.COSMOS_ENDPOINT = 'https://cosmos-endpoint.documents.azure.com'
+        process.env.COSMOS_GREMLIN_DATABASE = 'game'
+        process.env.COSMOS_GREMLIN_GRAPH = 'world'
+
+        const config = await loadPersistenceConfigAsync()
+
+        assert.strictEqual(config.mode, 'cosmos')
+        assert.ok(config.cosmos, 'should have cosmos config')
+        assert.strictEqual(config.cosmos!.endpoint, 'https://cosmos-endpoint.documents.azure.com')
     })
 })
