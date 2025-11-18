@@ -99,7 +99,12 @@ export const setupContainer = async (container: Container) => {
     }
 
     // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
+    // Bind both by class (for direct resolution via constructor param type) and by string identifier
+    // to support @inject('TelemetryService') decorators used in repository constructors.
+    // Production previously only bound by class, causing runtime DI errors when resolving
+    // repositories that inject using the string token. (Tests bind both forms.)
     container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
+    container.bind<TelemetryService>('TelemetryService').toService(TelemetryService)
 
     // Register handlers as transient (no shared mutable state across requests)
     container.bind(MoveHandler).toSelf()
