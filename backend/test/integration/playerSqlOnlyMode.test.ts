@@ -8,19 +8,8 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import type { ContainerMode } from '../helpers/testInversify.config.js'
-
-/**
- * Run test suite against both memory and cosmos modes
- * Cosmos mode tests will skip gracefully if infrastructure is not available
- */
-function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
-    const modes: ContainerMode[] = ['memory', 'cosmos']
-    for (const mode of modes) {
-        describe(`${suiteName} (${mode})`, () => testFn(mode))
-    }
-}
 
 describeForBothModes('Player SQL-Only Mode Integration', (mode) => {
     let fixture: IntegrationTestFixture

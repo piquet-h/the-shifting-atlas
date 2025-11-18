@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Player Write-Through Integration Tests (Issue #518)
  *
@@ -8,32 +9,13 @@
  * Related: Epic #386 (Cosmos Dual Persistence Implementation)
  */
 
+import type { HttpRequest } from '@azure/functions'
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { ContainerMode } from '../helpers/testInversify.config.js'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
-
-/**
- * Run test suite against both memory and cosmos modes
- * Cosmos mode tests will skip gracefully if infrastructure is not available
- */
-function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
-    const modes: ContainerMode[] = ['memory', 'cosmos']
-
-    for (const mode of modes) {
-        describe(`${suiteName} [${mode}]`, () => {
-            // Skip cosmos tests if PERSISTENCE_MODE is not explicitly set to 'cosmos'
-            // This allows tests to run in CI without requiring Cosmos DB credentials
-            if (mode === 'cosmos' && process.env.PERSISTENCE_MODE !== 'cosmos') {
-                test.skip('Cosmos tests skipped (PERSISTENCE_MODE != cosmos)', () => {})
-                return
-            }
-            testFn(mode)
-        })
-    }
-}
 
 describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => {
     let fixture: IntegrationTestFixture
@@ -56,7 +38,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
 
             // Create mock request
             const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} })
+            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
             const context = await fixture.createInvocationContext()
 
             // Execute bootstrap (creates new player)
@@ -111,7 +93,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
                 headers: {
                     'x-player-guid': testGuid
                 }
-            })
+            }) as HttpRequest
             const context1 = await fixture.createInvocationContext()
 
             const response1 = await handler.handle(request1, context1 as any)
@@ -136,7 +118,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
                 headers: {
                     'x-player-guid': testGuid
                 }
-            })
+            }) as HttpRequest
             const context2 = await fixture.createInvocationContext()
 
             const response2 = await handler.handle(request2, context2 as any)
@@ -208,7 +190,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
 
             // Mock request
             const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} })
+            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
             const context = await fixture.createInvocationContext()
 
             // Execute bootstrap
@@ -239,7 +221,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             const handler = container.get(BootstrapPlayerHandler)
 
             const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} })
+            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
             const context = await fixture.createInvocationContext()
 
             const response = await handler.handle(request, context as any)
@@ -268,7 +250,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             const handler = container.get(BootstrapPlayerHandler)
 
             const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} })
+            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
             const context = await fixture.createInvocationContext()
 
             const response = await handler.handle(request, context as any)

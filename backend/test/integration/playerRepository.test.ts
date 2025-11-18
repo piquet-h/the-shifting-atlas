@@ -2,28 +2,8 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import type { ContainerMode } from '../helpers/testInversify.config.js'
-
-/**
- * Run test suite against both memory and cosmos modes
- * Cosmos mode tests will skip gracefully if infrastructure is not available
- */
-function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
-    const modes: ContainerMode[] = ['memory', 'cosmos']
-
-    for (const mode of modes) {
-        describe(`${suiteName} [${mode}]`, () => {
-            // Skip cosmos tests if PERSISTENCE_MODE is not explicitly set to 'cosmos'
-            // This allows tests to run in CI without requiring Cosmos DB credentials
-            if (mode === 'cosmos' && process.env.PERSISTENCE_MODE !== 'cosmos') {
-                test.skip('Cosmos tests skipped (PERSISTENCE_MODE != cosmos)', () => {})
-                return
-            }
-            testFn(mode)
-        })
-    }
-}
 
 describeForBothModes('Player Repository', (mode) => {
     let fixture: IntegrationTestFixture
@@ -37,15 +17,17 @@ describeForBothModes('Player Repository', (mode) => {
         await fixture.teardown()
     })
 
-    test('assigns starting location', async () => {
-        const repo = await fixture.getPlayerRepository()
-        const { record, created } = await repo.getOrCreate()
-        assert.ok(created, 'expected new record')
-        const currentLocationId = (record as PlayerRecord).currentLocationId
-        assert.ok(currentLocationId, 'currentLocationId should be set')
-        // Accept either STARTER_LOCATION_ID or process.env.START_LOCATION_ID
-        const expectedLocationId = process.env.START_LOCATION_ID || STARTER_LOCATION_ID
-        assert.strictEqual(currentLocationId, expectedLocationId)
+    describe('getOrCreate()', () => {
+        test('assigns starting location', async () => {
+            const repo = await fixture.getPlayerRepository()
+            const { record, created } = await repo.getOrCreate()
+            assert.ok(created, 'expected new record')
+            const currentLocationId = (record as PlayerRecord).currentLocationId
+            assert.ok(currentLocationId, 'currentLocationId should be set')
+            // Accept either STARTER_LOCATION_ID or process.env.START_LOCATION_ID
+            const expectedLocationId = process.env.START_LOCATION_ID || STARTER_LOCATION_ID
+            assert.strictEqual(currentLocationId, expectedLocationId)
+        })
     })
 
     describe('update()', () => {

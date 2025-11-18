@@ -1,28 +1,8 @@
 import { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
-import { afterEach, beforeEach, describe, test } from 'node:test'
+import { afterEach, beforeEach, test } from 'node:test'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import type { ContainerMode } from '../helpers/testInversify.config.js'
-
-/**
- * Run test suite against both memory and cosmos modes
- * Cosmos mode tests will skip gracefully if infrastructure is not available
- */
-function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
-    const modes: ContainerMode[] = ['memory', 'cosmos']
-
-    for (const mode of modes) {
-        describe(`${suiteName} [${mode}]`, () => {
-            // Skip cosmos tests if PERSISTENCE_MODE is not explicitly set to 'cosmos'
-            // This allows tests to run in CI without requiring Cosmos DB credentials
-            if (mode === 'cosmos' && process.env.PERSISTENCE_MODE !== 'cosmos') {
-                test.skip('Cosmos tests skipped (PERSISTENCE_MODE != cosmos)', () => {})
-                return
-            }
-            testFn(mode)
-        })
-    }
-}
 
 describeForBothModes('Location Repository', (mode) => {
     let fixture: IntegrationTestFixture
