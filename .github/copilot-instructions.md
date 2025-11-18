@@ -332,8 +332,19 @@ Reference: For interaction workflow & templates see Section 0 (patterns) and App
 
 ## 10. Testing Baseline
 
-Provide tests for: happy path, invalid direction, missing player ID.
-Run lint + typecheck before commit; (ordering drift checks removed).
+**Test Layer Separation:** Three-tier approach (unit/integration/e2e). See `backend/test/TEST_FIXTURE_GUIDE.md` for:
+
+-   Decision matrix (what to test → which fixture → which directory)
+-   Anti-patterns (no fake clients in unit tests, no direct repo instantiation)
+-   Migration checklist (moving tests between layers)
+
+**Quick rules:**
+
+-   Unit tests: Pure logic + interface contracts only (`UnitTestFixture`, all mocked)
+-   Integration tests: Repository implementations (`IntegrationTestFixture`, use `describeForBothModes()`)
+-   E2E tests: Full system + performance (`E2ETestFixture`, cosmos only, post-merge)
+
+**Test requirements:** Provide tests for happy path + edge cases. Run lint + typecheck before commit.
 
 ---
 
