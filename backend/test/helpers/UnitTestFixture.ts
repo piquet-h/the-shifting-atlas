@@ -25,12 +25,27 @@ export class UnitTestFixture extends BaseTestFixture {
     protected invocationContext?: InvocationContextMockResult
     protected container?: Container
 
+    constructor() {
+        super()
+        // Validate that PERSISTENCE_MODE doesn't interfere with unit tests
+        if (process.env.PERSISTENCE_MODE === 'cosmos') {
+            console.warn(
+                '[UnitTestFixture] Warning: PERSISTENCE_MODE=cosmos is set but unit tests always use mock mode. ' +
+                    'Unit tests should be hermetically sealed from infrastructure configuration. ' +
+                    'This fixture will ignore PERSISTENCE_MODE and use mock repositories.'
+            )
+        }
+    }
+
     /**
      * Get or create the test container with 'mock' mode
      * All dependencies are mocked and injectable
+     * ALWAYS uses 'mock' mode regardless of PERSISTENCE_MODE environment variable
      */
     async getContainer(): Promise<Container> {
         if (!this.container) {
+            // Explicitly pass 'mock' mode to ensure we never use real Cosmos
+            // This makes unit tests immune to PERSISTENCE_MODE environment variable
             this.container = await getTestContainer('mock')
         }
         return this.container

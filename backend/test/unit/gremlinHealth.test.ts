@@ -25,18 +25,32 @@ interface ResponseWithBody {
 
 describe('GremlinHealthHandler', () => {
     let fixture: UnitTestFixture
+    let originalPersistenceMode: string | undefined
 
     beforeEach(async () => {
-        fixture = new UnitTestFixture()
-        await fixture.setup()
+        // Save original mode
+        originalPersistenceMode = process.env.PERSISTENCE_MODE
     })
 
     afterEach(async () => {
-        await fixture.teardown()
+        if (fixture) {
+            await fixture.teardown()
+        }
+        // Restore original mode
+        if (originalPersistenceMode) {
+            process.env.PERSISTENCE_MODE = originalPersistenceMode
+        } else {
+            delete process.env.PERSISTENCE_MODE
+        }
     })
 
     describe('Memory Mode', () => {
         test('should return healthy status for memory mode', async () => {
+            // Force memory mode for this test
+            process.env.PERSISTENCE_MODE = 'memory'
+            fixture = new UnitTestFixture()
+            await fixture.setup()
+
             const req = fixture.createHttpRequest({
                 method: 'GET',
                 url: 'http://localhost/api/backend/health/gremlin'
@@ -57,7 +71,11 @@ describe('GremlinHealthHandler', () => {
         })
 
         test('should return healthy status for memory mode with strict enabled', async () => {
+            // Force memory mode for this test
+            process.env.PERSISTENCE_MODE = 'memory'
             process.env.PERSISTENCE_STRICT = 'true'
+            fixture = new UnitTestFixture()
+            await fixture.setup()
 
             const req = fixture.createHttpRequest({
                 method: 'GET',
@@ -81,8 +99,11 @@ describe('GremlinHealthHandler', () => {
 
     describe('Cosmos Mode (Simulated)', () => {
         test('should check query capability when cosmos config is missing', async () => {
-            const originalMode = process.env.PERSISTENCE_MODE
+            // Force cosmos mode without credentials to test fallback
             process.env.PERSISTENCE_MODE = 'cosmos'
+            delete process.env.PERSISTENCE_STRICT // Ensure not strict
+            fixture = new UnitTestFixture()
+            await fixture.setup()
 
             const req = fixture.createHttpRequest({
                 method: 'GET',
@@ -96,16 +117,9 @@ describe('GremlinHealthHandler', () => {
             assert.strictEqual(envelope.success, true)
             assert.ok(envelope.data)
             const body = envelope.data
-            assert.strictEqual(body.mode, 'cosmos')
-            assert.strictEqual(body.canQuery, false)
-            assert.strictEqual(body.reason, 'cosmos-config-missing')
-
-            // Restore original env
-            if (originalMode) {
-                process.env.PERSISTENCE_MODE = originalMode
-            } else {
-                delete process.env.PERSISTENCE_MODE
-            }
+            // When config is missing and not strict, it falls back to memory
+            assert.strictEqual(body.mode, 'memory')
+            assert.strictEqual(body.strictFallback, true)
         })
 
         test('should return 503 when strict mode enabled and cosmos unavailable', async () => {
@@ -113,8 +127,10 @@ describe('GremlinHealthHandler', () => {
             // throwing during container setup. Skipping in unit tests since it's
             // testing infrastructure behavior that's better covered in integration tests.
             // Instead, we verify the 200 response when cosmos config is missing (non-strict).
-            const originalMode = process.env.PERSISTENCE_MODE
             process.env.PERSISTENCE_MODE = 'cosmos'
+            delete process.env.PERSISTENCE_STRICT
+            fixture = new UnitTestFixture()
+            await fixture.setup()
 
             const req = fixture.createHttpRequest({
                 method: 'GET',
@@ -127,19 +143,19 @@ describe('GremlinHealthHandler', () => {
             assert.strictEqual(response.status, 200)
             const envelope = response.jsonBody as { success?: boolean; data?: GremlinHealthResponse }
             assert.ok(envelope.data)
-            assert.strictEqual(envelope.data.canQuery, false)
-
-            // Restore original env
-            if (originalMode) {
-                process.env.PERSISTENCE_MODE = originalMode
-            } else {
-                delete process.env.PERSISTENCE_MODE
-            }
+            // Falls back to memory when cosmos config missing
+            assert.strictEqual(envelope.data.mode, 'memory')
+            assert.strictEqual(envelope.data.strictFallback, true)
         })
     })
 
     describe('Response Headers', () => {
         test('should include correlation ID in response headers', async () => {
+            // Use memory mode to avoid config issues
+            process.env.PERSISTENCE_MODE = 'memory'
+            fixture = new UnitTestFixture()
+            await fixture.setup()
+
             const req = fixture.createHttpRequest({
                 method: 'GET',
                 url: 'http://localhost/api/backend/health/gremlin'

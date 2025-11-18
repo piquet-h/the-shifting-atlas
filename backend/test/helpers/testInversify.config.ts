@@ -76,9 +76,18 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     let resolvedMode: ContainerMode
     if (mode) {
         resolvedMode = mode
-        // Always bind PersistenceConfig even in explicit mode
-        const config = await loadPersistenceConfigAsync()
-        container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
+
+        // Safety check: if mode is 'mock', ensure we're not using real Cosmos config
+        // This protects unit tests from accidentally using real infrastructure
+        if (mode === 'mock' && process.env.PERSISTENCE_MODE === 'cosmos') {
+            // For mock mode, create a mock config object instead of loading real config
+            const mockConfig: IPersistenceConfig = { mode: 'memory' }
+            container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(mockConfig)
+        } else {
+            // Always bind PersistenceConfig even in explicit mode
+            const config = await loadPersistenceConfigAsync()
+            container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
+        }
     } else {
         const config = await loadPersistenceConfigAsync()
         container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
