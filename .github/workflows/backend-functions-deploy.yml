@@ -53,7 +53,75 @@ jobs:
         run: npm run build
 
       - name: Run backend tests
-        run: npm test
+        id: run-tests
+        run: |
+          set +e  # Don't exit immediately on failure
+          npm test 2>&1 | tee test-output.log
+          TEST_EXIT_CODE=${PIPESTATUS[0]}
+          
+          echo "Test exit code: $TEST_EXIT_CODE"
+          
+          # Parse test output for failures and create annotations
+          if [ $TEST_EXIT_CODE -ne 0 ]; then
+            echo "::error title=Backend Tests Failed::Tests failed with exit code $TEST_EXIT_CODE"
+            
+            # Extract and annotate failed tests
+            echo "## ❌ Test Failures" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Count total failures
+            fail_count=$(grep "^# fail " test-output.log | tail -1 | awk '{print $3}')
+            pass_count=$(grep "^# pass " test-output.log | tail -1 | awk '{print $3}')
+            total_count=$(grep "^# tests " test-output.log | tail -1 | awk '{print $3}')
+            
+            echo "**Summary:** $fail_count of $total_count tests failed ($pass_count passed)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Failed Tests" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Parse TAP format for failed test names (lines with "not ok")
+            grep "^[[:space:]]*not ok [0-9]* -" test-output.log | while IFS= read -r line; do
+              # Extract test name (remove "not ok N - " prefix)
+              test_name=$(echo "$line" | sed -E 's/^[[:space:]]*not ok [0-9]* - //' | sed 's/[[:space:]]*$//')
+              if [ ! -z "$test_name" ]; then
+                echo "::error::Test failed: $test_name"
+                echo "- \`$test_name\`" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+            
+            # Also look for spec format failures (lines with ✖) in case TAP parsing misses some
+            grep "✖" test-output.log 2>/dev/null | while IFS= read -r line; do
+              test_name=$(echo "$line" | sed 's/^[[:space:]]*✖[[:space:]]*//' | sed 's/([0-9.]*ms)$//' | sed 's/[[:space:]]*$//')
+              if [ ! -z "$test_name" ]; then
+                echo "::error::Test failed: $test_name"
+              fi
+            done
+            
+            # Add error context section
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Error Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "For complete error details with stack traces, see the test output above." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show last part of test output with summary
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>Test Summary (last 50 lines)</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -50 test-output.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ✅ All Tests Passed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            # Count successful tests
+            pass_count=$(grep "^# pass " test-output.log | tail -1 | awk '{print $3}')
+            total_count=$(grep "^# tests " test-output.log | tail -1 | awk '{print $3}')
+            echo "Successfully ran $total_count tests ($pass_count passed)." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          exit $TEST_EXIT_CODE
 
       - name: Prepare modules
         run: npm ci --omit=dev
