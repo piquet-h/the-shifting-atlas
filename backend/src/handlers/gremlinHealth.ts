@@ -2,7 +2,7 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
-import { IPersistenceConfig, resolvePersistenceMode } from '../persistenceConfig.js'
+import type { IPersistenceConfig } from '../persistenceConfig.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse, serviceUnavailableResponse } from './utils/responseBuilder.js'
@@ -17,12 +17,16 @@ export interface GremlinHealthResponse {
 
 @injectable()
 export class GremlinHealthHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('PersistenceConfig') private readonly persistenceConfig: IPersistenceConfig
+    ) {
         super(telemetry)
     }
 
     protected async execute(): Promise<HttpResponseInit> {
-        const mode = resolvePersistenceMode()
+        // Use injected config instead of reading environment directly
+        const mode = this.persistenceConfig.mode
         const strictMode = process.env.PERSISTENCE_STRICT === '1' || process.env.PERSISTENCE_STRICT === 'true'
 
         let canQuery = true

@@ -260,6 +260,129 @@ const result = await seedTestWorld({
 - `getDefaultTestLocations()` - 5-location graph for integration tests (IDs: `test-loc-*`)
 - `getE2ETestLocations()` - 5-location graph for E2E tests (IDs: `e2e-test-loc-*`)
 
+## Testing Philosophy: Fix Design Flaws, Don't Work Around Them
+
+**Core Principle:** When a test reveals a design flaw, fix the underlying design issue rather than making the test pass through workarounds.
+
+### Why This Matters
+
+Tests are not just about verification—they're about discovering problems early. When a test fails or becomes difficult to write, it's often exposing a design issue in the production code.
+
+**Anti-Pattern: Test Workarounds**
+
+```typescript
+// ❌ BAD: Test manipulates environment to work around handler reading env directly
+test('health check in cosmos mode', async () => {
+    process.env.PERSISTENCE_MODE = 'cosmos' // Working around design flaw
+    fixture = new UnitTestFixture()
+    await fixture.setup()
+    // ... test code that's now coupled to environment state
+})
+```
+
+**Proper Pattern: Fix the Design**
+
+```typescript
+// ✅ GOOD: Handler uses dependency injection, test is clean
+test('health check in cosmos mode', async () => {
+    const fixture = new UnitTestFixture() // Always uses mock config
+    await fixture.setup()
+    // Handler respects injected config, no environment manipulation needed
+})
+```
+
+### Real Example: gremlinHealth Handler (Issue #538)
+
+**The Problem:** Test revealed handler was reading `resolvePersistenceMode()` directly from environment instead of using injected `IPersistenceConfig`.
+
+**Symptom:** Unit tests failed when `PERSISTENCE_MODE=cosmos` was set externally, even though `UnitTestFixture` was supposed to isolate tests.
+
+**Wrong Solution:** Make tests pass by conditionally checking environment:
+
+```typescript
+// ❌ Don't do this
+if (process.env.PERSISTENCE_MODE === 'cosmos') {
+    assert.strictEqual(body.mode, 'cosmos') // Test now reinforces bad design
+} else {
+    assert.strictEqual(body.mode, 'memory')
+}
+```
+
+**Right Solution:** Fix the handler to use dependency injection:
+
+```typescript
+// ✅ Handler before (design flaw)
+class GremlinHealthHandler {
+    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+        super(telemetry)
+    }
+    protected async execute() {
+        const mode = resolvePersistenceMode() // Reading env directly!
+        // ...
+    }
+}
+
+// ✅ Handler after (proper DI)
+class GremlinHealthHandler {
+    constructor(
+        @inject('ITelemetryClient') telemetry: ITelemetryClient,
+        @inject('PersistenceConfig') private readonly persistenceConfig: IPersistenceConfig
+    ) {
+        super(telemetry)
+    }
+    protected async execute() {
+        const mode = this.persistenceConfig.mode // Using injected config!
+        // ...
+    }
+}
+```
+
+**Result:** Tests now pass regardless of environment state. Handler properly respects DI container configuration.
+
+### Design Flaw Indicators
+
+Watch for these signs that production code needs fixing, not tests:
+
+1. **Environment Manipulation in Tests**
+    - If tests need to set `process.env.*` to work, the code is reading env directly instead of using config
+2. **Conditional Test Logic**
+    - If tests have `if/else` based on external state, the code is not properly isolated
+3. **Test Setup Complexity**
+    - If test setup requires elaborate environment preparation, the code has too many dependencies
+
+4. **Fixture Violations**
+    - If `UnitTestFixture` tests behave differently based on external state, the code bypasses DI
+
+### When to Fix vs. When to Accept
+
+**Always fix:**
+
+- Handlers reading environment variables directly instead of using injected config
+- Tests that must manipulate global state to pass
+- Production code that can't be tested without external dependencies
+
+**Acceptable (not design flaws):**
+
+- Integration tests that require real infrastructure (that's their purpose)
+- E2E tests that need environment setup (testing real deployment)
+- Tests validating environment configuration logic itself
+
+### Decision Framework
+
+```
+Test is hard to write or fails unexpectedly
+    ↓
+Is this a unit test?
+    ↓
+Yes → Does it need environment manipulation or external state?
+    ↓
+Yes → Production code has a design flaw
+    ↓
+Fix the production code to use dependency injection
+    ↓
+Test should now be simple and isolated
+```
+
 ## Migration Notes
 
 **Old pattern (manual mocks):**
