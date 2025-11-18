@@ -1,4 +1,4 @@
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepository.js'
 
@@ -10,7 +10,9 @@ import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepo
 export class InMemoryDescriptionRepository implements IDescriptionRepository {
     private layers = new Map<string, DescriptionLayer>()
 
-    constructor(private telemetryService: TelemetryService) {}
+    // Explicit @inject decorator ensures Inversify constructor metadata recognizes
+    // TelemetryService after transition to class-based DI (fixes failing unit test).
+    constructor(@inject(TelemetryService) private telemetryService: TelemetryService) {}
 
     async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
         const started = Date.now()

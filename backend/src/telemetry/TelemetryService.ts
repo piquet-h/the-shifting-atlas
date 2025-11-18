@@ -1,6 +1,13 @@
 /**
  * Telemetry Service - Central service for emitting game telemetry events
  *
+ * DI Policy (2025-11-18):
+ *  - Concrete services use class-based injection only (no string tokens) for type safety.
+ *  - Interfaces (e.g., ITelemetryClient) continue to use string/Symbol identifiers.
+ *  - Repositories/handlers should inject TelemetryService via constructor parameter type.
+ *  - Do NOT reintroduce @inject('TelemetryService') or a string binding; this was removed for consistency.
+ *  - If replacing TelemetryService with an abstraction in future, introduce an interface + token then refactor.
+ *
  * Provides enriched telemetry methods that wrap ITelemetryClient.
  * All handlers should inject this service (or ITelemetryClient directly) via DI.
  * Never import standalone telemetry functions from this service.
