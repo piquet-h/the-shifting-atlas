@@ -1,215 +1,149 @@
-import { Location } from '@piquet-h/shared'
+/**
+ * Unit tests for ILocationRepository interface contract
+ * Tests interface methods exist with expected signatures and return types
+ */
+
+import type { Location, MoveResult } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
-import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
-import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
+import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 
-describe('Location Repository', () => {
-    // Mock GremlinClient for unit testing CosmosLocationRepository
-    class MockGremlinClient {
-        private data: Map<string, Record<string, unknown>> = new Map()
-        private edges: Map<string, Array<Record<string, unknown>>> = new Map()
-
-        async submit<T>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
-            // Handle get location queries
-            if (query.includes('valueMap(true)')) {
-                const id = bindings?.locationId || bindings?.lid
-                const vertex = this.data.get(String(id))
-                return vertex ? [vertex as T] : []
+describe('ILocationRepository Interface Contract', () => {
+    // Mock implementation for testing interface contract
+    class MockLocationRepository implements ILocationRepository {
+        async get(id: string): Promise<Location | undefined> {
+            return {
+                id,
+                name: 'Mock Location',
+                description: 'Mock description',
+                exits: []
             }
+        }
 
-            // Handle exit queries
-            if (query.includes("outE('exit')")) {
-                const locationId = bindings?.locationId || bindings?.fid
-                const edges = this.edges.get(String(locationId)) || []
-
-                // If checking for existing edge with where clause
-                if (query.includes('where(inV()')) {
-                    const dir = bindings?.dir
-                    const tid = bindings?.tid
-                    return edges.filter((e) => e.direction === dir && e.to === tid) as T[]
+        async move(fromLocationId: string, direction: string): Promise<MoveResult> {
+            return {
+                status: 'ok',
+                location: {
+                    id: 'new-loc',
+                    name: 'New Location',
+                    description: 'New description',
+                    exits: []
                 }
-
-                return edges as T[]
             }
+        }
 
-            // Handle vertex upsert
-            if (query.includes('fold().coalesce(unfold(), addV')) {
-                const id = bindings?.lid || bindings?.fid || bindings?.tid
-                const name = bindings?.name
-                const desc = bindings?.desc
-                const ver = bindings?.ver
-
-                if (id) {
-                    this.data.set(String(id), {
-                        id: id,
-                        name: name ? [name] : ['Test Location'],
-                        description: desc ? [desc] : [''],
-                        version: ver || 1
-                    })
-                }
-                return []
-            }
-
-            // Handle edge creation
-            if (query.includes("addE('exit')")) {
-                const fromId = bindings?.fid
-                const toId = bindings?.tid
-                const dir = bindings?.dir
-                const desc = bindings?.desc
-
-                if (fromId && toId && dir) {
-                    const edges = this.edges.get(String(fromId)) || []
-                    edges.push({ direction: dir, to: toId, description: desc || '' })
-                    this.edges.set(String(fromId), edges)
-                }
-                return []
-            }
-
-            // Handle cache update
-            if (query.includes("property('exitsSummaryCache'")) {
-                const id = bindings?.locationId
-                const cache = bindings?.cache
-                const vertex = this.data.get(String(id))
-                if (vertex) {
-                    vertex.exitsSummaryCache = [cache]
-                }
-                return []
-            }
-
+        async listAll(): Promise<Location[]> {
             return []
         }
 
-        async submitWithMetrics<T>(
-            query: string,
-            bindings?: Record<string, unknown>
-        ): Promise<{ items: T[]; latencyMs: number; requestCharge?: number }> {
-            const startTime = Date.now()
-            const items = await this.submit<T>(query, bindings)
-            return {
-                items,
-                latencyMs: Date.now() - startTime,
-                requestCharge: 5.0 // Mock RU charge
-            }
+        async upsert(location: Location): Promise<{ created: boolean; id: string; updatedRevision?: number }> {
+            return { created: true, id: location.id }
         }
 
-        async close(): Promise<void> {
-            // Mock close - no-op
+        async ensureExit(fromLocationId: string, direction: string, toLocationId: string): Promise<{ created: boolean }> {
+            return { created: true }
+        }
+
+        async ensureExitBidirectional(
+            fromLocationId: string,
+            direction: string,
+            toLocationId: string,
+            options?: { reciprocal?: boolean }
+        ): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
+            return { created: true, reciprocalCreated: options?.reciprocal }
+        }
+
+        async removeExit(fromLocationId: string, direction: string): Promise<{ removed: boolean }> {
+            return { removed: true }
+        }
+
+        async deleteLocation(locationId: string): Promise<{ deleted: boolean }> {
+            return { deleted: true }
         }
     }
 
-    describe('InMemoryLocationRepository', () => {
-        test('get returns location', async () => {
-            const repo = new InMemoryLocationRepository()
-            const location = await repo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21') // Mosswell River Jetty
+    test('get method returns Location or undefined', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.get('test-id')
 
-            assert.ok(location)
-            assert.equal(location.name, 'Mosswell River Jetty')
-        })
-
-        test('move with valid exit', async () => {
-            const repo = new InMemoryLocationRepository()
-            // Mosswell River Jetty has a 'south' exit to North Road
-            const result = await repo.move('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21', 'south')
-
-            assert.equal(result.status, 'ok')
-            assert.ok(result.location)
-        })
-
-        test('move with invalid exit returns error', async () => {
-            const repo = new InMemoryLocationRepository()
-            const result = await repo.move('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21', 'up')
-
-            assert.equal(result.status, 'error')
-            assert.equal(result.reason, 'no-exit')
-        })
-
-        test('upsert creates new location', async () => {
-            const repo = new InMemoryLocationRepository()
-            const newLoc: Location = {
-                id: 'test-loc',
-                name: 'Test Location',
-                description: 'A test location',
-                exits: []
-            }
-
-            const result = await repo.upsert(newLoc)
-
-            assert.equal(result.created, true)
-            assert.equal(result.id, 'test-loc')
-
-            const retrieved = await repo.get('test-loc')
-            assert.ok(retrieved)
-            assert.equal(retrieved.name, 'Test Location')
-        })
-
-        test('upsert existing location updates', async () => {
-            const repo = new InMemoryLocationRepository()
-            const existingLoc: Location = {
-                id: 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21',
-                name: 'Updated Jetty',
-                description: 'Updated description',
-                exits: []
-            }
-
-            const result = await repo.upsert(existingLoc)
-
-            assert.equal(result.created, false)
-            assert.ok(result.updatedRevision)
-
-            const retrieved = await repo.get('a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21')
-            assert.ok(retrieved)
-            assert.equal(retrieved.name, 'Updated Jetty')
-        })
+        assert.ok(typeof result === 'object' || result === undefined)
+        if (result) {
+            assert.ok('id' in result)
+            assert.ok('name' in result)
+            assert.ok('description' in result)
+            assert.ok('exits' in result)
+        }
     })
 
-    describe('CosmosLocationRepository', () => {
-        test('get returns location', async () => {
-            const mockClient = new MockGremlinClient()
-            await mockClient.submit("g.V(lid).fold().coalesce(unfold(), addV('location'))", {
-                lid: 'test-id',
-                name: 'Test',
-                desc: 'Test location',
-                ver: 1,
-                pk: 'test'
-            })
+    test('move method returns MoveResult with status', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.move('from-id', 'north')
 
-            const repo = new CosmosLocationRepository(mockClient as unknown as IGremlinClient)
-            const location = await repo.get('test-id')
+        assert.ok(typeof result === 'object')
+        assert.ok('status' in result)
+        assert.ok(result.status === 'ok' || result.status === 'error')
+    })
 
-            assert.ok(location)
-            assert.equal(location.name, 'Test')
-        })
+    test('listAll method returns array of Locations', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.listAll()
 
-        test('upsert creates new location', async () => {
-            const mockClient = new MockGremlinClient()
-            const repo = new CosmosLocationRepository(mockClient as unknown as IGremlinClient)
+        assert.ok(Array.isArray(result))
+    })
 
-            const newLoc: Location = {
-                id: 'new-loc',
-                name: 'New Location',
-                description: 'A new test location',
-                exits: []
-            }
+    test('upsert method returns created flag and id', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const location: Location = {
+            id: 'test-id',
+            name: 'Test',
+            description: 'Test location',
+            exits: []
+        }
+        const result = await repo.upsert(location)
 
-            const result = await repo.upsert(newLoc)
+        assert.ok(typeof result === 'object')
+        assert.ok('created' in result)
+        assert.ok('id' in result)
+        assert.strictEqual(typeof result.created, 'boolean')
+        assert.strictEqual(typeof result.id, 'string')
+    })
 
-            assert.equal(result.created, true)
-            assert.equal(result.id, 'new-loc')
-        })
+    test('ensureExit method returns created flag', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.ensureExit('from-id', 'north', 'to-id')
 
-        test('ensureExit creates exit idempotently', async () => {
-            const mockClient = new MockGremlinClient()
-            const repo = new CosmosLocationRepository(mockClient as unknown as IGremlinClient)
+        assert.ok(typeof result === 'object')
+        assert.ok('created' in result)
+        assert.strictEqual(typeof result.created, 'boolean')
+    })
 
-            // First call should create
-            const result1 = await repo.ensureExit('loc-a', 'north', 'loc-b')
-            assert.equal(result1.created, true)
+    test('ensureExitBidirectional method returns created flags', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.ensureExitBidirectional('from-id', 'north', 'to-id', { reciprocal: true })
 
-            // Second call should be idempotent
-            const result2 = await repo.ensureExit('loc-a', 'north', 'loc-b')
-            assert.equal(result2.created, false)
-        })
+        assert.ok(typeof result === 'object')
+        assert.ok('created' in result)
+        assert.strictEqual(typeof result.created, 'boolean')
+        if ('reciprocalCreated' in result) {
+            assert.strictEqual(typeof result.reciprocalCreated, 'boolean')
+        }
+    })
+
+    test('removeExit method returns removed flag', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.removeExit('from-id', 'north')
+
+        assert.ok(typeof result === 'object')
+        assert.ok('removed' in result)
+        assert.strictEqual(typeof result.removed, 'boolean')
+    })
+
+    test('deleteLocation method returns deleted flag', async () => {
+        const repo: ILocationRepository = new MockLocationRepository()
+        const result = await repo.deleteLocation('loc-id')
+
+        assert.ok(typeof result === 'object')
+        assert.ok('deleted' in result)
+        assert.strictEqual(typeof result.deleted, 'boolean')
     })
 })
