@@ -51,8 +51,7 @@ export class UnitTestFixture extends BaseTestFixture {
      */
     async getTelemetryService(): Promise<TelemetryService> {
         const container = await this.getContainer()
-        const { TelemetryService: TelemetryServiceClass } = await import('../../src/telemetry/TelemetryService.js')
-        return container.get(TelemetryServiceClass)
+        return container.get<TelemetryService>('TelemetryService')
     }
 
     /**
