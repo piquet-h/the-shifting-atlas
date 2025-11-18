@@ -35,6 +35,12 @@
             "formatter": 12,
             "formatOptions": {
               "palette": "greenRed"
+            },
+            "numberFormat": {
+              "unit": 1,
+              "options": {
+                "style": "decimal"
+              }
             }
           },
           "showBorder": true
@@ -85,7 +91,7 @@
               "formatOptions": {
                 "min": 0,
                 "max": 100,
-                "palette": "greenRed"
+                "palette": "redGreen"
               }
             },
             {
@@ -94,7 +100,7 @@
               "formatOptions": {
                 "min": 0,
                 "max": 100,
-                "palette": "redGreen"
+                "palette": "greenRed"
               }
             }
           ]
@@ -218,7 +224,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Movement Latency Percentiles - 1h & 24h comparison (Issue #283)\nlet timeRange1h = 1h;\nlet timeRange24h = 24h;\nlet minEvents = 20;\n// 1h window\nlet events1h = customEvents\n| where timestamp > ago(timeRange1h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count1h = toscalar(events1h | count);\nlet percentiles1h = events1h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '1h';\n// 24h window\nlet events24h = customEvents\n| where timestamp > ago(timeRange24h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count24h = toscalar(events24h | count);\nlet percentiles24h = events24h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '24h';\n// Union both windows\nlet results = union percentiles1h, percentiles24h\n| extend P95Status = iff(EventName == 'Navigation.Move.Success',\n    iff(P95 < 400, '🟢 Normal',\n        iff(P95 < 600, '🟡 Warning', '🔴 Critical')),\n    'n/a')\n| extend StabilityWarning = iff(Count < minEvents, '⚠️ Low Volume (<20)', '')\n| project TimeWindow, EventName, Count, P50, P95, P99, P95Status, StabilityWarning\n| order by TimeWindow desc, EventName asc;\n// Show instability notice if both windows have low volume\niff(count1h < minEvents and count24h < minEvents,\n    datatable(Notice:string) ['⚠️ INSTABILITY NOTICE: <20 total events in last 24h. Percentiles unreliable. Wait for more data.'],\n    results\n)",
+        "query": "// Movement Latency Percentiles - 1h & 24h comparison (Issue #283)\nlet timeRange1h = 1h;\nlet timeRange24h = 24h;\nlet minEvents = 20;\n// 1h window\nlet events1h = customEvents\n| where timestamp > ago(timeRange1h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count1h = toscalar(events1h | count);\nlet percentiles1h = events1h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '1h';\n// 24h window\nlet events24h = customEvents\n| where timestamp > ago(timeRange24h)\n| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked')\n| extend latencyMs = todouble(customDimensions.latency_ms)\n| where isnotnull(latencyMs) and latencyMs >= 0;\nlet count24h = toscalar(events24h | count);\nlet percentiles24h = events24h\n| summarize \n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| extend TimeWindow = '24h';\n// Union both windows\nlet results = union percentiles1h, percentiles24h\n| extend P95Status = iff(EventName == 'Navigation.Move.Success',\n    iff(P95 < 400, '🟢 Normal',\n        iff(P95 < 600, '🟡 Warning', '🔴 Critical')),\n    'n/a')\n| extend StabilityWarning = iff(Count < minEvents, '⚠️ Low Volume (<20)', '')\n| project TimeWindow, EventName, Count, P50, P95, P99, P95Status, StabilityWarning\n| order by TimeWindow desc, EventName asc;\n// Show instability notice if both windows have low volume\nunion \n    (results | where count1h >= minEvents or count24h >= minEvents),\n    (datatable(Notice:string) ['⚠️ INSTABILITY NOTICE: <20 total events in last 24h. Percentiles unreliable. Wait for more data.'] | where count1h < minEvents and count24h < minEvents)",
         "size": 0,
         "title": "Latency Percentiles: 1h vs 24h",
         "queryType": 0,
@@ -373,7 +379,7 @@
   ],
   "_exportMetadata": {
     "slug": "movement-navigation-dashboard",
-    "exportedAt": "2025-11-08",
+    "exportedAt": "2025-11-18",
     "note": "This file is auto-generated from Azure Application Insights workbook. Do not edit directly. Use scripts/observability/export-workbooks.mjs to update."
   }
 }

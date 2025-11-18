@@ -9,19 +9,60 @@
       "name": "header"
     },
     {
-      "type": 1,
+      "type": 9,
       "content": {
-        "json": "## Gremlin Operation RU & Latency Overview\n\n**Purpose:** Summarize RU charge and latency percentiles per critical Gremlin operation to spot emerging hot operations.\n\n**Thresholds:**\n- 🟡 P95 latency >500ms (amber)\n- 🔴 P95 latency >600ms (red)\n- 🟡 AvgRU >15 (amber - placeholder)\n- 🔴 AvgRU >20 (red - placeholder)\n\n**Note:** RU thresholds are placeholders; tune via issue #297 after baseline data collection."
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "maxru-control",
+            "version": "KqlParameterItem/1.0",
+            "name": "MaxRuPerInterval",
+            "type": 1,
+            "label": "MAX_RU_PER_INTERVAL",
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "description": "Total RU capacity per 5-min interval (RU/s * 300). Enables RU% calculations.",
+            "value": "120000"
+          },
+          {
+            "id": "threshold-base-control",
+            "version": "KqlParameterItem/1.0",
+            "name": "SustainedThresholdPercent",
+            "type": 1,
+            "label": "SUSTAINED_THRESHOLD_PERCENT",
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "description": "Base sustained RU% threshold (amber). High threshold adds offset.",
+            "value": "70"
+          },
+          {
+            "id": "high-threshold-offset-control",
+            "version": "KqlParameterItem/1.0",
+            "name": "HighThresholdOffset",
+            "type": 1,
+            "label": "HIGH_THRESHOLD_OFFSET",
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "description": "Additional percent above base for red threshold (default 10).",
+            "value": "10"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
       },
-      "name": "section-ru-latency-overview"
+      "name": "sustained-threshold-parameter-control"
     },
     {
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Gremlin Operation RU & Latency Overview (Issue #289)\nlet timeRange = 24h;\nlet fallbackTimeRange = 6h;\nlet minEvents = 20;\n// First attempt 24h query\nlet events24h = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName);\nlet totalEvents24h = toscalar(events24h | count);\n// Fallback to 6h if low volume\nlet effectiveRange = iff(totalEvents24h >= minEvents, timeRange, fallbackTimeRange);\nlet effectiveEvents = iff(totalEvents24h >= minEvents, events24h, \n    customEvents\n    | where timestamp > ago(fallbackTimeRange)\n    | where name == 'Graph.Query.Executed'\n    | extend operationName = tostring(customDimensions.operationName),\n             latencyMs = todouble(customDimensions.latencyMs),\n             ruCharge = todouble(customDimensions.ruCharge)\n    | where isnotempty(operationName)\n);\nlet totalEffective = toscalar(effectiveEvents | count);\n// Show instability notice if still <20 events\nlet results = effectiveEvents\n| summarize \n    Calls = count(),\n    AvgRU = round(avg(ruCharge), 2),\n    MaxRU = round(max(ruCharge), 2),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0),\n    MissingRU = countif(isnull(ruCharge) or isnan(ruCharge))\n  by operationName\n| extend AvgRUDisplay = iff(MissingRU > 0.3 * Calls, \"n/a\", tostring(AvgRU)),\n         MaxRUDisplay = iff(MissingRU > 0.3 * Calls, \"n/a\", tostring(MaxRU))\n| project operationName, Calls, AvgRUDisplay, MaxRUDisplay, P50, P95, P99\n| order by Calls desc\n| take 10;\n// Return results or instability notice\niff(totalEffective < minEvents,\n    datatable(Notice:string) [\"⚠️ INSTABILITY NOTICE: <20 total events in last 24h. Percentiles unreliable. Wait for more data.\"],\n    results\n)",
+        "query": "// Gremlin Operation RU & Latency Overview (Issue #289)\nlet timeRange = 24h;\nlet minEvents = 20;\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend operationName = tostring(customDimensions.operationName), latencyMs = todouble(customDimensions.latencyMs), ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotempty(operationName);\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Calls = count(), AvgRU = round(avg(ruCharge), 2), MaxRU = round(max(ruCharge), 2), P50 = round(percentile(latencyMs, 50), 0), P95 = round(percentile(latencyMs, 95), 0), P99 = round(percentile(latencyMs, 99), 0), MissingRU = countif(isnull(ruCharge) or isnan(ruCharge)) by operationName\n  | extend AvgRUDisplay = iff(MissingRU > 0.3 * Calls, 'n/a', tostring(AvgRU)), MaxRUDisplay = iff(MissingRU > 0.3 * Calls, 'n/a', tostring(MaxRU))\n  | project operationName, Calls, AvgRUDisplay, MaxRUDisplay, P50, P95, P99\n  | order by Calls desc\n  | take 10\n  | extend include = totalEvents >= minEvents;\nlet empty = datatable(operationName:string, Calls:long, AvgRUDisplay:string, MaxRUDisplay:string, P50:real, P95:real, P99:real)[] | extend include = totalEvents < minEvents;\nunion main, empty | where include | project operationName, Calls, AvgRUDisplay, MaxRUDisplay, P50, P95, P99",
         "size": 0,
-        "title": "Top Operations by Call Volume (Last 24h, fallback to 6h)",
+        "title": "Top Operations by Call Volume (Last 24h)",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
         "visualization": "table",
@@ -128,6 +169,37 @@
       "name": "operation-ru-latency-table"
     },
     {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// RU & Latency Instability Warning (Issue #289)\nlet timeRange = 24h;\nlet minEvents = 20;\nlet totalEvents = toscalar(customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | where isnotempty(tostring(customDimensions.operationName))\n  | count);\nlet warn = print strcat('⚠️ INSTABILITY NOTICE: Only ', totalEvents, ' events in last 24h (<', minEvents, '). Percentiles unreliable. Wait for more data.') | extend include = totalEvents < minEvents | project Notice = print_0, include;\nlet empty = datatable(Notice:string, include:bool)[];\nunion warn, empty | where include | project Notice",
+        "size": 0,
+        "title": "RU & Latency Percentile Stability",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Notice",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "INSTABILITY NOTICE",
+                    "representation": "warning"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "name": "ru-latency-instability-warning"
+    },
+    {
       "type": 1,
       "content": {
         "json": "## RU vs Latency Correlation\n\n**Purpose:** Detect pressure-induced slowdowns by correlating RU charge to latency.\n\n**Interpretation:**\n- Pearson correlation >0.6: Strong positive correlation (rising RU → rising latency)\n- Correlation displayed only when sample size ≥30\n- Scatter plot helps identify outliers and operational clusters"
@@ -159,7 +231,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\n// Count missing ruCharge for edge case tracking\nlet totalEvents = toscalar(customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| where isnotempty(tostring(customDimensions.operationName))\n| count);\nlet eventsWithRU = toscalar(events | count);\nlet missingRUCount = totalEvents - eventsWithRU;\n// Compute Pearson correlation per operation (simplified approximation)\nlet correlations = events\n| summarize \n    n = count(),\n    sumX = sum(ruCharge),\n    sumY = sum(latencyMs),\n    sumXY = sum(ruCharge * latencyMs),\n    sumX2 = sum(ruCharge * ruCharge),\n    sumY2 = sum(latencyMs * latencyMs)\n  by operationName\n| extend \n    numerator = (n * sumXY) - (sumX * sumY),\n    denomX = sqrt((n * sumX2) - (sumX * sumX)),\n    denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| extend correlation = round(correlation, 3)\n| project operationName, correlation, SampleSize = n, MeetsThreshold = iff(n >= minSampleSize, \"Yes\", \"No\")\n| order by correlation desc;\nlet hasValidCorrelations = toscalar(correlations | where SampleSize >= minSampleSize | count);\n// Return warning if no operations have sufficient samples, else show correlations\niff(hasValidCorrelations == 0,\n    datatable(Notice:string) [strcat(\"⚠️ INSUFFICIENT SAMPLE WARNING: All operations have <\", minSampleSize, \" samples. Correlation coefficients unreliable. Wait for more data or check if telemetry is flowing. Missing RU count: \", missingRUCount)],\n    correlations\n)",
+        "query": "// RU vs Latency Correlation - Trend Line with Correlation Coefficient (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet events = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName), latencyMs = todouble(customDimensions.latencyMs), ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0;\nevents\n| summarize n = count(), sumX = sum(ruCharge), sumY = sum(latencyMs), sumXY = sum(ruCharge * latencyMs), sumX2 = sum(ruCharge * ruCharge), sumY2 = sum(latencyMs * latencyMs) by operationName\n| extend numerator = (n * sumXY) - (sumX * sumY), denomX = sqrt((n * sumX2) - (sumX * sumX)), denomY = sqrt((n * sumY2) - (sumY * sumY))\n| extend correlation = iff(denomX == 0 or denomY == 0, 0.0, numerator / (denomX * denomY))\n| extend correlation = round(correlation, 3)\n| project operationName, correlation, SampleSize = n, MeetsThreshold = iff(n >= minSampleSize, 'Yes', 'No')\n| order by correlation desc",
         "size": 0,
         "title": "Pearson Correlation: RU vs Latency (sample ≥30)",
         "queryType": 0,
@@ -225,6 +297,38 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
+        "query": "// Correlation Sample Size Warning (Issue #290)\nlet timeRange = 2h;\nlet minSampleSize = 30;\nlet sampleCount = toscalar(customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend operationName = tostring(customDimensions.operationName), latencyMs = todouble(customDimensions.latencyMs), ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs) and latencyMs > 0\n  | count);\nlet missingRU = toscalar(customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge), operationName = tostring(customDimensions.operationName)\n  | where isnotempty(operationName) and (isnull(ruCharge) or isnan(ruCharge))\n  | count);\nlet showWarning = sampleCount < minSampleSize;\nlet warningMsg = strcat('⚠️ INSUFFICIENT SAMPLE WARNING: Only ', sampleCount, ' valid events (<', minSampleSize, '). Missing RU events: ', missingRU, '. Correlation coefficients suppressed until threshold met.');\nlet warningRow = datatable(Notice:string)[''] | extend Notice = warningMsg, include = showWarning;\nwarningRow | where include | project Notice",
+        "size": 0,
+        "title": "Correlation Sample Size Warning (shows only when <30 events)",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Notice",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "contains",
+                    "text": "INSUFFICIENT SAMPLE WARNING",
+                    "representation": "warning"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "correlation-sample-warning"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
         "query": "// RU vs Latency Trend (dual axis) - 5-min buckets (Issue #290)\nlet timeRange = 2h;\nlet bucketSize = 5m;\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         latencyMs = todouble(customDimensions.latencyMs),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName) and isnotnull(ruCharge) and isnotnull(latencyMs)\n| summarize \n    AvgRU = avg(ruCharge),\n    P95Latency = percentile(latencyMs, 95)\n  by bucket = bin(timestamp, bucketSize)\n| order by bucket asc",
         "size": 0,
         "title": "Average RU vs P95 Latency Trend (5-min buckets, 2h)",
@@ -276,15 +380,16 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Partition Pressure Trend - RU% with 429 overlay (Issue #291)\n// Supports dynamic MAX_RU_PER_INTERVAL parameter with fallback handling\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Process RU events\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet failures = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed'\n| extend statusCode = toint(customDimensions.statusCode)\n| where statusCode == 429;\n\n// Aggregate RU and 429 counts per bucket (including zero-RU intervals)\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet throttleByBucket = failures\n| summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\n\n// Calculate RU% with proper zero handling\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         ThrottleCount = coalesce(ThrottleCount, 0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), todouble(null))\n| project timestamp = bucket, RUPercent, ThrottleCount, TotalRU, Threshold70 = 70.0, Threshold80 = 80.0\n| order by timestamp asc;\n\n// Return data (if config missing, RUPercent will be null and message shown in title)\npressureData",
+        "query": "// Partition Pressure Trend - RU% with 429 overlay (dynamic thresholds + high overlay)\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet rawMax = '{MaxRuPerInterval:escape}';\nlet hasMax = rawMax != '' and rawMax != '{MaxRuPerInterval:escape}';\nlet parsedMax = todouble(rawMax);\nlet maxRuParam = iff(hasMax and parsedMax > 0, parsedMax, real(null));\nlet baseStr = '{SustainedThresholdPercent:escape}';\nlet baseThreshold = iff(baseStr == '' or baseStr == '{SustainedThresholdPercent:escape}', 70.0, todouble(baseStr));\nlet offsetStr = '{HighThresholdOffset:escape}';\nlet offsetVal = iff(offsetStr == '' or offsetStr == '{HighThresholdOffset:escape}', 10.0, todouble(offsetStr));\nlet highThreshold = baseThreshold + offsetVal;\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet failures = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Failed'\n  | extend statusCode = toint(customDimensions.statusCode)\n  | where statusCode == 429;\nlet allBuckets = range t from ago(timeRange) to now() step bucketSize | project bucket = bin(t, bucketSize);\nlet ruByBucket = ruEvents | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet throttleByBucket = failures | summarize ThrottleCount = count() by bucket = bin(timestamp, bucketSize);\nallBuckets\n| join kind=leftouter ruByBucket on bucket\n| join kind=leftouter throttleByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0), ThrottleCount = coalesce(ThrottleCount, 0)\n| extend RUPercent = iff(isnotnull(maxRuParam) and maxRuParam > 0, round(100.0 * TotalRU / maxRuParam, 2), real(null))\n| extend RUPercentHigh = iff(isnotnull(RUPercent) and RUPercent > highThreshold, RUPercent, real(null))\n| project timestamp = bucket, RUPercent, RUPercentHigh, ThrottleCount, TotalRU, ThresholdBase = baseThreshold, ThresholdHigh = highThreshold\n| order by timestamp asc",
         "size": 0,
-        "title": "RU% and 429 Count (5-min buckets, 24h) {MaxRuPerInterval:label}",
+        "title": "RU% and 429 Count (5-min buckets, 24h) – Dynamic Thresholds",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
         "visualization": "linechart",
         "chartSettings": {
           "yAxis": [
             "RUPercent",
+            "RUPercentHigh",
             "ThrottleCount"
           ],
           "seriesLabelSettings": [
@@ -294,18 +399,23 @@
               "color": "blue"
             },
             {
+              "seriesName": "RUPercentHigh",
+              "label": "RU% (High)",
+              "color": "redBright"
+            },
+            {
               "seriesName": "ThrottleCount",
               "label": "429 Count",
               "color": "redBright"
             },
             {
-              "seriesName": "Threshold70",
-              "label": "70% Threshold",
+              "seriesName": "ThresholdBase",
+              "label": "Base Threshold (%)",
               "color": "orange"
             },
             {
-              "seriesName": "Threshold80",
-              "label": "80% Threshold",
+              "seriesName": "ThresholdHigh",
+              "label": "+Offset Threshold (%)",
               "color": "red"
             }
           ]
@@ -317,9 +427,9 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Sustained High RU Annotation (Issue #291)\n// Detects RU% >70% for ≥3 consecutive 5-minute intervals\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet maxRuStr = '{MaxRuPerInterval}';\nlet maxRuParam = iff(isempty(maxRuStr), todouble(null), todouble(maxRuStr));\nlet hasValidConfig = isnotnull(maxRuParam) and maxRuParam > 0;\n\n// Early exit if no config\nlet noConfig = datatable(Message:string) [\"ℹ️ Configure MAX_RU_PER_INTERVAL parameter to enable sustained pressure detection\"];\n\n// Calculate RU% per bucket\nlet ruEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend ruCharge = todouble(customDimensions.ruCharge)\n| where isnotnull(ruCharge);\n\nlet allBuckets = range timestamp from ago(timeRange) to now() step bucketSize\n| project bucket = bin(timestamp, bucketSize);\n\nlet ruByBucket = ruEvents\n| summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\n\nlet pressureData = allBuckets\n| join kind=leftouter ruByBucket on bucket\n| extend TotalRU = coalesce(TotalRU, 0.0),\n         RUPercent = iff(hasValidConfig, round(100.0 * coalesce(TotalRU, 0.0) / maxRuParam, 2), 0.0)\n| project timestamp = bucket, RUPercent\n| order by timestamp asc;\n\n// Detect sustained high RU (>=3 consecutive intervals >70%)\nlet sustainedHighRU = pressureData\n| extend IsHigh = RUPercent > 70.0\n| serialize rn = row_number()\n| extend prevIsHigh1 = prev(IsHigh, 1), prevIsHigh2 = prev(IsHigh, 2)\n| where IsHigh and prevIsHigh1 and prevIsHigh2\n| summarize \n    StartTime = min(timestamp), \n    EndTime = max(timestamp), \n    ConsecutiveIntervals = count(),\n    MaxRU = max(RUPercent),\n    AvgRU = round(avg(RUPercent), 1)\n| extend Message = strcat(\"🚨 SUSTAINED HIGH RU: \", ConsecutiveIntervals, \" consecutive intervals >70% (avg: \", AvgRU, \"%, max: \", MaxRU, \"%)\")\n| project StartTime, EndTime, ConsecutiveIntervals, AvgRU, MaxRU, Message;\n\n// Return no-config message or annotations\niff(not(hasValidConfig), noConfig, sustainedHighRU)",
+        "query": "// Sustained High RU Hotspots (dynamic thresholds & baseline guard)\nlet timeRange = 24h;\nlet bucketSize = 5m;\nlet rawMax = '{MaxRuPerInterval:escape}';\nlet hasMax = rawMax != '' and rawMax != '{MaxRuPerInterval:escape}';\nlet parsedMax = todouble(rawMax);\nlet maxRu = iff(hasMax and parsedMax > 0, parsedMax, 0.0);\nlet baseStr = '{SustainedThresholdPercent:escape}';\nlet baseThreshold = iff(baseStr == '' or baseStr == '{SustainedThresholdPercent:escape}', 70.0, todouble(baseStr));\nlet offsetStr = '{HighThresholdOffset:escape}';\nlet offsetVal = iff(offsetStr == '' or offsetStr == '{HighThresholdOffset:escape}', 10.0, todouble(offsetStr));\nlet ruEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotnull(ruCharge);\nlet ruByBucket = ruEvents\n  | summarize TotalRU = sum(ruCharge) by bucket = bin(timestamp, bucketSize);\nlet high = ruByBucket\n  | where maxRu > 0\n  | extend RUPercent = round(100.0 * TotalRU / maxRu, 2)\n  | where RUPercent > baseThreshold\n  | project StartTime = bucket, Message = strcat('RU% >', tostring(baseThreshold), ' at ', tostring(bucket), ' (', RUPercent, '%)'), include = true;\nlet info = print StartTime=datetime(null), Message= strcat('ℹ️ Configure MAX_RU_PER_INTERVAL (>0) and/or adjust thresholds Base=', tostring(baseThreshold), ' Offset=', tostring(offsetVal), ' to enable sustained alerts'), include = maxRu == 0;\nunion high, info | where include | project StartTime, Message | order by StartTime asc nulls last",
         "size": 0,
-        "title": "Sustained Pressure Alerts (RU >70% for ≥3 intervals)",
+        "title": "Sustained Pressure Alerts (RU >ThresholdBase%)",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
         "visualization": "table",
@@ -398,11 +508,6 @@
             }
           ]
         }
-      },
-      "conditionalVisibility": {
-        "parameterName": "MaxRuPerInterval",
-        "comparison": "isNotEqualTo",
-        "value": ""
       },
       "name": "partition-pressure-annotation"
     },
@@ -540,7 +645,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Missing RU Warning Banner (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed'\n| extend operationName = tostring(customDimensions.operationName),\n         ruCharge = todouble(customDimensions.ruCharge)\n| where isnotempty(operationName);\nlet totalEvents = toscalar(successEvents | count);\nlet missingRU = toscalar(successEvents | where isnull(ruCharge) | count);\nlet missingPercent = iff(totalEvents > 0, round(100.0 * missingRU / totalEvents, 1), 0.0);\nlet showWarning = missingPercent > 30.0;\niff(showWarning,\n    datatable(Warning:string) [strcat(\"⚠️ RU DATA INCOMPLETE: \", missingPercent, \"% of success events missing ruCharge values. RU/Call metrics may be unreliable. Check Graph.Query.Executed telemetry instrumentation.\")],\n    datatable(Status:string) [\"✅ RU data coverage adequate (<30% missing)\"]\n)",
+        "query": "// Missing RU Warning Banner (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Graph.Query.Executed'\n  | extend operationName = tostring(customDimensions.operationName), ruCharge = todouble(customDimensions.ruCharge)\n  | where isnotempty(operationName);\nlet totalEvents = toscalar(successEvents | count);\nlet missingRU = toscalar(successEvents | where isnull(ruCharge) | count);\nlet missingPercent = iff(totalEvents > 0, round(100.0 * missingRU / totalEvents, 1), 0.0);\nlet warn = print strcat('⚠️ RU DATA INCOMPLETE: ', missingPercent, '% of success events missing ruCharge values. RU/Call metrics may be unreliable. Check instrumentation.') | extend Warning = print_0, Status='', include = missingPercent > 30.0 | project Warning, Status, include;\nlet ok = print '✅ RU data coverage adequate (<30% missing)' | extend Warning='', Status=print_0, include = missingPercent <= 30.0 | project Warning, Status, include;\nunion warn, ok | where include | project Warning, Status",
         "size": 0,
         "title": "RU Data Quality Check",
         "queryType": 0,
@@ -585,7 +690,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "// Overall Failure Rate Notes (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Executed';\nlet failureEvents = customEvents\n| where timestamp > ago(timeRange)\n| where name == 'Graph.Query.Failed';\nlet totalSuccess = toscalar(successEvents | count);\nlet totalFailure = toscalar(failureEvents | count);\nlet totalCalls = totalSuccess + totalFailure;\nlet overallFailureRate = iff(totalCalls > 0, round(100.0 * totalFailure / totalCalls, 2), 0.0);\nlet isLowPriority = overallFailureRate < 1.0 and totalCalls >= 100;\niff(isLowPriority,\n    datatable(Note:string) [strcat(\"ℹ️ LOW PRIORITY: Overall failure rate is \", overallFailureRate, \"% (<1%). System reliability is good. Optimization tasks may be deferred unless specific operations show high cost or latency.\")],\n    iff(totalCalls < 100,\n        datatable(Note:string) [strcat(\"ℹ️ INSUFFICIENT DATA: Only \", totalCalls, \" total operations in 24h. Wait for more traffic to assess priority.\")],\n        datatable(Note:string) [strcat(\"⚠️ MONITOR: Overall failure rate is \", overallFailureRate, \"% (≥1%). Review high-failure operations above.\")]\n    )\n)",
+        "query": "// Overall Failure Rate Notes (Issue #296)\nlet timeRange = 24h;\nlet successEvents = customEvents | where timestamp > ago(timeRange) | where name == 'Graph.Query.Executed';\nlet failureEvents = customEvents | where timestamp > ago(timeRange) | where name == 'Graph.Query.Failed';\nlet totalSuccess = toscalar(successEvents | count);\nlet totalFailure = toscalar(failureEvents | count);\nlet totalCalls = totalSuccess + totalFailure;\nlet overallFailureRate = iff(totalCalls > 0, round(100.0 * totalFailure / totalCalls, 2), 0.0);\nlet lowPriority = print strcat('ℹ️ LOW PRIORITY: Overall failure rate is ', overallFailureRate, '% (<1%). Reliability good.') | extend include = overallFailureRate < 1.0 and totalCalls >= 100 | project Note = print_0, include;\nlet insufficient = print strcat('ℹ️ INSUFFICIENT DATA: Only ', totalCalls, ' total operations in 24h. Wait for more traffic.') | extend include = totalCalls < 100 | project Note = print_0, include;\nlet monitor = print strcat('⚠️ MONITOR: Overall failure rate is ', overallFailureRate, '% (≥1%). Review high-failure operations above.') | extend include = overallFailureRate >= 1.0 and totalCalls >= 100 | project Note = print_0, include;\nunion lowPriority, insufficient, monitor | where include | project Note",
         "size": 0,
         "title": "Optimization Priority Assessment",
         "queryType": 0,
@@ -632,7 +737,7 @@
   ],
   "_exportMetadata": {
     "slug": "performance-operations-dashboard",
-    "exportedAt": "2025-11-08",
+    "exportedAt": "2025-11-18",
     "note": "This file is auto-generated from Azure Application Insights workbook. Do not edit directly. Use scripts/observability/export-workbooks.mjs to update."
   }
 }
