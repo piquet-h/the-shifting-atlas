@@ -1,5 +1,5 @@
-import { inject, injectable } from 'inversify'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { injectable } from 'inversify'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepository.js'
 
 /**
@@ -14,7 +14,7 @@ export class CosmosDescriptionRepository implements IDescriptionRepository {
     // TODO: Inject Cosmos SQL client when implementing
     private fallback = new Map<string, DescriptionLayer>()
 
-    constructor(@inject('TelemetryService') protected telemetryService: TelemetryService) {}
+    constructor(protected telemetryService: TelemetryService) {}
 
     async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
         const started = Date.now()

@@ -2,7 +2,7 @@ import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDire
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP } from '../persistence/graphPartition.js'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosGremlinRepository } from './base/index.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash, firstScalar } from './utils/index.js'
@@ -12,7 +12,7 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
     constructor(
         @inject('GremlinClient') client: IGremlinClient,
-        @inject('TelemetryService') protected telemetryService: TelemetryService
+        protected telemetryService: TelemetryService
     ) {
         super(client, telemetryService)
     }

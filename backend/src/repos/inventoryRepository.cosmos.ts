@@ -9,7 +9,7 @@
 
 import type { IInventoryRepository, InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import { inject, injectable } from 'inversify'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 
@@ -29,7 +29,7 @@ interface InventoryDocument extends InventoryItem {
 export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDocument> implements IInventoryRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') protected telemetryService: TelemetryService
+        protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'inventory')
     }

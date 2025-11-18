@@ -8,7 +8,7 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { IPlayerRepository, PlayerRecord } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { IPlayerRepository as IGremlinPlayerRepository } from './playerRepository.js'
@@ -30,7 +30,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') protected telemetryService: TelemetryService,
+        protected telemetryService: TelemetryService,
         @inject('IPlayerRepository:GremlinReadOnly') gremlinFallback?: IGremlinPlayerRepository
     ) {
         super(sqlClient, 'players', telemetryService)

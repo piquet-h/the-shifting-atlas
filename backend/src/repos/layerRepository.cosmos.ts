@@ -9,7 +9,7 @@
 
 import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { inject, injectable } from 'inversify'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { ILayerRepository } from './layerRepository.js'
@@ -30,7 +30,7 @@ interface LayerDocument extends DescriptionLayer {
 export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> implements ILayerRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') protected telemetryService: TelemetryService
+        protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'descriptionLayers')
     }

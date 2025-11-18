@@ -17,7 +17,7 @@ import { app } from '@azure/functions'
 import type { Container } from 'inversify'
 import { computeDescriptionIntegrityHashes } from '../handlers/computeIntegrityHashes.js'
 import type { IDescriptionRepository } from '../repos/descriptionRepository.js'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 
 const SCHEDULE = process.env.INTEGRITY_JOB_SCHEDULE || '0 0 2 * * *'
 
@@ -34,7 +34,7 @@ app.timer('TimerComputeIntegrityHashes', {
 
         // Get description repository from DI container
         const repository = container.get<IDescriptionRepository>('IDescriptionRepository')
-        const telemetryService = container.get<TelemetryService>('TelemetryService')
+        const telemetryService = container.get(TelemetryService)
 
         // Execute the integrity hash computation job
         await computeDescriptionIntegrityHashes(repository, telemetryService, context)

@@ -10,7 +10,7 @@
 
 import type { PlayerDoc } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 
@@ -39,7 +39,7 @@ export interface IPlayerDocRepository {
 export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implements IPlayerDocRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject('TelemetryService') protected telemetryService: TelemetryService
+        protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'players', telemetryService)
     }
