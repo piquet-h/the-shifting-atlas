@@ -56,13 +56,14 @@ Negative: Known scalability ceiling until migration; potential cross-partition e
 
 - New constants file `graphPartition.ts` and repository refactor.
 
-## Follow-Up Issues (to create)
+## Follow-Up Issues (completed/in-progress)
 
-- Provision SQL API (players, inventory, layers, events).\
-- Player SQL projection + write-through pattern.\
-- Region partition migration script scaffold.\
-- Telemetry capture for Gremlin RU/latency.\
-- Adopt partition constants (done here).
+- ✅ Provision SQL API (players, inventory, layers, events) - #517
+- ✅ Player SQL projection + write-through pattern - #518
+- ✅ Feature flag for Gremlin player vertex fallback - #519
+- ⏳ Region partition migration script scaffold
+- ⏳ Telemetry capture for Gremlin RU/latency
+- ✅ Adopt partition constants (done in this ADR)
 
 ## Rollback
 
