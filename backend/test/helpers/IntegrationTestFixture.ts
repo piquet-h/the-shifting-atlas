@@ -62,6 +62,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get<ILocationRepository>('ILocationRepository')
     }
 
+    /** Get ExitRepository instance from DI container */
+    async getExitRepository(): Promise<import('../../src/repos/exitRepository.js').IExitRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/exitRepository.js').IExitRepository>('IExitRepository')
+    }
+
     /** Get PlayerRepository instance from DI container */
     async getPlayerRepository(): Promise<IPlayerRepository> {
         const container = await this.getContainer()
