@@ -11,22 +11,55 @@
  * - ADR-001: Mosswell Persistence & Layering (idempotent upsert pattern with fold/coalesce)
  * - Issue: Persistence Concurrency Idempotency Race Test
  *
- * Scope: In-memory mode for deterministic, fast CI execution
- * Future: Optional Cosmos mode when external dependencies are available
+ * Scope: Both memory and cosmos modes
+ * - Memory mode: Fast, deterministic CI execution
+ * - Cosmos mode: Real DB concurrency validation (when PERSISTENCE_MODE=cosmos)
  */
 
 import { Location } from '@piquet-h/shared'
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
-import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
+import { afterEach, beforeEach, describe, test } from 'node:test'
+import { IntegrationTestFixture } from '../../helpers/IntegrationTestFixture.js'
+import type { ContainerMode } from '../../helpers/testInversify.config.js'
 
-describe('Persistence Concurrency Idempotency', () => {
+/**
+ * Run test suite against both memory and cosmos modes
+ * Cosmos mode tests will skip gracefully if infrastructure is not available
+ */
+function describeForBothModes(suiteName: string, testFn: (mode: ContainerMode) => void): void {
+    const modes: ContainerMode[] = ['memory', 'cosmos']
+
+    for (const mode of modes) {
+        describe(`${suiteName} [${mode}]`, () => {
+            // Skip cosmos tests if PERSISTENCE_MODE is not explicitly set to 'cosmos'
+            // This allows tests to run in CI without requiring Cosmos DB credentials
+            if (mode === 'cosmos' && process.env.PERSISTENCE_MODE !== 'cosmos') {
+                test.skip('Cosmos tests skipped (PERSISTENCE_MODE != cosmos)', () => {})
+                return
+            }
+            testFn(mode)
+        })
+    }
+}
+
+describeForBothModes('Persistence Concurrency Idempotency', (mode) => {
+    let fixture: IntegrationTestFixture
+
+    beforeEach(async () => {
+        fixture = new IntegrationTestFixture(mode)
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     /**
      * Stress test: concurrent upsert operations on same location set
      * Validates: only one creation per location, version increments only on content change
      */
     test('concurrent upsert maintains idempotency - no duplicate vertices', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Define a set of test locations
         const locationIds = ['loc-1', 'loc-2', 'loc-3']
@@ -53,18 +86,18 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: only one creation per location (3 total creates across 45 operations)
         const createdCount = results.filter((r) => r.created).length
-        assert.equal(createdCount, locationIds.length, `Expected ${locationIds.length} creates but got ${createdCount}`)
+        assert.strictEqual(createdCount, locationIds.length, `Expected ${locationIds.length} creates but got ${createdCount}`)
 
         // Assert: all subsequent operations returned created=false
         const updateCount = results.filter((r) => !r.created).length
-        assert.equal(updateCount, concurrencyLevel * locationIds.length - locationIds.length)
+        assert.strictEqual(updateCount, concurrencyLevel * locationIds.length - locationIds.length)
 
         // Verify locations exist and have correct content
         for (const location of locations) {
             const retrieved = await repo.get(location.id)
             assert.ok(retrieved, `Location ${location.id} should exist`)
-            assert.equal(retrieved.name, location.name)
-            assert.equal(retrieved.description, location.description)
+            assert.strictEqual(retrieved.name, location.name)
+            assert.strictEqual(retrieved.description, location.description)
         }
     })
 
@@ -73,7 +106,7 @@ describe('Persistence Concurrency Idempotency', () => {
      * Validates: only one creation per edge, no duplicate edges
      */
     test('concurrent ensureExit maintains idempotency - no duplicate edges', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Pre-seed locations
         const locations: Location[] = [
@@ -110,11 +143,11 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: only one creation per edge
         const createdCount = results.filter((r) => r.created).length
-        assert.equal(createdCount, edges.length, `Expected ${edges.length} creates but got ${createdCount}`)
+        assert.strictEqual(createdCount, edges.length, `Expected ${edges.length} creates but got ${createdCount}`)
 
         // Assert: all subsequent operations returned created=false
         const skippedCount = results.filter((r) => !r.created).length
-        assert.equal(skippedCount, concurrencyLevel * edges.length - edges.length)
+        assert.strictEqual(skippedCount, concurrencyLevel * edges.length - edges.length)
 
         // Verify edges exist and no duplicates
         for (const edge of edges) {
@@ -122,7 +155,7 @@ describe('Persistence Concurrency Idempotency', () => {
             assert.ok(location, `Location ${edge.from} should exist`)
 
             const matchingExits = location.exits?.filter((e) => e.direction === edge.direction && e.to === edge.to) || []
-            assert.equal(
+            assert.strictEqual(
                 matchingExits.length,
                 1,
                 `Expected exactly 1 exit from ${edge.from} ${edge.direction} to ${edge.to}, found ${matchingExits.length}`
@@ -135,7 +168,7 @@ describe('Persistence Concurrency Idempotency', () => {
      * Validates: minimal version inflation under parallel upserts
      */
     test('concurrent upsert with same content - minimal version increments', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Create initial location
         const initialLocation: Location = {
@@ -150,7 +183,7 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Verify initial version
         let location = await repo.get('version-test')
-        assert.equal(location?.version, 1)
+        assert.strictEqual(location?.version, 1)
 
         // Concurrent upserts with SAME content (no changes)
         const sameContentPromises: Promise<{ created: boolean; id: string; updatedRevision?: number }>[] = []
@@ -167,10 +200,10 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: no version increments when content unchanged
         const versionsIncremented = sameContentResults.filter((r) => r.updatedRevision !== undefined).length
-        assert.equal(versionsIncremented, 0, 'Version should not increment when content unchanged')
+        assert.strictEqual(versionsIncremented, 0, 'Version should not increment when content unchanged')
 
         location = await repo.get('version-test')
-        assert.equal(location?.version, 1, 'Version should remain 1 after same-content upserts')
+        assert.strictEqual(location?.version, 1, 'Version should remain 1 after same-content upserts')
     })
 
     /**
@@ -178,7 +211,7 @@ describe('Persistence Concurrency Idempotency', () => {
      * Validates: deterministic version increment behavior
      */
     test('concurrent upsert with changed content - version increments only once per change', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Create initial location
         const initialLocation: Location = {
@@ -207,12 +240,12 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: exactly one version increment (first operation that detects change)
         const versionsIncremented = changedContentResults.filter((r) => r.updatedRevision !== undefined).length
-        assert.equal(versionsIncremented, 1, 'Version should increment exactly once when content changes')
+        assert.strictEqual(versionsIncremented, 1, 'Version should increment exactly once when content changes')
 
         // Verify final version is 2
         const location = await repo.get('version-change-test')
-        assert.equal(location?.version, 2, 'Version should be 2 after content change')
-        assert.equal(location?.description, 'Updated description')
+        assert.strictEqual(location?.version, 2, 'Version should be 2 after content change')
+        assert.strictEqual(location?.description, 'Updated description')
     })
 
     /**
@@ -224,7 +257,7 @@ describe('Persistence Concurrency Idempotency', () => {
      * idempotency on vertex creation, then exits are created with similar guarantees.
      */
     test('concurrent mixed operations - full seeding scenario', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Define location set
         const locationIds = ['hub', 'north-room', 'south-room', 'east-room', 'west-room']
@@ -261,7 +294,7 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: exactly one creation per location
         const locationsCreated = upsertResults.filter((r) => r.created).length
-        assert.equal(locationsCreated, locations.length, `Expected ${locations.length} location creates, got ${locationsCreated}`)
+        assert.strictEqual(locationsCreated, locations.length, `Expected ${locations.length} location creates, got ${locationsCreated}`)
 
         // Phase 2: Concurrent exit creation (now that locations are guaranteed to exist)
         const exitPromises: Promise<{ created: boolean }>[] = []
@@ -274,7 +307,7 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: exactly one creation per edge
         const edgesCreated = exitResults.filter((r) => r.created).length
-        assert.equal(edgesCreated, edges.length, `Expected ${edges.length} edge creates, got ${edgesCreated}`)
+        assert.strictEqual(edgesCreated, edges.length, `Expected ${edges.length} edge creates, got ${edgesCreated}`)
 
         // Verify data integrity: all locations exist with correct edges
         for (const edge of edges) {
@@ -282,12 +315,12 @@ describe('Persistence Concurrency Idempotency', () => {
             assert.ok(location, `Location ${edge.from} should exist`)
 
             const matchingExits = location.exits?.filter((e) => e.direction === edge.direction && e.to === edge.to) || []
-            assert.equal(matchingExits.length, 1, `Expected exactly 1 exit from ${edge.from} ${edge.direction} to ${edge.to}`)
+            assert.strictEqual(matchingExits.length, 1, `Expected exactly 1 exit from ${edge.from} ${edge.direction} to ${edge.to}`)
         }
 
         // Verify hub has 4 exits (to all 4 rooms)
         const hub = await repo.get('hub')
-        assert.equal(hub?.exits?.length, 4, 'Hub should have 4 exits')
+        assert.strictEqual(hub?.exits?.length, 4, 'Hub should have 4 exits')
     })
 
     /**
@@ -295,7 +328,7 @@ describe('Persistence Concurrency Idempotency', () => {
      * Validates: no duplicate reciprocal edges
      */
     test('concurrent ensureExitBidirectional maintains idempotency', async () => {
-        const repo = new InMemoryLocationRepository()
+        const repo = await fixture.getLocationRepository()
 
         // Pre-seed locations
         await repo.upsert({ id: 'X', name: 'Location X', description: 'Start', exits: [] })
@@ -311,20 +344,20 @@ describe('Persistence Concurrency Idempotency', () => {
 
         // Assert: exactly one forward creation
         const forwardCreated = results.filter((r) => r.created).length
-        assert.equal(forwardCreated, 1, 'Forward exit should be created exactly once')
+        assert.strictEqual(forwardCreated, 1, 'Forward exit should be created exactly once')
 
         // Assert: exactly one reciprocal creation
         const reciprocalCreated = results.filter((r) => r.reciprocalCreated).length
-        assert.equal(reciprocalCreated, 1, 'Reciprocal exit should be created exactly once')
+        assert.strictEqual(reciprocalCreated, 1, 'Reciprocal exit should be created exactly once')
 
         // Verify: X has one north exit to Y
         const locX = await repo.get('X')
         const xExits = locX?.exits?.filter((e) => e.direction === 'north' && e.to === 'Y') || []
-        assert.equal(xExits.length, 1, 'X should have exactly one north exit to Y')
+        assert.strictEqual(xExits.length, 1, 'X should have exactly one north exit to Y')
 
         // Verify: Y has one south exit to X
         const locY = await repo.get('Y')
         const yExits = locY?.exits?.filter((e) => e.direction === 'south' && e.to === 'X') || []
-        assert.equal(yExits.length, 1, 'Y should have exactly one south exit to X')
+        assert.strictEqual(yExits.length, 1, 'Y should have exactly one south exit to X')
     })
 })
