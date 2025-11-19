@@ -133,12 +133,13 @@ app.hook.appStart(async () => {
     if (isCosmosMode) {
         appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
 
-        // Emit feature flag state telemetry
+        // Emit feature flag state telemetry using container's telemetry client
         try {
+            const telemetryClient = container.get<ITelemetryClient>('ITelemetryClient')
             const { getFeatureFlagSnapshot, getValidationWarnings } = await import('./config/featureFlags.js')
             const flagSnapshot = getFeatureFlagSnapshot()
 
-            appInsights.defaultClient.trackEvent({
+            telemetryClient.trackEvent({
                 name: 'FeatureFlag.Loaded',
                 properties: flagSnapshot
             })
@@ -146,7 +147,7 @@ app.hook.appStart(async () => {
             // Emit warnings for any invalid flag values
             const warnings = getValidationWarnings()
             for (const warning of warnings) {
-                appInsights.defaultClient.trackEvent({
+                telemetryClient.trackEvent({
                     name: 'FeatureFlag.ValidationWarning',
                     properties: {
                         flagName: warning.flagName,
