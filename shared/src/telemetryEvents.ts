@@ -84,6 +84,9 @@ export const GAME_EVENT_NAMES = [
     'Secret.Cache.Clear',
     // Persistence / infrastructure
     'Persistence.Mode.StrictFail',
+    // Feature flag configuration (startup validation and state logging)
+    'FeatureFlag.Loaded', // Feature flag state loaded at startup (includes all flag values)
+    'FeatureFlag.ValidationWarning', // Invalid flag value detected, using default
     // Graph operations (Gremlin RU & latency tracking for ADR-002 partition thresholds)
     'Graph.Query.Executed',
     'Graph.Query.Failed',

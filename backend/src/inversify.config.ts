@@ -149,8 +149,16 @@ export const setupContainer = async (container: Container) => {
     // Bind PlayerDocRepository (SQL API player projection)
     container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
 
-    // Bind Gremlin player repository as read-only fallback (disaster recovery, no writes)
-    container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
+    // Feature flag: conditionally disable Gremlin player vertex fallback (ADR-002 migration)
+    const { DISABLE_GREMLIN_PLAYER_VERTEX } = await import('./config/featureFlags.js')
+
+    if (!DISABLE_GREMLIN_PLAYER_VERTEX) {
+        // Bind Gremlin player repository as read-only fallback (disaster recovery, no writes)
+        // When feature flag is disabled (default), Gremlin fallback is available for reads
+        container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
+    }
+    // If feature flag is enabled, skip Gremlin binding entirely
+    // CosmosPlayerRepositorySql will receive undefined for gremlinFallback parameter
 
     // Bind SQL player repository as primary
     container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
