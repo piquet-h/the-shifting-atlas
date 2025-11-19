@@ -526,6 +526,17 @@ module workbookSqlPartitionMonitoring 'workbook-sql-partition-monitoring-dashboa
   }
 }
 
+// Workbook: Dual Persistence Monitoring Dashboard (SQL + Gremlin migration health)
+// Issue #529: Monitor player migration success/failure, write-through latency, Gremlin fallback frequency
+module workbookDualPersistence 'workbook-dual-persistence-dashboard.bicep' = {
+  name: 'workbook-dual-persistence-dashboard'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
+
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
 // Replaced complex KQL query with Action Group correlation (alert processing rule)

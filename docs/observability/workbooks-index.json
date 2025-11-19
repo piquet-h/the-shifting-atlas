@@ -49,6 +49,41 @@
         "Graph.Query.Executed",
         "Graph.Query.Failed"
       ]
+    },
+    {
+      "id": "local-dual-persistence-dashboard",
+      "name": "Dual Persistence Monitoring Dashboard",
+      "slug": "dual-persistence-dashboard",
+      "description": "Monitors dual persistence health during SQL API migration: player migration success/failure rates, write-through latency, Gremlin fallback frequency. Enables operational visibility and tracking toward <5% Gremlin fallback target.",
+      "owners": ["observability"],
+      "consolidated": true,
+      "panels": [
+        "Migration Success Rate (24h)",
+        "Write-Through Operations",
+        "Gremlin Fallback Frequency",
+        "Migration Success Rate Trend",
+        "Gremlin Fallback Trend",
+        "Write-Through Error Distribution",
+        "Top Failed Player IDs",
+        "Average Latency by Operation (SQL vs Gremlin)"
+      ],
+      "relatedIssues": [
+        518,
+        519,
+        525,
+        386,
+        529
+      ],
+      "telemetryEvents": [
+        "Player.Migrate.Success",
+        "Player.Migrate.Failed",
+        "Player.WriteThrough.Success",
+        "Player.WriteThrough.Failed",
+        "Player.Get.SourceSql",
+        "Player.Get.SourceGremlinFallback",
+        "PlayerDoc.Read",
+        "PlayerDoc.Upsert"
+      ]
     }
   ],
   "notes": {
