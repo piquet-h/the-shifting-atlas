@@ -655,6 +655,63 @@ interface QuestDocument {
    ```
 3. **Remove player vertices:** After code migration, clean up Gremlin player vertices (optional)
 
+## Feature Flags: Migration Control
+
+### DISABLE_GREMLIN_PLAYER_VERTEX
+
+**Purpose:** Progressive rollout of SQL API-only player persistence (ADR-002 completion).
+
+**Environment Variable:** `DISABLE_GREMLIN_PLAYER_VERTEX`  
+**Default:** `false` (Gremlin fallback enabled)  
+**Valid Values:** `true`, `false`, `1`, `0`, `yes`, `no` (case-insensitive)
+
+**Behavior:**
+
+| Flag Value | Player Reads | Player Writes | Gremlin Fallback | Use Case |
+|------------|--------------|---------------|------------------|----------|
+| `false` (default) | SQL API primary | SQL API only | Available on read miss | Safe migration mode; backward compatibility |
+| `true` | SQL API only | SQL API only | Disabled | Post-migration; Gremlin cleanup phase |
+
+**Migration Flow:**
+
+1. **Phase 1: Dual Mode (flag=false, default)**
+   - New players created in SQL API
+   - Existing players in Gremlin migrated to SQL on read
+   - Fallback to Gremlin if player not in SQL
+   - Telemetry: `Player.Get` with `source='sql'` or `source='gremlin-fallback'`
+
+2. **Phase 2: SQL-Only Mode (flag=true)**
+   - Set `DISABLE_GREMLIN_PLAYER_VERTEX=true` in production environment
+   - All player reads from SQL API exclusively
+   - No Gremlin fallback (reduces latency, RU consumption)
+   - Telemetry: `Player.Get` with `source='sql'` only
+
+3. **Phase 3: Cleanup (manual)**
+   - After observing zero `gremlin-fallback` events for 7+ days
+   - Optionally remove player vertices from Gremlin
+   - Keep exit/location graph intact
+
+**Rollback Scenario:**
+```bash
+# Revert to Gremlin fallback if SQL API issues detected
+export DISABLE_GREMLIN_PLAYER_VERTEX=false
+```
+
+**Observability:**
+- Startup event: `FeatureFlag.Loaded` with all flag values
+- Invalid flag values: `FeatureFlag.ValidationWarning` + console warning
+
+**Implementation Reference:**
+- Flag definition: `backend/src/config/featureFlags.ts`
+- DI binding: `backend/src/inversify.config.ts` (conditional Gremlin fallback)
+- Repository logic: `backend/src/repos/playerRepository.cosmosSql.ts`
+
+**Related Issues:**
+- #517 (PlayerRecord Schema & Repository Core)
+- #518 (Player Write-Through Logic)
+- #519 (This Feature Flag)
+- ADR-002 (Dual Persistence Strategy)
+
 ## Pointers
 
 -   High‑level rationale: `overview.md`
@@ -670,4 +727,4 @@ interface QuestDocument {
 -   Region sharding – gate on RU/latency signals (ADR-002 thresholds)
 -   Multiplayer & economy – post stable layering + traversal analytics
 
-_Last updated: 2025-11-13 (added dual persistence container schemas, decision matrix, code examples, migration runbook, troubleshooting guide)_
+_Last updated: 2025-11-18 (added DISABLE_GREMLIN_PLAYER_VERTEX feature flag documentation)_

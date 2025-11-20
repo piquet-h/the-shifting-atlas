@@ -128,10 +128,48 @@ app.hook.appStart(async () => {
 
     const endTime = Date.now()
     const duration = endTime - startTime
+
+    // Log feature flag configuration after container setup
     if (isCosmosMode) {
         appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
+
+        // Emit feature flag state telemetry using container's telemetry client
+        try {
+            const telemetryClient = container.get<ITelemetryClient>('ITelemetryClient')
+            const { getFeatureFlagSnapshot, getValidationWarnings } = await import('./config/featureFlags.js')
+            const flagSnapshot = getFeatureFlagSnapshot()
+
+            telemetryClient.trackEvent({
+                name: 'FeatureFlag.Loaded',
+                properties: flagSnapshot
+            })
+
+            // Emit warnings for any invalid flag values
+            const warnings = getValidationWarnings()
+            for (const warning of warnings) {
+                telemetryClient.trackEvent({
+                    name: 'FeatureFlag.ValidationWarning',
+                    properties: {
+                        flagName: warning.flagName,
+                        rawValue: warning.rawValue,
+                        defaultValue: warning.defaultValue.toString()
+                    }
+                })
+            }
+        } catch (error) {
+            console.warn('[startup] Failed to log feature flags', error)
+        }
     } else {
         console.log(`[startup] Container setup completed in ${duration}ms`)
+
+        // Log feature flags to console in memory mode
+        try {
+            const { getFeatureFlagSnapshot } = await import('./config/featureFlags.js')
+            const flagSnapshot = getFeatureFlagSnapshot()
+            console.log('[startup] Feature flags:', flagSnapshot)
+        } catch (error) {
+            console.warn('[startup] Failed to log feature flags', error)
+        }
     }
 
     // Register graceful shutdown hooks AFTER container setup so bindings exist.

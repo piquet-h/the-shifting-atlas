@@ -1,0 +1,513 @@
+{
+    "version": "Notebook/1.0",
+    "items": [
+        {
+            "type": 1,
+            "content": {
+                "json": "# Dual Persistence Monitoring Dashboard\n\nMonitors dual persistence health: player migration success/failure rates, write-through latency, Gremlin fallback frequency during SQL API migration.\n\n**Telemetry Events:** `Player.Migrate.Success`, `Player.Migrate.Failed`, `Player.WriteThrough.Success`, `Player.WriteThrough.Failed`, `Player.Get.SourceSql`, `Player.Get.SourceGremlinFallback`\n\n**Objective:** Provide operational visibility during migration from Gremlin to SQL API primary persistence. Monitor sync health, identify migration blockers, and track progress toward &lt;5% Gremlin fallback target.\n\n**Related Issues:** #518 (Player Write-Through), #519 (Gremlin Feature Flag), #525 (Telemetry Events), #386 (Epic: Dual Persistence)\n\n**References:** ADR-002 (Dual Persistence Strategy)\n"
+            },
+            "name": "header"
+        },
+        {
+            "type": 9,
+            "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "time-range-parameter",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "TimeRange",
+                        "type": 4,
+                        "isRequired": true,
+                        "value": {
+                            "durationMs": 86400000
+                        },
+                        "typeSettings": {
+                            "selectableValues": [
+                                {
+                                    "durationMs": 3600000,
+                                    "createdTime": "2025-11-18T00:00:00.000Z",
+                                    "isInitialTime": false,
+                                    "grain": 1,
+                                    "useDashboardTimeRange": false
+                                },
+                                {
+                                    "durationMs": 21600000,
+                                    "createdTime": "2025-11-18T00:00:00.000Z",
+                                    "isInitialTime": false,
+                                    "grain": 1,
+                                    "useDashboardTimeRange": false
+                                },
+                                {
+                                    "durationMs": 86400000,
+                                    "createdTime": "2025-11-18T00:00:00.000Z",
+                                    "isInitialTime": false,
+                                    "grain": 1,
+                                    "useDashboardTimeRange": false
+                                },
+                                {
+                                    "durationMs": 604800000,
+                                    "createdTime": "2025-11-18T00:00:00.000Z",
+                                    "isInitialTime": false,
+                                    "grain": 1,
+                                    "useDashboardTimeRange": false
+                                }
+                            ],
+                            "allowCustom": true
+                        },
+                        "timeContext": {
+                            "durationMs": 86400000
+                        },
+                        "label": "Time Range"
+                    },
+                    {
+                        "id": "player-filter-parameter",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "PlayerIdFilter",
+                        "type": 1,
+                        "description": "Filter by specific player ID (optional)",
+                        "timeContext": {
+                            "durationMs": 86400000
+                        },
+                        "label": "Player ID (optional)",
+                        "value": ""
+                    },
+                    {
+                        "id": "outcome-filter-parameter",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "OutcomeFilter",
+                        "type": 2,
+                        "description": "Filter by operation outcome",
+                        "isRequired": true,
+                        "value": "all",
+                        "typeSettings": {
+                            "additionalResourceOptions": [],
+                            "showDefault": false
+                        },
+                        "jsonData": "[{\"value\":\"all\",\"label\":\"All\"},{\"value\":\"success\",\"label\":\"Success\"},{\"value\":\"failure\",\"label\":\"Failure\"}]",
+                        "timeContext": {
+                            "durationMs": 86400000
+                        },
+                        "label": "Outcome"
+                    }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components"
+            },
+            "name": "parameters"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Migration Success Rate (Last 24h)\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet outcomeFilter = '{OutcomeFilter:escape}';\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Migrate.Success', 'Player.Migrate.Failed')\n  | extend playerId = tostring(customDimensions.playerId)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Total = count(), Successes = countif(name == 'Player.Migrate.Success'), Failures = countif(name == 'Player.Migrate.Failed')\n  | extend SuccessRate = iff(Total > 0, round((Successes * 100.0) / Total, 2), real(null))\n  | extend FailureRate = iff(Total > 0, round((Failures * 100.0) / Total, 2), real(null))\n  | extend include = totalEvents >= 1;\nlet empty = datatable(Total:long, Successes:long, Failures:long, SuccessRate:real, FailureRate:real)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include \n| where outcomeFilter == 'all' or (outcomeFilter == 'success' and Successes > 0) or (outcomeFilter == 'failure' and Failures > 0)\n| project Total, Successes, Failures, SuccessRate, FailureRate",
+                "size": 3,
+                "title": "Migration Success Rate (Last 24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles",
+                "tileSettings": {
+                    "titleContent": {
+                        "columnMatch": "SuccessRate",
+                        "formatter": 1
+                    },
+                    "leftContent": {
+                        "columnMatch": "SuccessRate",
+                        "formatter": 12,
+                        "formatOptions": {
+                            "palette": "redGreen"
+                        },
+                        "numberFormat": {
+                            "unit": 1,
+                            "options": {
+                                "style": "decimal",
+                                "maximumFractionDigits": 2
+                            }
+                        }
+                    },
+                    "secondaryContent": {
+                        "columnMatch": "Total",
+                        "formatter": 1
+                    },
+                    "showBorder": true
+                }
+            },
+            "customWidth": "33",
+            "name": "migration-success-rate-tile"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Write-Through Failure Count\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet outcomeFilter = '{OutcomeFilter:escape}';\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.WriteThrough.Success', 'Player.WriteThrough.Failed')\n  | extend playerId = tostring(customDimensions.playerId)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Total = count(), Successes = countif(name == 'Player.WriteThrough.Success'), Failures = countif(name == 'Player.WriteThrough.Failed')\n  | extend FailureRate = iff(Total > 0, round((Failures * 100.0) / Total, 2), real(null))\n  | extend include = totalEvents >= 1;\nlet empty = datatable(Total:long, Successes:long, Failures:long, FailureRate:real)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include \n| where outcomeFilter == 'all' or (outcomeFilter == 'success' and Successes > 0) or (outcomeFilter == 'failure' and Failures > 0)\n| project Total, Successes, Failures, FailureRate",
+                "size": 3,
+                "title": "Write-Through Operations",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles",
+                "tileSettings": {
+                    "titleContent": {
+                        "columnMatch": "Failures",
+                        "formatter": 1
+                    },
+                    "leftContent": {
+                        "columnMatch": "Failures",
+                        "formatter": 12,
+                        "formatOptions": {
+                            "palette": "greenRed"
+                        },
+                        "numberFormat": {
+                            "unit": 17,
+                            "options": {
+                                "style": "decimal"
+                            }
+                        }
+                    },
+                    "secondaryContent": {
+                        "columnMatch": "FailureRate",
+                        "formatter": 1
+                    },
+                    "showBorder": true
+                }
+            },
+            "customWidth": "33",
+            "name": "write-through-failures-tile"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Gremlin Fallback Frequency\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Get.SourceSql', 'Player.Get.SourceGremlinFallback')\n  | extend playerId = tostring(customDimensions.playerId)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Total = count(), SqlReads = countif(name == 'Player.Get.SourceSql'), GremlinFallbacks = countif(name == 'Player.Get.SourceGremlinFallback')\n  | extend FallbackRate = iff(Total > 0, round((GremlinFallbacks * 100.0) / Total, 2), real(null))\n  | extend include = totalEvents >= 1;\nlet empty = datatable(Total:long, SqlReads:long, GremlinFallbacks:long, FallbackRate:real)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| project Total, SqlReads, GremlinFallbacks, FallbackRate",
+                "size": 3,
+                "title": "Gremlin Fallback Frequency (Target: <5%)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles",
+                "tileSettings": {
+                    "titleContent": {
+                        "columnMatch": "FallbackRate",
+                        "formatter": 1
+                    },
+                    "leftContent": {
+                        "columnMatch": "FallbackRate",
+                        "formatter": 12,
+                        "formatOptions": {
+                            "palette": "greenRed",
+                            "customColumnWidthSetting": "50ch"
+                        },
+                        "numberFormat": {
+                            "unit": 1,
+                            "options": {
+                                "style": "decimal",
+                                "maximumFractionDigits": 2
+                            }
+                        }
+                    },
+                    "secondaryContent": {
+                        "columnMatch": "GremlinFallbacks",
+                        "formatter": 1
+                    },
+                    "showBorder": true
+                }
+            },
+            "customWidth": "33",
+            "name": "gremlin-fallback-tile"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Migration Success Rate Trend (7d)\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet outcomeFilter = '{OutcomeFilter:escape}';\nlet bucketSize = iff(timeRange <= 1h, 5m, iff(timeRange <= 6h, 15m, iff(timeRange <= 1d, 1h, 6h)));\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Migrate.Success', 'Player.Migrate.Failed')\n  | extend playerId = tostring(customDimensions.playerId)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Total = count(), Successes = countif(name == 'Player.Migrate.Success') by bin(timestamp, bucketSize)\n  | extend SuccessRate = iff(Total > 0, round((Successes * 100.0) / Total, 2), real(null))\n  | extend include = totalEvents >= 1\n  | order by timestamp asc;\nlet empty = datatable(timestamp:datetime, Total:long, Successes:long, SuccessRate:real)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| where outcomeFilter == 'all' or (outcomeFilter == 'success' and Successes > 0) or (outcomeFilter == 'failure' and Total - Successes > 0)\n| project timestamp, SuccessRate",
+                "size": 0,
+                "title": "Migration Success Rate Trend",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "linechart",
+                "chartSettings": {
+                    "seriesLabelSettings": [
+                        {
+                            "seriesName": "SuccessRate",
+                            "label": "Success Rate (%)",
+                            "color": "green"
+                        }
+                    ],
+                    "ySettings": {
+                        "numberFormatSettings": {
+                            "unit": 1,
+                            "options": {
+                                "style": "decimal",
+                                "useGrouping": true,
+                                "maximumFractionDigits": 2
+                            }
+                        },
+                        "min": 0,
+                        "max": 100
+                    }
+                }
+            },
+            "customWidth": "50",
+            "name": "migration-trend-chart"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Gremlin Fallback Frequency Trend\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet bucketSize = iff(timeRange <= 1h, 5m, iff(timeRange <= 6h, 15m, iff(timeRange <= 1d, 1h, 6h)));\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Get.SourceSql', 'Player.Get.SourceGremlinFallback')\n  | extend playerId = tostring(customDimensions.playerId)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Total = count(), GremlinFallbacks = countif(name == 'Player.Get.SourceGremlinFallback') by bin(timestamp, bucketSize)\n  | extend FallbackRate = iff(Total > 0, round((GremlinFallbacks * 100.0) / Total, 2), real(null))\n  | extend TargetThreshold = 5.0\n  | extend include = totalEvents >= 1\n  | order by timestamp asc;\nlet empty = datatable(timestamp:datetime, Total:long, GremlinFallbacks:long, FallbackRate:real, TargetThreshold:real)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| project timestamp, FallbackRate, TargetThreshold",
+                "size": 0,
+                "title": "Gremlin Fallback Trend (Target: <5%)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "linechart",
+                "chartSettings": {
+                    "seriesLabelSettings": [
+                        {
+                            "seriesName": "FallbackRate",
+                            "label": "Fallback Rate (%)",
+                            "color": "orange"
+                        },
+                        {
+                            "seriesName": "TargetThreshold",
+                            "label": "Target (<5%)",
+                            "color": "redBright"
+                        }
+                    ],
+                    "ySettings": {
+                        "numberFormatSettings": {
+                            "unit": 1,
+                            "options": {
+                                "style": "decimal",
+                                "useGrouping": true,
+                                "maximumFractionDigits": 2
+                            }
+                        },
+                        "min": 0
+                    }
+                }
+            },
+            "customWidth": "50",
+            "name": "fallback-trend-chart"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Write-Through Error Distribution\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Player.WriteThrough.Failed'\n  | extend playerId = tostring(customDimensions.playerId)\n  | extend errorType = tostring(customDimensions.errorType)\n  | extend errorMessage = tostring(customDimensions.errorMessage)\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize Count = count(), SampleMessage = any(errorMessage) by errorType\n  | extend include = totalEvents >= 1\n  | order by Count desc\n  | take 10;\nlet empty = datatable(errorType:string, Count:long, SampleMessage:string)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| project errorType, Count, SampleMessage",
+                "size": 0,
+                "title": "Write-Through Error Distribution",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "errorType",
+                            "formatter": 1
+                        },
+                        {
+                            "columnMatch": "Count",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "red"
+                            }
+                        },
+                        {
+                            "columnMatch": "SampleMessage",
+                            "formatter": 1
+                        }
+                    ]
+                }
+            },
+            "customWidth": "50",
+            "name": "error-distribution-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Top Failed Player IDs\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet events = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Migrate.Failed', 'Player.WriteThrough.Failed')\n  | extend playerId = tostring(customDimensions.playerId)\n  | extend operationType = case(\n      name == 'Player.Migrate.Failed', 'Migration',\n      name == 'Player.WriteThrough.Failed', 'WriteThrough',\n      'Unknown'\n    )\n  | where not(hasPlayerFilter) or playerId == playerFilter;\nlet totalEvents = toscalar(events | count);\nlet main = events\n  | summarize TotalFailures = count(), MigrationFailures = countif(operationType == 'Migration'), WriteThroughFailures = countif(operationType == 'WriteThrough'), LatestFailure = max(timestamp) by playerId\n  | extend include = totalEvents >= 1\n  | order by TotalFailures desc\n  | take 10;\nlet empty = datatable(playerId:string, TotalFailures:long, MigrationFailures:long, WriteThroughFailures:long, LatestFailure:datetime)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| project playerId, TotalFailures, MigrationFailures, WriteThroughFailures, LatestFailure",
+                "size": 0,
+                "title": "Top Failed Player IDs (For Manual Investigation)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "playerId",
+                            "formatter": 1
+                        },
+                        {
+                            "columnMatch": "TotalFailures",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "red"
+                            }
+                        },
+                        {
+                            "columnMatch": "MigrationFailures",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "orange"
+                            }
+                        },
+                        {
+                            "columnMatch": "WriteThroughFailures",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "orange"
+                            }
+                        },
+                        {
+                            "columnMatch": "LatestFailure",
+                            "formatter": 6
+                        }
+                    ]
+                }
+            },
+            "customWidth": "50",
+            "name": "failed-players-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "// Average Latency by Operation and Source\nlet timeRange = {TimeRange:value};\nlet playerFilter = '{PlayerIdFilter:escape}';\nlet hasPlayerFilter = playerFilter != '' and playerFilter != '{PlayerIdFilter:escape}';\nlet outcomeFilter = '{OutcomeFilter:escape}';\nlet sqlEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name in ('Player.Migrate.Success', 'Player.Migrate.Failed', 'Player.WriteThrough.Success', 'Player.WriteThrough.Failed', 'PlayerDoc.Read', 'PlayerDoc.Upsert')\n  | extend playerId = tostring(customDimensions.playerId)\n  | extend latencyMs = todouble(customDimensions.latencyMs)\n  | extend operationType = case(\n      name startswith 'Player.Migrate', 'Migration',\n      name startswith 'Player.WriteThrough', 'WriteThrough',\n      name == 'PlayerDoc.Read', 'Read',\n      name == 'PlayerDoc.Upsert', 'Upsert',\n      'Other'\n    )\n  | extend success = name endswith '.Success' or name == 'PlayerDoc.Read' or name == 'PlayerDoc.Upsert'\n  | where not(hasPlayerFilter) or playerId == playerFilter\n  | where isnotempty(latencyMs) and latencyMs > 0\n  | extend source = 'SQL';\nlet gremlinEvents = customEvents\n  | where timestamp > ago(timeRange)\n  | where name == 'Player.Get.SourceGremlinFallback'\n  | extend playerId = tostring(customDimensions.playerId)\n  | extend latencyMs = todouble(customDimensions.latencyMs)\n  | extend operationType = 'Read'\n  | extend success = true\n  | where not(hasPlayerFilter) or playerId == playerFilter\n  | where isnotempty(latencyMs) and latencyMs > 0\n  | extend source = 'Gremlin';\nlet allEvents = union sqlEvents, gremlinEvents;\nlet totalEvents = toscalar(allEvents | count);\nlet main = allEvents\n  | summarize AvgLatencyMs = round(avg(latencyMs), 2), P50 = round(percentile(latencyMs, 50), 0), P95 = round(percentile(latencyMs, 95), 0), P99 = round(percentile(latencyMs, 99), 0), Count = count() by source, operationType, success\n  | extend Outcome = iff(success, 'Success', 'Failure')\n  | extend include = totalEvents >= 1\n  | order by source asc, operationType asc, success desc;\nlet empty = datatable(source:string, operationType:string, success:bool, AvgLatencyMs:real, P50:real, P95:real, P99:real, Count:long, Outcome:string)[] \n  | extend include = totalEvents < 1;\nunion main, empty \n| where include\n| where outcomeFilter == 'all' or (outcomeFilter == 'success' and success) or (outcomeFilter == 'failure' and not(success))\n| project source, operationType, Outcome, Count, AvgLatencyMs, P50, P95, P99",
+                "size": 0,
+                "title": "Average Latency by Operation (SQL vs Gremlin)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "source",
+                            "formatter": 1
+                        },
+                        {
+                            "columnMatch": "operationType",
+                            "formatter": 1
+                        },
+                        {
+                            "columnMatch": "Outcome",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": "==",
+                                        "text": "Success",
+                                        "representation": "green"
+                                    },
+                                    {
+                                        "operator": "==",
+                                        "text": "Failure",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "gray"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "columnMatch": "Count",
+                            "formatter": 4,
+                            "formatOptions": {
+                                "palette": "blue"
+                            }
+                        },
+                        {
+                            "columnMatch": "AvgLatencyMs",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "greenRed"
+                            },
+                            "numberFormat": {
+                                "unit": 23,
+                                "options": {
+                                    "style": "decimal",
+                                    "maximumFractionDigits": 2
+                                }
+                            }
+                        },
+                        {
+                            "columnMatch": "P50",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "greenRed"
+                            },
+                            "numberFormat": {
+                                "unit": 23,
+                                "options": {
+                                    "style": "decimal"
+                                }
+                            }
+                        },
+                        {
+                            "columnMatch": "P95",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "600",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "300",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            },
+                            "numberFormat": {
+                                "unit": 23,
+                                "options": {
+                                    "style": "decimal"
+                                }
+                            }
+                        },
+                        {
+                            "columnMatch": "P99",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "1000",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "600",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            },
+                            "numberFormat": {
+                                "unit": 23,
+                                "options": {
+                                    "style": "decimal"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "latency-by-operation-table"
+        }
+    ],
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
