@@ -110,7 +110,8 @@ describeForBothModes('Exit Repository', (mode) => {
             const northIndex = directions.indexOf('north')
             const southIndex = directions.indexOf('south')
             const eastIndex = directions.indexOf('east')
-            const westIndex = directions.indexOf('west')
+            // westIndex intentionally unused; ordering assertions focus on north/south/east only
+            // const westIndex = directions.indexOf('west')
 
             if (northIndex !== -1 && eastIndex !== -1) {
                 assert.ok(northIndex < eastIndex, 'North should come before east')

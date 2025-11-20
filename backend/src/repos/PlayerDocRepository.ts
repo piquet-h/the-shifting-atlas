@@ -39,7 +39,7 @@ export interface IPlayerDocRepository {
 export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implements IPlayerDocRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        protected telemetryService: TelemetryService
+        @inject(TelemetryService) protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'players', telemetryService)
     }

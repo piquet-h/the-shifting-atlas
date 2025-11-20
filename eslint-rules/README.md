@@ -81,6 +81,32 @@ export class BadRepository extends CosmosGremlinRepository {
 
 ### `telemetry-event-name`
 
+### `telemetry-inject-decorator`
+
+**Purpose:** Ensures required (non-optional) `telemetryService: TelemetryService` constructor parameters in repository classes are explicitly decorated with `@inject(TelemetryService)` to prevent silent DI metadata omissions when the parameter is not first.
+
+**Checks:**
+
+-   Repository class (name contains `Repository`) constructor has a non-optional parameter named `telemetryService` typed `TelemetryService`.
+-   Parameter must have `@inject(TelemetryService)` decorator.
+-   Warns if legacy string token `@inject('TelemetryService')` is used (policy forbids string tokens for concrete services).
+-   Ignores optional parameters (`telemetryService?: TelemetryService`) and base abstract repository files.
+
+**Example - Correct:**
+
+```typescript
+constructor(@inject(TelemetryService) protected telemetryService: TelemetryService) { /* ... */ }
+```
+
+**Example - Violation:**
+
+```typescript
+constructor(protected telemetryService: TelemetryService) { /* missing decorator */ }
+```
+
+**When added:** November 2025
+**Related incidents:** Post-mortem of DI failure for `CosmosLocationRepository` (E2E test seed error).
+
 **Purpose:** Enforces that telemetry event names are constants from the shared telemetry module, not inline string literals.
 
 **Prevents:**
@@ -132,56 +158,61 @@ telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
 **Applies to:** All TypeScript files with telemetry emission calls
 
 **Forbidden fields (case-insensitive):**
-- `promptText`, `prompt`
-- `completionText`, `completion`, `response`, `responseText`
-- `text`, `content`, `message`
+
+-   `promptText`, `prompt`
+-   `completionText`, `completion`, `response`, `responseText`
+-   `text`, `content`, `message`
 
 **What it checks:**
-- `trackEvent()`, `emit()`, `log()`, `trace()` calls
-- Direct property assignment and `properties`/`customDimensions` objects
-- Nested object structures (recursive checking)
+
+-   `trackEvent()`, `emit()`, `log()`, `trace()` calls
+-   Direct property assignment and `properties`/`customDimensions` objects
+-   Nested object structures (recursive checking)
 
 **Example violations:**
+
 ```typescript
 // ❌ VIOLATION: promptText in properties
 telemetryClient.trackEvent({
     name: 'AI.Cost.Estimated',
     properties: {
-        promptText: 'Generate a dungeon...',  // Flagged by ESLint
+        promptText: 'Generate a dungeon...', // Flagged by ESLint
         modelId: 'gpt-4o-mini'
     }
 })
 
 // ❌ VIOLATION: completionText in nested object
 const props = {
-    completionText: 'The dark corridor...',  // Flagged by ESLint
+    completionText: 'The dark corridor...', // Flagged by ESLint
     tokens: 150
 }
 telemetryClient.emit('AI.Cost.Estimated', props)
 ```
 
 **Example compliance:**
+
 ```typescript
 // ✅ CORRECT: Use prepareAICostTelemetry to strip text
 import { prepareAICostTelemetry } from '@piquet-h/shared'
 
 const payload = prepareAICostTelemetry({
     modelId: 'gpt-4o-mini',
-    promptText: rawPrompt,      // Text stays local
-    completionText: rawCompletion  // Not in payload
+    promptText: rawPrompt, // Text stays local
+    completionText: rawCompletion // Not in payload
 })
 
 telemetryClient.trackEvent({
     name: 'AI.Cost.Estimated',
-    properties: payload  // Only tokens, buckets, cost
+    properties: payload // Only tokens, buckets, cost
 })
 ```
 
 **When added:** November 2025  
 **Related:**
-- Audit script: `scripts/verify-ai-cost-payload.mjs`
-- Unit tests: `shared/test/aiCostPayloadSafety.test.ts`
-- Documentation: `docs/observability/ai-cost-telemetry.md`
+
+-   Audit script: `scripts/verify-ai-cost-payload.mjs`
+-   Unit tests: `shared/test/aiCostPayloadSafety.test.ts`
+-   Documentation: `docs/observability/ai-cost-telemetry.md`
 
 ---
 

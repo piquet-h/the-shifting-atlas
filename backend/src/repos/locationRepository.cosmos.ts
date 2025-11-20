@@ -12,7 +12,7 @@ import { computeContentHash, firstScalar } from './utils/index.js'
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
     constructor(
         @inject('GremlinClient') client: IGremlinClient,
-        protected telemetryService: TelemetryService
+        @inject(TelemetryService) protected telemetryService: TelemetryService
     ) {
         super(client, telemetryService)
     }

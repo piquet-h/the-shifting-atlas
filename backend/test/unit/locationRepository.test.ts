@@ -20,7 +20,8 @@ describe('ILocationRepository Interface Contract', () => {
             }
         }
 
-        async move(fromLocationId: string, direction: string): Promise<MoveResult> {
+        // Parameters intentionally unused in mock implementation; underscore prefixes silence lint
+        async move(): Promise<MoveResult> {
             return {
                 status: 'ok',
                 location: {
@@ -40,24 +41,19 @@ describe('ILocationRepository Interface Contract', () => {
             return { created: true, id: location.id }
         }
 
-        async ensureExit(fromLocationId: string, direction: string, toLocationId: string): Promise<{ created: boolean }> {
+        async ensureExit(): Promise<{ created: boolean }> {
             return { created: true }
         }
 
-        async ensureExitBidirectional(
-            fromLocationId: string,
-            direction: string,
-            toLocationId: string,
-            options?: { reciprocal?: boolean }
-        ): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
+        async ensureExitBidirectional(options?: { reciprocal?: boolean }): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
             return { created: true, reciprocalCreated: options?.reciprocal }
         }
 
-        async removeExit(fromLocationId: string, direction: string): Promise<{ removed: boolean }> {
+        async removeExit(): Promise<{ removed: boolean }> {
             return { removed: true }
         }
 
-        async deleteLocation(locationId: string): Promise<{ deleted: boolean }> {
+        async deleteLocation(): Promise<{ deleted: boolean }> {
             return { deleted: true }
         }
     }

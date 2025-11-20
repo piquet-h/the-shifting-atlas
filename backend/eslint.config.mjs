@@ -7,6 +7,7 @@ import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mj
 import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from '../eslint-rules/telemetry-event-name.mjs'
+import telemetryInjectDecoratorRule from '../eslint-rules/telemetry-inject-decorator.mjs'
 
 export default [
     { ignores: ['dist', '**/dist/**', 'node_modules', '**/coverage/**'] },
@@ -23,7 +24,8 @@ export default [
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-direct-secret-access': noDirectSecretAccessRule,
                     'handlers-must-extend-base': handlersMustExtendBaseRule,
-                    'cosmos-gremlin-repo-constructor': cosmosGremlinRepoConstructorRule
+                    'cosmos-gremlin-repo-constructor': cosmosGremlinRepoConstructorRule,
+                    'telemetry-inject-decorator': telemetryInjectDecoratorRule
                 }
             }
         },
@@ -36,7 +38,8 @@ export default [
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error',
             'internal/handlers-must-extend-base': 'error',
-            'internal/cosmos-gremlin-repo-constructor': 'error'
+            'internal/cosmos-gremlin-repo-constructor': 'error',
+            'internal/telemetry-inject-decorator': 'error'
         }
     },
     {

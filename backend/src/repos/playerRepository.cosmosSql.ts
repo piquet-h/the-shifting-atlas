@@ -30,7 +30,7 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        protected telemetryService: TelemetryService,
+        @inject(TelemetryService) protected telemetryService: TelemetryService,
         @inject('IPlayerRepository:GremlinReadOnly') gremlinFallback?: IGremlinPlayerRepository
     ) {
         super(sqlClient, 'players', telemetryService)

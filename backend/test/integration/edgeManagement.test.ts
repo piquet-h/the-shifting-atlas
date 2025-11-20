@@ -180,8 +180,8 @@ describeForBothModes('Edge Management', (mode) => {
     test('location version policy - version unchanged when only exits added', async () => {
         const repo = await fixture.getLocationRepository()
 
-        // Create location with initial version
-        const createResult = await repo.upsert({ id: 'A', name: 'Alpha', description: 'First location', exits: [] })
+        // Create location with initial version (ignore result; only version read separately)
+        await repo.upsert({ id: 'A', name: 'Alpha', description: 'First location', exits: [] })
         const initialLocation = await repo.get('A')
         const initialVersion = initialLocation?.version || 1
 
