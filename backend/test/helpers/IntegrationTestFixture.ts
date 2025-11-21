@@ -99,6 +99,16 @@ export class IntegrationTestFixture extends BaseTestFixture {
                 this.sqlDocTracker?.register('players', playerDoc.id, playerDoc.id)
             }
         }
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'deletePlayer' in repo) {
+            const originalDelete = (repo as IPlayerDocRepository).deletePlayer.bind(repo)
+            ;(repo as IPlayerDocRepository).deletePlayer = async (playerId: string) => {
+                const deleted = await originalDelete(playerId)
+                if (deleted) {
+                    this.sqlDocTracker?.unregister('players', playerId, playerId)
+                }
+                return deleted
+            }
+        }
         return repo
     }
 

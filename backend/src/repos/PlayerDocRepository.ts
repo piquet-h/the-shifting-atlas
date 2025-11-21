@@ -30,6 +30,13 @@ export interface IPlayerDocRepository {
      * @param playerDoc - Player document to upsert
      */
     upsertPlayer(playerDoc: PlayerDoc): Promise<void>
+
+    /**
+     * Delete player document by ID (idempotent)
+     * @param playerId - Player unique identifier
+     * @returns true if deleted, false if not found
+     */
+    deletePlayer(playerId: string): Promise<boolean>
 }
 
 /**
@@ -90,6 +97,32 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
             this.telemetryService.trackGameEventStrict('PlayerDoc.Upsert', {
                 playerId: playerDoc.id,
                 error: true,
+                latencyMs: Date.now() - startTime
+            })
+            throw error
+        }
+    }
+
+    /**
+     * Delete player document (idempotent)
+     */
+    async deletePlayer(playerId: string): Promise<boolean> {
+        const startTime = Date.now()
+        let deleted = false
+        try {
+            // PlayerDoc uses id as partition key
+            deleted = await this.delete(playerId, playerId)
+            this.telemetryService.trackGameEventStrict('PlayerDoc.Delete', {
+                playerId,
+                deleted,
+                latencyMs: Date.now() - startTime
+            })
+            return deleted
+        } catch (error) {
+            this.telemetryService.trackGameEventStrict('PlayerDoc.Delete', {
+                playerId,
+                error: true,
+                deleted: false,
                 latencyMs: Date.now() - startTime
             })
             throw error

@@ -28,6 +28,10 @@ export class MemoryPlayerDocRepository implements IPlayerDocRepository {
         }
     }
 
+    async deletePlayer(playerId: string): Promise<boolean> {
+        return this.players.delete(playerId)
+    }
+
     /**
      * Clear all players (for test cleanup)
      */

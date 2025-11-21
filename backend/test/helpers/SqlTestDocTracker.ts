@@ -23,6 +23,10 @@ export class SqlTestDocTracker {
         this.docs.push({ container, partitionKey, id })
     }
 
+    unregister(container: string, partitionKey: string, id: string): void {
+        this.docs = this.docs.filter((d) => !(d.container === container && d.partitionKey === partitionKey && d.id === id))
+    }
+
     getTracked(): SqlTrackedDoc[] {
         return [...this.docs]
     }
