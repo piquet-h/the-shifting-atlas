@@ -592,3 +592,55 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
     actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
   }
 }
+
+// Dual Persistence Monitoring Alerts (Issue #529)
+// Detects anomalies during player migration from Gremlin to SQL API (ADR-002)
+// Includes: migration failures, excessive fallback, write-through latency, feature flag toggle
+
+// Alert: Player Migration Failure Rate (Warning: >5% / 15min, Critical: >10% / 5min)
+module alertMigrationFailures 'alert-dual-persistence-migration-failures.bicep' = {
+  name: 'alert-migration-failures'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    enabled: true
+  }
+}
+
+// Alert: Gremlin Fallback Rate (Warning: >20% / 1 hour after migration stable)
+module alertFallbackRate 'alert-dual-persistence-fallback-rate.bicep' = {
+  name: 'alert-fallback-rate'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    enabled: true
+  }
+}
+
+// Alert: Write-Through Latency (Warning: P95 >500ms / 10min, Critical: P95 >1000ms / 5min)
+module alertWriteThroughLatency 'alert-dual-persistence-latency.bicep' = {
+  name: 'alert-writethrough-latency'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    enabled: true
+  }
+}
+
+// Alert: Feature Flag Toggle (Informational: tracks ENABLE_PLAYER_GREMLIN_WRITE changes)
+module alertFeatureFlagToggle 'alert-dual-persistence-feature-flag.bicep' = {
+  name: 'alert-feature-flag-toggle'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    enabled: true
+  }
+}
