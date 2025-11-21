@@ -354,6 +354,7 @@ Use for integration tests. Specify persistence mode in constructor.
 - Telemetry is automatically mocked - no need for manual setup
 - Repositories come from DI container based on persistence mode
 - Optional performance tracking for regression detection (opt-in)
+- Automatic SQL document tracking (cosmos mode only): When persistence mode is `cosmos`, repository methods for player docs, inventory items, description layers (future Cosmos implementation), and world events are monkey‑patched to auto‑register created documents with the internal `SqlTestDocTracker`. Teardown deletes them best‑effort. Manual `registerSqlDoc()` is only needed for custom test writes outside standard repository methods.
 
 **Example:**
 
@@ -419,7 +420,8 @@ Use for end-to-end tests against real Cosmos DB. Requires test credentials.
 - Forces `PERSISTENCE_MODE=cosmos` (constructor delegates to IntegrationTestFixture)
 - Tracks performance metrics - access via `getP95Latency(operationName)`
 - Test data cleanup is **automated** (Gremlin delete by ID)
-- Uses `e2e-` prefixed IDs by convention for safety
+- Automatic SQL API document cleanup: repository methods (`upsertPlayer`, `addItem`, `addLayer` (future Cosmos impl), `store` in world event repo) are monkey‑patched in cosmos mode to auto‑register created documents for deletion at teardown. You can still call `registerSqlDoc(container, pk, id)` manually for edge cases not yet wrapped.
+- `e2e-` prefixed IDs remain acceptable for visual identification but are no longer required for SQL cleanup (tracking is wrapper‑based rather than prefix‑based).
 - NOT run on PRs (CI cost optimization - see `docs/developer-workflow/e2e-ci-gating-policy.md`)
 - Requires separate environment variables: `GREMLIN_ENDPOINT_TEST`, `COSMOS_SQL_ENDPOINT_TEST`
 

@@ -89,7 +89,17 @@ export class IntegrationTestFixture extends BaseTestFixture {
     /** Get PlayerDocRepository instance from DI container */
     async getPlayerDocRepository(): Promise<IPlayerDocRepository> {
         const container = await this.getContainer()
-        return container.get<IPlayerDocRepository>('IPlayerDocRepository')
+        const repo = container.get<IPlayerDocRepository>('IPlayerDocRepository')
+        // Auto-registration wrapper (cosmos mode only)
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'upsertPlayer' in repo) {
+            const original = repo.upsertPlayer.bind(repo)
+            repo.upsertPlayer = async (playerDoc) => {
+                await original(playerDoc)
+                // Partition key /id (same as playerDoc.id)
+                this.sqlDocTracker?.register('players', playerDoc.id, playerDoc.id)
+            }
+        }
+        return repo
     }
 
     /** Get DescriptionRepository instance from DI container */
@@ -104,13 +114,43 @@ export class IntegrationTestFixture extends BaseTestFixture {
             ;(repo as any).setTelemetryService(telemetryService)
         }
 
+        // Auto-registration for addLayer when cosmos mode & tracker available.
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'addLayer' in repo) {
+            const originalAddLayer = (repo as IDescriptionRepository).addLayer.bind(repo as never)
+            ;(repo as IDescriptionRepository).addLayer = async (layer) => {
+                const result = await originalAddLayer(layer)
+                if (result.created) {
+                    // Container descriptionLayers, PK /locationId
+                    this.sqlDocTracker?.register('descriptionLayers', layer.locationId, layer.id)
+                }
+                return result
+            }
+        }
         return repo
     }
 
     /** Get InventoryRepository instance from DI container */
     async getInventoryRepository(): Promise<IInventoryRepository> {
         const container = await this.getContainer()
-        return container.get<IInventoryRepository>('IInventoryRepository')
+        const repo = container.get<IInventoryRepository>('IInventoryRepository')
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'addItem' in repo) {
+            const originalAdd = repo.addItem.bind(repo)
+            repo.addItem = async (item) => {
+                const result = await originalAdd(item)
+                // Container inventory, PK /playerId
+                this.sqlDocTracker?.register('inventory', item.playerId, item.id)
+                return result
+            }
+        }
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'removeItem' in repo) {
+            const originalRemove = repo.removeItem.bind(repo)
+            repo.removeItem = async (itemId, playerId) => {
+                const deleted = await originalRemove(itemId, playerId)
+                if (deleted) this.sqlDocTracker?.register('inventory', playerId, itemId)
+                return deleted
+            }
+        }
+        return repo
     }
 
     /** Get LayerRepository instance from DI container */
@@ -122,7 +162,24 @@ export class IntegrationTestFixture extends BaseTestFixture {
     /** Get WorldEventRepository instance from DI container */
     async getWorldEventRepository(): Promise<IWorldEventRepository> {
         const container = await this.getContainer()
-        return container.get<IWorldEventRepository>('IWorldEventRepository')
+        const repo = container.get<IWorldEventRepository>('IWorldEventRepository')
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker) {
+            const anyRepo = repo as unknown as Record<string, unknown>
+            if (typeof anyRepo['store'] === 'function') {
+                const originalStore = anyRepo['store'] as (evt: any) => Promise<any>
+                anyRepo['store'] = async (evt: any) => {
+                    const res = await originalStore(evt)
+                    // Partition key /scopeKey, id = eventId (defensive properties)
+                    const scopeKey = evt.scopeKey || evt.scope_key || evt.scope || 'unknown'
+                    const eventId = evt.eventId || evt.id || 'unknown'
+                    if (scopeKey !== 'unknown' && eventId !== 'unknown') {
+                        this.sqlDocTracker?.register('worldEvents', scopeKey, eventId)
+                    }
+                    return res
+                }
+            }
+        }
+        return repo
     }
 
     /**
