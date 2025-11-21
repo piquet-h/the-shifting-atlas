@@ -32,6 +32,18 @@ export class MemoryPlayerDocRepository implements IPlayerDocRepository {
         return this.players.delete(playerId)
     }
 
+    async listPlayerIdsByPrefixes(prefixes: string[], maxResults: number = 1000): Promise<string[]> {
+        if (prefixes.length === 0) return []
+        const results: string[] = []
+        for (const id of this.players.keys()) {
+            if (prefixes.some((p) => id.startsWith(p))) {
+                results.push(id)
+                if (results.length >= maxResults) break
+            }
+        }
+        return results
+    }
+
     /**
      * Clear all players (for test cleanup)
      */

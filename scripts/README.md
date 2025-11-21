@@ -143,6 +143,55 @@ PERSISTENCE_MODE=cosmos node scripts/mosswell-migration.mjs \
 
 ---
 
+### `cleanup-test-artifacts.mjs`
+
+Identifies and optionally deletes test-created artifacts from Cosmos SQL containers (players, inventory) and reports potential worldEvents with test scope keys. Dry-run by default.
+
+**Usage:**
+
+```bash
+node scripts/cleanup-test-artifacts.mjs --mode=cosmos --dry-run
+```
+
+**Options:**
+
+-   `--mode=memory|cosmos` Persistence mode (default: env or memory)
+-   `--dry-run` Preview only (default)
+-   `--confirm` Perform deletions (requires safety interlocks)
+-   `--containers=a,b` Limit to specific containers (e.g. players,inventory)
+-   `--export=path.json` Write matched artifact metadata before deletion
+-   `--concurrency=N` Parallel delete limit (default 10)
+-   `--allow-prod-token` Override production endpoint safety block
+
+**Safety Interlocks:**
+
+-   Refuses destructive run on endpoints whose host name contains `prod` or `primary` without `--allow-prod-token`
+-   Always requires `--confirm` for deletions
+-   World events are not deleted (append-only ledger retained for auditing)
+
+**Detection Heuristics (initial):**
+
+-   ID prefixes: `test-loc-`, `e2e-test-loc-`, `e2e-`, `test-player-`, `demo-player-`
+-   PlayerDocs inferred from recent world events (scopeKey / actor IDs)
+-   Inventory items derived from matched test player IDs
+-   World events matched by scopeKey containing `test` / `e2e` (reported only)
+
+**Examples:**
+
+```bash
+# Export then delete players & inventory
+node scripts/cleanup-test-artifacts.mjs --mode=cosmos --containers=players,inventory \
+  --export=/tmp/test-artifacts.json --confirm --allow-prod-token
+```
+
+**Future Enhancements:**
+
+-   Direct PlayerDoc listing for exhaustive scan
+-   Event retention deletion when policy formalized
+-   Gremlin vertex/edge cleanup pass (needs traversal safeguards)
+
+---
+
 ### `observability/export-workbooks.mjs`
 
 Exports Application Insights workbook definitions to version-controlled JSON files.
@@ -154,19 +203,22 @@ node scripts/observability/export-workbooks.mjs
 ```
 
 **Purpose:**
-- Read workbook configuration from `docs/observability/workbooks-index.json`
-- Export current workbook definitions from Azure (or local source for MVP)
-- Normalize JSON: remove volatile fields, sort keys, stable formatting
-- Write to `docs/observability/workbooks/<slug>.workbook.json`
+
+-   Read workbook configuration from `docs/observability/workbooks-index.json`
+-   Export current workbook definitions from Azure (or local source for MVP)
+-   Normalize JSON: remove volatile fields, sort keys, stable formatting
+-   Write to `docs/observability/workbooks/<slug>.workbook.json`
 
 **When to Use:**
-- After creating a new workbook in Azure Portal
-- After modifying queries, thresholds, or visualizations
-- Before committing workbook changes to ensure sync
+
+-   After creating a new workbook in Azure Portal
+-   After modifying queries, thresholds, or visualizations
+-   Before committing workbook changes to ensure sync
 
 **Exit Codes:**
-- 0 - All workbooks exported successfully (or skipped with placeholder IDs)
-- 1 - One or more exports failed
+
+-   0 - All workbooks exported successfully (or skipped with placeholder IDs)
+-   1 - One or more exports failed
 
 **See also:** `docs/observability/workbooks.md` for detailed workflow documentation.
 
@@ -183,12 +235,14 @@ node scripts/observability/verify-workbooks.mjs
 ```
 
 **Purpose:**
-- Prevent drift between Azure workbook definitions and version-controlled files
-- Run manually or in CI to catch uncommitted workbook changes
+
+-   Prevent drift between Azure workbook definitions and version-controlled files
+-   Run manually or in CI to catch uncommitted workbook changes
 
 **Exit Codes:**
-- 0 - All workbooks match committed state
-- 1 - Drift detected (re-export needed)
+
+-   0 - All workbooks match committed state
+-   1 - Drift detected (re-export needed)
 
 **See also:** `docs/observability/workbooks.md` for workflow details.
 

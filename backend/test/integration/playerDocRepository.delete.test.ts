@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert'
 import { randomUUID } from 'crypto'
+import { afterEach, beforeEach, test } from 'node:test'
 import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
@@ -20,10 +21,9 @@ describeForBothModes('PlayerDocRepository.deletePlayer', (mode) => {
         const playerId = randomUUID()
         await repo.upsertPlayer({
             id: playerId,
-            name: 'Test',
             createdUtc: new Date().toISOString(),
             updatedUtc: new Date().toISOString(),
-            guest: false
+            currentLocationId: 'loc-' + randomUUID().split('-')[0]
         })
 
         const first = await repo.deletePlayer(playerId)

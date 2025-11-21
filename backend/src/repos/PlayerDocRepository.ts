@@ -37,6 +37,15 @@ export interface IPlayerDocRepository {
      * @returns true if deleted, false if not found
      */
     deletePlayer(playerId: string): Promise<boolean>
+
+    /**
+     * List player IDs whose ID starts with any of the provided prefixes.
+     * Intended for maintenance / cleanup routines (test artifact detection).
+     * May perform a cross-partition query (cost weighed against operational need).
+     * @param prefixes - Array of ID prefixes to match (case-sensitive)
+     * @param maxResults - Optional cap (defaults 1000)
+     */
+    listPlayerIdsByPrefixes(prefixes: string[], maxResults?: number): Promise<string[]>
 }
 
 /**
@@ -112,20 +121,26 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
         try {
             // PlayerDoc uses id as partition key
             deleted = await this.delete(playerId, playerId)
-            this.telemetryService.trackGameEventStrict('PlayerDoc.Delete', {
-                playerId,
-                deleted,
-                latencyMs: Date.now() - startTime
-            })
+            // Specific game event telemetry not emitted; base repository already
+            // records SQL.Query.Executed for delete operations. Avoid adding a new
+            // event name to maintain enumeration stability.
             return deleted
         } catch (error) {
-            this.telemetryService.trackGameEventStrict('PlayerDoc.Delete', {
-                playerId,
-                error: true,
-                deleted: false,
-                latencyMs: Date.now() - startTime
-            })
+            // Failure already captured by SQL.Query.Failed in base delete()
             throw error
         }
+    }
+
+    /**
+     * List player IDs by prefix. Performs cross-partition query; keep prefix set minimal.
+     */
+    async listPlayerIdsByPrefixes(prefixes: string[], maxResults: number = 1000): Promise<string[]> {
+        if (prefixes.length === 0) return []
+        // Build OR predicate using STARTSWITH (Cosmos SQL) — if unavailable, server will error; rely on version in use.
+        const conditions = prefixes.map((p, i) => `STARTSWITH(c.id, @p${i})`)
+        const query = `SELECT c.id FROM c WHERE ${conditions.join(' OR ')}`
+        const parameters = prefixes.map((p, i) => ({ name: `@p${i}`, value: p }))
+        const { items } = await this.query(query, parameters, maxResults)
+        return items.map((doc: any) => doc.id).filter((id: string) => typeof id === 'string')
     }
 }
