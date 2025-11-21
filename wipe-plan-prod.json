@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-11-21T10:18:51.453Z",
+  "mode": "prod",
+  "includeGremlin": true,
+  "targets": [
+    {
+      "label": "prod",
+      "sqlEndpoint": "https://cosmossql-atlas.documents.azure.com:443/",
+      "sqlDb": "game",
+      "containers": {
+        "players": "players",
+        "inventory": "inventory",
+        "layers": "descriptionLayers",
+        "events": "worldEvents",
+        "processedEvents": "processedEvents",
+        "deadLetters": "deadLetters"
+      },
+      "gremlin": {
+        "endpoint": "https://cosmosgraph-atlas.documents.azure.com:443/",
+        "db": "game",
+        "graph": "world"
+      }
+    }
+  ],
+  "digest": "c4582f11e209c48d328cb9083452abfdb475b783f1d1ea7a24661323d874be62"
+}
