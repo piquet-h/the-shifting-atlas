@@ -131,8 +131,21 @@ Examples:
         console.log(`✓ Loaded ${blueprint.length} locations from blueprint`)
         console.log()
 
+        // Setup dependency injection container
+        const { createRequire } = await import('module')
+        const backendRequire = createRequire(new URL('../backend/package.json', import.meta.url))
+        backendRequire('reflect-metadata')
+        const { Container } = backendRequire('inversify')
+        const { setupContainer } = await import('../backend/dist/inversify.config.js')
+        const container = new Container()
+        await setupContainer(container, mode)
+
+        // Get repositories from container
+        const locationRepository = container.get('ILocationRepository')
+        const playerRepository = container.get('IPlayerRepository')
+
         // Dynamic import of seedWorld to avoid loading backend modules before env is set
-        const { seedWorld } = await import('../backend/src/seeding/seedWorld.js')
+        const { seedWorld } = await import('../backend/dist/seeding/seedWorld.js')
 
         // Custom logger for capturing output
         const logs = []
@@ -149,6 +162,8 @@ Examples:
         const result = await seedWorld({
             blueprint,
             log,
+            locationRepository,
+            playerRepository,
             bulkMode: true // Enable bulk optimizations for faster initial seeding
         })
         const elapsedMs = Date.now() - startTime
