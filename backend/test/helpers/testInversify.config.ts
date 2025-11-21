@@ -153,9 +153,20 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
         const sqlConfig = container.get<IPersistenceConfig>('PersistenceConfig').cosmosSql
         if (sqlConfig?.endpoint && sqlConfig?.database) {
+            // If running tests (NODE_ENV=test) and COSMOS_SQL_DATABASE_TEST provided, route SQL operations to test database
+            const isTestEnv = process.env.NODE_ENV === 'test'
+            const testDbName = (isTestEnv ? process.env.COSMOS_SQL_DATABASE_TEST : undefined)?.trim()
+            const effectiveDatabase = testDbName && testDbName.length > 0 ? testDbName : sqlConfig.database
+            if (isTestEnv && !testDbName) {
+                // Non-fatal warning: cosmos mode tests will hit production database if test db not configured
+                // This should be avoided; infrastructure now provisions 'game-test'
+                console.warn(
+                    '[testInversify.config] NODE_ENV=test but COSMOS_SQL_DATABASE_TEST not set. Falling back to production database.'
+                )
+            }
             container
                 .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
-                .toConstantValue({ endpoint: sqlConfig.endpoint, database: sqlConfig.database })
+                .toConstantValue({ endpoint: sqlConfig.endpoint, database: effectiveDatabase })
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
 
             // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)

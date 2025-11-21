@@ -45,8 +45,14 @@ describe('ILocationRepository Interface Contract', () => {
             return { created: true }
         }
 
-        async ensureExitBidirectional(options?: { reciprocal?: boolean }): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
-            return { created: true, reciprocalCreated: options?.reciprocal }
+        async ensureExitBidirectional(
+            _fromId: string,
+            _direction: string,
+            _toId: string,
+            options?: { reciprocal?: boolean }
+        ): Promise<{ created: boolean; reciprocalCreated?: boolean }> {
+            // Explicitly return boolean flags to satisfy interface contract regardless of parameters
+            return { created: true, reciprocalCreated: options?.reciprocal === true }
         }
 
         async removeExit(): Promise<{ removed: boolean }> {
