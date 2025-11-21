@@ -633,7 +633,7 @@ module alertWriteThroughLatency 'alert-dual-persistence-latency.bicep' = {
   }
 }
 
-// Alert: Feature Flag Toggle (Informational: tracks ENABLE_PLAYER_GREMLIN_WRITE changes)
+// Alert: Feature Flag Toggle (Informational: tracks DISABLE_GREMLIN_PLAYER_VERTEX changes)
 module alertFeatureFlagToggle 'alert-dual-persistence-feature-flag.bicep' = {
   name: 'alert-feature-flag-toggle'
   params: {

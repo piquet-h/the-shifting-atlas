@@ -1,7 +1,7 @@
 /**
  * Azure Monitor Alert Rule for Dual Persistence Feature Flag Toggle
  * 
- * Monitors FeatureFlag.Loaded events and alerts when ENABLE_PLAYER_GREMLIN_WRITE flag is toggled.
+ * Monitors FeatureFlag.Loaded events and alerts when DISABLE_GREMLIN_PLAYER_VERTEX flag is toggled.
  * This is an informational alert to track feature flag state changes during migration.
  * 
  * Issue: #529 (M2 Observability - Dual Persistence)
@@ -17,9 +17,9 @@
  * - Window Size: 5 minutes
  * - Purpose: Track migration phase transitions (not actionable)
  * 
- * Feature Flag Values:
- * - 'true': Gremlin player writes enabled (dual-write mode)
- * - 'false': Gremlin player writes disabled (SQL-only mode, migration complete)
+ * Feature Flag Values (disableGremlinPlayerVertex property):
+ * - 'false': Dual persistence mode - write to both Gremlin and SQL API (default)
+ * - 'true': SQL-only mode - skip Gremlin player vertex writes (migration complete)
  * 
  * Notes:
  * - This alert is informational only, not actionable
@@ -48,7 +48,7 @@ resource alertFeatureFlagToggle 'Microsoft.Insights/scheduledQueryRules@2023-03-
   location: location
   properties: {
     displayName: 'Dual Persistence: Feature Flag Toggled (Informational)'
-    description: 'Informational alert when ENABLE_PLAYER_GREMLIN_WRITE feature flag is toggled. Indicates migration phase transition (dual-write ↔ SQL-only). Not actionable - used for correlation and tracking.'
+    description: 'Informational alert when DISABLE_GREMLIN_PLAYER_VERTEX feature flag is toggled. Indicates migration phase transition (dual-write ↔ SQL-only). Not actionable - used for correlation and tracking.'
     severity: 3 // Informational
     enabled: enabled
     evaluationFrequency: 'PT5M' // Evaluate every 5 minutes
@@ -63,10 +63,10 @@ resource alertFeatureFlagToggle 'Microsoft.Insights/scheduledQueryRules@2023-03-
 // Detect feature flag state changes
 customEvents
 | where name == "FeatureFlag.Loaded"
-| extend enablePlayerGremlinWrite = tostring(customDimensions.enablePlayerGremlinWrite)
-| where isnotempty(enablePlayerGremlinWrite)
+| extend disableGremlinPlayerVertex = tostring(customDimensions.disableGremlinPlayerVertex)
+| where isnotempty(disableGremlinPlayerVertex)
 | summarize 
-    FlagValues = make_set(enablePlayerGremlinWrite),
+    FlagValues = make_set(disableGremlinPlayerVertex),
     LoadCount = count(),
     LatestTimestamp = max(timestamp)
 | extend StateChanged = array_length(FlagValues) > 1
