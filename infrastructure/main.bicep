@@ -154,6 +154,8 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_LAYERS: 'descriptionLayers'
       COSMOS_SQL_CONTAINER_EVENTS: 'worldEvents'
       COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
+      COSMOS_SQL_CONTAINER_DEADLETTERS: 'deadLetters'
+      COSMOS_SQL_DATABASE_TEST: 'game-test'
 
       // Feature flag: Gremlin player writes disabled (SQL-only cutover complete)
       ENABLE_PLAYER_GREMLIN_WRITE: 'false'
@@ -339,8 +341,128 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
         options: {}
       }
     }
+
+    // Dead Letters container (stores failed world events) - partition key constant value 'deadletter'
+    resource sqlDeadLetters 'containers' = {
+      name: 'deadLetters'
+      properties: {
+        resource: {
+          id: 'deadLetters'
+          partitionKey: {
+            paths: ['/partitionKey']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+  }
+
+  // Dedicated test database mirroring production containers for isolation of integration/E2E tests
+  resource sqlDbTest 'sqlDatabases' = {
+    name: 'game-test'
+    properties: {
+      resource: {
+        id: 'game-test'
+      }
+      options: {}
+    }
+
+    resource sqlPlayersTest 'containers' = {
+      name: 'players'
+      properties: {
+        resource: {
+          id: 'players'
+          partitionKey: {
+            paths: ['/id']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlInventoryTest 'containers' = {
+      name: 'inventory'
+      properties: {
+        resource: {
+          id: 'inventory'
+          partitionKey: {
+            paths: ['/playerId']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlLayersTest 'containers' = {
+      name: 'descriptionLayers'
+      properties: {
+        resource: {
+          id: 'descriptionLayers'
+          partitionKey: {
+            paths: ['/locationId']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlEventsTest 'containers' = {
+      name: 'worldEvents'
+      properties: {
+        resource: {
+          id: 'worldEvents'
+          partitionKey: {
+            paths: ['/scopeKey']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlProcessedEventsTest 'containers' = {
+      name: 'processedEvents'
+      properties: {
+        resource: {
+          id: 'processedEvents'
+          partitionKey: {
+            paths: ['/idempotencyKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: 604800
+        }
+        options: {}
+      }
+    }
+
+    resource sqlDeadLettersTest 'containers' = {
+      name: 'deadLetters'
+      properties: {
+        resource: {
+          id: 'deadLetters'
+          partitionKey: {
+            paths: ['/partitionKey']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
   }
 }
+
+output cosmosSqlTestDatabaseName string = 'game-test'
 
 // Optional: grant the same data contributor role to any extra principals (e.g., developer AAD users for local Gremlin access)
 // This helps avoid 403 Substatus 5301 locally when DefaultAzureCredential resolves to a developer identity instead of the Function App MI.
