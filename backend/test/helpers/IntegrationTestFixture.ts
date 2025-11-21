@@ -13,6 +13,7 @@ import type { InvocationContext } from '@azure/functions'
 import type { Container } from 'inversify'
 import type { IGremlinClient } from '../../src/gremlin/gremlinClient.js'
 import type { IPlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
+import type { ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import type { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
@@ -22,6 +23,7 @@ import type { IWorldEventRepository } from '../../src/repos/worldEventRepository
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
+import { SqlTestDocTracker } from './SqlTestDocTracker.js'
 import { BaseTestFixture, type InvocationContextMockResult } from './TestFixture.js'
 import { getTestContainer } from './testContainer.js'
 import type { ContainerMode } from './testInversify.config.js'
@@ -41,6 +43,7 @@ export class IntegrationTestFixture extends BaseTestFixture {
     protected persistenceMode: ContainerMode
     private performanceMetrics: PerformanceMetric[] = []
     private performanceTrackingEnabled: boolean = false
+    private sqlDocTracker?: SqlTestDocTracker
 
     constructor(persistenceMode: ContainerMode = 'memory', options?: { trackPerformance?: boolean }) {
         super()
@@ -52,6 +55,15 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getContainer(): Promise<Container> {
         if (!this.container) {
             this.container = await getTestContainer(this.persistenceMode)
+            // Initialize SQL doc tracker if cosmos mode and SQL client bound
+            if (this.persistenceMode === 'cosmos') {
+                try {
+                    const sqlClient = this.container.get<ICosmosDbSqlClient>('CosmosDbSqlClient')
+                    this.sqlDocTracker = new SqlTestDocTracker(sqlClient)
+                } catch {
+                    // SQL client may be absent if SQL API not configured in certain test scenarios
+                }
+            }
         }
         return this.container
     }
@@ -205,6 +217,20 @@ export class IntegrationTestFixture extends BaseTestFixture {
 
     /** Teardown hook - cleans up resources */
     async teardown(): Promise<void> {
+        // Attempt SQL doc cleanup first (cosmos mode only)
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker) {
+            try {
+                const result = await this.sqlDocTracker.cleanup()
+                if (result.deleted > 0 || result.errors.length > 0) {
+                    console.log(`IntegrationTestFixture SQL cleanup: deleted=${result.deleted}, errors=${result.errors.length}`)
+                    for (const err of result.errors) {
+                        console.warn(`IntegrationTestFixture SQL cleanup error id=${err.id}: ${err.error}`)
+                    }
+                }
+            } catch (e) {
+                console.warn('IntegrationTestFixture SQL cleanup unexpected error:', e)
+            }
+        }
         // Close Gremlin connection if in cosmos mode to prevent WebSocket hang
         if (this.container && this.persistenceMode === 'cosmos') {
             try {
@@ -227,7 +253,21 @@ export class IntegrationTestFixture extends BaseTestFixture {
 
         // Clear performance metrics
         this.performanceMetrics = []
+        this.sqlDocTracker = undefined
 
         await super.teardown()
+    }
+
+    /** Register a SQL API document for cleanup (container, partitionKey, id) */
+    async registerSqlDoc(container: string, partitionKey: string, id: string): Promise<void> {
+        if (this.persistenceMode !== 'cosmos') return
+        await this.getContainer() // ensure container + tracker initialization
+        if (!this.sqlDocTracker) return
+        this.sqlDocTracker.register(container, partitionKey, id)
+    }
+
+    /** Expose tracked SQL docs for assertions (optional) */
+    getTrackedSqlDocs(): Array<{ container: string; partitionKey: string; id: string }> {
+        return this.sqlDocTracker ? this.sqlDocTracker.getTracked() : []
     }
 }

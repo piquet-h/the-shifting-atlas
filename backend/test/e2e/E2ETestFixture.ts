@@ -47,6 +47,7 @@ export class E2ETestFixture {
     private performanceMetrics: E2EPerformanceMetrics[] = []
     private worldSeeded: boolean = false
     private demoPlayerId: string | undefined = undefined
+    // Forward SQL doc tracking to underlying IntegrationTestFixture (cosmos mode)
 
     constructor() {
         // Create underlying fixture in cosmos mode
@@ -108,6 +109,16 @@ export class E2ETestFixture {
             locations: result.locations,
             demoPlayerId: result.demoPlayerId
         }
+    }
+
+    /** Register a SQL API document for cleanup */
+    async registerSqlDoc(container: string, partitionKey: string, id: string): Promise<void> {
+        await this.baseFixture.registerSqlDoc(container, partitionKey, id)
+    }
+
+    /** Get tracked SQL docs */
+    getTrackedSqlDocs(): Array<{ container: string; partitionKey: string; id: string }> {
+        return this.baseFixture.getTrackedSqlDocs()
     }
 
     /**
@@ -258,6 +269,8 @@ export class E2ETestFixture {
         } catch (error) {
             console.error('Error during E2E test cleanup:', error)
         }
+
+        // SQL cleanup handled by underlying IntegrationTestFixture teardown (tracker)
 
         // Close Gremlin connection to allow tests to exit cleanly
         try {
