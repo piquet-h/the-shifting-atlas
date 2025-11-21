@@ -84,8 +84,8 @@ let latencyThreshold = {0};
 let minSamples = {1};
 customEvents
 | where name == "Player.WriteThrough.Success"
+| where isnotnull(customDimensions.latencyMs)
 | extend latencyMs = todouble(customDimensions.latencyMs)
-| where isnotnull(latencyMs)
 | summarize 
     P95 = percentile(latencyMs, 95),
     SampleSize = count(),
@@ -167,8 +167,8 @@ let latencyThreshold = {0};
 let minSamples = {1};
 customEvents
 | where name == "Player.WriteThrough.Success"
+| where isnotnull(customDimensions.latencyMs)
 | extend latencyMs = todouble(customDimensions.latencyMs)
-| where isnotnull(latencyMs)
 | summarize 
     P95 = percentile(latencyMs, 95),
     SampleSize = count(),

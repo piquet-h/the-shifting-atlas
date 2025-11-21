@@ -82,27 +82,20 @@ resource alertFallbackRate 'Microsoft.Insights/scheduledQueryRules@2023-03-15-pr
             '''
 let fallbackThreshold = {0};
 let minSamples = {1};
-// Count Player.Get operations by source
-let sqlReads = customEvents
-  | where name == "Player.Get.SourceSql"
-  | count;
-let gremlinFallbacks = customEvents
-  | where name == "Player.Get.SourceGremlinFallback"
-  | count;
-// Calculate fallback rate
-let totalReads = toscalar(sqlReads) + toscalar(gremlinFallbacks);
-let fallbackCount = toscalar(gremlinFallbacks);
-// Alert if fallback rate exceeds threshold and we have sufficient samples
-datatable(Total: long, FallbackCount: long) [
-  totalReads, fallbackCount
-]
-| extend FallbackRate = iff(Total > 0, (FallbackCount * 100.0) / Total, 0.0)
+// Count Player.Get operations by source in a single scan
+customEvents
+| where name in ("Player.Get.SourceSql", "Player.Get.SourceGremlinFallback")
+| summarize 
+    SqlReads = countif(name == "Player.Get.SourceSql"),
+    GremlinFallbacks = countif(name == "Player.Get.SourceGremlinFallback")
+| extend Total = SqlReads + GremlinFallbacks
+| extend FallbackRate = iff(Total > 0, (GremlinFallbacks * 100.0) / Total, 0.0)
 | where Total >= minSamples
 | where FallbackRate > fallbackThreshold
 | project 
     Total,
-    SqlReads = Total - FallbackCount,
-    GremlinFallbacks = FallbackCount,
+    SqlReads,
+    GremlinFallbacks,
     FallbackRate = round(FallbackRate, 2),
     Threshold = fallbackThreshold
 ''',

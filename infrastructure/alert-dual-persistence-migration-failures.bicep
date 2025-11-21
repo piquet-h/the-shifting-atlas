@@ -86,7 +86,7 @@ customEvents
 | summarize 
     Total = count(),
     Failures = countif(name == "Player.Migrate.Failed"),
-    FailedSamples = make_list(iff(name == "Player.Migrate.Failed", tostring(customDimensions), ""), 5)
+    FailedSamples = make_list_if(tostring(customDimensions), name == "Player.Migrate.Failed", 5)
 | extend FailureRate = iff(Total > 0, (Failures * 100.0) / Total, 0.0)
 | where Total >= minSamples
 | where FailureRate > failureThreshold
@@ -165,7 +165,7 @@ customEvents
 | summarize 
     Total = count(),
     Failures = countif(name == "Player.Migrate.Failed"),
-    FailedSamples = make_list(iff(name == "Player.Migrate.Failed", tostring(customDimensions), ""), 5)
+    FailedSamples = make_list_if(tostring(customDimensions), name == "Player.Migrate.Failed", 5)
 | extend FailureRate = iff(Total > 0, (Failures * 100.0) / Total, 0.0)
 | where Total >= minSamples
 | where FailureRate > failureThreshold
