@@ -44,42 +44,40 @@ describeForBothModes('reconcileWorld', (mode) => {
     })
 
     test('reconcile script: skips deletion of starter location, prunes unprotected extras', async () => {
-        // Prepare test data - add an extra location not in blueprint
-        const extraLocationId = '00000000-0000-4000-8000-0000000000AA'
-        const locRepo = await fixture.getLocationRepository()
+        // This test verifies the reconcile logic by directly working within the reconcile container
+        // We use beforeDiff to set up test state, then verify the results within the reconcile container itself
 
-        // Ensure extra location exists (candidate for pruning)
-        await locRepo.upsert({
-            id: extraLocationId,
-            name: 'Temp',
-            description: 'To be pruned',
-            exits: []
-        })
+        const extraLocationId = '00000000-0000-4000-8000-0000000000AA'
+        let reconcileLocRepo: ILocationRepository | undefined
 
         // Run reconciliation with prune-locations
-        // Use beforeDiff hook to inject test state into reconcile container
         await reconcile(
             { mode: mode as 'memory' | 'cosmos', dryRun: false, pruneExits: false, pruneLocations: true },
             {
                 beforeDiff: async (createdContainer) => {
-                    // Copy mutated state from test container into reconcile container
-                    const testLocs = await locRepo.listAll()
-                    const reconcileLocRepo = createdContainer.get<ILocationRepository>('ILocationRepository')
-                    for (const l of testLocs) {
-                        if (!(await reconcileLocRepo.get(l.id))) {
-                            await reconcileLocRepo.upsert(l)
-                        }
-                    }
+                    // Get the reconcile container's repo and add extra location
+                    reconcileLocRepo = createdContainer.get<ILocationRepository>('ILocationRepository')
+
+                    // Add extra location that should be pruned
+                    await reconcileLocRepo.upsert({
+                        id: extraLocationId,
+                        name: 'Temp',
+                        description: 'To be pruned',
+                        exits: []
+                    })
                 }
             }
         )
 
+        // After reconciliation, verify within the same container
+        assert.ok(reconcileLocRepo, 'Reconcile repo should be available')
+
         // Verify extra location was deleted (not protected)
-        const stillExists = await locRepo.get(extraLocationId)
+        const stillExists = await reconcileLocRepo!.get(extraLocationId)
         assert.ok(!stillExists, 'Extra location should be pruned (no protection)')
 
         // Verify starter location remains (always protected)
-        const starterExists = await locRepo.get(STARTER_LOCATION_ID)
+        const starterExists = await reconcileLocRepo!.get(STARTER_LOCATION_ID)
         assert.ok(starterExists, 'Starter location should never be deleted')
     })
 })

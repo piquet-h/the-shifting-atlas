@@ -3,9 +3,9 @@
  * Tests the complete flow: handler invocation → location update → persistence
  */
 
+import type { HttpRequest, InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { getDefaultTestLocations, seedTestWorld } from '../helpers/seedTestWorld.js'
@@ -46,7 +46,6 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Seed test world
         const { locations } = await seedTestWorld({
             locationRepository: locationRepo,
-            playerRepository: playerRepo,
             blueprint: getDefaultTestLocations()
         })
 
@@ -98,7 +97,7 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Seed world and create player
         const { locations } = await seedTestWorld({
             locationRepository: locationRepo,
-            playerRepository: playerRepo,
+            
             blueprint: getDefaultTestLocations()
         })
 
@@ -164,7 +163,7 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Seed world
         const { locations } = await seedTestWorld({
             locationRepository: locationRepo,
-            playerRepository: playerRepo,
+            
             blueprint: getDefaultTestLocations()
         })
 

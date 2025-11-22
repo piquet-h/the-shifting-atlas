@@ -17,21 +17,15 @@ describe('World Seeding', () => {
 
     test('idempotent seedWorld', async () => {
         const locationRepository = await fixture.getLocationRepository()
-        const playerRepository = await fixture.getPlayerRepository()
 
         const first = await seedTestWorld({
-            locationRepository,
-            playerRepository,
-            demoPlayerId: '11111111-1111-4111-8111-111111111111'
+            locationRepository
         })
         const second = await seedTestWorld({
-            locationRepository,
-            playerRepository,
-            demoPlayerId: '11111111-1111-4111-8111-111111111111'
+            locationRepository
         })
         assert.equal(second.locationVerticesCreated, 0)
         assert.equal(second.exitsCreated, 0)
-        assert.equal(second.playerCreated, false)
         assert.ok(first.locationsProcessed >= 1)
     })
 })

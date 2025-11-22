@@ -41,7 +41,7 @@ describe('Move Validation', () => {
             // Seed test world with default blueprint
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -71,7 +71,7 @@ describe('Move Validation', () => {
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -97,7 +97,7 @@ describe('Move Validation', () => {
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -115,7 +115,7 @@ describe('Move Validation', () => {
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -150,7 +150,7 @@ describe('Move Validation', () => {
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -189,7 +189,7 @@ describe('Move Validation', () => {
 
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 
@@ -214,7 +214,7 @@ describe('Move Validation', () => {
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                playerRepository: playerRepo,
+                
                 blueprint: getDefaultTestLocations()
             })
 

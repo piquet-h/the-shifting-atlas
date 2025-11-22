@@ -79,15 +79,8 @@ export class E2ETestFixture {
      * Seed test world with locations and exits
      * Returns the seeded location data for test reference
      */
-    async seedTestWorld(blueprint?: Location[]): Promise<{ locations: Location[]; demoPlayerId: string }> {
+    async seedTestWorld(blueprint?: Location[]): Promise<{ locations: Location[] }> {
         const locationRepository = await this.getLocationRepository()
-        const playerRepository = await this.getPlayerRepository()
-
-        // Reuse existing demo player ID for idempotency, or generate a new one
-        if (!this.demoPlayerId) {
-            this.demoPlayerId = this.generateTestPlayerId()
-            this.testPlayerIds.add(this.demoPlayerId)
-        }
 
         // Use provided blueprint or default E2E test locations
         const testBlueprint = blueprint || getE2ETestLocations()
@@ -98,16 +91,13 @@ export class E2ETestFixture {
         // Seed the world using shared test helper
         const result = await seedTestWorld({
             locationRepository,
-            playerRepository,
-            blueprint: testBlueprint,
-            demoPlayerId: this.demoPlayerId
+            blueprint: testBlueprint
         })
 
         this.worldSeeded = true
 
         return {
-            locations: result.locations,
-            demoPlayerId: result.demoPlayerId
+            locations: result.locations
         }
     }
 

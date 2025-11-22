@@ -13,24 +13,19 @@
 
 import type { Location } from '@piquet-h/shared'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { seedWorld } from '../../src/seeding/seedWorld.js'
 
 export interface SeedTestWorldOptions {
     locationRepository: ILocationRepository
-    playerRepository: IPlayerRepository
     blueprint?: Location[]
-    demoPlayerId?: string
     log?: (...args: unknown[]) => void
 }
 
 export interface SeedTestWorldResult {
     locations: Location[]
-    demoPlayerId: string
     locationsProcessed: number
     locationVerticesCreated: number
     exitsCreated: number
-    playerCreated: boolean
 }
 
 /**
@@ -142,19 +137,15 @@ export async function seedTestWorld(options: SeedTestWorldOptions): Promise<Seed
 
     const result = await seedWorld({
         locationRepository: options.locationRepository,
-        playerRepository: options.playerRepository,
         blueprint,
-        demoPlayerId: options.demoPlayerId,
         log: options.log,
         bulkMode: true // Use bulk mode for faster test seeding
     })
 
     return {
         locations: blueprint,
-        demoPlayerId: result.demoPlayerId,
         locationsProcessed: result.locationsProcessed,
         locationVerticesCreated: result.locationVerticesCreated,
-        exitsCreated: result.exitsCreated,
-        playerCreated: result.playerCreated
+        exitsCreated: result.exitsCreated
     }
 }
