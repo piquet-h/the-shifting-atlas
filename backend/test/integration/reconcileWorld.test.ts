@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import { afterEach, beforeEach, test } from 'node:test'
 import { reconcile } from '../../scripts/reconcile-world.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
@@ -44,7 +43,7 @@ describeForBothModes('reconcileWorld', (mode) => {
         assert.strictEqual(after, undefined, 'Deleted location no longer retrievable')
     })
 
-    test('reconcile script: skips deletion of demo/current or starter location', async () => {
+    test('reconcile script: skips deletion of starter location, prunes unprotected extras', async () => {
         // Prepare test data - add an extra location not in blueprint
         const extraLocationId = '00000000-0000-4000-8000-0000000000AA'
         const locRepo = await fixture.getLocationRepository()
@@ -56,12 +55,6 @@ describeForBothModes('reconcileWorld', (mode) => {
             description: 'To be pruned',
             exits: []
         })
-
-        // Create demo player and move it to extra location
-        const playerRepo = await fixture.getPlayerRepository()
-        const demoId = '00000000-0000-4000-8000-000000000001'
-        const { record } = await playerRepo.getOrCreate(demoId)
-        record.currentLocationId = extraLocationId
 
         // Run reconciliation with prune-locations
         // Use beforeDiff hook to inject test state into reconcile container
@@ -77,20 +70,15 @@ describeForBothModes('reconcileWorld', (mode) => {
                             await reconcileLocRepo.upsert(l)
                         }
                     }
-
-                    // Recreate demo player with existing location reference
-                    const reconcilePlayerRepo = createdContainer.get<IPlayerRepository>('IPlayerRepository')
-                    const { record: demoAgain } = await reconcilePlayerRepo.getOrCreate(demoId)
-                    demoAgain.currentLocationId = record.currentLocationId
                 }
             }
         )
 
-        // Verify extra location was protected
+        // Verify extra location was deleted (not protected)
         const stillExists = await locRepo.get(extraLocationId)
-        assert.ok(stillExists, 'Extra location should be skipped (protected by demo player reference)')
+        assert.ok(!stillExists, 'Extra location should be pruned (no protection)')
 
-        // Verify starter location remains
+        // Verify starter location remains (always protected)
         const starterExists = await locRepo.get(STARTER_LOCATION_ID)
         assert.ok(starterExists, 'Starter location should never be deleted')
     })

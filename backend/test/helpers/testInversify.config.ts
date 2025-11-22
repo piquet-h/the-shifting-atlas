@@ -122,23 +122,21 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
-        // Cosmos mode - production configuration
-        // For E2E tests (NODE_ENV=test), prioritize *_TEST env vars, then standard COSMOS_GREMLIN_* names
+        // Cosmos mode - E2E tests use *_TEST env vars when NODE_ENV=test
         const isTestEnv = process.env.NODE_ENV === 'test'
 
-        const gremlinConfig = {
+        const gremlinConfig: GremlinClientConfig = {
             endpoint:
-                (isTestEnv ? process.env.GREMLIN_ENDPOINT_TEST : null) ||
+                (isTestEnv && process.env.GREMLIN_ENDPOINT_TEST) ||
                 process.env.COSMOS_GREMLIN_ENDPOINT ||
                 process.env.GREMLIN_ENDPOINT ||
                 '',
             database:
-                (isTestEnv ? process.env.GREMLIN_DATABASE_TEST : null) ||
+                (isTestEnv && process.env.GREMLIN_DATABASE_TEST) ||
                 process.env.COSMOS_GREMLIN_DATABASE ||
                 process.env.GREMLIN_DATABASE ||
                 '',
-            graph:
-                (isTestEnv ? process.env.GREMLIN_GRAPH_TEST : null) || process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH || ''
+            graph: (isTestEnv && process.env.GREMLIN_GRAPH_TEST) || process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH || ''
         }
 
         container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue(gremlinConfig)
@@ -153,20 +151,24 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
         const sqlConfig = container.get<IPersistenceConfig>('PersistenceConfig').cosmosSql
         if (sqlConfig?.endpoint && sqlConfig?.database) {
-            // If running tests (NODE_ENV=test) and COSMOS_SQL_DATABASE_TEST provided, route SQL operations to test database
-            const isTestEnv = process.env.NODE_ENV === 'test'
-            const testDbName = (isTestEnv ? process.env.COSMOS_SQL_DATABASE_TEST : undefined)?.trim()
-            const effectiveDatabase = testDbName && testDbName.length > 0 ? testDbName : sqlConfig.database
-            if (isTestEnv && !testDbName) {
-                // Non-fatal warning: cosmos mode tests will hit production database if test db not configured
-                // This should be avoided; infrastructure now provisions 'game-test'
-                console.warn(
-                    '[testInversify.config] NODE_ENV=test but COSMOS_SQL_DATABASE_TEST not set. Falling back to production database.'
-                )
+            // If running tests, use *_TEST env vars if available
+            const testEndpoint = isTestEnv && process.env.COSMOS_SQL_ENDPOINT_TEST
+            const testDbName = isTestEnv && process.env.COSMOS_SQL_DATABASE_TEST
+
+            const effectiveEndpoint = testEndpoint || sqlConfig.endpoint
+            const effectiveDatabase = testDbName || sqlConfig.database
+
+            if (isTestEnv && !testEndpoint) {
+                console.warn('[testInversify.config] COSMOS_SQL_ENDPOINT_TEST not set. Using production endpoint!')
             }
-            container
-                .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
-                .toConstantValue({ endpoint: sqlConfig.endpoint, database: effectiveDatabase })
+            if (isTestEnv && !testDbName) {
+                console.warn('[testInversify.config] COSMOS_SQL_DATABASE_TEST not set. Using production database!')
+            }
+
+            container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({
+                endpoint: effectiveEndpoint,
+                database: effectiveDatabase
+            })
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
 
             // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)

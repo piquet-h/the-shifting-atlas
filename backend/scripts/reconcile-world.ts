@@ -157,12 +157,8 @@ async function reconcile(args: Args, opts?: ReconcileOpts) {
         return
     }
 
-    // Guard: prevent deletion of starter location & any demo player current location (basic safety until full player enumeration available).
-    const demoId = '00000000-0000-4000-8000-000000000001'
-    // Ensure / load demo player early (so we can guard based on its current location before deletions)
-    const { record: demoRecord } = await playerRepo.getOrCreate(demoId)
+    // Guard: prevent deletion of starter location only
     const protectedLocationIds = new Set<string>([STARTER_LOCATION_ID])
-    if (demoRecord.currentLocationId) protectedLocationIds.add(demoRecord.currentLocationId)
     const skippedLocationRemovals: string[] = []
     const appliedLocationRemovals: string[] = []
 
@@ -185,7 +181,6 @@ async function reconcile(args: Args, opts?: ReconcileOpts) {
     for (const lid of appliedLocationRemovals) {
         await locRepo.deleteLocation(lid)
     }
-    console.log(`Demo player ${demoId}: ${demoRecord ? 'existing' : 'created'}`)
 
     console.log('\n✅ Reconciliation complete.')
     console.log(`Applied exit removals: ${exitRemovals.length}`)

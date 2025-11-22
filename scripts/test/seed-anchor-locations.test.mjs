@@ -17,7 +17,7 @@ const SCRIPT_PATH = resolve(new URL('..', import.meta.url).pathname, 'seed-ancho
 describe('seed-anchor-locations.mjs CLI', () => {
     test('--help flag shows usage information', async () => {
         const { stdout, stderr } = await execAsync('node', [SCRIPT_PATH, '--help'])
-        
+
         assert.ok(stdout.includes('Seed Script: Anchor Locations & Exits'), 'shows title')
         assert.ok(stdout.includes('Usage:'), 'shows usage')
         assert.ok(stdout.includes('--mode='), 'shows mode option')
@@ -37,7 +37,6 @@ describe('seed-anchor-locations.mjs CLI', () => {
         assert.ok(stdout.includes('Summary'), 'shows summary section')
         assert.ok(stdout.includes('Locations processed:'), 'shows locations count')
         assert.ok(stdout.includes('Exits created:'), 'shows exits count')
-        assert.ok(stdout.includes('Demo player ID:'), 'shows demo player ID')
         assert.ok(stdout.includes('Elapsed time:'), 'shows elapsed time')
     })
 
@@ -51,7 +50,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         // Extract counts from first run (basic parsing)
         const firstLocationsMatch = firstRun.stdout.match(/Location vertices created:\s+(\d+)/)
         const firstExitsMatch = firstRun.stdout.match(/Exits created:\s+(\d+)/)
-        
+
         assert.ok(firstLocationsMatch, 'first run reports locations created')
         assert.ok(firstExitsMatch, 'first run reports exits created')
 
@@ -66,7 +65,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         // Create a temporary test data file
         const tmpDir = resolve('/tmp', 'seed-test-' + Date.now())
         await mkdir(tmpDir, { recursive: true })
-        
+
         const testDataPath = resolve(tmpDir, 'test-locations.json')
         const testData = [
             {

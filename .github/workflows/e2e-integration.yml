@@ -92,17 +92,19 @@ jobs:
     timeout-minutes: 15
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # Cosmos Gremlin configuration (mapped from test secrets to standard names)
-      COSMOS_GREMLIN_ENDPOINT: ${{ secrets.COSMOS_GREMLIN_ENDPOINT }}
-      COSMOS_GREMLIN_DATABASE: game
-      COSMOS_GREMLIN_GRAPH: world-test
-      # Cosmos SQL API configuration (mapped from test secrets)
-      COSMOS_SQL_ENDPOINT: ${{ secrets.COSMOS_SQL_ENDPOINT }}
-      COSMOS_SQL_DATABASE: game
-      COSMOS_SQL_CONTAINER_PLAYERS: players
-      COSMOS_SQL_CONTAINER_INVENTORY: inventory
-      COSMOS_SQL_CONTAINER_LAYERS: descriptionLayers
-      COSMOS_SQL_CONTAINER_EVENTS: worldEvents
+      # Cosmos Gremlin configuration (using variables for all test-specific values)
+      COSMOS_GREMLIN_ENDPOINT: ${{ vars.COSMOS_GREMLIN_ENDPOINT_TEST }}
+      COSMOS_GREMLIN_DATABASE: ${{ vars.COSMOS_GREMLIN_DATABASE_TEST }}
+      COSMOS_GREMLIN_GRAPH: ${{ vars.COSMOS_GREMLIN_GRAPH_TEST }}
+      # Cosmos SQL API configuration (using variables for all test-specific values)
+      COSMOS_SQL_ENDPOINT: ${{ vars.COSMOS_SQL_ENDPOINT_TEST }}
+      COSMOS_SQL_DATABASE: ${{ vars.COSMOS_SQL_DATABASE_TEST }}
+      COSMOS_SQL_CONTAINER_PLAYERS: ${{ vars.COSMOS_SQL_CONTAINER_PLAYERS }}
+      COSMOS_SQL_CONTAINER_INVENTORY: ${{ vars.COSMOS_SQL_CONTAINER_INVENTORY }}
+      COSMOS_SQL_CONTAINER_LAYERS: ${{ vars.COSMOS_SQL_CONTAINER_LAYERS }}
+      COSMOS_SQL_CONTAINER_EVENTS: ${{ vars.COSMOS_SQL_CONTAINER_EVENTS }}
+      COSMOS_SQL_CONTAINER_PROCESSEDEVENTS: ${{ vars.COSMOS_SQL_CONTAINER_PROCESSEDEVENTS }}
+      COSMOS_SQL_CONTAINER_DEADLETTERS: ${{ vars.COSMOS_SQL_CONTAINER_DEADLETTERS }}
       # Persistence mode configuration
       PERSISTENCE_MODE: cosmos
       PERSISTENCE_STRICT: 1

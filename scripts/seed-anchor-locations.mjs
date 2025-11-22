@@ -142,7 +142,6 @@ Examples:
 
         // Get repositories from container
         const locationRepository = container.get('ILocationRepository')
-        const playerRepository = container.get('IPlayerRepository')
 
         // Dynamic import of seedWorld to avoid loading backend modules before env is set
         const { seedWorld } = await import('../backend/dist/seeding/seedWorld.js')
@@ -163,7 +162,6 @@ Examples:
             blueprint,
             log,
             locationRepository,
-            playerRepository,
             bulkMode: true // Enable bulk optimizations for faster initial seeding
         })
         const elapsedMs = Date.now() - startTime
@@ -179,8 +177,6 @@ Examples:
         console.log(`  Locations processed:        ${result.locationsProcessed}`)
         console.log(`  Location vertices created:  ${result.locationVerticesCreated}`)
         console.log(`  Exits created:              ${result.exitsCreated}`)
-        console.log(`  Demo player created:        ${result.playerCreated ? 'Yes' : 'No (already exists)'}`)
-        console.log(`  Demo player ID:             ${result.demoPlayerId}`)
         console.log()
         console.log(`  Elapsed time:               ${elapsedMs}ms`)
         console.log()
