@@ -116,7 +116,6 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
      * Delete player document (idempotent)
      */
     async deletePlayer(playerId: string): Promise<boolean> {
-        const startTime = Date.now()
         let deleted = false
         try {
             // PlayerDoc uses id as partition key

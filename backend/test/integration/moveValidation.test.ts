@@ -36,12 +36,11 @@ describe('Move Validation', () => {
     describe('Exit Validation', () => {
         test('missing exit returns error', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world with default blueprint
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -66,12 +65,11 @@ describe('Move Validation', () => {
 
         test('invalid direction returns error', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -92,12 +90,11 @@ describe('Move Validation', () => {
 
         test('empty direction returns error', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -110,12 +107,11 @@ describe('Move Validation', () => {
 
         test('valid directions are accepted', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -145,12 +141,11 @@ describe('Move Validation', () => {
 
         test('successful move returns new location', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -185,11 +180,10 @@ describe('Move Validation', () => {
 
         test('success response has correct structure', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 
@@ -209,12 +203,11 @@ describe('Move Validation', () => {
     describe('Throttling and Retry Behavior', () => {
         test('repository handles 429 errors with retry', async () => {
             const locationRepo = await fixture.getLocationRepository()
-            const playerRepo = await fixture.getPlayerRepository()
 
             // Seed test world
             const { locations } = await seedTestWorld({
                 locationRepository: locationRepo,
-                
+
                 blueprint: getDefaultTestLocations()
             })
 

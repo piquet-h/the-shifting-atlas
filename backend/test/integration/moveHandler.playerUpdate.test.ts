@@ -97,7 +97,7 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         // Seed world and create player
         const { locations } = await seedTestWorld({
             locationRepository: locationRepo,
-            
+
             blueprint: getDefaultTestLocations()
         })
 
@@ -158,12 +158,11 @@ describe('MoveHandler Player Location Update (E2E)', () => {
     test('MoveHandler handles missing player gracefully', async () => {
         const container = await fixture.getContainer()
         const locationRepo = await fixture.getLocationRepository()
-        const playerRepo = await fixture.getPlayerRepository()
 
         // Seed world
         const { locations } = await seedTestWorld({
             locationRepository: locationRepo,
-            
+
             blueprint: getDefaultTestLocations()
         })
 
