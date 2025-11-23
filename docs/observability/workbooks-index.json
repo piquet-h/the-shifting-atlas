@@ -8,7 +8,9 @@
       "name": "Movement Navigation Overview",
       "slug": "movement-navigation-dashboard",
       "description": "Unified dashboard combining movement success rate & blocked reason analytics. Provides single pane of glass to monitor traversal health, friction sources, and trends.",
-      "owners": ["observability"],
+      "owners": [
+        "observability"
+      ],
       "consolidated": true,
       "panels": [
         "Movement Success Rate (24h)",
@@ -31,7 +33,9 @@
       "name": "Performance Operations Dashboard",
       "slug": "performance-operations-dashboard",
       "description": "Consolidated workbook for Gremlin operation performance monitoring: RU consumption, latency percentiles, partition pressure trends, and operation success/failure rates.",
-      "owners": ["observability"],
+      "owners": [
+        "observability"
+      ],
       "consolidated": true,
       "panels": [
         "Gremlin Operation RU & Latency Overview",
@@ -54,8 +58,10 @@
       "id": "local-dual-persistence-dashboard",
       "name": "Dual Persistence Monitoring Dashboard",
       "slug": "dual-persistence-dashboard",
-      "description": "Monitors dual persistence health during SQL API migration: player migration success/failure rates, write-through latency, Gremlin fallback frequency. Enables operational visibility and tracking toward <5% Gremlin fallback target.",
-      "owners": ["observability"],
+      "description": "(Removed) Historical dual persistence dashboard removed post ADR-004; player storage now SQL-only.",
+      "owners": [
+        "observability"
+      ],
       "consolidated": true,
       "panels": [
         "Migration Success Rate (24h)",

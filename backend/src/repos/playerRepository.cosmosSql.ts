@@ -1,3 +1,4 @@
+ * Authoritative player persistence (post ADR-004 cutover). No Gremlin fallback logic remains.
 /**
  * Cosmos SQL API implementation of IPlayerRepository.
  * Migrates player state from Gremlin graph to SQL API for cost-efficient mutable data storage.

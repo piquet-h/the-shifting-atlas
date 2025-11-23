@@ -5,9 +5,9 @@
 
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
-import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
-import { createMockTelemetryClient, createTestContainer } from '../helpers/containerHelpers.js'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient'
+import { UnitTestFixture } from '../helpers/UnitTestFixture'
+import { createMockTelemetryClient, createTestContainer } from '../helpers/containerHelpers'
 
 describe('Telemetry Inversify Integration', () => {
     let fixture: UnitTestFixture

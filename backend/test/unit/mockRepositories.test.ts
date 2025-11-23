@@ -1,15 +1,16 @@
+import { Container } from 'inversify'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { Container } from 'inversify'
 import { setupTestContainer } from '../helpers/testInversify.config.js'
-import { IPlayerRepository } from '../../src/repos/playerRepository.js'
-import { ILocationRepository } from '../../src/repos/locationRepository.js'
-import { IExitRepository } from '../../src/repos/exitRepository.js'
-import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
-import { MockPlayerRepository } from '../mocks/repositories/playerRepository.mock.js'
-import { MockLocationRepository } from '../mocks/repositories/locationRepository.mock.js'
-import { MockExitRepository } from '../mocks/repositories/exitRepository.mock.js'
+// Import interfaces without .js extension to avoid ESM resolution issues under tsx
+import { IDescriptionRepository } from '../../src/repos/descriptionRepository'
+import { IExitRepository } from '../../src/repos/exitRepository'
+import { ILocationRepository } from '../../src/repos/locationRepository'
+import { IPlayerRepository } from '../../src/repos/playerRepository'
 import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
+import { MockExitRepository } from '../mocks/repositories/exitRepository.mock.js'
+import { MockLocationRepository } from '../mocks/repositories/locationRepository.mock.js'
+import { MockPlayerRepository } from '../mocks/repositories/playerRepository.mock.js'
 
 describe('Mock Repositories', () => {
     describe('MockPlayerRepository', () => {

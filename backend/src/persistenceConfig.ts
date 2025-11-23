@@ -4,8 +4,6 @@ export type PersistenceMode = 'memory' | 'cosmos'
 
 export interface IPersistenceConfig {
     mode: PersistenceMode
-    /** Feature flag: Enable Gremlin player vertex writes (false = SQL-only, cutover complete) */
-    enablePlayerGremlinWrite: boolean
     cosmos?: {
         endpoint: string
         database: string
@@ -38,10 +36,6 @@ export function resolvePersistenceMode(): PersistenceMode {
 export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> {
     const mode = resolvePersistenceMode()
     if (mode === 'cosmos') {
-        // Feature flag: Gremlin player writes disabled by default (migration cutover complete)
-        const enablePlayerGremlinWrite =
-            process.env.ENABLE_PLAYER_GREMLIN_WRITE === 'true' || process.env.ENABLE_PLAYER_GREMLIN_WRITE === '1'
-
         // Accept legacy GREMLIN_* variables as fallback (backward compatibility with older deployments)
         const endpoint = process.env.COSMOS_GREMLIN_ENDPOINT || process.env.COSMOS_ENDPOINT || process.env.GREMLIN_ENDPOINT
         const database = process.env.COSMOS_GREMLIN_DATABASE || process.env.GREMLIN_DATABASE
@@ -71,10 +65,10 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                 )
             }
             // Fall back to memory if misconfigured (non-strict mode only)
-            return { mode: 'memory', enablePlayerGremlinWrite: false }
+            return { mode: 'memory' }
         }
 
-        // Validate SQL API config (required for dual persistence)
+        // Validate SQL API config (authoritative player & event storage)
         if (!sqlEndpoint || !sqlDatabase || !sqlContainerPlayers || !sqlContainerInventory || !sqlContainerLayers || !sqlContainerEvents) {
             if (strict) {
                 const missingVars = []
@@ -95,7 +89,6 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
 
         const config: IPersistenceConfig = {
             mode,
-            enablePlayerGremlinWrite,
             cosmos: { endpoint, database, graph }
         }
 
@@ -129,5 +122,5 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
 
         return config
     }
-    return { mode: 'memory', enablePlayerGremlinWrite: false }
+    return { mode: 'memory' }
 }

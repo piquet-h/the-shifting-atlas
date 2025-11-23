@@ -30,7 +30,7 @@ Player storage is exclusively in SQL/Core API since ADR-004 (dual-persistence re
 
 | Container           | Partition Key | Purpose                                                                      |
 | ------------------- | ------------- | ---------------------------------------------------------------------------- |
-| `players`           | `/id`         | Player profiles, settings, and mutable state (write-through from graph).     |
+| `players`           | `/id`         | Player profiles, settings, and mutable state (authoritative SQL document).   |
 | `inventory`         | `/playerId`   | Player inventory items (enables efficient per-player queries).               |
 | `descriptionLayers` | `/locationId` | Additive description layers per location (ambient, structural, enhancement). |
 | `worldEvents`       | `/scopeKey`   | Event log partitioned by scope: `loc:<id>` or `player:<id>`.                 |

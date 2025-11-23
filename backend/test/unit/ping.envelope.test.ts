@@ -1,8 +1,8 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { containerHealth } from '../../src/handlers/containerHealth.js'
-import { backendHealth } from '../../src/handlers/health.js'
-import { ping } from '../../src/handlers/ping.js'
+import { containerHealth } from '../../src/handlers/containerHealth'
+import { backendHealth } from '../../src/handlers/health'
+import { ping } from '../../src/handlers/ping'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 interface ResponseWithBody {

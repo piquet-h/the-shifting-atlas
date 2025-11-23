@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+import { UnitTestFixture } from '../helpers/UnitTestFixture'
 
 describe('Telemetry Correlation', () => {
     let fixture: UnitTestFixture

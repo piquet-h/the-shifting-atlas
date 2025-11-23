@@ -5,7 +5,7 @@
 import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
+import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 

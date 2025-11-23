@@ -5,7 +5,7 @@
 import { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
+import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient'
 import { NullTelemetryClient } from '../../src/telemetry/NullTelemetryClient.js'
 import { setupTestContainer } from '../helpers/testInversify.config.js'
 

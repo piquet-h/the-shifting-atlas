@@ -1,0 +1,38 @@
+TAP version 13
+# node:internal/modules/run_main:123
+#     triggerUncaughtException(
+#     ^
+# Error [TransformError]: Transform failed with 1 error:
+# /Volumes/External/source/the-shifting-atlas/backend/src/repos/playerRepository.cosmosSql.ts:1:1: ERROR: Unexpected "*"
+#     at failureErrorWithLog (/Volumes/External/source/the-shifting-atlas/backend/node_modules/esbuild/lib/main.js:1467:15)
+#     at /Volumes/External/source/the-shifting-atlas/backend/node_modules/esbuild/lib/main.js:736:50
+#     at responseCallbacks.<computed> (/Volumes/External/source/the-shifting-atlas/backend/node_modules/esbuild/lib/main.js:603:9)
+#     at handleIncomingPacket (/Volumes/External/source/the-shifting-atlas/backend/node_modules/esbuild/lib/main.js:658:12)
+#     at Socket.readFromStdout (/Volumes/External/source/the-shifting-atlas/backend/node_modules/esbuild/lib/main.js:581:7)
+#     at Socket.emit (node:events:519:28)
+#     at addChunk (node:internal/streams/readable:561:12)
+#     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+#     at Readable.push (node:internal/streams/readable:392:5)
+#     at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+# Node.js v22.21.1
+# Subtest: test/unit/mockRepositories.test.ts
+not ok 1 - test/unit/mockRepositories.test.ts
+  ---
+  duration_ms: 619.301277
+  type: 'test'
+  location: '/Volumes/External/source/the-shifting-atlas/backend/test/unit/mockRepositories.test.ts:1:1'
+  failureType: 'testCodeFailure'
+  exitCode: 1
+  signal: ~
+  error: 'test failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 632.802675

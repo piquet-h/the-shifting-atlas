@@ -156,9 +156,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
       COSMOS_SQL_CONTAINER_DEADLETTERS: 'deadLetters'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
-
-      // Feature flag: Gremlin player writes disabled (SQL-only cutover complete)
-      ENABLE_PLAYER_GREMLIN_WRITE: 'false'
     }
   }
 }
