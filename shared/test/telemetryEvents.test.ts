@@ -109,55 +109,25 @@ test('unknown DM.Humor.* variant rejected', () => {
 })
 
 // Dual persistence telemetry events tests (Issue #525)
-test('Player.Migrate.Success is registered', () => {
-    assert.ok(isGameEventName('Player.Migrate.Success'), 'Player.Migrate.Success should be recognized')
+// Player lifecycle (SQL authoritative post ADR-004)
+test('Player.GetOrCreate is registered', () => {
+    assert.ok(isGameEventName('Player.GetOrCreate'), 'Player.GetOrCreate should be recognized')
 })
-
-test('Player.Migrate.Failed is registered', () => {
-    assert.ok(isGameEventName('Player.Migrate.Failed'), 'Player.Migrate.Failed should be recognized')
+test('Player.LinkExternalId is registered', () => {
+    assert.ok(isGameEventName('Player.LinkExternalId'), 'Player.LinkExternalId should be recognized')
 })
-
-test('Player.WriteThrough.Success is registered', () => {
-    assert.ok(isGameEventName('Player.WriteThrough.Success'), 'Player.WriteThrough.Success should be recognized')
+test('Player.FindByExternalId is registered', () => {
+    assert.ok(isGameEventName('Player.FindByExternalId'), 'Player.FindByExternalId should be recognized')
 })
-
-test('Player.WriteThrough.Failed is registered', () => {
-    assert.ok(isGameEventName('Player.WriteThrough.Failed'), 'Player.WriteThrough.Failed should be recognized')
-})
-
-test('Player.Get.SourceSql is registered', () => {
-    assert.ok(isGameEventName('Player.Get.SourceSql'), 'Player.Get.SourceSql should be recognized')
-})
-
-test('Player.Get.SourceGremlinFallback is registered', () => {
-    assert.ok(isGameEventName('Player.Get.SourceGremlinFallback'), 'Player.Get.SourceGremlinFallback should be recognized')
-})
-
-test('dual persistence events match telemetry pattern', () => {
-    const dualPersistenceEvents = [
+test('removed dual persistence events not registered', () => {
+    for (const removed of [
         'Player.Migrate.Success',
         'Player.Migrate.Failed',
         'Player.WriteThrough.Success',
         'Player.WriteThrough.Failed',
         'Player.Get.SourceSql',
         'Player.Get.SourceGremlinFallback'
-    ] as const
-
-    assert.ok(dualPersistenceEvents.length === 6, `Expected 6 dual persistence events, found ${dualPersistenceEvents.length}`)
-
-    for (const event of dualPersistenceEvents) {
-        assert.ok((GAME_EVENT_NAMES as readonly string[]).includes(event), `${event} should be in GAME_EVENT_NAMES`)
-        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
-        assert.ok(isGameEventName(event), `${event} should be recognized by isGameEventName`)
+    ]) {
+        assert.equal(isGameEventName(removed), false, `${removed} should be removed from GAME_EVENT_NAMES`)
     }
-})
-
-test('unknown Player.Migrate.* variant rejected', () => {
-    assert.equal(isGameEventName('Player.Migrate.Unknown'), false, 'Unknown Player.Migrate.* variant should be rejected')
-    assert.equal(isGameEventName('Player.Migrate.InvalidEvent'), false, 'Invalid Player.Migrate.* variant should be rejected')
-})
-
-test('unknown Player.WriteThrough.* variant rejected', () => {
-    assert.equal(isGameEventName('Player.WriteThrough.Unknown'), false, 'Unknown Player.WriteThrough.* variant should be rejected')
-    assert.equal(isGameEventName('Player.WriteThrough.InvalidEvent'), false, 'Invalid Player.WriteThrough.* variant should be rejected')
 })

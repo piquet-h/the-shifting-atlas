@@ -11,7 +11,6 @@ import { inject, injectable } from 'inversify'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
-import type { IPlayerRepository as IGremlinPlayerRepository } from './playerRepository.js'
 
 /**
  * SQL API document schema for player (extends PlayerRecord with required fields)
@@ -26,15 +25,11 @@ interface PlayerSqlDocument extends PlayerRecord {
 
 @injectable()
 export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDocument> implements IPlayerRepository {
-    private gremlinFallback?: IGremlinPlayerRepository
-
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService,
-        @inject('IPlayerRepository:GremlinReadOnly') gremlinFallback?: IGremlinPlayerRepository
+        @inject(TelemetryService) protected telemetryService: TelemetryService
     ) {
         super(sqlClient, 'players', telemetryService)
-        this.gremlinFallback = gremlinFallback
     }
 
     async get(id: string): Promise<PlayerRecord | undefined> {
@@ -49,23 +44,6 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
                 latencyMs: Date.now() - startTime
             })
             return sqlPlayer
-        }
-
-        // Backward compatibility: Fall back to Gremlin during migration period
-        if (this.gremlinFallback) {
-            const gremlinPlayer = await this.gremlinFallback.get(id)
-            if (gremlinPlayer) {
-                this.telemetryService.trackGameEvent('Player.Get', {
-                    playerId: id,
-                    source: 'gremlin-fallback',
-                    latencyMs: Date.now() - startTime
-                })
-
-                // Migrate player to SQL API on read
-                await this.migratePlayerToSql(gremlinPlayer)
-
-                return gremlinPlayer
-            }
         }
 
         this.telemetryService.trackGameEvent('Player.Get', {
@@ -252,42 +230,5 @@ export class CosmosPlayerRepositorySql extends CosmosDbSqlRepository<PlayerSqlDo
         })
 
         return undefined
-    }
-
-    /**
-     * Migrate a player from Gremlin to SQL API
-     * @param player - Player record from Gremlin
-     */
-    private async migratePlayerToSql(player: PlayerRecord): Promise<void> {
-        const startTime = Date.now()
-
-        try {
-            const playerDoc: PlayerSqlDocument = {
-                id: player.id,
-                createdUtc: player.createdUtc,
-                updatedUtc: player.updatedUtc || player.createdUtc,
-                guest: player.guest,
-                currentLocationId: player.currentLocationId || STARTER_LOCATION_ID,
-                externalId: player.externalId,
-                name: player.name
-            }
-
-            // Use upsert to avoid conflicts if player was migrated concurrently
-            await this.upsert(playerDoc)
-
-            this.telemetryService.trackGameEvent('Player.Migrate', {
-                playerId: player.id,
-                success: true,
-                latencyMs: Date.now() - startTime
-            })
-        } catch (error) {
-            // Log migration failure but don't throw (player read still succeeds via Gremlin)
-            this.telemetryService.trackGameEvent('Player.Migrate', {
-                playerId: player.id,
-                success: false,
-                latencyMs: Date.now() - startTime
-            })
-            console.warn(`Failed to migrate player ${player.id} to SQL:`, error)
-        }
     }
 }

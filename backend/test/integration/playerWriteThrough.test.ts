@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * Player Write-Through Integration Tests (Issue #518)
+ * Player Bootstrap / PlayerDoc Projection Integration Tests (post ADR-004)
  *
- * Tests for write-through logic from Gremlin player vertex to SQL API PlayerDoc
- * on player bootstrap. Per ADR-002, Gremlin remains source of truth during migration,
- * with SQL API write failures logged but not blocking.
- *
- * Related: Epic #386 (Cosmos Dual Persistence Implementation)
+ * Verifies that bootstrap creates a PlayerDoc projection without emitting legacy
+ * Player.WriteThrough.* telemetry events and operates in SQL-only mode.
  */
 
 import type { HttpRequest } from '@azure/functions'
@@ -17,7 +14,7 @@ import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
-describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => {
+describeForBothModes('Player Bootstrap SQL-only Projection (post ADR-004)', (mode) => {
     let fixture: IntegrationTestFixture
 
     beforeEach(async () => {
@@ -29,8 +26,8 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
         await fixture.teardown()
     })
 
-    describe('Bootstrap Player with Write-Through', () => {
-        test('should create player in both Gremlin and SQL API on bootstrap', async () => {
+    describe('Bootstrap Player Projection', () => {
+        test('bootstrap returns playerGuid and creates PlayerDoc (no write-through telemetry)', async () => {
             // Import handler to test bootstrap flow
             const { BootstrapPlayerHandler } = await import('../../src/handlers/bootstrapPlayer.js')
             const container = await fixture.getContainer()
@@ -52,14 +49,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             assert.ok(playerId, `Player ID should be returned. Got: ${JSON.stringify(body)}`)
             assert.strictEqual(body?.data?.created, true, 'Player should be created')
 
-            // Verify player exists in Gremlin (source of truth)
-            const playerRepo = await fixture.getPlayerRepository()
-            const gremlinPlayer = await playerRepo.get(playerId)
-
-            assert.ok(gremlinPlayer, 'Player should exist in Gremlin')
-            assert.strictEqual(gremlinPlayer.id, playerId, 'Gremlin player ID should match')
-
-            // Verify player exists in SQL API (write-through)
+            // Verify player exists in SQL API projection
             const playerDocRepo = await fixture.getPlayerDocRepository()
             const sqlPlayer = await playerDocRepo.getPlayer(playerId)
 
@@ -74,13 +64,12 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             // Bootstrap handler emits Onboarding events, not Player.Created
             const createdEvent = events.find((e) => e.name === 'Onboarding.GuestGuid.Created')
             assert.ok(createdEvent, 'Onboarding.GuestGuid.Created event should be emitted')
-
-            const writeSuccessEvent = events.find((e) => e.name === 'Player.WriteThrough.Success')
-            assert.ok(writeSuccessEvent, 'Player.WriteThrough.Success event should be emitted')
-            assert.strictEqual(writeSuccessEvent?.properties?.playerId, playerId, 'Success event should include player ID')
+            // Legacy write-through telemetry should NOT be emitted post ADR-004
+            assert.ok(!events.find((e) => e.name === 'Player.WriteThrough.Success'), 'Player.WriteThrough.Success should not be emitted')
+            assert.ok(!events.find((e) => e.name === 'Player.WriteThrough.Failed'), 'Player.WriteThrough.Failed should not be emitted')
         })
 
-        test('should not create duplicate player when same GUID provided', async () => {
+        test('idempotent bootstrap with provided GUID reports created=false and reuses PlayerDoc', async () => {
             // Import handler
             const { BootstrapPlayerHandler } = await import('../../src/handlers/bootstrapPlayer.js')
             const container = await fixture.getContainer()
@@ -104,11 +93,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             assert.strictEqual(body1.data.created, false, 'First call should report created=false (client provided GUID)')
             assert.strictEqual(body1.data.playerGuid, testGuid, 'Player GUID should match provided GUID')
 
-            // But player should actually exist in both stores
-            const playerRepo = await fixture.getPlayerRepository()
-            const gremlinPlayer = await playerRepo.get(testGuid)
-            assert.ok(gremlinPlayer, 'Player should exist in Gremlin after first bootstrap')
-
+            // PlayerDoc projection should exist
             const playerDocRepo = await fixture.getPlayerDocRepository()
             const sqlPlayer = await playerDocRepo.getPlayer(testGuid)
             assert.ok(sqlPlayer, 'Player should exist in SQL API after first bootstrap')
@@ -134,7 +119,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
             assert.strictEqual(sqlPlayer2.id, testGuid, 'SQL player ID should match')
         })
 
-        test('should handle write-through upsert idempotently', async () => {
+        test('PlayerDoc upsert remains idempotent', async () => {
             // Create player directly in both stores
             const playerRepo = await fixture.getPlayerRepository()
             const playerDocRepo = await fixture.getPlayerDocRepository()
@@ -174,74 +159,7 @@ describeForBothModes('Player Write-Through Integration (Issue #518)', (mode) => 
         })
     })
 
-    describe('Write-Through Error Handling', () => {
-        test('should emit Player.WriteThrough.Failed event on SQL write failure', async () => {
-            // This test documents expected behavior when SQL API is unavailable
-            // In memory mode, this is a simulated scenario; in cosmos mode with real DB,
-            // failure would be due to network/auth issues
-
-            // For this test, we verify telemetry emission path exists in handler code
-            // Actual failure injection would require a mock that throws on upsert
-
-            // Import handler
-            const { BootstrapPlayerHandler } = await import('../../src/handlers/bootstrapPlayer.js')
-            const container = await fixture.getContainer()
-            const handler = container.get(BootstrapPlayerHandler)
-
-            // Mock request
-            const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
-            const context = await fixture.createInvocationContext()
-
-            // Execute bootstrap
-            const response = await handler.handle(request, context as any)
-
-            // Should succeed even if SQL write fails (Gremlin is authoritative)
-            assert.strictEqual(response.status, 200, 'Bootstrap should succeed even with SQL write failure')
-
-            const telemetry = (await fixture.getTelemetryClient()) as MockTelemetryClient
-            const events = telemetry.events
-
-            // Either WriteThrough.Success OR WriteThrough.Failed should be emitted
-            const writeSuccess = events.find((e) => e.name === 'Player.WriteThrough.Success')
-            const writeFailed = events.find((e) => e.name === 'Player.WriteThrough.Failed')
-
-            assert.ok(writeSuccess || writeFailed, 'Either success or failed write-through event should be emitted')
-
-            // In normal operation (memory/cosmos), we expect success
-            // This test documents that failure would not block bootstrap
-        })
-
-        test('should continue bootstrap when SQL API write fails (degraded mode)', async () => {
-            // Document expected behavior: Gremlin write succeeds, SQL write fails, bootstrap continues
-            // This is a known limitation per ADR-002: no distributed transactions
-
-            const { BootstrapPlayerHandler } = await import('../../src/handlers/bootstrapPlayer.js')
-            const container = await fixture.getContainer()
-            const handler = container.get(BootstrapPlayerHandler)
-
-            const { TestMocks } = await import('../helpers/TestFixture.js')
-            const request = TestMocks.createHttpRequest({ headers: {} }) as HttpRequest
-            const context = await fixture.createInvocationContext()
-
-            const response = await handler.handle(request, context as any)
-
-            assert.strictEqual(response.status, 200, 'Bootstrap should succeed (Gremlin write successful)')
-
-            const body = response.jsonBody
-            const playerId = body.data.playerGuid
-
-            // Verify player exists in Gremlin (authoritative)
-            const playerRepo = await fixture.getPlayerRepository()
-            const gremlinPlayer = await playerRepo.get(playerId)
-
-            assert.ok(gremlinPlayer, 'Player should exist in Gremlin (source of truth)')
-
-            // In this test, SQL write succeeds (memory mode stable)
-            // But the handler code is designed to continue even if it fails
-            // Edge case: degraded mode operation documented
-        })
-    })
+    // Legacy write-through error handling tests removed (logic deprecated)
 
     describe('PlayerDoc Field Mapping', () => {
         test('should map PlayerRecord fields to PlayerDoc correctly', async () => {

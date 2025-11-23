@@ -45,28 +45,17 @@ export class BootstrapPlayerHandler extends BaseHandler {
 
         if (created) {
             this.track('Onboarding.GuestGuid.Created', { phase: 'bootstrap' })
-
-            // Write-through to SQL API (ADR-002 dual persistence)
-            // Gremlin is still source of truth; SQL failure logged but doesn't block
-            try {
-                const playerDoc: PlayerDoc = {
-                    id: record.id,
-                    createdUtc: record.createdUtc,
-                    updatedUtc: record.updatedUtc || record.createdUtc,
-                    currentLocationId: record.currentLocationId || 'unknown',
-                    attributes: {},
-                    inventoryVersion: 0
-                }
-                await playerDocRepo.upsertPlayer(playerDoc)
-                this.track('Player.WriteThrough.Success', { playerId: record.id })
-            } catch (error) {
-                // Log error but continue - Gremlin remains authoritative during migration
-                this.track('Player.WriteThrough.Failed', {
-                    playerId: record.id,
-                    error: error instanceof Error ? error.message : 'Unknown error'
-                })
-                // Do not throw - degraded mode allows Gremlin-only operation
+            // SQL is authoritative post ADR-004; create initial PlayerDoc projection.
+            const playerDoc: PlayerDoc = {
+                id: record.id,
+                createdUtc: record.createdUtc,
+                updatedUtc: record.updatedUtc || record.createdUtc,
+                currentLocationId: record.currentLocationId || 'unknown',
+                attributes: {},
+                inventoryVersion: 0
             }
+            // Failure here should surface (no silent dual persistence fallback).
+            await playerDocRepo.upsertPlayer(playerDoc)
         }
         this.track('Onboarding.GuestGuid.Completed', { created: reportedCreated })
 

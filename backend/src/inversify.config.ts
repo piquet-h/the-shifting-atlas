@@ -45,7 +45,6 @@ import { ILayerRepository } from './repos/layerRepository.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository } from './repos/locationRepository.js'
 import { IPlayerDocRepository, PlayerDocRepository } from './repos/PlayerDocRepository.js'
-import { CosmosPlayerRepository } from './repos/playerRepository.cosmos.js'
 import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { CosmosProcessedEventRepository } from './repos/processedEventRepository.cosmos.js'
@@ -149,18 +148,7 @@ export const setupContainer = async (container: Container) => {
     // Bind PlayerDocRepository (SQL API player projection)
     container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
 
-    // Feature flag: conditionally disable Gremlin player vertex fallback (ADR-002 migration)
-    const { DISABLE_GREMLIN_PLAYER_VERTEX } = await import('./config/featureFlags.js')
-
-    if (!DISABLE_GREMLIN_PLAYER_VERTEX) {
-        // Bind Gremlin player repository as read-only fallback (disaster recovery, no writes)
-        // When feature flag is disabled (default), Gremlin fallback is available for reads
-        container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
-    }
-    // If feature flag is enabled, skip Gremlin binding entirely
-    // CosmosPlayerRepositorySql will receive undefined for gremlinFallback parameter
-
-    // Bind SQL player repository as primary
+    // Bind SQL player repository as primary (Gremlin player vertex deprecated per ADR-004)
     container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
 
     // === Cosmos Repositories ===
