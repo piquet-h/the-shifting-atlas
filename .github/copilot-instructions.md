@@ -171,7 +171,7 @@ node --prof-process isolate-*-v8.log
 Frontend: Azure Static Web Apps (React + Vite + Tailwind)
 Backend and API: Azure Functions (HTTP player actions + queue world logic)
 Messaging: Azure Service Bus
-Data: Dual persistence (ADR-002)
+Data: Dual persistence (ADR-002) – UPDATED: Player storage cutover completed (ADR-004). Dual persistence now applies only to the architectural split between immutable world graph (Gremlin) and mutable player/inventory/events state (SQL API); players are no longer written to Gremlin.
 
 -   Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
 -   Cosmos DB SQL API: Documents (players, inventory, description layers, events)
@@ -198,7 +198,7 @@ Edges: semantic (e.g., `exit_north`, `owns_item`).
 Exits: allowed directions set (north,south,east,west,up,down,in,out).
 Player action flow: HTTP validate → persist (SQL + graph) → enqueue world event.
 World evolution: queue triggers only.
-Dual persistence (ADR-002): Mutable player data in SQL API; immutable world structure in Gremlin graph.
+Dual persistence (ADR-002 → superseded for player storage by ADR-004): Immutable world structure in Gremlin graph; mutable player/inventory/events data authoritative in SQL API (player vertices removed).
 
 ---
 
@@ -214,7 +214,7 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 ---
 
-## 5. Cosmos DB SQL API Containers (Dual Persistence)
+## 5. Cosmos DB SQL API Containers (Post Dual Persistence Cutover)
 
 Environment variables (wired in Bicep, available in Functions):
 
@@ -227,12 +227,19 @@ Environment variables (wired in Bicep, available in Functions):
 -   `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
 
 Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
-Partition key patterns:
+Partition key patterns (unchanged – reaffirmed post ADR-004):
 
--   Players: Use player GUID as PK value.
--   Inventory: Use player GUID to colocate all items for a player.
--   Layers: Use location GUID to colocate all layers for a location.
--   Events: Use scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+-   Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
+-   Inventory: Player GUID to colocate all items for a player.
+-   Layers: Location GUID to colocate all layers for a location.
+-   Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+
+Cutover Notes (ADR-004):
+
+-   Removed feature flag `DISABLE_GREMLIN_PLAYER_VERTEX`.
+-   Eliminated telemetry events `Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`.
+-   Player bootstrap now directly creates SQL PlayerDoc projection; Gremlin used only for spatial world entities.
+-   Rollback (unlikely): Reintroduce archived player Gremlin vertex module + dual write-through events; document in ADR-004 rollback section.
 
 ---
 
