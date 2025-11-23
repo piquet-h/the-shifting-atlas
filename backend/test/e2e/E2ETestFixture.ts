@@ -46,7 +46,6 @@ export class E2ETestFixture {
     private testPlayerIds: Set<string> = new Set()
     private performanceMetrics: E2EPerformanceMetrics[] = []
     private worldSeeded: boolean = false
-    private demoPlayerId: string | undefined = undefined
     // Forward SQL doc tracking to underlying IntegrationTestFixture (cosmos mode)
 
     constructor() {
@@ -273,8 +272,7 @@ export class E2ETestFixture {
 
         await this.baseFixture.teardown()
 
-        // Clear performance metrics and reset demo player ID
+        // Clear performance metrics
         this.performanceMetrics = []
-        this.demoPlayerId = undefined
     }
 }

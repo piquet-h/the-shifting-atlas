@@ -34,8 +34,6 @@ Script outputs detailed summary including:
 -   Locations processed count
 -   Location vertices created (new only)
 -   Exits created (new only)
--   Demo player creation status
--   Demo player ID
 -   Elapsed time in milliseconds
 
 **Sample Output:**
@@ -48,8 +46,6 @@ Script outputs detailed summary including:
   Locations processed:        34
   Location vertices created:  34
   Exits created:              90
-  Demo player created:        Yes
-  Demo player ID:             00000000-0000-4000-8000-000000000001
 
   Elapsed time:               125ms
 
@@ -120,7 +116,7 @@ node --test scripts/test/seed-anchor-locations.test.mjs
 -   ✅ Movement loop validation: Script seeds connected locations with exits
 -   ✅ Early AI read-only context scope: Provides meaningful world graph for AI tools
 -   ✅ Playtesting: Multiple locations with various exit patterns
--   ✅ Telemetry validation: Demo player and locations ready for event tracking
+-   ✅ Telemetry validation: Locations ready for event tracking (player creation now explicit via player bootstrap flow)
 
 ## Implementation Notes
 

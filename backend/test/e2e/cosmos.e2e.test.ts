@@ -87,7 +87,7 @@ describe('E2E Integration Tests - Cosmos DB', () => {
         test('seed script creates ≥5 locations with exits', async () => {
             if (process.env.PERSISTENCE_MODE !== 'cosmos') return
             const startTime = Date.now()
-            const { locations, demoPlayerId } = await fixture.seedTestWorld()
+            const { locations } = await fixture.seedTestWorld()
             const duration = Date.now() - startTime
             fixture.trackPerformance('seed-world', duration)
 
@@ -162,10 +162,8 @@ describe('E2E Integration Tests - Cosmos DB', () => {
                 console.log(`✓ Location ${loc.id}: ${actualExitCount} exits validated`)
             }
 
-            const playerRepository = await fixture.getPlayerRepository()
-            const player = await playerRepository.get(demoPlayerId)
-            assert.ok(player, 'Demo player should exist')
-            assert.equal(player.id, demoPlayerId, 'Player ID matches')
+            // Demo player concept removed; world seeding no longer creates a player automatically.
+            // E2E player lifecycle is validated in dedicated bootstrap test below.
 
             console.log(`✓ Seeded ${locations.length} locations in ${duration}ms`)
         })
@@ -174,12 +172,13 @@ describe('E2E Integration Tests - Cosmos DB', () => {
     describe('Player Bootstrap & First LOOK (Cold Start)', () => {
         test('player bootstrap → location lookup → first LOOK', async () => {
             if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const { locations, demoPlayerId } = await fixture.seedTestWorld()
+            const { locations } = await fixture.seedTestWorld()
             const startTime = Date.now()
 
+            // Create a fresh player (seed no longer provisions demo player)
             const playerRepository = await fixture.getPlayerRepository()
-            const player = await playerRepository.get(demoPlayerId)
-            assert.ok(player, 'Player should exist after seed')
+            const { record: player } = await playerRepository.getOrCreate()
+            assert.ok(player, 'Player should be created successfully')
 
             // Use first test location (player's currentLocationId may point to STARTER_LOCATION_ID which isn't in test blueprint)
             const locationRepository = await fixture.getLocationRepository()

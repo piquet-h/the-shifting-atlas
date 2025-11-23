@@ -32,7 +32,7 @@ npm run seed:production
    Locations processed: 34
    Location vertices created: 34
    Exits created: 90
-   Demo player: 00000000-0000-4000-8000-000000000001 (created)
+    (Player creation removed from seed process – create players via bootstrap endpoint)
 
 🎉 Mosswell is ready for production!
 ```
@@ -44,7 +44,7 @@ npm run seed:production
    Locations processed: 34
    Location vertices created: 0
    Exits created: 0
-   Demo player: 00000000-0000-4000-8000-000000000001 (already exists)
+    (No implicit player creation – repeat run confirms idempotent location/exits only)
 
 💡 All locations already exist (idempotent run)
 ```
@@ -58,7 +58,7 @@ The bootstrap script is **safe to run multiple times**. It will:
 -   ✅ Create missing location vertices
 -   ✅ Create missing exit edges
 -   ✅ Skip existing vertices and edges (no duplicates)
--   ✅ Create demo player if missing, skip if exists
+    // (Removed) Create demo player – seeding no longer provisions a player. Use player bootstrap flow for test users.
 -   ✅ Update location content if changed (based on content hash)
 
 **No destructive operations**: Never deletes or overwrites existing world data.
@@ -201,7 +201,7 @@ npm run seed:production
    b. Upsert each location (creates if missing, updates if changed)
    c. Ensure all exits (creates edges if missing)
    d. Track creation metrics
-5. Ensure demo player exists
+5. (Removed) Ensure demo player exists – handled explicitly by player bootstrap endpoint.
 6. Report summary (locations/exits created, elapsed time)
 ```
 
@@ -213,19 +213,16 @@ npm run seed:production
 
 ```typescript
 export interface SeedWorldOptions {
-    demoPlayerId?: string
     blueprint?: Location[]
     log?: (...args: unknown[]) => void
     locationRepository: ILocationRepository
-    playerRepository: IPlayerRepository
+    bulkMode?: boolean
 }
 
 export interface SeedWorldResult {
     locationsProcessed: number
     locationVerticesCreated: number
     exitsCreated: number
-    playerCreated: boolean
-    demoPlayerId: string
 }
 ```
 
@@ -236,8 +233,6 @@ import { seedWorld } from '../src/seeding/seedWorld.js'
 
 const result = await seedWorld({
     locationRepository: cosmosLocationRepo,
-    playerRepository: cosmosPlayerRepo,
-    demoPlayerId: '00000000-0000-4000-8000-000000000001',
     log: console.log
 })
 
@@ -275,18 +270,9 @@ console.log(`Created ${result.exitsCreated} new exits`)
 
 **Result**: No duplicate edges for same direction.
 
-### Player Creation
+### Player Creation (Removed from Seeding)
 
-**Method**: `playerRepository.getOrCreate(playerId)`
-
-**Logic**:
-
-1. If `playerId` provided: Query for existing record
-2. If found: Return existing (return `created: false`)
-3. If not found or no ID provided: Generate new UUID and create player
-4. Return player record and creation status
-
-**Result**: Demo player created once, reused on subsequent runs.
+Player creation is now explicit and outside the seed script. Use the player bootstrap endpoint or repository `getOrCreate()` in tests to create players as needed.
 
 ## Troubleshooting
 
@@ -437,28 +423,9 @@ await seedWorld({
 
 For future world expansions, see [Migration Workflow](./mosswell-migration-workflow.md).
 
-## Demo Player
+## Deprecated: Demo Player
 
-**Purpose**: Provides a stable player ID for manual testing and exploration.
-
-**ID**: `00000000-0000-4000-8000-000000000001`
-
-**Characteristics**:
-
--   Always created during bootstrap
--   Guest account (not linked to external identity)
--   Initial location: `null` (assigned on first `GET /api/player/{id}`)
--   Safe to use for HTTP endpoint testing
-
-**Usage**:
-
-```bash
-# Test player bootstrap flow
-curl http://localhost:7071/api/player/00000000-0000-4000-8000-000000000001
-
-# Test location lookup
-curl "http://localhost:7071/api/location/look?playerId=00000000-0000-4000-8000-000000000001"
-```
+The automatic demo player provisioning was removed in refactor `dfdd6e9`. Create test players explicitly via the player bootstrap flow or repository API.
 
 ## Data Schema
 
@@ -509,7 +476,7 @@ g.V('loc-mosswell-entrance')
 ### Don'ts ❌
 
 -   Don't modify `villageLocations.json` in place for custom worlds (create new migration files)
--   Don't assume bootstrap creates players beyond the demo player (use player bootstrap endpoint)
+-   Don't assume bootstrap creates any players (use player bootstrap endpoint)
 -   Don't run with `PARTITION_SCOPE=test` in production environment variables
 -   Don't rely on bootstrap for runtime player onboarding (use `POST /api/player/bootstrap`)
 
