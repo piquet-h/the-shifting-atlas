@@ -7,11 +7,10 @@ param location string = resourceGroup().location
 @description('Application Insights resource ID to link the workbook to')
 param applicationInsightsId string
 
-// Dual Persistence Monitoring Dashboard
-// Monitors player migration, write-through sync, and Gremlin fallback during SQL API migration
-// Related issues: #518 (Write-Through), #519 (Feature Flag), #525 (Telemetry), #386 (Epic)
-var workbookId = guid('dual-persistence-dashboard', name)
-var workbookDisplayName = 'Dual Persistence Monitoring Dashboard'
+// Dual Persistence workbook DECOMMISSIONED (ADR-004): Player migration & fallback monitoring removed.
+// Placeholder retained temporarily; safe to delete after PR2.
+var workbookId = guid('deprecated-player-store-cutover', name)
+var workbookDisplayName = 'DECOMMISSIONED Dual Persistence Workbook'
 
 resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
   name: workbookId
@@ -19,16 +18,14 @@ resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
   kind: 'shared'
   properties: {
     displayName: workbookDisplayName
-    serializedData: string(loadJsonContent('./workbooks/dual-persistence-dashboard.workbook.json'))
+    // Workbook content removed (dual persistence retired)
+    serializedData: '"{}"'
     sourceId: applicationInsightsId
     category: 'tsg'
     version: '1.0'
     tags: [
       'M2-Observability'
-      'DualPersistence'
-      'Migration'
-      'SQL'
-      'Gremlin'
+      'Deprecated'
     ]
   }
 }

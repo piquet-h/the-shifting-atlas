@@ -648,17 +648,6 @@ module workbookSqlPartitionMonitoring 'workbook-sql-partition-monitoring-dashboa
   }
 }
 
-// Workbook: Dual Persistence Monitoring Dashboard (SQL + Gremlin migration health)
-// Issue #529: Monitor player migration success/failure, write-through latency, Gremlin fallback frequency
-module workbookDualPersistence 'workbook-dual-persistence-dashboard.bicep' = {
-  name: 'workbook-dual-persistence-dashboard'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-  }
-}
-
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
 // Replaced complex KQL query with Action Group correlation (alert processing rule)
@@ -715,54 +704,5 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
   }
 }
 
-// Dual Persistence Monitoring Alerts (Issue #529)
-// Detects anomalies during player migration from Gremlin to SQL API (ADR-002)
-// Includes: migration failures, excessive fallback, write-through latency, feature flag toggle
-
-// Alert: Player Migration Failure Rate (Warning: >5% / 15min, Critical: >10% / 5min)
-module alertMigrationFailures 'alert-dual-persistence-migration-failures.bicep' = {
-  name: 'alert-migration-failures'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
-    enabled: true
-  }
-}
-
-// Alert: Gremlin Fallback Rate (Warning: >20% / 1 hour after migration stable)
-module alertFallbackRate 'alert-dual-persistence-fallback-rate.bicep' = {
-  name: 'alert-fallback-rate'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
-    enabled: true
-  }
-}
-
-// Alert: Write-Through Latency (Warning: P95 >500ms / 10min, Critical: P95 >1000ms / 5min)
-module alertWriteThroughLatency 'alert-dual-persistence-latency.bicep' = {
-  name: 'alert-writethrough-latency'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
-    enabled: true
-  }
-}
-
-// Alert: Feature Flag Toggle (Informational: tracks DISABLE_GREMLIN_PLAYER_VERTEX changes)
-module alertFeatureFlagToggle 'alert-dual-persistence-feature-flag.bicep' = {
-  name: 'alert-feature-flag-toggle'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
-    enabled: true
-  }
-}
+// NOTE: Dual-persistence (player migration & fallback) infrastructure removed per ADR-004.
+// Player storage is now exclusively SQL API; Gremlin retained only for world graph structure.
