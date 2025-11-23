@@ -1,3 +1,30 @@
+# M2 Data Foundations – Implementation Plan (Closed)
+
+> **Final Status:** 50/50 (100%) | Telemetry ✅ Player Store Cutover ✅ | Closed 2025-11-23 (ADR-004) | Updated 2025-11-23
+> This file is now a historical snapshot. Dual persistence player migration and cutover completed; player state is authoritative in SQL API (see ADR-004). Remaining open items were moved to M3/M5 or deferred.
+> **CRITICAL PATH (Historical): Dual Persistence Implementation** (Completed via ADR-004)
+> **Remaining M2 Scope (Historical):** 0 issues (all closed)
+> **Deferred (Moved to M5/M3)**: #256 Relative Direction Support, #318 Event Naming, #347 Account Security, #393 Humor Telemetry (tracked in respective milestones)
+
+## Phase Details (Historical Summary)
+
+### Phase 3: Dashboards/Alerts (Complete)
+
+### Phase 5: Polish (Merged into Phase 3/4 outcomes; residual items deferred)
+
+### Miscellaneous Scope (Deferred)
+
+## Implementation Sequence (Executed)
+
+## Risk Flags (Resolved)
+
+**Remaining:** 0 issues
+**Total M2 Scope (Final)**
+**Status:** 50 closed ✅, 0 open  
+**Completion:** 100% (50/50)
+
+-   **Dual Persistence: 7/7 ✅ (Player store authoritative in SQL; migration artifacts removed)**
+
 # M2 Data Foundations – Implementation Plan
 
 > **Status:** 39/50 (78%) | Telemetry ✅ Dual Persistence 🔨 | Critical Path: #408→#404-407→#409→#410 | Updated 2025-11-10

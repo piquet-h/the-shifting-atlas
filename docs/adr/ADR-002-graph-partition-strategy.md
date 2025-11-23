@@ -1,8 +1,10 @@
----
 status: Accepted
 date: 2025-10-03
 amends: [ADR-001]
+
 ---
+
+> Supersession Note (2025-11-23): Portions of this ADR referring to player vertices and dual write strategies are superseded by ADR-004 (Player Store Cutover Completion). Player state is now authoritative in Cosmos SQL API; Gremlin retains only immutable world structure (locations, exits, future NPC vertices). Partition strategy guidance for location vertices remains valid.
 
 # ADR-002: Graph Partition Strategy (MVP Single Partition Concession)
 
@@ -14,18 +16,18 @@ The world graph (Cosmos DB Gremlin) is provisioned with partition key path `/par
 
 1. Retain a single partition value for MVP (speed > scale), centralized via `shared/src/persistence/graphPartition.ts`.
 2. Add evolution hook (`resolveGraphPartitionKey`) for future region-based partitioning without touching call sites.
-3. Plan migration of mutable, player-centric state to Cosmos SQL API (separate document model) before scale-up; Gremlin player vertex optional.
+3. (Historical) Plan migration of mutable, player-centric state to Cosmos SQL API (separate document model) before scale-up; EXECUTED via ADR-004; player vertex removed.
 
 ## Rationale
 
-- Operational simplicity early.
-- Central constant lowers migration diff surface.
-- Player/inventory write amplification better isolated per-player partition in SQL API.
+-   Operational simplicity early.
+-   Central constant lowers migration diff surface.
+-   Player/inventory write amplification better isolated per-player partition in SQL API.
 
 ## Non-Goals (Now)
 
-- Spatial hash/quadkey sharding.
-- Type-based partitioning (adds no locality benefit for traversal).
+-   Spatial hash/quadkey sharding.
+-   Type-based partitioning (adds no locality benefit for traversal).
 
 ## Future Strategy (Region Sharding)
 
@@ -33,8 +35,8 @@ Partition key value becomes region ID (e.g., `mosswell`, `northern_ridge`). Loca
 
 ## Thresholds to Revisit
 
-- > 50k world vertices OR sustained RU consumption >70% for 3 consecutive days.
-- Repeated 429 (throttled) responses on movement/look at <50 RPS.
+-   > 50k world vertices OR sustained RU consumption >70% for 3 consecutive days.
+-   Repeated 429 (throttled) responses on movement/look at <50 RPS.
 
 ## Migration Outline
 
@@ -49,21 +51,21 @@ Partition key value becomes region ID (e.g., `mosswell`, `northern_ridge`). Loca
 
 ## Consequences
 
-Positive: Fast iteration now; explicit migration path.\
-Negative: Known scalability ceiling until migration; potential cross-partition edges if player vertices retained later.
+Positive: Fast iteration now; explicit migration path (executed).\
+Negative (Historical): Scalability ceiling prior to ADR-004; potential cross-partition edges if player vertices had been retained.
 
 ## Related Changes
 
-- New constants file `graphPartition.ts` and repository refactor.
+-   New constants file `graphPartition.ts` and repository refactor.
 
 ## Follow-Up Issues (completed/in-progress)
 
-- ✅ Provision SQL API (players, inventory, layers, events) - #517
-- ✅ Player SQL projection + write-through pattern - #518
-- ✅ Feature flag for Gremlin player vertex fallback - #519
-- ⏳ Region partition migration script scaffold
-- ⏳ Telemetry capture for Gremlin RU/latency
-- ✅ Adopt partition constants (done in this ADR)
+-   ✅ Provision SQL API (players, inventory, layers, events) - #517
+-   ✅ Player SQL projection (write-through & migration complete; flag removed) - #518
+-   ✅ Feature flag for Gremlin player vertex fallback (removed post-cutover) - #519
+-   ⏳ Region partition migration script scaffold
+-   ⏳ Telemetry capture for Gremlin RU/latency
+-   ✅ Adopt partition constants (done in this ADR)
 
 ## Rollback
 
@@ -82,4 +84,4 @@ Revert constant usage to prior literal `'world'`; no data shape changes required
 
 ---
 
-Accepted 2025-10-03.
+Accepted 2025-10-03. Superseded for player storage concerns by ADR-004 on 2025-11-23.
