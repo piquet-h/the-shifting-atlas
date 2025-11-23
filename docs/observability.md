@@ -314,7 +314,7 @@ customEvents
 | extend containerName = tostring(customDimensions.containerName),
          partitionKey = tostring(customDimensions.partitionKey)
 | where isnotempty(partitionKey)
-| summarize 
+| summarize
     uniquePartitions = dcount(partitionKey),
     totalOps = count(),
     totalRU = sum(todouble(customDimensions.ruCharge))
@@ -441,7 +441,7 @@ To avoid proliferation of narrowly scoped workbooks, operational analytics adopt
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Single Pane          | Combine closely related KPIs (rate, reasons, trends, summary) in one workbook file.                                                                 |
 | Deterministic Naming | Bicep resource name uses `guid('<slug>', name)` for idempotent deployments.                                                                         |
-| Stable Paths         | All workbook JSON artifacts reside under `infrastructure/workbooks/` with slug pattern `<domain>-<focus>-dashboard.workbook.json`.              |
+| Stable Paths         | All workbook JSON artifacts reside under `infrastructure/workbooks/` with slug pattern `<domain>-<focus>-dashboard.workbook.json`.                  |
 | Additive Panels      | New metrics extend existing domain dashboard instead of creating a new workbook, unless a distinct audience or retention policy demands separation. |
 | Issue Linking        | Dashboard issues reference the consolidated slug rather than creating parallel artifacts.                                                           |
 
@@ -483,11 +483,11 @@ Dedicated workbook for SQL API partition key distribution monitoring and hot par
     -   **429 Throttling Analysis**: Throttling errors by partition key
     -   **Latency Percentiles**: P50/P95/P99 latency for hot partitions
     -   **Alert Troubleshooting Guide**: Step-by-step response workflow when hot partition alert fires
--   **When to Use**: 
-    - After hot partition alert fires (immediate troubleshooting)
-    - Weekly partition health reviews
-    - Before/after partition key migrations
-    - Capacity planning for high-growth containers
+-   **When to Use**:
+    -   After hot partition alert fires (immediate troubleshooting)
+    -   Weekly partition health reviews
+    -   Before/after partition key migrations
+    -   Capacity planning for high-growth containers
 -   **Filters**: Time range (1h-7d), container selection (All or specific)
 -   References: docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)
 

@@ -61,7 +61,7 @@ Player navigates to site root `/` without a valid session / auth cookie OR with 
 | Authenticated Player | Returning user with external identity session               |
 | Static Web App (SWA) | Delivers SPA & handles built‑in auth redirects              |
 | Azure Functions API  | Processes bootstrap, ping, profile sync, telemetry capture  |
-| Cosmos DB            | Stores Player vertex and minimal session linkage            |
+| Cosmos DB            | Stores Player document and minimal session linkage          |
 | Service Bus (future) | Will process queued onboarding / analytics events (planned) |
 
 ## Preconditions
@@ -190,7 +190,7 @@ All responses wrapped in ApiEnvelope pattern (see `shared/src/domainModels.ts`):
 
 ## Data Model (Simplified)
 
-Player Vertex (initial fields only):
+Player Document (initial fields only):
 
 ```jsonc
 {
@@ -265,7 +265,7 @@ We integrate Azure Static Web Apps built‑in auth with Azure External Identitie
 2. The client opens the provider sign-in page (Azure SWA built-in auth redirects to the configured identity provider).
 3. After successful auth the SWA platform issues an authentication cookie and (for APIs) injects a base64-encoded `x-ms-client-principal` header into proxied requests to the backend. The client is redirected back to the SPA.
 4. On return the SPA reads ephemeral info from the endpoint `/.auth/me` (or the platform-provided auth JSON) to obtain basic claims (email, name, identity provider, object id).
-5. The client then calls `POST /api/player/sync-profile` with the auth claims (id, email, name, provider). The Function validates the header/jwt and creates or updates the player vertex in Cosmos DB, linking any existing local GUID if present.
+5. The client then calls `POST /api/player/sync-profile` with the auth claims (id, email, name, provider). The Function validates the header/jwt and creates or updates the player document in Cosmos DB (SQL API), linking any existing local GUID if present.
 6. The SPA stores a lightweight local session flag (we prefer server-validated tokens or HttpOnly cookies for sensitive tokens; see backend guidance). The player is now fully authenticated and can access gated features (saved characters, friends, cross-device sync).
 
 ### UX Considerations
@@ -277,14 +277,14 @@ We integrate Azure Static Web Apps built‑in auth with Azure External Identitie
 ### Backend Validation & Security Contract
 
 -   Input: requests from the SPA with either the platform auth header (`x-ms-client-principal`) forwarded by Static Web Apps or an Authorization: Bearer <JWT> if you opt to use auth tokens directly.
--   Output: Created/updated Player vertex in Cosmos DB, returns canonical playerGuid and role claims.
+-   Output: Created/updated Player document in Cosmos DB, returns canonical playerGuid and role claims.
 -   Error modes: header missing/invalid, provider mismatch, profile conflict.
 
 Key checks the backend must perform:
 
 1. If `x-ms-client-principal` is present, validate it is coming from the SWA host (Functions receive it when proxied) and decode the base64 body to extract claims.
 2. Optionally validate the raw JWT (if using Authorization bearer tokens) against the provider's JWKS endpoint.
-3. Use a stable external id (for example, `sub` or `oid` claim combined with provider) as the canonical link to the Player vertex.
+3. Use a stable external id (for example, `sub` or `oid` claim combined with provider) as the canonical link to the Player document.
 
 ### Implementation Snippets
 
@@ -389,7 +389,7 @@ onClick={() => {
 
 -   Character creation flow will remain optional - users can still choose a "Quick Start" path
 -   New user state management will expand beyond simple localStorage flag to include creation progress
--   Character data will be stored as part of the Player vertex in Cosmos DB
+-   Character data will be stored as part of the Player document in Cosmos DB
 -   The current authentication flow will be preserved as the final step after character customization
 
 **UX Flow** (planned):
