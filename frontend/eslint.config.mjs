@@ -7,7 +7,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
-import telemetryEventRule from '../eslint-rules/telemetry-event-name.mjs'
+import telemetryEventRule from '../eslint-rules/telemetry-event.mjs'
 
 export default [
     { ignores: ['dist', '**/dist/**', 'node_modules', '**/coverage/**'] },
@@ -22,7 +22,7 @@ export default [
             prettier: prettierPlugin,
             internal: {
                 rules: {
-                    'telemetry-event-name': telemetryEventRule,
+                    'telemetry-event': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-direct-secret-access': noDirectSecretAccessRule
@@ -40,7 +40,7 @@ export default [
             'react/jsx-uses-react': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
-            'internal/telemetry-event-name': 'error',
+            'internal/telemetry-event': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-direct-secret-access': 'error'

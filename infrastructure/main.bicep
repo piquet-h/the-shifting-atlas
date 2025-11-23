@@ -618,19 +618,9 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
-// Workbook: Movement Navigation Dashboard (success rate + blocked reasons)
-module workbookMovementBlockedReasons 'workbook-movement-navigation-dashboard.bicep' = {
-  name: 'workbook-movement-navigation-dashboard'
-  params: {
-    name: name
-    location: location
-    applicationInsightsId: applicationInsights.id
-  }
-}
-
-// Workbook: Performance Operations Dashboard (RU & Latency monitoring)
-module workbookPerformanceOperations 'workbook-performance-operations-dashboard.bicep' = {
-  name: 'workbook-performance-operations-dashboard'
+// Workbook: Player Operations Dashboard (consolidated movement + performance metrics)
+module workbookPlayerOperations 'workbook-player-operations-dashboard.bicep' = {
+  name: 'workbook-player-operations-dashboard'
   params: {
     name: name
     location: location

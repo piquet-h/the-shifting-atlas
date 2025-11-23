@@ -18,7 +18,7 @@ Provisioned resources:
 Files:
 
 -   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks + Alerts
--   `workbook-movement-blocked-reasons.bicep` – Movement Blocked Reasons dashboard workbook module
+-   `workbook-player-operations-dashboard.bicep` – Consolidated Player Operations dashboard (movement + performance)
 -   `alert-gremlin-429-spike.bicep` – Gremlin 429 throttling spike detection alert module
 -   `parameters.json` – example / placeholder (not required; inline params acceptable)
 
@@ -203,41 +203,38 @@ az deployment group create \
 
 ## Azure Workbooks (M2 Observability)
 
-Pre-configured Application Insights workbooks are deployed automatically via Bicep modules. Each workbook provides interactive dashboards for monitoring specific aspects of the game telemetry.
+Pre-configured Application Insights workbooks are deployed automatically via Bicep modules. Post ADR-004 consolidation reduced surface area and maintenance overhead by merging traversal and Gremlin performance panels.
 
-### Movement Blocked Reasons Breakdown
+### Player Operations Dashboard (Consolidated)
 
-**Module:** `workbook-movement-blocked-reasons.bicep`  
-**Documentation:** `docs/observability/workbooks/README.md`  
-**Issue:** [#282](https://github.com/piquet-h/the-shifting-atlas/issues/282)
+**Module:** `workbook-player-operations-dashboard.bicep`  
+**Source JSON:** `infrastructure/workbooks/player-operations-dashboard.workbook.json`  
+**Issues Referenced:** #282 (movement friction), #283 (movement latency), #289-#296 (performance & reliability)
 
-Analyzes `Navigation.Move.Blocked` events by reason to identify traversal friction sources:
+Combines key panels:
 
--   Groups blocked events by reason (invalid-direction, from-missing, no-exit, move-failed)
--   Shows percentage distribution and alerts when any reason exceeds 50%
--   7-day trend sparkline for blocked rate
--   Interpretation guide with actionable recommendations
+| Category       | Panels / Metrics (Representative)                                | Purpose                                      |
+| -------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| Movement       | Success rate, blocked reasons distribution, P95 latency (1h/24h) | Detect traversal friction & perf regressions |
+| Gremlin Ops    | Top operations (Calls/AvgRU/P95), Avg RU vs P95 Latency trend    | Identify expensive or slow queries           |
+| RU Consumption | Total RU charge trend (5m buckets)                               | Monitor cost & pressure baseline             |
+| Reliability    | Success vs Failed calls, failure rate (%)                        | Prioritize failing operations                |
 
-**Deployment:**
-The workbook module is automatically included when deploying `main.bicep`. It:
+Interpretation guidance retained in header; advanced correlation & partition pressure panels remain in dedicated performance workbook history (removed resources) for audit via git history.
 
--   Creates the workbook resource linked to Application Insights
--   Loads panel definitions from `docs/observability/workbooks/movement-blocked-reasons.workbook.json`
--   Tags the workbook with M2-Observability, Navigation, and Telemetry
--   Uses deterministic naming based on resource group ID
+**Deployment:** Included automatically when deploying `main.bicep`.
 
 **Manual Update:**
-To update an existing workbook after JSON changes:
 
 ```bash
 cd infrastructure
 az deployment group create \
-  --resource-group rg-atlas-game \
-  --template-file main.bicep \
-  --parameters name=atlas
+    --resource-group rg-atlas-game \
+    --template-file main.bicep \
+    --parameters name=atlas
 ```
 
-The deployment is idempotent - workbooks are updated in-place if the definition changes.
+Idempotent: existing workbook updated in-place when JSON changes.
 
 ## Alignment With Architecture
 
@@ -258,14 +255,14 @@ The deployment is idempotent - workbooks are updated in-place if the definition 
 
 ## Changelog
 
-| Date       | Change                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2025-11-04 | Added Movement Blocked Reasons Breakdown workbook module (M2 Observability) with automatic deployment via main.bicep.                       |
-| 2025-10-05 | Added Service Bus (Basic tier), Function App (consumption Y1), Storage Account, and RBAC role assignments for world event queue processing. |
-| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.                                            |
-| 2025-11-23 | Removed dual-persistence migration/fallback infra (alerts/workbook) and updated player storage to SQL-only (ADR-004).                       |
-| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).                                          |
-| 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references.                                |
+| Date       | Change                                                                                                                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2025-11-04 | Added Movement Blocked Reasons Breakdown workbook module (M2 Observability) with automatic deployment via main.bicep.                                                                                 |
+| 2025-10-05 | Added Service Bus (Basic tier), Function App (consumption Y1), Storage Account, and RBAC role assignments for world event queue processing.                                                           |
+| 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.                                                                                                      |
+| 2025-11-23 | Removed dual-persistence migration/fallback infra (alerts/workbook) and updated player storage to SQL-only (ADR-004). Consolidated movement + performance workbooks into Player Operations Dashboard. |
+| 2025-10-02 | Fixed Cosmos DB Gremlin graph partition key from `/id` to `/partitionKey` (Azure API requirement).                                                                                                    |
+| 2025-09-14 | Rewrote README to reflect actual Bicep (SWA + Cosmos) and remove obsolete Function App / Storage references.                                                                                          |
 
 ## Contributing
 

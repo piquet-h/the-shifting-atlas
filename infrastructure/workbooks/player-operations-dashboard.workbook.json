@@ -1,0 +1,201 @@
+{
+    "version": "Notebook/1.0",
+    "items": [
+        {
+            "type": 1,
+            "content": {
+                "json": "# Player Operations Dashboard\n\nConsolidated overview of traversal (movement success, blocked reasons, latency) and Gremlin operation performance (RU, latency, partition pressure, reliability).\n\n**Included Telemetry Domains:** Navigation.*, Graph.Query.*\n\n**Objectives:**\n- Single pane to assess player movement health & backend query efficiency.\n- Detect latency & RU regression impact on traversal early.\n\n**Source Workbooks Merged:** Movement Navigation Overview + Performance Operations Dashboard.\n\n**Cutover:** Post ADR-004 (player store SQL-only).\n"
+            },
+            "name": "header"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Movement Success & Blocked Reasons"
+            },
+            "name": "movement-section"
+        },
+        // Movement items (subset): success tile + blocked reasons + latency percentile table
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "customEvents\n| where timestamp > ago(24h)\n| where name in (\"Navigation.Move.Success\", \"Navigation.Move.Blocked\")\n| summarize Success=countif(name == \"Navigation.Move.Success\"), Blocked=countif(name == \"Navigation.Move.Blocked\")\n| extend Total = Success + Blocked\n| extend SuccessRate = round(100.0 * Success / iff(Total == 0, 1, Total), 2)\n| project Success, Blocked, Total, SuccessRate",
+                "size": 0,
+                "title": "Movement Success Overview (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles"
+            },
+            "name": "movement-success-tiles"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction','from-missing','no-exit','move-failed']);\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason\n| extend Total = toscalar(customEvents | where timestamp > ago(timeRange) and name == 'Navigation.Move.Blocked' | count())\n| extend Share = round(100.0 * Count / iff(Total == 0, 1, Total), 2)\n| project Reason=normalizedReason, Count, Share\n| order by Count desc",
+                "size": 0,
+                "title": "Blocked Reasons (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "movement-blocked-reasons"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange1h = 1h; let timeRange24h=24h; let minEvents=20;\nlet events1h = customEvents | where timestamp>ago(timeRange1h) | where name in ('Navigation.Move.Success','Navigation.Move.Blocked') | extend latencyMs=todouble(customDimensions.latency_ms) | where isnotnull(latencyMs) and latencyMs>=0;\nlet events24h = customEvents | where timestamp>ago(timeRange24h) | where name in ('Navigation.Move.Success','Navigation.Move.Blocked') | extend latencyMs=todouble(customDimensions.latency_ms) | where isnotnull(latencyMs) and latencyMs>=0;\nunion (events1h | summarize Count=count(), P95=round(percentile(latencyMs,95),0) by EventName=name | extend Window='1h'), (events24h | summarize Count=count(), P95=round(percentile(latencyMs,95),0) by EventName=name | extend Window='24h')\n| project Window, EventName, Count, P95",
+                "size": 0,
+                "title": "Movement Latency P95 (1h vs 24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "movement-latency-percentiles"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Gremlin Operation Performance"
+            },
+            "name": "gremlin-section"
+        },
+        // Performance items (subset): top operations table + RU vs Latency trend + partition pressure chart + reliability table
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend op=tostring(customDimensions.operationName), latencyMs=todouble(customDimensions.latencyMs), ruCharge=todouble(customDimensions.ruCharge) | where isnotempty(op) | summarize Calls=count(), AvgRU=round(avg(ruCharge),2), P95=round(percentile(latencyMs,95),0) by op | order by Calls desc | take 10",
+                "size": 0,
+                "title": "Top Operations (Calls / Avg RU / P95 Latency)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "top-operations-table"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=2h; let bucket=5m; customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend ru=todouble(customDimensions.ruCharge), lat=todouble(customDimensions.latencyMs) | where isnotnull(ru) and isnotnull(lat) | summarize AvgRU=avg(ru), P95Latency=percentile(lat,95) by b=bin(timestamp,bucket) | order by b asc",
+                "size": 0,
+                "title": "Avg RU vs P95 Latency (5m, 2h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "linechart"
+            },
+            "name": "ru-latency-trend"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; let bucket=5m; customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend ru=todouble(customDimensions.ruCharge) | where isnotnull(ru) | summarize TotalRU=sum(ru) by b=bin(timestamp,bucket) | order by b asc",
+                "size": 0,
+                "title": "Total RU Charge Trend (5m, 24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "linechart"
+            },
+            "name": "ru-total-trend"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; let success=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let fail=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Failed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let agg=success | summarize Success=count() by op; let aggFail=fail | summarize Failed=count() by op; agg | join kind=leftouter aggFail on op | extend Failed=coalesce(Failed,0), Total=Success+Failed, FailureRate=round(100.0*Failed/iff(Total==0,1,Total),2) | project op, Success, Failed, FailureRate | order by Total desc",
+                "size": 0,
+                "title": "Operation Reliability (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "operation-reliability"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Player Lifecycle"
+            },
+            "name": "player-lifecycle-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; customEvents\n| where timestamp>ago(timeRange)\n| where name in ('Player.Get','Player.Update','Player.LinkExternalId','PlayerDoc.Upsert','PlayerDoc.Read')\n| summarize Count=count() by name\n| order by Count desc",
+                "size": 0,
+                "title": "Player Lifecycle Event Counts (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "player-lifecycle-table"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Inventory Operations"
+            },
+            "name": "inventory-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; customEvents\n| where timestamp>ago(timeRange)\n| where name in ('Inventory.ItemAdded','Inventory.ItemRemoved')\n| summarize Count=count() by name\n| order by name asc",
+                "size": 0,
+                "title": "Inventory Add / Remove Counts (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "inventory-ops-table"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Description Cache"
+            },
+            "name": "description-cache-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; let hits=customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Hit'; let misses=customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Miss'; let h=hits | count | project Hits=Count; let m=misses | count | project Misses=Count; h | extend Misses=coalesce((misses | count | project Count)[0],0) | extend Total=Hits+Misses | extend HitRate=round(100.0*Hits/iff(Total==0,1,Total),2) | project Hits, Misses, Total, HitRate",
+                "size": 0,
+                "title": "Description Cache Hit Rate (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles"
+            },
+            "name": "description-cache-hit-rate"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "## Rate Limiting (Violations)"
+            },
+            "name": "rate-limit-header"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let timeRange=24h; customEvents\n| where timestamp>ago(timeRange)\n| where name=='RateLimiter.Violation'\n| summarize Violations=count()",
+                "size": 0,
+                "title": "Rate Limiter Violations (24h)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "tiles"
+            },
+            "name": "rate-limiter-violations"
+        }
+    ],
+    "fallbackResourceIds": [],
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

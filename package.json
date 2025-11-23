@@ -11,6 +11,7 @@
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
         "workbooks:export": "node scripts/observability/export-workbooks.mjs",
         "workbooks:verify": "node scripts/observability/verify-workbooks.mjs",
+        "lint:repo": "eslint . --max-warnings=0",
         "validate:partitions": "tsx scripts/validate-partition-distribution.ts"
     },
     "engines": {
@@ -18,6 +19,14 @@
     },
     "devDependencies": {
         "@octokit/core": "^5.0.0",
-        "cross-env": "^7.0.3"
+        "cross-env": "^7.0.3",
+        "eslint": "^9.39.1",
+        "@eslint/js": "^9.39.1",
+        "@typescript-eslint/eslint-plugin": "^8.12.2",
+        "@typescript-eslint/parser": "^8.12.2",
+        "eslint-plugin-prettier": "^5.2.1",
+        "eslint-plugin-react": "^7.34.1",
+        "eslint-plugin-react-hooks": "^4.6.0",
+        "eslint-plugin-jsx-a11y": "^6.9.0"
     }
 }

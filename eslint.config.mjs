@@ -13,8 +13,7 @@ import noInlineHumorEventsRule from './eslint-rules/no-inline-humor-events.mjs'
 import noManualOperationIdRule from './eslint-rules/no-manual-operation-id.mjs'
 import noRawPromptInTelemetryRule from './eslint-rules/no-raw-prompt-in-telemetry.mjs'
 import noRoomTelemetryRule from './eslint-rules/no-room-telemetry.mjs'
-import telemetryEventMembershipRule from './eslint-rules/telemetry-event-membership.mjs'
-import telemetryEventRule from './eslint-rules/telemetry-event-name.mjs'
+import telemetryEventRule from './eslint-rules/telemetry-event.mjs'
 
 export default [
     {
@@ -30,8 +29,7 @@ export default [
             prettier: prettierPlugin,
             internal: {
                 rules: {
-                    'telemetry-event-name': telemetryEventRule,
-                    'telemetry-event-membership': telemetryEventMembershipRule,
+                    'telemetry-event': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-manual-operation-id': noManualOperationIdRule,
                     'no-raw-prompt-in-telemetry': noRawPromptInTelemetryRule,
@@ -56,7 +54,7 @@ export default [
                     ]
                 }
             ],
-            'internal/telemetry-event-name': 'error',
+            'internal/telemetry-event': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-manual-operation-id': 'error',
             'internal/no-raw-prompt-in-telemetry': 'error',
@@ -82,8 +80,7 @@ export default [
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
-            'internal/telemetry-event-name': 'error',
-            'internal/telemetry-event-membership': 'error',
+            'internal/telemetry-event': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-manual-operation-id': 'error',
             'internal/no-raw-prompt-in-telemetry': 'error',
