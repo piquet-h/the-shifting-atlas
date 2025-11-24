@@ -4,6 +4,8 @@
 **Reviewer:** GitHub Copilot (Automated Top-Down Analysis)  
 **Scope:** Full repository documentation hierarchy, milestone structure, epic coordination, and issue taxonomy
 
+> **Naming note (2025-11-23):** This review refers to “M3 AI Read” in the then-current roadmap. The unified roadmap now uses **M3 Core Loop** and **M4 AI Read**. Interpret “M3 AI Read” here as **M4 AI Read**.
+
 ---
 
 ## Executive Summary

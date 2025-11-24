@@ -4,16 +4,21 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 
 ## Milestone Overview
 
-| Milestone                  | Objective (Why)                                          | Core Increments                                                                         | Status                            | Exit Criteria                                                                                                                                     |
-| -------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0 Foundation** ✅       | Prove deploy + minimal loop viability                    | Ping, guest GUID bootstrap, telemetry scaffold                                          | **CLOSED** 2025-10-19             | Player gets GUID & receives ping consistently                                                                                                     |
-| **M1 Traversal** ✅        | Persistent movement across locations                     | Location persistence, exit model, move/look commands, direction normalization           | **CLOSED** 2025-10-30             | Player can move across ≥3 persisted locations; telemetry for move success/failure                                                                 |
-| **M2 Data Foundations** ✅ | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation             | **CLOSED** 2025-11-23             | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
-| **M3 Core Loop**           | Event processing + player UI + time                      | World event processing, frontend game view, command input, temporal reconciliation      | **71 issues** (4 closed, 67 open) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
-| **M4 AI Read**             | Safe advisory AI context only                            | MCP servers (world-query, prompt-template), prompt registry, intent parser foundations  | **32 issues** (8 closed, 24 open) | AI can query world state via MCP; prompts versioned & hashed; intent parser handles basic commands                                                |
-| **M5 Quality & Depth**     | Content enrichment + observability                       | Description layering engine, layer validation, dashboards, alerts, integrity monitoring | **30 issues** (5 closed, 25 open) | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                                                 |
-| **M6 Systems**             | Advanced features + episodic content                     | Dungeons, humor layer, entity promotion, Learn More page                                | **25 issues** (0 closed, 25 open) | At least one dungeon traversable; humor feedback captured; emergent entities promoted                                                             |
-| **M7 Post-MVP**            | Extensibility + scale                                    | Multiplayer, quests, economy, AI write path, region sharding                            | **TBD**                           | Extensibility hooks functional; multiplayer party coordination prototype                                                                          |
+| Milestone                     | Objective (Why)                                          | Core Increments                                                                         | Status                             | Exit Criteria                                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0 Foundation** ✅          | Prove deploy + minimal loop viability                    | Ping, guest GUID bootstrap, telemetry scaffold                                          | **CLOSED** 2025-10-19              | Player gets GUID & receives ping consistently                                                                                                     |
+| **M1 Traversal** ✅           | Persistent movement across locations                     | Location persistence, exit model, move/look commands, direction normalization           | **CLOSED** 2025-10-30              | Player can move across ≥3 persisted locations; telemetry for move success/failure                                                                 |
+| **M2 Data Foundations** ✅    | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation             | **CLOSED** 2025-11-23              | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
+| **M3 Core Loop (Umbrella)**   | Event processing + player UI + time                      | Split into M3a/M3b/M3c slices (see below)                                               | **Split** (see slices)             | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
+| **M3a Event Backbone**        | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                    | **16 issues** (3 closed, 13 open)  | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
+| **M3b Player UI & Telemetry** | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs               | **14 issues** (1 closed, 13 open)  | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                     |
+| **M3c Temporal PI-0**         | World time fundamentals                                  | WorldClock, PlayerClock, LocationClock, durations, reconcile policies, ledger, tests    | **7 issues** (0 closed, 7 open)    | Temporal clocks advance; reconcile policies applied; ledger + telemetry; integration tests                                                        |
+| **M4 AI Read**                | Safe advisory AI context only                            | MCP servers (world-query, prompt-template), prompt registry, intent parser foundations  | **32 issues** (8 closed, 24 open)  | AI can query world state via MCP; prompts versioned & hashed; intent parser handles basic commands                                                |
+| **M5 Quality & Depth**        | Content enrichment + observability                       | Description layering engine, layer validation, dashboards, alerts, integrity monitoring | **56 issues** (10 closed, 46 open) | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                                                 |
+| **M6 Systems**                | Advanced features + episodic content                     | Dungeons, humor layer, entity promotion, Learn More page                                | **35 issues** (2 closed, 33 open)  | At least one dungeon traversable; humor feedback captured; emergent entities promoted                                                             |
+| **M7 Post-MVP**               | Extensibility + scale                                    | Multiplayer, quests, economy, AI write path, region sharding                            | **TBD**                            | Extensibility hooks functional; multiplayer party coordination prototype                                                                          |
+
+> Counts sourced from GitHub milestones as of **2025-11-24**. `M3 Core Loop` is an **umbrella**; use **M3a/M3b/M3c**. Milestone **#8 “M7 Dungeon Runs”** is **closed/deprecated**; use **M6 Systems** (dungeons) and **M7 Post-MVP Extensibility**.
 
 ## Dependency Graph (Critical Path to MVP)
 
@@ -23,11 +28,13 @@ The following diagram shows the critical path dependencies between milestone clu
 graph TD
     M0[M0 Foundation<br/>CLOSED ✅]
     M1[M1 Traversal<br/>CLOSED ✅]
-    M2[M2 Data Foundations<br/>17 issues]
-    M3[M3 Core Loop<br/>20 issues]
-    M4[M4 AI Read<br/>10 issues]
-    M5[M5 Quality & Depth<br/>30 issues]
-    M6[M6 Systems<br/>25 issues]
+    M2[M2 Data Foundations<br/>CLOSED]
+    M3a[M3a Event Backbone<br/>16 issues]
+    M3b[M3b Player UI & Telemetry<br/>14 issues]
+    M3c[M3c Temporal PI-0<br/>7 issues]
+    M4[M4 AI Read<br/>32 issues]
+    M5[M5 Quality & Depth<br/>56 issues]
+    M6[M6 Systems<br/>35 issues]
     M7[M7 Post-MVP<br/>TBD]
 
     M0 --> M1
@@ -45,9 +52,9 @@ graph TD
     classDef active fill:#fb8500,stroke:#d67000,color:#fff
     classDef future fill:#6e7781,stroke:#57606a,color:#fff
 
-    class M0,M1 closed
-    class M2 active
-    class M3,M4,M5,M6,M7,M5A,M5B future
+    class M0,M1,M2 closed
+    class M3a active
+    class M3b,M3c,M4,M5,M6,M7,M5A,M5B future
 
     subgraph MVP["MVP = M2 + M3 + M4 (47 issues)"]
         M2
@@ -65,26 +72,24 @@ graph TD
 
 ### Critical Path Analysis
 
-**Bottleneck**: M2 Data Foundations (5 issues remaining) blocks everything downstream
+**Bottleneck**: **M3a Event Backbone** (event schema #101, processor #102, handlers #258, correlation #313)
 
--   **Duration estimate**: 2-3 weeks (most work complete)
--   **Parallelization**: Limited; remaining work is sequential (schema → repositories → migration)
--   **Risk**: Schema changes after M2 are expensive; prioritize correctness over speed
+-   **Duration estimate**: ~2–3 weeks (M3a) then M3b (2 weeks) → M3c (2 weeks)
+-   **Parallelization**: UI (M3b) can start after contracts stabilize; temporal (M3c) starts once event backbone is in place
+-   **Risk**: Event schema churn and telemetry correlation gaps; prioritize contract tests and correlation propagation
 
 **Parallel work opportunities**:
 
 -   M5 Dashboards can start after M2 telemetry consolidation completes
 -   M6 Systems planning/design can start during M4 (no code dependencies)
 
-**MVP Completion Path**: M2 (2-3 weeks) → M3 (5 weeks) → M4 (3 weeks) = **10-11 weeks to MVP**
+**MVP Completion Path**: M3a (2–3 weeks) → M3b (2 weeks) → M3c (2 weeks) → M4 (3 weeks) = **~9–10 weeks to MVP**
 
-## M2 Data Foundations (Current Focus)
+## M2 Data Foundations (Closed)
 
-**Status**: 54 issues (49 closed, 5 open) — 91% complete  
-**Goal**: Implement dual persistence (Cosmos SQL API + Gremlin) and modernize telemetry infrastructure  
-**Dependencies**: M1 Traversal (CLOSED)  
-**Blocks**: M3 Core Loop (#407 World Events Timeline), M5 Dashboards (telemetry complete)  
-**Focus**: Remaining issues are atomic player persistence (#517-519) and epic coordination (#69, #310)
+**Status**: **CLOSED** 2025-11-23 (55 closed, 0 open)  
+**Goal**: Implement dual persistence (Cosmos SQL API) and modernize telemetry infrastructure  
+**Notes**: See `docs/milestones/M2-implementation-plan.md` for historical details. Telemetry and SQL persistence are complete; player state is authoritative in SQL (ADR-004).
 
 ### Critical Path Issues
 
@@ -546,4 +551,4 @@ Use GitHub REST API to manage milestone assignments and issue dependencies (MCP 
 
 ---
 
-**Last updated**: 2025-11-14 (Atomicity review complete: M2 status: 54 issues, 49 closed, 5 open [91%]; M4 status: 32 issues, 8 closed, 24 open; Issues #44, #77, #465 split into atomic issues #514-521; M3 status: 71 issues, 4 closed, 67 open; World Time framework (#497-506) assigned to M3; All epics properly tracked)
+**Last updated**: 2025-11-24 (GitHub counts: M2 closed 55/55; M3a 16 (3/13), M3b 14 (1/13), M3c 7 (0/7), M4 40 (8/32), M5 56 (10/46), M6 35 (2/33))

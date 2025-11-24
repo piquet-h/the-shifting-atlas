@@ -44,19 +44,23 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 ## AI & MCP Stages (High-Level)
 
+> **Naming alignment:** Unified roadmap (2025-11-23) uses **M3 Core Loop**, **M4 AI Read**, **M5 Quality & Depth**, **M6 Systems**. Legacy references to “M3 AI Read” in this doc map to **M4 AI Read**.
+
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
 | Stage (Milestone) | Focus                   | Key MCP Servers / Additions                         | Exit Criteria                                        |
 | ----------------- | ----------------------- | --------------------------------------------------- | ---------------------------------------------------- |
-| M3 AI Read        | Foundations (Read-Only) | `world-query`, `prompt-template`, `telemetry`       | Stable JSON contracts; initial telemetry dashboard   |
-| M4 AI Enrich      | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                    | Safe ambience & NPC one-liners in playtest           |
-| M5 Systems        | Structured Proposals    | +`world-mutation` (proposal endpoints)              | Validator rejects unsafe / incoherent >90% precision |
-| M6 Planning (tbd) | Narrative Planning      | +`simulation-planner`                               | Multi-step quest seed generation gated & logged      |
-| M7 Advisory (tbd) | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools | Cost & token budgets within defined thresholds       |
+| M4 AI Read        | Foundations (Read-Only) | `world-query`, `prompt-template`, `telemetry`       | Stable JSON contracts; initial telemetry dashboard   |
+| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                    | Safe ambience & NPC one-liners in playtest           |
+| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)              | Validator rejects unsafe / incoherent >90% precision |
+| (Future) Planning | Narrative Planning      | +`simulation-planner`                               | Multi-step quest seed generation gated & logged      |
+| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools | Cost & token budgets within defined thresholds       |
+
+\*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
 ## Initial MCP Server Inventory (Detail)
 
-### world-query-mcp (Stage M3 – Read Only)
+### world-query-mcp (Stage M4 – Read Only)
 
 Read-only world access.
 
@@ -66,7 +70,7 @@ Tools (draft):
 -   `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
 -   `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
 
-### prompt-template-mcp (Stage M3 – Read Only)
+### prompt-template-mcp (Stage M4 – Read Only)
 
 Central registry & versioning for reusable prompt templates.
 
@@ -74,7 +78,7 @@ Central registry & versioning for reusable prompt templates.
 -   `listTemplates(prefix?)`
 -   `registerVersion(name, version, checksum, body)` (restricted / dev only)
 
-### telemetry-mcp (Stage M3 – Read Only)
+### telemetry-mcp (Stage M4 – Read Only)
 
 Structured logging to App Insights / custom table.
 

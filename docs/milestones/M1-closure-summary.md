@@ -35,7 +35,7 @@
 | Semantic exits (named landmarks)      | M4 Layering & Enrichment   | Tied to descriptive world layering              |
 | Relative directions (left/right)      | Post-M4 (after semantic)   | Depends on semantic anchor resolution           |
 | Advanced exit management service      | M2/M3 (observability hook) | Needs metrics & operational telemetry first     |
-| Extended direction ambiguity handling | M3 AI Read                 | Coordinate with AI prompt context normalization |
+| Extended direction ambiguity handling | M4 AI Read                 | Coordinate with AI prompt context normalization |
 
 ## Telemetry Snapshot
 
