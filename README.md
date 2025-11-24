@@ -8,9 +8,9 @@
 
 **A MMORPG implemented as a text adventure like Zork, but with Generative AI as the dungeon master in a fully open and immersive world.**
 
-Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. The persistent graph (locations, players, NPCs, events) lives in Cosmos DB (Gremlin). **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
+Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
 
-The platform balances imaginative emergence with architectural discipline: a dual persistence model (immutable world graph + mutable SQL state), strict telemetry governance, and event-driven progression enable replay, observability, and safe extension.
+The platform balances imaginative emergence with architectural discipline: a **dual persistence model** separates immutable world structure (Cosmos Gremlin: locations, exits, spatial relationships) from mutable player/inventory/event state (Cosmos SQL API: authoritative as of ADR-004). Strict telemetry governance and event-driven progression enable replay, observability, and safe extension.
 
 > **Core Tenet**: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see [`docs/ux/accessibility-guidelines.md`](docs/ux/accessibility-guidelines.md)) before merge.
 
@@ -76,22 +76,22 @@ scripts/          Automation (seed data, validation, deployment helpers)
 
 ## Current Implementation Status
 
-| Area                           | Status                      | Notes                                                               |
-| ------------------------------ | --------------------------- | ------------------------------------------------------------------- |
-| Frontend UI                    | Auth-aware shell + routing  | Landing homepage (hero + auth states)                               |
-| Backend Functions (`backend/`) | Player + location endpoints | Source of all HTTP game actions (migrated from SWA)                 |
-| Frontend API (co‑located)      | Removed                     | Replaced by unified backend Function App                            |
-| Queue / world logic            | Not implemented             | Planned Service Bus + queue triggers                                |
-| Cosmos DB integration          | Provisioned infra only      | AAD (Managed Identity) auth path in place                           |
-| Key Vault integration          | Provisioned (secrets)       | Non‑Cosmos secrets only; Cosmos keys deprecated                     |
-| Infrastructure (Bicep)         | Core resources in place     | SWA + Cosmos + Key Vault                                            |
-| CI/CD                          | Workflows present           | See `.github/workflows/` (YAML is source of truth)                  |
-| Tracing (OpenTelemetry)        | Baseline spans implemented  | Span lifecycle + safe end guard (#41); enrichment epic #310 planned |
+| Area                           | Status                         | Notes                                                                    |
+| ------------------------------ | ------------------------------ | ------------------------------------------------------------------------ |
+| Frontend UI                    | Auth-aware shell + routing     | Landing homepage (hero + auth states); game view in M3b                  |
+| Backend Functions (`backend/`) | Player + location endpoints    | Source of all HTTP game actions (migrated from SWA)                      |
+| Frontend API (co‑located)      | Removed                        | Replaced by unified backend Function App                                 |
+| Queue / world logic            | In progress (M3a)              | Event schema + processor planned; Service Bus integration                |
+| Cosmos DB integration          | Dual persistence operational   | SQL API authoritative for players (ADR-004); Gremlin for world structure |
+| Key Vault integration          | Provisioned (secrets)          | Non‑Cosmos secrets only; Cosmos uses Managed Identity                    |
+| Infrastructure (Bicep)         | Core resources deployed        | SWA + Functions + Cosmos (Gremlin + SQL) + Key Vault + App Insights      |
+| CI/CD                          | Workflows operational          | See `.github/workflows/` (YAML is source of truth)                       |
+| Tracing (OpenTelemetry)        | Enriched telemetry operational | Span lifecycle + correlation IDs (M2 #312); M3 adds event correlation    |
 
 **Read more**:
 
 -   [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
--   [Roadmap](docs/roadmap.md) (Milestone status: M0–M6)
+-   [Roadmap](docs/roadmap.md) (Milestone status: M0–M1 ✅ closed, M2 ✅ closed 2025-11-23, M3 split into M3a/M3b/M3c active, M4–M7 planned)
 -   [Examples](docs/examples/README.md) (Practical code walkthroughs)
 
 ---
