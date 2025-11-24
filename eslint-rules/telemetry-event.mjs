@@ -11,10 +11,15 @@ let cachedNames = null
 function loadEventNames(context) {
     if (cachedNames) return cachedNames
     try {
-        // Resolve repository root by walking upward until package.json encountered
+        // Resolve repository root by walking upward until we find a directory that contains both
+        // a package.json AND a 'shared' subdirectory (the monorepo root)
         let dir = path.dirname(context.getFilename())
         while (dir !== path.parse(dir).root) {
-            if (fs.existsSync(path.join(dir, 'package.json'))) break
+            const hasPackageJson = fs.existsSync(path.join(dir, 'package.json'))
+            const hasShared = fs.existsSync(path.join(dir, 'shared'))
+            if (hasPackageJson && hasShared) {
+                break // Found monorepo root
+            }
             dir = path.dirname(dir)
         }
         const target = path.join(dir, 'shared', 'src', 'telemetryEvents.ts')
