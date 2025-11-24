@@ -692,6 +692,7 @@ Rollback (unlikely) would reintroduce the flag and fallback path per ADR-004 rol
 
 -   High‑level rationale: `overview.md`
 -   Event naming: `../observability.md`
+-   **Event classification (sync/async)**: `event-classification-matrix.md`
 -   Partition evolution: `../adr/ADR-002-graph-partition-strategy.md`
 -   Layering model: `../modules/description-layering-and-variation.md`
 -   SQL repository pattern: `sql-repository-pattern.md`

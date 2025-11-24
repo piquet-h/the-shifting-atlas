@@ -196,8 +196,8 @@ Graph vertex types: Locations, NPCs (edges for spatial relations).
 Document types: Players, Inventory items, Description layers, World events.
 Edges: semantic (e.g., `exit_north`, `owns_item`).
 Exits: allowed directions set (north,south,east,west,up,down,in,out).
-Player action flow: HTTP validate → persist (SQL + graph) → enqueue world event.
-World evolution: queue triggers only.
+Player action flow: ALL HTTP responses return immediately (<500ms p95). Personal state changes (move, get item, inventory) are synchronous SQL/Graph writes within HTTP handler. Shared world effects (fire spreads, NPC spawns, location transforms) enqueue async events to Service Bus for eventual processing. See `docs/architecture/event-classification-matrix.md` for decision tree.
+World evolution: queue triggers only (never blocks HTTP response).
 Dual persistence (ADR-002 → superseded for player storage by ADR-004): Immutable world structure in Gremlin graph; mutable player/inventory/events data authoritative in SQL API (player vertices removed).
 
 ---
@@ -327,11 +327,16 @@ See detailed workflows and examples in `copilot-github-api-guidance.md`.
 
 ## 9. Code Generation Heuristics
 
+**Core Tenet**: Deterministic code captures state for repeatable play; AI creates immersion. When implementing player action handlers, prefer AI-driven decision-making over hard-coded business rules (see `docs/tenets.md` #7 Narrative Consistency).
+
 1. Identify trigger (HTTP/Queue) → choose template.
 2. Import domain models (don’t redefine shapes).
 3. Validate exits via shared direction validator.
 4. Use telemetry constants; add new only in shared enumeration.
 5. Cosmos ops idempotent where possible; avoid duplicate edges.
+6. HTTP handlers MUST return <500ms (p95); personal state changes are synchronous (SQL/Graph); shared world effects enqueue to Service Bus (see event-classification-matrix.md).
+7. Never block HTTP response on queue processing, AI generation, or NPC reactions.
+8. **AI flexibility**: Don't hard-code "move never triggers events" rules. Let AI/intent parser decide based on narrative context. Capture classification decisions in telemetry.
 
 Reference: For interaction workflow & templates see Section 0 (patterns) and Appendix A (checklists).
 
@@ -364,7 +369,7 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ## 12. Anti‑Patterns
 
-Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**; **long-running timers without `.unref()`**.
+Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**; **long-running timers without `.unref()`**; **HTTP handlers blocking on queue event processing**; **synchronous AI generation in HTTP response path**.
 
 ### Timer/Interval Anti-Pattern
 
