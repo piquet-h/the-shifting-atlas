@@ -39,13 +39,14 @@ flowchart TD
 
 **Note**: These are **common patterns** observed in typical gameplay. AI agents may classify edge cases differently based on narrative context.
 
-| Event Category            | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget               | Typical Examples                                       |
-| ------------------------- | -------------- | ----------------------------- | ------------------------ | ---------------------------- | ------------------------------------------------------ |
-| **Personal State Change** | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                       | Move north, Pick up item, Look around, Check inventory |
-| **Shared World Effect**   | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s | Set fire to forest, Trigger avalanche, Plant seed      |
-| **NPC Reaction**          | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                          | NPC notices player, Enemy aggro, Ally greeting         |
-| **System Evolution**      | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                         | Weather change, Day/night cycle, Resource respawn      |
-| **AI Generation**         | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                         | Description enrichment, Dynamic lore, Quest generation |
+| Event Category              | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget               | Typical Examples                                         |
+| --------------------------- | -------------- | ----------------------------- | ------------------------ | ---------------------------- | -------------------------------------------------------- |
+| **Personal State Change**   | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                       | Move north, Pick up item, Look around, Check inventory   |
+| **Shared World Effect**     | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s | Set fire to forest, Trigger avalanche, Plant seed        |
+| **NPC Awareness (Basic)**   | Player HTTP    | ✅ Synchronous                | ❌ None                  | <500ms                       | NPC notices player, Guard greeting, Shopkeeper welcome   |
+| **NPC Behavior (Complex)**  | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                          | NPC alerts others, Enemy aggro spreads, NPC flees/moves  |
+| **System Evolution**        | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                         | Weather change, Day/night cycle, Resource respawn        |
+| **AI Generation**           | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                         | Description enrichment, Dynamic lore, Quest generation   |
 
 ## Detailed Rules
 
@@ -375,25 +376,38 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 -   **5-30s later**: Next player who does `LOOK` at forest sees updated description with fire layer
 -   **Other players**: Also see burning forest on their next `LOOK`
 
-### Example 4: NPC Reaction (Queue-Only, No HTTP)
+### Example 4: NPC Reaction to Player Arrival
 
 **Trigger**: Player moves to location with NPC
 
+**Classification Decision**: NPC reactions to player arrival are **synchronous** (in HTTP response), not async queue events. This ensures players see immediate, contextual responses from NPCs when entering a location.
+
+**Why Synchronous?**
+
+-   Player immersion: "The guard eyes you suspiciously" should appear immediately, not on next `LOOK`
+-   Narrative flow: Delayed reactions break the real-time feel of the game
+-   AI context: The same HTTP handler that processes the move already has location + NPC context
+
 **Flow**:
 
-1. Player's move HTTP request completes immediately (Example 1)
-2. Move handler enqueues `Player.Move` event with `toLocationId`
-3. Queue processor dequeues event
-4. Processor queries NPCs at destination location
-5. For each NPC, enqueue `NPC.Awareness` event
-6. NPC processor updates NPC state (now aware of player)
+1. Player's move HTTP request received
+2. Move handler queries NPCs at destination location (sync)
+3. AI generates NPC awareness text based on player + NPC context (sync, <500ms budget)
+4. Return location description + NPC reaction text immediately
+5. **No queue event** for basic NPC awareness
+
+**When to Use Queue Instead**:
+
+-   **Cascading NPC effects**: NPC alerts other NPCs, triggering behavior changes
+-   **Persistent NPC memory**: NPC "remembers" player for future interactions
+-   **World state mutations**: NPC actions that affect shared world (e.g., NPC runs away, changing location state)
 
 **Player Experience**:
 
--   Immediate: Sees location description + exits
--   Next `LOOK`: May see NPC reaction text ("The guard eyes you suspiciously")
+-   Immediate: Sees location description + exits + NPC reaction ("The guard eyes you suspiciously")
+-   Real-time feel: NPCs acknowledge player presence instantly
 
-**No HTTP blocking**: Player doesn't wait for NPC processing
+**Key Distinction**: Basic NPC awareness (greeting, noticing player) is synchronous for immersion. Complex NPC behaviors that affect shared world state use async queue events.
 
 ### Example 5: AI Description Generation (Queue-Only)
 
@@ -592,5 +606,5 @@ track('AI.EventClassification', {
 
 ---
 
-**Last Updated**: 2025-11-24  
+**Last Updated**: 2025-11-25  
 **Status**: ACTIVE - Descriptive patterns, not prescriptive rules. AI has final classification authority.
