@@ -173,7 +173,32 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
-### 10. World Time & Temporal Reconciliation Framework
+### 10. World Spatial Generation
+
+**Focus**: AI-driven world expansion that creates navigable topology from narrative descriptions
+
+**Key Contracts**:
+
+-   Hybrid expansion (player-triggered + scheduled frontier growth)
+-   Description-driven exit inference (AI extracts topology from prose)
+-   Eager batch generation (root location + neighbors in single API call)
+-   Terrain guidance as hints, not rules (AI decides spatial logic contextually)
+-   Reciprocal arrival paths guaranteed (players can always return)
+
+**Key Invariants**:
+
+-   Exits must be justified by description text or clear spatial implications
+-   AI interprets terrain contextually (fog/obstacles override typical patterns)
+-   Seasonal/dynamic variations handled via world state overlays (not description rewrites)
+-   Batch size ≤20 locations per AI call (cost optimization)
+
+**Document**: `../modules/world-spatial-generation.md`
+
+**Depends On**: Navigation & Traversal, Description Layering, AI Prompt Engineering, World Event Handlers (ExitCreateHandler)
+
+---
+
+### 11. World Time & Temporal Reconciliation Framework
 
 **Focus**: Coherent, persistent time simulation balancing narrative richness with multiplayer playability
 
@@ -309,6 +334,7 @@ Vision & Tenets
 | Description Layering                 | M4                | 🚧 Planned                    |
 | AI Prompt Engineering                | M3–M4             | 🚧 Read-only (M3), Write (M4) |
 | Narrative Voice Guidelines           | M3–M4             | 🚧 Concurrent with AI         |
+| World Spatial Generation             | M4                | 📋 Planned                    |
 | Character-Driven Roleplaying         | M5+               | 📋 Philosophy documented      |
 | Quest & Dialogue Trees               | M5+               | 📋 Deferred                   |
 | Economy & Trade                      | M5+               | 📋 Deferred                   |
