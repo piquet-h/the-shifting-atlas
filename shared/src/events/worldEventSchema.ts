@@ -50,8 +50,10 @@ export const WorldEventTypeSchema = z.enum([
     'Player.Move',
     'Player.Look',
     'NPC.Tick',
+    'NPC.Awareness',
     'World.Ambience.Generated',
     'World.Exit.Create',
+    'Location.Fire.Started',
     'Quest.Proposed'
 ])
 export type WorldEventType = z.infer<typeof WorldEventTypeSchema>
