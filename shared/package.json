@@ -22,10 +22,10 @@
             "default": "./dist/index.js"
         },
         "./events": {
-            "import": "./dist/events/worldEventSchema.js",
-            "types": "./dist/events/worldEventSchema.d.ts",
-            "require": "./dist/events/worldEventSchema.js",
-            "default": "./dist/events/worldEventSchema.js"
+            "import": "./dist/events/index.js",
+            "types": "./dist/events/index.d.ts",
+            "require": "./dist/events/index.js",
+            "default": "./dist/events/index.js"
         },
         "./deadLetter": {
             "import": "./dist/deadLetter.js",
