@@ -370,7 +370,7 @@ export class QueueProcessWorldEventHandler {
 
         // Type-specific handler dispatch (Issue #258)
         try {
-            const container = context.extraInputs.get('container')
+            const container = getContainer(context)
             let handler: IWorldEventHandler | undefined
             if (container) {
                 const registry = buildWorldEventHandlerRegistry(container)
