@@ -14,10 +14,12 @@
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import {
+    ActorKindSchema,
     emitWorldEvent,
     isRetryableError,
     isValidationError,
     ServiceBusUnavailableError,
+    WorldEventTypeSchema,
     WorldEventValidationError,
     type EmitWorldEventOptions
 } from '../src/events/index.js'
@@ -245,11 +247,12 @@ describe('World Event Emitter', () => {
         })
 
         it('should handle all valid event types', () => {
-            const eventTypes = ['Player.Move', 'Player.Look', 'NPC.Tick', 'World.Ambience.Generated', 'World.Exit.Create', 'Quest.Proposed']
+            // Use schema options to stay synchronized with the schema definition
+            const eventTypes = WorldEventTypeSchema.options
 
             for (const eventType of eventTypes) {
                 const options: EmitWorldEventOptions = {
-                    eventType: eventType as any,
+                    eventType: eventType,
                     scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
                     payload: {},
                     actor: { kind: 'system' },
@@ -262,14 +265,15 @@ describe('World Event Emitter', () => {
         })
 
         it('should handle all valid actor kinds', () => {
-            const actorKinds = ['player', 'npc', 'system', 'ai']
+            // Use schema options to stay synchronized with the schema definition
+            const actorKinds = ActorKindSchema.options
 
             for (const kind of actorKinds) {
                 const options: EmitWorldEventOptions = {
                     eventType: 'Player.Move',
                     scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
                     payload: {},
-                    actor: { kind: kind as any },
+                    actor: { kind: kind },
                     correlationId: '11111111-1111-4111-8111-111111111111'
                 }
 

@@ -332,11 +332,20 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
 
 /**
  * Check if an error is a retryable Service Bus error.
+ * Supports both direct instanceof check and duck-typing for serialized errors
+ * that may have lost their prototype chain (e.g., across process boundaries).
  * @param error - Error to check
  * @returns true if the error is retryable
  */
 export function isRetryableError(error: unknown): error is ServiceBusUnavailableError {
-    return error instanceof ServiceBusUnavailableError || (error instanceof Error && 'code' in error && error.code === RETRYABLE_ERROR_CODE)
+    if (error instanceof ServiceBusUnavailableError) {
+        return true
+    }
+    // Duck-type check for serialized errors (e.g., from JSON.parse)
+    if (error instanceof Error && 'code' in error && (error as { code?: string }).code === RETRYABLE_ERROR_CODE) {
+        return true
+    }
+    return false
 }
 
 /**
