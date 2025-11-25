@@ -176,8 +176,8 @@ export class IntegrationTestFixture extends BaseTestFixture {
         if (this.persistenceMode === 'cosmos' && this.sqlDocTracker) {
             const anyRepo = repo as unknown as Record<string, unknown>
             if (typeof anyRepo['store'] === 'function') {
-                const originalStore = anyRepo['store'] as (evt: any) => Promise<any>
-                anyRepo['store'] = async (evt: any) => {
+                const originalStore = anyRepo['store'] as (evt: Record<string, unknown>) => Promise<unknown>
+                anyRepo['store'] = async (evt: Record<string, unknown>) => {
                     const res = await originalStore(evt)
                     // Partition key /scopeKey, id = eventId (defensive properties)
                     const scopeKey = evt.scopeKey || evt.scope_key || evt.scope || 'unknown'

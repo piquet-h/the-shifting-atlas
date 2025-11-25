@@ -140,6 +140,6 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
         const query = `SELECT c.id FROM c WHERE ${conditions.join(' OR ')}`
         const parameters = prefixes.map((p, i) => ({ name: `@p${i}`, value: p }))
         const { items } = await this.query(query, parameters, maxResults)
-        return items.map((doc: any) => doc.id).filter((id: string) => typeof id === 'string')
+        return items.map((doc: { id: unknown }) => doc.id).filter((id: unknown): id is string => typeof id === 'string')
     }
 }
