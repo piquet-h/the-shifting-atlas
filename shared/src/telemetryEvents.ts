@@ -58,6 +58,8 @@ export const GAME_EVENT_NAMES = [
     'World.Event.DeadLettered',
     'World.Event.RegistryCheckFailed',
     'World.Event.RegistryWriteFailed',
+    // Handler invocation (Issue #258 - type-specific payload handlers)
+    'World.Event.HandlerInvoked',
     'Prompt.Genesis.Issued',
     'Prompt.Genesis.Rejected',
     'Prompt.Genesis.Crystallized',

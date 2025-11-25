@@ -62,6 +62,8 @@ import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
+import { ExitCreateHandler } from '../../src/worldEvents/handlers/ExitCreateHandler.js'
+import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
 // Import mocks from test folder
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
@@ -120,6 +122,8 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
     container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
+    container.bind(ExitCreateHandler).toSelf().inSingletonScope()
+    container.bind(NPCTickHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - E2E tests use *_TEST env vars when NODE_ENV=test

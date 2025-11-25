@@ -20,6 +20,8 @@ import { WORLD_EVENT_CACHE_MAX_SIZE, WORLD_EVENT_DUPLICATE_TTL_MS } from '../con
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../repos/processedEventRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
+import { buildWorldEventHandlerRegistry } from '../worldEvents/registry.js'
+import type { IWorldEventHandler } from '../worldEvents/types.js'
 import { getContainer } from './utils/contextHelpers.js'
 
 // --- In-Memory Cache (Fast-Path Optimization) --------------------------------
@@ -284,7 +286,7 @@ export class QueueProcessWorldEventHandler {
             })
 
             // Emit telemetry for registry failure
-            this.telemetryService.trackGameEventStrict(
+            this.telemetryService.trackGameEvent(
                 'World.Event.RegistryCheckFailed',
                 {
                     eventType: event.type,
@@ -366,13 +368,46 @@ export class QueueProcessWorldEventHandler {
         })
         this.telemetryService.trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId })
 
-        // TODO: Future type-specific payload processing and side effects
-        // For now, this is a foundation processor that validates and tracks events
-        context.log('World event processed successfully', {
-            eventId: event.eventId,
-            type: event.type,
-            latencyMs
-        })
+        // Type-specific handler dispatch (Issue #258)
+        try {
+            const container = context.extraInputs.get('container')
+            let handler: IWorldEventHandler | undefined
+            if (container) {
+                const registry = buildWorldEventHandlerRegistry(container)
+                handler = registry.get(event.type)
+            }
+
+            if (!handler) {
+                context.log('No type-specific handler registered for event type', { type: event.type, eventId: event.eventId })
+            } else {
+                const result = await handler.handle(event, context)
+                // Handler itself emits World.Event.HandlerInvoked telemetry; we only log outcome here
+                context.log('Type-specific handler completed', {
+                    eventId: event.eventId,
+                    type: event.type,
+                    handler: handler.constructor.name,
+                    outcome: result.outcome,
+                    details: result.details
+                })
+            }
+        } catch (handlerError) {
+            // Unexpected error during handler dispatch should not block base processing telemetry already emitted.
+            this.telemetryService.trackGameEventStrict(
+                'World.Event.HandlerInvoked',
+                {
+                    eventType: event.type,
+                    handler: 'Dispatch',
+                    outcome: 'error',
+                    errorMessage: String(handlerError),
+                    correlationId: event.correlationId
+                },
+                { correlationId: event.correlationId }
+            )
+            // Re-throw to allow Service Bus retry semantics for transient failures in handler stage
+            throw handlerError
+        }
+
+        context.log('World event processed successfully', { eventId: event.eventId, type: event.type, latencyMs })
     }
 }
 
