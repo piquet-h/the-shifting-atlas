@@ -54,6 +54,7 @@ import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 import { TelemetryService } from './telemetry/TelemetryService.js'
+import { EnvironmentChangeHandler } from './worldEvents/handlers/EnvironmentChangeHandler.js'
 import { ExitCreateHandler } from './worldEvents/handlers/ExitCreateHandler.js'
 import { NPCTickHandler } from './worldEvents/handlers/NPCTickHandler.js'
 
@@ -121,6 +122,7 @@ export const setupContainer = async (container: Container) => {
     container.bind(QueueProcessWorldEventHandler).toSelf()
     container.bind(ExitCreateHandler).toSelf()
     container.bind(NPCTickHandler).toSelf()
+    container.bind(EnvironmentChangeHandler).toSelf()
 
     // === Cosmos Gremlin API Configuration ===
     const gremlinEndpoint = config.cosmos?.endpoint?.trim() || ''
