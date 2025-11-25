@@ -49,25 +49,14 @@ export class BatchGenerateHandler implements IWorldEventHandler {
     async handle(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult> {
         const { rootLocationId, arrivalDirection, terrain, expansionDepth, batchSize } = event.payload
 
-        // 1. Determine neighbor directions from terrain guidance
         const neighborDirections = this.determineNeighborDirections(terrain, arrivalDirection, batchSize)
-
-        // 2. Create stub locations
         const stubs = await this.createStubLocations(neighborDirections, terrain)
-
-        // 3. Prepare batch AI request
         const batchRequest = this.prepareBatchRequest(rootLocationId, stubs, terrain, arrivalDirection)
-
-        // 4. Call AI service (single batched request)
         const descriptions = await this.aiService.batchGenerateDescriptions(batchRequest)
 
-        // 5. Update locations with descriptions
         await this.updateLocationDescriptions(descriptions)
-
-        // 6. Enqueue exit creation events (root ↔ neighbors)
         await this.enqueueExitCreationEvents(rootLocationId, stubs, neighborDirections)
 
-        // 7. Infer onward exits from neighbor descriptions
         if (expansionDepth > 1) {
             await this.inferAndCreateOnwardExits(descriptions, terrain)
         }
@@ -75,7 +64,7 @@ export class BatchGenerateHandler implements IWorldEventHandler {
         this.telemetry.trackGameEvent('World.BatchGeneration.Completed', {
             rootLocationId,
             locationsGenerated: descriptions.length,
-            exitsCreated: stubs.length * 2, // bidirectional
+            exitsCreated: stubs.length * 2,
             aiCost: descriptions.reduce((sum, d) => sum + d.cost, 0)
         })
 
@@ -124,22 +113,17 @@ interface GeneratedDescription {
 @injectable()
 export class AIDescriptionService implements IAIDescriptionService {
     async batchGenerateDescriptions(request: BatchDescriptionRequest): Promise<GeneratedDescription[]> {
-        // 1. Build system prompt with style guidance
         const systemPrompt = this.buildSystemPrompt(request.style)
-
-        // 2. Build individual prompts for each location
         const prompts = request.locations.map((loc) => this.buildLocationPrompt(loc))
 
-        // 3. Call AI API (e.g., Azure OpenAI batch completion)
         const response = await this.aiClient.createBatchCompletion({
             model: 'gpt-4',
             system: systemPrompt,
             prompts,
             temperature: 0.7,
-            maxTokens: 200 // ~50-70 words per description
+            maxTokens: 200
         })
 
-        // 4. Parse and validate responses
         return response.choices.map((choice, idx) => ({
             locationId: request.locations[idx].locationId,
             description: choice.message.content,
@@ -191,20 +175,15 @@ interface ExitInferenceResult {
 @injectable()
 export class ExitInferenceService implements IExitInferenceService {
     async inferExits(description: string, terrain: TerrainType, arrivalDirection: Direction): Promise<ExitInferenceResult[]> {
-        // Option A: Rule-based pattern matching (cheap, deterministic)
         const patterns = this.getDirectionPatterns()
         const matches = this.matchPatterns(description, patterns)
 
-        // Option B: AI semantic analysis (expensive, contextual)
-        // Use for ambiguous cases or validation
         const aiInferred = await this.aiClient.inferSpatialLogic({
             description,
             terrain,
             arrivalDirection
         })
 
-        // Merge results: prefer explicit mentions (pattern-based),
-        // use AI for implied exits
         return this.mergeInferences(matches, aiInferred, arrivalDirection)
     }
 
@@ -212,7 +191,6 @@ export class ExitInferenceService implements IExitInferenceService {
         return new Map([
             ['north', [/\b(?:to the )?north(?:ward)?[,\s]/i, /\bnorthern\s+\w+/i, /\brises?\s+(?:to the )?north/i]],
             ['east', [/\b(?:to the )?east(?:ward)?[,\s]/i, /\beastern\s+\w+/i, /\ba\s+\w+\s+(?:cuts|runs)\s+(?:to the )?east/i]]
-            // ... other directions
         ])
     }
 
@@ -225,11 +203,11 @@ export class ExitInferenceService implements IExitInferenceService {
                 if (match) {
                     results.push({
                         direction,
-                        confidence: 0.9, // High confidence for explicit mentions
+                        confidence: 0.9,
                         reason: `Explicit mention: "${match[0].trim()}"`,
                         targetHint: this.extractTargetHint(description, match.index!)
                     })
-                    break // Only one match per direction
+                    break
                 }
             }
         }
@@ -261,7 +239,7 @@ async enqueueExitCreationEvents(
     type: 'World.Exit.Create',
     occurredUtc: new Date().toISOString(),
     actor: { kind: 'system' },
-    correlationId: this.correlationId,  // From parent BatchGenerate event
+    correlationId: this.correlationId,
     idempotencyKey: `exit:${rootLocationId}:${directions[idx]}`,
     version: 1,
     payload: {
@@ -284,38 +262,17 @@ async enqueueExitCreationEvents(
 ### Sequence: Player Triggers Boundary Expansion
 
 ```
-1. Player → HTTP Move Handler
-   └─ "move north" from North Gate (no exit exists)
+1. Player → HTTP: "move north" (no exit exists)
+2. HTTP → Create stub location + enqueue World.Exit.Create + World.Location.BatchGenerate
+3. HTTP → Player: "You head north into unmapped wilderness..."
 
-2. HTTP Handler → Create stub location
-   └─ Location { id: NEW_UUID, name: "Northern Moorland", description: "" }
+--- Async Processing ---
 
-3. HTTP Handler → Enqueue World.Exit.Create
-   └─ Payload: { fromLocationId: GATE_ID, toLocationId: NEW_UUID, direction: 'north' }
-
-4. HTTP Handler → Enqueue World.Location.BatchGenerate
-   └─ Payload: { rootLocationId: NEW_UUID, arrivalDirection: 'south', terrain: 'open-plain', depth: 1 }
-
-5. HTTP Handler → Return to player
-   └─ "You head north into unmapped wilderness..."
-
---- Async Processing Below ---
-
-6. ExitCreateHandler (queue trigger) → Creates bidirectional exit
-   └─ Gate ↔ Moorland (north/south pair)
-
-7. BatchGenerateHandler (queue trigger) → Generates descriptions
-   a. Determine neighbors (4 cardinals for open-plain)
-   b. Create 4 stub locations (North Moor, East Moor, West Moor, + root)
-   c. Call AI batch API (5 descriptions in single request)
-   d. Update locations with descriptions
-   e. Enqueue 4 × World.Exit.Create (root → each neighbor, bidirectional)
-   f. Infer exits from neighbor descriptions
-   g. Enqueue onward exits (neighbor → new stubs)
-
-8. ExitCreateHandler (4 more invocations) → Creates 8 exits (4 bidirectional pairs)
-
-9. Player's next "look" command → Sees new exits rendered
+4. ExitCreateHandler → Creates bidirectional exit (Gate ↔ Moorland)
+5. BatchGenerateHandler → Determines neighbors, creates stubs, calls AI batch (5 descriptions)
+6. BatchGenerateHandler → Updates locations, enqueues exit creation events
+7. ExitCreateHandler (4×) → Creates 8 exits (4 bidirectional pairs)
+8. Player "look" → Sees new exits
 ```
 
 ### Cost Calculation
@@ -339,12 +296,12 @@ async enqueueExitCreationEvents(
 
 ```typescript
 interface Location {
-    id: string // GUID
+    id: string
     name: string
-    description: string // AI-generated or authored
+    description: string
     terrain: TerrainType
     tags: string[]
-    exits: Exit[] // Materialized view (authoritative in Gremlin graph)
+    exits: Exit[]
     metadata: {
         generatedUtc?: string
         generationCorrelationId?: string
@@ -359,7 +316,6 @@ interface Location {
 ### Exit Edge (Gremlin Graph)
 
 ```gremlin
-// Bidirectional edge creation
 g.V(rootLocationId)
   .addE('exit_north')
   .to(g.V(neighborId))
@@ -417,7 +373,6 @@ AI_COST_ALERT_THRESHOLD=10.00  # Daily USD threshold
 ### Terrain Guidance Configuration
 
 ```typescript
-// shared/src/config/terrainGuidance.ts
 export const TERRAIN_GUIDANCE: Record<TerrainType, TerrainGuidanceConfig> = {
     'open-plain': {
         typicalExitCount: 4,
@@ -429,9 +384,8 @@ export const TERRAIN_GUIDANCE: Record<TerrainType, TerrainGuidanceConfig> = {
         typicalExitCount: 2,
         exitPattern: 'linear',
         promptHint: 'Dense forests may limit visible exits to clearings or paths.',
-        defaultDirections: [] // AI must justify all exits
+        defaultDirections: []
     }
-    // ... other terrain types
 }
 ```
 

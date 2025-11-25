@@ -34,21 +34,21 @@
 
 ```typescript
 interface ExitInferenceRequest {
-    description: string // Location prose
-    terrain: TerrainType // Guidance hint (not constraint)
-    arrivalDirection: Direction // Guarantees reciprocal exit
+    description: string
+    terrain: TerrainType
+    arrivalDirection: Direction
     narrativeContext?: {
-        weather?: string // "Heavy fog limits visibility"
-        time?: string // "Dusk obscures distant paths"
-        recentEvents?: string // "Landslide blocked northern route"
+        weather?: string
+        time?: string
+        recentEvents?: string
     }
 }
 
 interface InferredExit {
     direction: Direction
-    confidence: number // 0.0-1.0 (AI's certainty)
-    reason: string // "Explicit mention of creek to the east"
-    targetHint?: string // Optional: "forested area", "creek crossing"
+    confidence: number
+    reason: string
+    targetHint?: string
 }
 ```
 
@@ -106,7 +106,7 @@ Handler receives `World.Location.BatchGenerate` event:
   type: "World.Location.BatchGenerate",
   payload: {
     rootLocationId: "new-moorland-uuid",
-    arrivalDirection: "south",  // player came from south
+    arrivalDirection: "south",
     terrain: "open-plain",
     expansionDepth: 1,
     batchSize: 8
@@ -116,16 +116,13 @@ Handler receives `World.Location.BatchGenerate` event:
 
 Handler executes:
 
-1. **Determine neighbor count** based on terrain guidance (open plains → 4 cardinal neighbors)
-2. **Create stub locations** for each inferred neighbor direction
-3. **Prepare batch AI request** (root + all neighbors in single API call)
-4. **Generate descriptions** via AI with contextual prompts:
-    - Root: "Describe open moorland north of Mosswell village, player arrived from south"
-    - North neighbor: "Describe continuation of moorland, player arriving from south"
-    - East neighbor: "Describe moorland transitioning toward creek, player arriving from west"
-5. **Update locations** with AI-generated prose
-6. **Enqueue exit creation events** for all root ↔ neighbor connections
-7. **Parse neighbor descriptions** for onward exits (recursive expansion handled by depth parameter)
+1. Determine neighbor count based on terrain guidance
+2. Create stub locations for each neighbor direction
+3. Prepare batch AI request (single API call)
+4. Generate contextual descriptions via AI
+5. Update locations with generated prose
+6. Enqueue exit creation events for all connections
+7. Parse neighbor descriptions for onward exits
 
 ### Step 3: Exit Inference Post-Processing
 
@@ -136,14 +133,10 @@ Description: "Windswept moorland under vast sky. South, Mosswell's gate visible.
               East, a creek cuts through heath. West, dark forest edge.
               North, moor rises toward hills."
 
-Inferred Exits:
-- south (confidence: 0.95) → explicit mention of gate
-- east (confidence: 0.90) → explicit creek landmark
-- west (confidence: 0.90) → explicit forest edge
-- north (confidence: 0.85) → explicit hills mention
+Inferred: south (0.95), east (0.90), west (0.90), north (0.85)
 ```
 
-System creates `World.Exit.Create` events for each (except south, which already exists as arrival path).
+System creates `World.Exit.Create` events for each (except south, the arrival path).
 
 ---
 
@@ -153,38 +146,38 @@ Terrain types provide **contextual hints** to AI, not rigid rules:
 
 ### Open Plains
 
-**Guidance**: "Open plains typically allow travel in multiple directions unless narrative obstacles (fog, cliffs, swamps) are present."
+**Guidance**: "Open plains typically allow travel in multiple directions unless narrative obstacles are present."
 
-**Typical exits**: 4 cardinals (north, south, east, west)  
-**AI override scenarios**: Blizzard (reduces to 1–2 visible directions), ravine (blocks specific cardinal)
+**Typical exits**: 4 cardinals  
+**AI overrides**: Blizzard (reduces visibility), ravine (blocks specific direction)
 
 ### Dense Forest
 
-**Guidance**: "Dense forests may limit visible exits to clearings or paths, but clever players might detect game trails or thinning canopy."
+**Guidance**: "Dense forests may limit visible exits to clearings or paths, but clever players might detect game trails."
 
 **Typical exits**: 2 (arrival + opposite)  
-**AI override scenarios**: Ranger's keen eye (adds diagonal game trail), ancient road (adds perpendicular path)
+**AI overrides**: Game trail (adds diagonal), ancient road (adds perpendicular)
 
 ### Hilltop
 
-**Guidance**: "Hilltops offer panoramic views suggesting multiple descent routes unless sheer cliffs or dense undergrowth block specific directions."
+**Guidance**: "Hilltops offer panoramic views suggesting multiple descent routes unless cliffs block directions."
 
 **Typical exits**: `down` + 2–4 cardinals  
-**AI override scenarios**: Mountain peak (only `down`), gentle slope (all cardinals available)
+**AI overrides**: Mountain peak (only `down`), gentle slope (all cardinals)
 
 ### Riverbank
 
-**Guidance**: "Riverbanks permit travel parallel to water flow and sometimes perpendicular if crossings exist (fords, bridges)."
+**Guidance**: "Riverbanks permit travel parallel to water flow, perpendicular if crossings exist."
 
-**Typical exits**: 2 parallel to river + arrival  
-**AI override scenarios**: "Swift current, no crossing" (no perpendicular exit), "Old stone bridge" (adds perpendicular)
+**Typical exits**: 2 parallel + arrival  
+**AI overrides**: Swift current (no perpendicular), bridge (adds perpendicular)
 
 ### Narrow Corridor
 
-**Guidance**: "Corridors usually permit forward/back movement, but consider alcoves, side passages, or climbing opportunities if narratively justified."
+**Guidance**: "Corridors permit forward/back movement, but consider alcoves or climbing opportunities."
 
 **Typical exits**: 2 (arrival + opposite)  
-**AI override scenarios**: "Hidden alcove to west" (adds perpendicular), "Shaft upward" (adds vertical)
+**AI overrides**: Hidden alcove (adds perpendicular), shaft (adds vertical)
 
 ---
 
@@ -198,17 +191,14 @@ Even with AI flexibility, deterministic checks alert curators to potential issue
 function validateInferredExits(exits: InferredExit[], location: Location) {
     const warnings = []
 
-    // Ensure reciprocal arrival path exists
     if (!exits.some((e) => e.direction === location.arrivalDirection)) {
         warnings.push('No exit back to origin—player could be trapped')
     }
 
-    // Check for contradictory opposing exits in restrictive terrain
     if (exits.includes('north') && exits.includes('south') && location.terrain === 'narrow-corridor') {
         warnings.push('Corridor has opposing exits—verify narrative supports this')
     }
 
-    // Warn if exit count deviates significantly from terrain guidance
     const expectedRange = getExpectedExitRange(location.terrain)
     if (exits.length < expectedRange.min || exits.length > expectedRange.max) {
         warnings.push(`Exit count ${exits.length} outside expected range ${expectedRange}`)
@@ -218,7 +208,7 @@ function validateInferredExits(exits: InferredExit[], location: Location) {
 }
 ```
 
-**Warnings are advisory**: System logs them for curator review but does not block generation. AI's narrative judgment takes precedence over heuristics.
+**Warnings are advisory**: Logged for curator review but don't block generation. AI judgment takes precedence.
 
 ---
 
@@ -228,42 +218,24 @@ function validateInferredExits(exits: InferredExit[], location: Location) {
 
 Same location, different contexts:
 
-**Winter (frozen lake)**:
+**Winter**: "Frozen lake stretches east; ice solid enough to walk." → east exit (0.85)  
+**Summer**: "Lake ripples east; no crossing without a boat." → NO east exit (0.90)
 
-```
-Description: "Frozen lake stretches east; ice solid enough to walk."
-Inferred: east exit (confidence: 0.85, reason: "walkable ice")
-```
+**Implementation**: Re-run inference when seasonal state changes; update exits without rewriting descriptions.
 
-**Summer (thawed lake)**:
-
-```
-Description: "Lake ripples east; no crossing without a boat."
-Inferred: NO east exit (confidence: 0.90, reason: "uncrossable water")
-```
-
-**Implementation**: Re-run exit inference when seasonal world state changes; update exits without rewriting base description.
-
-### Contradictory Descriptions (AI Self-Correction)
+### Contradictory Descriptions
 
 **Input**: "The moor continues north toward hills. A ravine blocks passage north."
 
-**AI response**:
+**AI response**: No north exit (conservative interpretation prevents frustration), recommends alternative routes or traversable ravine descent.
 
-```json
-{
-    "exits": [], // No north exit due to ravine
-    "recommendations": ["Consider 'northeast'/'northwest' detours around ravine", "Or add 'down' exit into traversable ravine"]
-}
-```
-
-System logs contradiction for curator review; AI's conservative interpretation (no north exit) prevents player frustration.
+System logs contradiction for curator review.
 
 ### Temporary Obstacles
 
-**Fire blocks passage**: World state overlay marks exit as `blocked` without modifying description or deleting exit entity. When fire subsides, exit becomes traversable again.
+**Fire blocks passage**: World state overlay marks exit as `blocked`; exit becomes traversable when fire subsides.
 
-**Quest gate**: "Iron gate barred until key obtained." Exit exists in graph but validation logic checks player inventory before allowing movement.
+**Quest gate**: "Iron gate barred until key obtained." Exit exists but validation checks player inventory before allowing movement.
 
 ---
 
