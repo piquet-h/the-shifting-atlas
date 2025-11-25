@@ -95,4 +95,42 @@ export abstract class BaseHandler {
         // Default: no-op. Subclasses can override.
         void error // Prevent unused parameter warning
     }
+
+    /**
+     * Create a standardized error response
+     * @param error - The error object or message
+     * @param status - HTTP status code (default: 500)
+     * @returns HTTP response with error message
+     */
+    protected errorResponse(error: unknown, status: number = 500): HttpResponseInit {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        return {
+            status,
+            jsonBody: { error: errorMessage }
+        }
+    }
+
+    /**
+     * Create a standardized validation error response (400)
+     * @param message - Validation error message
+     * @returns HTTP 400 response with error message
+     */
+    protected validationErrorResponse(message: string): HttpResponseInit {
+        return {
+            status: 400,
+            jsonBody: { error: message }
+        }
+    }
+
+    /**
+     * Create a standardized not found response (404)
+     * @param message - Optional custom message (default: "Not found")
+     * @returns HTTP 404 response with error message
+     */
+    protected notFoundResponse(message: string = 'Not found'): HttpResponseInit {
+        return {
+            status: 404,
+            jsonBody: { error: message }
+        }
+    }
 }

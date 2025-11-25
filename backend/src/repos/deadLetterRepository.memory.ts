@@ -5,14 +5,15 @@
  */
 
 import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
+import { injectable } from 'inversify'
+import { BaseMemoryRepository } from './base/BaseMemoryRepository.js'
 import type { IDeadLetterRepository } from './deadLetterRepository.js'
 
 /**
  * In-memory implementation of dead-letter repository
  */
-export class MemoryDeadLetterRepository implements IDeadLetterRepository {
-    private records: Map<string, DeadLetterRecord> = new Map()
-
+@injectable()
+export class MemoryDeadLetterRepository extends BaseMemoryRepository<string, DeadLetterRecord> implements IDeadLetterRepository {
     /**
      * Store a dead-letter record in memory
      */
@@ -43,13 +44,6 @@ export class MemoryDeadLetterRepository implements IDeadLetterRepository {
      */
     async getById(id: string): Promise<DeadLetterRecord | null> {
         return this.records.get(id) || null
-    }
-
-    /**
-     * Clear all records (for testing)
-     */
-    clear(): void {
-        this.records.clear()
     }
 
     /**

@@ -5,11 +5,10 @@
 
 import type { IInventoryRepository, InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import { injectable } from 'inversify'
+import { BaseMemoryRepository } from './base/BaseMemoryRepository.js'
 
 @injectable()
-export class MemoryInventoryRepository implements IInventoryRepository {
-    private items = new Map<string, InventoryItem>()
-
+export class MemoryInventoryRepository extends BaseMemoryRepository<string, InventoryItem> implements IInventoryRepository {
     async addItem(item: InventoryItem): Promise<InventoryItem> {
         const key = this.makeKey(item.id, item.playerId)
 
@@ -24,16 +23,16 @@ export class MemoryInventoryRepository implements IInventoryRepository {
             }
         }
 
-        this.items.set(key, { ...item })
+        this.records.set(key, { ...item })
         return item
     }
 
     async removeItem(itemId: string, playerId: string): Promise<boolean> {
         const key = this.makeKey(itemId, playerId)
-        const existed = this.items.has(key)
+        const existed = this.records.has(key)
 
         if (existed) {
-            this.items.delete(key)
+            this.records.delete(key)
         }
 
         return existed
@@ -42,7 +41,7 @@ export class MemoryInventoryRepository implements IInventoryRepository {
     async listItems(playerId: string): Promise<InventoryItem[]> {
         const playerItems: InventoryItem[] = []
 
-        for (const item of this.items.values()) {
+        for (const item of this.records.values()) {
             if (item.playerId === playerId) {
                 playerItems.push(item)
             }
@@ -54,21 +53,14 @@ export class MemoryInventoryRepository implements IInventoryRepository {
 
     async getItem(itemId: string, playerId: string): Promise<InventoryItem | null> {
         const key = this.makeKey(itemId, playerId)
-        return this.items.get(key) || null
-    }
-
-    /**
-     * Clear all items (for test cleanup)
-     */
-    clear(): void {
-        this.items.clear()
+        return this.records.get(key) || null
     }
 
     /**
      * Get all items (for test assertions)
      */
     getAllItems(): InventoryItem[] {
-        return Array.from(this.items.values())
+        return Array.from(this.records.values())
     }
 
     private makeKey(itemId: string, playerId: string): string {
