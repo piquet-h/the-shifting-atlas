@@ -55,8 +55,8 @@ export class NPCAwarenessHandler implements IWorldEventHandler {
                 outcome: 'success',
                 npcId: npcId as string,
                 locationId: locationId as string,
-                triggeredByPlayerId: (triggeredByPlayerId as string) || undefined,
-                reason: (reason as string) || undefined,
+                triggeredByPlayerId: typeof triggeredByPlayerId === 'string' && triggeredByPlayerId ? triggeredByPlayerId : undefined,
+                reason: typeof reason === 'string' && reason ? reason : undefined,
                 correlationId: event.correlationId
             },
             { correlationId: event.correlationId }

@@ -64,9 +64,7 @@ describe('LocationFireHandler', () => {
         await queueProcessWorldEvent(event, ctx as any)
 
         const invokedEvents = telemetry.events.filter((e) => e.name === 'World.Event.HandlerInvoked')
-        const success = invokedEvents.find(
-            (e) => e.properties?.handler === 'LocationFireHandler' && e.properties?.outcome === 'success'
-        )
+        const success = invokedEvents.find((e) => e.properties?.handler === 'LocationFireHandler' && e.properties?.outcome === 'success')
         assert.ok(success, 'Handler success telemetry should be emitted')
     })
 
@@ -192,7 +190,10 @@ describe('LocationFireHandler', () => {
         assert.ok(threw, 'Repository error should bubble for retry')
 
         const errorTelemetry = telemetry.events.find(
-            (e) => e.name === 'World.Event.HandlerInvoked' && e.properties?.handler === 'LocationFireHandler' && e.properties?.outcome === 'error'
+            (e) =>
+                e.name === 'World.Event.HandlerInvoked' &&
+                e.properties?.handler === 'LocationFireHandler' &&
+                e.properties?.outcome === 'error'
         )
         assert.ok(errorTelemetry, 'Error outcome telemetry should be emitted')
     })
@@ -237,9 +238,7 @@ describe('NPCAwarenessHandler', () => {
         assert.ok(handlerLog, 'NPCAwarenessHandler should process event')
 
         const invokedEvents = telemetry.events.filter((e) => e.name === 'World.Event.HandlerInvoked')
-        const success = invokedEvents.find(
-            (e) => e.properties?.handler === 'NPCAwarenessHandler' && e.properties?.outcome === 'success'
-        )
+        const success = invokedEvents.find((e) => e.properties?.handler === 'NPCAwarenessHandler' && e.properties?.outcome === 'success')
         assert.ok(success, 'Handler success telemetry should be emitted')
     })
 
@@ -279,11 +278,13 @@ describe('NPCAwarenessHandler', () => {
         await queueProcessWorldEvent(event, ctx as any)
 
         const invokedEvents = telemetry.events.filter((e) => e.name === 'World.Event.HandlerInvoked')
-        const success = invokedEvents.find(
-            (e) => e.properties?.handler === 'NPCAwarenessHandler' && e.properties?.outcome === 'success'
-        )
+        const success = invokedEvents.find((e) => e.properties?.handler === 'NPCAwarenessHandler' && e.properties?.outcome === 'success')
         assert.ok(success, 'Handler success should be emitted')
-        assert.strictEqual(success?.properties?.triggeredByPlayerId, '60000000-0000-4000-8000-000000000003', 'PlayerId should be in telemetry')
+        assert.strictEqual(
+            success?.properties?.triggeredByPlayerId,
+            '60000000-0000-4000-8000-000000000003',
+            'PlayerId should be in telemetry'
+        )
     })
 
     test('should work without optional fields', async () => {
