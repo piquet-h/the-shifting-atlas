@@ -45,15 +45,18 @@ export type Actor = z.infer<typeof ActorSchema>
 
 /**
  * World Event Type namespace (initial types per contract doc)
+ *
+ * Design Philosophy: These event types capture WHAT changed (deterministic state),
+ * not HOW to describe it (AI-driven immersion). Handlers persist structured
+ * metadata; AI generates narrative descriptions when players observe the world.
  */
 export const WorldEventTypeSchema = z.enum([
     'Player.Move',
     'Player.Look',
     'NPC.Tick',
-    'NPC.Awareness',
     'World.Ambience.Generated',
     'World.Exit.Create',
-    'Location.Fire.Started',
+    'Location.Environment.Changed',
     'Quest.Proposed'
 ])
 export type WorldEventType = z.infer<typeof WorldEventTypeSchema>

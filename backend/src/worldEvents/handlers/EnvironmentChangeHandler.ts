@@ -2,15 +2,36 @@ import type { InvocationContext } from '@azure/functions'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
+import { v4 as uuidv4 } from 'uuid'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { IDescriptionRepository } from '../../repos/descriptionRepository.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { IWorldEventHandler, WorldEventHandlerResult } from '../types.js'
-import { v4 as uuidv4 } from 'uuid'
 
+/**
+ * Generic handler for Location.Environment.Changed events.
+ *
+ * Design Philosophy (per tenets.md #7):
+ * - Deterministic code captures WHAT changed (structured metadata)
+ * - AI generates HOW to describe it (narrative immersion)
+ *
+ * This handler stores environment change metadata as a description layer.
+ * When players LOOK at the location, AI uses the metadata to generate
+ * contextual, immersive descriptions.
+ *
+ * Example payload:
+ * {
+ *   locationId: "loc-forest",
+ *   changeType: "fire",
+ *   severity: "moderate",
+ *   description: "Fire has broken out",  // AI prompt context
+ *   duration: "temporary",               // "temporary" | "permanent"
+ *   expiresAt: "2025-11-26T00:00:00Z"    // Optional TTL
+ * }
+ */
 @injectable()
-export class LocationFireHandler implements IWorldEventHandler {
-    public readonly type = 'Location.Fire.Started'
+export class EnvironmentChangeHandler implements IWorldEventHandler {
+    public readonly type = 'Location.Environment.Changed'
     constructor(
         @inject('IDescriptionRepository') private descriptionRepo: IDescriptionRepository,
         @inject('IDeadLetterRepository') private deadLetterRepo: IDeadLetterRepository,
@@ -18,16 +39,16 @@ export class LocationFireHandler implements IWorldEventHandler {
     ) {}
 
     async handle(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult> {
-        const { locationId, intensity, spreadRadius } = event.payload as Record<string, unknown>
+        const { locationId, changeType, severity, description, duration, expiresAt } = event.payload as Record<string, unknown>
 
         const missing: string[] = []
         if (typeof locationId !== 'string' || !locationId) missing.push('locationId')
-        if (typeof intensity !== 'string' || !intensity) missing.push('intensity')
+        if (typeof changeType !== 'string' || !changeType) missing.push('changeType')
 
         if (missing.length) {
             const record = createDeadLetterRecord(event, {
                 category: 'handler-validation',
-                message: 'Missing required fields for Location.Fire.Started',
+                message: 'Missing required fields for Location.Environment.Changed',
                 issues: missing.map((f) => ({ path: f, message: 'Missing field', code: 'missing' }))
             })
             try {
@@ -39,104 +60,73 @@ export class LocationFireHandler implements IWorldEventHandler {
                 'World.Event.HandlerInvoked',
                 {
                     eventType: event.type,
-                    handler: 'LocationFireHandler',
+                    handler: 'EnvironmentChangeHandler',
                     outcome: 'validation-failed',
                     missingCount: missing.length,
                     correlationId: event.correlationId
                 },
                 { correlationId: event.correlationId }
             )
-            context.warn('LocationFireHandler validation failed', { missing })
+            context.warn('EnvironmentChangeHandler validation failed', { missing })
             return { outcome: 'validation-failed', details: `Missing: ${missing.join(',')}` }
         }
 
-        const validIntensities = ['low', 'moderate', 'high']
-        if (!validIntensities.includes(intensity as string)) {
-            const record = createDeadLetterRecord(event, {
-                category: 'handler-validation',
-                message: 'Invalid intensity for Location.Fire.Started',
-                issues: [{ path: 'intensity', message: `Invalid intensity: ${intensity}`, code: 'invalid' }]
-            })
-            try {
-                await this.deadLetterRepo.store(record)
-            } catch (e) {
-                context.error('Failed to store dead-letter for invalid intensity', { error: String(e) })
-            }
-            this.telemetry.trackGameEvent(
-                'World.Event.HandlerInvoked',
-                {
-                    eventType: event.type,
-                    handler: 'LocationFireHandler',
-                    outcome: 'validation-failed',
-                    correlationId: event.correlationId
-                },
-                { correlationId: event.correlationId }
-            )
-            context.warn('LocationFireHandler invalid intensity', { intensity })
-            return { outcome: 'validation-failed', details: 'invalid-intensity' }
-        }
-
         try {
-            const layerContent = this.generateFireDescription(intensity as string)
             const layerId = uuidv4()
             const result = await this.descriptionRepo.addLayer({
                 id: layerId,
                 locationId: locationId as string,
                 type: 'structural_event',
-                content: layerContent,
+                content: typeof description === 'string' ? description : `Environment change: ${changeType}`,
                 createdAt: new Date().toISOString(),
-                source: 'world-event:Location.Fire.Started',
+                expiresAt: typeof expiresAt === 'string' ? expiresAt : undefined,
+                source: `world-event:${event.type}`,
                 attributes: {
-                    intensity: intensity as string,
-                    spreadRadius: typeof spreadRadius === 'number' ? spreadRadius : 0,
+                    changeType: changeType as string,
+                    severity: typeof severity === 'string' ? severity : 'moderate',
+                    duration: typeof duration === 'string' ? duration : 'temporary',
                     eventId: event.eventId
                 }
             })
 
             const outcome: WorldEventHandlerResult = result.created
-                ? { outcome: 'success', details: 'fire-layer-added' }
+                ? { outcome: 'success', details: 'environment-layer-added' }
                 : { outcome: 'noop', details: 'layer-already-existed' }
 
             this.telemetry.trackGameEvent(
                 'World.Event.HandlerInvoked',
                 {
                     eventType: event.type,
-                    handler: 'LocationFireHandler',
+                    handler: 'EnvironmentChangeHandler',
                     outcome: outcome.outcome,
+                    changeType: changeType as string,
                     layerId: result.id,
                     correlationId: event.correlationId
                 },
                 { correlationId: event.correlationId }
             )
-            context.log('LocationFireHandler applied', { locationId, intensity, layerId: result.id, created: result.created })
+            context.log('EnvironmentChangeHandler applied', {
+                locationId,
+                changeType,
+                severity,
+                layerId: result.id,
+                created: result.created
+            })
             return outcome
         } catch (err) {
             this.telemetry.trackGameEvent(
                 'World.Event.HandlerInvoked',
                 {
                     eventType: event.type,
-                    handler: 'LocationFireHandler',
+                    handler: 'EnvironmentChangeHandler',
                     outcome: 'error',
                     errorMessage: String(err),
                     correlationId: event.correlationId
                 },
                 { correlationId: event.correlationId }
             )
-            context.error('LocationFireHandler error', { error: String(err) })
+            context.error('EnvironmentChangeHandler error', { error: String(err) })
             throw err
-        }
-    }
-
-    private generateFireDescription(intensity: string): string {
-        switch (intensity) {
-            case 'low':
-                return 'Small flames flicker along the edges, tendrils of smoke curling upward.'
-            case 'moderate':
-                return 'Fire crackles hungrily across the area, casting dancing shadows. Smoke thickens the air.'
-            case 'high':
-                return 'An inferno rages here, flames leaping high. The heat is nearly unbearable, and visibility is poor through the thick smoke.'
-            default:
-                return 'Fire burns here.'
         }
     }
 }

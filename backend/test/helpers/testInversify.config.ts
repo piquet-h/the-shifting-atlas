@@ -62,9 +62,8 @@ import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
+import { EnvironmentChangeHandler } from '../../src/worldEvents/handlers/EnvironmentChangeHandler.js'
 import { ExitCreateHandler } from '../../src/worldEvents/handlers/ExitCreateHandler.js'
-import { LocationFireHandler } from '../../src/worldEvents/handlers/LocationFireHandler.js'
-import { NPCAwarenessHandler } from '../../src/worldEvents/handlers/NPCAwarenessHandler.js'
 import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
 // Import mocks from test folder
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
@@ -126,8 +125,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
     container.bind(ExitCreateHandler).toSelf().inSingletonScope()
     container.bind(NPCTickHandler).toSelf().inSingletonScope()
-    container.bind(LocationFireHandler).toSelf().inSingletonScope()
-    container.bind(NPCAwarenessHandler).toSelf().inSingletonScope()
+    container.bind(EnvironmentChangeHandler).toSelf().inSingletonScope()
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - E2E tests use *_TEST env vars when NODE_ENV=test
