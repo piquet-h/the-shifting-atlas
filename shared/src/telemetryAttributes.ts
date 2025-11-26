@@ -27,6 +27,20 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     EVENT_TYPE: 'game.event.type',
     /** Actor type (player, npc, system) */
     EVENT_ACTOR_KIND: 'game.event.actor.kind',
+    /** Event scope key (pattern: loc:<id>, player:<id>, global:<category>) */
+    EVENT_SCOPE_KEY: 'game.event.scope.key',
+    /** Event correlation ID (UUID) */
+    EVENT_CORRELATION_ID: 'game.event.correlation.id',
+    /** Operation ID from Azure Functions invocation */
+    EVENT_OPERATION_ID: 'game.event.operation.id',
+    /** Processing latency in milliseconds */
+    EVENT_PROCESSING_LATENCY_MS: 'game.event.processing.latency.ms',
+    /** Service Bus queue depth (optional) */
+    EVENT_QUEUE_DEPTH: 'game.event.queue.depth',
+    /** Retry count for failed events */
+    EVENT_RETRY_COUNT: 'game.event.retry.count',
+    /** Batch ID for batch processing correlation */
+    EVENT_BATCH_ID: 'game.event.batch.id',
     /** Domain error classification */
     ERROR_CODE: 'game.error.code',
     /** Humor quip identifier (UUID) */
@@ -66,6 +80,22 @@ export interface WorldEventAttributes {
     actorKind?: string | null
     targetLocationId?: string | null
     targetPlayerId?: string | null
+}
+
+/**
+ * Options for enriching world event lifecycle telemetry (Issue #395)
+ * Used for World.Event.Emitted, World.Event.Processed, World.Event.Failed, World.Event.Retried
+ */
+export interface WorldEventLifecycleAttributes {
+    eventType?: string | null
+    scopeKey?: string | null
+    correlationId?: string | null
+    operationId?: string | null
+    processingLatencyMs?: number | null
+    queueDepth?: number | null
+    errorCode?: string | null
+    retryCount?: number | null
+    batchId?: string | null
 }
 
 /**
@@ -187,6 +217,59 @@ export function enrichHumorAttributes(properties: Record<string, unknown>, attrs
     }
     if (attrs.suppressionReason) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.HUMOR_SUPPRESSION_REASON] = attrs.suppressionReason
+    }
+    return properties
+}
+
+/**
+ * Enrich telemetry properties with world event lifecycle attributes.
+ * Used for World.Event.Emitted, World.Event.Processed, World.Event.Failed, World.Event.Retried.
+ * Includes event type, scope key, correlation/operation IDs, latency, queue depth, retry count, and batch ID.
+ * Handles edge cases per Issue #395:
+ * - Processing latency capped at Int32.MAX (2147483647ms) to prevent overflow
+ * - Missing correlationId indicated by unknownCorrelation flag (not added as attribute)
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - World event lifecycle attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichWorldEventLifecycleAttributes(
+    properties: Record<string, unknown>,
+    attrs: WorldEventLifecycleAttributes
+): Record<string, unknown> {
+    if (attrs.eventType) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_TYPE] = attrs.eventType
+    }
+    if (attrs.scopeKey) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_SCOPE_KEY] = attrs.scopeKey
+    }
+    if (attrs.correlationId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = attrs.correlationId
+    } else if (attrs.correlationId === null) {
+        // Edge case: missing correlationId → emit event with unknownCorrelation flag
+        properties['unknownCorrelation'] = true
+    }
+    if (attrs.operationId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_OPERATION_ID] = attrs.operationId
+    }
+    if (attrs.processingLatencyMs !== null && attrs.processingLatencyMs !== undefined) {
+        // Edge case: cap at Int32.MAX to prevent overflow (Issue #395)
+        const INT32_MAX = 2147483647
+        const cappedLatency = Math.min(attrs.processingLatencyMs, INT32_MAX)
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_PROCESSING_LATENCY_MS] = cappedLatency
+    }
+    if (attrs.queueDepth !== null && attrs.queueDepth !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_QUEUE_DEPTH] = attrs.queueDepth
+    }
+    if (attrs.errorCode) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    if (attrs.retryCount !== null && attrs.retryCount !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_RETRY_COUNT] = attrs.retryCount
+    }
+    if (attrs.batchId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_BATCH_ID] = attrs.batchId
     }
     return properties
 }

@@ -131,3 +131,33 @@ test('removed dual persistence events not registered', () => {
         assert.equal(isGameEventName(removed), false, `${removed} should be removed from GAME_EVENT_NAMES`)
     }
 })
+
+// World Event Lifecycle telemetry events tests (Issue #395)
+test('World.Event.Emitted is registered', () => {
+    assert.ok(isGameEventName('World.Event.Emitted'), 'World.Event.Emitted should be recognized')
+})
+
+test('World.Event.Processed is registered', () => {
+    assert.ok(isGameEventName('World.Event.Processed'), 'World.Event.Processed should be recognized')
+})
+
+test('World.Event.Failed is registered', () => {
+    assert.ok(isGameEventName('World.Event.Failed'), 'World.Event.Failed should be recognized')
+})
+
+test('World.Event.Retried is registered', () => {
+    assert.ok(isGameEventName('World.Event.Retried'), 'World.Event.Retried should be recognized')
+})
+
+test('World.Event lifecycle events match telemetry pattern', () => {
+    const lifecycleEvents = ['World.Event.Emitted', 'World.Event.Processed', 'World.Event.Failed', 'World.Event.Retried']
+    for (const event of lifecycleEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+        assert.ok(isGameEventName(event), `${event} should be registered`)
+    }
+})
+
+test('unknown World.Event.* variant rejected', () => {
+    assert.equal(isGameEventName('World.Event.Unknown'), false, 'Unknown World.Event.* variant should be rejected')
+    assert.equal(isGameEventName('World.Event.Started'), false, 'Unregistered World.Event.* variant should be rejected')
+})
