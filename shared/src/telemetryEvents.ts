@@ -53,7 +53,11 @@ export const GAME_EVENT_NAMES = [
     'World.Layer.Added',
     'World.Exit.Created',
     'World.Exit.Removed',
+    // World Event Lifecycle Telemetry (Issue #395 - World Event Telemetry Constants)
+    'World.Event.Emitted',
     'World.Event.Processed',
+    'World.Event.Failed',
+    'World.Event.Retried',
     'World.Event.Duplicate',
     'World.Event.DeadLettered',
     'World.Event.RegistryCheckFailed',
