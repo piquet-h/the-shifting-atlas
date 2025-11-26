@@ -86,10 +86,9 @@ describe('E2E Integration Tests - Cosmos DB', () => {
     describe('World Seeding & Cleanup', () => {
         test('seed script creates ≥5 locations with exits', async () => {
             if (process.env.PERSISTENCE_MODE !== 'cosmos') return
-            const startTime = Date.now()
+
+            // Don't track performance for seeding - it's setup work
             const { locations } = await fixture.seedTestWorld()
-            const duration = Date.now() - startTime
-            fixture.trackPerformance('seed-world', duration)
 
             assert.ok(locations.length >= 5, `Expected ≥5 locations, got ${locations.length}`)
 
@@ -165,15 +164,14 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             // Demo player concept removed; world seeding no longer creates a player automatically.
             // E2E player lifecycle is validated in dedicated bootstrap test below.
 
-            console.log(`✓ Seeded ${locations.length} locations in ${duration}ms`)
+            console.log(`✓ Seeded and validated ${locations.length} locations`)
         })
     })
 
     describe('Player Bootstrap & First LOOK (Cold Start)', () => {
-        test('player bootstrap → location lookup → first LOOK', async () => {
+        test('player bootstrap verifies creation and location lookup', async () => {
             if (process.env.PERSISTENCE_MODE !== 'cosmos') return
             const { locations } = await fixture.seedTestWorld()
-            const startTime = Date.now()
 
             // Create a fresh player (seed no longer provisions demo player)
             const playerRepository = await fixture.getPlayerRepository()
@@ -184,14 +182,11 @@ describe('E2E Integration Tests - Cosmos DB', () => {
             const locationRepository = await fixture.getLocationRepository()
             const location = await locationRepository.get(locations[0].id)
 
-            const duration = Date.now() - startTime
-            fixture.trackPerformance('first-look', duration)
-
             assert.ok(location, 'Location should be retrieved')
             assert.ok(location.name, 'Location should have name')
             assert.ok(location.description, 'Location should have description')
 
-            console.log(`✓ First LOOK completed in ${duration}ms`)
+            console.log(`✓ Player bootstrap and location lookup completed`)
         })
 
         test('LOOK query meets performance target (<200ms p95)', async () => {
