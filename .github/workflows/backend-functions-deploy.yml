@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   AZURE_FUNCTIONAPP_NAME: 'func-atlas'
 
 jobs:
@@ -58,9 +58,9 @@ jobs:
           set +e  # Don't exit immediately on failure
           npm test 2>&1 | tee test-output.log
           TEST_EXIT_CODE=${PIPESTATUS[0]}
-          
+
           echo "Test exit code: $TEST_EXIT_CODE"
-          
+
           # Parse test output for failures and create annotations
           if [ $TEST_EXIT_CODE -ne 0 ]; then
             echo "::error title=Backend Tests Failed::Tests failed with exit code $TEST_EXIT_CODE"
@@ -120,7 +120,7 @@ jobs:
             total_count=$(grep "^# tests " test-output.log | tail -1 | awk '{print $3}')
             echo "Successfully ran $total_count tests ($pass_count passed)." >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           exit $TEST_EXIT_CODE
 
       - name: Prepare modules

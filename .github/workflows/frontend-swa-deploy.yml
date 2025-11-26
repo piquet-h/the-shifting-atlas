@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   # Repository Variables expected:
   #   AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, SWA_NAME (optional; derived from last infra deployment output if absent)
   # Required Secrets:
