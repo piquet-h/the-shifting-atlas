@@ -6,6 +6,9 @@ import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
+import type { Container } from 'inversify'
+import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
+import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
 
 describe('Queue Processor Dead-Letter Integration', () => {
     let fixture: IntegrationTestFixture
@@ -171,6 +174,191 @@ describe('Queue Processor Dead-Letter Integration', () => {
 
             const deadLetterLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created')
             assert.ok(!deadLetterLog, 'Should not create dead-letter record for valid event')
+        })
+    })
+
+    // Issue #401: Enhanced DLQ metadata tests
+    describe('Enhanced DLQ Metadata (Issue #401)', () => {
+        test('should include errorCode in dead-letter record for JSON parse failure', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const storedRecords: DeadLetterRecord[] = []
+
+            // Get the container and override dead-letter repository
+            const container = ctx.extraInputs.get('container') as Container
+            const originalRepo = container.get<IDeadLetterRepository>('IDeadLetterRepository')
+            const captureRepo: IDeadLetterRepository = {
+                async store(record) {
+                    storedRecords.push(record)
+                    return originalRepo.store(record)
+                },
+                queryByTimeRange: originalRepo.queryByTimeRange.bind(originalRepo),
+                getById: originalRepo.getById.bind(originalRepo)
+            }
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(captureRepo)
+
+            // Malformed JSON triggers immediate DLQ (no retry)
+            await queueProcessWorldEvent('not valid json {', ctx as any)
+
+            assert.strictEqual(storedRecords.length, 1, 'Should store one dead-letter record')
+            const record = storedRecords[0]
+
+            assert.strictEqual(record.errorCode, 'json-parse', 'Should have errorCode json-parse')
+            assert.strictEqual(record.retryCount, 0, 'Should have retryCount 0 (no retry for permanent failure)')
+            assert.ok(record.firstAttemptTimestamp, 'Should have firstAttemptTimestamp')
+            assert.ok(record.failureReason?.includes('permanent'), 'Failure reason should indicate permanent failure')
+            assert.ok(record.finalError, 'Should have finalError')
+        })
+
+        test('should include errorCode in dead-letter record for schema validation failure', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const storedRecords: DeadLetterRecord[] = []
+
+            const container = ctx.extraInputs.get('container') as Container
+            const originalRepo = container.get<IDeadLetterRepository>('IDeadLetterRepository')
+            const captureRepo: IDeadLetterRepository = {
+                async store(record) {
+                    storedRecords.push(record)
+                    return originalRepo.store(record)
+                },
+                queryByTimeRange: originalRepo.queryByTimeRange.bind(originalRepo),
+                getById: originalRepo.getById.bind(originalRepo)
+            }
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(captureRepo)
+
+            // Invalid event (missing required type field)
+            const invalidEvent = {
+                eventId: '00000000-0000-4000-8000-000000000001',
+                // type: missing
+                occurredUtc: '2025-10-31T12:00:00Z',
+                actor: { kind: 'player', id: '00000000-0000-4000-8000-000000000002' },
+                correlationId: '00000000-0000-4000-8000-000000000003',
+                idempotencyKey: 'test-key',
+                version: 1,
+                payload: {}
+            }
+
+            await queueProcessWorldEvent(invalidEvent, ctx as any)
+
+            assert.strictEqual(storedRecords.length, 1, 'Should store one dead-letter record')
+            const record = storedRecords[0]
+
+            assert.strictEqual(record.errorCode, 'schema-validation', 'Should have errorCode schema-validation')
+            assert.strictEqual(record.retryCount, 0, 'Should have retryCount 0 (no retry for validation failure)')
+            assert.ok(record.firstAttemptTimestamp, 'Should have firstAttemptTimestamp')
+            assert.ok(record.originalCorrelationId, 'Should have originalCorrelationId')
+            assert.ok(record.failureReason, 'Should have failureReason')
+        })
+
+        test('should preserve originalCorrelationId from event envelope', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const storedRecords: DeadLetterRecord[] = []
+
+            const container = ctx.extraInputs.get('container') as Container
+            const originalRepo = container.get<IDeadLetterRepository>('IDeadLetterRepository')
+            const captureRepo: IDeadLetterRepository = {
+                async store(record) {
+                    storedRecords.push(record)
+                    return originalRepo.store(record)
+                },
+                queryByTimeRange: originalRepo.queryByTimeRange.bind(originalRepo),
+                getById: originalRepo.getById.bind(originalRepo)
+            }
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(captureRepo)
+
+            const expectedCorrelationId = 'original-correlation-id-123'
+            const invalidEvent = {
+                eventId: '00000000-0000-4000-8000-000000000001',
+                // type: missing (causes validation failure)
+                occurredUtc: '2025-10-31T12:00:00Z',
+                actor: { kind: 'player', id: '00000000-0000-4000-8000-000000000002' },
+                correlationId: expectedCorrelationId,
+                idempotencyKey: 'test-key',
+                version: 1,
+                payload: {}
+            }
+
+            await queueProcessWorldEvent(invalidEvent, ctx as any)
+
+            assert.strictEqual(storedRecords.length, 1)
+            const record = storedRecords[0]
+
+            assert.strictEqual(record.originalCorrelationId, expectedCorrelationId, 'Should preserve original correlation ID')
+            assert.strictEqual(record.correlationId, expectedCorrelationId, 'Should also set correlationId for legacy compatibility')
+        })
+    })
+
+    // Issue #401: Poison message → DLQ flow test
+    describe('Poison Message to DLQ Flow (Issue #401)', () => {
+        test('poison message with invalid JSON moves to DLQ immediately (no retry)', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const storedRecords: DeadLetterRecord[] = []
+
+            const container = ctx.extraInputs.get('container') as Container
+            const originalRepo = container.get<IDeadLetterRepository>('IDeadLetterRepository')
+            const captureRepo: IDeadLetterRepository = {
+                async store(record) {
+                    storedRecords.push(record)
+                    return originalRepo.store(record)
+                },
+                queryByTimeRange: originalRepo.queryByTimeRange.bind(originalRepo),
+                getById: originalRepo.getById.bind(originalRepo)
+            }
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(captureRepo)
+
+            // Poison message: completely malformed, cannot be parsed
+            const poisonMessage = '<<<CORRUPTED DATA>>>}}{{'
+
+            await queueProcessWorldEvent(poisonMessage, ctx as any)
+
+            // Verify it went to DLQ
+            assert.strictEqual(storedRecords.length, 1, 'Poison message should be dead-lettered')
+            const record = storedRecords[0]
+
+            assert.strictEqual(record.errorCode, 'json-parse', 'Should classify as json-parse error')
+            assert.strictEqual(record.retryCount, 0, 'Should not retry - immediate DLQ')
+            assert.ok(record.failureReason?.toLowerCase().includes('permanent'), 'Should indicate permanent failure')
+
+            // Verify handler did not throw (allows Service Bus to proceed without retry)
+            const errors = ctx.getErrors()
+            const parseError = errors.find((e) => e[0] === 'Failed to parse queue message as JSON')
+            assert.ok(parseError, 'Should log the parse error')
+        })
+
+        test('poison message with validation error moves to DLQ immediately (no retry)', async () => {
+            const ctx = await fixture.createInvocationContext()
+            const storedRecords: DeadLetterRecord[] = []
+
+            const container = ctx.extraInputs.get('container') as Container
+            const originalRepo = container.get<IDeadLetterRepository>('IDeadLetterRepository')
+            const captureRepo: IDeadLetterRepository = {
+                async store(record) {
+                    storedRecords.push(record)
+                    return originalRepo.store(record)
+                },
+                queryByTimeRange: originalRepo.queryByTimeRange.bind(originalRepo),
+                getById: originalRepo.getById.bind(originalRepo)
+            }
+            container.unbind('IDeadLetterRepository')
+            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(captureRepo)
+
+            // Poison message: valid JSON but completely wrong structure
+            const poisonMessage = {
+                notAnEvent: true,
+                randomField: 12345
+            }
+
+            await queueProcessWorldEvent(poisonMessage, ctx as any)
+
+            // Verify it went to DLQ
+            assert.strictEqual(storedRecords.length, 1, 'Poison message should be dead-lettered')
+            const record = storedRecords[0]
+
+            assert.strictEqual(record.errorCode, 'schema-validation', 'Should classify as schema-validation error')
+            assert.strictEqual(record.retryCount, 0, 'Should not retry - immediate DLQ for validation errors')
         })
     })
 })
