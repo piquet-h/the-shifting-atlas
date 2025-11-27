@@ -7,6 +7,16 @@
  */
 
 /**
+ * Error code classification for dead-letter records (Issue #401)
+ * Used to distinguish transient vs permanent failures for retry decisions
+ */
+export type DeadLetterErrorCode =
+    | 'json-parse' // Permanent: Invalid JSON format
+    | 'schema-validation' // Permanent: Failed schema validation
+    | 'handler-error' // Transient: Handler execution error (retry eligible)
+    | 'unknown' // Unknown error category
+
+/**
  * Dead-letter record stored in Cosmos SQL for failed world events
  */
 export interface DeadLetterRecord {
@@ -55,6 +65,26 @@ export interface DeadLetterRecord {
 
     /** Partition key for Cosmos SQL (set to 'deadletter' for single partition) */
     partitionKey: string
+
+    // --- Issue #401: New fields for enhanced DLQ investigation ---
+
+    /** Original correlation ID preserved for cross-service tracing */
+    originalCorrelationId?: string
+
+    /** Human-readable failure reason for quick triage */
+    failureReason?: string
+
+    /** ISO 8601 timestamp of the first processing attempt */
+    firstAttemptTimestamp?: string
+
+    /** Error code classification for filtering/alerting */
+    errorCode?: DeadLetterErrorCode
+
+    /** Number of retry attempts before dead-lettering (0 = immediate DLQ) */
+    retryCount?: number
+
+    /** Final error message after all retries exhausted */
+    finalError?: string
 }
 
 /**
@@ -191,10 +221,29 @@ function truncateValue(value: unknown): unknown {
 }
 
 /**
+ * Options for creating a dead-letter record with enhanced metadata (Issue #401)
+ */
+export interface CreateDeadLetterRecordOptions {
+    /** Original correlation ID for cross-service tracing */
+    originalCorrelationId?: string
+    /** Human-readable failure reason */
+    failureReason?: string
+    /** Timestamp of first processing attempt */
+    firstAttemptTimestamp?: string
+    /** Error code classification */
+    errorCode?: DeadLetterErrorCode
+    /** Number of retry attempts before dead-lettering */
+    retryCount?: number
+    /** Final error message after retries exhausted */
+    finalError?: string
+}
+
+/**
  * Create a dead-letter record from a failed event and error details
  *
  * @param rawEvent - Original event data (may be invalid/partial)
  * @param error - Error information from validation failure
+ * @param options - Optional enhanced metadata for DLQ investigation (Issue #401)
  * @returns Complete dead-letter record ready for storage
  */
 export function createDeadLetterRecord(
@@ -203,7 +252,8 @@ export function createDeadLetterRecord(
         category: string
         message: string
         issues?: Array<{ path: string; message: string; code: string }>
-    }
+    },
+    options?: CreateDeadLetterRecordOptions
 ): DeadLetterRecord {
     const redactedEnvelope = redactEnvelope(rawEvent)
 
@@ -231,6 +281,12 @@ export function createDeadLetterRecord(
     // Use crypto.randomUUID if available (Node 19+), fallback to manual UUID generation
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateFallbackUUID()
 
+    // Derive error code from category if not provided
+    const errorCode = options?.errorCode ?? deriveErrorCode(error.category)
+
+    // Use provided correlation ID or fall back to extracted one
+    const originalCorrelationId = options?.originalCorrelationId ?? correlationId
+
     return {
         id,
         originalEventId,
@@ -242,7 +298,30 @@ export function createDeadLetterRecord(
         occurredUtc,
         correlationId,
         redacted: true,
-        partitionKey: 'deadletter' // Single partition for dead-letters (low volume)
+        partitionKey: 'deadletter', // Single partition for dead-letters (low volume)
+        // Issue #401: Enhanced DLQ metadata
+        originalCorrelationId,
+        failureReason: options?.failureReason ?? error.message,
+        firstAttemptTimestamp: options?.firstAttemptTimestamp,
+        errorCode,
+        retryCount: options?.retryCount ?? 0,
+        finalError: options?.finalError ?? error.message
+    }
+}
+
+/**
+ * Derive error code from category string
+ */
+function deriveErrorCode(category: string): DeadLetterErrorCode {
+    switch (category) {
+        case 'json-parse':
+            return 'json-parse'
+        case 'schema-validation':
+            return 'schema-validation'
+        case 'handler-error':
+            return 'handler-error'
+        default:
+            return 'unknown'
     }
 }
 

@@ -507,6 +507,17 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
 
   resource worldEventsQueue 'queues' = {
     name: 'world-events'
+    properties: {
+      // Dead letter queue configuration (Issue #401)
+      // Messages exceeding max delivery count move to built-in $DeadLetterQueue
+      maxDeliveryCount: 5
+      // Lock duration for message processing (allows time for retry logic)
+      lockDuration: 'PT30S'
+      // Default message time to live before expiration
+      defaultMessageTimeToLive: 'P7D'
+      // Enable dead-lettering on message expiration for audit trail
+      deadLetteringOnMessageExpiration: true
+    }
   }
 }
 

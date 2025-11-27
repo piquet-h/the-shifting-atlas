@@ -78,7 +78,22 @@ interface DeadLetterRecord {
     correlationId?: string       // Correlation ID (if parseable)
     redacted: boolean            // Always true
     partitionKey: string         // Partition key ('deadletter')
+    
+    // Issue #401: Enhanced DLQ metadata for investigation
+    originalCorrelationId?: string   // Preserved for cross-service tracing
+    failureReason?: string           // Human-readable failure reason for quick triage
+    firstAttemptTimestamp?: string   // ISO 8601 timestamp of first processing attempt
+    errorCode?: DeadLetterErrorCode  // Error classification (json-parse, schema-validation, handler-error, unknown)
+    retryCount?: number              // Number of retry attempts (0 = immediate DLQ)
+    finalError?: string              // Final error message after retries exhausted
 }
+
+// Error code classification (Issue #401)
+type DeadLetterErrorCode = 
+    | 'json-parse'           // Permanent: Invalid JSON format
+    | 'schema-validation'    // Permanent: Failed schema validation  
+    | 'handler-error'        // Transient: Handler execution error (retry eligible)
+    | 'unknown'              // Unknown error category
 ```
 
 ### Cosmos SQL Container
@@ -134,11 +149,31 @@ npm run query:deadletters -- --id "dead-letter-record-id"
 npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --json
 ```
 
+**Filter by error code (Issue #401):**
+```bash
+npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --error-code schema-validation
+npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --error-code json-parse
+```
+
+**Filter by event type (Issue #401):**
+```bash
+npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --event-type Player.Move
+```
+
+**Summary statistics (Issue #401):**
+```bash
+npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --summary
+npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23:59:59Z" --summary --json
+```
+
 **Options:**
 - `--start`: Start time (ISO 8601 format)
 - `--end`: End time (ISO 8601 format)
 - `--limit`: Maximum records to return (default: 100, max: 1000)
 - `--id`: Retrieve single record by ID
+- `--error-code`: Filter by error code (`json-parse`, `schema-validation`, `handler-error`, `unknown`) (Issue #401)
+- `--event-type`: Filter by event type (e.g., `Player.Move`) (Issue #401)
+- `--summary`: Show summary statistics instead of full records (Issue #401)
 - `--json`: Output as JSON instead of formatted text
 
 ## Telemetry
@@ -154,6 +189,9 @@ Emitted when a world event is dead-lettered due to validation failure.
 - `recordId`: Dead-letter record ID
 - `eventType`: Original event type (if parseable)
 - `correlationId`: Correlation ID (if parseable)
+- `errorCode`: Error classification code (Issue #401)
+- `retryCount`: Number of retry attempts before DLQ (Issue #401)
+- `finalError`: Final error message (truncated to 200 chars) (Issue #401)
 
 **Example:**
 ```typescript
@@ -164,7 +202,11 @@ trackGameEventStrict(
         errorCount: 2,
         recordId: 'abc123',
         eventType: 'Player.Move',
-        correlationId: 'xyz789'
+        correlationId: 'xyz789',
+        // Issue #401: New dimensions
+        errorCode: 'schema-validation',
+        retryCount: 0,
+        finalError: 'Required field "type" is missing'
     },
     { correlationId: 'xyz789' }
 )
@@ -190,6 +232,59 @@ This ensures that dead-letter infrastructure issues never impact the happy path 
 | Redaction exception | Logs error, stores raw envelope |
 | Duplicate record ID | Upsert overwrites previous record |
 | Query timeout | Returns empty array, logs timeout |
+
+## Service Bus Retry Policy (Issue #401)
+
+The world event processing system uses Azure Service Bus with configured retry and dead-letter policies.
+
+### Queue Configuration (Bicep)
+
+```bicep
+resource worldEventsQueue 'queues' = {
+  name: 'world-events'
+  properties: {
+    maxDeliveryCount: 5              // Messages move to DLQ after 5 failed deliveries
+    lockDuration: 'PT30S'            // 30 seconds lock for processing
+    defaultMessageTimeToLive: 'P7D'  // 7 days before expiration
+    deadLetteringOnMessageExpiration: true
+  }
+}
+```
+
+### Azure Functions Retry Policy (host.json)
+
+```json
+{
+  "retry": {
+    "strategy": "exponentialBackoff",
+    "maxRetryCount": 4,
+    "minimumInterval": "00:00:01",
+    "maximumInterval": "00:01:00"
+  }
+}
+```
+
+### Retry Behavior
+
+| Failure Type | Behavior |
+|-------------|----------|
+| JSON parse error | **No retry** - Immediate DLQ (permanent failure) |
+| Schema validation error | **No retry** - Immediate DLQ (permanent failure) |
+| Handler execution error | **Retry** with exponential backoff (transient failure) |
+| Network timeout | **Retry** with exponential backoff |
+| Service unavailable | **Retry** with exponential backoff |
+
+### Exponential Backoff Schedule
+
+| Attempt | Delay |
+|---------|-------|
+| 1 | 1 second |
+| 2 | 2 seconds |
+| 3 | 4 seconds |
+| 4 | 8 seconds |
+| 5 (max) | Moves to DLQ |
+
+Combined with Service Bus `maxDeliveryCount: 5`, messages are retried up to 4 times before moving to the built-in `$DeadLetterQueue`.
 
 ## Configuration
 

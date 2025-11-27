@@ -103,6 +103,9 @@ export class QueueProcessWorldEventHandler {
     ) {}
 
     async handle(message: unknown, context: InvocationContext): Promise<void> {
+        // Capture first attempt timestamp for DLQ records (Issue #401)
+        const firstAttemptTimestamp = new Date().toISOString()
+
         // 1. Parse message (Azure Service Bus messages can be JSON or string)
         let rawEvent: unknown
         try {
@@ -116,26 +119,42 @@ export class QueueProcessWorldEventHandler {
 
             // Store dead-letter record for JSON parse failure
             try {
-                const deadLetterRecord = createDeadLetterRecord(message, {
-                    category: 'json-parse',
-                    message: 'Failed to parse queue message as JSON',
-                    issues: [
-                        {
-                            path: 'message',
-                            message: String(parseError),
-                            code: 'invalid_json'
-                        }
-                    ]
-                })
+                const deadLetterRecord = createDeadLetterRecord(
+                    message,
+                    {
+                        category: 'json-parse',
+                        message: 'Failed to parse queue message as JSON',
+                        issues: [
+                            {
+                                path: 'message',
+                                message: String(parseError),
+                                code: 'invalid_json'
+                            }
+                        ]
+                    },
+                    {
+                        // Issue #401: Enhanced DLQ metadata
+                        originalCorrelationId: context.invocationId,
+                        failureReason: 'Invalid JSON format - permanent failure, no retry',
+                        firstAttemptTimestamp,
+                        errorCode: 'json-parse',
+                        retryCount: 0,
+                        finalError: String(parseError)
+                    }
+                )
                 await this.deadLetterRepository.store(deadLetterRecord)
 
-                // Emit dead-letter telemetry
+                // Emit dead-letter telemetry with enhanced dimensions (Issue #401)
                 this.telemetryService.trackGameEventStrict(
                     'World.Event.DeadLettered',
                     {
                         reason: 'json-parse',
                         errorCount: 1,
-                        recordId: deadLetterRecord.id
+                        recordId: deadLetterRecord.id,
+                        // Issue #401: New dimensions
+                        errorCode: 'json-parse',
+                        retryCount: 0,
+                        finalError: String(parseError).substring(0, 200)
                     },
                     { correlationId: context.invocationId }
                 )
@@ -166,16 +185,38 @@ export class QueueProcessWorldEventHandler {
                 errors
             })
 
+            // Extract correlation ID from raw event for tracing
+            let extractedCorrelationId: string | undefined
+            if (typeof rawEvent === 'object' && rawEvent !== null) {
+                const evt = rawEvent as Record<string, unknown>
+                extractedCorrelationId = typeof evt.correlationId === 'string' ? evt.correlationId : undefined
+            }
+
             // Store dead-letter record with redacted payload
             try {
-                const deadLetterRecord = createDeadLetterRecord(rawEvent, {
-                    category: 'schema-validation',
-                    message: 'Event envelope failed schema validation',
-                    issues: errors
-                })
+                const deadLetterRecord = createDeadLetterRecord(
+                    rawEvent,
+                    {
+                        category: 'schema-validation',
+                        message: 'Event envelope failed schema validation',
+                        issues: errors
+                    },
+                    {
+                        // Issue #401: Enhanced DLQ metadata
+                        originalCorrelationId: extractedCorrelationId ?? context.invocationId,
+                        failureReason: `Schema validation failed: ${errors.length} issue(s) - permanent failure, no retry`,
+                        firstAttemptTimestamp,
+                        errorCode: 'schema-validation',
+                        retryCount: 0,
+                        finalError: errors
+                            .map((e) => `${e.path}: ${e.message}`)
+                            .join('; ')
+                            .substring(0, 500)
+                    }
+                )
                 await this.deadLetterRepository.store(deadLetterRecord)
 
-                // Emit dead-letter telemetry
+                // Emit dead-letter telemetry with enhanced dimensions (Issue #401)
                 this.telemetryService.trackGameEventStrict(
                     'World.Event.DeadLettered',
                     {
@@ -183,7 +224,11 @@ export class QueueProcessWorldEventHandler {
                         errorCount: errors.length,
                         recordId: deadLetterRecord.id,
                         eventType: deadLetterRecord.eventType,
-                        correlationId: deadLetterRecord.correlationId
+                        correlationId: deadLetterRecord.correlationId,
+                        // Issue #401: New dimensions
+                        errorCode: 'schema-validation',
+                        retryCount: 0,
+                        finalError: errors[0]?.message?.substring(0, 200)
                     },
                     { correlationId: deadLetterRecord.correlationId }
                 )
