@@ -153,6 +153,11 @@ export interface EmitWorldEventResult {
     }
 
     /**
+     * True if correlationId was auto-generated (not provided by caller).
+     */
+    correlationIdGenerated: boolean
+
+    /**
      * Warning flags for caller awareness (e.g., auto-generated correlationId).
      */
     warnings: string[]
@@ -244,6 +249,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
 
     // 3. Generate or use correlation ID
     let correlationId: string
+    let correlationIdGenerated = false
     if (options.correlationId) {
         // Validate provided correlation ID is a UUID
         const uuidResult = z.string().uuid().safeParse(options.correlationId)
@@ -260,6 +266,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     } else {
         // Generate new correlation ID with warning
         correlationId = generateUuid()
+        correlationIdGenerated = true
         warnings.push(`correlationId not provided, auto-generated: ${correlationId}`)
     }
 
@@ -326,6 +333,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     return {
         envelope: validationResult.data,
         messageProperties,
+        correlationIdGenerated,
         warnings
     }
 }
@@ -469,7 +477,8 @@ export function prepareEnqueueMessage(
 
     // Determine correlationId: envelope's correlationId is authoritative
     const correlationId = envelope.correlationId
-    const correlationIdGenerated = emitResult.warnings.some((w) => w.includes('auto-generated'))
+    // Use the explicit flag from emitResult (added for cleaner dependency)
+    const correlationIdGenerated = emitResult.correlationIdGenerated
 
     // Build applicationProperties
     const applicationProperties: ServiceBusApplicationProperties = {
@@ -491,7 +500,9 @@ export function prepareEnqueueMessage(
             // Preserve original correlationId from applicationProperties
             applicationProperties['publish.correlationId.original'] = existingCorrelationId
             originalApplicationPropertiesCorrelationId = existingCorrelationId
-            warnings.push(`applicationProperties had different correlationId: ${existingCorrelationId}, preserved in 'publish.correlationId.original'`)
+            // Log only truncated correlationId for security (first 8 chars)
+            const truncatedId = existingCorrelationId.substring(0, 8)
+            warnings.push(`applicationProperties had different correlationId: ${truncatedId}..., preserved in 'publish.correlationId.original'`)
         }
 
         // Merge other existing applicationProperties (except correlationId which we're overriding)
