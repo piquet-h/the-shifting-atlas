@@ -6,6 +6,7 @@ import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functio
 import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
+import { errorResponse as buildErrorResponse, internalErrorResponse } from '../../http/errorEnvelope.js'
 import type { ITelemetryClient } from '../../telemetry/ITelemetryClient.js'
 import { extractCorrelationId, extractPlayerGuid } from '../../telemetry/TelemetryService.js'
 
@@ -79,6 +80,20 @@ export abstract class BaseHandler {
     }
 
     /**
+     * Emit a telemetry event for an error with errorCode included.
+     * Use this when returning an error response to ensure telemetry correlation.
+     * @param eventName - Game event name (from shared package enumeration)
+     * @param errorCode - The error code being returned (e.g., 'ValidationError', 'NotFound')
+     * @param properties - Additional event properties
+     */
+    protected trackWithErrorCode(eventName: GameEventName, errorCode: string, properties: Record<string, unknown> = {}): void {
+        this.track(eventName, {
+            ...properties,
+            errorCode
+        })
+    }
+
+    /**
      * Called automatically after successful execute().
      * Override to emit success telemetry for specific handlers.
      */
@@ -97,40 +112,37 @@ export abstract class BaseHandler {
     }
 
     /**
-     * Create a standardized error response
+     * Create a standardized error response using the error envelope.
+     * @deprecated Use errorResponse from http/errorEnvelope.ts or utils/responseBuilder.ts instead.
      * @param error - The error object or message
      * @param status - HTTP status code (default: 500)
      * @returns HTTP response with error message
      */
     protected errorResponse(error: unknown, status: number = 500): HttpResponseInit {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        return {
-            status,
-            jsonBody: { error: errorMessage }
+        if (status === 500) {
+            return internalErrorResponse(error, this.correlationId)
         }
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        return buildErrorResponse(status, 'Error', errorMessage, this.correlationId)
     }
 
     /**
-     * Create a standardized validation error response (400)
+     * Create a standardized validation error response (400) using the error envelope.
+     * @deprecated Use validationErrorResponse from http/errorEnvelope.ts or utils/responseBuilder.ts instead.
      * @param message - Validation error message
      * @returns HTTP 400 response with error message
      */
     protected validationErrorResponse(message: string): HttpResponseInit {
-        return {
-            status: 400,
-            jsonBody: { error: message }
-        }
+        return buildErrorResponse(400, 'ValidationError', message, this.correlationId)
     }
 
     /**
-     * Create a standardized not found response (404)
+     * Create a standardized not found response (404) using the error envelope.
+     * @deprecated Use errorResponse from http/errorEnvelope.ts or utils/responseBuilder.ts instead.
      * @param message - Optional custom message (default: "Not found")
      * @returns HTTP 404 response with error message
      */
     protected notFoundResponse(message: string = 'Not found'): HttpResponseInit {
-        return {
-            status: 404,
-            jsonBody: { error: message }
-        }
+        return buildErrorResponse(404, 'NotFound', message, this.correlationId)
     }
 }

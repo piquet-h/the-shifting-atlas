@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { MoveHandler } from './moveCore.js'
+import { errorResponse } from './utils/responseBuilder.js'
 import { isValidGuid } from './utils/validation.js'
 
 @injectable()
@@ -19,34 +20,16 @@ export class PlayerMoveHandler extends BaseHandler {
         // Validate playerId from path parameter with header fallback for backward compatibility
         const playerId = req.params.playerId || req.headers.get('x-player-guid')
         if (!playerId) {
-            return {
-                status: 400,
-                headers: {
-                    'x-correlation-id': this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: {
-                    error: 'MissingPlayerId',
-                    message: 'Player id required in path or x-player-guid header',
-                    correlationId: this.correlationId
-                }
-            }
+            return errorResponse(400, 'MissingPlayerId', 'Player id required in path or x-player-guid header', {
+                correlationId: this.correlationId
+            })
         }
 
         // Validate GUID format
         if (!isValidGuid(playerId)) {
-            return {
-                status: 400,
-                headers: {
-                    'x-correlation-id': this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: {
-                    error: 'InvalidPlayerId',
-                    message: 'Player id must be a valid GUID format',
-                    correlationId: this.correlationId
-                }
-            }
+            return errorResponse(400, 'InvalidPlayerId', 'Player id must be a valid GUID format', {
+                correlationId: this.correlationId
+            })
         }
 
         // Delegate to MoveHandler for the actual move logic

@@ -1,11 +1,10 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { err, ok } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { IExitRepository } from '../repos/exitRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
-import { CORRELATION_HEADER } from '../telemetry/TelemetryService.js'
 import { BaseHandler } from './base/BaseHandler.js'
+import { errorResponse, internalErrorResponse, okResponse } from './utils/responseBuilder.js'
 
 /**
  * Handler to get all exits from a location.
@@ -23,36 +22,17 @@ export class GetExitsHandler extends BaseHandler {
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
         const locationId = req.query.get('locationId')
         if (!locationId) {
-            return {
-                status: 400,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: err('MissingLocationId', 'locationId query parameter is required', this.correlationId)
-            }
+            return errorResponse(400, 'MissingLocationId', 'locationId query parameter is required', {
+                correlationId: this.correlationId
+            })
         }
 
         try {
             const exits = await this.exitRepo.getExits(locationId)
 
-            return {
-                status: 200,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: ok({ exits }, this.correlationId)
-            }
+            return okResponse({ exits }, { correlationId: this.correlationId })
         } catch (error) {
-            return {
-                status: 500,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: err('InternalError', error instanceof Error ? error.message : 'Unknown error', this.correlationId)
-            }
+            return internalErrorResponse(error, { correlationId: this.correlationId })
         }
     }
 }
