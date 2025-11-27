@@ -153,6 +153,11 @@ export interface EmitWorldEventResult {
     }
 
     /**
+     * True if correlationId was auto-generated (not provided by caller).
+     */
+    correlationIdGenerated: boolean
+
+    /**
      * Warning flags for caller awareness (e.g., auto-generated correlationId).
      */
     warnings: string[]
@@ -244,6 +249,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
 
     // 3. Generate or use correlation ID
     let correlationId: string
+    let correlationIdGenerated = false
     if (options.correlationId) {
         // Validate provided correlation ID is a UUID
         const uuidResult = z.string().uuid().safeParse(options.correlationId)
@@ -260,6 +266,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     } else {
         // Generate new correlation ID with warning
         correlationId = generateUuid()
+        correlationIdGenerated = true
         warnings.push(`correlationId not provided, auto-generated: ${correlationId}`)
     }
 
@@ -326,6 +333,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     return {
         envelope: validationResult.data,
         messageProperties,
+        correlationIdGenerated,
         warnings
     }
 }
@@ -355,4 +363,215 @@ export function isRetryableError(error: unknown): error is ServiceBusUnavailable
  */
 export function isValidationError(error: unknown): error is WorldEventValidationError {
     return error instanceof WorldEventValidationError
+}
+
+// --- Service Bus Message Wrapper for CorrelationId Injection ---
+
+/**
+ * Service Bus message application properties with correlationId.
+ */
+export interface ServiceBusApplicationProperties {
+    correlationId: string
+    /** Original correlationId if applicationProperties had a different value */
+    'publish.correlationId.original'?: string
+    eventType: string
+    scopeKey: string
+    operationId?: string
+    [key: string]: unknown
+}
+
+/**
+ * Service Bus message ready for sending, with correlationId injected.
+ */
+export interface EnqueuedWorldEventMessage {
+    /**
+     * Message body (the WorldEventEnvelope).
+     */
+    body: WorldEventEnvelope
+
+    /**
+     * Content type for proper deserialization.
+     */
+    contentType: 'application/json'
+
+    /**
+     * Message-level correlationId for Service Bus filtering/routing.
+     */
+    correlationId: string
+
+    /**
+     * Application properties with correlationId and event metadata.
+     */
+    applicationProperties: ServiceBusApplicationProperties
+}
+
+/**
+ * Result of preparing a world event message for Service Bus enqueue.
+ */
+export interface PrepareEnqueueResult {
+    /**
+     * Service Bus message ready to send.
+     */
+    message: EnqueuedWorldEventMessage
+
+    /**
+     * The correlationId used (from envelope or auto-generated).
+     */
+    correlationId: string
+
+    /**
+     * True if correlationId was auto-generated (not provided).
+     */
+    correlationIdGenerated: boolean
+
+    /**
+     * Original correlationId from applicationProperties if it differed.
+     */
+    originalApplicationPropertiesCorrelationId?: string
+
+    /**
+     * Warnings for caller awareness.
+     */
+    warnings: string[]
+}
+
+/**
+ * Options for batch enqueue behavior.
+ */
+export interface BatchEnqueueOptions {
+    /**
+     * Correlation mode for batch messages.
+     * - 'shared': All messages in batch share the same correlationId (default)
+     * - 'individual': Each message gets its own correlationId (envelope or generated)
+     */
+    correlationMode?: 'shared' | 'individual'
+
+    /**
+     * Shared correlationId for batch when mode is 'shared'.
+     * If not provided and mode is 'shared', generates a new UUID for the batch.
+     */
+    batchCorrelationId?: string
+}
+
+/**
+ * Prepare a world event message for Service Bus enqueue.
+ *
+ * This wrapper function:
+ * 1. Injects correlationId into applicationProperties (from envelope or generates UUID)
+ * 2. Is idempotent: preserves existing correlationId if already set
+ * 3. Edge case: if applicationProperties has a different correlationId, preserves original
+ *    in 'publish.correlationId.original' attribute
+ *
+ * Telemetry: Caller should emit 'World.Event.QueuePublish' with the returned correlationId and messageType.
+ *
+ * @param emitResult - Result from emitWorldEvent()
+ * @param existingApplicationProperties - Optional existing applicationProperties that may contain correlationId
+ * @returns Prepared message ready for Service Bus send
+ */
+export function prepareEnqueueMessage(
+    emitResult: EmitWorldEventResult,
+    existingApplicationProperties?: Record<string, unknown>
+): PrepareEnqueueResult {
+    const warnings: string[] = [...emitResult.warnings]
+    const envelope = emitResult.envelope
+
+    // Determine correlationId: envelope's correlationId is authoritative
+    const correlationId = envelope.correlationId
+    // Use the explicit flag from emitResult (added for cleaner dependency)
+    const correlationIdGenerated = emitResult.correlationIdGenerated
+
+    // Build applicationProperties
+    const applicationProperties: ServiceBusApplicationProperties = {
+        correlationId,
+        eventType: envelope.type,
+        scopeKey: emitResult.messageProperties.scopeKey
+    }
+
+    // Add operationId if present
+    if (emitResult.messageProperties.operationId) {
+        applicationProperties.operationId = emitResult.messageProperties.operationId
+    }
+
+    // Check for existing applicationProperties with different correlationId
+    let originalApplicationPropertiesCorrelationId: string | undefined
+    if (existingApplicationProperties) {
+        const existingCorrelationId = existingApplicationProperties.correlationId
+        if (typeof existingCorrelationId === 'string' && existingCorrelationId !== correlationId) {
+            // Preserve original correlationId from applicationProperties
+            applicationProperties['publish.correlationId.original'] = existingCorrelationId
+            originalApplicationPropertiesCorrelationId = existingCorrelationId
+            // Log only truncated correlationId for security (first 8 chars)
+            const truncatedId = existingCorrelationId.substring(0, 8)
+            warnings.push(`applicationProperties had different correlationId: ${truncatedId}..., preserved in 'publish.correlationId.original'`)
+        }
+
+        // Merge other existing applicationProperties (except correlationId which we're overriding)
+        for (const [key, value] of Object.entries(existingApplicationProperties)) {
+            if (key !== 'correlationId' && !(key in applicationProperties)) {
+                applicationProperties[key] = value
+            }
+        }
+    }
+
+    const message: EnqueuedWorldEventMessage = {
+        body: envelope,
+        contentType: 'application/json',
+        correlationId,
+        applicationProperties
+    }
+
+    return {
+        message,
+        correlationId,
+        correlationIdGenerated,
+        originalApplicationPropertiesCorrelationId,
+        warnings
+    }
+}
+
+/**
+ * Prepare multiple world event messages for batch enqueue.
+ *
+ * Batch Correlation Strategy (documented choice):
+ * - 'shared' mode: All messages share the same correlationId for batch tracing
+ * - 'individual' mode: Each message uses its envelope's correlationId
+ *
+ * @param emitResults - Array of results from emitWorldEvent()
+ * @param options - Batch enqueue options
+ * @returns Array of prepared messages
+ */
+export function prepareBatchEnqueueMessages(
+    emitResults: EmitWorldEventResult[],
+    options: BatchEnqueueOptions = {}
+): PrepareEnqueueResult[] {
+    const { correlationMode = 'individual', batchCorrelationId } = options
+
+    if (correlationMode === 'shared') {
+        // Generate or use provided batch correlationId
+        const sharedCorrelationId = batchCorrelationId ?? generateUuid()
+
+        return emitResults.map((emitResult) => {
+            // Override envelope's correlationId with shared batch correlationId
+            const modifiedEnvelope: WorldEventEnvelope = {
+                ...emitResult.envelope,
+                correlationId: sharedCorrelationId
+            }
+            const modifiedResult: EmitWorldEventResult = {
+                ...emitResult,
+                envelope: modifiedEnvelope,
+                messageProperties: {
+                    ...emitResult.messageProperties,
+                    correlationId: sharedCorrelationId
+                }
+            }
+            const result = prepareEnqueueMessage(modifiedResult)
+            if (!batchCorrelationId) {
+                result.warnings.push(`Batch mode 'shared': using generated correlationId ${sharedCorrelationId}`)
+            }
+            return result
+        })
+    }
+
+    // Individual mode: each message keeps its own correlationId
+    return emitResults.map((emitResult) => prepareEnqueueMessage(emitResult))
 }

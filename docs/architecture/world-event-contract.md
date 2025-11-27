@@ -425,6 +425,85 @@ See [`docs/dead-letter-storage.md`](../dead-letter-storage.md) for:
 -   `correlationId` links back to originating HTTP request or player session command.
 -   Append `eventId` to telemetry dimensions of downstream AI or mutation proposals referencing the event.
 
+### Queue Message CorrelationId Injection
+
+When publishing world events to Service Bus, use `prepareEnqueueMessage()` to ensure consistent correlationId propagation:
+
+**Usage:**
+
+```typescript
+import { emitWorldEvent, prepareEnqueueMessage } from '@piquet-h/shared/events'
+
+// 1. Prepare event envelope
+const emitResult = emitWorldEvent({
+    eventType: 'Player.Move',
+    scopeKey: 'loc:location-uuid',
+    payload: { fromLocationId, toLocationId, direction },
+    actor: { kind: 'player', id: playerId },
+    correlationId: context.invocationId // From HTTP request
+})
+
+// 2. Prepare Service Bus message with correlationId injection
+const { message, correlationId, warnings } = prepareEnqueueMessage(emitResult)
+
+// 3. Send to Service Bus
+await sender.sendMessages(message)
+
+// 4. Emit telemetry (required for tracing)
+trackGameEventStrict('World.Event.QueuePublish', {
+    correlationId,
+    messageType: emitResult.envelope.type
+})
+```
+
+**Behavior:**
+
+| Scenario                              | Result                                                       |
+| ------------------------------------- | ------------------------------------------------------------ |
+| correlationId in envelope             | Used for message + applicationProperties                     |
+| No correlationId provided             | UUID generated; warning added to `warnings`                  |
+| applicationProperties has different correlationId | Envelope's correlationId wins; original preserved in `publish.correlationId.original` |
+
+**Batch Enqueue:**
+
+For batch operations, use `prepareBatchEnqueueMessages()`:
+
+```typescript
+import { prepareBatchEnqueueMessages } from '@piquet-h/shared/events'
+
+// Individual mode: each event keeps its own correlationId
+const results = prepareBatchEnqueueMessages(emitResults, { correlationMode: 'individual' })
+
+// Shared mode: all events in batch share a single correlationId
+const results = prepareBatchEnqueueMessages(emitResults, {
+    correlationMode: 'shared',
+    batchCorrelationId: batchId // Optional; generated if absent
+})
+```
+
+**Telemetry Events:**
+
+| Event                      | When Emitted            | Required Dimensions                   |
+| -------------------------- | ----------------------- | ------------------------------------- |
+| `World.Event.QueuePublish` | After message enqueued  | `correlationId`, `messageType`        |
+| `World.Event.Processed`    | After queue processing  | `correlationId`, `eventType`, `latencyMs` |
+
+**Observability Query:**
+
+```kusto
+// Join publish → process across queue boundary
+customEvents
+| where name == "World.Event.QueuePublish"
+| extend publishCorrelationId = tostring(customDimensions.correlationId)
+| join kind=inner (
+    customEvents
+    | where name == "World.Event.Processed"
+    | extend processCorrelationId = tostring(customDimensions.correlationId)
+) on $left.publishCorrelationId == $right.processCorrelationId
+| project PublishTime = timestamp, ProcessTime = timestamp1, correlationId = publishCorrelationId, 
+          messageType = tostring(customDimensions.messageType), latencyMs = todouble(customDimensions1.latencyMs)
+```
+
 ## Versioning
 
 -   Bump `version` only when envelope structure changes in a breaking way (field removal or semantic shift).
