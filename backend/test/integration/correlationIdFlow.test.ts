@@ -13,11 +13,10 @@
  * - Integration test: publish then process retains same correlationId
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { emitWorldEvent, prepareEnqueueMessage } from '@piquet-h/shared/events'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { emitWorldEvent, prepareEnqueueMessage } from '@piquet-h/shared/events'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
-import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('CorrelationId Flow Integration', () => {
@@ -146,10 +145,7 @@ describe('CorrelationId Flow Integration', () => {
 
             // Verify original is preserved
             assert.strictEqual(enqueueResult.originalApplicationPropertiesCorrelationId, existingPropsCorrelationId)
-            assert.strictEqual(
-                enqueueResult.message.applicationProperties['publish.correlationId.original'],
-                existingPropsCorrelationId
-            )
+            assert.strictEqual(enqueueResult.message.applicationProperties['publish.correlationId.original'], existingPropsCorrelationId)
 
             // Verify custom prop merged
             assert.strictEqual(enqueueResult.message.applicationProperties.customProp, 'value')
