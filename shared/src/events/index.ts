@@ -28,6 +28,12 @@ export {
     emitWorldEvent,
     isRetryableError,
     isValidationError,
+    prepareBatchEnqueueMessages,
+    prepareEnqueueMessage,
+    type BatchEnqueueOptions,
     type EmitWorldEventOptions,
-    type EmitWorldEventResult
+    type EmitWorldEventResult,
+    type EnqueuedWorldEventMessage,
+    type PrepareEnqueueResult,
+    type ServiceBusApplicationProperties
 } from './worldEventEmitter.js'
