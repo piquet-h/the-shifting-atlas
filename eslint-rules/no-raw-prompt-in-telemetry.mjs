@@ -48,8 +48,7 @@ export default {
     meta: {
         type: 'problem',
         docs: {
-            description:
-                'Prevent direct inclusion of raw prompt or completion text in AI cost telemetry emission calls.',
+            description: 'Prevent direct inclusion of raw prompt or completion text in AI cost telemetry emission calls.',
             category: 'Security',
             recommended: true
         },
@@ -59,8 +58,7 @@ export default {
                 'Raw prompt text field "{{fieldName}}" must not be included in telemetry. Use prepareAICostTelemetry() to strip text before emission.',
             forbiddenCompletionField:
                 'Raw completion text field "{{fieldName}}" must not be included in telemetry. Use prepareAICostTelemetry() to strip text before emission.',
-            forbiddenTextField:
-                'Raw text field "{{fieldName}}" must not be included in telemetry. Use token counts and buckets instead.'
+            forbiddenTextField: 'Raw text field "{{fieldName}}" must not be included in telemetry. Use token counts and buckets instead.'
         }
     },
     create(context) {

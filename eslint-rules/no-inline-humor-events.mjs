@@ -9,16 +9,13 @@ export default {
         },
         schema: [],
         messages: {
-            inlineHumorEvent:
-                'Inline humor telemetry name "{{name}}" detected. Import and use the constant from GAME_EVENT_NAMES instead.'
+            inlineHumorEvent: 'Inline humor telemetry name "{{name}}" detected. Import and use the constant from GAME_EVENT_NAMES instead.'
         }
     },
     create(context) {
         function isTelemetryCall(node) {
             if (node.callee.type === 'Identifier') {
-                return ['trackGameEventClient', 'trackGameEvent', 'trackGameEventStrict', 'trackEvent'].includes(
-                    node.callee.name
-                )
+                return ['trackGameEventClient', 'trackGameEvent', 'trackGameEventStrict', 'trackEvent'].includes(node.callee.name)
             }
             return false
         }

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global process */
 /**
  * AI Cost Telemetry: PII & Payload Safety Audit
  *
@@ -163,7 +162,7 @@ function validatePayload(eventName, payload) {
         }
 
         // Check if field is in allowed schema
-        if (!schema.hasOwnProperty(key)) {
+        if (!Object.prototype.hasOwnProperty.call(schema, key)) {
             errors.push(`Disallowed field: ${key} (not in schema for ${eventName})`)
         }
     }

@@ -69,14 +69,26 @@ for (const arg of args) {
     } else if (arg.startsWith('--export=')) {
         exportPath = arg.substring('--export='.length)
     } else if (arg.startsWith('--containers=')) {
-        containersFilter = arg.substring('--containers='.length).split(',').map(c => c.trim()).filter(Boolean)
+        containersFilter = arg
+            .substring('--containers='.length)
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean)
     } else if (arg.startsWith('--concurrency=')) {
         const c = parseInt(arg.substring('--concurrency='.length), 10)
         if (!Number.isNaN(c) && c > 0) concurrency = c
     } else if (arg.startsWith('--player-prefixes=')) {
-        customPlayerPrefixes = arg.substring('--player-prefixes='.length).split(',').map(s => s.trim()).filter(Boolean)
+        customPlayerPrefixes = arg
+            .substring('--player-prefixes='.length)
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
     } else if (arg.startsWith('--exclude-prefixes=')) {
-        excludePrefixes = arg.substring('--exclude-prefixes='.length).split(',').map(s => s.trim()).filter(Boolean)
+        excludePrefixes = arg
+            .substring('--exclude-prefixes='.length)
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
     } else if (arg === '--gremlin-scan') {
         gremlinScan = true
     } else if (arg.startsWith('--gremlin-limit=')) {
@@ -99,7 +111,9 @@ for (const arg of args) {
 process.env.PERSISTENCE_MODE = mode
 
 function printHelp() {
-    console.log(`\nTest Artifact Cleanup & Migration Script\n\nUsage:\n  node scripts/cleanup-test-artifacts.mjs [options]\n\nOptions:\n  --mode=memory|cosmos            Persistence mode (default env or memory)\n  --dry-run                       Preview (default)\n  --confirm                       Perform deletions (requires safety checks)\n  --containers=a,b,c              Limit to specific SQL containers\n  --export=path.json              Write matched artifact metadata before deletion\n  --player-prefixes=a,b           Additional STRONG player ID prefixes (high confidence)\n  --exclude-prefixes=a,b          Remove default prefixes from classification set\n  --player-min-age-days=N         Minimum age in days for player deletion eligibility (default 0)\n  --event-retention-days=N        Report worldEvents older than N days (never deleted by this script)\n  --gremlin-scan                  Enable Gremlin vertex/edge prefix scan (read-only)\n  --gremlin-limit=N               Max vertices/edges sampled for scan (default 5000)\n  --concurrency=N                 Parallel delete limit (default 10)\n  --allow-prod-token              Override host safety interlock (explicit)\n  --help, -h                      Show help\n\nClassification Tiers:\n  strong: explicit test prefixes (low false-positive risk)\n  weak: generic prefixes (test-, qa-, perf-) validated by short lowercase tail heuristic\n\nSafety Interlocks:\n  - Refuses deletion if endpoint appears production (heuristic) without --allow-prod-token\n  - Always requires --confirm for destructive actions\n\nDry Run Output Enhancements:\n  - Player age classification (eligible vs too-young)\n  - Strong vs weak tier counts\n  - Retention candidates for worldEvents (reported only)\n  - Gremlin vertex/edge test prefix counts when enabled\n`)
+    console.log(
+        `\nTest Artifact Cleanup & Migration Script\n\nUsage:\n  node scripts/cleanup-test-artifacts.mjs [options]\n\nOptions:\n  --mode=memory|cosmos            Persistence mode (default env or memory)\n  --dry-run                       Preview (default)\n  --confirm                       Perform deletions (requires safety checks)\n  --containers=a,b,c              Limit to specific SQL containers\n  --export=path.json              Write matched artifact metadata before deletion\n  --player-prefixes=a,b           Additional STRONG player ID prefixes (high confidence)\n  --exclude-prefixes=a,b          Remove default prefixes from classification set\n  --player-min-age-days=N         Minimum age in days for player deletion eligibility (default 0)\n  --event-retention-days=N        Report worldEvents older than N days (never deleted by this script)\n  --gremlin-scan                  Enable Gremlin vertex/edge prefix scan (read-only)\n  --gremlin-limit=N               Max vertices/edges sampled for scan (default 5000)\n  --concurrency=N                 Parallel delete limit (default 10)\n  --allow-prod-token              Override host safety interlock (explicit)\n  --help, -h                      Show help\n\nClassification Tiers:\n  strong: explicit test prefixes (low false-positive risk)\n  weak: generic prefixes (test-, qa-, perf-) validated by short lowercase tail heuristic\n\nSafety Interlocks:\n  - Refuses deletion if endpoint appears production (heuristic) without --allow-prod-token\n  - Always requires --confirm for destructive actions\n\nDry Run Output Enhancements:\n  - Player age classification (eligible vs too-young)\n  - Strong vs weak tier counts\n  - Retention candidates for worldEvents (reported only)\n  - Gremlin vertex/edge test prefix counts when enabled\n`
+    )
 }
 
 // Heuristic: treat hosts containing 'prod' or 'primary' as production
@@ -115,7 +129,7 @@ function createLimiter(limit) {
     let active = 0
     async function run(fn) {
         if (active >= limit) {
-            await new Promise(res => queue.push(res))
+            await new Promise((res) => queue.push(res))
         }
         active++
         try {
@@ -133,10 +147,10 @@ const DEFAULT_TEST_ID_PREFIXES = ['test-loc-', 'e2e-test-loc-', 'e2e-', 'test-pl
 const WEAK_PREFIXES = ['test-', 'qa-', 'perf-']
 
 function buildPrefixSets() {
-    const strong = DEFAULT_TEST_ID_PREFIXES.filter(p => !excludePrefixes.includes(p)).concat(
-        customPlayerPrefixes.filter(p => p && !excludePrefixes.includes(p))
+    const strong = DEFAULT_TEST_ID_PREFIXES.filter((p) => !excludePrefixes.includes(p)).concat(
+        customPlayerPrefixes.filter((p) => p && !excludePrefixes.includes(p))
     )
-    const weak = WEAK_PREFIXES.filter(p => !excludePrefixes.includes(p))
+    const weak = WEAK_PREFIXES.filter((p) => !excludePrefixes.includes(p))
     return { strong, weak }
 }
 const PREFIX_SETS = buildPrefixSets()
@@ -156,7 +170,9 @@ function classifyTestId(id) {
     }
     return { isTest: false, tier: null, prefixMatched: null }
 }
-function isTestId(id) { return classifyTestId(id).isTest }
+function isTestId(id) {
+    return classifyTestId(id).isTest
+}
 
 async function main() {
     console.log('═══════════════════════════════════════════════════════════')
@@ -272,7 +288,12 @@ async function main() {
                 const ageDays = (now - createdTs) / 86400000
                 const retentionCandidate = eventRetentionDays != null && ageDays >= eventRetentionDays
                 if (scopeMatch || idMatch || retentionCandidate) {
-                    artifacts.worldEvents.push({ id: evt.eventId, scopeKey: evt.scopeKey, ageDays: Math.round(ageDays * 10) / 10, retentionCandidate })
+                    artifacts.worldEvents.push({
+                        id: evt.eventId,
+                        scopeKey: evt.scopeKey,
+                        ageDays: Math.round(ageDays * 10) / 10,
+                        retentionCandidate
+                    })
                 }
             }
         }
@@ -285,8 +306,8 @@ async function main() {
                 const edgeResult = await gremlinClient.submit(`g.E().limit(${gremlinLimit}).id()`) // returns list of IDs
                 const vertices = Array.isArray(vertexResult) ? vertexResult : vertexResult._items || vertexResult._value || []
                 const edges = Array.isArray(edgeResult) ? edgeResult : edgeResult._items || edgeResult._value || []
-                const vertexMatches = vertices.filter(v => isTestId(String(v)))
-                const edgeMatches = edges.filter(e => isTestId(String(e)))
+                const vertexMatches = vertices.filter((v) => isTestId(String(v)))
+                const edgeMatches = edges.filter((e) => isTestId(String(e)))
                 gremlinSummary = {
                     sampledVertices: vertices.length,
                     sampledEdges: edges.length,
@@ -311,15 +332,15 @@ async function main() {
             console.log(`  ${k}: ${v}`)
         }
         if (artifacts.players.length) {
-            const eligible = artifacts.players.filter(p => p.ageEligible).length
+            const eligible = artifacts.players.filter((p) => p.ageEligible).length
             console.log(`  players age-eligible (>= ${playerMinAgeDays}d): ${eligible}`)
-            const strongCount = artifacts.players.filter(p => p.tier === 'strong').length
-            const weakCount = artifacts.players.filter(p => p.tier === 'weak').length
+            const strongCount = artifacts.players.filter((p) => p.tier === 'strong').length
+            const weakCount = artifacts.players.filter((p) => p.tier === 'weak').length
             console.log(`  players strong-tier: ${strongCount}`)
             console.log(`  players weak-tier:   ${weakCount}`)
         }
         if (eventRetentionDays != null) {
-            const retentionCount = artifacts.worldEvents.filter(e => e.retentionCandidate).length
+            const retentionCount = artifacts.worldEvents.filter((e) => e.retentionCandidate).length
             console.log(`  worldEvents retention candidates (>= ${eventRetentionDays}d): ${retentionCount}`)
         }
         if (gremlinSummary) {
@@ -332,14 +353,21 @@ async function main() {
 
         if (exportPath) {
             const fullPath = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', exportPath)
-            await writeFile(fullPath, JSON.stringify({
-                generatedUtc: new Date().toISOString(),
-                playerMinAgeDays,
-                eventRetentionDays,
-                gremlinScan,
-                artifacts,
-                gremlinSummary
-            }, null, 2))
+            await writeFile(
+                fullPath,
+                JSON.stringify(
+                    {
+                        generatedUtc: new Date().toISOString(),
+                        playerMinAgeDays,
+                        eventRetentionDays,
+                        gremlinScan,
+                        artifacts,
+                        gremlinSummary
+                    },
+                    null,
+                    2
+                )
+            )
             console.log(`\nExported artifacts to ${fullPath}`)
         }
 
@@ -354,16 +382,26 @@ async function main() {
 
         // Players first (will cascade semantics for inventory because items keyed by playerId)
         if (selected('players')) {
-            await Promise.all(artifacts.players.filter(p => p.ageEligible).map(p => limit(async () => {
-                const ok = await playerDocRepo.deletePlayer(p.id)
-                if (ok) deletedCounts.players++
-            })))
+            await Promise.all(
+                artifacts.players
+                    .filter((p) => p.ageEligible)
+                    .map((p) =>
+                        limit(async () => {
+                            const ok = await playerDocRepo.deletePlayer(p.id)
+                            if (ok) deletedCounts.players++
+                        })
+                    )
+            )
         }
         if (selected('inventory')) {
-            await Promise.all(artifacts.inventory.map(i => limit(async () => {
-                const ok = await inventoryRepo.removeItem(i.id, i.playerId)
-                if (ok) deletedCounts.inventory++
-            })))
+            await Promise.all(
+                artifacts.inventory.map((i) =>
+                    limit(async () => {
+                        const ok = await inventoryRepo.removeItem(i.id, i.playerId)
+                        if (ok) deletedCounts.inventory++
+                    })
+                )
+            )
         }
         // Not deleting events (append-only) – requires separate retention policy.
         console.log('\nDeletion Summary:')
@@ -381,4 +419,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { classifyTestId, isTestId, main }
-

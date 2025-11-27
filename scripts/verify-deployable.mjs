@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global process */
 // Verifies deployable artifacts exist for SWA + Functions AND validates package references.
+import { execFile } from 'node:child_process'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)

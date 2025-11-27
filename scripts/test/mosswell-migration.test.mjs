@@ -37,7 +37,7 @@ describe('mosswell-migration.mjs CLI', () => {
 
     test('--help flag shows usage information', async () => {
         const { stdout } = await execAsync('node', [SCRIPT_PATH, '--help'])
-        
+
         assert.ok(stdout.includes('Mosswell World Data Migration'), 'shows title')
         assert.ok(stdout.includes('Usage:'), 'shows usage')
         assert.ok(stdout.includes('--mode='), 'shows mode option')
@@ -68,9 +68,7 @@ describe('mosswell-migration.mjs CLI', () => {
                     name: 'Test Location',
                     description: 'A test location for dry-run',
                     version: 1,
-                    exits: [
-                        { direction: 'north', to: 'test-loc-002', description: 'Go north' }
-                    ]
+                    exits: [{ direction: 'north', to: 'test-loc-002', description: 'Go north' }]
                 },
                 {
                     id: 'test-loc-002',
@@ -413,31 +411,40 @@ describe('mosswell-migration.mjs CLI', () => {
 describe('mosswell-migration.mjs validation functions', () => {
     test('validateMigrationData detects structural issues', async () => {
         const { validateMigrationData } = await import('../mosswell-migration.mjs')
-        
+
         // Missing schemaVersion
         let errors = validateMigrationData({ migrationName: 'test', locations: [] })
-        assert.ok(errors.some(e => e.includes('schemaVersion')), 'detects missing schemaVersion')
-        
+        assert.ok(
+            errors.some((e) => e.includes('schemaVersion')),
+            'detects missing schemaVersion'
+        )
+
         // Missing migrationName
         errors = validateMigrationData({ schemaVersion: 1, locations: [] })
-        assert.ok(errors.some(e => e.includes('migrationName')), 'detects missing migrationName')
-        
+        assert.ok(
+            errors.some((e) => e.includes('migrationName')),
+            'detects missing migrationName'
+        )
+
         // Invalid locations type
         errors = validateMigrationData({ schemaVersion: 1, migrationName: 'test', locations: 'not-array' })
-        assert.ok(errors.some(e => e.includes('locations must be an array')), 'detects invalid locations type')
+        assert.ok(
+            errors.some((e) => e.includes('locations must be an array')),
+            'detects invalid locations type'
+        )
     })
 
     test('validateSchemaVersion checks version requirements', async () => {
         const { validateSchemaVersion } = await import('../mosswell-migration.mjs')
-        
+
         // Valid version
         let result = validateSchemaVersion({ schemaVersion: 3 }, 2)
         assert.strictEqual(result.valid, true, 'accepts higher version')
-        
+
         // Equal version
         result = validateSchemaVersion({ schemaVersion: 2 }, 2)
         assert.strictEqual(result.valid, true, 'accepts equal version')
-        
+
         // Lower version (downgrade)
         result = validateSchemaVersion({ schemaVersion: 1 }, 2)
         assert.strictEqual(result.valid, false, 'rejects lower version')
@@ -446,18 +453,16 @@ describe('mosswell-migration.mjs validation functions', () => {
 
     test('checkDuplicateIds finds conflicts', async () => {
         const { checkDuplicateIds } = await import('../mosswell-migration.mjs')
-        
+
         const migrationData = {
             locations: [
                 { id: 'existing-id', name: 'New Location' },
                 { id: 'new-id', name: 'Another Location' }
             ]
         }
-        
-        const existingLocations = [
-            { id: 'existing-id', name: 'Old Location' }
-        ]
-        
+
+        const existingLocations = [{ id: 'existing-id', name: 'Old Location' }]
+
         const duplicates = await checkDuplicateIds(migrationData, existingLocations)
         assert.strictEqual(duplicates.length, 1, 'finds one duplicate')
         assert.strictEqual(duplicates[0].id, 'existing-id', 'identifies correct duplicate')
@@ -465,7 +470,7 @@ describe('mosswell-migration.mjs validation functions', () => {
 
     test('formatPlannedChanges generates readable output', async () => {
         const { formatPlannedChanges } = await import('../mosswell-migration.mjs')
-        
+
         const migrationData = {
             schemaVersion: 2,
             migrationName: 'test-migration',
@@ -490,7 +495,7 @@ describe('mosswell-migration.mjs validation functions', () => {
                 }
             ]
         }
-        
+
         const output = formatPlannedChanges(migrationData)
         assert.ok(output.includes('test-migration'), 'includes migration name')
         assert.ok(output.includes('Schema Version: 2'), 'includes schema version')

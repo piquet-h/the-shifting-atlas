@@ -72,9 +72,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
                 id: 'test-loc-1',
                 name: 'Test Location 1',
                 description: 'A test location',
-                exits: [
-                    { direction: 'north', to: 'test-loc-2', description: 'Go north' }
-                ],
+                exits: [{ direction: 'north', to: 'test-loc-2', description: 'Go north' }],
                 version: 1
             },
             {

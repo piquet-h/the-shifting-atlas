@@ -23,7 +23,7 @@
  *   - Recommended actions
  */
 
-import { CosmosClient, Container } from '@azure/cosmos'
+import { Container, CosmosClient } from '@azure/cosmos'
 import { DefaultAzureCredential } from '@azure/identity'
 
 // Configuration
@@ -61,7 +61,7 @@ interface ContainerAnalysis {
  */
 function parseArgs(): { container?: string; format: 'text' | 'csv'; dryRun: boolean } {
     const args = process.argv.slice(2)
-    const container = args.find(arg => arg.startsWith('--container'))?.split('=')[1]
+    const container = args.find((arg) => arg.startsWith('--container'))?.split('=')[1]
     const format = args.includes('--format=csv') ? 'csv' : 'text'
     const dryRun = args.includes('--dry-run')
 
@@ -167,9 +167,7 @@ function generateRecommendations(metrics: PartitionMetrics[], totalDocuments: nu
     }
 
     if (uniquePartitions < THRESHOLDS.WARNING_CARDINALITY) {
-        recommendations.push(
-            `Low partition key cardinality (${uniquePartitions} unique keys). Consider reviewing partition key strategy.`
-        )
+        recommendations.push(`Low partition key cardinality (${uniquePartitions} unique keys). Consider reviewing partition key strategy.`)
     }
 
     if (maxPartitionPct > THRESHOLDS.CRITICAL_PARTITION_PCT) {
@@ -178,9 +176,7 @@ function generateRecommendations(metrics: PartitionMetrics[], totalDocuments: nu
         )
         recommendations.push('Consider partition key migration or caching for popular entities.')
     } else if (maxPartitionPct > THRESHOLDS.WARNING_PARTITION_PCT) {
-        recommendations.push(
-            `WARNING: Partition ${metrics[0].partitionKey} contains ${maxPartitionPct.toFixed(1)}% of documents.`
-        )
+        recommendations.push(`WARNING: Partition ${metrics[0].partitionKey} contains ${maxPartitionPct.toFixed(1)}% of documents.`)
         recommendations.push('Monitor for growth trends. Review query patterns for optimization.')
     }
 
@@ -239,7 +235,8 @@ function formatText(analyses: ContainerAnalysis[]): string {
 
             for (let i = 0; i < Math.min(10, analysis.topPartitions.length); i++) {
                 const partition = analysis.topPartitions[i]
-                const truncatedKey = partition.partitionKey.length > 36 ? partition.partitionKey.substring(0, 36) + '...' : partition.partitionKey
+                const truncatedKey =
+                    partition.partitionKey.length > 36 ? partition.partitionKey.substring(0, 36) + '...' : partition.partitionKey
                 output += `${(i + 1).toString().padEnd(6)}${truncatedKey.padEnd(40)}${partition.documentCount.toString().padEnd(12)}${partition.percentageOfTotal.toFixed(2).padEnd(12)}\n`
             }
             output += '\n'
@@ -317,7 +314,7 @@ async function main() {
 
 // Run if executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-    main().catch(error => {
+    main().catch((error) => {
         console.error('Fatal error:', error)
         process.exit(1)
     })

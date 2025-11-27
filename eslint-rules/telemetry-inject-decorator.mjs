@@ -36,9 +36,7 @@ export default {
                 // Focus on repository-like classes (naming convention)
                 if (!/Repository/.test(className)) return
 
-                const ctor = classNode.body.body.find(
-                    (m) => m.type === 'MethodDefinition' && m.kind === 'constructor'
-                )
+                const ctor = classNode.body.body.find((m) => m.type === 'MethodDefinition' && m.kind === 'constructor')
                 if (!ctor) return
 
                 const params = ctor.value.params || []
@@ -78,7 +76,8 @@ export default {
                                 callee.name === 'inject' &&
                                 args.length === 1 &&
                                 ((args[0].type === 'Identifier' && args[0].name === 'TelemetryService') ||
-                                    (args[0].type === 'MemberExpression' && context.getSourceCode().getText(args[0]) === 'TelemetryService'))
+                                    (args[0].type === 'MemberExpression' &&
+                                        context.getSourceCode().getText(args[0]) === 'TelemetryService'))
                             )
                         }
                         return false
