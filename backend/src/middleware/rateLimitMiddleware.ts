@@ -3,7 +3,8 @@
  */
 
 import type { HttpRequest, HttpResponseInit } from '@azure/functions'
-import { err, GameEventName } from '@piquet-h/shared'
+import { GameEventName } from '@piquet-h/shared'
+import { formatError } from '../http/errorEnvelope.js'
 import { extractCorrelationId, extractPlayerGuid, type GameTelemetryOptions } from '../telemetry/TelemetryService.js'
 import type { RateLimiter } from './rateLimiter.js'
 
@@ -72,16 +73,17 @@ export function checkRateLimit(
             )
         }
 
-        // Return 429 response
+        // Return 429 response using standardized error envelope
         return {
             status: 429,
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store',
                 'Retry-After': retryAfter.toString(),
                 'X-RateLimit-Limit': violation.limit.toString(),
                 'X-RateLimit-Reset': Math.floor(violation.resetAt / 1000).toString()
             },
-            jsonBody: err(
+            jsonBody: formatError(
                 'RateLimitExceeded',
                 `Rate limit exceeded. Maximum ${violation.limit} requests per ${Math.floor(violation.windowMs / 1000)} seconds. Retry after ${retryAfter} seconds.`,
                 correlationId

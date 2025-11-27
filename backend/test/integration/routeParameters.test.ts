@@ -175,8 +175,9 @@ describe('Route Parameters Integration', () => {
             const res = await handlePlayerMove(req, ctx)
 
             assert.strictEqual(res.status, 400)
-            const body = res.jsonBody as { error: string }
-            assert.strictEqual(body.error, 'MissingPlayerId')
+            const body = res.jsonBody as { success: boolean; error: { code: string; message: string } }
+            assert.strictEqual(body.success, false)
+            assert.strictEqual(body.error.code, 'MissingPlayerId')
         })
 
         test('returns 400 for invalid GUID format in playerId', async () => {
@@ -190,8 +191,9 @@ describe('Route Parameters Integration', () => {
             const res = await handlePlayerMove(req, ctx)
 
             assert.strictEqual(res.status, 400)
-            const body = res.jsonBody as { error: string }
-            assert.strictEqual(body.error, 'InvalidPlayerId')
+            const body = res.jsonBody as { success: boolean; error: { code: string; message: string } }
+            assert.strictEqual(body.success, false)
+            assert.strictEqual(body.error.code, 'InvalidPlayerId')
         })
 
         test('accepts direction from query parameter', async () => {
