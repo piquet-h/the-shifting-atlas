@@ -282,10 +282,10 @@ export function createDeadLetterRecord(
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateFallbackUUID()
 
     // Derive error code from category if not provided
-    const errorCode = options?.errorCode ?? deriveErrorCode(error.category)
+    const derivedErrorCode = options?.errorCode ?? deriveErrorCode(error.category)
 
-    // Use provided correlation ID or fall back to extracted one
-    const originalCorrelationId = options?.originalCorrelationId ?? correlationId
+    // Use provided correlation ID or fall back to extracted one from envelope
+    const resolvedOriginalCorrelationId = options?.originalCorrelationId ?? correlationId
 
     return {
         id,
@@ -300,10 +300,10 @@ export function createDeadLetterRecord(
         redacted: true,
         partitionKey: 'deadletter', // Single partition for dead-letters (low volume)
         // Issue #401: Enhanced DLQ metadata
-        originalCorrelationId,
+        originalCorrelationId: resolvedOriginalCorrelationId,
         failureReason: options?.failureReason ?? error.message,
         firstAttemptTimestamp: options?.firstAttemptTimestamp,
-        errorCode,
+        errorCode: derivedErrorCode,
         retryCount: options?.retryCount ?? 0,
         finalError: options?.finalError ?? error.message
     }

@@ -24,6 +24,12 @@ import { buildWorldEventHandlerRegistry } from '../worldEvents/registry.js'
 import type { IWorldEventHandler } from '../worldEvents/types.js'
 import { getContainer } from './utils/contextHelpers.js'
 
+// --- Error Message Truncation Limits (Issue #401) ----------------------------
+/** Max length for error messages in telemetry dimensions */
+const TELEMETRY_ERROR_MESSAGE_MAX_LENGTH = 200
+/** Max length for final error in dead-letter records */
+const DEAD_LETTER_FINAL_ERROR_MAX_LENGTH = 500
+
 // --- In-Memory Cache (Fast-Path Optimization) --------------------------------
 
 interface CacheEntry {
@@ -154,7 +160,7 @@ export class QueueProcessWorldEventHandler {
                         // Issue #401: New dimensions
                         errorCode: 'json-parse',
                         retryCount: 0,
-                        finalError: String(parseError).substring(0, 200)
+                        finalError: String(parseError).substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
                     },
                     { correlationId: context.invocationId }
                 )
@@ -211,7 +217,7 @@ export class QueueProcessWorldEventHandler {
                         finalError: errors
                             .map((e) => `${e.path}: ${e.message}`)
                             .join('; ')
-                            .substring(0, 500)
+                            .substring(0, DEAD_LETTER_FINAL_ERROR_MAX_LENGTH)
                     }
                 )
                 await this.deadLetterRepository.store(deadLetterRecord)
@@ -228,7 +234,7 @@ export class QueueProcessWorldEventHandler {
                         // Issue #401: New dimensions
                         errorCode: 'schema-validation',
                         retryCount: 0,
-                        finalError: errors[0]?.message?.substring(0, 200)
+                        finalError: errors[0]?.message?.substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
                     },
                     { correlationId: deadLetterRecord.correlationId }
                 )
