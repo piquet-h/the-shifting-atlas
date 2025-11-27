@@ -88,6 +88,13 @@ npm run scan:graph-consistency -- --output=report.json
 
 - **Dangling exits**: Exit edges pointing to non-existent locations
 - **Orphan locations**: Locations with no inbound or outbound exits
+- **Missing reciprocal exits**: One-way passages where bidirectional navigation expected (e.g., A→B north exists, B→A south missing)
+
+**Exit Codes:**
+
+- `0` - No dangling exits or missing reciprocal exits found (orphans are warnings only)
+- `1` - Dangling exits or missing reciprocal exits detected
+- `2` - Fatal error during scan
 
 **Output:**
 
@@ -98,7 +105,8 @@ npm run scan:graph-consistency -- --output=report.json
         "totalLocations": 42,
         "totalExits": 87,
         "danglingExitsCount": 0,
-        "orphanLocationsCount": 1
+        "orphanLocationsCount": 1,
+        "missingReciprocalCount": 2
     },
     "danglingExits": [],
     "orphanLocations": [
@@ -107,9 +115,19 @@ npm run scan:graph-consistency -- --output=report.json
             "name": "Forgotten Tower",
             "tags": ["ruins", "isolated"]
         }
+    ],
+    "missingReciprocalExits": [
+        {
+            "fromLocationId": "forest-clearing",
+            "toLocationId": "dark-cave",
+            "direction": "north",
+            "expectedReverseDirection": "south"
+        }
     ]
 }
 ```
+
+**Note:** Intentional one-way passages (e.g., trapdoors, waterfalls) will appear as missing reciprocals. The scanner surfaces potential issues for developer review without auto-fixing. A future metadata flag (`reciprocal: false` on exit edge) may be used to suppress warnings for explicitly one-way passages.
 
 ## Direction Utilities
 
