@@ -5,17 +5,19 @@
  * Detects structural anomalies in the location graph:
  * - Dangling exits: Exit edges pointing to non-existent locations
  * - Orphan locations: Locations with no inbound or outbound exits
+ * - Missing reciprocal exits: One-way passages where bidirectional navigation expected
  *
  * Usage:
  *   node scripts/scan-exits-consistency.mjs [--output=report.json] [--seed-locations=loc1,loc2]
  *
  * Exit Codes:
- *   0 - No dangling exits found (orphans are warnings only)
- *   1 - Dangling exits detected
+ *   0 - No dangling exits or missing reciprocal exits found (orphans are warnings only)
+ *   1 - Dangling exits or missing reciprocal exits detected
  */
 
 import { createGremlinClient } from '../backend/src/gremlin/gremlinClient.js'
 import { loadPersistenceConfigAsync } from '../backend/src/persistenceConfig.js'
+import { getOppositeDirection, isDirection } from '../shared/dist/domainModels.js'
 
 const SEED_LOCATION_IDS = new Set(['village-square', 'spawn', 'start', 'entrance'])
 
@@ -38,10 +40,12 @@ async function scanGraphConsistency(seedLocations = []) {
             totalLocations: 0,
             totalExits: 0,
             danglingExitsCount: 0,
-            orphanLocationsCount: 0
+            orphanLocationsCount: 0,
+            missingReciprocalCount: 0
         },
         danglingExits: [],
-        orphanLocations: []
+        orphanLocations: [],
+        missingReciprocalExits: []
     }
 
     try {
@@ -88,6 +92,51 @@ async function scanGraphConsistency(seedLocations = []) {
         }
 
         results.summary.danglingExitsCount = results.danglingExits.length
+
+        // Build exit map for reciprocity checking: (fromId, direction) -> toId
+        const exitMap = new Map()
+        for (const exit of exits) {
+            const fromId = String(exit.from)
+            const toId = String(exit.to)
+            const direction = String(exit.direction)
+            exitMap.set(`${fromId}|${direction}`, toId)
+        }
+
+        // Check for missing reciprocal exits
+        // For each exit A→B (direction D), check if B→A (opposite of D) exists
+        for (const exit of exits) {
+            const fromId = String(exit.from)
+            const toId = String(exit.to)
+            const direction = String(exit.direction)
+
+            // Skip if either location doesn't exist (dangling exit case)
+            if (!locationIds.has(fromId) || !locationIds.has(toId)) {
+                continue
+            }
+
+            // Skip if direction is not a canonical direction (edge case: custom/invalid)
+            if (!isDirection(direction)) {
+                console.warn(`Warning: Exit from ${fromId} has non-canonical direction "${direction}"`)
+                continue
+            }
+
+            const expectedReverseDirection = getOppositeDirection(direction)
+            const reverseExitKey = `${toId}|${expectedReverseDirection}`
+
+            // Check if the reverse exit exists and points back to the original location
+            const reverseTarget = exitMap.get(reverseExitKey)
+            if (reverseTarget !== fromId) {
+                // Missing reciprocal exit detected
+                results.missingReciprocalExits.push({
+                    fromLocationId: fromId,
+                    toLocationId: toId,
+                    direction: direction,
+                    expectedReverseDirection: expectedReverseDirection
+                })
+            }
+        }
+
+        results.summary.missingReciprocalCount = results.missingReciprocalExits.length
 
         // Check for orphan locations (no connections, not in seed list)
         for (const loc of locations) {
@@ -150,12 +199,21 @@ async function main() {
         console.error(`  Total Exits: ${results.summary.totalExits}`)
         console.error(`  Dangling Exits: ${results.summary.danglingExitsCount}`)
         console.error(`  Orphan Locations: ${results.summary.orphanLocationsCount}`)
+        console.error(`  Missing Reciprocal Exits: ${results.summary.missingReciprocalCount}`)
 
-        if (results.summary.danglingExitsCount > 0) {
-            console.error(`\n❌ FAIL: Dangling exits detected`)
+        const hasDanglingExits = results.summary.danglingExitsCount > 0
+        const hasMissingReciprocals = results.summary.missingReciprocalCount > 0
+
+        if (hasDanglingExits || hasMissingReciprocals) {
+            if (hasDanglingExits) {
+                console.error(`\n❌ FAIL: Dangling exits detected`)
+            }
+            if (hasMissingReciprocals) {
+                console.error(`\n❌ FAIL: Missing reciprocal exits detected`)
+            }
             process.exit(1)
         } else {
-            console.error(`\n✓ PASS: No dangling exits found`)
+            console.error(`\n✓ PASS: No dangling exits or missing reciprocal exits found`)
             process.exit(0)
         }
     } catch (error) {
