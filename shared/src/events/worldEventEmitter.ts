@@ -502,7 +502,9 @@ export function prepareEnqueueMessage(
             originalApplicationPropertiesCorrelationId = existingCorrelationId
             // Log only truncated correlationId for security (first 8 chars)
             const truncatedId = existingCorrelationId.substring(0, 8)
-            warnings.push(`applicationProperties had different correlationId: ${truncatedId}..., preserved in 'publish.correlationId.original'`)
+            warnings.push(
+                `applicationProperties had different correlationId: ${truncatedId}..., preserved in 'publish.correlationId.original'`
+            )
         }
 
         // Merge other existing applicationProperties (except correlationId which we're overriding)
