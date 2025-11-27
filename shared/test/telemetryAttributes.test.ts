@@ -6,6 +6,7 @@ import {
     enrichMovementAttributes,
     enrichPlayerAttributes,
     enrichWorldEventAttributes,
+    enrichWorldEventLifecycleAttributes,
     TELEMETRY_ATTRIBUTE_KEYS
 } from '../src/telemetryAttributes.js'
 
@@ -19,6 +20,13 @@ describe('Telemetry Attributes', () => {
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EXIT_DIRECTION, 'game.world.exit.direction')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_TYPE, 'game.event.type')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_ACTOR_KIND, 'game.event.actor.kind')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_SCOPE_KEY, 'game.event.scope.key')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID, 'game.event.correlation.id')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_OPERATION_ID, 'game.event.operation.id')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_PROCESSING_LATENCY_MS, 'game.event.processing.latency.ms')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_QUEUE_DEPTH, 'game.event.queue.depth')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_RETRY_COUNT, 'game.event.retry.count')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.EVENT_BATCH_ID, 'game.event.batch.id')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE, 'game.error.code')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.HUMOR_QUIP_ID, 'game.humor.quip.id')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.HUMOR_ACTION_TYPE, 'game.humor.action.type')
@@ -265,6 +273,174 @@ describe('Telemetry Attributes', () => {
             assert.strictEqual(result, props)
             assert.equal(result['eventName'], 'DM.Humor.QuipShown')
             assert.equal(result['game.humor.quip.id'], 'quip-456')
+        })
+    })
+
+    describe('enrichWorldEventLifecycleAttributes (Issue #395)', () => {
+        test('adds all lifecycle attributes when provided', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:123e4567-e89b-12d3-a456-426614174000',
+                correlationId: '223e4567-e89b-12d3-a456-426614174000',
+                operationId: '323e4567-e89b-12d3-a456-426614174000',
+                processingLatencyMs: 150,
+                queueDepth: 5,
+                errorCode: null,
+                retryCount: 0,
+                batchId: 'batch-001'
+            })
+            assert.equal(props['game.event.type'], 'Player.Move')
+            assert.equal(props['game.event.scope.key'], 'loc:123e4567-e89b-12d3-a456-426614174000')
+            assert.equal(props['game.event.correlation.id'], '223e4567-e89b-12d3-a456-426614174000')
+            assert.equal(props['game.event.operation.id'], '323e4567-e89b-12d3-a456-426614174000')
+            assert.equal(props['game.event.processing.latency.ms'], 150)
+            assert.equal(props['game.event.queue.depth'], 5)
+            assert.equal(props['game.error.code'], undefined)
+            assert.equal(props['game.event.retry.count'], 0)
+            assert.equal(props['game.event.batch.id'], 'batch-001')
+        })
+
+        test('adds error code and retry count for failed event', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'World.Exit.Create',
+                scopeKey: 'loc:123e4567-e89b-12d3-a456-426614174000',
+                correlationId: '223e4567-e89b-12d3-a456-426614174000',
+                processingLatencyMs: 250,
+                errorCode: 'VALIDATION_FAILED',
+                retryCount: 3
+            })
+            assert.equal(props['game.error.code'], 'VALIDATION_FAILED')
+            assert.equal(props['game.event.retry.count'], 3)
+        })
+
+        test('caps processing latency at Int32.MAX (edge case)', () => {
+            const props = {}
+            const INT32_MAX = 2147483647
+            enrichWorldEventLifecycleAttributes(props, {
+                processingLatencyMs: INT32_MAX + 1000 // Overflow scenario
+            })
+            assert.equal(props['game.event.processing.latency.ms'], INT32_MAX)
+        })
+
+        test('allows processing latency at exactly Int32.MAX', () => {
+            const props = {}
+            const INT32_MAX = 2147483647
+            enrichWorldEventLifecycleAttributes(props, {
+                processingLatencyMs: INT32_MAX
+            })
+            assert.equal(props['game.event.processing.latency.ms'], INT32_MAX)
+        })
+
+        test('handles missing correlationId with unknownCorrelation flag (edge case)', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Look',
+                scopeKey: 'player:123e4567-e89b-12d3-a456-426614174000',
+                correlationId: null
+            })
+            assert.equal(props['game.event.correlation.id'], undefined)
+            assert.equal(props['unknownCorrelation'], true)
+        })
+
+        test('does not set unknownCorrelation flag when correlationId provided', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Look',
+                correlationId: '223e4567-e89b-12d3-a456-426614174000'
+            })
+            assert.equal(props['game.event.correlation.id'], '223e4567-e89b-12d3-a456-426614174000')
+            assert.equal(props['unknownCorrelation'], undefined)
+        })
+
+        test('handles batch processing with batchId (edge case)', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'NPC.Tick',
+                scopeKey: 'global:npc-processing',
+                correlationId: '323e4567-e89b-12d3-a456-426614174000',
+                batchId: 'batch-npc-001'
+            })
+            assert.equal(props['game.event.batch.id'], 'batch-npc-001')
+        })
+
+        test('handles zero processing latency', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                processingLatencyMs: 0
+            })
+            assert.equal(props['game.event.processing.latency.ms'], 0)
+        })
+
+        test('handles zero queue depth', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                queueDepth: 0
+            })
+            assert.equal(props['game.event.queue.depth'], 0)
+        })
+
+        test('handles zero retry count', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                retryCount: 0
+            })
+            assert.equal(props['game.event.retry.count'], 0)
+        })
+
+        test('omits optional attributes when null', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:123e4567-e89b-12d3-a456-426614174000',
+                operationId: null,
+                queueDepth: null,
+                errorCode: null,
+                batchId: null
+            })
+            assert.equal(props['game.event.type'], 'Player.Move')
+            assert.equal(props['game.event.scope.key'], 'loc:123e4567-e89b-12d3-a456-426614174000')
+            assert.equal(props['game.event.operation.id'], undefined)
+            assert.equal(props['game.event.queue.depth'], undefined)
+            assert.equal(props['game.error.code'], undefined)
+            assert.equal(props['game.event.batch.id'], undefined)
+        })
+
+        test('omits optional attributes when undefined', () => {
+            const props = {}
+            enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Move'
+            })
+            assert.equal(props['game.event.type'], 'Player.Move')
+            assert.equal(Object.keys(props).length, 1)
+        })
+
+        test('returns properties object for chaining', () => {
+            const props = { eventName: 'World.Event.Emitted' }
+            const result = enrichWorldEventLifecycleAttributes(props, {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:123e4567-e89b-12d3-a456-426614174000'
+            })
+            assert.strictEqual(result, props)
+            assert.equal(result['eventName'], 'World.Event.Emitted')
+            assert.equal(result['game.event.type'], 'Player.Move')
+        })
+
+        test('handles all scope key patterns', () => {
+            const testCases = [
+                { scopeKey: 'loc:123e4567-e89b-12d3-a456-426614174000', description: 'location scope' },
+                { scopeKey: 'player:223e4567-e89b-12d3-a456-426614174000', description: 'player scope' },
+                { scopeKey: 'global:ambience-generation', description: 'global scope' }
+            ]
+
+            for (const testCase of testCases) {
+                const props = {}
+                enrichWorldEventLifecycleAttributes(props, {
+                    scopeKey: testCase.scopeKey
+                })
+                assert.equal(props['game.event.scope.key'], testCase.scopeKey, testCase.description)
+            }
         })
     })
 })
