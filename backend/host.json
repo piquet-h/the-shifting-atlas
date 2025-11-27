@@ -4,6 +4,19 @@
         "id": "Microsoft.Azure.Functions.ExtensionBundle",
         "version": "[4.*, 5.0.0)"
     },
+    "extensions": {
+        "serviceBus": {
+            "messageHandlerOptions": {
+                "autoComplete": true
+            }
+        }
+    },
+    "retry": {
+        "strategy": "exponentialBackoff",
+        "maxRetryCount": 4,
+        "minimumInterval": "00:00:01",
+        "maximumInterval": "00:01:00"
+    },
     "logging": {
         "console": {
             "isEnabled": true,
