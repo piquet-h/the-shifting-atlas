@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * World Event Processing Integration Tests
  *
@@ -15,6 +14,7 @@
  * Issue #402: World Event Integration Tests (Happy Path + Failures)
  */
 import type { Container } from 'inversify'
+import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { v4 as uuidv4 } from 'uuid'
@@ -31,6 +31,14 @@ import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
+import type { InvocationContextMockResult } from '../helpers/TestFixture.js'
+
+/**
+ * Generate a unique idempotency key for test isolation
+ */
+function generateTestIdempotencyKey(prefix: string = 'test'): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+}
 
 describe('World Event Processing Integration', () => {
     let fixture: IntegrationTestFixture
@@ -56,7 +64,7 @@ describe('World Event Processing Integration', () => {
                 id: uuidv4()
             },
             correlationId: uuidv4(),
-            idempotencyKey: `test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            idempotencyKey: generateTestIdempotencyKey(),
             version: 1,
             payload: {
                 playerId: uuidv4(),
@@ -66,6 +74,14 @@ describe('World Event Processing Integration', () => {
             },
             ...overrides
         }
+    }
+
+    /**
+     * Cast mock context to InvocationContext for queueProcessWorldEvent
+     * The mock context implements the required interface methods
+     */
+    function asInvocationContext(ctx: InvocationContextMockResult): InvocationContext {
+        return ctx as unknown as InvocationContext
     }
 
     describe('Happy Path: Emit Event → Verify Service Bus Message Schema', () => {
@@ -163,7 +179,7 @@ describe('World Event Processing Integration', () => {
                 }
             })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const logs = ctx.getLogs()
             const errors = ctx.getErrors()
@@ -195,7 +211,7 @@ describe('World Event Processing Integration', () => {
                     idempotencyKey: `test-${actorKind}-${Date.now()}`
                 })
 
-                await queueProcessWorldEvent(event, ctx as any)
+                await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
                 const errors = ctx.getErrors()
                 assert.strictEqual(errors.length, 0, `Should process ${actorKind} actor without errors`)
@@ -213,7 +229,7 @@ describe('World Event Processing Integration', () => {
             const event2 = createValidEvent({ idempotencyKey, eventId: uuidv4() })
 
             // First invocation should process
-            await queueProcessWorldEvent(event1, ctx1 as any)
+            await queueProcessWorldEvent(event1, asInvocationContext(ctx1))
             const errors1 = ctx1.getErrors()
             assert.strictEqual(errors1.length, 0, 'First invocation should succeed')
 
@@ -221,7 +237,7 @@ describe('World Event Processing Integration', () => {
             assert.ok(successLog1, 'First event should be processed')
 
             // Second invocation should be skipped
-            await queueProcessWorldEvent(event2, ctx2 as any)
+            await queueProcessWorldEvent(event2, asInvocationContext(ctx2))
             const errors2 = ctx2.getErrors()
             assert.strictEqual(errors2.length, 0, 'Second invocation should not error')
 
@@ -242,7 +258,7 @@ describe('World Event Processing Integration', () => {
             const event1 = createValidEvent({ idempotencyKey, eventId: uuidv4() })
 
             // First invocation - marks as processed in both cache and registry
-            await queueProcessWorldEvent(event1, ctx1 as any)
+            await queueProcessWorldEvent(event1, asInvocationContext(ctx1))
 
             // Clear in-memory cache to force registry lookup
             __resetIdempotencyCacheForTests()
@@ -251,7 +267,7 @@ describe('World Event Processing Integration', () => {
             const ctx2 = await fixture.createInvocationContext()
             const event2 = createValidEvent({ idempotencyKey, eventId: uuidv4() })
 
-            await queueProcessWorldEvent(event2, ctx2 as any)
+            await queueProcessWorldEvent(event2, asInvocationContext(ctx2))
 
             const duplicateLog = ctx2.getLogs().find((l) => l[0] === 'Duplicate world event detected (durable registry)')
             assert.ok(duplicateLog, 'Should detect duplicate via durable registry')
@@ -264,8 +280,8 @@ describe('World Event Processing Integration', () => {
             const event1 = createValidEvent({ idempotencyKey: `key-a-${uuidv4()}` })
             const event2 = createValidEvent({ idempotencyKey: `key-b-${uuidv4()}` })
 
-            await queueProcessWorldEvent(event1, ctx1 as any)
-            await queueProcessWorldEvent(event2, ctx2 as any)
+            await queueProcessWorldEvent(event1, asInvocationContext(ctx1))
+            await queueProcessWorldEvent(event2, asInvocationContext(ctx2))
 
             const success1 = ctx1.getLogs().find((l) => l[0] === 'World event processed successfully')
             const success2 = ctx2.getLogs().find((l) => l[0] === 'World event processed successfully')
@@ -315,7 +331,7 @@ describe('World Event Processing Integration', () => {
             const event = createValidEvent()
 
             // The handler should continue despite registry write failure (availability over consistency)
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             assert.ok(markProcessedCalled, 'Should have attempted to mark as processed')
 
@@ -350,7 +366,7 @@ describe('World Event Processing Integration', () => {
 
             const malformedJson = 'not valid json {'
 
-            await queueProcessWorldEvent(malformedJson, ctx as any)
+            await queueProcessWorldEvent(malformedJson, asInvocationContext(ctx))
 
             assert.strictEqual(storedRecords.length, 1, 'Should store dead-letter record')
             const record = storedRecords[0]
@@ -389,7 +405,7 @@ describe('World Event Processing Integration', () => {
                 payload: {}
             }
 
-            await queueProcessWorldEvent(invalidEvent, ctx as any)
+            await queueProcessWorldEvent(invalidEvent, asInvocationContext(ctx))
 
             assert.strictEqual(storedRecords.length, 1, 'Should store dead-letter record')
             const record = storedRecords[0]
@@ -421,7 +437,7 @@ describe('World Event Processing Integration', () => {
                 actor: { kind: 'invalid-actor', id: uuidv4() }
             })
 
-            await queueProcessWorldEvent(invalidEvent, ctx as any)
+            await queueProcessWorldEvent(invalidEvent, asInvocationContext(ctx))
 
             assert.strictEqual(storedRecords.length, 1, 'Should store dead-letter record')
             const record = storedRecords[0]
@@ -437,7 +453,7 @@ describe('World Event Processing Integration', () => {
 
             const event = createValidEvent({ correlationId })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const container = ctx.extraInputs.get('container') as Container
             const telemetry = container.get<MockTelemetryClient>('ITelemetryClient')
@@ -456,7 +472,7 @@ describe('World Event Processing Integration', () => {
 
             const event = createValidEvent({ correlationId, causationId })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const logs = ctx.getLogs()
             const processLog = logs.find((l) => l[0] === 'Processing world event')
@@ -475,8 +491,8 @@ describe('World Event Processing Integration', () => {
             const event1 = createValidEvent({ correlationId, idempotencyKey })
             const event2 = createValidEvent({ correlationId, idempotencyKey })
 
-            await queueProcessWorldEvent(event1, ctx1 as any)
-            await queueProcessWorldEvent(event2, ctx2 as any)
+            await queueProcessWorldEvent(event1, asInvocationContext(ctx1))
+            await queueProcessWorldEvent(event2, asInvocationContext(ctx2))
 
             const container = ctx2.extraInputs.get('container') as Container
             const telemetry = container.get<MockTelemetryClient>('ITelemetryClient')
@@ -513,7 +529,7 @@ describe('World Event Processing Integration', () => {
                 // Missing eventId, type, occurredUtc, actor, correlationId, idempotencyKey, version
             }
 
-            await queueProcessWorldEvent(malformedEvent, ctx as any)
+            await queueProcessWorldEvent(malformedEvent, asInvocationContext(ctx))
 
             const errors = ctx.getErrors()
             assert.ok(errors.length > 0, 'Should have validation errors')
@@ -530,7 +546,7 @@ describe('World Event Processing Integration', () => {
             const ctx = await fixture.createInvocationContext()
             const event = createValidEvent({ payload: {} })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const errors = ctx.getErrors()
             assert.strictEqual(errors.length, 0, 'Empty payload should be valid')
@@ -551,7 +567,7 @@ describe('World Event Processing Integration', () => {
                 }
             })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const errors = ctx.getErrors()
             assert.strictEqual(errors.length, 0, 'Should process Location.Environment.Changed without errors')
@@ -559,10 +575,10 @@ describe('World Event Processing Integration', () => {
 
         test('should set ingestedUtc if missing in envelope', async () => {
             const ctx = await fixture.createInvocationContext()
-            const event = createValidEvent()
-            delete (event as any).ingestedUtc
+            const event = createValidEvent() as Record<string, unknown>
+            delete event.ingestedUtc // Delete optional field to test auto-population
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const errors = ctx.getErrors()
             assert.strictEqual(errors.length, 0, 'Should handle missing ingestedUtc')
@@ -610,7 +626,7 @@ describe('World Event Processing Integration', () => {
             for (let i = 0; i < eventCount; i++) {
                 events.push(
                     createValidEvent({
-                        idempotencyKey: `perf-test-${i}-${Date.now()}-${Math.random()}`
+                        idempotencyKey: generateTestIdempotencyKey(`perf-${i}`)
                     })
                 )
             }
@@ -620,7 +636,7 @@ describe('World Event Processing Integration', () => {
             // Process all events
             for (let i = 0; i < eventCount; i++) {
                 const ctx = await fixture.createInvocationContext()
-                await queueProcessWorldEvent(events[i], ctx as any)
+                await queueProcessWorldEvent(events[i], asInvocationContext(ctx))
                 const duration = Date.now() - startTime
                 fixture.trackPerformance('single-event-process', duration / (i + 1))
             }
@@ -631,16 +647,14 @@ describe('World Event Processing Integration', () => {
             // Track overall performance
             fixture.trackPerformance('batch-100-events', totalDuration)
 
-            console.log(`Performance: ${eventCount} events in ${totalDuration}ms = ${eventsPerSecond.toFixed(2)} events/sec`)
-
             // In memory mode, should easily exceed 100 events/sec
-            // Setting a reasonable threshold for CI (actual should be much higher)
-            assert.ok(eventsPerSecond >= 50, `Should process at least 50 events/sec in memory mode (got ${eventsPerSecond.toFixed(2)})`)
+            // Setting threshold at 100 events/sec as per acceptance criteria
+            // Actual performance typically exceeds 2000 events/sec
+            assert.ok(eventsPerSecond >= 100, `Should process at least 100 events/sec in memory mode (got ${eventsPerSecond.toFixed(2)})`)
 
             // Also verify all events were processed without errors
             const p95 = fixture.getP95Latency('single-event-process')
             assert.ok(p95, 'Should have performance metrics')
-            console.log(`P95 single event latency: ${p95}ms`)
         })
 
         test('should handle concurrent event processing', async () => {
@@ -652,7 +666,7 @@ describe('World Event Processing Integration', () => {
             for (let i = 0; i < eventCount; i++) {
                 events.push(
                     createValidEvent({
-                        idempotencyKey: `concurrent-test-${i}-${Date.now()}-${Math.random()}`
+                        idempotencyKey: generateTestIdempotencyKey(`concurrent-${i}`)
                     })
                 )
                 contexts.push(fixture.createInvocationContext())
@@ -663,12 +677,10 @@ describe('World Event Processing Integration', () => {
             const startTime = Date.now()
 
             // Process events concurrently
-            await Promise.all(events.map((event, i) => queueProcessWorldEvent(event, resolvedContexts[i] as any)))
+            await Promise.all(events.map((event, i) => queueProcessWorldEvent(event, asInvocationContext(resolvedContexts[i]))))
 
             const totalDuration = Date.now() - startTime
             fixture.trackPerformance('concurrent-20-events', totalDuration)
-
-            console.log(`Concurrent processing: ${eventCount} events in ${totalDuration}ms`)
 
             // Verify no errors
             for (let i = 0; i < eventCount; i++) {
@@ -686,7 +698,7 @@ describe('World Event Processing Integration', () => {
 
             const event = createValidEvent({ idempotencyKey, eventId })
 
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             // Verify event was marked in registry
             const container = ctx.extraInputs.get('container') as Container
@@ -721,7 +733,7 @@ describe('World Event Processing Integration', () => {
             const event = createValidEvent()
 
             // Should not throw, should continue processing
-            await queueProcessWorldEvent(event, ctx as any)
+            await queueProcessWorldEvent(event, asInvocationContext(ctx))
 
             const successLog = ctx.getLogs().find((l) => l[0] === 'World event processed successfully')
             assert.ok(successLog, 'Should still complete successfully despite registry failure')
