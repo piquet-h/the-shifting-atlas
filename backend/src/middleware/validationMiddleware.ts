@@ -3,7 +3,8 @@
  */
 
 import type { HttpRequest, HttpResponseInit } from '@azure/functions'
-import { err, GameEventName, validateLocationId, validatePlayerId } from '@piquet-h/shared'
+import { GameEventName, validateLocationId, validatePlayerId } from '@piquet-h/shared'
+import { formatError } from '../http/errorEnvelope.js'
 import { extractCorrelationId, extractPlayerGuid, type GameTelemetryOptions } from '../telemetry/TelemetryService.js'
 
 export type TrackGameEventFn = (name: GameEventName, properties: Record<string, unknown>, opts?: GameTelemetryOptions) => void
@@ -41,9 +42,14 @@ export function validatePlayerIdHeader(req: HttpRequest, required: boolean, trac
             return {
                 status: 400,
                 headers: {
-                    'Content-Type': 'application/json; charset=utf-8'
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Cache-Control': 'no-store'
                 },
-                jsonBody: err(validation.error?.code || 'ValidationError', validation.error?.message || 'Invalid input', correlationId)
+                jsonBody: formatError(
+                    validation.error?.code || 'ValidationError',
+                    validation.error?.message || 'Invalid input',
+                    correlationId
+                )
             }
         }
     }
@@ -94,9 +100,10 @@ export function validateLocationIdParam(
         return {
             status: 400,
             headers: {
-                'Content-Type': 'application/json; charset=utf-8'
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store'
             },
-            jsonBody: err(validation.error?.code || 'ValidationError', validation.error?.message || 'Invalid input', correlationId)
+            jsonBody: formatError(validation.error?.code || 'ValidationError', validation.error?.message || 'Invalid input', correlationId)
         }
     }
 

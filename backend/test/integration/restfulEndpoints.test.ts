@@ -313,11 +313,11 @@ describe('RESTful Endpoints Integration', () => {
             const res = await handlePlayerMove(req, ctx)
 
             assert.strictEqual(res.status, 400)
-            // Note: PlayerMoveHandler returns validation errors in { error: string, message: string } format
-            // This differs from the standard error envelope used by other handlers
-            const body = res.jsonBody as { error: string; message: string }
-            assert.strictEqual(body.error, 'MissingPlayerId')
-            assert.ok(body.message, 'Should include error message')
+            // Error envelope structure: { success: false, error: { code, message }, correlationId }
+            const body = res.jsonBody as { success: boolean; error: { code: string; message: string } }
+            assert.strictEqual(body.success, false)
+            assert.strictEqual(body.error.code, 'MissingPlayerId')
+            assert.ok(body.error.message, 'Should include error message')
         })
     })
 

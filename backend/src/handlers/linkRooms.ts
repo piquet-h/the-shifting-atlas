@@ -1,10 +1,10 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { err, isDirection, ok } from '@piquet-h/shared'
+import { isDirection } from '@piquet-h/shared'
 import { Container, inject, injectable } from 'inversify'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
-import { CORRELATION_HEADER } from '../telemetry/TelemetryService.js'
 import { BaseHandler } from './base/BaseHandler.js'
+import { errorResponse, internalErrorResponse, okResponse } from './utils/responseBuilder.js'
 
 /**
  * Handler to link two rooms with an EXIT edge.
@@ -27,14 +27,9 @@ export class LinkRoomsHandler extends BaseHandler {
             const text = await req.text()
             body = text ? JSON.parse(text) : {}
         } catch {
-            return {
-                status: 400,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: err('InvalidJson', 'Request body must be valid JSON', this.correlationId)
-            }
+            return errorResponse(400, 'InvalidJson', 'Request body must be valid JSON', {
+                correlationId: this.correlationId
+            })
         }
 
         // Validate required fields
@@ -60,14 +55,9 @@ export class LinkRoomsHandler extends BaseHandler {
         })()
 
         if (validationError) {
-            return {
-                status: 400,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: err(validationError.code, validationError.message, this.correlationId)
-            }
+            return errorResponse(400, validationError.code, validationError.message, {
+                correlationId: this.correlationId
+            })
         }
 
         // Link the rooms (type assertions safe after validation)
@@ -78,23 +68,9 @@ export class LinkRoomsHandler extends BaseHandler {
                 reciprocalDescription: description
             })
 
-            return {
-                status: 200,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: ok(result, this.correlationId)
-            }
+            return okResponse(result, { correlationId: this.correlationId })
         } catch (error) {
-            return {
-                status: 500,
-                headers: {
-                    [CORRELATION_HEADER]: this.correlationId,
-                    'Content-Type': 'application/json; charset=utf-8'
-                },
-                jsonBody: err('InternalError', error instanceof Error ? error.message : 'Unknown error', this.correlationId)
-            }
+            return internalErrorResponse(error, { correlationId: this.correlationId })
         }
     }
 }
