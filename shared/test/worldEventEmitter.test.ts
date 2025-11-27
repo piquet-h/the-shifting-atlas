@@ -10,6 +10,8 @@
  * - Schema validation
  * - Service Bus message properties
  * - Error type guards
+ * - Enqueue wrapper correlationId injection
+ * - Batch enqueue correlation strategies
  */
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
@@ -18,6 +20,8 @@ import {
     emitWorldEvent,
     isRetryableError,
     isValidationError,
+    prepareBatchEnqueueMessages,
+    prepareEnqueueMessage,
     ServiceBusUnavailableError,
     WorldEventTypeSchema,
     WorldEventValidationError,
@@ -395,6 +399,283 @@ describe('World Event Emitter', () => {
             const result = emitWorldEvent(options)
 
             assert.deepStrictEqual(result.envelope.payload, complexPayload)
+        })
+    })
+
+    describe('prepareEnqueueMessage', () => {
+        it('should prepare message with correlationId from envelope', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: { playerId: 'player-1' },
+                actor: { kind: 'player', id: '12345678-1234-4234-8234-123456789abc' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+            const enqueueResult = prepareEnqueueMessage(emitResult)
+
+            assert.strictEqual(enqueueResult.correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(enqueueResult.message.correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(enqueueResult.message.applicationProperties.correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(enqueueResult.correlationIdGenerated, false)
+            assert.strictEqual(enqueueResult.message.contentType, 'application/json')
+        })
+
+        it('should generate correlationId when not provided', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Look',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' }
+                // correlationId intentionally omitted
+            }
+
+            const emitResult = emitWorldEvent(options)
+            const enqueueResult = prepareEnqueueMessage(emitResult)
+
+            assert.ok(enqueueResult.correlationId, 'Should have correlationId')
+            assert.match(enqueueResult.correlationId, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+            assert.strictEqual(enqueueResult.correlationIdGenerated, true)
+            assert.ok(enqueueResult.warnings.some((w) => w.includes('auto-generated')))
+        })
+
+        it('should preserve existing correlationId on second enqueue (idempotent)', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+
+            // First enqueue
+            const firstEnqueue = prepareEnqueueMessage(emitResult)
+            // Second enqueue (simulates retry or re-emission)
+            const secondEnqueue = prepareEnqueueMessage(emitResult)
+
+            assert.strictEqual(firstEnqueue.correlationId, secondEnqueue.correlationId)
+            assert.strictEqual(secondEnqueue.correlationId, '11111111-1111-4111-8111-111111111111')
+        })
+
+        it('should preserve original correlationId from applicationProperties when different', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+
+            // Simulate existing applicationProperties with different correlationId
+            const existingProps = {
+                correlationId: '22222222-2222-4222-8222-222222222222',
+                customProperty: 'value'
+            }
+
+            const enqueueResult = prepareEnqueueMessage(emitResult, existingProps)
+
+            // Should use envelope's correlationId
+            assert.strictEqual(enqueueResult.correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(enqueueResult.message.applicationProperties.correlationId, '11111111-1111-4111-8111-111111111111')
+
+            // Should preserve original in special attribute
+            assert.strictEqual(
+                enqueueResult.message.applicationProperties['publish.correlationId.original'],
+                '22222222-2222-4222-8222-222222222222'
+            )
+            assert.strictEqual(enqueueResult.originalApplicationPropertiesCorrelationId, '22222222-2222-4222-8222-222222222222')
+
+            // Should merge other properties
+            assert.strictEqual(enqueueResult.message.applicationProperties.customProperty, 'value')
+
+            // Should have warning about different correlationId
+            assert.ok(enqueueResult.warnings.some((w) => w.includes('different correlationId')))
+        })
+
+        it('should not add original attribute when correlationIds match', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+
+            // Existing properties with same correlationId
+            const existingProps = {
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const enqueueResult = prepareEnqueueMessage(emitResult, existingProps)
+
+            assert.strictEqual(enqueueResult.message.applicationProperties['publish.correlationId.original'], undefined)
+            assert.strictEqual(enqueueResult.originalApplicationPropertiesCorrelationId, undefined)
+        })
+
+        it('should include eventType and scopeKey in applicationProperties', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'World.Exit.Create',
+                scopeKey: 'loc:test-location-id',
+                payload: {},
+                actor: { kind: 'system' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+            const enqueueResult = prepareEnqueueMessage(emitResult)
+
+            assert.strictEqual(enqueueResult.message.applicationProperties.eventType, 'World.Exit.Create')
+            assert.strictEqual(enqueueResult.message.applicationProperties.scopeKey, 'loc:test-location-id')
+        })
+
+        it('should include operationId when present', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:test',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111',
+                operationId: 'op-12345'
+            }
+
+            const emitResult = emitWorldEvent(options)
+            const enqueueResult = prepareEnqueueMessage(emitResult)
+
+            assert.strictEqual(enqueueResult.message.applicationProperties.operationId, 'op-12345')
+        })
+
+        it('should include envelope in message body', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:test',
+                payload: { key: 'value' },
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const emitResult = emitWorldEvent(options)
+            const enqueueResult = prepareEnqueueMessage(emitResult)
+
+            assert.deepStrictEqual(enqueueResult.message.body, emitResult.envelope)
+        })
+    })
+
+    describe('prepareBatchEnqueueMessages', () => {
+        it('should prepare multiple messages with individual correlationIds', () => {
+            const options1: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:loc1',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const options2: EmitWorldEventOptions = {
+                eventType: 'Player.Look',
+                scopeKey: 'loc:loc2',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '22222222-2222-4222-8222-222222222222'
+            }
+
+            const emitResults = [emitWorldEvent(options1), emitWorldEvent(options2)]
+            const batchResults = prepareBatchEnqueueMessages(emitResults, { correlationMode: 'individual' })
+
+            assert.strictEqual(batchResults.length, 2)
+            assert.strictEqual(batchResults[0].correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(batchResults[1].correlationId, '22222222-2222-4222-8222-222222222222')
+        })
+
+        it('should use shared correlationId when mode is shared', () => {
+            const options1: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:loc1',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const options2: EmitWorldEventOptions = {
+                eventType: 'Player.Look',
+                scopeKey: 'loc:loc2',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '22222222-2222-4222-8222-222222222222'
+            }
+
+            const emitResults = [emitWorldEvent(options1), emitWorldEvent(options2)]
+            const batchResults = prepareBatchEnqueueMessages(emitResults, {
+                correlationMode: 'shared',
+                batchCorrelationId: '33333333-3333-4333-8333-333333333333'
+            })
+
+            assert.strictEqual(batchResults.length, 2)
+            assert.strictEqual(batchResults[0].correlationId, '33333333-3333-4333-8333-333333333333')
+            assert.strictEqual(batchResults[1].correlationId, '33333333-3333-4333-8333-333333333333')
+        })
+
+        it('should generate shared correlationId when not provided in shared mode', () => {
+            const options1: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:loc1',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const options2: EmitWorldEventOptions = {
+                eventType: 'Player.Look',
+                scopeKey: 'loc:loc2',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '22222222-2222-4222-8222-222222222222'
+            }
+
+            const emitResults = [emitWorldEvent(options1), emitWorldEvent(options2)]
+            const batchResults = prepareBatchEnqueueMessages(emitResults, { correlationMode: 'shared' })
+
+            assert.strictEqual(batchResults.length, 2)
+            // Both should have the same generated correlationId
+            assert.strictEqual(batchResults[0].correlationId, batchResults[1].correlationId)
+            // Should have warning about generated correlationId
+            assert.ok(batchResults[0].warnings.some((w) => w.includes('Batch mode')))
+        })
+
+        it('should default to individual mode', () => {
+            const options1: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:loc1',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const options2: EmitWorldEventOptions = {
+                eventType: 'Player.Look',
+                scopeKey: 'loc:loc2',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '22222222-2222-4222-8222-222222222222'
+            }
+
+            const emitResults = [emitWorldEvent(options1), emitWorldEvent(options2)]
+            // No options means default mode
+            const batchResults = prepareBatchEnqueueMessages(emitResults)
+
+            assert.strictEqual(batchResults[0].correlationId, '11111111-1111-4111-8111-111111111111')
+            assert.strictEqual(batchResults[1].correlationId, '22222222-2222-4222-8222-222222222222')
+        })
+
+        it('should handle empty batch', () => {
+            const batchResults = prepareBatchEnqueueMessages([])
+            assert.strictEqual(batchResults.length, 0)
         })
     })
 })
