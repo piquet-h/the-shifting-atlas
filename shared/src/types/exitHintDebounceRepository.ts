@@ -104,12 +104,11 @@ export function parseDebounceKey(debounceKey: string): {
     direction: Direction
 } | null {
     const parts = debounceKey.split(':')
-    if (parts.length < 3) return null
+    if (parts.length !== 3) return null
 
     const playerId = parts[0]
     const originLocationId = parts[1]
-    // Direction may contain colons in edge cases, so join remaining parts
-    const direction = parts.slice(2).join(':') as Direction
+    const direction = parts[2] as Direction
 
     return { playerId, originLocationId, direction }
 }

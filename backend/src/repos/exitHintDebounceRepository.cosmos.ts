@@ -113,6 +113,8 @@ export class CosmosExitHintDebounceRepository extends CosmosDbSqlRepository<Exit
                     debounceHit: false
                 }
             }
+            // Log unexpected errors for debugging before re-throwing
+            console.warn('[ExitHintDebounceRepository] Unexpected error during shouldEmit:', error)
             throw error
         }
     }
