@@ -66,9 +66,10 @@ export const ERROR_CLASSIFICATION_TABLE: Record<string, ErrorKind> = {
 
 /**
  * Infer error kind from HTTP status code when error code is unknown.
+ * 429 (rate limiting) is classified as validation since it's a client-side issue.
  */
 export function inferErrorKindFromStatus(statusCode: number): ErrorKind {
-    if (statusCode >= 400 && statusCode < 404) return 'validation'
+    if ((statusCode >= 400 && statusCode < 404) || statusCode === 429) return 'validation'
     if (statusCode === 404) return 'not-found'
     if (statusCode === 409) return 'conflict'
     return 'internal'

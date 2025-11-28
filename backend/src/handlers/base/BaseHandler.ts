@@ -125,8 +125,10 @@ export abstract class BaseHandler {
         httpStatus: number,
         additionalProps: Record<string, unknown> = {}
     ): boolean {
-        // Update error context with HTTP status for classification
-        this.errorContext.httpStatus = httpStatus
+        // Set HTTP status on first error only (subsequent calls are ignored by duplicate prevention)
+        if (!this.errorContext.errorRecorded) {
+            this.errorContext.httpStatus = httpStatus
+        }
 
         // Build properties with standard dimensions
         const props: Record<string, unknown> = {

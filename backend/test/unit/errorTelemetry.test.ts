@@ -50,6 +50,10 @@ describe('Error Telemetry Normalization', () => {
             assert.strictEqual(inferErrorKindFromStatus(403), 'validation')
         })
 
+        test('should return validation for 429 (rate limiting)', () => {
+            assert.strictEqual(inferErrorKindFromStatus(429), 'validation')
+        })
+
         test('should return not-found for 404', () => {
             assert.strictEqual(inferErrorKindFromStatus(404), 'not-found')
         })
