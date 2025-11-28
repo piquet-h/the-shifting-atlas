@@ -1,11 +1,11 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
 import {
     buildErrorAttributes,
     classifyError,
     createErrorRecordingContext,
     ERROR_CLASSIFICATION_TABLE,
+    ERROR_TELEMETRY_KEYS,
     hasErrorRecorded,
     inferErrorKindFromStatus,
     recordError,
@@ -130,9 +130,9 @@ describe('Error Telemetry Normalization', () => {
             const result = recordError(ctx, { code: 'ValidationError', message: 'Invalid input' }, props)
 
             assert.strictEqual(result.recorded, true)
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE], 'ValidationError')
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE], 'Invalid input')
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_KIND], 'validation')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_CODE], 'ValidationError')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE], 'Invalid input')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_KIND], 'validation')
             assert.strictEqual(props['existingProp'], 'value')
         })
 
@@ -143,14 +143,14 @@ describe('Error Telemetry Normalization', () => {
             // First error
             const result1 = recordError(ctx, { code: 'ValidationError', message: 'First error' }, props)
             assert.strictEqual(result1.recorded, true)
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE], 'First error')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE], 'First error')
 
             // Second error (should be ignored)
             const result2 = recordError(ctx, { code: 'NotFound', message: 'Second error' }, props)
             assert.strictEqual(result2.recorded, false)
             // Original error should still be in props
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE], 'First error')
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE], 'ValidationError')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE], 'First error')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_CODE], 'ValidationError')
         })
 
         test('should truncate long messages (>256 chars)', () => {
@@ -160,7 +160,7 @@ describe('Error Telemetry Normalization', () => {
 
             recordError(ctx, { code: 'InternalError', message: longMessage }, props)
 
-            const recorded = props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE] as string
+            const recorded = props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE] as string
             assert.ok(recorded.length <= 256, `Message should be truncated to <= 256 chars, got ${recorded.length}`)
             assert.ok(recorded.endsWith('...'), 'Truncated message should end with ...')
         })
@@ -172,7 +172,7 @@ describe('Error Telemetry Normalization', () => {
 
             recordError(ctx, { code: 'ValidationError', message: shortMessage }, props)
 
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE], shortMessage)
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE], shortMessage)
         })
 
         test('should merge additional properties', () => {
@@ -190,7 +190,7 @@ describe('Error Telemetry Normalization', () => {
 
             recordError(ctx, { code: 'CustomError', message: 'Not found' }, props)
 
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_KIND], 'not-found')
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_KIND], 'not-found')
         })
     })
 
@@ -219,9 +219,9 @@ describe('Error Telemetry Normalization', () => {
 
             // No recordError called - simulating success path
 
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE], undefined)
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE], undefined)
-            assert.strictEqual(props[TELEMETRY_ATTRIBUTE_KEYS.ERROR_KIND], undefined)
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_CODE], undefined)
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE], undefined)
+            assert.strictEqual(props[ERROR_TELEMETRY_KEYS.ERROR_KIND], undefined)
         })
     })
 })

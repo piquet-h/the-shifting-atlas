@@ -10,7 +10,7 @@
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
  */
 import type { InvocationContext } from '@azure/functions'
-import { enrichErrorAttributes, enrichWorldEventAttributes } from '@piquet-h/shared'
+import { enrichWorldEventAttributes } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { WORLD_EVENT_CACHE_MAX_SIZE, WORLD_EVENT_DUPLICATE_TTL_MS } from '../config/worldEventProcessorConfig.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../repos/processedEventRepository.js'
+import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { buildWorldEventHandlerRegistry } from '../worldEvents/registry.js'
 import type { IWorldEventHandler } from '../worldEvents/types.js'
@@ -160,7 +161,7 @@ export class QueueProcessWorldEventHandler {
                     finalError: String(parseError).substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
                 }
                 // Add normalized error attributes (game.error.code, game.error.message, game.error.kind)
-                enrichErrorAttributes(deadLetterProps, {
+                enrichNormalizedErrorAttributes(deadLetterProps, {
                     errorCode: 'json-parse',
                     errorMessage: String(parseError),
                     errorKind: 'validation'
@@ -238,7 +239,7 @@ export class QueueProcessWorldEventHandler {
                     finalError: errors[0]?.message?.substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
                 }
                 // Add normalized error attributes (game.error.code, game.error.message, game.error.kind)
-                enrichErrorAttributes(schemaErrorProps, {
+                enrichNormalizedErrorAttributes(schemaErrorProps, {
                     errorCode: 'schema-validation',
                     errorMessage: errors.map((e) => e.message).join('; '),
                     errorKind: 'validation'

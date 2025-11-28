@@ -13,13 +13,70 @@
  * See: docs/observability.md - Error Telemetry section
  */
 
-import {
-    enrichErrorAttributes,
-    ERROR_MESSAGE_MAX_LENGTH,
-    type ErrorEventAttributes,
-    type ErrorKind,
-    TELEMETRY_ATTRIBUTE_KEYS
-} from '@piquet-h/shared'
+import { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
+
+/**
+ * Error classification kinds for normalized error telemetry.
+ * Maps to HTTP semantics and domain error categories.
+ */
+export type ErrorKind = 'validation' | 'not-found' | 'conflict' | 'internal'
+
+/**
+ * Maximum length for error messages in telemetry (truncated to prevent bloat)
+ */
+export const ERROR_MESSAGE_MAX_LENGTH = 256
+
+/**
+ * Error telemetry attribute keys (game.error.* namespace)
+ * These extend the base TELEMETRY_ATTRIBUTE_KEYS from shared.
+ */
+export const ERROR_TELEMETRY_KEYS = {
+    /** Domain error classification code */
+    ERROR_CODE: TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE,
+    /** Truncated error message (max 256 chars) */
+    ERROR_MESSAGE: 'game.error.message',
+    /** Error kind (validation, not-found, conflict, internal) */
+    ERROR_KIND: 'game.error.kind'
+} as const
+
+/**
+ * Options for enriching error events with normalized attributes.
+ */
+export interface ErrorEventAttributes {
+    /** Domain error code (e.g., 'InvalidPlayerId', 'NoExit') */
+    errorCode?: string | null
+    /** Error message (will be truncated to ERROR_MESSAGE_MAX_LENGTH) */
+    errorMessage?: string | null
+    /** Error kind classification (validation, not-found, conflict, internal) */
+    errorKind?: ErrorKind | null
+}
+
+/**
+ * Enrich telemetry properties with normalized error attributes.
+ * Adds game.error.code, game.error.message, and game.error.kind.
+ * Message is truncated to ERROR_MESSAGE_MAX_LENGTH (256 chars) to prevent telemetry bloat.
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Error attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichNormalizedErrorAttributes(properties: Record<string, unknown>, attrs: ErrorEventAttributes): Record<string, unknown> {
+    if (attrs.errorCode) {
+        properties[ERROR_TELEMETRY_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    if (attrs.errorMessage) {
+        // Truncate message to prevent telemetry bloat (>256 chars edge case)
+        const truncated =
+            attrs.errorMessage.length > ERROR_MESSAGE_MAX_LENGTH
+                ? attrs.errorMessage.substring(0, ERROR_MESSAGE_MAX_LENGTH - 3) + '...'
+                : attrs.errorMessage
+        properties[ERROR_TELEMETRY_KEYS.ERROR_MESSAGE] = truncated
+    }
+    if (attrs.errorKind) {
+        properties[ERROR_TELEMETRY_KEYS.ERROR_KIND] = attrs.errorKind
+    }
+    return properties
+}
 
 /**
  * Error classification table mapping domain error codes to kinds.
@@ -181,7 +238,7 @@ export function recordError(context: ErrorRecordingContext, error: ErrorDetails,
     const attrs = buildErrorAttributes(error, context.httpStatus)
 
     // Enrich properties with error attributes (handles truncation)
-    enrichErrorAttributes(properties, attrs)
+    enrichNormalizedErrorAttributes(properties, attrs)
 
     // Mark context as having recorded an error
     context.errorRecorded = true
@@ -219,5 +276,5 @@ export function createErrorRecordingContext(correlationId: string, httpStatus?: 
     }
 }
 
-// Re-export constants for convenience
-export { ERROR_MESSAGE_MAX_LENGTH, TELEMETRY_ATTRIBUTE_KEYS }
+// Re-export telemetry constants for convenience
+export { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
