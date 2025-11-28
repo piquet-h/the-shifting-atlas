@@ -20,6 +20,7 @@ function createContext(
 ): LocationExitContext {
     // Test helper: accepts string types for convenience, they match the actual Direction type at runtime
     return {
+        locationId: 'test-location-id',
         exits: exits as LocationExitContext['exits'],
         landmarkAliases: landmarkAliases as LocationExitContext['landmarkAliases']
     }
@@ -164,20 +165,27 @@ test('normalizeDirection: unknown semantic name - with context but no match', ()
 // ---------------------------------------------------------------------------
 test('normalizeDirection: canonical direction beats semantic', () => {
     // Canonical directions should match before semantic resolution
+    // Context has 'south' exit named 'north' - canonical 'north' should still resolve to canonical
     const context = createContext([{ direction: 'south', name: 'north' }])
 
     const result = normalizeDirection('north', undefined, context)
-    assert.equal(result.status, 'ok')
-    assert.equal(result.canonical, 'north') // Canonical direction, not semantic name
+    // Since there's no 'north' exit, status is 'generate' (N4 behavior)
+    assert.equal(result.status, 'generate')
+    assert.equal(result.canonical, 'north') // Canonical direction, not semantic name pointing to south
+    assert.ok(result.generationHint, 'Should have generationHint when status is generate')
+    assert.equal(result.generationHint?.direction, 'north')
 })
 
 test('normalizeDirection: shortcut beats semantic', () => {
     // Shortcuts should match before semantic resolution
+    // Context has 'south' exit named 'n' - shortcut 'n' should still resolve to 'north'
     const context = createContext([{ direction: 'south', name: 'n' }])
 
     const result = normalizeDirection('n', undefined, context)
-    assert.equal(result.status, 'ok')
-    assert.equal(result.canonical, 'north') // Shortcut for north, not semantic name
+    // Since there's no 'north' exit, status is 'generate' (N4 behavior)
+    assert.equal(result.status, 'generate')
+    assert.equal(result.canonical, 'north') // Shortcut for north, not semantic name pointing to south
+    assert.ok(result.generationHint, 'Should have generationHint when status is generate')
 })
 
 test('normalizeDirection: semantic beats relative (no heading)', () => {
