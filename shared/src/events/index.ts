@@ -4,6 +4,7 @@
  * Re-exports all world event utilities including:
  * - Schema and validation (worldEventSchema.ts)
  * - Event emission helper (worldEventEmitter.ts)
+ * - Exit generation hint schema (exitGenerationHintSchema.ts)
  */
 
 // Schema and types
@@ -37,3 +38,15 @@ export {
     type PrepareEnqueueResult,
     type ServiceBusApplicationProperties
 } from './worldEventEmitter.js'
+
+// Exit generation hint schema and utilities
+export {
+    DirectionSchema,
+    ExitGenerationHintPayloadSchema,
+    buildExitHintIdempotencyKey,
+    isExitHintExpired,
+    safeValidateExitGenerationHintPayload,
+    validateExitGenerationHintPayload,
+    type ExitGenerationHintPayload,
+    type ExitHintDLQCategory
+} from './exitGenerationHintSchema.js'
