@@ -110,7 +110,9 @@ To improve queryability and correlation, domain-specific attributes follow a str
 | `game.world.exit.direction` | Movement direction (canonical)          | `north`, `south`, `east`, `west` | Navigation.Move.Success/Blocked       |
 | `game.event.type`           | World event type for event processing   | `player.move`, `npc.action`      | World.Event.Processed/Duplicate       |
 | `game.event.actor.kind`     | Actor type (player, npc, system)        | `player`, `npc`, `system`        | World.Event.Processed                 |
-| `game.error.code`           | Domain error classification             | `no-exit`, `from-missing`        | Navigation.Move.Blocked, error events |
+| `game.error.code`           | Domain error classification code        | `ValidationError`, `NotFound`    | All error responses (4xx/5xx)         |
+| `game.error.message`        | Truncated error message (max 256 chars) | `Invalid input...`               | All error responses (4xx/5xx)         |
+| `game.error.kind`           | Error classification kind               | `validation`, `not-found`        | All error responses (4xx/5xx)         |
 
 ### Attribute Naming Rules
 
@@ -124,12 +126,88 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 -   **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
 -   **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
--   **Error Events**: Include `game.error.code` for domain error classification; use `status` dimension for HTTP codes.
+-   **Error Events**: Include `game.error.code`, `game.error.message`, and `game.error.kind` for normalized error tracking; use `status` dimension for HTTP codes. Use the `recordError` helper to ensure consistent attributes and duplicate prevention.
 -   **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.\* attributes during transition.
 
 ### Implementation
 
 Attribute enrichment implemented via centralized helper in `shared/src/telemetryAttributes.ts`. Backend handlers call enrichment helper before emitting events. See acceptance tests in `backend/test/integration/performMove.telemetry.test.ts` and `backend/test/unit/worldEventAttributes.test.ts`.
+
+## Error Telemetry Normalization
+
+Standardizes mapping of domain and HTTP errors to normalized event properties and classification codes to improve reliability of error-rate queries and alerting.
+
+### Error Classification Table
+
+| Error Kind     | HTTP Status Range | Example Error Codes                                              | Description                          |
+| -------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
+| `validation`   | 400-403, 429      | `ValidationError`, `MissingField`, `InvalidPlayerId`, `NoExit`   | Client input validation failures     |
+| `not-found`    | 404               | `NotFound`, `PlayerNotFound`, `LocationNotFound`, `from-missing` | Resource does not exist              |
+| `conflict`     | 409               | `ExternalIdConflict`, `ConcurrencyError`, `DuplicateError`       | Concurrent modification or duplicate |
+| `internal`     | 500+              | `InternalError`, `MoveFailed`, `DatabaseError`, `TimeoutError`   | Server-side processing failures      |
+
+### Error Telemetry Attributes
+
+Each error response emits these normalized attributes:
+
+| Attribute             | Description                              | Example                  |
+| --------------------- | ---------------------------------------- | ------------------------ |
+| `game.error.code`     | Domain-specific error code               | `ValidationError`        |
+| `game.error.message`  | Truncated error message (max 256 chars)  | `Invalid input provided` |
+| `game.error.kind`     | Classification kind from table above     | `validation`             |
+
+### recordError Helper
+
+The `recordError` helper in `backend/src/telemetry/errorTelemetry.ts` provides:
+
+1. **Normalized Classification**: Automatically classifies errors using the classification table
+2. **Message Truncation**: Truncates error messages to 256 characters to prevent telemetry bloat
+3. **Duplicate Prevention**: First-wins logic ensures only one error per correlation context is recorded
+
+**Usage:**
+
+```typescript
+import { createErrorRecordingContext, recordError } from './telemetry/errorTelemetry.js'
+
+// In HTTP handler:
+const ctx = createErrorRecordingContext(correlationId, 400)
+const props = { status: 400, latencyMs: 50 }
+recordError(ctx, { code: 'ValidationError', message: 'Invalid player ID format' }, props)
+// props now contains game.error.code, game.error.message, game.error.kind
+```
+
+**Edge Cases:**
+
+- **Multiple errors on same operation**: Subsequent errors are ignored (first wins)
+- **Message truncation >256 chars**: Messages are truncated with `...` suffix
+- **Unknown error codes**: Falls back to HTTP status-based classification
+- **Missing HTTP status**: Defaults to `internal` classification
+
+### Kusto Query Examples
+
+**Error rate by kind:**
+
+```kusto
+customEvents
+| where timestamp > ago(24h)
+| where isnotempty(customDimensions["game.error.kind"])
+| extend errorKind = tostring(customDimensions["game.error.kind"]),
+         errorCode = tostring(customDimensions["game.error.code"])
+| summarize count = count() by errorKind, errorCode, bin(timestamp, 1h)
+| render columnchart
+```
+
+**Top validation errors:**
+
+```kusto
+customEvents
+| where timestamp > ago(24h)
+| where tostring(customDimensions["game.error.kind"]) == "validation"
+| extend errorCode = tostring(customDimensions["game.error.code"]),
+         errorMessage = tostring(customDimensions["game.error.message"])
+| summarize count = count() by errorCode, errorMessage
+| top 10 by count desc
+```
 
 ## Canonical Event Set (Current)
 
