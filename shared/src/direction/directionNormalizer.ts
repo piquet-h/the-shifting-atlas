@@ -23,10 +23,13 @@ import { Direction, DIRECTIONS, isDirection } from '../domainModels.js'
  */
 
 /**
- * Location-specific exit context for semantic resolution (N2).
- * This data enables the normalizer to resolve semantic exit names and landmark aliases.
+ * Location-specific exit context for semantic resolution (N2) and generation hints (N4).
+ * This data enables the normalizer to resolve semantic exit names, landmark aliases,
+ * and determine when exit generation hints should be emitted.
  */
 export interface LocationExitContext {
+    /** Location ID for generation hint context */
+    locationId: string
     /** List of exits with optional semantic names and synonyms */
     exits: Array<{
         direction: Direction
@@ -40,19 +43,45 @@ export interface LocationExitContext {
 /** Relative direction tokens that require lastHeading for resolution */
 export type RelativeDirection = 'left' | 'right' | 'forward' | 'back'
 
-/** Normalization result status */
-export type NormalizationStatus = 'ok' | 'ambiguous' | 'unknown'
+/**
+ * Normalization result status
+ *
+ * - 'ok': Direction resolved successfully and exit exists (or no context provided)
+ * - 'generate': Direction is valid but no exit exists at this location (N4)
+ * - 'ambiguous': Multiple matches or relative direction without heading
+ * - 'unknown': Direction not recognized
+ */
+export type NormalizationStatus = 'ok' | 'generate' | 'ambiguous' | 'unknown'
+
+/**
+ * Generation hint payload for exit generation events (N4 - Issue #35).
+ * Included when status is 'generate' to provide context for AI expansion.
+ */
+export interface GenerationHintPayload {
+    /** Origin location ID where the exit is requested */
+    originLocationId: string
+    /** Canonical direction for the requested exit */
+    direction: Direction
+}
 
 /** Direction normalization result */
 export interface DirectionNormalizationResult {
-    /** Resolution outcome: ok (success), ambiguous (needs clarification), unknown (no match) */
+    /**
+     * Resolution outcome:
+     * - ok: success (exit exists or no context provided)
+     * - generate: valid direction but no exit (emit generation hint)
+     * - ambiguous: needs clarification
+     * - unknown: no match
+     */
     status: NormalizationStatus
-    /** Canonical direction (only present when status === 'ok') */
+    /** Canonical direction (present when status is 'ok' or 'generate') */
     canonical?: Direction
-    /** Human-readable explanation (always present for ambiguous/unknown; optional for ok) */
+    /** Human-readable explanation (always present for ambiguous/unknown; optional for ok/generate) */
     clarification?: string
     /** Number of semantic matches found (N2 telemetry) - only present when > 1 */
     ambiguityCount?: number
+    /** Generation hint for AI expansion (only present when status is 'generate') */
+    generationHint?: GenerationHintPayload
 }
 
 /**
@@ -274,6 +303,52 @@ function resolveSemanticExit(input: string, context?: LocationExitContext): Dire
 }
 
 /**
+ * Check if an exit exists for the given direction in the location context.
+ * Returns true if no context is provided (backward compatible behavior).
+ */
+function exitExistsForDirection(direction: Direction, locationContext?: LocationExitContext): boolean {
+    if (!locationContext) {
+        return true // No context means we can't check, assume exists
+    }
+    return locationContext.exits.some((exit) => exit.direction === direction)
+}
+
+/**
+ * Build a resolved direction result, checking for exit existence (N4).
+ *
+ * If locationContext is provided and no exit exists for the direction,
+ * returns status 'generate' with a generationHint payload instead of 'ok'.
+ */
+function buildResolvedResult(
+    direction: Direction,
+    locationContext?: LocationExitContext,
+    clarification?: string
+): DirectionNormalizationResult {
+    if (exitExistsForDirection(direction, locationContext)) {
+        // Exit exists or no context - return 'ok'
+        const result: DirectionNormalizationResult = {
+            status: 'ok',
+            canonical: direction
+        }
+        if (clarification) {
+            result.clarification = clarification
+        }
+        return result
+    }
+
+    // Exit doesn't exist - return generate status
+    return {
+        status: 'generate',
+        canonical: direction,
+        clarification: clarification ?? `No exit exists to the ${direction}. This direction may be available for world expansion.`,
+        generationHint: {
+            originLocationId: locationContext!.locationId,
+            direction
+        }
+    }
+}
+
+/**
  * Normalize direction input using optional lastHeading and locationContext.
  *
  * RESOLUTION PIPELINE (executed in order):
@@ -284,9 +359,14 @@ function resolveSemanticExit(input: string, context?: LocationExitContext): Dire
  * 5. Typo tolerance: input within edit distance 1 of canonical direction
  * 6. Fallback: return { status: 'unknown' } if no match
  *
+ * EXIT EXISTENCE CHECK (N4 - Issue #35):
+ * When locationContext is provided, resolved directions are checked against available exits.
+ * If no exit exists, status 'generate' is returned with a generationHint payload.
+ *
  * STAGES IMPLEMENTED:
  * - N1: shortcuts + typo tolerance + relative directions
  * - N2 (Issue #33): Semantic exit names + synonyms + landmark aliases
+ * - N4 (Issue #35): Exit generation fallback with generationHint
  *
  * STAGES PLANNED:
  * - N3 (#256): Enhanced relative support with persistent heading state + turn commands
@@ -294,10 +374,11 @@ function resolveSemanticExit(input: string, context?: LocationExitContext): Dire
  * PARAMETERS:
  * @param input - Raw player input string (case-insensitive, whitespace trimmed automatically)
  * @param lastHeading - Optional previous direction traveled (enables left/right/forward/back)
- * @param locationContext - Optional location-specific exit context (enables semantic resolution)
+ * @param locationContext - Optional location-specific exit context (enables semantic resolution and N4 generation hints)
  *
  * RETURNS:
- * - { status: 'ok', canonical: Direction } — Successfully resolved
+ * - { status: 'ok', canonical: Direction } — Successfully resolved and exit exists
+ * - { status: 'generate', canonical: Direction, generationHint } — Valid direction but no exit (N4)
  * - { status: 'ambiguous', clarification: string, ambiguityCount: number } — Multiple semantic matches
  * - { status: 'unknown', clarification: string } — No match found
  *
@@ -331,18 +412,19 @@ export function normalizeDirection(
 
     // 1. Check if already a canonical direction
     if (isDirection(trimmed)) {
-        return { status: 'ok', canonical: trimmed }
+        return buildResolvedResult(trimmed, locationContext)
     }
 
     // 2. Check shortcuts (n → north, ne → northeast, etc.)
     if (trimmed in DIRECTION_SHORTCUTS) {
-        return { status: 'ok', canonical: DIRECTION_SHORTCUTS[trimmed] }
+        return buildResolvedResult(DIRECTION_SHORTCUTS[trimmed], locationContext)
     }
 
     // 3. Check semantic exits (N2: names, synonyms, landmark aliases)
+    // Note: Semantic matches are from existing exits, so they always return 'ok'
     const semanticMatches = resolveSemanticExit(trimmed, locationContext)
     if (semanticMatches.length === 1) {
-        // Unambiguous semantic match
+        // Unambiguous semantic match - exit already exists
         return { status: 'ok', canonical: semanticMatches[0] }
     } else if (semanticMatches.length > 1) {
         // Ambiguous semantic match
@@ -365,7 +447,7 @@ export function normalizeDirection(
 
         const resolved = resolveRelativeDirection(trimmed, lastHeading)
         if (resolved) {
-            return { status: 'ok', canonical: resolved }
+            return buildResolvedResult(resolved, locationContext)
         } else {
             return {
                 status: 'unknown',
@@ -377,11 +459,7 @@ export function normalizeDirection(
     // 5. Try typo tolerance (edit distance ≤1)
     const typoMatch = findTypoMatch(trimmed)
     if (typoMatch) {
-        return {
-            status: 'ok',
-            canonical: typoMatch,
-            clarification: `Interpreted "${input}" as "${typoMatch}".`
-        }
+        return buildResolvedResult(typoMatch, locationContext, `Interpreted "${input}" as "${typoMatch}".`)
     }
 
     // 6. Unknown

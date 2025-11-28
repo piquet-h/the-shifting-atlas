@@ -42,6 +42,8 @@ export const GAME_EVENT_NAMES = [
     'Navigation.Move.Success',
     'Navigation.Move.Blocked',
     'Navigation.Look.Issued',
+    // Exit generation fallback (Issue #35 - N4)
+    'Navigation.Exit.GenerationRequested',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
     // UI interaction telemetry (M2 Observability - frontend correlation)
