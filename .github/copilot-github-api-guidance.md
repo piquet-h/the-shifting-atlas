@@ -13,11 +13,11 @@ When working with GitHub issues, milestones, and dependencies, follow this tool 
 
 **Use MCP `mcp_github-remote_*` tools first for**:
 
--   Reading issue details (`mcp_github-remote_issue_read`)
--   Creating/updating issues (`mcp_github-remote_issue_write`)
--   Managing sub-issues within epics (`mcp_github-remote_sub_issue_write`)
--   Searching issues (`mcp_github-remote_search_issues`)
--   Adding comments (`mcp_github-remote_add_issue_comment`)
+- Reading issue details (`mcp_github-remote_issue_read`)
+- Creating/updating issues (`mcp_github-remote_issue_write`)
+- Managing sub-issues within epics (`mcp_github-remote_sub_issue_write`)
+- Searching issues (`mcp_github-remote_search_issues`)
+- Adding comments (`mcp_github-remote_add_issue_comment`)
 
 **Why**: MCP tools provide higher-level abstractions and better error handling.
 
@@ -36,46 +36,112 @@ curl -X PATCH \
   -d '{"milestone": {milestone_number}}'
 ```
 
-**Milestone numbers** (reference):
+**Milestone numbers**
 
--   M0 Foundation: 1 (closed)
--   M1 Traversal: 2 (closed)
--   M2 Observability: 3
--   M3 AI Read: 4
--   M4 Layering & Enrichment: 5
--   M5 Systems: 7
--   M6 Dungeon Runs: 8
+Avoid hard-coding milestone numbers in documentation — they can drift. Instead lookup the milestone number at runtime using either the GitHub CLI or the REST API and use that value when assigning milestones. Example methods below.
+
+Using the GitHub CLI (recommended interactive flow):
+
+```bash
+# List milestones and pick the number for the desired milestone
+gh api repos/:owner/:repo/milestones --jq '.[] | {number,title,state}' --repo piquet-h/the-shifting-atlas
+
+# Or find a specific milestone by title (exact match)
+MILESTONE_NUMBER=$(gh api repos/:owner/:repo/milestones --repo piquet-h/the-shifting-atlas --jq ".[] | select(.title==\"M2 Observability\") | .number")
+echo "MILESTONE_NUMBER=$MILESTONE_NUMBER"
+
+# Then use it in the issue update
+curl -X PATCH \
+  -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{issue_number}" \
+  -d "{\"milestone\": $MILESTONE_NUMBER}"
+```
+
+Using the REST API directly (scripted/CI):
+
+```bash
+# List milestones and filter by title using jq
+MILESTONE_NUMBER=$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/milestones" | \
+  jq -r '.[] | select(.title=="M2 Observability") | .number')
+
+curl -X PATCH \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{issue_number}" \
+  -d "{\"milestone\": $MILESTONE_NUMBER}"
+```
+
+Note: If you maintain a stable human-visible milestone catalog in `docs/roadmap.md`, prefer referencing milestone titles (lookup by title) rather than numeric IDs in automation or scripts. This ensures intent remains clear even when numbers change.
 
 #### Issue Dependencies
 
-**Primary**: Use REST API to create formal dependency relationships.
+**Primary**: Use REST API to create formal dependency relationships (correct endpoint & payload per 2022-11-28 API version).
+
+> IMPORTANT: Earlier internal guidance used `dependency_node_id` and the path `/issues/{issue_number}/dependencies` – this is **incorrect**. The official docs require the endpoint suffix `/dependencies/blocked_by` and a JSON body containing `issue_id` (the numeric internal issue id), _not_ the issue number and not the GraphQL `node_id`.
 
 ```bash
-# Get node_id for the dependency target issue
-DEPENDENCY_NODE_ID=$(curl -sS \
+# Get numeric internal id ("id") of the issue that BLOCKS the current one
+BLOCKING_ID=$(curl -sS \
   -H "Authorization: Bearer $(gh auth token)" \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
-  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{dependency_issue_number}" | \
-  jq -r '.node_id')
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocking_issue_number}" | jq -r '.id')
 
-# Add the dependency relationship
-curl -X POST \
+echo "Blocking issue internal id: $BLOCKING_ID"
+
+# Add the dependency: {blocked_issue_number} is blocked by {blocking_issue_number}
+curl -L -X POST \
   -H "Authorization: Bearer $(gh auth token)" \
   -H "Accept: application/vnd.github+json" \
+  -H "Content-Type: application/json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
-  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocked_issue_number}/dependencies" \
-  -d "{\"dependency_node_id\":\"$DEPENDENCY_NODE_ID\",\"dependency_type\":\"blocked_by\"}"
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocked_issue_number}/dependencies/blocked_by" \
+  -d "{\"issue_id\":$BLOCKING_ID}"
 ```
 
-**Fallback**: If the dependencies API returns 404 (temporary service issue), add a structured comment as a workaround:
+**Remove a dependency** (unblock):
+
+```bash
+curl -L -X DELETE \
+  -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocked_issue_number}/dependencies/blocked_by/{blocking_issue_internal_id}"
+```
+
+**List dependencies an issue is blocked by**:
+
+```bash
+curl -L \
+  -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{issue_number}/dependencies/blocked_by"
+```
+
+**List dependencies an issue is blocking**:
+
+```bash
+curl -L \
+  -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{issue_number}/dependencies/blocking"
+```
+
+**Fallback**: If the dependencies API returns 404 (feature not available for the repo or temporary service issue), add a structured comment as a workaround:
 
 ```markdown
 ## Dependencies
 
 This issue depends on:
 
--   #{issue_number} {issue_title}
+- #{issue_number} {issue_title}
 
 **Rationale**: {why this dependency exists}
 ```
@@ -95,18 +161,18 @@ Use `mcp_github-remote_add_issue_comment` for the fallback approach, but **alway
 1. **Try REST API first** (preferred - creates formal relationship):
 
     ```bash
-    # Fetch node_id for blocking issue
-    NODE_ID=$(curl -sS -H "Authorization: Bearer $(gh auth token)" \
-      "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocking_issue}" | \
-      jq -r '.node_id')
-
-    # Add dependency
-    curl -X POST \
-      -H "Authorization: Bearer $(gh auth token)" \
+    BLOCKING_ID=$(curl -sS -H "Authorization: Bearer $(gh auth token)" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocked_issue}/dependencies" \
-      -d "{\"dependency_node_id\":\"$NODE_ID\",\"dependency_type\":\"blocked_by\"}"
+      "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocking_issue_number}" | jq -r '.id')
+
+    curl -L -X POST \
+      -H "Authorization: Bearer $(gh auth token)" \
+      -H "Accept: application/vnd.github+json" \
+      -H "Content-Type: application/json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/{blocked_issue_number}/dependencies/blocked_by" \
+      -d "{\"issue_id\":$BLOCKING_ID}"
     ```
 
 2. **Fallback to comment only if API returns 404**:
@@ -171,9 +237,9 @@ curl -H "Authorization: Bearer $(gh auth token)" \
 
 **Request parameters**:
 
--   `sub_issue_id`: Must be the `node_id` (e.g., "I_kwDOPvMjxM7U-hJq"), not issue number
--   `method`: "add" | "remove" | "reprioritize"
--   For reprioritize: provide `after_id` or `before_id`
+- `sub_issue_id`: Must be the `node_id` (e.g., "I_kwDOPvMjxM7U-hJq"), not issue number
+- `method`: "add" | "remove" | "reprioritize"
+- For reprioritize: provide `after_id` or `before_id`
 
 ## Authentication
 
@@ -189,63 +255,66 @@ Ensure `gh` CLI is authenticated before making API calls.
 
 ### MCP Tool Failures
 
--   Read error message carefully
--   If "Not Found" or permission error, verify issue exists and is accessible
--   Fall back to REST API for unsupported operations
+- Read error message carefully
+- If "Not Found" or permission error, verify issue exists and is accessible
+- Fall back to REST API for unsupported operations
 
 ### REST API 404s
 
--   **Dependencies endpoint**: If returning 404, it's a temporary GitHub service issue. Fall back to structured comments until resolved.
--   **Other endpoints**: Verify URL structure and authentication
+- **Dependencies endpoint**: If returning 404, it's a temporary GitHub service issue. Fall back to structured comments until resolved.
+- **Other endpoints**: Verify URL structure and authentication
 
 ### Rate Limiting
 
--   GitHub API: 5000 requests/hour for authenticated users
--   If hitting limits, batch operations or add delays
+- GitHub API: 5000 requests/hour for authenticated users
+- If hitting limits, batch operations or add delays
 
 ## API Shape References
 
 Quick links to official GitHub REST API documentation for request/response schemas:
 
--   **[Issues API](https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28)**: Create, update, list issues
--   **[Milestones API](https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28)**: Manage milestones
--   **[Issue Dependencies API](https://docs.github.com/en/rest/issues/issue-dependencies?apiVersion=2022-11-28)**: Add/remove blocking relationships
--   **[Comments API](https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28)**: Add issue comments
+- **[Issues API](https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28)**: Create, update, list issues
+- **[Milestones API](https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28)**: Manage milestones
+- **[Issue Dependencies API](https://docs.github.com/en/rest/issues/issue-dependencies?apiVersion=2022-11-28)**: Add/remove blocking relationships
+- **[Comments API](https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28)**: Add issue comments
 
 Each endpoint documentation includes:
 
--   Full request body schema with required/optional fields
--   Response object structure
--   Error codes and meanings
--   Rate limit information
+- Full request body schema with required/optional fields
+- Response object structure
+- Error codes and meanings
+- Rate limit information
 
 ## Reference
 
--   **MCP Tools Documentation**: Built-in GitHub remote MCP server
--   **REST API Docs**: https://docs.github.com/en/rest
-    -   [Issues](https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28)
-    -   [Milestones](https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28)
-    -   [Issue Dependencies](https://docs.github.com/en/rest/issues/issue-dependencies?apiVersion=2022-11-28)
-    -   [Comments](https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28)
--   **Milestone Reference**: See table above or `docs/roadmap.md`
+- **MCP Tools Documentation**: Built-in GitHub remote MCP server
+- **REST API Docs**: https://docs.github.com/en/rest
+    - [Issues](https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28)
+    - [Milestones](https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28)
+    - [Issue Dependencies](https://docs.github.com/en/rest/issues/issue-dependencies?apiVersion=2022-11-28)
+    - [Comments](https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28)
+- **Milestone Reference**: See table above or `docs/roadmap.md`
 
 ## Examples from This Repo
 
 ### Successful Patterns
 
-✅ **Adding formal dependency via REST API** (preferred):
+✅ **Adding formal dependency via REST API** (preferred – corrected syntax):
 
 ```bash
-# Issue #297 depends on #289
-NODE_ID=$(curl -sS -H "Authorization: Bearer $(gh auth token)" \
-  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/289" | \
-  jq -r '.node_id')
+# Issue #297 depends on #289 (i.e. 297 is blocked by 289)
+BLOCKING_ID=$(curl -sS -H "Authorization: Bearer $(gh auth token)" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/289" | jq -r '.id')
 
-curl -X POST \
+curl -L -X POST \
   -H "Authorization: Bearer $(gh auth token)" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/297/dependencies" \
-  -d "{\"dependency_node_id\":\"$NODE_ID\",\"dependency_type\":\"blocked_by\"}"
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "https://api.github.com/repos/piquet-h/the-shifting-atlas/issues/297/dependencies/blocked_by" \
+  -d "{\"issue_id\":$BLOCKING_ID}"
 ```
 
 ✅ **Assigning milestone via REST** (Issue #347):
@@ -267,8 +336,8 @@ This issue depends on the following being completed first:
 
 **Dashboards**:
 
--   #289 Dashboard: Performance Operations (Consolidated Workbook)
--   #283 Dashboard: Movement Latency Distribution (P95/P99)
+- #289 Dashboard: Performance Operations (Consolidated Workbook)
+- #283 Dashboard: Movement Latency Distribution (P95/P99)
 
 **Rationale**: Threshold tuning requires observing baseline metrics...
 
@@ -277,17 +346,15 @@ _Note: Formal dependency relationship creation via API failed with 404; tracked 
 
 ### Temporary Issues
 
-⚠️ **Dependencies API returning 404** (temporary, as of Nov 2025):
+⚠️ **Dependencies API returning 404**:
 
-```bash
-# This may return 404 during temporary service issues
-curl -X POST \
-  ".../issues/297/dependencies" \
-  -d '{"dependency_node_id":"...", "dependency_type":"blocked_by"}'
-# Response: {"message": "Not Found"}
-```
+Possible causes:
 
-**Action**: When this occurs, fall back to structured comment approach. Retry REST API in future sessions as this is a temporary service issue, not a permanent limitation.
+1. Incorrect endpoint (ensure `/dependencies/blocked_by` suffix is present).
+2. Repository lacks feature availability (issue dependencies may be rolling out; retry later).
+3. Private repository + token lacks "Issues: write" permission (use a fine‑grained PAT or app token).
+
+**Action**: After verifying endpoint syntax, if 404 persists, fall back to structured comment approach and re‑attempt in a later session.
 
 ## Decision Tree
 
@@ -315,9 +382,9 @@ Need to work with GitHub issues?
 
 **Update this file when**:
 
--   New milestones are created (add to table)
--   GitHub API changes affect tool selection
--   MCP tools gain new capabilities
--   Workarounds are discovered or become obsolete
+- New milestones are created (add to table)
+- GitHub API changes affect tool selection
+- MCP tools gain new capabilities
+- Workarounds are discovered or become obsolete
 
 Last updated: 2025-11-07
