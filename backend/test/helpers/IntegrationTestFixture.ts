@@ -19,6 +19,7 @@ import type { IInventoryRepository } from '../../src/repos/inventoryRepository.j
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
+import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -187,6 +188,23 @@ export class IntegrationTestFixture extends BaseTestFixture {
                     }
                     return res
                 }
+            }
+        }
+        return repo
+    }
+
+    /** Get ProcessedEventRepository instance from DI container */
+    async getProcessedEventRepository(): Promise<IProcessedEventRepository> {
+        const container = await this.getContainer()
+        const repo = container.get<IProcessedEventRepository>('IProcessedEventRepository')
+        // Auto-registration wrapper (cosmos mode only)
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'markProcessed' in repo) {
+            const original = repo.markProcessed.bind(repo)
+            repo.markProcessed = async (record) => {
+                const result = await original(record)
+                // Container processedEvents, PK /idempotencyKey
+                this.sqlDocTracker?.register('processedEvents', record.idempotencyKey, record.id)
+                return result
             }
         }
         return repo
