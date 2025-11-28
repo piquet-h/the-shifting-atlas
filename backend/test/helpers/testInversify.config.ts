@@ -13,6 +13,7 @@
 
 import { Container } from 'inversify'
 import 'reflect-metadata'
+import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
 import { WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS } from '../../src/config/worldEventProcessorConfig.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
 import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
@@ -38,6 +39,9 @@ import { MemoryDeadLetterRepository } from '../../src/repos/deadLetterRepository
 import { CosmosDescriptionRepository } from '../../src/repos/descriptionRepository.cosmos.js'
 import { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import { InMemoryDescriptionRepository } from '../../src/repos/descriptionRepository.memory.js'
+import { CosmosExitHintDebounceRepository } from '../../src/repos/exitHintDebounceRepository.cosmos.js'
+import type { IExitHintDebounceRepository } from '../../src/repos/exitHintDebounceRepository.js'
+import { MemoryExitHintDebounceRepository } from '../../src/repos/exitHintDebounceRepository.memory.js'
 import { CosmosExitRepository, IExitRepository } from '../../src/repos/exitRepository.js'
 import { CosmosInventoryRepository } from '../../src/repos/inventoryRepository.cosmos.js'
 import { IInventoryRepository } from '../../src/repos/inventoryRepository.js'
@@ -202,6 +206,19 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 .bind<IProcessedEventRepository>('IProcessedEventRepository')
                 .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
         }
+
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.exitHintDebounce) {
+            container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(sqlConfig.containers.exitHintDebounce)
+            container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
+            container
+                .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
+                .to(CosmosExitHintDebounceRepository)
+                .inSingletonScope()
+        } else {
+            container
+                .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
+                .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -216,6 +233,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container
             .bind<IProcessedEventRepository>('IProcessedEventRepository')
             .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+        container
+            .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
+            .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -232,6 +252,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container
             .bind<IProcessedEventRepository>('IProcessedEventRepository')
             .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+        container
+            .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
+            .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
     }
 
     return container
