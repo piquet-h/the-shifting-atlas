@@ -3,7 +3,7 @@
  * Provides in-memory storage without requiring Azure credentials
  */
 
-import type { Container } from '@azure/cosmos'
+import type { Container, Database } from '@azure/cosmos'
 import type { ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
 
 /**
@@ -26,6 +26,12 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
     }
 
     return {
+        getDatabase: (): Database => {
+            return {
+                id: 'test-database',
+                container: (id: string) => ({ id })
+            } as Database
+        },
         getContainer: (containerName: string): Container => {
             if (!containers.has(containerName)) {
                 containers.set(containerName, new Map())
@@ -52,7 +58,7 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
                             statusCode: 200
                         }
                     },
-                    replace: async <TItem>(entity: TItem) => {
+                    replace: async <TItem extends T>(entity: TItem) => {
                         const key = `${partitionKey}:${id}`
                         if (!containerData.has(key)) {
                             const error = new Error('Not Found') as Error & { code: number }
@@ -60,7 +66,7 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
                             throw error
                         }
 
-                        containerData.set(key, entity as T)
+                        containerData.set(key, entity as unknown as T)
                         return {
                             resource: entity,
                             requestCharge: 5.0,
@@ -85,7 +91,7 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
                     }
                 }),
                 items: {
-                    create: async <TItem>(entity: TItem & { id: string }) => {
+                    create: async <TItem extends T>(entity: TItem & { id: string }) => {
                         const key = `${entity.id}:${entity.id}`
 
                         if (containerData.has(key)) {
@@ -94,16 +100,16 @@ export function createMockCosmosDbSqlClient<T extends { id: string }>(
                             throw error
                         }
 
-                        containerData.set(key, entity as T)
+                        containerData.set(key, entity as unknown as T)
                         return {
                             resource: entity,
                             requestCharge: 5.0,
                             statusCode: 201
                         }
                     },
-                    upsert: async <TItem>(entity: TItem & { id: string }) => {
+                    upsert: async <TItem extends T>(entity: TItem & { id: string }) => {
                         const key = `${entity.id}:${entity.id}`
-                        containerData.set(key, entity as T)
+                        containerData.set(key, entity as unknown as T)
 
                         return {
                             resource: entity,

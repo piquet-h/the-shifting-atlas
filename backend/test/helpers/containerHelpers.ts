@@ -62,15 +62,22 @@ export function createTestContainer(options?: {
  * ```
  */
 export function createMockGremlinClient(data: Record<string, unknown[]>): IGremlinClient {
-    return {
-        submit: async <T>(query: string): Promise<T[]> => {
-            for (const [pattern, response] of Object.entries(data)) {
-                if (query.includes(pattern)) {
-                    return response as T[]
-                }
+    const submitFn = async <T>(query: string): Promise<T[]> => {
+        for (const [pattern, response] of Object.entries(data)) {
+            if (query.includes(pattern)) {
+                return response as T[]
             }
-            return []
+        }
+        return []
+    }
+
+    return {
+        submit: submitFn,
+        submitWithMetrics: async <T>(query: string): Promise<{ items: T[]; latencyMs: number; requestCharge?: number }> => {
+            const items = await submitFn<T>(query)
+            return { items, latencyMs: 10, requestCharge: 1.0 }
         },
+        healthCheck: async () => true,
         // Added to satisfy updated IGremlinClient interface
         close: async () => {
             /* no-op for mock */

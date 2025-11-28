@@ -181,8 +181,8 @@ export class IntegrationTestFixture extends BaseTestFixture {
                 anyRepo['store'] = async (evt: Record<string, unknown>) => {
                     const res = await originalStore(evt)
                     // Partition key /scopeKey, id = eventId (defensive properties)
-                    const scopeKey = evt.scopeKey || evt.scope_key || evt.scope || 'unknown'
-                    const eventId = evt.eventId || evt.id || 'unknown'
+                    const scopeKey = String(evt.scopeKey || evt.scope_key || evt.scope || 'unknown')
+                    const eventId = String(evt.eventId || evt.id || 'unknown')
                     if (scopeKey !== 'unknown' && eventId !== 'unknown') {
                         this.sqlDocTracker?.register('worldEvents', scopeKey, eventId)
                     }

@@ -18,12 +18,12 @@
  */
 
 import { describe } from 'node:test'
-import { ContainerMode } from '../../src/inversify.config.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
 import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { getTestContainer } from './testContainer.js'
+import type { ContainerMode } from './testInversify.config.js'
 
 /**
  * Repository interface types that can be retrieved from the container

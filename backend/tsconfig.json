@@ -2,14 +2,14 @@
     "extends": "../tsconfig.base.json",
     "compilerOptions": {
         "outDir": "dist",
-        "rootDir": "src",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
+        "rootDir": ".",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "strict": true,
         "sourceMap": true,
         "noEmitOnError": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true
     },
-    "include": ["src"]
+    "include": ["src", "test"]
 }

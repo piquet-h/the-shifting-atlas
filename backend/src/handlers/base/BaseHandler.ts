@@ -12,11 +12,7 @@ import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import { errorResponse as buildErrorResponse, internalErrorResponse } from '../../http/errorEnvelope.js'
-import {
-    createErrorRecordingContext,
-    recordError,
-    type ErrorRecordingContext
-} from '../../telemetry/errorTelemetry.js'
+import { createErrorRecordingContext, recordError, type ErrorRecordingContext } from '../../telemetry/errorTelemetry.js'
 import type { ITelemetryClient } from '../../telemetry/ITelemetryClient.js'
 import { extractCorrelationId, extractPlayerGuid } from '../../telemetry/TelemetryService.js'
 

@@ -8,8 +8,7 @@ import {
     ERROR_TELEMETRY_KEYS,
     hasErrorRecorded,
     inferErrorKindFromStatus,
-    recordError,
-    type ErrorRecordingContext
+    recordError
 } from '../../src/telemetry/errorTelemetry.js'
 
 describe('Error Telemetry Normalization', () => {
