@@ -57,7 +57,8 @@ export const WorldEventTypeSchema = z.enum([
     'World.Ambience.Generated',
     'World.Exit.Create',
     'Location.Environment.Changed',
-    'Quest.Proposed'
+    'Quest.Proposed',
+    'Navigation.Exit.GenerationHint' // Exit generation hint queued for processing
 ])
 export type WorldEventType = z.infer<typeof WorldEventTypeSchema>
 
