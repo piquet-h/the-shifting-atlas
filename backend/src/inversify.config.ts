@@ -15,6 +15,7 @@
  */
 import { Container } from 'inversify'
 import 'reflect-metadata'
+import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/index.js'
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from './handlers/containerHealth.js'
@@ -37,6 +38,8 @@ import { CosmosDeadLetterRepository } from './repos/deadLetterRepository.cosmos.
 import type { IDeadLetterRepository } from './repos/deadLetterRepository.js'
 import { CosmosDescriptionRepository } from './repos/descriptionRepository.cosmos.js'
 import { IDescriptionRepository } from './repos/descriptionRepository.js'
+import { CosmosExitHintDebounceRepository } from './repos/exitHintDebounceRepository.cosmos.js'
+import type { IExitHintDebounceRepository } from './repos/exitHintDebounceRepository.js'
 import { CosmosExitRepository, IExitRepository } from './repos/exitRepository.js'
 import { CosmosInventoryRepository } from './repos/inventoryRepository.cosmos.js'
 import { IInventoryRepository } from './repos/inventoryRepository.js'
@@ -177,6 +180,14 @@ export const setupContainer = async (container: Container) => {
     }
     container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(config.cosmosSql.containers.processedEvents)
     container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()
+
+    // === Exit Hint Debounce Container ===
+    if (!config.cosmosSql?.containers.exitHintDebounce) {
+        throw new Error('Exit hint debounce container configuration missing. Required: COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE')
+    }
+    container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(config.cosmosSql.containers.exitHintDebounce)
+    container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
+    container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
 
     return container
 }

@@ -67,6 +67,11 @@
             "import": "./dist/types/processedEventRepository.js",
             "types": "./dist/types/processedEventRepository.d.ts",
             "default": "./dist/types/processedEventRepository.js"
+        },
+        "./types/exitHintDebounceRepository": {
+            "import": "./dist/types/exitHintDebounceRepository.js",
+            "types": "./dist/types/exitHintDebounceRepository.d.ts",
+            "default": "./dist/types/exitHintDebounceRepository.js"
         }
     },
     "browser": {

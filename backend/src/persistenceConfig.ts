@@ -20,6 +20,7 @@ export interface IPersistenceConfig {
             events: string
             deadLetters: string
             processedEvents: string
+            exitHintDebounce: string
         }
     }
 }
@@ -51,6 +52,7 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         const sqlContainerEvents = process.env.COSMOS_SQL_CONTAINER_EVENTS
         const sqlContainerDeadLetters = process.env.COSMOS_SQL_CONTAINER_DEADLETTERS || 'deadLetters'
         const sqlContainerProcessedEvents = process.env.COSMOS_SQL_CONTAINER_PROCESSED_EVENTS || 'processedEvents'
+        const sqlContainerExitHintDebounce = process.env.COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE || 'exitHintDebounce'
 
         // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
@@ -115,7 +117,8 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                     layers: sqlContainerLayers,
                     events: sqlContainerEvents,
                     deadLetters: sqlContainerDeadLetters,
-                    processedEvents: sqlContainerProcessedEvents
+                    processedEvents: sqlContainerProcessedEvents,
+                    exitHintDebounce: sqlContainerExitHintDebounce
                 }
             }
         }
