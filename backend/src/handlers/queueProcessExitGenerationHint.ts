@@ -29,6 +29,7 @@ import { inject, injectable } from 'inversify'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
+import { getContainer } from './utils/contextHelpers.js'
 
 // --- Configuration -----------------------------------------------------------
 
@@ -237,7 +238,9 @@ export class QueueProcessExitGenerationHintHandler {
                 {
                     correlationId,
                     firstAttemptTimestamp,
-                    errorCode: 'unknown' // 'expired-intent' is not a standard error code
+                    // Using 'unknown' as standard error codes don't cover business rule violations.
+                    // The 'category' field ('expired-intent') provides the specific classification.
+                    errorCode: 'unknown'
                 },
                 context
             )
@@ -373,8 +376,6 @@ export class QueueProcessExitGenerationHintHandler {
  * Queue trigger handler function for Azure Functions.
  */
 export async function queueProcessExitGenerationHint(message: unknown, context: InvocationContext): Promise<void> {
-    // Dynamic import to avoid circular dependency issues with container
-    const { getContainer } = await import('./utils/contextHelpers.js')
     const container = getContainer(context)
     const handler = container.get(QueueProcessExitGenerationHintHandler)
     await handler.handle(message, context)

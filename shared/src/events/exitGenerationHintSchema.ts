@@ -15,8 +15,12 @@ import { DIRECTIONS, type Direction } from '../domainModels.js'
 /**
  * Zod schema for Direction type.
  * Validates that a string is one of the canonical Direction values.
+ *
+ * Note: The type assertion is required because Zod's z.enum() expects a tuple type
+ * [T, ...T[]], while DIRECTIONS is typed as readonly Direction[]. Both represent
+ * the same values at runtime.
  */
-export const DirectionSchema = z.enum(DIRECTIONS as unknown as [Direction, ...Direction[]])
+export const DirectionSchema = z.enum(DIRECTIONS as unknown as readonly [Direction, ...Direction[]])
 
 /**
  * Exit Generation Hint payload schema.
