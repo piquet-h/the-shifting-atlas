@@ -41,8 +41,12 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     EVENT_RETRY_COUNT: 'game.event.retry.count',
     /** Batch ID for batch processing correlation */
     EVENT_BATCH_ID: 'game.event.batch.id',
-    /** Domain error classification */
+    /** Domain error classification code */
     ERROR_CODE: 'game.error.code',
+    /** Truncated error message (max 256 chars) */
+    ERROR_MESSAGE: 'game.error.message',
+    /** Error kind (validation, not-found, conflict, internal) */
+    ERROR_KIND: 'game.error.kind',
     /** Humor quip identifier (UUID) */
     HUMOR_QUIP_ID: 'game.humor.quip.id',
     /** Player action type that triggered humor */
@@ -99,10 +103,26 @@ export interface WorldEventLifecycleAttributes {
 }
 
 /**
+ * Error classification kinds for normalized error telemetry.
+ * Maps to HTTP semantics and domain error categories.
+ */
+export type ErrorKind = 'validation' | 'not-found' | 'conflict' | 'internal'
+
+/**
+ * Maximum length for error messages in telemetry (truncated to prevent bloat)
+ */
+export const ERROR_MESSAGE_MAX_LENGTH = 256
+
+/**
  * Options for enriching error events
  */
 export interface ErrorEventAttributes {
+    /** Domain error code (e.g., 'InvalidPlayerId', 'NoExit') */
     errorCode?: string | null
+    /** Error message (will be truncated to ERROR_MESSAGE_MAX_LENGTH) */
+    errorMessage?: string | null
+    /** Error kind classification (validation, not-found, conflict, internal) */
+    errorKind?: ErrorKind | null
 }
 
 /**
@@ -182,8 +202,9 @@ export function enrichWorldEventAttributes(properties: Record<string, unknown>, 
 
 /**
  * Enrich telemetry properties with error attributes.
- * Adds domain error classification code.
+ * Adds domain error classification code, truncated message, and error kind.
  * Omits attributes if values are null/undefined (conditional presence).
+ * Message is truncated to ERROR_MESSAGE_MAX_LENGTH (256 chars) to prevent telemetry bloat.
  *
  * @param properties - Base telemetry properties object (will be mutated)
  * @param attrs - Error attribute values
@@ -192,6 +213,17 @@ export function enrichWorldEventAttributes(properties: Record<string, unknown>, 
 export function enrichErrorAttributes(properties: Record<string, unknown>, attrs: ErrorEventAttributes): Record<string, unknown> {
     if (attrs.errorCode) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    if (attrs.errorMessage) {
+        // Truncate message to prevent telemetry bloat (>256 chars edge case)
+        const truncated =
+            attrs.errorMessage.length > ERROR_MESSAGE_MAX_LENGTH
+                ? attrs.errorMessage.substring(0, ERROR_MESSAGE_MAX_LENGTH - 3) + '...'
+                : attrs.errorMessage
+        properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_MESSAGE] = truncated
+    }
+    if (attrs.errorKind) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_KIND] = attrs.errorKind
     }
     return properties
 }

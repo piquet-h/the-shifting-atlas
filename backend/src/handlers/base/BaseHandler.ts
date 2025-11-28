@@ -1,12 +1,22 @@
 /**
  * Abstract base handler class for Azure Functions HTTP handlers.
  * Provides common functionality: timing, correlation, container access, telemetry.
+ *
+ * Error Telemetry Normalization:
+ * - Includes error recording context with duplicate prevention (first-wins)
+ * - Use recordNormalizedError() to attach game.error.* attributes to telemetry
+ * - Errors are automatically classified by kind (validation, not-found, conflict, internal)
  */
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import { errorResponse as buildErrorResponse, internalErrorResponse } from '../../http/errorEnvelope.js'
+import {
+    createErrorRecordingContext,
+    recordError,
+    type ErrorRecordingContext
+} from '../../telemetry/errorTelemetry.js'
 import type { ITelemetryClient } from '../../telemetry/ITelemetryClient.js'
 import { extractCorrelationId, extractPlayerGuid } from '../../telemetry/TelemetryService.js'
 
@@ -16,6 +26,8 @@ export abstract class BaseHandler {
     protected playerGuid?: string
     protected container!: Container
     private started!: number
+    /** Error recording context for duplicate prevention (first-wins) */
+    private errorContext!: ErrorRecordingContext
 
     constructor(@inject('ITelemetryClient') protected telemetry: ITelemetryClient) {}
 
@@ -30,6 +42,8 @@ export abstract class BaseHandler {
         this.correlationId = extractCorrelationId(req.headers)
         this.playerGuid = extractPlayerGuid(req.headers)
         this.container = context.extraInputs.get('container') as Container
+        // Initialize error recording context (for duplicate prevention)
+        this.errorContext = createErrorRecordingContext(this.correlationId)
 
         try {
             const result = await this.execute(req, context)
@@ -91,6 +105,44 @@ export abstract class BaseHandler {
             ...properties,
             errorCode
         })
+    }
+
+    /**
+     * Record a normalized error with game.error.* attributes and emit telemetry.
+     * Implements duplicate prevention: subsequent errors on the same request are ignored.
+     *
+     * @param eventName - Game event name for the error event
+     * @param errorCode - Error code (e.g., 'ValidationError', 'NotFound')
+     * @param errorMessage - Human-readable error message (truncated to 256 chars)
+     * @param httpStatus - HTTP status code (used for error kind classification)
+     * @param additionalProps - Additional properties to include in telemetry
+     * @returns Whether the error was recorded (false if duplicate)
+     */
+    protected recordNormalizedError(
+        eventName: GameEventName,
+        errorCode: string,
+        errorMessage: string,
+        httpStatus: number,
+        additionalProps: Record<string, unknown> = {}
+    ): boolean {
+        // Update error context with HTTP status for classification
+        this.errorContext.httpStatus = httpStatus
+
+        // Build properties with standard dimensions
+        const props: Record<string, unknown> = {
+            ...additionalProps,
+            status: httpStatus
+        }
+
+        // Record error with normalized attributes (handles duplicate prevention)
+        const result = recordError(this.errorContext, { code: errorCode, message: errorMessage }, props)
+
+        if (result.recorded) {
+            // Emit telemetry event with normalized error attributes
+            this.track(eventName, props)
+        }
+
+        return result.recorded
     }
 
     /**

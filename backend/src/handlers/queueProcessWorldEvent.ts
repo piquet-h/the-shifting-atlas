@@ -10,7 +10,7 @@
  * - WORLD_EVENT_CACHE_MAX_SIZE: Max entries in idempotency cache before eviction (default: 10000)
  */
 import type { InvocationContext } from '@azure/functions'
-import { enrichWorldEventAttributes } from '@piquet-h/shared'
+import { enrichErrorAttributes, enrichWorldEventAttributes } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
@@ -150,20 +150,24 @@ export class QueueProcessWorldEventHandler {
                 )
                 await this.deadLetterRepository.store(deadLetterRecord)
 
-                // Emit dead-letter telemetry with enhanced dimensions (Issue #401)
-                this.telemetryService.trackGameEventStrict(
-                    'World.Event.DeadLettered',
-                    {
-                        reason: 'json-parse',
-                        errorCount: 1,
-                        recordId: deadLetterRecord.id,
-                        // Issue #401: New dimensions
-                        errorCode: 'json-parse',
-                        retryCount: 0,
-                        finalError: String(parseError).substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
-                    },
-                    { correlationId: context.invocationId }
-                )
+                // Emit dead-letter telemetry with enhanced dimensions (Issue #401) + normalized error attributes
+                const deadLetterProps: Record<string, unknown> = {
+                    reason: 'json-parse',
+                    errorCount: 1,
+                    recordId: deadLetterRecord.id,
+                    // Issue #401: New dimensions
+                    retryCount: 0,
+                    finalError: String(parseError).substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
+                }
+                // Add normalized error attributes (game.error.code, game.error.message, game.error.kind)
+                enrichErrorAttributes(deadLetterProps, {
+                    errorCode: 'json-parse',
+                    errorMessage: String(parseError),
+                    errorKind: 'validation'
+                })
+                this.telemetryService.trackGameEventStrict('World.Event.DeadLettered', deadLetterProps, {
+                    correlationId: context.invocationId
+                })
 
                 context.log('Dead-letter record created for JSON parse failure', {
                     recordId: deadLetterRecord.id
@@ -222,22 +226,26 @@ export class QueueProcessWorldEventHandler {
                 )
                 await this.deadLetterRepository.store(deadLetterRecord)
 
-                // Emit dead-letter telemetry with enhanced dimensions (Issue #401)
-                this.telemetryService.trackGameEventStrict(
-                    'World.Event.DeadLettered',
-                    {
-                        reason: 'schema-validation',
-                        errorCount: errors.length,
-                        recordId: deadLetterRecord.id,
-                        eventType: deadLetterRecord.eventType,
-                        correlationId: deadLetterRecord.correlationId,
-                        // Issue #401: New dimensions
-                        errorCode: 'schema-validation',
-                        retryCount: 0,
-                        finalError: errors[0]?.message?.substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
-                    },
-                    { correlationId: deadLetterRecord.correlationId }
-                )
+                // Emit dead-letter telemetry with enhanced dimensions (Issue #401) + normalized error attributes
+                const schemaErrorProps: Record<string, unknown> = {
+                    reason: 'schema-validation',
+                    errorCount: errors.length,
+                    recordId: deadLetterRecord.id,
+                    eventType: deadLetterRecord.eventType,
+                    correlationId: deadLetterRecord.correlationId,
+                    // Issue #401: New dimensions
+                    retryCount: 0,
+                    finalError: errors[0]?.message?.substring(0, TELEMETRY_ERROR_MESSAGE_MAX_LENGTH)
+                }
+                // Add normalized error attributes (game.error.code, game.error.message, game.error.kind)
+                enrichErrorAttributes(schemaErrorProps, {
+                    errorCode: 'schema-validation',
+                    errorMessage: errors.map((e) => e.message).join('; '),
+                    errorKind: 'validation'
+                })
+                this.telemetryService.trackGameEventStrict('World.Event.DeadLettered', schemaErrorProps, {
+                    correlationId: deadLetterRecord.correlationId
+                })
 
                 context.log('Dead-letter record created for schema validation failure', {
                     recordId: deadLetterRecord.id,
