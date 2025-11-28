@@ -151,7 +151,7 @@ export class ExitGenerationHintStore {
      */
     dispose(): void {
         if (this.cleanupTimer) {
-            clearTimeout(this.cleanupTimer)
+            clearInterval(this.cleanupTimer)
             this.cleanupTimer = null
         }
     }
@@ -164,14 +164,16 @@ export class ExitGenerationHintStore {
     }
 
     /**
-     * Schedule periodic cleanup of stale entries.
+     * Schedule periodic cleanup of stale entries using setInterval.
      */
     private scheduleCleanup(): void {
+        if (this.cleanupTimer) {
+            return // Already scheduled
+        }
         // Run cleanup at 2x debounce window interval
         const cleanupIntervalMs = this.config.debounceWindowMs * 2
-        this.cleanupTimer = setTimeout(() => {
+        this.cleanupTimer = setInterval(() => {
             this.cleanupStaleEntries()
-            this.scheduleCleanup()
         }, cleanupIntervalMs)
         // Unref to allow Node.js to exit even if timer is pending
         this.cleanupTimer.unref()
@@ -218,13 +220,23 @@ export function resetExitGenerationHintStore(): void {
 
 /**
  * Hash a player ID for privacy in telemetry.
- * Uses a simple hash that's consistent but not reversible.
+ *
+ * Uses djb2 algorithm for fast, consistent hashing. This is NOT a cryptographic hash
+ * and should not be used for security purposes. For telemetry, we only need:
+ * 1. Consistent output for aggregation (same ID -> same hash)
+ * 2. Some obfuscation to avoid storing raw player IDs in logs
+ *
+ * Security considerations:
+ * - djb2 is not cryptographically secure and could theoretically be reversed
+ * - For high-security requirements, use crypto.subtle.digest('SHA-256', ...) instead
+ * - The 32-bit output space is small; collisions are possible for very large player sets
  *
  * @param playerId - The raw player ID (GUID)
- * @returns A hashed string suitable for telemetry
+ * @returns A hashed string suitable for telemetry (hex-encoded)
  */
 export function hashPlayerIdForTelemetry(playerId: string): string {
-    // Simple hash using djb2 algorithm - fast and produces consistent results
+    // djb2 hash algorithm - fast and produces reasonably distributed results
+    // Note: This is adequate for telemetry grouping but not for security purposes
     let hash = 5381
     for (let i = 0; i < playerId.length; i++) {
         hash = (hash * 33) ^ playerId.charCodeAt(i)
