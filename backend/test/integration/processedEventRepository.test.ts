@@ -1,7 +1,7 @@
 /**
  * Integration tests for durable processed event registry
  *
- * Tests that the SQL API-backed registry persists idempotency keys
+ * Tests that the Cosmos SQL-backed registry persists idempotency keys
  * across processor restarts, ensuring ≥99.9% duplicate suppression.
  *
  * Test Coverage (Issue #576):
@@ -180,25 +180,27 @@ describe('Processed Event Repository - Restart Duplicate Suppression', () => {
         })
 
         test('memory mode latency should be <250ms for checkProcessed', async () => {
-            const fixture = new IntegrationTestFixture('memory', { trackPerformance: true })
-            await fixture.setup()
+            const localFixture = new IntegrationTestFixture('memory', { trackPerformance: true })
+            await localFixture.setup()
 
-            const repo = await fixture.getProcessedEventRepository()
-            const idempotencyKey = `test-latency-${uuidv4()}`
+            try {
+                const repo = await localFixture.getProcessedEventRepository()
+                const idempotencyKey = `test-latency-${uuidv4()}`
 
-            // Warm up and test multiple times
-            for (let i = 0; i < 10; i++) {
-                const start = Date.now()
-                await repo.checkProcessed(`${idempotencyKey}-${i}`)
-                const latency = Date.now() - start
-                fixture.trackPerformance('checkProcessed', latency)
+                // Warm up and test multiple times
+                for (let i = 0; i < 10; i++) {
+                    const start = Date.now()
+                    await repo.checkProcessed(`${idempotencyKey}-${i}`)
+                    const latency = Date.now() - start
+                    localFixture.trackPerformance('checkProcessed', latency)
+                }
+
+                const p95 = localFixture.getP95Latency('checkProcessed')
+                assert.ok(p95 !== null, 'Should have performance metrics')
+                assert.ok(p95! < 250, `Memory mode checkProcessed p95 latency (${p95}ms) should be <250ms`)
+            } finally {
+                await localFixture.teardown()
             }
-
-            const p95 = fixture.getP95Latency('checkProcessed')
-            assert.ok(p95 !== null, 'Should have performance metrics')
-            assert.ok(p95! < 250, `Memory mode checkProcessed p95 latency (${p95}ms) should be <250ms`)
-
-            await fixture.teardown()
         })
     })
 
