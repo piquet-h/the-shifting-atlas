@@ -2,9 +2,6 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
-@description('Optional additional AAD principal object IDs (users, service principals, managed identities) to receive Cosmos DB Built-in Data Contributor on both Gremlin and SQL accounts for local dev or tooling.')
-param additionalCosmosDataContributors array = []
-
 var storageName = toLower('st${name}${unique}')
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -461,41 +458,6 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
 
 output cosmosSqlTestDatabaseName string = 'game-test'
 
-// Optional: grant the same data contributor role to any extra principals (e.g., developer AAD users for local Gremlin access)
-// This helps avoid 403 Substatus 5301 locally when DefaultAzureCredential resolves to a developer identity instead of the Function App MI.
-// Each principal gets role assignment on BOTH graph & sql accounts.
-@batchSize(5)
-resource extraCosmosGraphContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for principalId in additionalCosmosDataContributors: {
-    name: guid(cosmosGraphAccount.id, principalId, 'cosmos-graph-extra-data-contrib')
-    scope: cosmosGraphAccount
-    properties: {
-      roleDefinitionId: subscriptionResourceId(
-        'Microsoft.Authorization/roleDefinitions',
-        '5bd9cd88-fe45-4216-938b-f97437e15450'
-      )
-      principalId: principalId
-      principalType: 'ServicePrincipal' // AAD users & service principals accepted; Azure will coerce type.
-    }
-  }
-]
-
-@batchSize(5)
-resource extraCosmosSqlContrib 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
-  for principalId in additionalCosmosDataContributors: {
-    name: guid(cosmosSqlAccount.id, principalId, 'cosmos-sql-extra-data-contrib')
-    scope: cosmosSqlAccount
-    properties: {
-      roleDefinitionId: subscriptionResourceId(
-        'Microsoft.Authorization/roleDefinitions',
-        '5bd9cd88-fe45-4216-938b-f97437e15450'
-      )
-      principalId: principalId
-      principalType: 'ServicePrincipal'
-    }
-  }
-]
-
 resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: 'sb-atlas-${unique}'
   location: location
@@ -621,6 +583,32 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
       'Microsoft.Authorization/roleDefinitions',
       'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
     ) // Storage Blob Data Contributor
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageQueueDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, backendFunctionApp.id, 'storage-queue-data-reader')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '19e7f393-937e-4f77-808e-94535e297925'
+    ) // Storage Queue Data Reader
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageQueueDataMessageProcessor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, backendFunctionApp.id, 'storage-queue-data-message-processor')
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '8a0f0c08-91a1-4084-bc3d-661d67233fed'
+    ) // Storage Queue Data Message Processor
     principalId: backendFunctionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
