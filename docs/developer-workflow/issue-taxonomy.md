@@ -12,11 +12,11 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 
 Guidelines:
 
--   Exactly one `scope:` and one `type` label per issue.
--   `bug` is allowed but should be used only for defects in existing behavior (regressions or incorrect results) – NOT for missing planned features (use `feature` or `enhancement` instead).
--   (Removed) Implementation Order numeric field — use milestone + dependency + scope impact instead.
--   Stages are GitHub Milestones, not labels.
--   No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
+- Exactly one `scope:` and one `type` label per issue.
+- `bug` is allowed but should be used only for defects in existing behavior (regressions or incorrect results) – NOT for missing planned features (use `feature` or `enhancement` instead).
+- (Removed) Implementation Order numeric field — use milestone + dependency + scope impact instead.
+- Stages are GitHub Milestones, not labels.
+- No `phase:` / `area:` / `status:` / `priority:` labels; use Project field instead of priority.
 
 ## Examples
 
@@ -28,7 +28,7 @@ Milestone: M0 Foundation
 ```
 
 ```text
-Title: MCP Read-Only Servers (world-query, prompt-template, telemetry)
+Title: MCP Read-Only Servers (world-query, lore-memory, classification)
 Labels: scope:mcp, feature
 Priority Basis: Milestone (M4) + enables AI read capabilities
 Milestone: M4 AI Read
@@ -54,8 +54,8 @@ Module documents may still reference internal sub-phase codes (e.g., traversal n
 
 ## Automation (Future)
 
--   Lightweight Action validation: exactly one `scope:` + one type label present.
--   Changelog grouping: order by Milestone then by `scope:` (no numeric ordering field).
+- Lightweight Action validation: exactly one `scope:` + one type label present.
+- Changelog grouping: order by Milestone then by `scope:` (no numeric ordering field).
 
 ## Rationale
 
@@ -69,10 +69,10 @@ We intentionally enforce **exactly one** `scope:` label and **exactly one** `typ
 
 ### Why Not Multiple Scopes?
 
--   Priority scoring stays deterministic (no double-count / averaging logic).
--   Velocity metrics by scope remain truthful (no inflated counts for shared work).
--   Grooming friction avoided (“which 3 scopes apply?” → pick the _dominant_ domain or split work).
--   Automation (implementation‑order assignment, dashboards) stays simple and predictable.
+- Priority scoring stays deterministic (no double-count / averaging logic).
+- Velocity metrics by scope remain truthful (no inflated counts for shared work).
+- Grooming friction avoided (“which 3 scopes apply?” → pick the _dominant_ domain or split work).
+- Automation (implementation‑order assignment, dashboards) stays simple and predictable.
 
 ### Choosing the Single Scope (Heuristic)
 
@@ -108,9 +108,9 @@ Some _ephemeral or auto-generated diagnostic_ issues can be excluded from valida
 
 Skip Criteria (any true):
 
--   Title matches `/^DI Suitability Report/` (automated scan output).
--   Title matches `Only create DI Suitability Issue if needed` (meta follow-up).
--   Issue has label `docs` AND title contains `Report` AND was authored by `github-actions` (future pattern).
+- Title matches `/^DI Suitability Report/` (automated scan output).
+- Title matches `Only create DI Suitability Issue if needed` (meta follow-up).
+- Issue has label `docs` AND title contains `Report` AND was authored by `github-actions` (future pattern).
 
 Even when skipped, adding a canonical scope + type is **recommended** for consistency (we currently backfilled them). If skip patterns become broad, introduce a dedicated non-priority label (e.g. `ephemeral`) via ADR first.
 

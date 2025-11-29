@@ -48,13 +48,13 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
-| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                         | Exit Criteria                                        |
-| ----------------- | ----------------------- | --------------------------------------------------- | ---------------------------------------------------- |
-| M4 AI Read        | Foundations (Read-Only) | `world-query`, `prompt-template`, `telemetry`       | Stable JSON contracts; initial telemetry dashboard   |
-| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                    | Safe ambience & NPC one-liners in playtest           |
-| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)              | Validator rejects unsafe / incoherent >90% precision |
-| (Future) Planning | Narrative Planning      | +`simulation-planner`                               | Multi-step quest seed generation gated & logged      |
-| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools | Cost & token budgets within defined thresholds       |
+| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                                                                                             | Exit Criteria                                        |
+| ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| M4 AI Read        | Foundations (Read-Only) | `world-query` (MCP for world state read-only). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
+| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                                                                                        | Safe ambience & NPC one-liners in playtest           |
+| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)                                                                                  | Validator rejects unsafe / incoherent >90% precision |
+| (Future) Planning | Narrative Planning      | +`simulation-planner`                                                                                                   | Multi-step quest seed generation gated & logged      |
+| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools                                                                     | Cost & token budgets within defined thresholds       |
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
@@ -66,61 +66,75 @@ Read-only world access.
 
 Tools (draft):
 
--   `getRoom(roomId)` → { id, name, tags, exits[], occupants[], lastUpdatedUtc }
--   `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
--   `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
+- `getRoom(roomId)` → { id, name, tags, exits[], occupants[], lastUpdatedUtc }
+- `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
+- `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
 
-### prompt-template-mcp (Stage M4 – Read Only)
+### Prompt templates (NOT an MCP server)
 
-Central registry & versioning for reusable prompt templates.
+Prompt templates and the canonical registry are implementation concerns and MUST NOT be exposed as MCP servers. Instead:
 
--   `getTemplate(name)`
--   `listTemplates(prefix?)`
--   `registerVersion(name, version, checksum, body)` (restricted / dev only)
+- Store canonical, versioned prompt templates in code under `shared/src/prompts/` (filesystem or registry-backed) with deterministic hashing (SHA-256) and retrieval helpers.
+- Expose backend helper endpoints only when external tooling needs HTTP access (e.g. `GET /api/prompts/{id}` in `backend/src/functions/prompts/`) — these endpoints should call into `shared` helpers.
+- Rationale: prompt text is an implementation artifact (determinism, testability, CI validation) and belongs in the shared package; keeping it out of MCP reduces attack surface and encourages deterministic hashing and lint enforcement.
 
-### telemetry-mcp (Stage M4 – Read Only)
+Suggested helpers / functions:
 
-Structured logging to App Insights / custom table.
+- `shared/src/prompts/getTemplate(name, version?)`
+- `shared/src/prompts/listTemplates(tag?)`
+- `shared/src/prompts/computePromptHash(template)`
 
--   `recordAIUsage(purpose, model, tokensIn, tokensOut, latencyMs, toolCalls)`
--   `logDecision(purpose, decisionType, hashRef, outcome)`
+### Telemetry & Observability (NOT an MCP server)
+
+Telemetry, metric emission, and Application Insights queries MUST be implemented in the backend / observability area rather than as MCP servers. Recommended placement:
+
+- Canonical event names: `shared/src/telemetryEvents.ts` (the single source of truth for event literals).
+- Telemetry helpers: `shared/src/telemetry.ts` (emit helpers and wrappers used by backend code).
+- Backend helper endpoints for curated telemetry queries: `backend/src/functions/telemetry/` (if external tools require aggregated, sanitized query results).
+
+Rationale: Centralizing telemetry in backend/observability ensures consistent sanitization, access control, rate-limiting and avoids exposing App Insights or high-cardinality surfaces to MCP clients.
+
+Telemetry examples (implemented in shared/backend code, not MCP):
+
+- `trackAICall(purpose, model, tokens, latency, dims)` — helper used by backend functions
+- `GET /api/telemetry/ai-usage?since=...&eventType=...` — curated aggregate endpoint implemented by backend functions
 
 ### classification-mcp (Stage M4 – Enrichment)
 
 Safety & routing support.
 
--   `classifyIntent(utterance)` → { intent, confidence }
--   `moderateContent(text)` → { flagged, categories[] }
+- `classifyIntent(utterance)` → { intent, confidence }
+- `moderateContent(text)` → { flagged, categories[] }
 
 ### lore-memory-mcp (Stage M4 – Enrichment)
 
 Vector / semantic retrieval over curated lore, quests, factions.
 
--   `semanticSearchLore(query, k)` → [{ id, score, snippet }]
--   `getCanonicalFact(entityId)` → { id, type, fields }
+- `semanticSearchLore(query, k)` → [{ id, score, snippet }]
+- `getCanonicalFact(entityId)` → { id, type, fields }
 
 ### world-mutation-mcp (Stage M5 – Proposals)
 
 Proposal endpoints (never direct writes):
 
--   `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
--   `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
--   `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
-    -   Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
+- `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
+- `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
+- `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
+    - Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
 
 ### simulation-planner-mcp (Stage M6 – Planning)
 
 Higher-order narrative & faction simulation.
 
--   `simulateFactionTick(factionId, horizonSteps)`
--   `generateEventArc(seed, constraints)`
+- `simulateFactionTick(factionId, horizonSteps)`
+- `generateEventArc(seed, constraints)`
 
 ### economy-analytics-mcp (Stage M7 – Advisory)
 
 Advisory economic insights.
 
--   `detectAnomalies(range)`
--   `suggestPriceAdjustments(commodityId)`
+- `detectAnomalies(range)`
+- `suggestPriceAdjustments(commodityId)`
 
 ## Advisory vs Authoritative Flow
 
@@ -146,10 +160,10 @@ Advisory economic insights.
 
 Memory Tiers:
 
--   Canonical Graph: Gremlin (authoritative state)
--   Short-Term Interaction: Redis/Table (recent dialogue per NPC-player pair)
--   Long-Term Lore Embeddings: Curated subset (initially ≤ 200 facts) → lore-memory-mcp
--   Ephemeral Scratch: In-process agent scratchpads (never persisted)
+- Canonical Graph: Gremlin (authoritative state)
+- Short-Term Interaction: Redis/Table (recent dialogue per NPC-player pair)
+- Long-Term Lore Embeddings: Curated subset (initially ≤ 200 facts) → lore-memory-mcp
+- Ephemeral Scratch: In-process agent scratchpads (never persisted)
 
 Retrieval Pattern: Tools return _structured_ fact objects; agent composes minimal natural language only at the final step.
 
@@ -157,22 +171,22 @@ Retrieval Pattern: Tools return _structured_ fact objects; agent composes minima
 
 Mechanisms:
 
--   Context Hashing: (purpose + canonicalContextHash) → cache reuse
--   Model Tiering: Cheap model for ambience; richer model for narrative arcs
--   Tool Call Budget: Hard cap (e.g., 6) per task to prevent runaway loops
--   Proposal De-Duplication: Content hash stored; identical resubmissions skipped
+- Context Hashing: (purpose + canonicalContextHash) → cache reuse
+- Model Tiering: Cheap model for ambience; richer model for narrative arcs
+- Tool Call Budget: Hard cap (e.g., 6) per task to prevent runaway loops
+- Proposal De-Duplication: Content hash stored; identical resubmissions skipped
 
 ## Observability & Telemetry
 
 Minimum metrics per AI invocation:
 
--   `ai.purpose` (ambience | npc_dialogue | quest_seed | etc.)
--   `ai.model`
--   `ai.tokens.prompt` / `ai.tokens.completion`
--   `ai.latency.total_ms`
--   `ai.toolCalls.count`
--   `ai.validation.outcome` (accepted|rejected|modified)
--   `ai.moderation.flagged` (bool)
+- `ai.purpose` (ambience | npc_dialogue | quest_seed | etc.)
+- `ai.model`
+- `ai.tokens.prompt` / `ai.tokens.completion`
+- `ai.latency.total_ms`
+- `ai.toolCalls.count`
+- `ai.validation.outcome` (accepted|rejected|modified)
+- `ai.moderation.flagged` (bool)
 
 Dashboards: Cost per purpose, rejection rate trend, latency percentiles, dialogue diversity (distinct n-grams), retrieval recall sampling.
 
@@ -184,19 +198,19 @@ Authoritative event name enumeration lives in `shared/src/telemetryEvents.ts` (i
 
 Required dimensions per AI invocation event (`Prompt.Genesis.Issued`, `Prompt.Genesis.Rejected`, etc.):
 
--   `ai.model` – exact model identifier
--   `ai.purpose` – controlled vocabulary (ambience|npc_dialogue|quest_seed|classification|retrieval)
--   `ai.tokens.prompt` / `ai.tokens.completion`
--   `ai.latency.total_ms`
--   `ai.toolCalls.count`
--   `ai.validation.outcome` – accepted|rejected|modified
--   `ai.moderation.flagged` – boolean
+- `ai.model` – exact model identifier
+- `ai.purpose` – controlled vocabulary (ambience|npc_dialogue|quest_seed|classification|retrieval)
+- `ai.tokens.prompt` / `ai.tokens.completion`
+- `ai.latency.total_ms`
+- `ai.toolCalls.count`
+- `ai.validation.outcome` – accepted|rejected|modified
+- `ai.moderation.flagged` – boolean
 
 Optional (emit when present):
 
--   `ai.cache.hit` (bool) – context hash reuse
--   `ai.retry.count` – number of reprompts
--   `ai.version.template` – semantic version of prompt template
+- `ai.cache.hit` (bool) – context hash reuse
+- `ai.retry.count` – number of reprompts
+- `ai.version.template` – semantic version of prompt template
 
 Sampling: None at Stage M3. Introduce selective sampling only if ingestion threatens budget; never sample rejection or moderation-flag events.
 
@@ -253,12 +267,70 @@ Committee Example (Stage M6+):
 
 ## Cross-References
 
--   `overview.md` – High-level architecture; this doc elaborates the AI layer.
--   `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
--   `location-version-policy.md` – Exit changes do not affect location version
--   `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
--   `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
+- `overview.md` – High-level architecture; this doc elaborates the AI layer.
+- `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
+- `location-version-policy.md` – Exit changes do not affect location version
+- `../modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
+- `../modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 
 ---
 
 _Initial version authored 2025-09-25 to establish AI/MCP integration contract._
+
+## Agent Roles Summary
+
+This project distinguishes concise, single-responsibility agents. Each agent is advisory by default; authoritative state changes require Validation & Policy gates.
+
+- Narrative Agent (DM persona)
+    - Role: Produce player-facing narration, evaluate plausibility, and emit advisory proposals for world changes.
+    - Inputs: ActionFrame, world-query, lore-memory, character metadata.
+    - Outputs: narration text, advisory WorldEventEnvelope proposals.
+
+- Intent Parser Agent
+    - Role: Convert free-form player text → structured ActionFrame(s) (verbs, targets, modifiers, order).
+    - Tools: local heuristics, optional fast model, `world-query` for disambiguation.
+
+- World Agent
+    - Role: Apply deterministic mechanics (movement, inventory, time costs) and produce deterministic proposals when required.
+    - Tools: `world-query`, ActionRegistry, repository adapters.
+
+- Encounter / Resolution Agent
+    - Role: Resolve interactive multi-actor scenarios (turns, resource consumption) and emit domain events or validated proposals.
+    - Tools: `world-query`, rule tables, ActionRegistry.
+
+- Planner / Quest Agent
+    - Role: Generate multi-step arcs (quest seeds, adventure scaffolds) for later validation and enactment.
+    - Tools: `lore-memory`, `simulation-planner`, `world-query`.
+
+- Safety / Classification Agent
+    - Role: Moderate and classify content; block or flag proposals violating safety policy.
+    - Tools: `classification-mcp`.
+
+- Canonicality / Validator Agent
+    - Role: Verify referential integrity and domain invariants before persistence (exits exist, entity resolution).
+    - Tools: `world-query`, shared validation functions.
+
+- Aggregator / Orchestrator
+    - Role: Combine multiple agent outputs, tie-break, attach correlation ids, and forward accepted work to the Validation & Policy pipeline.
+
+- Telemetry / Audit Agent
+    - Role: Emit standardized telemetry for AI invocations and decision outcomes using `shared/src/telemetry.ts`.
+
+## MCP Contract Table (compact)
+
+The table below lists the primary MCP servers / backend helpers with their purpose, representative methods, and short auth notes.
+
+| Server / Helper                      |            Stage | Representative methods                                                                                | Auth / Notes                                                                                                |
+| ------------------------------------ | ---------------: | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| world-query                          |   M4 (read-only) | getRoom(roomId), getPlayerState(playerId), getNeighbors(roomId,depth), listRecentEvents(roomId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                                    |
+| lore-memory                          |               M4 | semanticSearchLore(query,k), getCanonicalFact(entityId)                                               | Vector store access; sanitized snippets; auth via backend helper                                            |
+| classification-mcp                   |               M4 | classifyIntent(utterance), moderateContent(text)                                                      | Requires model usage telemetry; used in Validation & Policy                                                 |
+| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                      | Prefer server-side implementation; minimal world-query calls for resolution                                 |
+| prompt registry (shared)             | shared (not MCP) | getTemplate(name,version), listTemplates(tag), computePromptHash(template)                            | Versioned templates in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
+| world-mutation / proposal API        |       M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                               | Protected; proposals must pass Validation & Policy gates before persistence                                 |
+| simulation-planner                   |               M6 | simulateScenario(seed,steps), generateArc(seed,constraints)                                           | Heavy compute; used offline or in gated background tasks                                                    |
+| telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                             | Curated aggregates only; no raw AppInsights surface exposed to agents                                       |
+
+_Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate limits, and correlate requests with operationId/correlationId for traceability.
+
+_Small guidance_: Keep prompt templates and prompt hashes in `shared/src/prompts/` and add new AI-specific telemetry event names in `shared/src/telemetryEvents.ts` before emission.

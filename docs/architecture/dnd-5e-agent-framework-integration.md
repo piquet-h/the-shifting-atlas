@@ -20,18 +20,18 @@ This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.
 
 **Microsoft Agent Framework** is the next-generation successor to Semantic Kernel and AutoGen, combining:
 
--   **AI Agents**: Individual agents that use LLMs to process inputs, call tools/MCP servers, and generate responses
--   **Workflows**: Graph-based orchestration of multiple agents and functions for complex multi-step tasks
--   **Enterprise Features**: Thread-based state management, type safety, filters, telemetry, extensive model support
--   **MCP Support**: Native integration with Model Context Protocol servers for tool integration
+- **AI Agents**: Individual agents that use LLMs to process inputs, call tools/MCP servers, and generate responses
+- **Workflows**: Graph-based orchestration of multiple agents and functions for complex multi-step tasks
+- **Enterprise Features**: Thread-based state management, type safety, filters, telemetry, extensive model support
+- **MCP Support**: Native integration with Model Context Protocol servers for tool integration
 
 **Key Capabilities**:
 
--   Multi-agent orchestration patterns (sequential, concurrent, hand-off, Magentic)
--   Built-in checkpointing for long-running processes
--   Human-in-the-loop scenarios via request/response patterns
--   Strong typing and validation
--   Middleware for intercepting agent actions
+- Multi-agent orchestration patterns (sequential, concurrent, hand-off, Magentic)
+- Built-in checkpointing for long-running processes
+- Human-in-the-loop scenarios via request/response patterns
+- Strong typing and validation
+- Middleware for intercepting agent actions
 
 ---
 
@@ -41,30 +41,30 @@ This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.
 
 **Available Endpoints**:
 
--   `ability-scores` - STR, DEX, CON, INT, WIS, CHA
--   `alignments` - Lawful Good, Chaotic Evil, etc.
--   `classes` - Fighter, Wizard, Rogue, etc.
--   `races` - Human, Elf, Dwarf, etc.
--   `equipment` - Weapons, armor, adventuring gear
--   `equipment-categories` - Organized equipment types
--   `magic-items` - Magical equipment
--   `spells` - Full spell database (filterable)
--   `monsters` - Creature database (filterable)
--   `conditions` - Blinded, Charmed, Frightened, etc.
--   `damage-types` - Fire, Cold, Piercing, etc.
--   `features` - Class/race features
--   `traits` - Racial traits
--   `proficiencies` - Weapon/tool/skill proficiencies
--   `skills` - Acrobatics, Perception, Stealth, etc.
--   `backgrounds` - Character backgrounds
--   `feats` - Character feats
--   `languages` - Common, Elvish, Draconic, etc.
--   `magic-schools` - Evocation, Illusion, etc.
--   `rules` - Game rules
--   `rule-sections` - Organized rule categories
--   `subclasses` - Specialized class paths
--   `subraces` - Specialized race variants
--   `weapon-properties` - Finesse, Heavy, Light, etc.
+- `ability-scores` - STR, DEX, CON, INT, WIS, CHA
+- `alignments` - Lawful Good, Chaotic Evil, etc.
+- `classes` - Fighter, Wizard, Rogue, etc.
+- `races` - Human, Elf, Dwarf, etc.
+- `equipment` - Weapons, armor, adventuring gear
+- `equipment-categories` - Organized equipment types
+- `magic-items` - Magical equipment
+- `spells` - Full spell database (filterable)
+- `monsters` - Creature database (filterable)
+- `conditions` - Blinded, Charmed, Frightened, etc.
+- `damage-types` - Fire, Cold, Piercing, etc.
+- `features` - Class/race features
+- `traits` - Racial traits
+- `proficiencies` - Weapon/tool/skill proficiencies
+- `skills` - Acrobatics, Perception, Stealth, etc.
+- `backgrounds` - Character backgrounds
+- `feats` - Character feats
+- `languages` - Common, Elvish, Draconic, etc.
+- `magic-schools` - Evocation, Illusion, etc.
+- `rules` - Game rules
+- `rule-sections` - Organized rule categories
+- `subclasses` - Specialized class paths
+- `subraces` - Specialized race variants
+- `weapon-properties` - Finesse, Heavy, Light, etc.
 
 **Base URL**: `https://www.dnd5eapi.co/api/`
 
@@ -88,7 +88,7 @@ You currently have **two basic MCP servers** implemented as Azure Functions:
 
 **Purpose**: Provides read-only access to world graph state (locations from Cosmos DB Gremlin).
 
-#### B. Prompt Template Server (`/mcp/prompt-template`)
+#### B. Prompt Template Registry (`shared/src/prompts/` + optional backend endpoint)
 
 ```typescript
 // Operations:
@@ -102,16 +102,16 @@ You currently have **two basic MCP servers** implemented as Azure Functions:
 
 Current template inventory:
 
--   `ambience.location.v1` - Generates ambient sensory descriptions for locations
+- `ambience.location.v1` - Generates ambient sensory descriptions for locations
 
 **Gap**: No D&D-specific prompts for combat, spell effects, NPC behavior, item descriptions, etc.
 
 ### 3.3 Architectural Constraints
 
--   **Dual Persistence**: Cosmos DB Gremlin (world graph) + Cosmos DB SQL API (player/inventory/events)
--   **Event-Driven**: HTTP player actions → persist → enqueue world events → queue triggers
--   **Stateless Functions**: No polling loops, no long-running processes
--   **Telemetry**: Application Insights with domain event tracking
+- **Dual Persistence**: Cosmos DB Gremlin (world graph) + Cosmos DB SQL API (player/inventory/events)
+- **Event-Driven**: HTTP player actions → persist → enqueue world events → queue triggers
+- **Stateless Functions**: No polling loops, no long-running processes
+- **Telemetry**: Application Insights with domain event tracking
 
 ---
 
@@ -160,17 +160,17 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=getLocationContext&id=<locationId>` → location + exits + nearby players + recent events
--   `op=getPlayerContext&id=<playerId>` → player location + inventory + recent actions
--   `op=getSpatialContext&id=<locationId>&depth=2` → location graph (N-hop neighbors)
--   `op=getRecentEvents&locationId=<id>&count=10` → timeline of world events at location
--   `op=getAtmosphere&locationId=<id>` → current weather, time-of-day, ambient conditions
+- `op=getLocationContext&id=<locationId>` → location + exits + nearby players + recent events
+- `op=getPlayerContext&id=<playerId>` → player location + inventory + recent actions
+- `op=getSpatialContext&id=<locationId>&depth=2` → location graph (N-hop neighbors)
+- `op=getRecentEvents&locationId=<id>&count=10` → timeline of world events at location
+- `op=getAtmosphere&locationId=<id>` → current weather, time-of-day, ambient conditions
 
 **Data Sources**:
 
--   Cosmos DB Gremlin (location graph, exits, spatial relationships)
--   Cosmos DB SQL API (players, inventory, world events)
--   Existing World Query MCP (extend current `/mcp/world-query`)
+- Cosmos DB Gremlin (location graph, exits, spatial relationships)
+- Cosmos DB SQL API (players, inventory, world events)
+- Existing World Query MCP (extend current `/mcp/world-query`)
 
 **Example Use Case**: Player types "look around". World Context Server:
 
@@ -189,18 +189,18 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=generateAmbience&locationId=<id>` → atmospheric micro-lore (≤120 chars)
--   `op=narrateAction&action=move&result=success&context={...}` → "You stride north..."
--   `op=narrateDiscovery&entity=chest&rarity=rare` → treasure discovery flavor
--   `op=narrateEncounter&monster=goblin&surprise=true` → combat introduction
--   `op=generateRumor&locationId=<id>&theme=mystery` → tavern gossip, hooks
+- `op=generateAmbience&locationId=<id>` → atmospheric micro-lore (≤120 chars)
+- `op=narrateAction&action=move&result=success&context={...}` → "You stride north..."
+- `op=narrateDiscovery&entity=chest&rarity=rare` → treasure discovery flavor
+- `op=narrateEncounter&monster=goblin&surprise=true` → combat introduction
+- `op=generateRumor&locationId=<id>&theme=mystery` → tavern gossip, hooks
 
 **Data Sources**:
 
--   Existing prompt templates (`backend/src/prompts/templates.ts`)
--   DM Style Guide (`docs/concept/dungeon-master-style-guide.md`)
--   World Context Server (for spatial awareness)
--   Lore & Reference Server (for D&D flavor)
+- Existing prompt templates (`backend/src/prompts/templates.ts`)
+- DM Style Guide (`docs/concept/dungeon-master-style-guide.md`)
+- World Context Server (for spatial awareness)
+- Lore & Reference Server (for D&D flavor)
 
 **Prompt Template Expansion**:
 
@@ -248,24 +248,24 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=getBase&locationId=<id>` → immutable canonical description
--   `op=applyLayers&locationId=<id>&layers=weather,ambience,faction` → composited description
--   `op=proposeLayer&locationId=<id>&type=ambient&content=...` → validate + persist layer
--   `op=validateLayer&content=...&baseHash=<hash>` → check for canon drift
--   `op=getProvenance&layerId=<id>` → prompt hash + validator decision
+- `op=getBase&locationId=<id>` → immutable canonical description
+- `op=applyLayers&locationId=<id>&layers=weather,ambience,faction` → composited description
+- `op=proposeLayer&locationId=<id>&type=ambient&content=...` → validate + persist layer
+- `op=validateLayer&content=...&baseHash=<hash>` → check for canon drift
+- `op=getProvenance&layerId=<id>` → prompt hash + validator decision
 
 **Data Sources**:
 
--   Cosmos DB SQL API (`descriptionLayers` container, PK: `/locationId`)
--   Narrative Generator Server (for AI-generated ambient layers)
--   World Context Server (for structural layers: weather, time)
+- Cosmos DB SQL API (`descriptionLayers` container, PK: `/locationId`)
+- Narrative Generator Server (for AI-generated ambient layers)
+- World Context Server (for structural layers: weather, time)
 
 **Layer Types** (per design modules):
 
--   **Base** (immutable): Canonical world prose
--   **Structural** (deterministic): Weather, time-of-day, seasonal
--   **Ambient** (AI-generated): Micro-lore, sensory details, atmospheric fragments
--   **Faction** (conditional): Faction-specific world modifications (M5+)
+- **Base** (immutable): Canonical world prose
+- **Structural** (deterministic): Weather, time-of-day, seasonal
+- **Ambient** (AI-generated): Micro-lore, sensory details, atmospheric fragments
+- **Faction** (conditional): Faction-specific world modifications (M5+)
 
 **Example Use Case**: Player enters dungeon. Layering Server:
 
@@ -276,10 +276,10 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Validation Rules**:
 
--   Ambient layers must not contradict base description
--   AI-generated content flagged for human review if confidence < threshold
--   Prompt hash recorded for all AI layers (reproducibility)
--   Layer removal requires justification (audit log)
+- Ambient layers must not contradict base description
+- AI-generated content flagged for human review if confidence < threshold
+- Prompt hash recorded for all AI layers (reproducibility)
+- Layer removal requires justification (audit log)
 
 **Implementation Location**: `backend/src/mcp/descriptionLayering.ts`
 
@@ -291,17 +291,17 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=getMonsterLore&name=beholder` → D&D 5e monster description + flavor
--   `op=getSpellNarrative&spell=fireball` → dramatic spell description
--   `op=getItemLore&item=bag-of-holding` → magic item backstory
--   `op=getLocationTheme&biome=underdark` → atmospheric guidelines for biome
--   `op=searchLore&query=ancient+dragons&type=monster` → fuzzy search D&D content
+- `op=getMonsterLore&name=beholder` → D&D 5e monster description + flavor
+- `op=getSpellNarrative&spell=fireball` → dramatic spell description
+- `op=getItemLore&item=bag-of-holding` → magic item backstory
+- `op=getLocationTheme&biome=underdark` → atmospheric guidelines for biome
+- `op=searchLore&query=ancient+dragons&type=monster` → fuzzy search D&D content
 
 **Data Sources**:
 
--   D&D 5e API: `/api/monsters` (descriptions), `/api/spells` (flavor text), `/api/magic-items`
--   Cached common entries (top 100 monsters, spells)
--   Custom lore additions (your world-specific content)
+- D&D 5e API: `/api/monsters` (descriptions), `/api/spells` (flavor text), `/api/magic-items`
+- Cached common entries (top 100 monsters, spells)
+- Custom lore additions (your world-specific content)
 
 **Example Use Case**: AI generates dungeon room. Lore & Reference Server:
 
@@ -312,9 +312,9 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Caching Strategy**:
 
--   Pre-populate cache with SRD monsters (goblins, orcs, kobolds, dragons)
--   TTL: 7 days for API responses
--   Fallback to API if cache miss
+- Pre-populate cache with SRD monsters (goblins, orcs, kobolds, dragons)
+- TTL: 7 days for API responses
+- Fallback to API if cache miss
 
 **Implementation Location**: `backend/src/mcp/loreReference.ts`
 
@@ -326,17 +326,17 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=suggestDirection&from=<id>&goal=<description>` → "Try going north"
--   `op=describeJourney&path=[id1,id2,id3]` → narrative journey summary
--   `op=identifyLandmarks&locationId=<id>&radius=3` → notable nearby locations
--   `op=inferIntent&query="find the tavern"` → resolve to location ID
--   `op=validatePath&from=<id>&to=<id>` → check if path exists
+- `op=suggestDirection&from=<id>&goal=<description>` → "Try going north"
+- `op=describeJourney&path=[id1,id2,id3]` → narrative journey summary
+- `op=identifyLandmarks&locationId=<id>&radius=3` → notable nearby locations
+- `op=inferIntent&query="find the tavern"` → resolve to location ID
+- `op=validatePath&from=<id>&to=<id>` → check if path exists
 
 **Data Sources**:
 
--   Cosmos DB Gremlin (graph traversal, pathfinding)
--   World Context Server (location metadata)
--   Existing direction normalizer (`shared/src/direction.ts`)
+- Cosmos DB Gremlin (graph traversal, pathfinding)
+- World Context Server (location metadata)
+- Existing direction normalizer (`shared/src/direction.ts`)
 
 **Example Use Case**: Player asks "how do I get to the tavern?". Navigation Assistant:
 
@@ -346,9 +346,9 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Spatial Reasoning Enhancements**:
 
--   Semantic exit resolution (M1 deferred items: "go to tower", "enter tavern")
--   Relative directions (M1 deferred: "turn around", "go back")
--   Multi-hop pathfinding with narrative summaries
+- Semantic exit resolution (M1 deferred items: "go to tower", "enter tavern")
+- Relative directions (M1 deferred: "turn around", "go back")
+- Multi-hop pathfinding with narrative summaries
 
 **Implementation Location**: `backend/src/mcp/navigationAssistant.ts`
 
@@ -360,16 +360,16 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=getRandom&challengeRating=5` → random CR 5 monster
--   `op=search&name=goblin` → specific monster
--   `op=filter&type=undead&cr=3` → filtered list
--   `op=getAbilities&monster=ancient-red-dragon` → abilities, actions, legendary actions
--   `op=getEncounterBudget&partyLevel=5&difficulty=medium` → XP budget for balanced encounter
+- `op=getRandom&challengeRating=5` → random CR 5 monster
+- `op=search&name=goblin` → specific monster
+- `op=filter&type=undead&cr=3` → filtered list
+- `op=getAbilities&monster=ancient-red-dragon` → abilities, actions, legendary actions
+- `op=getEncounterBudget&partyLevel=5&difficulty=medium` → XP budget for balanced encounter
 
 **Data Sources**:
 
--   D&D 5e API: `/api/monsters` (supports filtering)
--   Cache common encounters (goblins, orcs, skeletons, zombies)
+- D&D 5e API: `/api/monsters` (supports filtering)
+- Cache common encounters (goblins, orcs, skeletons, zombies)
 
 **Example Use Case**: AI generates dungeon encounter. Monster DB Server:
 
@@ -380,10 +380,10 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Encounter Design Integration**:
 
--   XP budget calculation per D&D 5e DMG tables
--   Monster tactics suggestions (based on INT/WIS scores)
--   Lair actions for legendary creatures
--   Environmental hazards (traps, terrain)
+- XP budget calculation per D&D 5e DMG tables
+- Monster tactics suggestions (based on INT/WIS scores)
+- Lair actions for legendary creatures
+- Environmental hazards (traps, terrain)
 
 **Implementation Location**: `backend/src/mcp/monsterDb.ts`
 
@@ -395,18 +395,18 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Operations**:
 
--   `op=calculateAttack&attackBonus=X&targetAC=Y` → hit/miss determination
--   `op=rollDamage&diceExpression=2d6+3` → damage calculation
--   `op=getCondition&name=stunned` → condition effects
--   `op=checkSavingThrow&ability=dexterity&dc=15&modifier=2` → save results
--   `op=calculateInitiative&modifiers=[...]` → turn order
--   `op=resolveAttackOfOpportunity&trigger=movement` → AoO determination
+- `op=calculateAttack&attackBonus=X&targetAC=Y` → hit/miss determination
+- `op=rollDamage&diceExpression=2d6+3` → damage calculation
+- `op=getCondition&name=stunned` → condition effects
+- `op=checkSavingThrow&ability=dexterity&dc=15&modifier=2` → save results
+- `op=calculateInitiative&modifiers=[...]` → turn order
+- `op=resolveAttackOfOpportunity&trigger=movement` → AoO determination
 
 **Data Sources**:
 
--   D&D 5e API: `/api/conditions`, `/api/damage-types`, `/api/rules` (combat section)
--   Local cache of combat rules (reduce API calls)
--   Monster DB Server (for creature stats)
+- D&D 5e API: `/api/conditions`, `/api/damage-types`, `/api/rules` (combat section)
+- Local cache of combat rules (reduce API calls)
+- Monster DB Server (for creature stats)
 
 **Example Use Case**: Player attacks goblin. Combat Rules Server:
 
@@ -446,16 +446,16 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=search&name=fireball` → spell details
--   `op=filter&level=3&school=evocation` → filtered spell list
--   `op=getComponents&spell=counterspell` → V, S, M components
--   `op=canCast&spellLevel=5&casterLevel=9&spellSlots=1` → casting eligibility
--   `op=resolveSpell&spell=shield&context={...}` → apply spell effects
+- `op=search&name=fireball` → spell details
+- `op=filter&level=3&school=evocation` → filtered spell list
+- `op=getComponents&spell=counterspell` → V, S, M components
+- `op=canCast&spellLevel=5&casterLevel=9&spellSlots=1` → casting eligibility
+- `op=resolveSpell&spell=shield&context={...}` → apply spell effects
 
 **Data Sources**:
 
--   D&D 5e API: `/api/spells` (supports filtering)
--   Cache frequently-used spells (Shield, Fireball, Cure Wounds, Counterspell)
+- D&D 5e API: `/api/spells` (supports filtering)
+- Cache frequently-used spells (Shield, Fireball, Cure Wounds, Counterspell)
 
 **Example Use Case**: Player casts Shield spell. Spell Lookup Server:
 
@@ -466,9 +466,9 @@ Player Input: "attack goblin with longsword"
 
 **Spell System Phases**:
 
--   **M5**: Read-only spell reference (for NPC spellcasters)
--   **M7**: Player spellcasting with slot tracking
--   **M7+**: Spell preparation, spell scrolls, ritual casting
+- **M5**: Read-only spell reference (for NPC spellcasters)
+- **M7**: Player spellcasting with slot tracking
+- **M7+**: Spell preparation, spell scrolls, ritual casting
 
 **Implementation Location**: `backend/src/mcp/spellLookup.ts`
 
@@ -480,16 +480,16 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=search&name=longsword` → weapon stats
--   `op=getMagicItem&name=bag-of-holding` → magic item details
--   `op=getCategory&category=armor` → all armor types
--   `op=calculateWeight&items=[...]` → encumbrance
--   `op=generateLoot&cr=5&type=treasure-hoard` → random treasure generation
+- `op=search&name=longsword` → weapon stats
+- `op=getMagicItem&name=bag-of-holding` → magic item details
+- `op=getCategory&category=armor` → all armor types
+- `op=calculateWeight&items=[...]` → encumbrance
+- `op=generateLoot&cr=5&type=treasure-hoard` → random treasure generation
 
 **Data Sources**:
 
--   D&D 5e API: `/api/equipment`, `/api/magic-items`, `/api/equipment-categories`
--   Cosmos DB SQL API (`inventory` container, PK: `/playerId`)
+- D&D 5e API: `/api/equipment`, `/api/magic-items`, `/api/equipment-categories`
+- Cosmos DB SQL API (`inventory` container, PK: `/playerId`)
 
 **Example Use Case**: Player finds loot. Equipment Server:
 
@@ -509,17 +509,17 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=getClass&name=wizard` → class details
--   `op=getRace&name=elf` → race traits
--   `op=calculateAbilityModifier&score=16` → +3 modifier
--   `op=getFeatures&class=rogue&level=5` → Sneak Attack, Uncanny Dodge, etc.
--   `op=getProficiencies&class=fighter` → weapon/armor proficiencies
--   `op=validateCharacter&data={...}` → check character creation rules
+- `op=getClass&name=wizard` → class details
+- `op=getRace&name=elf` → race traits
+- `op=calculateAbilityModifier&score=16` → +3 modifier
+- `op=getFeatures&class=rogue&level=5` → Sneak Attack, Uncanny Dodge, etc.
+- `op=getProficiencies&class=fighter` → weapon/armor proficiencies
+- `op=validateCharacter&data={...}` → check character creation rules
 
 **Data Sources**:
 
--   D&D 5e API: `/api/classes`, `/api/races`, `/api/features`, `/api/traits`, `/api/proficiencies`, `/api/ability-scores`
--   Cosmos DB SQL API (character sheets)
+- D&D 5e API: `/api/classes`, `/api/races`, `/api/features`, `/api/traits`, `/api/proficiencies`, `/api/ability-scores`
+- Cosmos DB SQL API (character sheets)
 
 **Example Use Case**: New player creates character. Character Rules Server:
 
@@ -533,15 +533,15 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=calculateAttack&attackBonus=X&targetAC=Y` → hit/miss determination
--   `op=rollDamage&diceExpression=2d6+3` → damage calculation
--   `op=getCondition&name=stunned` → condition effects
--   `op=checkSavingThrow&ability=dexterity&dc=15&modifier=2` → save results
+- `op=calculateAttack&attackBonus=X&targetAC=Y` → hit/miss determination
+- `op=rollDamage&diceExpression=2d6+3` → damage calculation
+- `op=getCondition&name=stunned` → condition effects
+- `op=checkSavingThrow&ability=dexterity&dc=15&modifier=2` → save results
 
 **Data Sources**:
 
--   D&D 5e API: `/api/conditions`, `/api/damage-types`, `/api/rules` (combat section)
--   Local cache of combat rules (reduce API calls)
+- D&D 5e API: `/api/conditions`, `/api/damage-types`, `/api/rules` (combat section)
+- Local cache of combat rules (reduce API calls)
 
 **Example Use Case**: AI agent decides an NPC casts _Fireball_. Combat Rules Server:
 
@@ -559,15 +559,15 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=search&name=fireball` → spell details
--   `op=filter&level=3&school=evocation` → filtered spell list
--   `op=getComponents&spell=counterspell` → V, S, M components
--   `op=canCast&spellLevel=5&casterLevel=9&spellSlots=1` → casting eligibility
+- `op=search&name=fireball` → spell details
+- `op=filter&level=3&school=evocation` → filtered spell list
+- `op=getComponents&spell=counterspell` → V, S, M components
+- `op=canCast&spellLevel=5&casterLevel=9&spellSlots=1` → casting eligibility
 
 **Data Sources**:
 
--   D&D 5e API: `/api/spells` (supports filtering)
--   Cache frequently-used spells (Fireball, Cure Wounds, Shield, etc.)
+- D&D 5e API: `/api/spells` (supports filtering)
+- Cache frequently-used spells (Fireball, Cure Wounds, Shield, etc.)
 
 **Example Use Case**: Player types "cast shield". Agent queries Spell Lookup Server:
 
@@ -584,15 +584,15 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=getRandom&challengeRating=5` → random CR 5 monster
--   `op=search&name=goblin` → specific monster
--   `op=filter&type=undead&cr=3` → filtered list
--   `op=getAbilities&monster=ancient-red-dragon` → abilities, actions, legendary actions
+- `op=getRandom&challengeRating=5` → random CR 5 monster
+- `op=search&name=goblin` → specific monster
+- `op=filter&type=undead&cr=3` → filtered list
+- `op=getAbilities&monster=ancient-red-dragon` → abilities, actions, legendary actions
 
 **Data Sources**:
 
--   D&D 5e API: `/api/monsters` (supports filtering)
--   Cache common encounters (goblins, orcs, skeletons)
+- D&D 5e API: `/api/monsters` (supports filtering)
+- Cache common encounters (goblins, orcs, skeletons)
 
 **Example Use Case**: AI generates dungeon encounter. Monster DB Server:
 
@@ -609,15 +609,15 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=search&name=longsword` → weapon stats
--   `op=getMagicItem&name=bag-of-holding` → magic item details
--   `op=getCategory&category=armor` → all armor types
--   `op=calculateWeight&items=[...]` → encumbrance
+- `op=search&name=longsword` → weapon stats
+- `op=getMagicItem&name=bag-of-holding` → magic item details
+- `op=getCategory&category=armor` → all armor types
+- `op=calculateWeight&items=[...]` → encumbrance
 
 **Data Sources**:
 
--   D&D 5e API: `/api/equipment`, `/api/magic-items`, `/api/equipment-categories`
--   Local inventory database (player-specific items in Cosmos SQL)
+- D&D 5e API: `/api/equipment`, `/api/magic-items`, `/api/equipment-categories`
+- Local inventory database (player-specific items in Cosmos SQL)
 
 **Example Use Case**: Player finds loot. Equipment Server:
 
@@ -634,15 +634,15 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=getClass&name=wizard` → class details
--   `op=getRace&name=elf` → race traits
--   `op=calculateAbilityModifier&score=16` → +3 modifier
--   `op=getFeatures&class=rogue&level=5` → Sneak Attack, Uncanny Dodge, etc.
--   `op=getProficiencies&class=fighter` → weapon/armor proficiencies
+- `op=getClass&name=wizard` → class details
+- `op=getRace&name=elf` → race traits
+- `op=calculateAbilityModifier&score=16` → +3 modifier
+- `op=getFeatures&class=rogue&level=5` → Sneak Attack, Uncanny Dodge, etc.
+- `op=getProficiencies&class=fighter` → weapon/armor proficiencies
 
 **Data Sources**:
 
--   D&D 5e API: `/api/classes`, `/api/races`, `/api/features`, `/api/traits`, `/api/proficiencies`, `/api/ability-scores`
+- D&D 5e API: `/api/classes`, `/api/races`, `/api/features`, `/api/traits`, `/api/proficiencies`, `/api/ability-scores`
 
 **Example Use Case**: New player creates character. Character Rules Server:
 
@@ -660,16 +660,16 @@ Player Input: "attack goblin with longsword"
 
 **Operations**:
 
--   `op=getDMPersona` → DM style guide (existing concept doc)
--   `op=getLocationTone&biome=underdark` → atmospheric guidelines
--   `op=getEncounterNarrative&monster=beholder` → creature flavor text
--   `op=getSpellNarrative&spell=meteor-swarm` → dramatic spell descriptions
+- `op=getDMPersona` → DM style guide (existing concept doc)
+- `op=getLocationTone&biome=underdark` → atmospheric guidelines
+- `op=getEncounterNarrative&monster=beholder` → creature flavor text
+- `op=getSpellNarrative&spell=meteor-swarm` → dramatic spell descriptions
 
 **Data Sources**:
 
--   Existing `docs/concept/dungeon-master-style-guide.md`
--   D&D 5e API: `/api/monsters` (descriptions), `/api/spells` (flavor text)
--   Custom narrative templates (prompt library expansion)
+- Existing `docs/concept/dungeon-master-style-guide.md`
+- D&D 5e API: `/api/monsters` (descriptions), `/api/spells` (flavor text)
+- Custom narrative templates (prompt library expansion)
 
 **Example Use Case**: AI generates spell cast description. Narrative Context Server:
 
@@ -689,10 +689,10 @@ Player Input: "attack goblin with longsword"
 
 **Tools** (MCP Servers):
 
--   World Context Server (location graph, exits, atmosphere)
--   Description Layering Server (base + contextual layers)
--   Lore & Reference Server (biome themes, flavor text)
--   Narrative Generator Server (DM persona narration)
+- World Context Server (location graph, exits, atmosphere)
+- Description Layering Server (base + contextual layers)
+- Lore & Reference Server (biome themes, flavor text)
+- Narrative Generator Server (DM persona narration)
 
 **Flow**:
 
@@ -730,10 +730,10 @@ quiet), west to the gatehouse (door hanging askew like a broken promise)."
 
 **Tools** (MCP Servers):
 
--   World Context Server (combat state, participant positions)
--   Monster DB Server (get goblin stats)
--   Combat Rules Server (attack/damage calculation)
--   Narrative Generator Server (dramatic combat narration)
+- World Context Server (combat state, participant positions)
+- Monster DB Server (get goblin stats)
+- Combat Rules Server (attack/damage calculation)
+- Narrative Generator Server (dramatic combat narration)
 
 **Flow**:
 
@@ -778,18 +778,18 @@ The goblin collapses.)"
 
 **Agents**:
 
--   `LocationScoutAgent` - Analyzes spatial layout, identifies landmarks
--   `AtmosphereAgent` - Generates weather, ambient conditions, sensory details
--   `LoreWeaverAgent` - Adds historical context, rumors, mysteries
--   `NarratorAgent` - Weaves everything into cohesive DM narration
+- `LocationScoutAgent` - Analyzes spatial layout, identifies landmarks
+- `AtmosphereAgent` - Generates weather, ambient conditions, sensory details
+- `LoreWeaverAgent` - Adds historical context, rumors, mysteries
+- `NarratorAgent` - Weaves everything into cohesive DM narration
 
 **Tools** (MCP Servers):
 
--   World Context Server (spatial graph, recent events)
--   Description Layering Server (base + layers)
--   Lore & Reference Server (regional themes)
--   Narrative Generator Server (DM persona)
--   Navigation Assistant Server (landmark identification)
+- World Context Server (spatial graph, recent events)
+- Description Layering Server (base + layers)
+- Lore & Reference Server (regional themes)
+- Narrative Generator Server (DM persona)
+- Navigation Assistant Server (landmark identification)
 
 **Flow**:
 
@@ -839,20 +839,20 @@ Workflow End: Return rich narrative to player
 
 **Agents**:
 
--   `RoomDesignerAgent` - Describes environment, features, traps
--   `EncounterAgent` - Generates monsters/NPCs, determines behavior
--   `TreasureAgent` - Rolls loot if appropriate
--   `TacticalAgent` - Analyzes combat positioning if hostiles present
--   `NarratorAgent` - Weaves descriptions together
+- `RoomDesignerAgent` - Describes environment, features, traps
+- `EncounterAgent` - Generates monsters/NPCs, determines behavior
+- `TreasureAgent` - Rolls loot if appropriate
+- `TacticalAgent` - Analyzes combat positioning if hostiles present
+- `NarratorAgent` - Weaves descriptions together
 
 **Tools** (MCP Servers):
 
--   World Context Server (dungeon instance state)
--   Monster DB Server (encounter generation)
--   Combat Rules Server (initiative, positioning)
--   Equipment Server (loot generation)
--   Narrative Generator Server (atmospheric descriptions)
--   Description Layering Server (dungeon themes)
+- World Context Server (dungeon instance state)
+- Monster DB Server (encounter generation)
+- Combat Rules Server (initiative, positioning)
+- Equipment Server (loot generation)
+- Narrative Generator Server (atmospheric descriptions)
+- Description Layering Server (dungeon themes)
 
 **Flow**:
 
@@ -911,20 +911,20 @@ Workflow End
 
 **Agents**:
 
--   `CombatCoordinatorAgent` - Manages turn order, initiative, state
--   `SpellcasterAgent` - Handles magical effects (Dragon Breath, Legendary Actions)
--   `ConditionTrackerAgent` - Tracks frightened, prone, grappled conditions
--   `TacticsAgent` - Determines dragon AI behavior, lair actions
--   `EnvironmentAgent` - Manages terrain, hazards, dynamic elements
--   `NarratorAgent` - Generates cinematic descriptions
+- `CombatCoordinatorAgent` - Manages turn order, initiative, state
+- `SpellcasterAgent` - Handles magical effects (Dragon Breath, Legendary Actions)
+- `ConditionTrackerAgent` - Tracks frightened, prone, grappled conditions
+- `TacticsAgent` - Determines dragon AI behavior, lair actions
+- `EnvironmentAgent` - Manages terrain, hazards, dynamic elements
+- `NarratorAgent` - Generates cinematic descriptions
 
 **Tools**:
 
--   World Context Server (battlefield state)
--   Monster DB Server (dragon stats, legendary actions)
--   Combat Rules Server (attack rolls, saves, damage)
--   Spell Lookup Server (dragon abilities)
--   Narrative Generator Server (epic narration)
+- World Context Server (battlefield state)
+- Monster DB Server (dragon stats, legendary actions)
+- Combat Rules Server (attack rolls, saves, damage)
+- Spell Lookup Server (dragon abilities)
+- Narrative Generator Server (epic narration)
 
 **Flow**:
 
@@ -995,10 +995,10 @@ Dragon Turn:
 
 **Tools** (MCP Servers):
 
--   World Context Server (NPC state, disposition, recent events)
--   Lore & Reference Server (NPC background, regional rumors)
--   Narrative Generator Server (NPC personality, dialogue style)
--   Navigation Assistant Server (location recommendations)
+- World Context Server (NPC state, disposition, recent events)
+- Lore & Reference Server (NPC background, regional rumors)
+- Narrative Generator Server (NPC personality, dialogue style)
+- Navigation Assistant Server (location recommendations)
 
 **Flow**:
 
@@ -1214,9 +1214,9 @@ async function getCachedMonster(name: string): Promise<MonsterData> {
 
 **Estimated Costs** (Azure OpenAI, GPT-4o pricing):
 
--   Single combat turn: ~500-1000 tokens (~$0.005-0.01)
--   Dungeon encounter workflow: ~2000-5000 tokens (~$0.02-0.05)
--   Epic boss battle: ~10,000-20,000 tokens (~$0.10-0.20)
+- Single combat turn: ~500-1000 tokens (~$0.005-0.01)
+- Dungeon encounter workflow: ~2000-5000 tokens (~$0.02-0.05)
+- Epic boss battle: ~10,000-20,000 tokens (~$0.10-0.20)
 
 **Budget Target**: <$0.05 per player session average (assuming 10-20 agent calls per session).
 
@@ -1228,11 +1228,11 @@ async function getCachedMonster(name: string): Promise<MonsterData> {
 
 **Critical Metrics**:
 
--   Agent decision latency (p50, p95, p99)
--   MCP server response times
--   Token usage per agent/workflow
--   D&D 5e API hit rate vs cache rate
--   Combat resolution accuracy (rules compliance)
+- Agent decision latency (p50, p95, p99)
+- MCP server response times
+- Token usage per agent/workflow
+- D&D 5e API hit rate vs cache rate
+- Combat resolution accuracy (rules compliance)
 
 **Implementation**: Extend existing Application Insights telemetry.
 
@@ -1269,9 +1269,9 @@ trackEvent({
 
 **Mitigation**:
 
--   Validate all player inputs before passing to agents
--   Sanitize MCP server responses
--   Rate limit MCP server calls per player
+- Validate all player inputs before passing to agents
+- Sanitize MCP server responses
+- Rate limit MCP server calls per player
 
 ---
 
@@ -1281,9 +1281,9 @@ trackEvent({
 
 **Mitigation**:
 
--   **Middleware Filters**: Validate agent outputs against D&D 5e rules
--   **Content Moderation**: Use Azure Content Safety for generated narratives
--   **Deterministic Checks**: Combat math verified programmatically, not by LLM
+- **Middleware Filters**: Validate agent outputs against D&D 5e rules
+- **Content Moderation**: Use Azure Content Safety for generated narratives
+- **Deterministic Checks**: Combat math verified programmatically, not by LLM
 
 ```python
 from agent_framework import Agent
@@ -1443,34 +1443,34 @@ async function handlePlayerAction(req: HttpRequest): Promise<HttpResponseInit> {
 
 ### Phase 1 (Combat Rules Integration)
 
--   ✅ 100% of combat encounters follow D&D 5e rules
--   ✅ <200ms average MCP server response time
--   ✅ <2s average agent resolution time
--   ✅ Zero rule violations detected in testing
+- ✅ 100% of combat encounters follow D&D 5e rules
+- ✅ <200ms average MCP server response time
+- ✅ <2s average agent resolution time
+- ✅ Zero rule violations detected in testing
 
 ### Phase 2 (Spell System)
 
--   ✅ All SRD spells available and functional
--   ✅ Spell slot tracking 100% accurate
--   ✅ AI-generated spell narratives rated 4+ /5 by testers
+- ✅ All SRD spells available and functional
+- ✅ Spell slot tracking 100% accurate
+- ✅ AI-generated spell narratives rated 4+ /5 by testers
 
 ### Phase 3 (Equipment)
 
--   ✅ 500+ items in equipment database
--   ✅ Item effects apply correctly in combat
--   ✅ Loot generation feels balanced and rewarding
+- ✅ 500+ items in equipment database
+- ✅ Item effects apply correctly in combat
+- ✅ Loot generation feels balanced and rewarding
 
 ### Phase 4 (Character Creation)
 
--   ✅ 12 classes fully implemented
--   ✅ Character progression matches D&D 5e PHB
--   ✅ AI-guided creation reduces new player confusion
+- ✅ 12 classes fully implemented
+- ✅ Character progression matches D&D 5e PHB
+- ✅ AI-guided creation reduces new player confusion
 
 ### Phase 5 (Advanced Workflows)
 
--   ✅ Full dungeon runs possible end-to-end
--   ✅ Multi-agent coordination seamless (no visible seams)
--   ✅ Workflow checkpointing enables 1+ hour sessions
+- ✅ Full dungeon runs possible end-to-end
+- ✅ Multi-agent coordination seamless (no visible seams)
+- ✅ Workflow checkpointing enables 1+ hour sessions
 
 ---
 
@@ -1480,18 +1480,18 @@ async function handlePlayerAction(req: HttpRequest): Promise<HttpResponseInit> {
 
 ### Official Documentation
 
--   [Microsoft Agent Framework Overview](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview)
--   [Agent Framework GitHub](https://github.com/microsoft/agent-framework)
--   [D&D 5e API Documentation](https://5e-bits.github.io/docs/api)
--   [Model Context Protocol (MCP) Spec](https://spec.modelcontextprotocol.io/)
+- [Microsoft Agent Framework Overview](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview)
+- [Agent Framework GitHub](https://github.com/microsoft/agent-framework)
+- [D&D 5e API Documentation](https://5e-bits.github.io/docs/api)
+- [Model Context Protocol (MCP) Spec](https://spec.modelcontextprotocol.io/)
 
 ### Project Documentation
 
--   `docs/tenets.md` - Core design principles (WAF alignment)
--   `docs/concept/dungeon-master-style-guide.md` - Narrative tone & DM persona
--   `docs/architecture/` - Technical architecture (dual persistence, event-driven)
--   `docs/architecture/intent-parser-agent-framework.md` - Intent parsing design
--   `.github/copilot-instructions.md` - Development workflow & documentation hierarchy
+- `docs/tenets.md` - Core design principles (WAF alignment)
+- `docs/concept/dungeon-master-style-guide.md` - Narrative tone & DM persona
+- `docs/architecture/` - Technical architecture (dual persistence, event-driven)
+- `docs/architecture/intent-parser-agent-framework.md` - Intent parsing design
+- `.github/copilot-instructions.md` - Development workflow & documentation hierarchy
 
 ---
 
@@ -1605,20 +1605,17 @@ result = await workflow.run(input={"value": 15})
 The Shifting Atlas is **narrative-first, combat-ready**:
 
 1. **Narrative & Exploration** (60% focus)
-
     - AI-driven DM persona storytelling
     - Immutable base descriptions + additive contextual layers
     - World discovery as primary gameplay loop
     - Atmospheric richness through multi-agent collaboration
 
 2. **Navigation & Spatial Reasoning** (20% focus)
-
     - Graph-based world model (foundation)
     - Semantic exits and pathfinding
     - AI-enhanced traversal guidance
 
 3. **Combat & D&D Mechanics** (15% focus)
-
     - Structured D&D 5e rules for encounters
     - Tactical depth without overwhelming narrative flow
     - Combat as punctuation, not primary verb
@@ -1632,14 +1629,14 @@ The Shifting Atlas is **narrative-first, combat-ready**:
 
 Your design documents emphasize:
 
--   **Tenets**: "Prefer narrative humour & gameplay over accurate simulation"
--   **DM Style Guide**: "Theatrical, wry, gently chaotic"
+- **Tenets**: "Prefer narrative humour & gameplay over accurate simulation"
+- **DM Style Guide**: "Theatrical, wry, gently chaotic"
 
 **Key Insight**: D&D 5e API provides **structured rules for moments of conflict**, while Agent Framework enables **freeform narrative exploration**. The integration excels when:
 
--   Combat rules are deterministic and fair (D&D 5e mechanics)
--   Narrative generation is creative and theatrical (AI agents with DM persona)
--   World state remains authoritative and auditable (dual persistence model)
+- Combat rules are deterministic and fair (D&D 5e mechanics)
+- Narrative generation is creative and theatrical (AI agents with DM persona)
+- World state remains authoritative and auditable (dual persistence model)
 
 ---
 
@@ -1649,6 +1646,6 @@ Your design documents emphasize:
 **Layer**: Architecture (30k ft) - Technical design for D&D 5e + Agent Framework integration  
 **Related**:
 
--   Design Modules: `docs/concept/dungeon-master-style-guide.md`
--   Architecture: `docs/architecture/intent-parser-agent-framework.md`
--   Tenets: `docs/tenets.md` (Narrative over simulation, Explicit over implicit, Build for observability)
+- Design Modules: `docs/concept/dungeon-master-style-guide.md`
+- Architecture: `docs/architecture/intent-parser-agent-framework.md`
+- Tenets: `docs/tenets.md` (Narrative over simulation, Explicit over implicit, Build for observability)

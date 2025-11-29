@@ -251,31 +251,31 @@ When building prompts that involve player actions:
 
 **Required Context Fields**:
 
--   `characterBackground`: String (e.g., "Former Cartographer's Apprentice")
--   `narrativeCapabilities`: Array of strings (from character creation)
--   `demonstratedCapabilities`: Array of {capability, sessionReference} (tracked over time)
--   `characterQualities`: Object (descriptive qualities from character creation)
+- `characterBackground`: String (e.g., "Former Cartographer's Apprentice")
+- `narrativeCapabilities`: Array of strings (from character creation)
+- `demonstratedCapabilities`: Array of {capability, sessionReference} (tracked over time)
+- `characterQualities`: Object (descriptive qualities from character creation)
 
 **Optional Context**:
 
--   `characterHistory`: Brief narrative summary
--   `recentActions`: Last 3-5 relevant actions for continuity
--   `reputationTags`: Any earned recognition (e.g., "known_climber")
+- `characterHistory`: Brief narrative summary
+- `recentActions`: Last 3-5 relevant actions for continuity
+- `reputationTags`: Any earned recognition (e.g., "known_climber")
 
 **Anti-Patterns to Avoid in Prompts**:
 
--   ❌ "Roll a Cartography check with +2 bonus"
--   ❌ "The DC for this action is 15"
--   ❌ "Add your Intelligence modifier to the roll"
--   ❌ Including skill proficiency lists
--   ❌ Asking for numerical attribute applications
+- ❌ "Roll a Cartography check with +2 bonus"
+- ❌ "The DC for this action is 15"
+- ❌ "Add your Intelligence modifier to the roll"
+- ❌ Including skill proficiency lists
+- ❌ Asking for numerical attribute applications
 
 **Correct Patterns**:
 
--   ✅ "Consider whether the character's background as a sailor supports swimming ability"
--   ✅ "Evaluate if this action fits their established narrative capabilities"
--   ✅ "Frame the outcome as a natural story consequence"
--   ✅ "Reference their specific experience in the response"
+- ✅ "Consider whether the character's background as a sailor supports swimming ability"
+- ✅ "Evaluate if this action fits their established narrative capabilities"
+- ✅ "Frame the outcome as a natural story consequence"
+- ✅ "Reference their specific experience in the response"
 
 #### Capability Tracking & Evolution
 
@@ -307,11 +307,11 @@ When a capability is demonstrated 3+ times successfully, it can be added to thei
 
 #### Prompt Template Registry & Versioning
 
-Templates are retrieved through `prompt-template-mcp` to ensure:
+Templates are retrieved through the canonical prompt registry implemented in `shared/src/prompts/` (and optionally exposed via backend helper endpoints) to ensure:
 
--   Immutable versions (semantic name + semver + SHA256 hash)
--   Reproducibility (hash stored alongside each AI decision)
--   Change review (diff old/new template bodies before rollout)
+- Immutable versions (semantic name + semver + SHA256 hash)
+- Reproducibility (hash stored alongside each AI decision)
+- Change review (diff old/new template bodies before rollout)
 
 Example template metadata (conceptual):
 
@@ -337,16 +337,16 @@ All generation begins in advisory or proposal mode—**no direct authoritative w
 
 ### Similarity & Duplication Control
 
--   Maintain vector embeddings for each Location (offloaded to vector store)
--   Pre-gen: compute embedding of candidate description; compare to k nearest (k=10)
--   If max similarity ≥ threshold (e.g., 0.92) → rejection w/ DUPLICATE_NEARBY
--   Soft variant: allow but inject mandatory differentiator prompt clause
+- Maintain vector embeddings for each Location (offloaded to vector store)
+- Pre-gen: compute embedding of candidate description; compare to k nearest (k=10)
+- If max similarity ≥ threshold (e.g., 0.92) → rejection w/ DUPLICATE_NEARBY
+- Soft variant: allow but inject mandatory differentiator prompt clause
 
 ### Cost & Budget Management
 
--   Daily token budget; hard stop at 100% with grace queue
--   Telemetry attributes: `promptTokens`, `completionTokens`, `latencyMs`, `cacheHit`
--   Rolling 7‑day smoothing to detect anomalous spikes
+- Daily token budget; hard stop at 100% with grace queue
+- Telemetry attributes: `promptTokens`, `completionTokens`, `latencyMs`, `cacheHit`
+- Rolling 7‑day smoothing to detect anomalous spikes
 
 ### Moderation Flow (Minimal → Advanced)
 
@@ -359,10 +359,10 @@ All generation begins in advisory or proposal mode—**no direct authoritative w
 
 ### Extension Hooks
 
--   `beforeGenesisPrompt(context)` → mutate assembled prompt (bounded operations only)
--   `afterGenesisResponse(rawJson)` → validate or attach custom tags
--   `beforeCrystallize(roomDraft)` → veto / modify non-core fields
--   `afterCrystallize(location)` → schedule follow-up (quests, NPC spawn)
+- `beforeGenesisPrompt(context)` → mutate assembled prompt (bounded operations only)
+- `afterGenesisResponse(rawJson)` → validate or attach custom tags
+- `beforeCrystallize(roomDraft)` → veto / modify non-core fields
+- `afterCrystallize(location)` → schedule follow-up (quests, NPC spawn)
 
 Security: Hooks operate on sanitized objects; must be pure (no external network) in consumption plan env.
 
@@ -380,29 +380,29 @@ Security: Hooks operate on sanitized objects; must be pure (no external network)
 
 Canonical event names (defined in `shared/src/telemetryEvents.ts`) use `Domain.[Subject].Action` PascalCase form and are emitted exclusively via `trackGameEventStrict`:
 
--   `Prompt.Genesis.Issued` (promptTokens, completionTokens?, latencyMs, cacheHit)
--   `Prompt.Genesis.Rejected` (failureCode, retryCount)
--   `Prompt.Genesis.Crystallized` (tokens, similarity, safetyVerdict)
--   `Prompt.Layer.Generated` (layerType, locationId)
--   `Prompt.Cost.BudgetThreshold` (percent)
--   `Prompt.Tooling.ContextResolved` (toolCallSummaryHash, toolCount, cached)
+- `Prompt.Genesis.Issued` (promptTokens, completionTokens?, latencyMs, cacheHit)
+- `Prompt.Genesis.Rejected` (failureCode, retryCount)
+- `Prompt.Genesis.Crystallized` (tokens, similarity, safetyVerdict)
+- `Prompt.Layer.Generated` (layerType, locationId)
+- `Prompt.Cost.BudgetThreshold` (percent)
+- `Prompt.Tooling.ContextResolved` (toolCallSummaryHash, toolCount, cached)
 
 Adding a new AI prompt event requires updating the canonical list + test in `shared/test/telemetryEvents.test.ts`.
 
 ### Testing Strategy (Pre-Code)
 
--   Golden prompt fixtures → deterministic hashed expected structure
--   Fuzz tests for malformed AI JSON (injection of trailing prose) → parser resilience
--   Similarity gate unit tests with synthetic embeddings
--   Red-team prompt corpus for safety regressions
+- Golden prompt fixtures → deterministic hashed expected structure
+- Fuzz tests for malformed AI JSON (injection of trailing prose) → parser resilience
+- Similarity gate unit tests with synthetic embeddings
+- Red-team prompt corpus for safety regressions
 
 ### Tool Call Budget & Safeguards
 
 Each AI task enforces:
 
--   `maxToolCalls` (default 6) before forced summarization
--   `maxPromptTokens` & `maxCompletionTokens` per purpose
--   Early termination strategy if validation repeatedly fails (exponential backoff on retries)
+- `maxToolCalls` (default 6) before forced summarization
+- `maxPromptTokens` & `maxCompletionTokens` per purpose
+- Early termination strategy if validation repeatedly fails (exponential backoff on retries)
 
 Repeated identical advisory generations (same `contextHash`) short-circuit and reuse the prior accepted text to conserve tokens.
 
@@ -414,77 +414,77 @@ _AI-first genesis pipeline section added 2025-09-25 to align with crystallizatio
 
 ### Prompt Construction and Conditioning ⚙️
 
--   Built dynamically from player actions, location metadata, traversal context, item state, quest status, NPC memory, and persistent player identity
--   Inputs include vector hints, biome continuity, emotional tone, generation constraints, item-based modifiers, and player role tags
--   Example: “Generate a new forest location approximately 10 units north of Whispering Glade. Nearby is Mossy Hollow. Ensure biome continuity and avoid naming conflicts.”
+- Built dynamically from player actions, location metadata, traversal context, item state, quest status, NPC memory, and persistent player identity
+- Inputs include vector hints, biome continuity, emotional tone, generation constraints, item-based modifiers, and player role tags
+- Example: “Generate a new forest location approximately 10 units north of Whispering Glade. Nearby is Mossy Hollow. Ensure biome continuity and avoid naming conflicts.”
 
 ### Contextual Awareness and Continuity 🧭
 
--   Reflects spatial relationships, mood, elevation, environmental features, NPC memory, and player role
--   Exit descriptions match destination metadata
--   Supports narrative stitching, environmental foreshadowing, and multiplayer consistency
+- Reflects spatial relationships, mood, elevation, environmental features, NPC memory, and player role
+- Exit descriptions match destination metadata
+- Supports narrative stitching, environmental foreshadowing, and multiplayer consistency
 
 ### AI Response Parsing 🧠
 
--   Extracts structured metadata: name, description, biome, mood, elevation, hazards, tags, item hooks, dialogue nodes
--   Enables location generation, item placement, and quest dialogue population
+- Extracts structured metadata: name, description, biome, mood, elevation, hazards, tags, item hooks, dialogue nodes
+- Enables location generation, item placement, and quest dialogue population
 
 ### Generative Systems 🌱
 
 #### Item Generation 🪙
 
--   Descriptions, inscriptions, and lore hints use sensory language
--   Flavor text adapts to world changes, quest outcomes, player reputation, and player role
--   Rare items include historical references, faction ties, and environmental storytelling
+- Descriptions, inscriptions, and lore hints use sensory language
+- Flavor text adapts to world changes, quest outcomes, player reputation, and player role
+- Rare items include historical references, faction ties, and environmental storytelling
 
 #### Dialogue and Quest Trees 🗣️
 
--   Dialogue nodes reflect emotional tone, player stats, alignment, prior interactions, and persistent role
--   Supports deception, persuasion, intimidation, and empathy mechanics
--   Quest trees include branching logic, dependencies, and dynamic availability
--   NPC memory and relationships influence dialogue tone and quest access
--   Fallback paths ensure graceful degradation
+- Dialogue nodes reflect emotional tone, player stats, alignment, prior interactions, and persistent role
+- Supports deception, persuasion, intimidation, and empathy mechanics
+- Quest trees include branching logic, dependencies, and dynamic availability
+- NPC memory and relationships influence dialogue tone and quest access
+- Fallback paths ensure graceful degradation
 
 #### NPC Behavior 👥
 
--   Emotional profiles, faction alignment, historical context, and relationship webs
--   Dialogue style reflects personality traits and speech quirks
--   NPCs access dynamic knowledge bases and lore hooks
--   Temporal awareness enables seasonal and anniversary-based variation
+- Emotional profiles, faction alignment, historical context, and relationship webs
+- Dialogue style reflects personality traits and speech quirks
+- NPCs access dynamic knowledge bases and lore hooks
+- Temporal awareness enables seasonal and anniversary-based variation
 
 #### Quest Lifecycle 🎯
 
--   Generated from biome, faction, NPC context, player state, and player role
--   Activated via dialogue, environmental triggers, or item acquisition
--   Progression tracked through quest stages and world changes
--   Resolution includes multiple outcomes based on choices and moral alignment
--   Impacts NPC relationships, faction reputation, and future quest availability
+- Generated from biome, faction, NPC context, player state, and player role
+- Activated via dialogue, environmental triggers, or item acquisition
+- Progression tracked through quest stages and world changes
+- Resolution includes multiple outcomes based on choices and moral alignment
+- Impacts NPC relationships, faction reputation, and future quest availability
 
 ### Anti-Griefing Mechanics 🚫
 
--   Flags disruptive behavior: sabotaging quests, harassment, exploitation
--   Reduces success rates, narrative richness, and interaction quality
--   Propagates through prompt conditioning to influence NPC hostility, loot filtering, and emotional tone
--   NPCs respond with suspicion, avoidance, or aggression
--   Loot generation excludes rare or faction-tied items
--   Dialogue and quest access reflect player reputation, history, and role
+- Flags disruptive behavior: sabotaging quests, harassment, exploitation
+- Reduces success rates, narrative richness, and interaction quality
+- Propagates through prompt conditioning to influence NPC hostility, loot filtering, and emotional tone
+- NPCs respond with suspicion, avoidance, or aggression
+- Loot generation excludes rare or faction-tied items
+- Dialogue and quest access reflect player reputation, history, and role
 
 ### Spatial and Temporal Integration 🗺️⏳
 
--   Prompts influence directional heuristics and vector topology
--   Location generation respects proximity thresholds and reuses nearby nodes
--   Retroactive portals added with narrative justification
--   Prompts reflect player-triggered changes (e.g., clearing vines, building bridges, looting items)
--   AI updates descriptions to reflect world evolution and quest impact
--   Each prompt and response annotated with timestamps, player IDs, and role tags
+- Prompts influence directional heuristics and vector topology
+- Location generation respects proximity thresholds and reuses nearby nodes
+- Retroactive portals added with narrative justification
+- Prompts reflect player-triggered changes (e.g., clearing vines, building bridges, looting items)
+- AI updates descriptions to reflect world evolution and quest impact
+- Each prompt and response annotated with timestamps, player IDs, and role tags
 
 ### Safety and Developer Extensions 🛡️🧑‍💻
 
--   Prompts conditioned to avoid unsafe, offensive, or disruptive content
--   Filters enforce tone, style, and thematic boundaries
--   Developers can inject custom prompts for regions, quests, items, NPCs, and traversal puzzles
--   Templates support biome seeding, vector fields, item hooks, dialogue nodes, and narrative flavor
--   Safety validation ensures injected prompts respect spatial, factional, item, and role logic
+- Prompts conditioned to avoid unsafe, offensive, or disruptive content
+- Filters enforce tone, style, and thematic boundaries
+- Developers can inject custom prompts for regions, quests, items, NPCs, and traversal puzzles
+- Templates support biome seeding, vector fields, item hooks, dialogue nodes, and narrative flavor
+- Safety validation ensures injected prompts respect spatial, factional, item, and role logic
 
 ## **System Interaction Flow** 🔄
 
@@ -500,17 +500,17 @@ _AI-first genesis pipeline section added 2025-09-25 to align with crystallizatio
 
 ## **Future Expansion** 🚀
 
--   Pre-generated quest paths with prompt chaining and thematic continuity
--   Branching logic and re-stitching for alternate routes
--   NPC pathing using prompt-driven vector goals
--   Multiplayer prompt conditioning for shared world
+- Pre-generated quest paths with prompt chaining and thematic continuity
+- Branching logic and re-stitching for alternate routes
+- NPC pathing using prompt-driven vector goals
+- Multiplayer prompt conditioning for shared world
 
 ---
 
 ### See Also
 
--   **Navigation & Traversal** – Supplies spatial vectors and biome context for location generation (`navigation-and-traversal.md`).
--   **Quest & Dialogue Trees** – Consumes structured dialogue/quest outputs from parsing (`quest-and-dialogue-trees.md`).
--   **Extension Framework** – How third-party extensions inject custom prompt templates (`extension-framework.md`).
--   **World Rules & Lore** – Canonical biome, timeline, and thematic constraints for prompt conditioning (`world-rules-and-lore.md`).
--   **Player Identity & Roles** – Role tags and alignment influencing tone and outcomes (`player-identity-and-roles.md`).
+- **Navigation & Traversal** – Supplies spatial vectors and biome context for location generation (`navigation-and-traversal.md`).
+- **Quest & Dialogue Trees** – Consumes structured dialogue/quest outputs from parsing (`quest-and-dialogue-trees.md`).
+- **Extension Framework** – How third-party extensions inject custom prompt templates (`extension-framework.md`).
+- **World Rules & Lore** – Canonical biome, timeline, and thematic constraints for prompt conditioning (`world-rules-and-lore.md`).
+- **Player Identity & Roles** – Role tags and alignment influencing tone and outcomes (`player-identity-and-roles.md`).
