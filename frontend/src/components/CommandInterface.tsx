@@ -27,23 +27,23 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
 
     // Persist current location id across reloads within a browser tab (session-scoped persistence)
+    // IMPORTANT: Only restore sessionStorage location if playerGuid is already available
+    // to prevent race condition where user has location but no player session yet
     useEffect(() => {
         try {
             const stored = sessionStorage.getItem('tsa.currentLocationId')
-            if (stored) setCurrentLocationId(stored)
+            // Only restore location if we have a playerGuid OR if guidLoading is complete
+            // This prevents stale location + missing player race condition
+            if (stored && (playerGuid || !guidLoading)) {
+                setCurrentLocationId(stored)
+            } else if (stored && guidLoading) {
+                // Clear stale location data while waiting for player GUID to load
+                sessionStorage.removeItem('tsa.currentLocationId')
+            }
         } catch {
             /* ignore storage errors */
         }
-    }, [])
-
-    // Clear stale location data if player GUID is loading to prevent race conditions
-    // (user might have old sessionStorage from previous session but new GUID not ready)
-    useEffect(() => {
-        if (guidLoading && !playerGuid) {
-            // Don't clear currentLocationId state (let user see "look" results)
-            // but this prevents premature move commands relying on stale data
-        }
-    }, [guidLoading, playerGuid])
+    }, [playerGuid, guidLoading])
 
     useEffect(() => {
         try {
