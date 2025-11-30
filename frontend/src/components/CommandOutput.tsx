@@ -51,23 +51,25 @@ export default function CommandOutput({
         <div className={className} aria-label={ariaLabel} role="region">
             <div
                 ref={scrollRef}
-                className="h-56 overflow-auto rounded-md bg-white/5 border border-white/10 p-3 text-xs font-mono space-y-2"
+                className="h-40 sm:h-48 md:h-56 overflow-auto rounded-md bg-white/5 border border-white/10 p-2 sm:p-3 text-responsive-sm font-mono space-y-2"
             >
                 {visible.length === 0 && <p className="text-slate-300 italic">No commands issued yet.</p>}
                 {visible.map((rec) => (
                     <div key={rec.id} className="group">
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-1 sm:gap-2">
                             <span className="text-atlas-accent select-none">$</span>
-                            <span className="break-all text-slate-200">{rec.command}</span>
+                            <span className="break-all text-slate-200 flex-1 min-w-0">{rec.command}</span>
                             {rec.latencyMs != null && (
-                                <span className="ml-auto text-[10px] text-slate-500" title="Latency">
+                                <span className="ml-auto text-[10px] sm:text-xs text-slate-500 flex-shrink-0" title="Latency">
                                     {rec.latencyMs}ms
                                 </span>
                             )}
                         </div>
-                        {rec.response && <div className="pl-5 text-emerald-300 whitespace-pre-wrap break-words">{rec.response}</div>}
+                        {rec.response && (
+                            <div className="pl-3 sm:pl-5 text-emerald-300 whitespace-pre-wrap break-words">{rec.response}</div>
+                        )}
                         {rec.error && (
-                            <div className="pl-5 text-red-400 whitespace-pre-wrap break-words" role="alert">
+                            <div className="pl-3 sm:pl-5 text-red-400 whitespace-pre-wrap break-words" role="alert">
                                 {rec.error}
                             </div>
                         )}

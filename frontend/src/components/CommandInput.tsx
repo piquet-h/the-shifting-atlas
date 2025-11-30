@@ -41,11 +41,11 @@ export default function CommandInput({
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-2" aria-label="Command entry">
-            <div className="flex items-stretch gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch gap-2">
                 <input
                     ref={inputRef}
                     type="text"
-                    className="flex-1 rounded-md bg-white/5 border border-white/15 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-atlas-accent focus:border-atlas-accent disabled:opacity-50"
+                    className="flex-1 touch-target rounded-md bg-white/5 border border-white/15 px-3 py-2 sm:py-2 text-responsive-base focus:outline-none focus:ring-2 focus:ring-atlas-accent focus:border-atlas-accent disabled:opacity-50"
                     placeholder={placeholder}
                     aria-label="Command"
                     {...(isInvalid
@@ -63,16 +63,16 @@ export default function CommandInput({
                 <button
                     type="submit"
                     disabled={disabled || busy || !value.trim()}
-                    className="px-4 py-2 rounded-md bg-atlas-accent text-emerald-900 font-semibold text-sm disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg"
+                    className="touch-target px-4 py-2 rounded-md bg-atlas-accent text-emerald-900 font-semibold text-responsive-base disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg sm:w-auto w-full"
                 >
                     {busy ? 'Running…' : 'Run'}
                 </button>
             </div>
-            <div className="min-h-[1.25rem] text-xs" aria-live="polite" role="status">
+            <div className="min-h-[1.25rem] text-responsive-sm" aria-live="polite" role="status">
                 {busy && !error ? <span className="text-slate-400">Executing command…</span> : null}
             </div>
             {isInvalid && (
-                <p id="command-error" role="alert" className="text-xs text-red-400">
+                <p id="command-error" role="alert" className="text-responsive-sm text-red-400">
                     {error}
                 </p>
             )}
