@@ -63,7 +63,7 @@ export default function Nav(): React.ReactElement {
                             {initials || '⛶'}
                         </span>
                         <span className="hidden sm:inline">{label}</span>
-                        <span className="sr-only"> user menu</span>
+                        <span className="sr-only">{label} user menu</span>
                     </summary>
                     <div className="absolute right-0 top-full mt-2 w-40 sm:w-44 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
                         {user ? (

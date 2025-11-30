@@ -41,7 +41,7 @@ export default function CommandInput({
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-2" aria-label="Command entry">
-            <div className="flex flex-col sm:flex-row items-stretch gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-stretch gap-2">
                 <input
                     ref={inputRef}
                     type="text"
