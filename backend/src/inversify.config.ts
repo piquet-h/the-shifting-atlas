@@ -24,6 +24,7 @@ import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
 import { LocationLookHandler } from './handlers/locationLook.js'
+import { WorldHandler } from './handlers/mcp/world/world.js'
 import { MoveHandler } from './handlers/moveCore.js'
 import { PingHandler } from './handlers/ping.js'
 import { SimplePingHandler } from './handlers/pingSimple.js'
@@ -111,6 +112,9 @@ export const setupContainer = async (container: Container) => {
     // Register handlers as transient (no shared mutable state across requests)
     container.bind(MoveHandler).toSelf()
     container.bind(BootstrapPlayerHandler).toSelf()
+    // WorldHandler provides MCP tooling handlers (getLocation, listExits)
+    // Bind it so the MCP wrapper functions can resolve the handler from the container.
+    container.bind(WorldHandler).toSelf()
     container.bind(PlayerLinkHandler).toSelf()
     container.bind(PlayerMoveHandler).toSelf()
     container.bind(PingHandler).toSelf()

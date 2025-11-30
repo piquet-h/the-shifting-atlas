@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "type": "module",
-    "main": "dist/src/{index.js,functions/*.js,mcp/*.js}",
+    "main": "dist/src/{index.js,functions/*.js,mcp/**/*.js}",
     "scripts": {
         "clean": "rm -rf dist .cache coverage",
         "build": "tsc",
