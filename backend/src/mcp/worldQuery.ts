@@ -2,7 +2,7 @@ import { app } from '@azure/functions'
 import { worldQueryHandler } from '../handlers/mcp/worldQuery.js'
 
 app.mcpTool('World-getLocation', {
-    toolName: 'Get location',
+    toolName: 'get-location',
     description:
         "Get the state of the game world at the given location. If `locationId` is omitted the handler returns the server's public starter location (stateless fallback). The handler does not resolve session/player context.",
     toolProperties: [
