@@ -593,14 +593,14 @@ resource storageBlobContributor 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }
 
-resource storageQueueDataReader 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, backendFunctionApp.id, 'storage-queue-data-reader')
+resource storageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, backendFunctionApp.id, 'storage-queue-data-contributor')
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId(
       'Microsoft.Authorization/roleDefinitions',
-      '19e7f393-937e-4f77-808e-94535e297925'
-    ) // Storage Queue Data Reader
+      '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+    ) // Storage Queue Data Contributor
     principalId: backendFunctionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
