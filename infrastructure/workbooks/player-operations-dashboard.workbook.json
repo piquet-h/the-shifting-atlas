@@ -25,7 +25,7 @@
                 "title": "Movement Success Overview (24h)",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
-                "visualization": "tiles"
+                "visualization": "table"
             },
             "name": "movement-success-tiles"
         },
@@ -171,7 +171,7 @@
                 "title": "Description Cache Hit Rate (24h)",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
-                "visualization": "tiles"
+                "visualization": "table"
             },
             "name": "description-cache-hit-rate"
         },
@@ -191,7 +191,7 @@
                 "title": "Rate Limiter Violations (24h)",
                 "queryType": 0,
                 "resourceType": "microsoft.insights/components",
-                "visualization": "tiles"
+                "visualization": "table"
             },
             "name": "rate-limiter-violations"
         }
