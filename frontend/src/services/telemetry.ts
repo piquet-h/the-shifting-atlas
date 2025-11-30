@@ -19,9 +19,15 @@
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
 import { GAME_EVENT_NAMES } from '@piquet-h/shared'
 
+// Truncation limits for telemetry payloads
+const MAX_ERROR_STACK_LENGTH = 1000
+const MAX_COMMAND_LENGTH = 100
+
 // Telemetry attribute keys (local copy for frontend use)
-// These align with shared/src/telemetryAttributes.ts but are defined locally
-// to avoid cross-package dependency before shared package republish
+// NOTE: These align with shared/src/telemetryAttributes.ts but are defined locally
+// because the shared package on npm hasn't been republished yet with the new exports.
+// Once shared@0.3.78+ is published, this can be replaced with:
+// import { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
 const FRONTEND_ATTRIBUTE_KEYS = {
     SESSION_ID: 'game.session.id',
     USER_ID: 'game.user.id',
@@ -259,7 +265,7 @@ export function trackUIError(error: Error, properties?: Record<string, unknown>)
     const merged: Record<string, unknown> = {
         service: 'frontend-web',
         errorMessage: error.message,
-        errorStack: error.stack?.substring(0, 1000), // Truncate stack to avoid oversized events
+        errorStack: error.stack?.substring(0, MAX_ERROR_STACK_LENGTH),
         [FRONTEND_ATTRIBUTE_KEYS.ERROR_CODE]: errorCode,
         ...properties
     }
@@ -328,7 +334,7 @@ export function trackPlayerCommand(command: string, actionType: string, latencyM
 
     const properties: Record<string, unknown> = {
         service: 'frontend-web',
-        command: command.substring(0, 100), // Truncate for safety
+        command: command.substring(0, MAX_COMMAND_LENGTH),
         [FRONTEND_ATTRIBUTE_KEYS.ACTION_TYPE]: actionType
     }
 
