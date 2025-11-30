@@ -33,7 +33,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "let timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction','from-missing','no-exit','move-failed']);\ncustomEvents\n| where timestamp > ago(timeRange)\n| where name == 'Navigation.Move.Blocked'\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason\n| extend Total = toscalar(customEvents | where timestamp > ago(timeRange) and name == 'Navigation.Move.Blocked' | count())\n| extend Share = round(100.0 * Count / iff(Total == 0, 1, Total), 2)\n| project Reason=normalizedReason, Count, Share\n| order by Count desc",
+                "query": "let timeRange = 24h;\nlet knownReasons = dynamic(['invalid-direction','from-missing','no-exit','move-failed']);\nlet allBlocked = customEvents | where timestamp > ago(timeRange) and name == 'Navigation.Move.Blocked';\nlet totalCount = toscalar(allBlocked | count);\nallBlocked\n| extend reason = tostring(customDimensions.reason)\n| extend normalizedReason = iff(reason in (knownReasons), reason, 'other')\n| summarize Count = count() by normalizedReason\n| extend Total = totalCount\n| extend Share = round(100.0 * Count / iff(Total == 0, 1, Total), 2)\n| project Reason=normalizedReason, Count, Share\n| order by Count desc",
                 "size": 0,
                 "title": "Blocked Reasons (24h)",
                 "queryType": 0,
@@ -106,7 +106,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "let timeRange=24h; let success=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let fail=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Failed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let agg=success | summarize Success=count() by op; let aggFail=fail | summarize Failed=count() by op; agg | join kind=leftouter aggFail on op | extend Failed=coalesce(Failed,0), Total=Success+Failed, FailureRate=round(100.0*Failed/iff(Total==0,1,Total),2) | project op, Success, Failed, FailureRate | order by Total desc",
+                "query": "let timeRange=24h; let success=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Executed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let fail=customEvents | where timestamp>ago(timeRange) | where name=='Graph.Query.Failed' | extend op=tostring(customDimensions.operationName) | where isnotempty(op); let agg=success | summarize Success=count() by op; let aggFail=fail | summarize Failed=count() by op; agg | join kind=leftouter aggFail on op | extend Failed=coalesce(Failed,0) | extend Total=Success+Failed | extend FailureRate=round(100.0*Failed/iff(Total==0,1,Total),2) | project op, Success, Failed, Total, FailureRate | order by Total desc",
                 "size": 0,
                 "title": "Operation Reliability (24h)",
                 "queryType": 0,
