@@ -10,7 +10,7 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 | **M1 Traversal** ✅           | Persistent movement across locations                     | Location persistence, exit model, move/look commands, direction normalization                                                                             | **CLOSED** 2025-10-30  | Player can move across ≥3 persisted locations; telemetry for move success/failure                                                                 |
 | **M2 Data Foundations** ✅    | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation                                                                               | **CLOSED** 2025-11-23  | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
 | **M3 Core Loop (Umbrella)**   | Event processing + player UI + time                      | Split into M3a/M3b/M3c slices (see below)                                                                                                                 | **Split** (see slices) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
-| **M3a Event Backbone**        | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                                                                                      | See GitHub milestone   | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
+| **M3a Event Backbone**        | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                                                                                      | **CLOSED** 2025-11-30  | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
 | **M3b Player UI & Telemetry** | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs                                                                                 | See GitHub milestone   | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                     |
 | **M3c Temporal PI-0**         | World time fundamentals                                  | WorldClock, PlayerClock, LocationClock, durations, reconcile policies, ledger, tests                                                                      | See GitHub milestone   | Temporal clocks advance; reconcile policies applied; ledger + telemetry; integration tests                                                        |
 | **M4 AI Read**                | Safe advisory AI context only                            | `world-query` (MCP read-only). Prompt templates, prompt registry, and telemetry live in `shared/` and backend helper endpoints; intent parser foundations | See GitHub milestone   | AI can query world state via MCP; prompts versioned & hashed in `shared`; intent parser handles basic commands                                    |
@@ -52,8 +52,7 @@ graph TD
     classDef active fill:#fb8500,stroke:#d67000,color:#fff
     classDef future fill:#6e7781,stroke:#57606a,color:#fff
 
-    class M0,M1,M2 closed
-    class M3a active
+    class M0,M1,M2,M3a closed
     class M3b,M3c,M4,M5,M6,M7,M5A,M5B future
 
     subgraph MVP["MVP = M2 + M3 + M4"]
@@ -72,7 +71,7 @@ graph TD
 
 ### Critical Path Analysis
 
-**Bottleneck**: **M3a Event Backbone** (event schema #101, processor #102, handlers #258, correlation #313)
+**Bottleneck (resolved)**: **M3a Event Backbone** — completed 2025-11-30 (event schema #101, processor #102, handlers #258, correlation #313)
 
 - **Duration estimate**: ~2–3 weeks (M3a) then M3b (2 weeks) → M3c (2 weeks)
 - **Parallelization**: UI (M3b) can start after contracts stabilize; temporal (M3c) starts once event backbone is in place

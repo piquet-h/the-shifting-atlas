@@ -1,6 +1,6 @@
 # M3 Core Loop – Implementation Plan
 
-> **Status:** Split into mini-milestones — **M3a** 20 (7 closed, 13 open), **M3b** 14 (1 closed, 13 open), **M3c** 10 (0 closed, 10 open). Critical Path: M3a (#407 → #101 → #102 → #258) → M3b (UI/telemetry) → M3c (temporal). | Updated 2025-11-27
+> **Status:** Split into mini-milestones — **M3a** 20 (all issues closed) ✅ closed 2025-11-30, **M3b** 14 (1 closed, 13 open), **M3c** 10 (0 closed, 10 open). Critical Path: M3a (#407 → #101 → #102 → #258) → M3b (UI/telemetry) → M3c (temporal). | Updated 2025-11-30
 > **Goal:** Enable players to interact through the web UI with event-driven backend processing and temporal reconciliation.
 > **Dependencies:** M2 Data Foundations (World Events container #407, Player state #404), Telemetry enrichment (#312), SQL API repositories
 > **Blocks:** M4 AI Read (MCP server integration), M5 dashboards (client telemetry), temporal narrative layers
@@ -58,41 +58,41 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 ### C. World Event Processing (Backend)
 
--   🧱 **Schema & Contracts**: #101 WorldEvent envelope (id, type, payload, metadata, correlationId).
--   ⚙️ **Processor Function**: #102 Azure Functions queue trigger reading `worldEvents` (PK: `/scopeKey`).
--   🧩 **Handlers Registry**: #258 Type-specific handlers with factory/registry; ensure idempotency (#400) and telemetry (#399).
--   🛡️ **Reliability**: #398 Correlation propagation; #401 Dead-letter storage; #402 Replay tooling; #400 Dedup store.
+- 🧱 **Schema & Contracts**: #101 WorldEvent envelope (id, type, payload, metadata, correlationId).
+- ⚙️ **Processor Function**: #102 Azure Functions queue trigger reading `worldEvents` (PK: `/scopeKey`).
+- 🧩 **Handlers Registry**: #258 Type-specific handlers with factory/registry; ensure idempotency (#400) and telemetry (#399).
+- 🛡️ **Reliability**: #398 Correlation propagation; #401 Dead-letter storage; #402 Replay tooling; #400 Dedup store.
 
 ### D. Frontend Player Experience (SWA + React)
 
--   🔐 **Auth**: #418 SWA GitHub identity wired to backend.
--   🖥️ **Game View**: #413 Location + exits + status; #414 Description rendering (layers); #415 Command input (validation/autocomplete).
--   🧭 **Navigation UI**: #416 Exit buttons/shortcuts; #417 Status panel.
--   🛣️ **Routing**: #419 Client-side routing (React Router).
--   📡 **Telemetry**: #422 App Insights with correlation headers; moves #313/#314/#317 from M2 epics.
--   ♿ **Optional (shiftable to M5)**: #420 Accessibility, #421 Responsive layout, #423 E2E tests, #424 Frontend architecture doc.
+- 🔐 **Auth**: #418 SWA GitHub identity wired to backend.
+- 🖥️ **Game View**: #413 Location + exits + status; #414 Description rendering (layers); #415 Command input (validation/autocomplete).
+- 🧭 **Navigation UI**: #416 Exit buttons/shortcuts; #417 Status panel.
+- 🛣️ **Routing**: #419 Client-side routing (React Router).
+- 📡 **Telemetry**: #422 App Insights with correlation headers; moves #313/#314/#317 from M2 epics.
+- ♿ **Optional (shiftable to M5)**: #420 Accessibility, #421 Responsive layout, #423 E2E tests, #424 Frontend architecture doc.
 
 ### E. World Time & Temporal Reconciliation
 
--   ⏱️ **Clock Services**: #498 WorldClock; #499 PlayerClock; #500 LocationClock.
--   📚 **Action Duration Registry**: #501 Duration tables.
--   🔄 **Reconcile Engine**: #502 Wait/slow/compress policies; #503 Narrative layer (“time passes”).
--   🧾 **Temporal Ledger**: #504 Immutable log; #505 Telemetry.
--   ✅ **Integration Tests**: #506 Multi-player reconciliation scenarios.
+- ⏱️ **Clock Services**: #498 WorldClock; #499 PlayerClock; #500 LocationClock.
+- 📚 **Action Duration Registry**: #501 Duration tables.
+- 🔄 **Reconcile Engine**: #502 Wait/slow/compress policies; #503 Narrative layer (“time passes”).
+- 🧾 **Temporal Ledger**: #504 Immutable log; #505 Telemetry.
+- ✅ **Integration Tests**: #506 Multi-player reconciliation scenarios.
 
 ### F. Epic Coordination & Cross-Cutting
 
--   #385 World Event Processing Infrastructure; #389 Frontend Player Experience; #498-#506 grouped under #497 Temporal Framework; #322 Playable MVP Loop; #323 Humor; #324 Entity Promotion (tracking only).
+- #385 World Event Processing Infrastructure; #389 Frontend Player Experience; #498-#506 grouped under #497 Temporal Framework; #322 Playable MVP Loop; #323 Humor; #324 Entity Promotion (tracking only).
 
 ---
 
 ## Exit Criteria
 
--   ✅ World events process via queue with idempotency and DLQ/replay.
--   ✅ Player authenticates via SWA GitHub and sees game view (location + exits + status).
--   ✅ Command input accepts and validates commands; navigation updates backend.
--   ✅ Frontend ↔ backend telemetry correlated end-to-end.
--   🔨 Temporal mechanics: world clock advances; player clocks track durations; reconciliation policies applied; temporal narrative emitted; ledger persisted.
+- ✅ World events process via queue with idempotency and DLQ/replay.
+- ✅ Player authenticates via SWA GitHub and sees game view (location + exits + status).
+- ✅ Command input accepts and validates commands; navigation updates backend.
+- ✅ Frontend ↔ backend telemetry correlated end-to-end.
+- 🔨 Temporal mechanics: world clock advances; player clocks track durations; reconciliation policies applied; temporal narrative emitted; ledger persisted.
 
 ---
 
@@ -117,32 +117,32 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 Parallelizable:
 
--   UI polish (#420-#421) after core view.
--   Documentation (#424) and E2E (#423) can follow core loop.
+- UI polish (#420-#421) after core view.
+- Documentation (#424) and E2E (#423) can follow core loop.
 
 ---
 
 ## Acceptance Criteria (Given/When/Then)
 
--   Given a player with valid auth, when they load the game view, then location, exits, and status render from SQL API.
--   Given a move command, when the queue processor handles the corresponding event, then the player’s location updates and telemetry emits correlated events.
--   Given two players issuing commands with different durations, when reconciliation runs, then timelines align per policy and narrative text reflects elapsed time.
--   Given a handler failure, when the message is retried beyond threshold, then it lands in DLQ with replay metadata preserved.
+- Given a player with valid auth, when they load the game view, then location, exits, and status render from SQL API.
+- Given a move command, when the queue processor handles the corresponding event, then the player’s location updates and telemetry emits correlated events.
+- Given two players issuing commands with different durations, when reconciliation runs, then timelines align per policy and narrative text reflects elapsed time.
+- Given a handler failure, when the message is retried beyond threshold, then it lands in DLQ with replay metadata preserved.
 
 ---
 
 ## Tracking & Labels
 
--   **Milestone:** `M3 Core Loop` (GitHub milestone number TBD; verify before assignment)
--   **Scope label:** `scope:core`
--   **Type labels:** `feature` (cluster C/D), `enhancement` (telemetry), `test` (integration), `docs` (architecture/UI docs)
--   **Risk tag:** `RUNTIME-BEHAVIOR` (backend queue processing), `LOW` for UI polish items
+- **Milestone:** `M3 Core Loop` (GitHub milestone number TBD; verify before assignment)
+- **Scope label:** `scope:core`
+- **Type labels:** `feature` (cluster C/D), `enhancement` (telemetry), `test` (integration), `docs` (architecture/UI docs)
+- **Risk tag:** `RUNTIME-BEHAVIOR` (backend queue processing), `LOW` for UI polish items
 
 ---
 
 ## Notes
 
--   This plan mirrors `docs/roadmap.md` M3 section; keep `roadmap.md` as the single high-level narrative. This file is Layer 5 (milestones) and should remain tactical.
--   **Naming note:** Legacy references to “M3 AI Read” map to current **M4 AI Read**. M3 is **Core Loop** per `docs/roadmap.md`.
--   Avoid mixing M4/M5 scope; create atomic issues per Section 17 policy when splitting.
--   Status refresh 2025-11-27: M3a 20 (7 closed/13 open), M3b 14 (1/13), M3c 10 (0/10). Dependencies annotated directly in issues (#413–#419, #422, #498–#506). Closed: #258.
+- This plan mirrors `docs/roadmap.md` M3 section; keep `roadmap.md` as the single high-level narrative. This file is Layer 5 (milestones) and should remain tactical.
+- **Naming note:** Legacy references to “M3 AI Read” map to current **M4 AI Read**. M3 is **Core Loop** per `docs/roadmap.md`.
+- Avoid mixing M4/M5 scope; create atomic issues per Section 17 policy when splitting.
+  Status refresh 2025-11-30: M3a 20 (20 closed/0 open) ✅. M3b 14 (1 closed/13 open), M3c 10 (0/10). Dependencies annotated directly in issues (#413–#419, #422, #498–#506). Closed: #258.
