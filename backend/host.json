@@ -9,13 +9,20 @@
             "messageHandlerOptions": {
                 "autoComplete": true
             }
+        },
+        "mcp": {
+            "enabled": true,
+            "instructions": "Resolves combat, movement, and other game mechanics for The Shifting Atlas. It processes requests from the game clients and updates the game state accordingly.",
+            "serverName": "mcp-the-shifting-atlas",
+            "serverVersion": "0.0.1",
+            "encryptClientState": false,
+            "messageOptions": {
+                "useAbsoluteUriForEndpoint": false
+            },
+            "system": {
+                "webhookAuthorizationLevel": "Anonymous"
+            }
         }
-    },
-    "retry": {
-        "strategy": "exponentialBackoff",
-        "maxRetryCount": 4,
-        "minimumInterval": "00:00:01",
-        "maximumInterval": "00:01:00"
     },
     "logging": {
         "console": {
@@ -28,7 +35,12 @@
             }
         },
         "logLevel": {
-            "default": "Trace"
+            "default": "Information",
+            "Azure": "Warning",
+            "Azure.Storage": "Warning",
+            "Azure.Storage.Queues": "Warning",
+            "Azure.Storage.Blobs": "Warning",
+            "Microsoft.Azure.WebJobs": "Warning"
         }
     }
 }

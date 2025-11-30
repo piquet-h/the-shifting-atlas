@@ -3,6 +3,10 @@
         "github-remote-mcp-server": {
             "url": "https://api.githubcopilot.com/mcp/",
             "type": "http"
+        },
+        "mcp-the-shifting-atlas": {
+            "type": "http",
+            "url": "http://localhost:7071/runtime/webhooks/mcp"
         }
     },
     "inputs": []

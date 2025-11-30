@@ -211,3 +211,7 @@ app.hook.appStart(async () => {
 app.hook.preInvocation((context: PreInvocationContext) => {
     context.invocationContext.extraInputs.set('container', container)
 })
+
+app.setup({
+    enableHttpStream: true
+})

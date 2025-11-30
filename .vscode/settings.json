@@ -111,5 +111,10 @@
     "chat.agentSessionsViewLocation": "view",
     "chat.edits2.enabled": true,
     "chat.extensionUnification.enabled": true,
-    "postman.settings.dotenv-detection-notification-visibility": false
+    "postman.settings.dotenv-detection-notification-visibility": false,
+    "chat.mcp.serverSampling": {
+        "the-shifting-atlas/.vscode/mcp.json: mcp-the-shifting-atlas": {
+            "allowedModels": ["copilot/auto"]
+        }
+    }
 }
