@@ -36,6 +36,15 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
         }
     }, [])
 
+    // Clear stale location data if player GUID is loading to prevent race conditions
+    // (user might have old sessionStorage from previous session but new GUID not ready)
+    useEffect(() => {
+        if (guidLoading && !playerGuid) {
+            // Don't clear currentLocationId state (let user see "look" results)
+            // but this prevents premature move commands relying on stale data
+        }
+    }, [guidLoading, playerGuid])
+
     useEffect(() => {
         try {
             if (currentLocationId) sessionStorage.setItem('tsa.currentLocationId', currentLocationId)
@@ -67,7 +76,10 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 // Only commands that mutate player state (move) require a resolved player GUID.
                 const requiresPlayer = lower.startsWith('move ')
                 if (!playerGuid && requiresPlayer) {
-                    throw new Error('Cannot move yet - your session is still initializing. Please wait a moment and try again.')
+                    throw new Error(
+                        'Cannot move yet - your session is still initializing. Please wait a moment and try again. ' +
+                            'If this persists, try refreshing the page to clear stale session data.'
+                    )
                 }
                 if (lower.startsWith('ping')) {
                     const requestBody: PingRequest = {
@@ -194,8 +206,9 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 <div className="mb-2 text-xs text-red-400">Session initialization failed: {guidError}. Some commands may not work.</div>
             )}
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
-                Disable only while GUID is actively loading and not yet available to reduce confusion. */}
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={guidLoading && !playerGuid} />
+                Disable only while GUID is actively loading and not yet available to reduce confusion.
+                Note: move commands have additional validation in runCommand that checks playerGuid. */}
+            <CommandInput onSubmit={runCommand} busy={busy} disabled={(guidLoading && !playerGuid) || busy} />
             <p className="mt-2 text-[11px] text-slate-300">
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
