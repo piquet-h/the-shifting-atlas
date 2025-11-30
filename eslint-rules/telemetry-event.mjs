@@ -1,9 +1,3 @@
-// Unified ESLint rule: telemetry-event
-// Purpose: Combine naming pattern validation (Domain[.Subject].Action PascalCase 2-3 segments)
-// and enumeration membership validation against GAME_EVENT_NAMES in shared/src/telemetryEvents.ts.
-// Applies to: trackEvent(...), trackGameEvent(...), trackGameEventStrict(...)
-// Simplification: Replaces telemetry-event-name + telemetry-event-membership rules.
-
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -11,23 +5,20 @@ let cachedNames = null
 function loadEventNames(context) {
     if (cachedNames) return cachedNames
     try {
-        // Resolve repository root by walking upward until we find a directory that contains both
-        // a package.json AND a 'shared' subdirectory (the monorepo root)
         let dir = path.dirname(context.getFilename())
         while (dir !== path.parse(dir).root) {
             const hasPackageJson = fs.existsSync(path.join(dir, 'package.json'))
             const hasShared = fs.existsSync(path.join(dir, 'shared'))
             if (hasPackageJson && hasShared) {
-                break // Found monorepo root
+                break
             }
             dir = path.dirname(dir)
         }
         const target = path.join(dir, 'shared', 'src', 'telemetryEvents.ts')
         const text = fs.readFileSync(target, 'utf8')
-        // Match quoted event literals (PascalCase dot-separated segments) from enumeration source
         const matches = [...text.matchAll(/'([A-Z][A-Za-z]+(?:\.[A-Z][A-Za-z]+){1,2})'/g)]
         cachedNames = new Set(matches.map((m) => m[1]))
-    } catch (e) {
+    } catch {
         cachedNames = new Set()
     }
     return cachedNames

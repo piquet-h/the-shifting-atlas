@@ -1,38 +1,30 @@
-// reflect-metadata MUST be imported first for InversifyJS decorator metadata to work
-import 'reflect-metadata'
-// Telemetry MUST be initialized second (Application Insights auto-collection before any user code)
+// Import first to enable InversifyJS decorator metadata
 import { app, PreInvocationContext } from '@azure/functions'
-// Lightweight declaration to satisfy type checker if Node types resolution is delayed.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-declare const process: any
-// Import order matters: initialize App Insights before any user code for auto-collection.
 import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
+import 'reflect-metadata'
 import type { IGremlinClient } from './gremlin/gremlinClient.js'
 import { setupContainer } from './inversify.config.js'
 import type { ITelemetryClient } from './telemetry/ITelemetryClient.js'
+// Minimal declaration for early type access
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const process: any
 
 const container = new Container()
 
-// Ensure container setup completes before any function invocation.
-// Previously this hook was synchronous and did not await the async setupContainer call,
-// causing a race where handler/repository bindings might be missing on first invocation
-// (e.g. Functions.player alias to bootstrap) leading to FunctionInvocationException.
+// Ensure container setup completes before any invocation
 app.hook.appStart(async () => {
-    // Determine persistence mode early to conditionally initialize Application Insights
+    // Initialize telemetry only in cosmos mode
     const persistenceMode = (process.env.PERSISTENCE_MODE || 'memory').toLowerCase()
     const isCosmosMode = persistenceMode === 'cosmos'
 
-    // Initialize Application Insights only in cosmos mode (production/staging)
-    // In memory mode (local dev), skip initialization to avoid overhead and network calls
     if (isCosmosMode) {
         appInsights.setup().start()
 
-        // Sampling configuration (issue #315): environment-driven percentage.
-        // Accept either whole number (e.g. 15) or ratio (e.g. 0.15) via several possible variable names.
+        // Sampling: read percentage or ratio from env
         const samplingEnv = process.env.APPINSIGHTS_SAMPLING_PERCENTAGE
 
-        // Environment-based default: 100% for dev/test, 15% for production
+        // Defaults: 100% dev/test, 15% prod
         const nodeEnv = (process.env.NODE_ENV || 'production').toLowerCase()
         const isDevelopment = nodeEnv === 'development' || nodeEnv === 'test'
         const defaultSampling = isDevelopment ? 100 : 15
@@ -44,16 +36,13 @@ app.hook.appStart(async () => {
         if (samplingEnv) {
             const raw = parseFloat(samplingEnv)
             if (Number.isNaN(raw)) {
-                // Non-numeric value triggers fallback
                 configAdjusted = true
                 adjustmentReason = 'non-numeric value'
             } else {
-                // If value looks like a ratio (<=1), convert to percent
                 let normalized = raw
                 if (raw > 0 && raw <= 1) {
                     normalized = raw * 100
                 }
-                // Clamp to valid range [0..100]
                 const clamped = Math.min(100, Math.max(0, normalized))
                 if (clamped !== normalized) {
                     configAdjusted = true
@@ -66,7 +55,6 @@ app.hook.appStart(async () => {
         try {
             appInsights.defaultClient.config.samplingPercentage = samplingPercentage
 
-            // Emit warning event if configuration was adjusted
             if (configAdjusted) {
                 appInsights.defaultClient.trackEvent({
                     name: 'Telemetry.Sampling.ConfigAdjusted',
@@ -80,10 +68,10 @@ app.hook.appStart(async () => {
                 })
             }
         } catch {
-            // ignore sampling configuration errors
+            // ignore
         }
 
-        // add telemetry processor to drop bot/probe requests
+        // Drop bot/probe requests
         try {
             const client = appInsights.defaultClient
             if (client && typeof client.addTelemetryProcessor === 'function') {
@@ -98,7 +86,7 @@ app.hook.appStart(async () => {
                         }
                         // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     } catch (_error) {
-                        // Ignore telemetry processor errors
+                        // ignore
                     }
                     return true
                 })
@@ -115,7 +103,6 @@ app.hook.appStart(async () => {
     try {
         await setupContainer(container)
     } catch (error) {
-        // Log and emit metric so cold start failures are diagnosable
         console.error('Container setup failed', error)
         if (isCosmosMode) {
             try {
@@ -129,11 +116,9 @@ app.hook.appStart(async () => {
     const endTime = Date.now()
     const duration = endTime - startTime
 
-    // Log feature flag configuration after container setup
     if (isCosmosMode) {
         appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
 
-        // Emit feature flag state telemetry using container's telemetry client
         try {
             const telemetryClient = container.get<ITelemetryClient>('ITelemetryClient')
             const { getFeatureFlagSnapshot, getValidationWarnings } = await import('./config/featureFlags.js')
@@ -144,7 +129,6 @@ app.hook.appStart(async () => {
                 properties: flagSnapshot
             })
 
-            // Emit warnings for any invalid flag values
             const warnings = getValidationWarnings()
             for (const warning of warnings) {
                 telemetryClient.trackEvent({
@@ -162,7 +146,6 @@ app.hook.appStart(async () => {
     } else {
         console.log(`[startup] Container setup completed in ${duration}ms`)
 
-        // Log feature flags to console in memory mode
         try {
             const { getFeatureFlagSnapshot } = await import('./config/featureFlags.js')
             const flagSnapshot = getFeatureFlagSnapshot()
@@ -172,30 +155,27 @@ app.hook.appStart(async () => {
         }
     }
 
-    // Register graceful shutdown hooks AFTER container setup so bindings exist.
-    // Azure Functions may recycle processes; we attempt best-effort flush/close on signals.
+    // Register graceful shutdown hooks
     const registerShutdown = () => {
         const performShutdown = async (signal: string) => {
             try {
                 const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
                 telemetry.flush({ isAppCrashing: signal === 'SIGINT' || signal === 'SIGTERM' })
             } catch {
-                // swallow – telemetry optional
+                // swallow
             }
             try {
                 const gremlin = container.get<IGremlinClient>('GremlinClient')
                 await gremlin.close()
             } catch {
-                // swallow – gremlin may not be bound (memory mode)
+                // swallow
             }
         }
         for (const sig of ['SIGINT', 'SIGTERM']) {
             process.once(sig, () => {
-                // Fire and forget; Functions host will terminate shortly.
                 void performShutdown(sig)
             })
         }
-        // beforeExit gives a final opportunity to flush telemetry.
         process.once('beforeExit', () => {
             try {
                 const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
