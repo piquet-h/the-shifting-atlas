@@ -208,16 +208,10 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
                 </div>
             )}
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
-<<<<<<< HEAD
                 Disable only while GUID is actively loading and not yet available to reduce confusion.
                 Note: move commands have additional validation in runCommand that checks playerGuid. */}
             <CommandInput onSubmit={runCommand} busy={busy} disabled={(guidLoading && !playerGuid) || busy} />
-            <p className="mt-2 text-[11px] text-slate-300">
-=======
-                Disable only while GUID is actively loading and not yet available to reduce confusion. */}
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={guidLoading && !playerGuid} />
             <p className="mt-2 text-responsive-sm text-slate-300">
->>>>>>> 2a2ca4adb3496e50e98945530c4e32cb7cc496b7
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">move &lt;direction&gt;</code>,{' '}
