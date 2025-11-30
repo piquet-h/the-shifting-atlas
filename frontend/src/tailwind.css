@@ -30,4 +30,36 @@
         font-size: clamp(1.75rem, 1.2rem + 1.5vw, 2.5rem);
         line-height: 1.1;
     }
+
+    /* Responsive text utilities using clamp() for fluid typography */
+    .text-responsive-sm {
+        font-size: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+    }
+
+    .text-responsive-base {
+        font-size: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+    }
+
+    .text-responsive-lg {
+        font-size: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+    }
+
+    .text-responsive-xl {
+        font-size: clamp(1.125rem, 1rem + 0.6vw, 1.25rem);
+    }
+
+    .text-responsive-2xl {
+        font-size: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+    }
+
+    /* Touch-friendly minimum touch target size utility */
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Constrain max content width on ultra-wide screens */
+    .max-w-readable {
+        max-width: min(100%, 75ch);
+    }
 }
