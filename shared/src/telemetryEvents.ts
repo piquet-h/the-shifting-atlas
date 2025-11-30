@@ -49,6 +49,13 @@ export const GAME_EVENT_NAMES = [
     // UI interaction telemetry (M2 Observability - frontend correlation)
     'UI.Move.Command', // Movement command dispatched from frontend
     'UI.Location.Look', // Location look request from frontend
+    'UI.Error', // Unhandled frontend error (exception or promise rejection)
+    // Player action telemetry (frontend-originated, Issue #444 - Frontend Telemetry Integration)
+    'Player.Navigate', // Player navigation action dispatched from frontend
+    'Player.Command', // Player command input from frontend
+    // Session lifecycle telemetry (frontend session tracking)
+    'Session.Start', // Frontend session started (page load or reconnect)
+    'Session.End', // Frontend session ended (page unload or disconnect)
     'World.Location.Generated',
     'World.Location.Rejected',
     'World.Location.Upsert',
