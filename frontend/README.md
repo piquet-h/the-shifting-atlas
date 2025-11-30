@@ -37,6 +37,21 @@ VITE_APPINSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint
 
 If not set, telemetry is gracefully disabled (no-op).
 
+### Features
+
+- **Session tracking**: `Session.Start` and `Session.End` events with unique session IDs
+- **Automatic error tracking**: Unhandled exceptions and promise rejections captured as `UI.Error` events
+- **Page view tracking**: Route changes automatically emit pageView telemetry
+- **Player action tracking**: `Player.Navigate` and `Player.Command` events for user actions
+- **Backend correlation**: `x-correlation-id` header propagated for cross-service tracing
+- **Debounce utility**: `debounceTrack()` for high-frequency events (e.g., typing)
+
+### Edge Cases Handled
+
+- **Ad blocker present**: Telemetry fails silently with no user impact
+- **Offline mode**: SDK queues events and sends on reconnect
+- **High-frequency events**: Use `debounceTrack()` wrapper to avoid flooding
+
 ### Correlation Headers
 
 When telemetry is enabled, the frontend automatically:
@@ -46,11 +61,50 @@ When telemetry is enabled, the frontend automatically:
 - Tracks UI events (`UI.Move.Command`, `UI.Location.Look`) with the correlationId
 - Enables Application Insights join queries across frontend and backend events
 
+### Event Attributes
+
+All frontend telemetry events include:
+
+| Attribute | Description |
+|-----------|-------------|
+| `game.session.id` | Unique session ID (UUID) generated on page load |
+| `game.user.id` | Microsoft Account ID from SWA auth (when authenticated) |
+| `game.action.type` | Type of player action (e.g., 'navigate', 'move', 'look') |
+| `game.latency.ms` | Latency in milliseconds for API calls |
+| `game.error.code` | Error classification for UI.Error events |
+| `game.event.correlation.id` | Correlation ID for backend request tracing |
+
 ### Implementation Details
 
+- **Telemetry Service**: `src/services/telemetry.ts` - Application Insights initialization, event tracking, session management
 - **Correlation Utilities**: `src/utils/correlation.ts` - Generate and manage correlation IDs
-- **Telemetry Service**: `src/services/telemetry.ts` - Application Insights initialization and event tracking
-- **Instrumented Components**: `CommandInterface.tsx` - Movement and look commands with correlation
+
+### API Reference
+
+```typescript
+import { 
+    initTelemetry,          // Initialize App Insights (called in main.tsx)
+    trackEvent,             // Track custom event
+    trackGameEventClient,   // Track validated game event
+    trackUIError,           // Track UI.Error with error details
+    trackPlayerNavigate,    // Track Player.Navigate event
+    trackPlayerCommand,     // Track Player.Command event
+    debounceTrack,          // Create debounced tracker
+    setUserId,              // Set authenticated user ID
+    getSessionId,           // Get current session ID
+    isTelemetryEnabled      // Check if telemetry is active
+} from './services/telemetry'
+
+// Track navigation with latency and correlation
+trackPlayerNavigate('north', 150, correlationId)
+
+// Track command with action type
+trackPlayerCommand('go north', 'move', 100, correlationId)
+
+// Debounce high-frequency events (e.g., typing)
+const debouncedTrack = debounceTrack(trackEvent, 300)
+debouncedTrack('Typing.Character', { char: 'a' })
+```
 
 ### Querying Correlated Events
 

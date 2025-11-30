@@ -50,7 +50,16 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     /** Probability value used for humor gate (0.0-1.0) */
     HUMOR_PROBABILITY_USED: 'game.humor.probability.used',
     /** Reason for quip suppression (serious|exhausted|probability) */
-    HUMOR_SUPPRESSION_REASON: 'game.humor.suppression.reason'
+    HUMOR_SUPPRESSION_REASON: 'game.humor.suppression.reason',
+    // Frontend telemetry attributes (Issue #444 - Frontend Telemetry Integration)
+    /** Session ID for frontend session correlation */
+    SESSION_ID: 'game.session.id',
+    /** Microsoft Account user ID (Azure SWA auth) */
+    USER_ID: 'game.user.id',
+    /** Action type for player interaction classification */
+    ACTION_TYPE: 'game.action.type',
+    /** Latency in milliseconds for API calls or user actions */
+    LATENCY_MS: 'game.latency.ms'
 } as const
 
 export type TelemetryAttributeKey = (typeof TELEMETRY_ATTRIBUTE_KEYS)[keyof typeof TELEMETRY_ATTRIBUTE_KEYS]
@@ -270,6 +279,105 @@ export function enrichWorldEventLifecycleAttributes(
     }
     if (attrs.batchId) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_BATCH_ID] = attrs.batchId
+    }
+    return properties
+}
+
+/**
+ * Options for enriching frontend session events
+ */
+export interface SessionEventAttributes {
+    sessionId?: string | null
+    userId?: string | null
+}
+
+/**
+ * Options for enriching frontend action events
+ */
+export interface ActionEventAttributes {
+    sessionId?: string | null
+    userId?: string | null
+    actionType?: string | null
+    latencyMs?: number | null
+    correlationId?: string | null
+}
+
+/**
+ * Options for enriching frontend error events
+ */
+export interface FrontendErrorEventAttributes {
+    sessionId?: string | null
+    userId?: string | null
+    errorCode?: string | null
+}
+
+/**
+ * Enrich telemetry properties with session attributes.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Session attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichSessionAttributes(properties: Record<string, unknown>, attrs: SessionEventAttributes): Record<string, unknown> {
+    if (attrs.sessionId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = attrs.sessionId
+    }
+    if (attrs.userId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = attrs.userId
+    }
+    return properties
+}
+
+/**
+ * Enrich telemetry properties with action attributes.
+ * Includes session ID, user ID, action type, latency, and correlation ID.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Action attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichActionAttributes(properties: Record<string, unknown>, attrs: ActionEventAttributes): Record<string, unknown> {
+    if (attrs.sessionId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = attrs.sessionId
+    }
+    if (attrs.userId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = attrs.userId
+    }
+    if (attrs.actionType) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.ACTION_TYPE] = attrs.actionType
+    }
+    if (attrs.latencyMs !== null && attrs.latencyMs !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = attrs.latencyMs
+    }
+    if (attrs.correlationId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = attrs.correlationId
+    }
+    return properties
+}
+
+/**
+ * Enrich telemetry properties with frontend error attributes.
+ * Includes session ID, user ID, and error code.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Error attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichFrontendErrorAttributes(
+    properties: Record<string, unknown>,
+    attrs: FrontendErrorEventAttributes
+): Record<string, unknown> {
+    if (attrs.sessionId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = attrs.sessionId
+    }
+    if (attrs.userId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = attrs.userId
+    }
+    if (attrs.errorCode) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
     }
     return properties
 }
