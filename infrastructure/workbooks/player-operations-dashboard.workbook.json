@@ -166,7 +166,7 @@
             "type": 3,
             "content": {
                 "version": "KqlItem/1.0",
-                "query": "let timeRange=24h; let hits=customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Hit'; let misses=customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Miss'; let h=hits | count | project Hits=Count; let m=misses | count | project Misses=Count; h | extend Misses=coalesce((misses | count | project Count)[0],0) | extend Total=Hits+Misses | extend HitRate=round(100.0*Hits/iff(Total==0,1,Total),2) | project Hits, Misses, Total, HitRate",
+                "query": "let timeRange=24h;\nlet hits = toscalar(customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Hit' | count);\nlet misses = toscalar(customEvents | where timestamp>ago(timeRange) and name=='Description.Cache.Miss' | count);\nprint Hits=hits, Misses=misses\n| extend Total=Hits+Misses\n| extend HitRate=round(100.0*Hits/iff(Total==0,1,Total),2)\n| project Hits, Misses, Total, HitRate",
                 "size": 0,
                 "title": "Description Cache Hit Rate (24h)",
                 "queryType": 0,
