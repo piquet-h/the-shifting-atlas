@@ -1,6 +1,10 @@
 param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
+// Optional parameters to wire Azure AD for App Service Authentication (EasyAuth)
+// Leave empty to enable EasyAuth without a specific AAD provider configured.
+param aadClientId string = ''
+param enableAppServiceAuth bool = true
 
 var storageName = toLower('st${name}${unique}')
 
@@ -153,6 +157,23 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
       COSMOS_SQL_CONTAINER_DEADLETTERS: 'deadLetters'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
+    }
+  }
+
+  // App Service Authentication (EasyAuth) configuration.
+  // Enable EasyAuth but allow anonymous requests to still reach the functions.
+  // To wire Azure AD later, provide `aadClientId` (and set a secret via Key Vault
+  // and the matching `clientSecretSettingName` at deployment-time). We avoid
+  // hardcoding cloud-specific endpoints here so configuration can be performed
+  // via portal or secure parameters after deployment.
+  resource authSettings 'config' = {
+    name: 'authsettings'
+    properties: {
+      enabled: enableAppServiceAuth
+      unauthenticatedClientAction: 'AllowAnonymous'
+      tokenStoreEnabled: false
+      clientId: aadClientId
+      clientSecretSettingName: ''
     }
   }
 }
