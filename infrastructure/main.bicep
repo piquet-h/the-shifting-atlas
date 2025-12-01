@@ -552,7 +552,7 @@ resource backendAuthSettingsV2 'Microsoft.Web/sites/config@2024-11-01' = {
       azureStaticWebApps: {
         enabled: true
         registration: {
-          clientId: staticSite.identity.principalId
+          clientId: staticSite.properties.defaultHostname
         }
       }
     }
