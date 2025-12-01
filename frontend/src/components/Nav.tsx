@@ -69,7 +69,7 @@ export default function Nav(): React.ReactElement {
                         {user ? (
                             <button
                                 onClick={() => signOut()}
-                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
+                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
                             >
                                 Sign Out
                             </button>
@@ -77,7 +77,7 @@ export default function Nav(): React.ReactElement {
                             <>
                                 <button
                                     onClick={() => signIn('msa', '/')}
-                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus:bg-white/10 transition-colors"
+                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
                                 >
                                     Sign In with Microsoft
                                 </button>
