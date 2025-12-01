@@ -159,8 +159,10 @@ describe('Accessibility - Screen Reader Support', () => {
         const { default: LiveAnnouncer } = await import('../src/components/LiveAnnouncer')
         const markup = renderToString(<LiveAnnouncer />)
 
-        // The announcer should be sr-only but NOT aria-hidden
+        // The announcer should be sr-only (visually hidden but screen reader accessible)
+        // No aria-hidden attribute means it's visible to assistive technology by default
         expect(markup).toMatch(/class="[^"]*sr-only[^"]*"/)
-        expect(markup).toMatch(/aria-hidden="false"/)
+        // Should NOT have aria-hidden="true" which would hide from screen readers
+        expect(markup).not.toMatch(/aria-hidden="true"/)
     })
 })
