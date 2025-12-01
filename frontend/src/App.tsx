@@ -4,6 +4,7 @@ import Homepage from './components/Homepage'
 import LiveAnnouncer from './components/LiveAnnouncer'
 import Nav from './components/Nav'
 import ResponsiveLayout from './components/ResponsiveLayout'
+import Game from './pages/Game'
 
 /** Moves focus to <h1> or main landmark after navigation. Main landmark is global; pages should not render their own <main>. */
 function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
@@ -40,6 +41,7 @@ export default function App(): React.ReactElement {
                     <ResponsiveLayout>
                         <Routes>
                             <Route path="/" element={<Homepage />} />
+                            <Route path="/game" element={<Game />} />
                             {/* Future routes */}
                         </Routes>
                     </ResponsiveLayout>
