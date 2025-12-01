@@ -4,6 +4,10 @@
     "version": "0.0.0",
     "license": "MIT",
     "scripts": {
+        "build:shared": "npm run build --prefix shared",
+        "build:backend": "npm run build --prefix backend",
+        "build:frontend": "npm run build --prefix frontend",
+        "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
         "verify:instructions": "node scripts/verify-instructions.mjs",
         "verify:instructions:json": "node scripts/verify-instructions.mjs --format json",
         "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs",
@@ -11,7 +15,14 @@
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
         "workbooks:export": "node scripts/observability/export-workbooks.mjs",
         "workbooks:verify": "node scripts/observability/verify-workbooks.mjs",
-        "lint:repo": "eslint . --max-warnings=50",
+        "lint:shared": "npm run lint --prefix shared",
+        "lint:backend": "npm run lint --prefix backend",
+        "lint:frontend": "npm run lint --prefix frontend",
+        "lint:repo": "npm run lint:shared && npm run lint:backend && npm run lint:frontend",
+        "format:shared": "npm run format --prefix shared",
+        "format:backend": "npm run format --prefix backend",
+        "format:frontend": "npm run format --prefix frontend",
+        "format": "npm run format:shared && npm run format:backend && npm run format:frontend",
         "validate:partitions": "tsx scripts/validate-partition-distribution.ts"
     },
     "engines": {
