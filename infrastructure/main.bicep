@@ -160,20 +160,38 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     }
   }
 
-  // App Service Authentication (EasyAuth) configuration.
-  // Enable EasyAuth but allow anonymous requests to still reach the functions.
-  // To wire Azure AD later, provide `aadClientId` (and set a secret via Key Vault
-  // and the matching `clientSecretSettingName` at deployment-time). We avoid
-  // hardcoding cloud-specific endpoints here so configuration can be performed
-  // via portal or secure parameters after deployment.
-  resource authSettings 'config' = {
-    name: 'authsettings'
+  resource authSettingsV2 'config' = {
+    name: 'authsettingsV2'
     properties: {
-      enabled: enableAppServiceAuth
-      unauthenticatedClientAction: 'AllowAnonymous'
-      tokenStoreEnabled: false
-      clientId: aadClientId
-      clientSecretSettingName: ''
+      // Global validation controls how unauthenticated requests are handled
+      globalValidation: {
+        unauthenticatedClientAction: enableAppServiceAuth ? 'AllowAnonymous' : 'Return401'
+        requireAuthentication: false
+      }
+
+      // Token store configuration (disabled to avoid persisting tokens by default)
+      login: {
+        tokenStore: {
+          enabled: false
+        }
+      }
+
+      // Platform runtime/auth feature version + enabled flag
+      platform: {
+        enabled: enableAppServiceAuth
+        runtimeVersion: 'v2'
+      }
+
+      // Identity providers configuration - wire Azure AD when aadClientId is provided
+      identityProviders: {
+        azureActiveDirectory: {
+          enabled: aadClientId != ''
+          registration: {
+            clientId: aadClientId
+            clientSecretSettingName: ''
+          }
+        }
+      }
     }
   }
 }
