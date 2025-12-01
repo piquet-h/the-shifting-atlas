@@ -159,29 +159,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_DATABASE_TEST: 'game-test'
     }
   }
-
-  resource authSettingsV2 'config' = {
-    name: 'authsettingsV2'
-    properties: {
-      globalValidation: {
-        unauthenticatedClientAction: 'AllowAnonymous'
-        requireAuthentication: false
-      }
-
-      // Token store configuration (disabled to avoid persisting tokens by default)
-      login: {
-        tokenStore: {
-          enabled: false
-        }
-      }
-
-      // Platform runtime/auth feature version + enabled flag
-      platform: {
-        enabled: true
-        runtimeVersion: 'v2'
-      }
-    }
-  }
 }
 
 resource cosmosGraphAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
@@ -540,6 +517,45 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
     properties: {
       backendResourceId: backendFunctionApp.id
       region: backendFunctionApp.location
+    }
+  }
+}
+
+// Apply Function App auth settings after SWA links the backend so our config wins
+resource backendAuthSettingsV2 'Microsoft.Web/sites/config@2024-11-01' = {
+  parent: backendFunctionApp
+  name: 'authsettingsV2'
+  dependsOn: [
+    staticSite::linkedBackend
+  ]
+  properties: {
+    globalValidation: {
+      unauthenticatedClientAction: 'AllowAnonymous'
+      requireAuthentication: false
+    }
+
+    // Token store configuration (disabled to avoid persisting tokens by default)
+    login: {
+      tokenStore: {
+        enabled: false
+      }
+    }
+
+    // Platform runtime/auth feature version + enabled flag
+    platform: {
+      enabled: enableAppServiceAuth
+      runtimeVersion: 'v2'
+    }
+
+    // Optional identity provider wiring (Azure AD) when client ID is provided
+    identityProviders: {
+      azureActiveDirectory: {
+        enabled: aadClientId != ''
+        registration: {
+          clientId: aadClientId
+          clientSecretSettingName: ''
+        }
+      }
     }
   }
 }
