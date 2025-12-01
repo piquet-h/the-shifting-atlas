@@ -141,30 +141,12 @@ describe('GameView Component', () => {
 
     describe('Responsive Layout', () => {
         it('renders mobile layout by default (single column)', async () => {
-            mockIsDesktop = false
-            vi.resetModules()
-            vi.clearAllMocks()
-
-            // Re-mock after reset
-            vi.mock('../src/hooks/usePlayerGuid', () => ({
-                usePlayerGuid: () => ({
-                    playerGuid: null,
-                    loading: false,
-                    created: null,
-                    error: null,
-                    refresh: () => {}
-                })
-            }))
-            vi.mock('../src/hooks/useMediaQueries', () => ({
-                useMediaQuery: () => false
-            }))
-
+            // mockIsDesktop is false by default in beforeEach
             const { default: GameView } = await import('../src/components/GameView')
             const markup = renderToString(<GameView />)
 
-            // Mobile layout shouldn't have the grid-cols-12 class in the output
-            // (desktop layout uses 12-column grid)
-            // Mobile has stacked sections with game-command-title-mobile
+            // Mobile layout has stacked sections with game-command-title-mobile
+            // (desktop layout uses game-command-title without -mobile suffix)
             expect(markup).toMatch(/game-command-title-mobile/)
         })
     })

@@ -316,7 +316,15 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     // Player stats (placeholder until real API)
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
 
-    // Command history (placeholder - future integration with CommandInterface)
+    /**
+     * Command history state (placeholder for future unified history integration).
+     *
+     * NOTE: CommandHistoryPanel and CommandInterface currently maintain separate history.
+     * This is intentional for MVP - CommandInterface handles interactive command execution,
+     * while CommandHistoryPanel provides a dedicated read-only view for the sidebar.
+     * Future: Lift history state to a shared context or integrate with a global event store
+     * to unify command tracking across components.
+     */
     const [commandHistory] = useState<CommandHistoryItem[]>([])
 
     // Fetch location data
