@@ -549,11 +549,10 @@ resource backendAuthSettingsV2 'Microsoft.Web/sites/config@2024-11-01' = {
 
     // Optional identity provider wiring (Azure AD) when client ID is provided
     identityProviders: {
-      azureActiveDirectory: {
-        enabled: aadClientId != ''
+      azureStaticWebApps: {
+        enabled: true
         registration: {
-          clientId: aadClientId
-          clientSecretSettingName: ''
+          clientId: staticSite.identity.principalId
         }
       }
     }
