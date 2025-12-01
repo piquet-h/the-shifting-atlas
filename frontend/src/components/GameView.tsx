@@ -14,9 +14,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { buildHeaders, buildLocationUrl } from '../utils/apiClient'
+import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
-import { extractErrorMessage } from '../utils/apiResponse'
 import CommandInterface from './CommandInterface'
 
 /**
