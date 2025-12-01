@@ -180,17 +180,6 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
         enabled: enableAppServiceAuth
         runtimeVersion: 'v2'
       }
-
-      // Identity providers configuration - wire Azure AD when aadClientId is provided
-      identityProviders: {
-        azureActiveDirectory: {
-          enabled: aadClientId != ''
-          registration: {
-            clientId: aadClientId
-            clientSecretSettingName: ''
-          }
-        }
-      }
     }
   }
 }
