@@ -1,6 +1,6 @@
 /* global localStorage */
 import type { PlayerBootstrapResponse } from '@piquet-h/shared'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildPlayerUrl, isValidGuid } from '../utils/apiClient'
 import { unwrapEnvelope } from '../utils/envelope'
@@ -29,6 +29,7 @@ export function usePlayerGuid(): PlayerGuidState {
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
     const [nonce, setNonce] = useState(0)
+    const bootstrapInProgress = useRef(false)
 
     const readLocal = useCallback(() => {
         try {
@@ -48,8 +49,12 @@ export function usePlayerGuid(): PlayerGuidState {
     }, [])
 
     useEffect(() => {
+        // Prevent concurrent bootstrap requests (React strict mode in dev runs effects twice)
+        if (bootstrapInProgress.current) return
+
         let aborted = false
         const run = async () => {
+            bootstrapInProgress.current = true
             setLoading(true)
             setError(null)
             const existing = readLocal()
@@ -80,7 +85,10 @@ export function usePlayerGuid(): PlayerGuidState {
             } catch (e) {
                 if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
             } finally {
-                if (!aborted) setLoading(false)
+                if (!aborted) {
+                    setLoading(false)
+                    bootstrapInProgress.current = false
+                }
             }
         }
         run()
