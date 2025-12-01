@@ -1,10 +1,6 @@
 param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
-// Optional parameters to wire Azure AD for App Service Authentication (EasyAuth)
-// Leave empty to enable EasyAuth without a specific AAD provider configured.
-param aadClientId string = ''
-param enableAppServiceAuth bool = true
 
 var storageName = toLower('st${name}${unique}')
 
@@ -517,44 +513,6 @@ resource staticSite 'Microsoft.Web/staticSites@2024-11-01' = {
     properties: {
       backendResourceId: backendFunctionApp.id
       region: backendFunctionApp.location
-    }
-  }
-}
-
-// Apply Function App auth settings after SWA links the backend so our config wins
-resource backendAuthSettingsV2 'Microsoft.Web/sites/config@2024-11-01' = {
-  parent: backendFunctionApp
-  name: 'authsettingsV2'
-  dependsOn: [
-    staticSite::linkedBackend
-  ]
-  properties: {
-    globalValidation: {
-      unauthenticatedClientAction: 'AllowAnonymous'
-      requireAuthentication: false
-    }
-
-    // Token store configuration (disabled to avoid persisting tokens by default)
-    login: {
-      tokenStore: {
-        enabled: false
-      }
-    }
-
-    // Platform runtime/auth feature version + enabled flag
-    platform: {
-      enabled: enableAppServiceAuth
-      runtimeVersion: 'v2'
-    }
-
-    // Optional identity provider wiring (Azure AD) when client ID is provided
-    identityProviders: {
-      azureStaticWebApps: {
-        enabled: true
-        registration: {
-          clientId: staticSite.properties.defaultHostname
-        }
-      }
     }
   }
 }
