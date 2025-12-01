@@ -164,7 +164,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
     name: 'authsettingsV2'
     properties: {
       globalValidation: {
-        unauthenticatedClientAction: enableAppServiceAuth ? 'AllowAnonymous' : 'Return401'
+        unauthenticatedClientAction: 'AllowAnonymous'
         requireAuthentication: false
       }
 
