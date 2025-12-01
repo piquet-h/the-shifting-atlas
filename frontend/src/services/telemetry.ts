@@ -184,8 +184,8 @@ function trackSessionStart(): void {
         properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
-    // Use trackEvent directly since Session.Start is now registered
-    appInsights.trackEvent({ name: 'Session.Start' }, properties)
+    // Session events use direct tracking (no playerGuid context)
+    trackEventDirect('Session.Start', properties)
 }
 
 /**
@@ -203,15 +203,16 @@ function trackSessionEnd(): void {
         properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
-    // Use flush to ensure the event is sent during page unload
-    appInsights.trackEvent({ name: 'Session.End' }, properties)
+    // Session events use direct tracking (no playerGuid context)
+    trackEventDirect('Session.End', properties)
     appInsights.flush()
 }
 
 /**
- * Track a custom event
+ * Internal helper: direct SDK event tracking (telemetry module only)
+ * Only for events that don't need game context enrichment
  */
-export function trackEvent(name: string, properties?: Record<string, unknown>): void {
+function trackEventDirect(name: string, properties?: Record<string, unknown>): void {
     if (!appInsights) return
     appInsights.trackEvent({ name }, properties as Record<string, unknown> | undefined)
 }
@@ -224,7 +225,7 @@ export function trackGameEventClient(name: string, properties?: Record<string, u
     if (!appInsights) return
     if (!(GAME_EVENT_NAMES as readonly string[]).includes(name)) {
         // Surface invalid event names explicitly for later cleanup / dashboards
-        trackEvent('Telemetry.EventName.Invalid', { requested: name })
+        trackEventDirect('Telemetry.EventName.Invalid', { requested: name })
         return
     }
     let playerGuid: string | undefined
@@ -251,7 +252,7 @@ export function trackGameEventClient(name: string, properties?: Record<string, u
         merged[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
-    trackEvent(name, merged)
+    trackEventDirect(name, merged)
 }
 
 /**
@@ -277,8 +278,8 @@ export function trackUIError(error: Error, properties?: Record<string, unknown>)
         merged[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
-    // Track as UI.Error custom event
-    trackEvent('UI.Error', merged)
+    // Track as UI.Error custom event (direct, no playerGuid context)
+    trackEventDirect('UI.Error', merged)
 
     // Also track as exception for App Insights exception tracking
     appInsights.trackException({ error, properties: merged })
@@ -319,7 +320,7 @@ export function trackPlayerNavigate(direction: string, latencyMs?: number, corre
         properties[FRONTEND_ATTRIBUTE_KEYS.CORRELATION_ID] = correlationId
     }
 
-    trackEvent('Player.Navigate', properties)
+    trackGameEventClient('Player.Navigate', properties)
 }
 
 /**
@@ -351,7 +352,7 @@ export function trackPlayerCommand(command: string, actionType: string, latencyM
         properties[FRONTEND_ATTRIBUTE_KEYS.CORRELATION_ID] = correlationId
     }
 
-    trackEvent('Player.Command', properties)
+    trackGameEventClient('Player.Command', properties)
 }
 
 /**
