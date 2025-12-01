@@ -177,7 +177,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
       // Platform runtime/auth feature version + enabled flag
       platform: {
-        enabled: enableAppServiceAuth
+        enabled: true
         runtimeVersion: 'v2'
       }
     }
