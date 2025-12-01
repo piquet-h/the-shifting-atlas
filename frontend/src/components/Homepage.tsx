@@ -94,7 +94,7 @@ export default function Homepage(): React.ReactElement {
                                                 if (isNewUser) {
                                                     acknowledge()
                                                 }
-                                                signIn('msa', '/')
+                                                signIn('msa', '/game')
                                             }}
                                             className="touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
                                         >
@@ -221,9 +221,27 @@ export default function Homepage(): React.ReactElement {
             {!loading && !guidLoading && isAuthenticated ? (
                 <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 md:grid md:grid-cols-12 md:items-start">
                     <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 md:col-span-8 lg:col-span-8 xl:col-span-9">
+                        {/* Welcome back section */}
+                        <section className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5 md:p-6 flex flex-col gap-3 sm:gap-4">
+                            <h2 className="text-responsive-2xl font-semibold max-w-readable">
+                                Welcome back, {user?.userDetails?.split(' ')[0] || 'Explorer'}
+                            </h2>
+                            <p className="text-responsive-sm leading-relaxed text-slate-300 max-w-readable">
+                                Your exploration continues. The Atlas has shifted since your last visit.
+                            </p>
+                            <div className="mt-2">
+                                <a
+                                    href="/game"
+                                    className="inline-block touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
+                                >
+                                    Enter the Atlas →
+                                </a>
+                            </div>
+                        </section>
+
                         <section aria-labelledby="auth-command-interface-title" className="mt-2 sm:mt-4">
                             <h2 id="auth-command-interface-title" className="text-responsive-lg font-semibold tracking-wide mb-3 sm:mb-4">
-                                Command Interface
+                                Quick Command
                             </h2>
                             <CommandInterface />
                         </section>
