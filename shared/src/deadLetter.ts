@@ -1,49 +1,37 @@
-/**
- * Dead-Letter Storage Types and Redaction Utilities
- *
- * Provides types and utilities for storing failed world events with
- * sensitive data redaction. Used by queue processors to persist validation
- * failures for debugging without exposing player information.
- */
+/** Dead-letter types and redaction utilities for failed events. */
 
 /**
  * Error code classification for dead-letter records (Issue #401)
  * Used to distinguish transient vs permanent failures for retry decisions
  */
-export type DeadLetterErrorCode =
-    | 'json-parse' // Permanent: Invalid JSON format
-    | 'schema-validation' // Permanent: Failed schema validation
-    | 'handler-error' // Transient: Handler execution error (retry eligible)
-    | 'unknown' // Unknown error category
+export type DeadLetterErrorCode = 'json-parse' | 'schema-validation' | 'handler-error' | 'unknown'
 
-/**
- * Dead-letter record stored in Cosmos SQL for failed world events
- */
+/** Dead-letter record stored in Cosmos SQL. */
 export interface DeadLetterRecord {
-    /** Unique identifier for this dead-letter record (UUID v4) */
+    /** Record ID (UUID v4) */
     id: string
 
-    /** Original event ID from the failed event envelope (if parseable) */
+    /** Original event ID (if parseable) */
     originalEventId?: string
 
-    /** Event type from the failed event (if parseable) */
+    /** Event type (if parseable) */
     eventType?: string
 
-    /** Actor kind from the failed event (if parseable) */
+    /** Actor kind (if parseable) */
     actorKind?: string
 
-    /** Redacted original envelope (sensitive fields masked) */
+    /** Redacted envelope (sensitive fields masked) */
     redactedEnvelope: Record<string, unknown>
 
     /** Validation error details */
     error: {
-        /** Error category (e.g., 'schema-validation', 'json-parse') */
+        /** Error category */
         category: string
 
-        /** Human-readable error message */
+        /** Error message */
         message: string
 
-        /** Structured validation issues (e.g., Zod error details) */
+        /** Structured validation issues */
         issues?: Array<{
             path: string
             message: string
@@ -51,61 +39,46 @@ export interface DeadLetterRecord {
         }>
     }
 
-    /** Timestamp when the event was dead-lettered (ISO 8601) */
+    /** Dead-lettered timestamp (ISO 8601) */
     deadLetteredUtc: string
 
-    /** Original occurred timestamp from event (if parseable) */
+    /** Original occurred timestamp (if parseable) */
     occurredUtc?: string
 
-    /** Correlation ID from event (if parseable) */
+    /** Correlation ID (if parseable) */
     correlationId?: string
 
-    /** Indicates if redaction was applied */
+    /** True if redaction applied */
     redacted: boolean
 
-    /** Partition key for Cosmos SQL (set to 'deadletter' for single partition) */
+    /** Partition key ('deadletter') */
     partitionKey: string
 
-    // --- Issue #401: New fields for enhanced DLQ investigation ---
-
-    /** Original correlation ID preserved for cross-service tracing */
+    /** Original correlation ID for cross-service tracing */
     originalCorrelationId?: string
 
-    /** Human-readable failure reason for quick triage */
+    /** Failure reason */
     failureReason?: string
 
-    /** ISO 8601 timestamp of the first processing attempt */
+    /** First processing attempt timestamp (ISO 8601) */
     firstAttemptTimestamp?: string
 
-    /** Error code classification for filtering/alerting */
+    /** Error code classification */
     errorCode?: DeadLetterErrorCode
 
-    /** Number of retry attempts before dead-lettering (0 = immediate DLQ) */
+    /** Retry attempts (0 = immediate DLQ) */
     retryCount?: number
 
-    /** Final error message after all retries exhausted */
+    /** Final error message after retries exhausted */
     finalError?: string
 }
 
-/**
- * Configuration for payload truncation
- */
+/** Payload truncation config */
 const MAX_PAYLOAD_SIZE = 10000 // characters
 const MAX_ARRAY_ITEMS = 10
 const TRUNCATION_MARKER = '...[TRUNCATED]'
 
-/**
- * Redact sensitive fields from a world event envelope before storage.
- *
- * Redaction rules:
- * - Player IDs: Keep last 4 characters, mask rest with asterisks
- * - Payloads: Replace with type summary and truncate if large
- * - Arrays: Limit to first N items
- * - Large strings: Truncate with marker
- *
- * @param envelope - Original event envelope (may be partial/invalid)
- * @returns Redacted envelope safe for storage
- */
+/** Redact sensitive fields from an event envelope before storage. */
 export function redactEnvelope(envelope: unknown): Record<string, unknown> {
     if (typeof envelope !== 'object' || envelope === null) {
         return { _raw: String(envelope).substring(0, 1000) }
@@ -114,7 +87,7 @@ export function redactEnvelope(envelope: unknown): Record<string, unknown> {
     const original = envelope as Record<string, unknown>
     const redacted: Record<string, unknown> = {}
 
-    // Copy non-sensitive fields as-is
+    // Copy non-sensitive fields
     for (const [key, value] of Object.entries(original)) {
         if (
             key === 'eventId' ||
@@ -144,16 +117,14 @@ export function redactEnvelope(envelope: unknown): Record<string, unknown> {
             continue
         }
 
-        // Default: truncate other fields
+        // Default: truncate
         redacted[key] = truncateValue(value)
     }
 
     return redacted
 }
 
-/**
- * Redact an ID by keeping last 4 characters and masking the rest
- */
+/** Redact ID by keeping last 4 chars and masking the rest. */
 function redactId(id: string): string {
     if (id.length <= 4) {
         return '****'
@@ -163,9 +134,7 @@ function redactId(id: string): string {
     return `${masked}${last4}`
 }
 
-/**
- * Redact payload by creating a type summary instead of storing full content
- */
+/** Redact payload by creating a type summary instead of storing full content. */
 function redactPayload(payload: unknown): Record<string, unknown> {
     if (typeof payload !== 'object' || payload === null) {
         return {
@@ -180,7 +149,7 @@ function redactPayload(payload: unknown): Record<string, unknown> {
         _fields: Object.keys(obj)
     }
 
-    // Include redacted IDs if present
+    // Include redacted IDs
     for (const [key, value] of Object.entries(obj)) {
         if (key.toLowerCase().includes('id') && typeof value === 'string') {
             summary[key] = redactId(value)
@@ -190,9 +159,7 @@ function redactPayload(payload: unknown): Record<string, unknown> {
     return summary
 }
 
-/**
- * Truncate a value to prevent extremely large storage
- */
+/** Truncate large values/arrays/objects. */
 function truncateValue(value: unknown): unknown {
     if (typeof value === 'string') {
         if (value.length > MAX_PAYLOAD_SIZE) {
@@ -220,15 +187,13 @@ function truncateValue(value: unknown): unknown {
     return value
 }
 
-/**
- * Options for creating a dead-letter record with enhanced metadata (Issue #401)
- */
+/** Options for creating a dead-letter record with enhanced metadata. */
 export interface CreateDeadLetterRecordOptions {
-    /** Original correlation ID for cross-service tracing */
+    /** Original correlation ID */
     originalCorrelationId?: string
     /** Human-readable failure reason */
     failureReason?: string
-    /** Timestamp of first processing attempt */
+    /** First processing attempt timestamp */
     firstAttemptTimestamp?: string
     /** Error code classification */
     errorCode?: DeadLetterErrorCode
@@ -238,14 +203,7 @@ export interface CreateDeadLetterRecordOptions {
     finalError?: string
 }
 
-/**
- * Create a dead-letter record from a failed event and error details
- *
- * @param rawEvent - Original event data (may be invalid/partial)
- * @param error - Error information from validation failure
- * @param options - Optional enhanced metadata for DLQ investigation (Issue #401)
- * @returns Complete dead-letter record ready for storage
- */
+/** Create a dead-letter record from a failed event and error details. */
 export function createDeadLetterRecord(
     rawEvent: unknown,
     error: {
@@ -257,7 +215,7 @@ export function createDeadLetterRecord(
 ): DeadLetterRecord {
     const redactedEnvelope = redactEnvelope(rawEvent)
 
-    // Try to extract metadata from the event if it's parseable
+    // Extract metadata if parseable
     let originalEventId: string | undefined
     let eventType: string | undefined
     let actorKind: string | undefined
@@ -277,14 +235,13 @@ export function createDeadLetterRecord(
         }
     }
 
-    // Generate unique ID for dead-letter record
-    // Use crypto.randomUUID if available (Node 19+), fallback to manual UUID generation
+    // Generate record ID
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateFallbackUUID()
 
-    // Derive error code from category if not provided
+    // Derive error code
     const derivedErrorCode = options?.errorCode ?? deriveErrorCode(error.category)
 
-    // Use provided correlation ID or fall back to extracted one from envelope
+    // Resolve original correlation ID
     const resolvedOriginalCorrelationId = options?.originalCorrelationId ?? correlationId
 
     return {
@@ -298,8 +255,7 @@ export function createDeadLetterRecord(
         occurredUtc,
         correlationId,
         redacted: true,
-        partitionKey: 'deadletter', // Single partition for dead-letters (low volume)
-        // Issue #401: Enhanced DLQ metadata
+        partitionKey: 'deadletter',
         originalCorrelationId: resolvedOriginalCorrelationId,
         failureReason: options?.failureReason ?? error.message,
         firstAttemptTimestamp: options?.firstAttemptTimestamp,
@@ -309,9 +265,7 @@ export function createDeadLetterRecord(
     }
 }
 
-/**
- * Derive error code from category string
- */
+/** Derive error code from category string. */
 function deriveErrorCode(category: string): DeadLetterErrorCode {
     switch (category) {
         case 'json-parse':
@@ -325,9 +279,7 @@ function deriveErrorCode(category: string): DeadLetterErrorCode {
     }
 }
 
-/**
- * Fallback UUID generation for environments without crypto.randomUUID
- */
+/** Fallback UUID generation for environments without crypto.randomUUID. */
 function generateFallbackUUID(): string {
     // Simple UUID v4 implementation
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {

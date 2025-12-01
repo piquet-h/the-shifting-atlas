@@ -1,14 +1,7 @@
 /**
- * API Contract Types (Requests & Responses)
- *
- * Type definitions for HTTP API request/response payloads.
- * All backend responses are wrapped in ApiEnvelope (success/error) - see domainModels.ts.
- * Response types define the shape of the `data` field within successful envelopes.
+ * API payload types. Backend responses use ApiEnvelope; these define the `data` shapes.
  */
-
-// ============================================================================
-// REQUEST TYPES (what frontend sends to backend)
-// ============================================================================
+// Requests
 
 /** POST /api/player/link - Request body */
 export interface PlayerLinkRequest {
@@ -25,10 +18,7 @@ export interface MoveRequest {
 export interface PingRequest {
     message?: string
 }
-
-// ============================================================================
-// RESPONSE TYPES (what backend returns in ApiEnvelope.data)
-// ============================================================================
+// Responses
 
 /** GET /api/player or GET /api/player/{playerId} - Bootstrap/retrieve player session */
 export interface PlayerBootstrapResponse {

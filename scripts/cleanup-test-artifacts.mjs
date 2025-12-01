@@ -1,46 +1,14 @@
 #!/usr/bin/env node
 /**
  * Test Artifact Cleanup & Migration Script
- *
- * Purpose:
- *   Identify and optionally remove test-created data from a production Cosmos DB (SQL + Gremlin)
- *   with safety interlocks and dry-run preview. Supports exporting matched artifacts for migration
- *   to a dedicated test database.
- *
- * Features:
- *   - Dry-run (default) prints summary + sample IDs
- *   - Explicit --confirm required for deletions
- *   - Container scoping (--containers=players,inventory,worldEvents,...)
- *   - Export file (--export=path.json) before deletion
- *   - Concurrency limiting (--concurrency=N, default 10)
- *   - RU charge aggregation (SQL) during operations
- *   - Gremlin vertex/edge test ID detection (prefix patterns)
- *   - Safety: refuses to run with --confirm if endpoint host matches known prod and no --allow-prod-token
- *
- * Detection Heuristics (initial):
- *   - ID prefixes: 'test-loc-', 'e2e-test-loc-', 'e2e-', 'test-player-', 'demo-player-'
- *   - PlayerDoc: GUID plus optional test metadata (allow prefix match only)
- *   - Inventory: items whose playerId matches a test player ID
- *   - WorldEvents: scopeKey starting with 'player:test-' or 'loc:test-' or containing 'e2e-test'
- *   - Description Layers: locationId with test/e2e prefix
- *   - Gremlin vertices: id starts with test/e2e prefixes
- *
- * Usage Examples:
- *   Dry run (no deletions):
- *     node scripts/cleanup-test-artifacts.mjs --mode=cosmos
- *
- *   Export then delete players & inventory:
- *     node scripts/cleanup-test-artifacts.mjs --mode=cosmos --containers=players,inventory --export=/tmp/test-data.json --confirm
- *
- *   Memory simulation (local classification only):
- *     node scripts/cleanup-test-artifacts.mjs --mode=memory
+ * Identify and optionally remove test-created data from Cosmos DB (SQL + Gremlin) with safety interlocks and dry-run preview. Supports export for migration. Dry-run is default; --confirm required for deletions. Safety: refuses to run with --confirm if endpoint host matches known prod and no --allow-prod-token.
  */
 
 import { writeFile } from 'fs/promises'
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 
-// Basic arg parsing
+// Arg parsing
 const args = process.argv.slice(2)
 let mode = process.env.PERSISTENCE_MODE || 'memory'
 let dryRun = true
@@ -116,14 +84,14 @@ function printHelp() {
     )
 }
 
-// Heuristic: treat hosts containing 'prod' or 'primary' as production
+// Treat hosts containing 'prod' or 'primary' as production
 function isLikelyProdEndpoint(endpoint) {
     if (!endpoint) return false
     const lowered = endpoint.toLowerCase()
     return /prod|primary/.test(lowered)
 }
 
-// Basic concurrency limiter
+// Concurrency limiter
 function createLimiter(limit) {
     const queue = []
     let active = 0
@@ -232,8 +200,7 @@ async function main() {
         const selected = (name) => !containersFilter || containersFilter.includes(name)
         const artifacts = { players: [], inventory: [], worldEvents: [], descriptionLayers: [] }
 
-        // PlayerDocs: we have no list API; use prefix guesses via recent events -> fallback to known test IDs passed as env (optional)
-        // NOTE: For robust cleanup we would implement a scanning query; placeholder here due to repository limitations.
+        // PlayerDocs: fallback to recent events if no list API. Robust cleanup would require a scanning query (not implemented).
         if (selected('players')) {
             console.log('[players] Listing player IDs by prefixes ...')
             let ids = []
@@ -403,7 +370,7 @@ async function main() {
                 )
             )
         }
-        // Not deleting events (append-only) – requires separate retention policy.
+        // Not deleting events (append-only); requires separate retention policy.
         console.log('\nDeletion Summary:')
         console.log(`  players deleted:   ${deletedCounts.players}`)
         console.log(`  inventory deleted: ${deletedCounts.inventory}`)

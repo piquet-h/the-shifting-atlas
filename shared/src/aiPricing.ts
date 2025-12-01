@@ -1,51 +1,9 @@
 /**
- * AI Cost Telemetry: Static pricing table with JSON override infrastructure.
- *
- * Provides configurable per-1K token pricing (prompt + completion) for AI model cost estimation.
- * Pricing rates enable pre-integration cost projection and budget threshold alerting.
- *
- * ## Usage
- *
- * ```typescript
- * import { getPricing } from '@piquet-h/shared'
- *
- * const pricing = getPricing('gpt-4o-mini')
- * console.log(`Prompt: $${pricing.promptPer1k}, Completion: $${pricing.completionPer1k}`)
- * // If model not found, returns 'generic' fallback with original modelId preserved
- * ```
- *
- * ## Runtime Override (Backend Integration)
- *
- * Backend can read AI_PRICING_JSON environment variable and apply override at startup:
- *
- * ```typescript
- * // In backend initialization (e.g., app.ts or startup.ts)
- * const overrideJson = getEnvironmentVariable('AI_PRICING_JSON')
- * if (overrideJson) {
- *     const result = applyPricingOverride(overrideJson)
- *     if (!result.success) {
- *         // Emit AI.Cost.OverrideRejected telemetry with result.reason
- *     }
- * }
- * ```
- *
- * Malformed JSON triggers rejection with detailed reason.
- * Empty/whitespace string is treated as no override (no error).
- *
- * ## Error Handling
- *
- * - Invalid JSON format → Override rejected, default pricing used
- * - Missing numeric fields → Override rejected, default pricing used
- * - Negative values → Override rejected, default pricing used
- * - Unknown modelId in lookup → Returns 'generic' fallback, preserves original modelId
- *
- * @module aiPricing
+ * Static AI pricing with optional JSON overrides.
+ * Use `getPricing(modelId)`; backend may call `applyPricingOverride(json)` at startup.
  */
 
-/**
- * Per-model pricing rates for AI token costs (USD per 1000 tokens).
- * Separate rates for prompt (input) and completion (output) tokens.
- */
+/** Per‑model pricing (USD per 1000 tokens). */
 export interface ModelPricing {
     /** Model identifier (e.g., 'gpt-4o-mini', 'generic') */
     modelId: string
@@ -55,14 +13,7 @@ export interface ModelPricing {
     completionPer1k: number
 }
 
-/**
- * Default pricing table for AI models.
- * Includes 'generic' fallback and sample production model.
- *
- * Pricing sources:
- * - OpenAI pricing page (as of 2024-10-31)
- * - Generic fallback: median of common models
- */
+/** Default pricing (includes 'generic' fallback). */
 const DEFAULT_PRICING: Record<string, ModelPricing> = {
     generic: {
         modelId: 'generic',
@@ -76,15 +27,10 @@ const DEFAULT_PRICING: Record<string, ModelPricing> = {
     }
 }
 
-/**
- * Runtime pricing table (default + runtime overrides).
- * Mutable to support backend initialization with environment overrides.
- */
+/** Runtime pricing (defaults + overrides). */
 let PRICING: Record<string, ModelPricing> = { ...DEFAULT_PRICING }
 
-/**
- * Result of applying a pricing override.
- */
+/** Result of a pricing override application. */
 export interface PricingOverrideResult {
     /** True if override was successfully applied */
     success: boolean
@@ -100,7 +46,7 @@ export interface PricingOverrideResult {
  * @returns Result indicating success or rejection reason
  */
 export function applyPricingOverride(overrideJson: string | undefined): PricingOverrideResult {
-    // Empty or missing value → no override, no error
+    // Empty or missing → no override
     if (!overrideJson || overrideJson.trim() === '') {
         return { success: true, reason: null }
     }
@@ -108,7 +54,7 @@ export function applyPricingOverride(overrideJson: string | undefined): PricingO
     try {
         const override = JSON.parse(overrideJson)
 
-        // Validate override structure
+        // Validate structure
         if (typeof override !== 'object' || override === null || Array.isArray(override)) {
             return {
                 success: false,
@@ -116,7 +62,7 @@ export function applyPricingOverride(overrideJson: string | undefined): PricingO
             }
         }
 
-        // Validate each model entry
+        // Validate each entry
         for (const [modelId, pricing] of Object.entries(override)) {
             const p = pricing as unknown
 
@@ -144,7 +90,7 @@ export function applyPricingOverride(overrideJson: string | undefined): PricingO
             }
         }
 
-        // Merge override into pricing table (overwrite existing keys)
+        // Merge (overwrite existing keys)
         for (const [modelId, pricing] of Object.entries(override)) {
             const p = pricing as Record<string, number>
             PRICING[modelId] = {
@@ -163,13 +109,7 @@ export function applyPricingOverride(overrideJson: string | undefined): PricingO
     }
 }
 
-/**
- * Get pricing for a specific AI model.
- * Falls back to 'generic' pricing if model not found.
- *
- * @param modelId - Model identifier (e.g., 'gpt-4o-mini')
- * @returns Pricing information (with original modelId preserved if fallback used)
- */
+/** Get pricing for modelId; falls back to 'generic' but preserves original modelId. */
 export function getPricing(modelId: string): ModelPricing {
     const pricing = PRICING[modelId]
 
@@ -177,7 +117,7 @@ export function getPricing(modelId: string): ModelPricing {
         return pricing
     }
 
-    // Fallback to generic pricing, preserve original modelId for telemetry
+    // Fallback, preserve original modelId
     const fallback = PRICING['generic']
     return {
         ...fallback,
@@ -185,20 +125,12 @@ export function getPricing(modelId: string): ModelPricing {
     }
 }
 
-/**
- * Get all registered model IDs in the current pricing table.
- * Useful for diagnostics and validation.
- *
- * @returns Array of model IDs
- */
+/** Get all registered model IDs. */
 export function getRegisteredModelIds(): string[] {
     return Object.keys(PRICING)
 }
 
-/**
- * Reset pricing table to defaults (for testing only).
- * @internal
- */
+/** Reset to defaults (testing only). */
 export function _resetPricingForTests(): void {
     PRICING = { ...DEFAULT_PRICING }
 }

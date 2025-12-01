@@ -6,23 +6,7 @@ import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { useVisitState } from '../hooks/useVisitState'
 import CommandInterface from './CommandInterface'
 
-/**
- * Homepage
- * Implements two presentation modes: new user vs returning user.
- * The design for new users is derived from `homepage-newUser.png` (assumptions documented below)
- * Assumptions (due to static image & early MVP):
- *  - New user sees: Hero intro, 3-step quick start, world preview stats, primary CTA (Create Your Explorer)
- *  - Returning user sees current (original) layout with pillars + Play Now CTA
- *  - We do not yet have real user auth; placeholder detection uses localStorage flag `tsa.hasVisited`
- *  - When user clicks primary CTA we set that flag so subsequent loads show returning layout
- *  - Future integration: replace local flag with identity service once Azure AD / custom auth lands
- * Accessibility goals:
- *  - Maintain single <h1> for page context
- *  - Use ordered list for steps, each with short imperative label
- *  - Provide skip-to-main anchor already present in shell
- *  - Ensure CTAs have discernible text & focus styles (Tailwind utilities)
- *  - Removed visual duplicate heading/nav cluster (nav already includes branding). h1 kept as sr-only to avoid repetition.
- */
+/** Homepage: new user vs returning user. Accessibility: single <h1>, ordered steps, skip-to-main anchor, focus styles. */
 export default function Homepage(): React.ReactElement {
     const { isNewUser, acknowledge } = useVisitState()
     const { loading: guidLoading } = usePlayerGuid()
@@ -67,7 +51,7 @@ export default function Homepage(): React.ReactElement {
     }, [linked, linkError])
 
     return (
-        // NOTE: The <main> landmark is now provided by App.tsx. This component only renders content.
+        // <main> landmark is global (App.tsx); this only renders content.
         <div
             className="min-h-screen flex flex-col gap-4 sm:gap-5 md:gap-6 py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100"
             aria-labelledby="page-title"
@@ -122,13 +106,13 @@ export default function Homepage(): React.ReactElement {
                                     </div>
                                     <div id="mode-announcement" className="sr-only" aria-live="polite" />
                                 </div>
-                                {/* Metrics: previously an <aside>; not a complementary landmark so we use a div */}
+                                {/* Metrics: not a complementary landmark, so use div */}
                                 <div
                                     className="grid grid-cols-3 gap-2 sm:gap-4 text-center text-xs font-medium pt-2 sm:pt-0"
                                     role="group"
                                     aria-label="World metrics preview"
                                 >
-                                    {/* Placeholder world metrics (static for now) */}
+                                    {/* Placeholder world metrics */}
                                     <div className="flex flex-col rounded-lg bg-white/5 px-2 sm:px-3 py-2">
                                         <span className="text-responsive-base font-semibold text-white">128</span>
                                         <span className="text-slate-400 text-responsive-sm">Rooms</span>
@@ -145,7 +129,7 @@ export default function Homepage(): React.ReactElement {
                             </div>
                         </section>
 
-                        {/* Quick Start Steps (ordered list for better SR context) */}
+                        {/* Quick Start Steps (ordered list for SR context) */}
                         <section aria-labelledby="quick-start-title" className="mt-1 sm:mt-2">
                             <h2 id="quick-start-title" className="text-responsive-sm font-semibold tracking-wide mb-3 sr-only">
                                 Quick start steps
@@ -181,7 +165,7 @@ export default function Homepage(): React.ReactElement {
                             </ol>
                         </section>
 
-                        {/* Secondary Pillars reused (semantic reinforcement) */}
+                        {/* Secondary Pillars reused */}
                         <section className="grid gap-2 sm:gap-3 sm:grid-cols-2 md:grid-cols-3" aria-label="Game pillars">
                             <div className="p-3 rounded-lg bg-white/3">
                                 <h3 className="font-semibold text-responsive-base">Persistent world</h3>
@@ -204,7 +188,7 @@ export default function Homepage(): React.ReactElement {
                             <CommandInterface />
                         </section>
                     </div>
-                    {/* Desktop/Tablet side panel (progressive enhancement - shows on md+ for tablet, full features on lg+) */}
+                    {/* Desktop/Tablet side panel (progressive enhancement) */}
                     <aside className="hidden md:flex md:col-span-4 lg:col-span-4 xl:col-span-3">
                         <div
                             className="w-full rounded-xl md:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 md:p-5 flex flex-col gap-3 md:gap-4 sticky top-16 md:top-20 max-h-[calc(100vh-5rem)] md:max-h-[calc(100vh-6rem)] overflow-auto"
@@ -290,19 +274,7 @@ export default function Homepage(): React.ReactElement {
                 © The Shifting Atlas — built with love
             </footer>
 
-            {/**
-             * Toast viewport (local to page)
-             * ------------------------------------------------------------------
-             * TODO(toasts): Promote to a global <ToastProvider/> when ANY of these are true:
-             *  1. >2 distinct feature sources need to trigger toasts (e.g. commands, AI gen, inventory, networking errors).
-             *  2. A toast must persist across route/navigation changes.
-             *  3. Need standardized variants (success/info/warn/error) with shared iconography or theming.
-             *  4. Queuing / max-visible / dedupe or priority policies become necessary.
-             *  5. Background channels (websocket/SSE/service worker) emit user-facing notifications.
-             *  6. Accessibility audit requires a single consolidated polite/assertive live region across the app.
-             *  7. Telemetry desires centralized instrumentation (push + dismiss events) for UX metrics.
-             * Keeping it local avoids premature abstraction overhead while only welcome+link toasts exist.
-             */}
+            {/* Toast viewport (local to page). Promote to global ToastProvider if >2 sources, persistence, variants, queuing, background, or accessibility needs arise. */}
             {(showWelcomeToast || showLinkToast) && (
                 <div className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 flex flex-col gap-2 sm:gap-3 max-w-[calc(100vw-1rem)] sm:max-w-sm">
                     {showWelcomeToast && (

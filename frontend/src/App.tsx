@@ -5,13 +5,7 @@ import LiveAnnouncer from './components/LiveAnnouncer'
 import Nav from './components/Nav'
 import ResponsiveLayout from './components/ResponsiveLayout'
 
-/**
- * RouteFocusManager
- * Moves focus to the page <h1> (or the main landmark if missing) after navigation.
- * NOTE: The main landmark now lives in App (instead of each page) so individual pages
- * should NOT render their own <main>. This ensures axe "region" rule satisfaction by
- * containing all routed content within landmarks.
- */
+/** Moves focus to <h1> or main landmark after navigation. Main landmark is global; pages should not render their own <main>. */
 function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
     const location = useLocation()
     useEffect(() => {
@@ -34,7 +28,7 @@ export default function App(): React.ReactElement {
             </a>
             <div className="app-root min-h-screen flex flex-col lg:gap-4">
                 <Nav />
-                {/* Single global main landmark wraps all routed page content */}
+                {/* Global main landmark wraps all routed content */}
                 <main
                     id="main"
                     ref={mainRef}
@@ -46,7 +40,7 @@ export default function App(): React.ReactElement {
                     <ResponsiveLayout>
                         <Routes>
                             <Route path="/" element={<Homepage />} />
-                            {/* Future routes go here. */}
+                            {/* Future routes */}
                         </Routes>
                     </ResponsiveLayout>
                 </main>
