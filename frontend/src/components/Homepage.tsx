@@ -96,11 +96,11 @@ export default function Homepage(): React.ReactElement {
                                                 }
                                                 signIn('msa', '/')
                                             }}
-                                            className="touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg"
+                                            className="touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
                                         >
                                             {isNewUser ? 'Create Your Explorer' : 'Sign In to Continue'}
                                         </button>
-                                        <button className="touch-target px-4 sm:px-5 py-3 rounded-lg border border-white/15 text-slate-200 text-responsive-base hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 focus:ring-offset-atlas-bg">
+                                        <button className="touch-target px-4 sm:px-5 py-3 rounded-lg border border-white/15 text-slate-200 text-responsive-base hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg">
                                             Learn More
                                         </button>
                                     </div>
@@ -292,7 +292,7 @@ export default function Homepage(): React.ReactElement {
                             </div>
                             <button
                                 onClick={() => setShowWelcomeToast(false)}
-                                className="ml-1 sm:ml-2 touch-target flex items-center justify-center text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-atlas-accent rounded"
+                                className="ml-1 sm:ml-2 touch-target flex items-center justify-center text-slate-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-white rounded"
                                 aria-label="Dismiss welcome message"
                             >
                                 ×
@@ -312,7 +312,7 @@ export default function Homepage(): React.ReactElement {
                             </div>
                             <button
                                 onClick={() => setShowLinkToast(false)}
-                                className="ml-1 sm:ml-2 touch-target flex items-center justify-center text-slate-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 rounded"
+                                className="ml-1 sm:ml-2 touch-target flex items-center justify-center text-slate-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-white rounded"
                                 aria-label="Dismiss linked message"
                             >
                                 ×

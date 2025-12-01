@@ -27,7 +27,7 @@ export default function LiveAnnouncer(): React.ReactElement {
     }, [lastMessage])
 
     return (
-        <div className="sr-only" aria-hidden="false">
+        <div className="sr-only">
             <div ref={politeRef} aria-live="polite" aria-atomic="true" />
             <div ref={assertiveRef} aria-live="assertive" aria-atomic="true" />
         </div>

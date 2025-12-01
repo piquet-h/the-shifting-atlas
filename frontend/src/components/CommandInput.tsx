@@ -45,7 +45,7 @@ export default function CommandInput({
                 <input
                     ref={inputRef}
                     type="text"
-                    className="flex-1 touch-target rounded-md bg-white/5 border border-white/15 px-3 py-2 sm:py-2 text-responsive-base focus:outline-none focus:ring-2 focus:ring-atlas-accent focus:border-atlas-accent disabled:opacity-50"
+                    className="flex-1 touch-target rounded-md bg-white/5 border border-white/15 px-3 py-2 sm:py-2 text-responsive-base focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:border-atlas-accent disabled:opacity-50"
                     placeholder={placeholder}
                     aria-label="Command"
                     {...(isInvalid
@@ -63,7 +63,7 @@ export default function CommandInput({
                 <button
                     type="submit"
                     disabled={disabled || busy || !value.trim()}
-                    className="touch-target px-4 py-2 rounded-md bg-atlas-accent text-emerald-900 font-semibold text-responsive-base disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-atlas-accent focus:ring-offset-atlas-bg sm:w-auto w-full"
+                    className="touch-target px-4 py-2 rounded-md bg-atlas-accent text-emerald-900 font-semibold text-responsive-base disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg sm:w-auto w-full"
                 >
                     {busy ? 'Running…' : 'Run'}
                 </button>
