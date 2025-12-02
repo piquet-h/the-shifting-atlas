@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import GameView from '../components/GameView'
 import { useAuth } from '../hooks/useAuth'
 
-export default function Game(): React.ReactElement {
+export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
     const navigate = useNavigate()
 
