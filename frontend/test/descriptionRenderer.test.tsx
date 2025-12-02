@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 describe('DescriptionRenderer Component', () => {
     describe('Layer Composition', () => {
-        it('renders multiple layers in priority order (base → ambient → dynamic)', async () => {
+        it('renders multiple layers in descending priority order (higher priority first)', async () => {
             const { default: DescriptionRenderer } = await import('../src/components/DescriptionRenderer')
 
             const layers: DescriptionLayer[] = [

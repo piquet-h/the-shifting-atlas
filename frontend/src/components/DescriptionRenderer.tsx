@@ -2,10 +2,10 @@
  * DescriptionRenderer Component
  *
  * Renders composable description layers with priority ordering and HTML sanitization.
- * Layers are rendered in priority order: base → ambient → dynamic (lowest to highest).
+ * Layers are rendered in priority order: higher priority appears first (dynamic → ambient → base).
  *
  * Features:
- * - Layer composition with priority sorting
+ * - Layer composition with priority sorting (higher = first)
  * - HTML sanitization using DOMPurify (XSS prevention)
  * - Markdown to HTML conversion for LLM-generated content
  * - CSS styling preserving narrative tone
