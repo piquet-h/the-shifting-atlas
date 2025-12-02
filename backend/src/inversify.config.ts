@@ -56,6 +56,7 @@ import { CosmosProcessedEventRepository } from './repos/processedEventRepository
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
+import { DescriptionComposer } from './services/descriptionComposer.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 import { TelemetryService } from './telemetry/TelemetryService.js'
@@ -194,6 +195,9 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(config.cosmosSql.containers.exitHintDebounce)
     container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
     container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
+
+    // === Services ===
+    container.bind(DescriptionComposer).toSelf().inSingletonScope()
 
     return container
 }

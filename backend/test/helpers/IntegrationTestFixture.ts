@@ -21,6 +21,7 @@ import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
+import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
@@ -168,6 +169,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getLayerRepository(): Promise<ILayerRepository> {
         const container = await this.getContainer()
         return container.get<ILayerRepository>('ILayerRepository')
+    }
+
+    /** Get DescriptionComposer instance from DI container */
+    async getDescriptionComposer(): Promise<DescriptionComposer> {
+        const container = await this.getContainer()
+        return container.get(DescriptionComposer)
     }
 
     /** Get WorldEventRepository instance from DI container */
