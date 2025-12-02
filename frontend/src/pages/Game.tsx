@@ -32,7 +32,11 @@ export default function Game(): React.ReactElement {
 
     // Don't render game content if not authenticated (will redirect)
     if (!isAuthenticated) {
-        return null
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
+                <p className="text-responsive-sm text-slate-400">Redirecting...</p>
+            </div>
+        )
     }
 
     return (
