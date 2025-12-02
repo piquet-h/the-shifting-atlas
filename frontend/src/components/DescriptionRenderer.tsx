@@ -39,15 +39,15 @@ const LAYER_TYPE_ORDER: Record<LayerType, number> = {
 }
 
 /**
- * Sort layers by priority (lower = first) and layer type.
+ * Sort layers by priority (higher = first) and layer type.
  * For same priority, base comes before ambient, ambient before dynamic.
  * For same priority and type, sort by ID (alphanumeric).
  */
 function sortLayers(layers: DescriptionLayer[]): DescriptionLayer[] {
     return [...layers].sort((a, b) => {
-        // Primary sort: priority (ascending - lower priority rendered first)
+        // Primary sort: priority (descending - higher priority rendered first)
         if (a.priority !== b.priority) {
-            return a.priority - b.priority
+            return b.priority - a.priority
         }
 
         // Secondary sort: layer type order

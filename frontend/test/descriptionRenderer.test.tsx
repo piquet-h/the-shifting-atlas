@@ -23,7 +23,7 @@ describe('DescriptionRenderer Component', () => {
                     locationId: 'loc-1',
                     layerType: 'dynamic',
                     content: 'A recent fire has scorched the walls.',
-                    priority: 3,
+                    priority: 30,
                     authoredAt: '2024-01-03T00:00:00Z'
                 },
                 {
@@ -31,7 +31,7 @@ describe('DescriptionRenderer Component', () => {
                     locationId: 'loc-1',
                     layerType: 'base',
                     content: 'An ancient stone chamber.',
-                    priority: 1,
+                    priority: 10,
                     authoredAt: '2024-01-01T00:00:00Z'
                 },
                 {
@@ -39,7 +39,7 @@ describe('DescriptionRenderer Component', () => {
                     locationId: 'loc-1',
                     layerType: 'ambient',
                     content: 'The air is thick with dust.',
-                    priority: 2,
+                    priority: 20,
                     authoredAt: '2024-01-02T00:00:00Z'
                 }
             ]
@@ -51,13 +51,13 @@ describe('DescriptionRenderer Component', () => {
             expect(markup).toContain('thick with dust')
             expect(markup).toContain('recent fire')
 
-            // Verify priority order (base should appear before ambient, ambient before dynamic)
-            const baseIndex = markup.indexOf('ancient stone chamber')
-            const ambientIndex = markup.indexOf('thick with dust')
+            // Verify priority order (higher priority first: dynamic 30 > ambient 20 > base 10)
             const dynamicIndex = markup.indexOf('recent fire')
+            const ambientIndex = markup.indexOf('thick with dust')
+            const baseIndex = markup.indexOf('ancient stone chamber')
 
-            expect(baseIndex).toBeLessThan(ambientIndex)
-            expect(ambientIndex).toBeLessThan(dynamicIndex)
+            expect(dynamicIndex).toBeLessThan(ambientIndex)
+            expect(ambientIndex).toBeLessThan(baseIndex)
         })
 
         it('handles same priority layers by sorting by type order (base < ambient < dynamic)', async () => {

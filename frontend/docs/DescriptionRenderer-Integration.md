@@ -30,7 +30,7 @@ interface DescriptionLayer {
     locationId: string      // Location ID (partition key)
     layerType: LayerType    // 'base' | 'ambient' | 'dynamic'
     content: string         // Text content (supports markdown)
-    priority: number        // Priority for layer composition (lower = rendered first)
+    priority: number        // Priority for layer composition (higher = appears first)
     authoredAt: string      // ISO 8601 timestamp
 }
 ```
@@ -47,7 +47,7 @@ const layers: DescriptionLayer[] = [
         locationId: 'loc-1',
         layerType: 'base',
         content: 'An ancient stone chamber with weathered walls.',
-        priority: 1,
+        priority: 10,
         authoredAt: '2024-01-01T00:00:00Z'
     }
 ]
@@ -58,14 +58,14 @@ const layers: DescriptionLayer[] = [
 ### Multiple Layers with Composition
 
 ```tsx
-// Multiple layers: base + ambient + dynamic
+// Multiple layers: dynamic (highest priority) → ambient → base
 const layers: DescriptionLayer[] = [
     {
         id: 'layer-base-123',
         locationId: 'loc-1',
         layerType: 'base',
         content: 'An ancient stone chamber.',
-        priority: 1,
+        priority: 10,
         authoredAt: '2024-01-01T00:00:00Z'
     },
     {
@@ -73,7 +73,7 @@ const layers: DescriptionLayer[] = [
         locationId: 'loc-1',
         layerType: 'ambient',
         content: 'The air is thick with dust and silence.',
-        priority: 2,
+        priority: 20,
         authoredAt: '2024-01-02T00:00:00Z'
     },
     {
@@ -81,7 +81,7 @@ const layers: DescriptionLayer[] = [
         locationId: 'loc-1',
         layerType: 'dynamic',
         content: 'A recent fire has scorched the walls black.',
-        priority: 3,
+        priority: 30,
         authoredAt: '2024-01-03T00:00:00Z'
     }
 ]
@@ -89,10 +89,10 @@ const layers: DescriptionLayer[] = [
 <DescriptionRenderer layers={layers} />
 ```
 
-Output will be rendered in priority order:
-1. Base layer (priority 1)
-2. Ambient layer (priority 2)
-3. Dynamic layer (priority 3)
+Output will be rendered in priority order (highest first):
+1. Dynamic layer (priority 30)
+2. Ambient layer (priority 20)
+3. Base layer (priority 10)
 
 ### Rich Text with Markdown
 
@@ -114,7 +114,7 @@ Key features:
 - Stained glass windows
 - Marble floor with mosaic patterns
         `,
-        priority: 1,
+        priority: 10,
         authoredAt: '2024-01-01T00:00:00Z'
     }
 ]
@@ -183,11 +183,13 @@ function LocationPanel({ name, layers, loading, error, onRetry }: LocationPanelP
 
 ## Layer Priority Guidelines
 
-Recommended priority ranges:
+Recommended priority ranges (higher values appear first):
 
-- **Base layers** (1-10): Permanent location features that never change
-- **Ambient layers** (11-20): Contextual details that change slowly (weather, time of day)
 - **Dynamic layers** (21-30): Event-driven details that change frequently (fire, NPCs, player actions)
+- **Ambient layers** (11-20): Contextual details that change slowly (weather, time of day)
+- **Base layers** (1-10): Permanent location features that rarely change
+
+**Important**: Higher priority values are rendered FIRST. This means dynamic content (highest priority) appears before ambient content, which appears before base content.
 
 ## Security Features
 
@@ -234,7 +236,7 @@ Custom styling can be applied via the `className` prop:
 
 Comprehensive test coverage includes:
 
-- Layer composition and priority sorting
+- Layer composition and priority sorting (higher priority first)
 - XSS prevention with malicious content
 - Edge cases (single layer, empty layers, no layers)
 - HTML rendering and markdown conversion
