@@ -378,6 +378,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         return { direction, available }
     })
 
+    // Extract available exit directions for autocomplete
+    const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
+
     // Initialize placeholder stats on mount
     useEffect(() => {
         if (!playerStats && location) {
@@ -410,7 +413,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <h3 id="game-command-title" className="text-responsive-base font-semibold text-white mb-3">
                                 Command Interface
                             </h3>
-                            <CommandInterface />
+                            <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
                     {/* Sidebar */}
@@ -436,7 +439,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
                             Command Interface
                         </h3>
-                        <CommandInterface />
+                        <CommandInterface availableExits={availableExitDirections} />
                     </section>
                     <CommandHistoryPanel history={commandHistory} />
                 </>
