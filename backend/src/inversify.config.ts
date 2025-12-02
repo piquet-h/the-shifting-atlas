@@ -195,5 +195,9 @@ export const setupContainer = async (container: Container) => {
     container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
     container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
 
+    // === Services ===
+    const { DescriptionComposer } = await import('./services/descriptionComposer.js')
+    container.bind(DescriptionComposer).toSelf().inSingletonScope()
+
     return container
 }

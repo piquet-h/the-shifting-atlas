@@ -170,6 +170,13 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get<ILayerRepository>('ILayerRepository')
     }
 
+    /** Get DescriptionComposer instance from DI container */
+    async getDescriptionComposer(): Promise<import('../../src/services/descriptionComposer.js').DescriptionComposer> {
+        const container = await this.getContainer()
+        const { DescriptionComposer } = await import('../../src/services/descriptionComposer.js')
+        return container.get(DescriptionComposer)
+    }
+
     /** Get WorldEventRepository instance from DI container */
     async getWorldEventRepository(): Promise<IWorldEventRepository> {
         const container = await this.getContainer()

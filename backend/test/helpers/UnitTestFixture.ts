@@ -13,6 +13,8 @@
 import type { InvocationContext } from '@azure/functions'
 import { Container } from 'inversify'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
+import type { ILayerRepository } from '../../src/repos/layerRepository.js'
+import type { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { BaseTestFixture, TestMocks, type InvocationContextMockResult } from './TestFixture.js'
@@ -86,6 +88,23 @@ export class UnitTestFixture extends BaseTestFixture {
         }
 
         return repo
+    }
+
+    /**
+     * Get LayerRepository instance from DI container
+     */
+    async getLayerRepository(): Promise<ILayerRepository> {
+        const container = await this.getContainer()
+        return container.get<ILayerRepository>('ILayerRepository')
+    }
+
+    /**
+     * Get DescriptionComposer instance from DI container
+     */
+    async getDescriptionComposer(): Promise<DescriptionComposer> {
+        const container = await this.getContainer()
+        const { DescriptionComposer: DescriptionComposerClass } = await import('../../src/services/descriptionComposer.js')
+        return container.get(DescriptionComposerClass)
     }
 
     /**

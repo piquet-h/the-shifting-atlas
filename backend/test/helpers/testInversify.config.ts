@@ -259,5 +259,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
     }
 
+    // Register services (available in all modes)
+    const { DescriptionComposer } = await import('../../src/services/descriptionComposer.js')
+    container.bind(DescriptionComposer).toSelf().inSingletonScope()
+
     return container
 }
