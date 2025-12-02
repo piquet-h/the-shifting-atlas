@@ -65,7 +65,8 @@ describe('Description Composer', () => {
 
             assert.strictEqual(result.text, 'A grand hall with marble floors.')
             assert.ok(result.html.includes('marble floors'))
-            assert.strictEqual(result.provenance.layers.length, 0) // Only base, no other layers
+            // Base layers are not included in provenance.layers array (only non-base layers)
+            assert.strictEqual(result.provenance.layers.length, 0)
 
             await fixture.teardown()
         })

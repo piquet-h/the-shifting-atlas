@@ -202,6 +202,11 @@ export class DescriptionComposer {
 
         // Split base into sentences (simplified: split on ., !, ?)
         // Handle both whitespace and end-of-string after punctuation
+        // NOTE: This is a simplified implementation that doesn't handle complex cases like:
+        // - Quoted speech: He said "Hello." She replied.
+        // - Abbreviations: Dr. Smith arrived.
+        // - Decimal numbers: The price is $3.50.
+        // Future enhancement: Use NLP sentence tokenizer for production-grade splitting
         const parts = baseText.split(/([.!?])(?:\s+|$)/)
         const sentences: string[] = []
 
