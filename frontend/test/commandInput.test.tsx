@@ -193,4 +193,3 @@ describe('CommandInput - Component Integration', () => {
         expect(markup).toMatch(/button/)
     })
 })
-
