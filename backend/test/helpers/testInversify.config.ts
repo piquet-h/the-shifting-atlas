@@ -65,6 +65,7 @@ import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRe
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
+import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { EnvironmentChangeHandler } from '../../src/worldEvents/handlers/EnvironmentChangeHandler.js'
@@ -260,7 +261,6 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     }
 
     // Register services (available in all modes)
-    const { DescriptionComposer } = await import('../../src/services/descriptionComposer.js')
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
 
     return container
