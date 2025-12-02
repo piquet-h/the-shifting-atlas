@@ -12,6 +12,8 @@ import CommandOutput, { CommandRecord } from './CommandOutput'
 
 interface CommandInterfaceProps {
     className?: string
+    /** Available exits for the current location (for autocomplete) */
+    availableExits?: string[]
 }
 
 /**
@@ -20,11 +22,12 @@ interface CommandInterfaceProps {
  * MVP Implementation: supports a single built-in `ping` command invoking `/api/ping`.
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
-export default function CommandInterface({ className }: CommandInterfaceProps): React.ReactElement {
+export default function CommandInterface({ className, availableExits = [] }: CommandInterfaceProps): React.ReactElement {
     const { playerGuid, loading: guidLoading, error: guidError } = usePlayerGuid()
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
+    const [commandHistory, setCommandHistory] = useState<string[]>([])
 
     // Persist current location id across reloads within a browser tab (session-scoped persistence)
     // IMPORTANT: Only restore sessionStorage location if playerGuid is already available
@@ -60,6 +63,15 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
             const ts = Date.now()
             const record: CommandRecord = { id, command: raw, ts }
             setHistory((h) => [...h, record])
+
+            // Add to command history (skip 'clear' commands)
+            if (raw && raw !== 'clear') {
+                setCommandHistory((prev) => {
+                    const newHistory = [...prev, raw]
+                    // Keep last 50 commands
+                    return newHistory.slice(-50)
+                })
+            }
 
             if (!raw) return
             if (raw === 'clear') {
@@ -210,7 +222,13 @@ export default function CommandInterface({ className }: CommandInterfaceProps): 
             {/* Enable commands before player GUID resolves for non-player dependent actions (ping, look, clear).
                 Disable only while GUID is actively loading and not yet available to reduce confusion.
                 Note: move commands have additional validation in runCommand that checks playerGuid. */}
-            <CommandInput onSubmit={runCommand} busy={busy} disabled={(guidLoading && !playerGuid) || busy} />
+            <CommandInput
+                onSubmit={runCommand}
+                busy={busy}
+                disabled={(guidLoading && !playerGuid) || busy}
+                availableExits={availableExits}
+                commandHistory={commandHistory}
+            />
             <p className="mt-2 text-responsive-sm text-slate-300">
                 Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
                 <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
