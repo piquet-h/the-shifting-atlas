@@ -8,7 +8,7 @@
  * @param validator Optional validation function
  * @returns The stored value if valid, null otherwise
  */
-export function readFromStorage<T = string>(key: string, validator?: (value: string) => value is T): T | null {
+export function readFromStorage<T extends string = string>(key: string, validator?: (value: string) => value is T): T | null {
     try {
         const stored = localStorage.getItem(key)
         if (!stored) return null
