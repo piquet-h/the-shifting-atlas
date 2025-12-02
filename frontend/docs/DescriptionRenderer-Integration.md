@@ -2,17 +2,18 @@
 
 ## Overview
 
-The `DescriptionRenderer` component renders composable description layers with priority ordering and XSS prevention. It's designed to replace simple text descriptions with rich, layered narratives.
+The `DescriptionRenderer` component renders backend-compiled description content with XSS prevention and markdown support. **Layer composition logic resides in the backend**, aligning with Tenet #7 (Narrative Consistency): "AI acts as the Dungeon Master voice. Deterministic code captures state for repeatable play; AI creates immersion and contextual decision-making."
 
 ## Component API
 
 ```typescript
 import DescriptionRenderer from './components/DescriptionRenderer'
-import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 
 interface DescriptionRendererProps {
-    /** Array of description layers to compose and render */
-    layers: DescriptionLayer[]
+    /** Pre-compiled description content from backend (may contain markdown) */
+    content: string
+    /** Content format: 'markdown' converts to HTML, 'html' sanitizes directly */
+    format?: 'markdown' | 'html'
     /** Optional CSS class name for custom styling */
     className?: string
     /** Optional callback when XSS attempt is detected */
@@ -20,109 +21,40 @@ interface DescriptionRendererProps {
 }
 ```
 
-## Layer Structure
+## Architecture Alignment
 
-Each layer has the following properties:
+### Backend Responsibilities (Future)
 
-```typescript
-interface DescriptionLayer {
-    id: string              // Unique layer identifier (GUID)
-    locationId: string      // Location ID (partition key)
-    layerType: LayerType    // 'base' | 'ambient' | 'dynamic'
-    content: string         // Text content (supports markdown)
-    priority: number        // Priority for layer composition (higher = appears first)
-    authoredAt: string      // ISO 8601 timestamp
-}
-```
+The backend will implement `DescriptionComposer` service to:
+
+1. **Fetch layers**: Retrieve base + active layers for location
+2. **Apply supersede masking**: Hide obsolete base sentences (e.g., gate destroyed)
+3. **Filter active layers**: Select ambient layers based on weather/time context
+4. **Run validator pipeline**: Safety, structural consistency, redundancy checks
+5. **Compile deterministic text**: Assemble layers into single description string
+6. **Return compiled content**: Single `compiledDescription` field in API response
+
+### Frontend Responsibilities (Current)
+
+The frontend receives pre-compiled content and:
+
+1. **Sanitizes HTML**: Prevents XSS attacks using isomorphic-dompurify
+2. **Converts markdown**: Renders rich text from LLM-generated content
+3. **Applies styling**: Preserves narrative tone with responsive typography
 
 ## Usage Examples
 
 ### Basic Usage
 
 ```tsx
-// Single layer (base description only)
-const layers: DescriptionLayer[] = [
-    {
-        id: 'layer-base-123',
-        locationId: 'loc-1',
-        layerType: 'base',
-        content: 'An ancient stone chamber with weathered walls.',
-        priority: 10,
-        authoredAt: '2024-01-01T00:00:00Z'
-    }
-]
+// Backend returns compiled description
+const response = await fetch('/api/locations/loc-123')
+const { compiledDescription } = await response.json()
 
-<DescriptionRenderer layers={layers} />
+<DescriptionRenderer content={compiledDescription} format="markdown" />
 ```
 
-### Multiple Layers with Composition
-
-```tsx
-// Multiple layers: dynamic (highest priority) → ambient → base
-const layers: DescriptionLayer[] = [
-    {
-        id: 'layer-base-123',
-        locationId: 'loc-1',
-        layerType: 'base',
-        content: 'An ancient stone chamber.',
-        priority: 10,
-        authoredAt: '2024-01-01T00:00:00Z'
-    },
-    {
-        id: 'layer-ambient-456',
-        locationId: 'loc-1',
-        layerType: 'ambient',
-        content: 'The air is thick with dust and silence.',
-        priority: 20,
-        authoredAt: '2024-01-02T00:00:00Z'
-    },
-    {
-        id: 'layer-dynamic-789',
-        locationId: 'loc-1',
-        layerType: 'dynamic',
-        content: 'A recent fire has scorched the walls black.',
-        priority: 30,
-        authoredAt: '2024-01-03T00:00:00Z'
-    }
-]
-
-<DescriptionRenderer layers={layers} />
-```
-
-Output will be rendered in priority order (highest first):
-1. Dynamic layer (priority 30)
-2. Ambient layer (priority 20)
-3. Base layer (priority 10)
-
-### Rich Text with Markdown
-
-```tsx
-const layers: DescriptionLayer[] = [
-    {
-        id: 'layer-1',
-        locationId: 'loc-1',
-        layerType: 'base',
-        content: `
-# The Great Hall
-
-A magnificent chamber with **vaulted ceilings** and *intricate carvings*.
-
-> Ancient inscription: "Those who seek truth shall find only questions."
-
-Key features:
-- Towering stone columns
-- Stained glass windows
-- Marble floor with mosaic patterns
-        `,
-        priority: 10,
-        authoredAt: '2024-01-01T00:00:00Z'
-    }
-]
-
-<DescriptionRenderer layers={layers} />
-```
-
-### XSS Detection Callback
+### With XSS Detection Callback
 
 ```tsx
 const handleXSSDetected = (original: string, sanitized: string) => {
@@ -131,17 +63,28 @@ const handleXSSDetected = (original: string, sanitized: string) => {
 }
 
 <DescriptionRenderer 
-    layers={layers} 
+    content={compiledDescription} 
+    format="markdown"
     onXSSDetected={handleXSSDetected}
+/>
+```
+
+### HTML Format
+
+```tsx
+// If backend returns pre-sanitized HTML
+<DescriptionRenderer 
+    content={compiledDescriptionHtml} 
+    format="html"
 />
 ```
 
 ## Integration with GameView
 
-### Current Implementation (Simple Description)
+### Current Implementation
 
 ```tsx
-// GameView.tsx - Current implementation
+// GameView.tsx - Current with simple description string
 <LocationPanel
     name={location?.name ?? ''}
     description={location?.description ?? ''}
@@ -151,23 +94,24 @@ const handleXSSDetected = (original: string, sanitized: string) => {
 />
 ```
 
-### Future Implementation (With Layers)
+### Future Implementation (After Backend Compilation)
 
-When the backend API starts returning layers, update the component:
+When the backend implements `DescriptionComposer`:
 
 ```tsx
-// GameView.tsx - Future implementation with layers
+// GameView.tsx - With backend-compiled description
 import DescriptionRenderer from './DescriptionRenderer'
 
 interface LocationPanelProps {
     name: string
-    layers: DescriptionLayer[]  // Changed from description: string
+    compiledDescription: string  // Changed from description: string
+    format?: 'markdown' | 'html'
     loading: boolean
     error: string | null
     onRetry: () => void
 }
 
-function LocationPanel({ name, layers, loading, error, onRetry }: LocationPanelProps) {
+function LocationPanel({ name, compiledDescription, format, loading, error, onRetry }: LocationPanelProps) {
     // ... loading and error states ...
 
     return (
@@ -175,21 +119,52 @@ function LocationPanel({ name, layers, loading, error, onRetry }: LocationPanelP
             <h2 id="location-title" className="text-responsive-xl font-semibold text-white mb-2">
                 {name || 'Unknown Location'}
             </h2>
-            <DescriptionRenderer layers={layers} />
+            <DescriptionRenderer content={compiledDescription} format={format} />
         </section>
     )
 }
 ```
 
-## Layer Priority Guidelines
+## Backend API Response Shape (Future)
 
-Recommended priority ranges (higher values appear first):
+```json
+{
+  "locationId": "loc-123",
+  "name": "Burnt Forest Clearing",
+  "compiledDescription": "An ancient stone chamber with weathered walls.\n\nCharred stakes mark where the northern palisade once stood.",
+  "compiledDescriptionFormat": "markdown",
+  "exits": [{ "direction": "north" }, { "direction": "south" }],
+  "provenance": {
+    "compiledAt": "2025-12-02T10:30:00Z",
+    "layersApplied": ["base", "structural-fire"],
+    "supersededSentences": 1,
+    "composerVersion": "1.0.0"
+  }
+}
+```
 
-- **Dynamic layers** (21-30): Event-driven details that change frequently (fire, NPCs, player actions)
-- **Ambient layers** (11-20): Contextual details that change slowly (weather, time of day)
-- **Base layers** (1-10): Permanent location features that rarely change
+## Backend Compilation Flow (Future)
 
-**Important**: Higher priority values are rendered FIRST. This means dynamic content (highest priority) appears before ambient content, which appears before base content.
+```
+Frontend Request → GET /locations/{id}
+  ↓
+Backend Handler
+  ↓
+DescriptionComposer.compileForLocation()
+  1. Fetch base layer + active structural/ambient/enhancement layers
+  2. Apply supersede masking (structural events hide obsolete base text)
+  3. Filter ambient layers based on weather/time context
+  4. Run validator pipeline (safety, consistency, redundancy)
+  5. Assemble layers in priority order (deterministic composition)
+  6. Return compiled description string
+  ↓
+Frontend
+  ↓
+DescriptionRenderer receives pre-compiled content
+  → Converts markdown to HTML
+  → Sanitizes with DOMPurify
+  → Renders with narrative styling
+```
 
 ## Security Features
 
@@ -214,35 +189,52 @@ The component uses Tailwind CSS classes consistent with the game's narrative ton
 
 - Typography: `text-responsive-sm`, `leading-relaxed`
 - Colors: `text-slate-300` (main text), `text-slate-400` (empty state)
-- Spacing: `space-y-3` (between multiple layers)
 
 Custom styling can be applied via the `className` prop:
 
 ```tsx
 <DescriptionRenderer 
-    layers={layers} 
+    content={compiledDescription} 
     className="max-w-prose mx-auto"
 />
 ```
 
 ## Performance Considerations
 
-- **Memoization**: Layer processing is memoized using `useMemo`
-- **Single layer optimization**: Single layers render without wrapper divs
-- **Empty layer filtering**: Empty/whitespace-only layers are skipped
+- **Memoization**: Content processing is memoized using `useMemo`
 - **Server-side rendering**: Compatible with SSR using `isomorphic-dompurify`
+- **Backend compilation**: Reduces frontend complexity and enables caching
 
 ## Testing
 
-Comprehensive test coverage includes:
+Test coverage includes:
 
-- Layer composition and priority sorting (higher priority first)
-- XSS prevention with malicious content
-- Edge cases (single layer, empty layers, no layers)
-- HTML rendering and markdown conversion
+- XSS prevention with malicious content (script tags, `javascript:`, `onerror`)
+- Markdown to HTML conversion (headings, links, blockquotes, code)
+- Edge cases (empty content, whitespace)
+- Format handling (markdown vs HTML)
 - CSS styling and accessibility
 
 Run tests:
 ```bash
 npm test -- descriptionRenderer.test.tsx
 ```
+
+## Design References
+
+- **Tenet #7 (Narrative Consistency)**: `docs/tenets.md`
+- **Description Layering Design**: `docs/modules/description-layering-and-variation.md`
+- **Event Classification**: `docs/architecture/event-classification-matrix.md`
+
+## Migration Notes
+
+**Current State**: Backend returns simple `description` string field.
+
+**Future State**: Backend will implement `DescriptionComposer` service with:
+- Layer fetching and filtering
+- Supersede masking logic
+- Validator pipeline
+- Provenance tracking
+- Compiled description output
+
+The frontend component is ready for this transition - it only requires changing the prop name from `description` to `compiledDescription` when the backend is updated.
