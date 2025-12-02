@@ -66,8 +66,9 @@ function sortLayers(layers: DescriptionLayer[]): DescriptionLayer[] {
  * Returns sanitized HTML safe for rendering with dangerouslySetInnerHTML.
  */
 function processContent(content: string, onXSSDetected?: (original: string, sanitized: string) => void): string {
-    // Convert markdown to HTML
-    const html = marked.parse(content, { async: false }) as string
+    // Convert markdown to HTML (synchronous parse)
+    // Note: marked.parse returns string when called synchronously
+    const html = marked.parse(content) as string
 
     // Configure DOMPurify for strict sanitization
     const sanitized = DOMPurify.sanitize(html, {
