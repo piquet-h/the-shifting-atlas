@@ -201,8 +201,8 @@ export class DescriptionComposer {
         }
 
         // Split base into sentences (simplified: split on ., !, ?)
-        // Split captures sentence endings and content separately for proper reconstruction
-        const parts = baseText.split(/([.!?])\s+/)
+        // Handle both whitespace and end-of-string after punctuation
+        const parts = baseText.split(/([.!?])(?:\s+|$)/)
         const sentences: string[] = []
 
         // Reconstruct sentences with their endings
@@ -228,10 +228,12 @@ export class DescriptionComposer {
                 const normalized = sentence.trim().toLowerCase()
                 const patternNorm = pattern.trim().toLowerCase()
 
-                // Require pattern to match as complete words or at word boundaries
-                // This avoids "gate" matching within "investigate"
+                // Escape regex special characters in pattern
                 const escaped = patternNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                const regex = new RegExp(`\\b${escaped}\\b|${escaped}`, 'i')
+
+                // Use word boundaries to match complete words/phrases
+                // This prevents "gate" from matching within "investigate"
+                const regex = new RegExp(`\\b${escaped}\\b`, 'i')
                 return regex.test(normalized)
             })
 
@@ -333,14 +335,18 @@ export class DescriptionComposer {
 
             // Type guard: should be string in sync mode
             if (typeof result !== 'string') {
-                console.warn('Unexpected async result from marked.parse with async:false')
+                this.telemetryService.trackGameEvent('Description.Markdown.UnexpectedAsync', {
+                    type: typeof result
+                })
                 return markdown
             }
 
             return result
         } catch (error) {
-            // Log warning and return plaintext fallback
-            console.warn('Failed to convert markdown to HTML:', error)
+            // Log error via telemetry service
+            this.telemetryService.trackGameEvent('Description.Markdown.ConversionError', {
+                error: error instanceof Error ? error.message : String(error)
+            })
             return markdown
         }
     }
