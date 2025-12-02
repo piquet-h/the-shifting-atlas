@@ -1,7 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock functions
 const mockTrackEvent = vi.fn()
@@ -149,30 +149,8 @@ describe('Frontend Telemetry', () => {
         })
     })
 
-    describe('trackEvent', () => {
-        it('should not track when telemetry is not initialized', async () => {
-            vi.stubEnv('VITE_APPINSIGHTS_CONNECTION_STRING', '')
-
-            const { initTelemetry, trackEvent } = await import('../src/services/telemetry')
-            initTelemetry() // Returns undefined since no connection string
-
-            trackEvent('TestEvent', { prop: 'value' })
-
-            expect(mockTrackEvent).not.toHaveBeenCalledWith({ name: 'TestEvent' }, expect.anything())
-        })
-
-        it('should track event with properties when telemetry is initialized', async () => {
-            vi.stubEnv('VITE_APPINSIGHTS_CONNECTION_STRING', 'InstrumentationKey=test-key')
-
-            const { initTelemetry, trackEvent } = await import('../src/services/telemetry')
-            initTelemetry()
-            mockTrackEvent.mockClear() // Clear the Session.Start call
-
-            trackEvent('TestEvent', { prop: 'value' })
-
-            expect(mockTrackEvent).toHaveBeenCalledWith({ name: 'TestEvent' }, { prop: 'value' })
-        })
-    })
+    // Note: trackEvent function removed in favor of trackGameEventClient
+    // Direct event tracking is internal-only (trackEventDirect)
 
     describe('trackGameEventClient', () => {
         it('should enrich properties with session ID', async () => {
@@ -348,26 +326,26 @@ describe('Frontend Telemetry', () => {
             vi.useFakeTimers()
             vi.stubEnv('VITE_APPINSIGHTS_CONNECTION_STRING', 'InstrumentationKey=test-key')
 
-            const { initTelemetry, debounceTrack, trackEvent } = await import('../src/services/telemetry')
+            const { initTelemetry, debounceTrack } = await import('../src/services/telemetry')
             initTelemetry()
-            mockTrackEvent.mockClear()
 
-            const debouncedTrack = debounceTrack(trackEvent, 100)
+            const mockFn = vi.fn()
+            const debouncedFn = debounceTrack(mockFn, 100)
 
             // Call multiple times rapidly
-            debouncedTrack('TestEvent', { count: 1 })
-            debouncedTrack('TestEvent', { count: 2 })
-            debouncedTrack('TestEvent', { count: 3 })
+            debouncedFn('arg1', 'arg2')
+            debouncedFn('arg3', 'arg4')
+            debouncedFn('arg5', 'arg6')
 
             // No calls yet
-            expect(mockTrackEvent).not.toHaveBeenCalled()
+            expect(mockFn).not.toHaveBeenCalled()
 
             // Fast forward past debounce time
             vi.advanceTimersByTime(150)
 
             // Only the last call should have been executed
-            expect(mockTrackEvent).toHaveBeenCalledTimes(1)
-            expect(mockTrackEvent).toHaveBeenCalledWith({ name: 'TestEvent' }, { count: 3 })
+            expect(mockFn).toHaveBeenCalledTimes(1)
+            expect(mockFn).toHaveBeenCalledWith('arg5', 'arg6')
 
             vi.useRealTimers()
         })
