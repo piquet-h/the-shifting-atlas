@@ -101,7 +101,11 @@ export class LocationCompiledDescriptionHandler extends BaseHandler {
             }
 
             // Count superseded sentences
-            const supersededCount = compiled.provenance.layers.filter((l) => l.superseded).length
+            // NOTE: DescriptionComposer doesn't currently track superseded sentence count in provenance.
+            // The composer applies supersede masking but doesn't expose the count of removed sentences.
+            // Future enhancement: Update DescriptionComposer to track this in provenance.
+            // For now, return 0 as a placeholder until composer enhancement.
+            const supersededCount = 0
 
             // Build response
             const response = {
