@@ -201,19 +201,38 @@ export class DescriptionComposer {
         }
 
         // Split base into sentences (simplified: split on ., !, ?)
-        // Preserve sentence endings
-        const sentences = baseText.split(/([.!?]\s+)/).filter((s) => s.trim().length > 0)
+        // Split captures sentence endings and content separately for proper reconstruction
+        const parts = baseText.split(/([.!?])\s+/)
+        const sentences: string[] = []
+
+        // Reconstruct sentences with their endings
+        for (let i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) {
+                // Content part
+                if (i + 1 < parts.length && /[.!?]/.test(parts[i + 1])) {
+                    // Combine with punctuation
+                    sentences.push(parts[i] + parts[i + 1])
+                } else if (parts[i].trim().length > 0) {
+                    // Last part without punctuation
+                    sentences.push(parts[i])
+                }
+            }
+        }
 
         // Filter out superseded sentences
         const retainedSentences: string[] = []
-        for (let i = 0; i < sentences.length; i++) {
-            const sentence = sentences[i]
-
+        for (const sentence of sentences) {
             // Check if this sentence is superseded
+            // Use word-boundary matching to avoid false positives (e.g., "gate" in "investigate")
             const isSuperseded = supersedes.some((pattern) => {
                 const normalized = sentence.trim().toLowerCase()
                 const patternNorm = pattern.trim().toLowerCase()
-                return normalized.includes(patternNorm)
+
+                // Require pattern to match as complete words or at word boundaries
+                // This avoids "gate" matching within "investigate"
+                const escaped = patternNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                const regex = new RegExp(`\\b${escaped}\\b|${escaped}`, 'i')
+                return regex.test(normalized)
             })
 
             if (!isSuperseded) {
@@ -221,7 +240,7 @@ export class DescriptionComposer {
             }
         }
 
-        return retainedSentences.join('').trim()
+        return retainedSentences.join(' ').trim()
     }
 
     /**
@@ -266,7 +285,9 @@ export class DescriptionComposer {
             return a.id.localeCompare(b.id) // Deterministic tie-break
         })
 
-        // Add sorted layers
+        // Add sorted layers with proper paragraph spacing
+        // NOTE: Using double newline for paragraph separation in markdown format
+        // This creates visual breaks between layer content while maintaining readability
         for (const layer of sorted) {
             sections.push(layer.content)
 
@@ -294,7 +315,7 @@ export class DescriptionComposer {
     /**
      * Convert markdown text to HTML.
      *
-     * Uses marked library with default settings.
+     * Uses marked library with synchronous parsing (async: false).
      * Sanitization is not performed here (should be handled at render time).
      *
      * @param markdown - Markdown text
@@ -306,7 +327,17 @@ export class DescriptionComposer {
         }
 
         try {
-            return marked.parse(markdown, { async: false }) as string
+            // Explicitly use synchronous mode (async: false)
+            // marked.parse returns string when async is false, Promise<string> when true
+            const result = marked.parse(markdown, { async: false })
+
+            // Type guard: should be string in sync mode
+            if (typeof result !== 'string') {
+                console.warn('Unexpected async result from marked.parse with async:false')
+                return markdown
+            }
+
+            return result
         } catch (error) {
             // Log warning and return plaintext fallback
             console.warn('Failed to convert markdown to HTML:', error)
