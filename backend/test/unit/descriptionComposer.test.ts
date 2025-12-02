@@ -5,17 +5,25 @@
  */
 
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import type { ViewContext } from '../../src/services/types.js'
 
 describe('Description Composer', () => {
+    let fixture: UnitTestFixture
+
+    beforeEach(async () => {
+        fixture = new UnitTestFixture()
+        await fixture.setup()
+    })
+
+    afterEach(async () => {
+        await fixture.teardown()
+    })
+
     describe('compileForLocation', () => {
         test('should return empty result when no layers exist', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const locationId = crypto.randomUUID()
 
@@ -31,14 +39,9 @@ describe('Description Composer', () => {
             assert.strictEqual(result.html, '')
             assert.strictEqual(result.provenance.locationId, locationId)
             assert.strictEqual(result.provenance.layers.length, 0)
-
-            await fixture.teardown()
         })
 
         test('should compile base-only location', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -67,14 +70,9 @@ describe('Description Composer', () => {
             assert.ok(result.html.includes('marble floors'))
             // Base layers are not included in provenance.layers array (only non-base layers)
             assert.strictEqual(result.provenance.layers.length, 0)
-
-            await fixture.teardown()
         })
 
         test('should append structural layer after base', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -109,14 +107,9 @@ describe('Description Composer', () => {
             assert.ok(result.text.includes('palisade'))
             assert.ok(result.text.includes('Charred stakes'))
             assert.strictEqual(result.provenance.layers.length, 1) // One non-base layer
-
-            await fixture.teardown()
         })
 
         test('should apply supersede masking when structural layer supersedes base', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -156,14 +149,9 @@ describe('Description Composer', () => {
             assert.ok(result.text.includes('destroyed by fire'))
             // Other base content should remain
             assert.ok(result.text.includes('hard-packed dirt'))
-
-            await fixture.teardown()
         })
 
         test('should filter ambient layers by weather context', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -225,14 +213,9 @@ describe('Description Composer', () => {
 
             assert.ok(!snowResult.text.includes('Rain drips'))
             assert.ok(snowResult.text.includes('Snow blankets'))
-
-            await fixture.teardown()
         })
 
         test('should filter ambient layers by time context', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -294,14 +277,9 @@ describe('Description Composer', () => {
 
             assert.ok(!nightResult.text.includes('Sunlight'))
             assert.ok(nightResult.text.includes('Stars'))
-
-            await fixture.teardown()
         })
 
         test('should maintain deterministic ordering with same priority', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -346,14 +324,9 @@ describe('Description Composer', () => {
             assert.strictEqual(result1.text, result2.text)
             assert.strictEqual(result1.provenance.layers[0].id, 'aaa-layer') // Alphabetically first
             assert.strictEqual(result1.provenance.layers[1].id, 'zzz-layer')
-
-            await fixture.teardown()
         })
 
         test('should handle all supersedes matched (empty base)', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -391,14 +364,9 @@ describe('Description Composer', () => {
             assert.ok(!result.text.includes('old wooden'))
             // Replacement should be present
             assert.ok(result.text.includes('replaced with iron'))
-
-            await fixture.teardown()
         })
 
         test('should assemble layers in correct order: base → dynamic → ambient', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -444,14 +412,9 @@ describe('Description Composer', () => {
 
             assert.ok(baseIndex < dynamicIndex, 'Base should come before dynamic')
             assert.ok(dynamicIndex < ambientIndex, 'Dynamic should come before ambient')
-
-            await fixture.teardown()
         })
 
         test('should convert markdown to HTML', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -478,14 +441,9 @@ describe('Description Composer', () => {
             // HTML should have converted tags
             assert.ok(result.html.includes('<strong>Bold text</strong>'))
             assert.ok(result.html.includes('<em>italic text</em>'))
-
-            await fixture.teardown()
         })
 
         test('should include provenance metadata', async () => {
-            const fixture = new UnitTestFixture()
-            await fixture.setup()
-
             const composer = await fixture.getDescriptionComposer()
             const layerRepo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
@@ -524,8 +482,6 @@ describe('Description Composer', () => {
             assert.strictEqual(result.provenance.layers.length, 1)
             assert.strictEqual(result.provenance.layers[0].id, layerId)
             assert.strictEqual(result.provenance.layers[0].layerType, 'dynamic')
-
-            await fixture.teardown()
         })
     })
 })
