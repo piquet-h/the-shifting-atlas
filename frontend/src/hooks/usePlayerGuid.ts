@@ -1,18 +1,16 @@
-/* global localStorage */
-import type { PlayerBootstrapResponse } from '@piquet-h/shared'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { trackGameEventClient } from '../services/telemetry'
-import { buildHeaders, buildPlayerUrl, isValidGuid } from '../utils/apiClient'
-import { unwrapEnvelope } from '../utils/envelope'
-
 /**
  * usePlayerGuid
- * Responsible for obtaining and persisting a stable player GUID for guest users.
- * Behavior:
- *  - Stores guid in localStorage under key `tsa.playerGuid`.
- *  - Calls GET /api/player/{playerId} to confirm existing GUID or GET /api/player to allocate new.
- *  - Emits telemetry events to Application Insights via trackGameEventClient.
+ * React hook for obtaining and managing player GUID.
+ *
+ * Thin orchestrator that delegates to:
+ * - playerService: API calls and telemetry
+ * - localStorage utilities: Persistent storage
+ *
+ * Prevents race conditions by guarding against concurrent bootstrap requests.
  */
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { bootstrapPlayer, getStoredPlayerGuid } from '../services/playerService'
+
 export interface PlayerGuidState {
     playerGuid: string | null
     loading: boolean
@@ -20,8 +18,6 @@ export interface PlayerGuidState {
     error: string | null
     refresh: () => void // force re-run bootstrap (rare)
 }
-
-const STORAGE_KEY = 'tsa.playerGuid'
 
 export function usePlayerGuid(): PlayerGuidState {
     const [playerGuid, setPlayerGuid] = useState<string | null>(null)
@@ -31,59 +27,32 @@ export function usePlayerGuid(): PlayerGuidState {
     const [nonce, setNonce] = useState(0)
     const bootstrapInProgress = useRef(false)
 
-    const readLocal = useCallback(() => {
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY)
-            return stored && isValidGuid(stored) ? stored : null
-        } catch {
-            return null
-        }
-    }, [])
-
-    const writeLocal = useCallback((guid: string) => {
-        try {
-            localStorage.setItem(STORAGE_KEY, guid)
-        } catch {
-            /* ignore */
-        }
-    }, [])
-
     useEffect(() => {
         // Prevent concurrent bootstrap requests (React strict mode in dev runs effects twice)
         if (bootstrapInProgress.current) return
 
         let aborted = false
+
         const run = async () => {
             bootstrapInProgress.current = true
             setLoading(true)
             setError(null)
-            const existing = readLocal()
-            if (existing) setPlayerGuid(existing) // optimistic usage
-            try {
-                trackGameEventClient('Onboarding.GuestGuid.Started')
-                const url = existing ? buildPlayerUrl(existing) : '/api/player'
-                const headers = buildHeaders()
-                const res = await fetch(url, {
-                    method: 'GET',
-                    headers
-                })
-                if (!res.ok) {
-                    throw new Error(`Bootstrap failed: ${res.status}`)
-                }
-                const json = await res.json()
-                const unwrapped = unwrapEnvelope<PlayerBootstrapResponse>(json)
 
-                if (!unwrapped.success || !unwrapped.data) {
-                    throw new Error('Invalid response format from bootstrap')
-                }
+            // Optimistically set from storage while verifying
+            const existing = getStoredPlayerGuid()
+            if (existing) setPlayerGuid(existing)
+
+            try {
+                const result = await bootstrapPlayer(existing)
 
                 if (aborted) return
-                setPlayerGuid(unwrapped.data.playerGuid)
-                setCreated(unwrapped.data.created)
-                if (unwrapped.data.playerGuid !== existing) writeLocal(unwrapped.data.playerGuid)
-                if (unwrapped.data.created) trackGameEventClient('Onboarding.GuestGuid.Created', { playerGuid: unwrapped.data.playerGuid })
+
+                setPlayerGuid(result.playerGuid)
+                setCreated(result.created)
             } catch (e) {
-                if (!aborted) setError(e instanceof Error ? e.message : 'Unknown error')
+                if (!aborted) {
+                    setError(e instanceof Error ? e.message : 'Unknown error')
+                }
             } finally {
                 if (!aborted) {
                     setLoading(false)
@@ -91,11 +60,13 @@ export function usePlayerGuid(): PlayerGuidState {
                 }
             }
         }
+
         run()
+
         return () => {
             aborted = true
         }
-    }, [nonce, readLocal, writeLocal])
+    }, [nonce])
 
     const refresh = useCallback(() => {
         setNonce((n) => n + 1)
