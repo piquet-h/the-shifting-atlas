@@ -1,4 +1,5 @@
-import React, { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
+import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { findClosestMatch } from '../utils/fuzzyMatch'
 
 export interface CommandInputProps {
     disabled?: boolean
@@ -64,50 +65,6 @@ export default function CommandInput({
         }),
         []
     )
-
-    // Calculate Levenshtein distance for fuzzy matching
-    function levenshteinDistance(a: string, b: string): number {
-        if (a.length === 0) return b.length
-        if (b.length === 0) return a.length
-
-        const matrix: number[][] = []
-
-        for (let i = 0; i <= b.length; i++) {
-            matrix[i] = [i]
-        }
-
-        for (let j = 0; j <= a.length; j++) {
-            matrix[0][j] = j
-        }
-
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1]
-                } else {
-                    matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
-                }
-            }
-        }
-
-        return matrix[b.length][a.length]
-    }
-
-    // Find closest match for fuzzy suggestions
-    function findClosestMatch(input: string, options: string[]): string | null {
-        let minDistance = Infinity
-        let closest: string | null = null
-
-        for (const option of options) {
-            const distance = levenshteinDistance(input.toLowerCase(), option.toLowerCase())
-            if (distance < minDistance && distance <= 2) {
-                minDistance = distance
-                closest = option
-            }
-        }
-
-        return closest
-    }
 
     // Validate command and provide suggestions
     function validateCommand(cmd: string): { valid: boolean; suggestion?: string; error?: string } {
@@ -207,26 +164,15 @@ export default function CommandInput({
         }
     }, [value, availableExits, DIRECTIONS, KNOWN_COMMANDS])
 
-    // Handle keyboard navigation
-    function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-        // Up arrow - navigate command history
-        if (e.key === 'ArrowUp') {
-            e.preventDefault()
-            if (commandHistory.length > 0) {
+    // Handle command history navigation (up/down arrows)
+    const handleHistoryNavigation = useCallback(
+        (direction: 'up' | 'down') => {
+            if (direction === 'up' && commandHistory.length > 0) {
                 const newIndex = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1)
                 setHistoryIndex(newIndex)
                 setValue(commandHistory[newIndex])
                 setShowAutocomplete(false)
-            }
-            return
-        }
-
-        // Down arrow - navigate command history or autocomplete
-        if (e.key === 'ArrowDown') {
-            e.preventDefault()
-            if (showAutocomplete && autocompleteOptions.length > 0) {
-                setSelectedOptionIndex((prev) => (prev + 1) % autocompleteOptions.length)
-            } else if (historyIndex !== -1) {
+            } else if (direction === 'down' && historyIndex !== -1) {
                 const newIndex = historyIndex + 1
                 if (newIndex >= commandHistory.length) {
                     setHistoryIndex(-1)
@@ -235,6 +181,63 @@ export default function CommandInput({
                     setHistoryIndex(newIndex)
                     setValue(commandHistory[newIndex])
                 }
+            }
+        },
+        [commandHistory, historyIndex]
+    )
+
+    // Handle autocomplete navigation (arrow keys)
+    const handleAutocompleteNavigation = useCallback(
+        (direction: 'up' | 'down') => {
+            if (!showAutocomplete || autocompleteOptions.length === 0) return
+
+            if (direction === 'down') {
+                setSelectedOptionIndex((prev) => (prev + 1) % autocompleteOptions.length)
+            } else if (direction === 'up') {
+                setSelectedOptionIndex((prev) => (prev - 1 + autocompleteOptions.length) % autocompleteOptions.length)
+            }
+        },
+        [showAutocomplete, autocompleteOptions.length]
+    )
+
+    // Handle autocomplete selection (Tab/Enter)
+    const handleAutocompleteSelection = useCallback(() => {
+        if (!showAutocomplete || selectedOptionIndex === -1) return false
+
+        const selected = autocompleteOptions[selectedOptionIndex]
+        const parts = value.trim().split(/\s+/)
+
+        if (parts[0] === 'move' || parts[0] === 'm') {
+            setValue(`move ${selected}`)
+        } else {
+            setValue(selected)
+        }
+
+        setShowAutocomplete(false)
+        setSelectedOptionIndex(-1)
+        return true
+    }, [showAutocomplete, selectedOptionIndex, autocompleteOptions, value])
+
+    // Handle keyboard navigation
+    function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+        // Up arrow - navigate command history or autocomplete
+        if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            if (showAutocomplete && autocompleteOptions.length > 0) {
+                handleAutocompleteNavigation('up')
+            } else {
+                handleHistoryNavigation('up')
+            }
+            return
+        }
+
+        // Down arrow - navigate command history or autocomplete
+        if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            if (showAutocomplete && autocompleteOptions.length > 0) {
+                handleAutocompleteNavigation('down')
+            } else {
+                handleHistoryNavigation('down')
             }
             return
         }
@@ -247,19 +250,8 @@ export default function CommandInput({
         }
 
         // Tab or Enter - select autocomplete option
-        if ((e.key === 'Tab' || e.key === 'Enter') && showAutocomplete && selectedOptionIndex !== -1) {
+        if ((e.key === 'Tab' || e.key === 'Enter') && handleAutocompleteSelection()) {
             e.preventDefault()
-            const selected = autocompleteOptions[selectedOptionIndex]
-            const parts = value.trim().split(/\s+/)
-
-            if (parts[0] === 'move' || parts[0] === 'm') {
-                setValue(`move ${selected}`)
-            } else {
-                setValue(selected)
-            }
-
-            setShowAutocomplete(false)
-            setSelectedOptionIndex(-1)
             return
         }
 
@@ -388,7 +380,7 @@ export default function CommandInput({
                                         key={option}
                                         role="option"
                                         aria-selected={isSelected}
-                                        tabIndex={0}
+                                        tabIndex={-1}
                                         className={[
                                             'px-3 py-2 cursor-pointer text-responsive-sm transition-colors',
                                             isSelected ? 'bg-atlas-accent/20 text-atlas-accent' : 'text-slate-200 hover:bg-white/10',
