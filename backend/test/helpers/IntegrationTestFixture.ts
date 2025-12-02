@@ -21,6 +21,7 @@ import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
+import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
@@ -171,9 +172,8 @@ export class IntegrationTestFixture extends BaseTestFixture {
     }
 
     /** Get DescriptionComposer instance from DI container */
-    async getDescriptionComposer(): Promise<import('../../src/services/descriptionComposer.js').DescriptionComposer> {
+    async getDescriptionComposer(): Promise<DescriptionComposer> {
         const container = await this.getContainer()
-        const { DescriptionComposer } = await import('../../src/services/descriptionComposer.js')
         return container.get(DescriptionComposer)
     }
 
