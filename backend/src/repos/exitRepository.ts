@@ -7,8 +7,6 @@ export interface ExitEdgeResult {
     direction: Direction
     toLocationId: string
     description?: string
-    kind?: string
-    state?: string
 }
 
 /** Ordered exit categories for canonical display */
@@ -93,17 +91,16 @@ export class CosmosExitRepository implements IExitRepository {
 
     async getExits(locationId: string): Promise<ExitEdgeResult[]> {
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
-            "g.V(locationId).outE('exit').project('direction','toLocationId','description','kind','state')" +
-                ".by(values('direction')).by(inV().id()).by(values('description')).by(values('kind')).by(values('state'))",
+            "g.V(locationId).outE('exit').project('direction','toLocationId','description')" +
+                ".by(values('direction')).by(inV().id())" +
+                ".by(coalesce(values('description'), constant('')))",
             { locationId }
         )
 
         const exits: ExitEdgeResult[] = (exitsRaw || []).map((e) => ({
             direction: String(e.direction) as Direction,
             toLocationId: String(e.toLocationId),
-            description: e.description ? String(e.description) : undefined,
-            kind: e.kind ? String(e.kind) : undefined,
-            state: e.state ? String(e.state) : undefined
+            description: e.description ? String(e.description) : undefined
         }))
 
         return sortExits(exits)

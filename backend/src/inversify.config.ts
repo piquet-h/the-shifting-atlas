@@ -23,6 +23,7 @@ import { GetExitsHandler } from './handlers/getExits.js'
 import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
+import { LocationCompiledDescriptionHandler } from './handlers/locationCompiled.js'
 import { LocationLookHandler } from './handlers/locationLook.js'
 import { WorldHandler } from './handlers/mcp/world/world.js'
 import { MoveHandler } from './handlers/moveCore.js'
@@ -56,6 +57,7 @@ import { CosmosProcessedEventRepository } from './repos/processedEventRepository
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
+import { DescriptionComposer } from './services/descriptionComposer.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 import { TelemetryService } from './telemetry/TelemetryService.js'
@@ -122,6 +124,7 @@ export const setupContainer = async (container: Container) => {
     container.bind(GremlinHealthHandler).toSelf()
     container.bind(SimplePingHandler).toSelf()
     container.bind(LocationLookHandler).toSelf()
+    container.bind(LocationCompiledDescriptionHandler).toSelf()
     container.bind(GetExitsHandler).toSelf()
     container.bind(LinkRoomsHandler).toSelf()
     container.bind(PlayerCreateHandler).toSelf()
@@ -194,6 +197,9 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(config.cosmosSql.containers.exitHintDebounce)
     container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
     container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
+
+    // === Services ===
+    container.bind(DescriptionComposer).toSelf().inSingletonScope()
 
     return container
 }

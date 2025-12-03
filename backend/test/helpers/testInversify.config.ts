@@ -22,6 +22,7 @@ import { GetExitsHandler } from '../../src/handlers/getExits.js'
 import { GremlinHealthHandler } from '../../src/handlers/gremlinHealth.js'
 import { HealthHandler } from '../../src/handlers/health.js'
 import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
+import { LocationCompiledDescriptionHandler } from '../../src/handlers/locationCompiled.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { PingHandler } from '../../src/handlers/ping.js'
@@ -65,6 +66,7 @@ import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRe
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
+import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { EnvironmentChangeHandler } from '../../src/worldEvents/handlers/EnvironmentChangeHandler.js'
@@ -122,6 +124,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(GremlinHealthHandler).toSelf().inSingletonScope()
     container.bind(SimplePingHandler).toSelf().inSingletonScope()
     container.bind(LocationLookHandler).toSelf().inSingletonScope()
+    container.bind(LocationCompiledDescriptionHandler).toSelf().inSingletonScope()
     container.bind(GetExitsHandler).toSelf().inSingletonScope()
     container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
@@ -258,6 +261,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
     }
+
+    // Register services (available in all modes)
+    container.bind(DescriptionComposer).toSelf().inSingletonScope()
 
     return container
 }
