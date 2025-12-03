@@ -2,7 +2,10 @@ import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import {
     enrichErrorAttributes,
     enrichMovementAttributes,
+    getExitGenerationHintStore,
     getPlayerHeadingStore,
+    hashPlayerIdForTelemetry,
+    isDirection,
     normalizeDirection,
     STARTER_LOCATION_ID
 } from '@piquet-h/shared'
@@ -16,10 +19,11 @@ import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
 
 export interface MoveValidationError {
-    type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed'
+    type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
     statusCode: number
     clarification?: string
     reason?: string
+    generationHint?: { originLocationId: string; direction: string }
 }
 
 export interface MoveResult {
@@ -185,6 +189,44 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
+            // Check if direction is valid canonical direction for exit generation hint
+            if (isDirection(dir)) {
+                // Valid canonical direction but no exit - emit generation hint
+                const hintStore = getExitGenerationHintStore()
+                const playerId = this.playerGuid || 'anonymous'
+                const hintResult = hintStore.checkAndRecord(playerId, fromId, dir)
+
+                // Emit telemetry event with hashed identifiers (privacy)
+                if (hintResult.shouldEmit) {
+                    const telemetryProps = {
+                        dir,
+                        originHashed: hashPlayerIdForTelemetry(fromId),
+                        playerHashed: hashPlayerIdForTelemetry(playerId),
+                        timestamp: hintResult.hint.timestamp,
+                        debounceHit: hintResult.debounceHit
+                    }
+                    this.track('Navigation.Exit.GenerationRequested', telemetryProps)
+                }
+
+                // Return generate status with hint payload
+                const latencyMs = Date.now() - started
+                return {
+                    success: false,
+                    error: {
+                        type: 'generate',
+                        statusCode: 400,
+                        reason: 'no-exit',
+                        clarification: `No exit ${dir} from here yet. Your interest has been noted.`,
+                        generationHint: {
+                            originLocationId: fromId,
+                            direction: dir
+                        }
+                    },
+                    latencyMs
+                }
+            }
+
+            // Not a canonical direction - return standard no-exit error
             const props = {
                 from: fromId,
                 direction: dir,

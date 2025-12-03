@@ -12,6 +12,7 @@ export function buildMoveResponse(moveResult: MoveResult, correlationId: string)
             'invalid-direction': 'InvalidDirection',
             'from-missing': 'FromNotFound',
             'no-exit': 'NoExit',
+            generate: 'ExitGenerationRequested',
             'move-failed': 'MoveFailed'
         }
         const errorCode = errorCodeMap[errorType] || 'MoveFailed'
@@ -29,10 +30,20 @@ export function buildMoveResponse(moveResult: MoveResult, correlationId: string)
             case 'no-exit':
                 errorMessage = 'No such exit'
                 break
+            case 'generate':
+                errorMessage = moveResult.error?.clarification || 'Exit generation requested'
+                break
             default:
                 errorMessage = moveResult.error?.reason || 'Movement failed'
         }
-        return errorResponse(statusCode, errorCode, errorMessage, { correlationId })
+
+        // Include generationHint in response payload for 'generate' status
+        const responseData: Record<string, unknown> = {}
+        if (errorType === 'generate' && moveResult.error?.generationHint) {
+            responseData.generationHint = moveResult.error.generationHint
+        }
+
+        return errorResponse(statusCode, errorCode, errorMessage, { correlationId, ...responseData })
     }
     return okResponse(moveResult.location, { correlationId })
 }
