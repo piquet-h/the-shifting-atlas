@@ -41,22 +41,22 @@ This document details how to build an **Intent Parser MCP Server** and **Intent 
 
 **TypeScript (Azure Functions)**:
 
--   ✅ All MCP servers (HTTP endpoints)
--   ✅ All database operations (Cosmos DB)
--   ✅ All validation, policy checks
--   ✅ All telemetry emission
--   ✅ Existing game logic (move, look, etc.)
--   ✅ Entity promotion, inventory management
--   ❌ NO AI decision-making
+- ✅ All MCP servers (HTTP endpoints)
+- ✅ All database operations (Cosmos DB)
+- ✅ All validation, policy checks
+- ✅ All telemetry emission
+- ✅ Existing game logic (move, look, etc.)
+- ✅ Entity promotion, inventory management
+- ❌ NO AI decision-making
 
 **Python (Agent Framework)**:
 
--   ✅ AI agents (decision-making only)
--   ✅ Workflows (multi-agent orchestration)
--   ✅ LLM calls (Azure OpenAI)
--   ✅ MCP tool calls (HTTP to TypeScript servers)
--   ❌ NO direct database access
--   ❌ NO business logic duplication
+- ✅ AI agents (decision-making only)
+- ✅ Workflows (multi-agent orchestration)
+- ✅ LLM calls (Azure OpenAI)
+- ✅ MCP tool calls (HTTP to TypeScript servers)
+- ❌ NO direct database access
+- ❌ NO business logic duplication
 
 ### Communication Pattern
 
@@ -145,18 +145,18 @@ Player Browser (displays response)
 
 **TypeScript owns**:
 
--   ✅ **Data layer**: All Cosmos DB schemas, repositories, migrations
--   ✅ **Business rules**: Exit validation, direction normalization, rate limiting
--   ✅ **Performance**: Low-latency operations, no cold start for simple commands
--   ✅ **Type safety**: Shared models in `@piquet-h/shared` package
--   ✅ **Existing investment**: 10k+ LOC of battle-tested TypeScript
+- ✅ **Data layer**: All Cosmos DB schemas, repositories, migrations
+- ✅ **Business rules**: Exit validation, direction normalization, rate limiting
+- ✅ **Performance**: Low-latency operations, no cold start for simple commands
+- ✅ **Type safety**: Shared models in `@piquet-h/shared` package
+- ✅ **Existing investment**: 10k+ LOC of battle-tested TypeScript
 
 **Python owns**:
 
--   ✅ **AI orchestration**: Multi-step reasoning, complex decision trees
--   ✅ **Agent Framework**: Microsoft's official Python SDK (richer ecosystem)
--   ✅ **LLM integration**: Cleaner async/await patterns for AI calls
--   ✅ **Workflow composition**: Graph-based agent orchestration
+- ✅ **AI orchestration**: Multi-step reasoning, complex decision trees
+- ✅ **Agent Framework**: Microsoft's official Python SDK (richer ecosystem)
+- ✅ **LLM integration**: Cleaner async/await patterns for AI calls
+- ✅ **Workflow composition**: Graph-based agent orchestration
 
 **Clean Boundary**: Python agents are **stateless HTTP clients** consuming TypeScript MCP servers. No shared memory, no database coupling, full language independence.
 
@@ -745,11 +745,11 @@ validated_intents = validation_response['validated']
 
 **Tools** (MCP Servers):
 
--   Intent Parser Server (parsing)
--   World Context Server (entity lookup)
--   Description Layering Server (description scan)
--   Navigation Assistant Server (movement validation)
--   Lore & Reference Server (creature validation)
+- Intent Parser Server (parsing)
+- World Context Server (entity lookup)
+- Description Layering Server (description scan)
+- Navigation Assistant Server (movement validation)
+- Lore & Reference Server (creature validation)
 
 **Python Implementation**:
 
@@ -866,7 +866,18 @@ Player: "throw a rock at the seagull and then chase it"
 
 ## Action Execution Workflow
 
-Once intents are validated, pass to execution workflow:
+### Server-Side Execution with Batched Narrative (Recommended Pattern)
+
+**Architecture Decision**: Execute all intent steps server-side and return complete narrative in a single HTTP response. This provides better latency, cohesive storytelling, and simpler client code compared to client-side orchestration.
+
+**Key Benefits**:
+
+- Single round trip (reduces cumulative latency despite multiple moves)
+- AI can generate cohesive narrative for entire journey
+- Simpler client implementation (no orchestration logic)
+- Better interrupt handling (server knows full context when interrupt occurs)
+
+**Implementation**:
 
 ```python
 from agent_framework import Workflow
@@ -892,19 +903,56 @@ action_workflow.add_edge("start", "navigation", condition=lambda s: route_by_ver
 action_workflow.add_edge("combat", "narrator")
 action_workflow.add_edge("navigation", "narrator")
 
-# Execute each intent in sequence
+# Execute each intent in sequence server-side
+completed_steps = []
+interrupt_occurred = None
+
 for intent in parsed_command.intents:
+    # Execute intent via deterministic TypeScript handler
     result = await action_workflow.run(input={
         "intent": intent,
         "playerId": player_guid,
         "locationId": location_id
     })
-    narrative_outputs.append(result.narrative)
 
-# Final response to player
+    if not result.success:
+        # Intent failed (path blocked, invalid target, etc.)
+        interrupt_occurred = {
+            "type": "failure",
+            "reason": result.error,
+            "step": len(completed_steps)
+        }
+        break
+
+    completed_steps.append(result)
+
+    # Check for interrupts after each step (encounter, event, etc.)
+    interrupt = await check_for_interrupt(result.location_id, player_guid)
+    if interrupt:
+        interrupt_occurred = {
+            "type": "interrupt",
+            "reason": interrupt.description,
+            "step": len(completed_steps)
+        }
+        break
+
+# Generate unified narrative for what actually happened
+narrative = await narrative_agent.generate_journey_narrative({
+    "intents": parsed_command.intents,
+    "completed_steps": completed_steps,
+    "interrupt": interrupt_occurred,
+    "player_id": player_guid
+})
+
+# Return everything in single response
 return {
-    "narrative": "\n\n".join(narrative_outputs),
-    "updatedState": {...}
+    "success": interrupt_occurred is None,
+    "narrative": narrative,  # Full story up to interrupt point
+    "completed_steps": len(completed_steps),
+    "total_steps": len(parsed_command.intents),
+    "current_location": completed_steps[-1].location if completed_steps else None,
+    "interrupt": interrupt_occurred,
+    "latency_ms": elapsed_time
 }
 ```
 
@@ -924,6 +972,118 @@ The bridge stretches north toward the lighthouse and south toward the market
 square. The ocean mutters beneath you, probably gossiping about tourists.
 ```
 
+### Interrupt Handling for Multi-Step Intents
+
+**Problem**: Player issues multi-step command (`"walk to the shrine"`), but encounters interrupt on second move (encounter, blocked path, world event).
+
+**Solution**: Execute one step at a time with checkpoint pattern:
+
+```typescript
+// TypeScript backend handler
+async function executeIntentSequence(intents: Intent[], playerId: string): Promise<ExecutionResult> {
+    const completed: MoveResult[] = []
+
+    for (const [index, intent] of intents.entries()) {
+        // Each move persists immediately (atomic transaction)
+        const moveResult = await moveHandler.performMove({
+            direction: intent.direction,
+            playerId
+        })
+
+        if (!moveResult.success) {
+            // Move failed (path blocked)
+            return {
+                status: 'failed',
+                completed_steps: completed,
+                current_location: moveResult.currentLocation,
+                interrupt: {
+                    type: 'path-blocked',
+                    description: moveResult.error
+                }
+            }
+        }
+
+        completed.push(moveResult)
+
+        // Check for encounters AFTER successful move
+        const encounter = await checkForEncounter(moveResult.location.id, playerId)
+        if (encounter) {
+            return {
+                status: 'interrupted',
+                completed_steps: completed,
+                current_location: moveResult.location,
+                interrupt: {
+                    type: 'encounter',
+                    description: encounter.description,
+                    encounter_id: encounter.id
+                }
+            }
+        }
+    }
+
+    return {
+        status: 'completed',
+        completed_steps: completed,
+        current_location: completed[completed.length - 1].location
+    }
+}
+```
+
+**Key Properties**:
+
+- **Atomic steps**: Each move succeeds or fails independently
+- **Immediate persistence**: Player location updated after each successful move
+- **Interrupt detection**: Between steps (never during)
+- **Consistent state**: Player location always reflects reality (no partial commits)
+
+**Narrative Generation for Interrupted Journeys**:
+
+```typescript
+// Generate cohesive narrative knowing what actually happened
+async function narrateJourney(execution: ExecutionResult): Promise<string> {
+    const context = {
+        intent_description: 'walk to the shrine',
+        completed_steps: execution.completed_steps.length,
+        total_steps: execution.planned_steps,
+        interrupted: execution.status === 'interrupted',
+        interrupt_type: execution.interrupt?.type
+    }
+
+    return await narrativeAgent.generate({
+        template: 'journey-narrative',
+        context
+    })
+}
+
+// Example interrupted narrative:
+// "You make your way north along the packed lane, passing villagers heading
+//  to market. As you turn west toward the stone circle, you notice fresh
+//  tracks in the dirt—and suddenly a wolf steps onto the path ahead, blocking
+//  your way."
+```
+
+**Resumable State** (Future enhancement):
+
+Store incomplete intent sequences for resumption after interrupt resolution:
+
+```typescript
+interface IntentState {
+  intent_id: string
+  player_id: string
+  original_utterance: string
+  remaining_steps: Intent[]
+  completed_steps: MoveResult[]
+  expires_at: Date  // TTL: 5 minutes
+}
+
+// After player resolves encounter:
+POST /api/intent/resume
+{
+  "intent_id": "intent-123",
+  "action": "continue"  // or "abort"
+}
+```
+
 ---
 
 ## Implementation Approach
@@ -934,39 +1094,39 @@ The intent parser can be implemented incrementally with three parsing strategies
 
 **PI-0: Heuristic Baseline**
 
--   Regex-based verb extraction
--   Keyword-based sequence detection
--   Simple noun identification after articles/prepositions
--   No AI/LLM dependency
--   Handles single-verb and sequential commands: `"throw rock"`, `"move north and look"`
+- Regex-based verb extraction
+- Keyword-based sequence detection
+- Simple noun identification after articles/prepositions
+- No AI/LLM dependency
+- Handles single-verb and sequential commands: `"throw rock"`, `"move north and look"`
 
 **PI-1: Local LLM Enhancement**
 
--   Client-side small language model (Llama 3.2 1B, Phi-3, or similar)
--   **Implementation**: `@mlc-ai/web-llm` package (WebGPU-accelerated browser inference)
--   Grammar-constrained JSON extraction via `response_format: { type: "json_object" }`
--   Confidence scoring per intent
--   Entity promotion integration
--   Handles complex multi-step commands: `"throw a rock at the seagull and chase it"`
--   Target latency: <350ms (warm model)
--   **Browser Requirements**: Chrome 113+, Edge 113+, Safari 18+ (WebGPU)
--   **Progressive Enhancement**: Falls back to PI-0 if WebGPU unavailable
+- Client-side small language model (Llama 3.2 1B, Phi-3, or similar)
+- **Implementation**: `@mlc-ai/web-llm` package (WebGPU-accelerated browser inference)
+- Grammar-constrained JSON extraction via `response_format: { type: "json_object" }`
+- Confidence scoring per intent
+- Entity promotion integration
+- Handles complex multi-step commands: `"throw a rock at the seagull and chase it"`
+- Target latency: <350ms (warm model)
+- **Browser Requirements**: Chrome 113+, Edge 113+, Safari 18+ (WebGPU)
+- **Progressive Enhancement**: Falls back to PI-0 if WebGPU unavailable
 
 **Technical Notes (PI-1)**:
 
--   Model download: ~650MB (Llama-3.2-1B-Instruct), cached after first load
--   Zero server cost, zero API calls
--   OpenAI-compatible API for seamless integration
--   See issue #463 for full implementation details
+- Model download: ~650MB (Llama-3.2-1B-Instruct), cached after first load
+- Zero server cost, zero API calls
+- OpenAI-compatible API for seamless integration
+- See issue #463 for full implementation details
 
 **PI-2: Server Escalation**
 
--   Azure OpenAI for ambiguous/complex commands
--   Semantic alias expansion (`"bird"` → `"seagull"`)
--   Interactive clarification prompts
--   Escalation triggered by: low confidence (<0.55), high complexity (>8 intents), critical ambiguities
--   Target escalation rate: <15% of commands
--   Target latency: <1.5s
+- Azure OpenAI for ambiguous/complex commands
+- Semantic alias expansion (`"bird"` → `"seagull"`)
+- Interactive clarification prompts
+- Escalation triggered by: low confidence (<0.55), high complexity (>8 intents), critical ambiguities
+- Target escalation rate: <15% of commands
+- Target latency: <1.5s
 
 **Rationale**: This progression allows deployment without AI infrastructure (PI-0), then adds client-side intelligence (PI-1) before committing to server-side LLM costs (PI-2). Each phase is independently valuable.
 
@@ -1213,10 +1373,10 @@ rateLimiters.intentParsing = new RateLimiter({
 
 **Mitigation**:
 
--   Eligible verbs only: `take`, `grab`, `pick`, `attack`, `throw`, `examine`
--   Validation: Entity must exist in current location's description layers
--   Provenance tracking: Record promotion source (description hash, player ID, timestamp)
--   Audit trail: All promotions logged for review
+- Eligible verbs only: `take`, `grab`, `pick`, `attack`, `throw`, `examine`
+- Validation: Entity must exist in current location's description layers
+- Provenance tracking: Record promotion source (description hash, player ID, timestamp)
+- Audit trail: All promotions logged for review
 
 **Tenet Alignment**: "Explicit over implicit" - all entity promotions traceable to source description.
 
@@ -1228,15 +1388,15 @@ rateLimiters.intentParsing = new RateLimiter({
 **Layer**: Architecture (30k ft) - Technical design implementing gameplay modules  
 **Related**:
 
--   Design Modules: `docs/modules/player-interaction-and-intents.md`, `docs/modules/entity-promotion.md`
--   Architecture: `docs/architecture/dnd-5e-agent-framework-integration.md`
--   Tenets: `docs/tenets.md` (Explicit over implicit, Build for observability)
+- Design Modules: `docs/modules/player-interaction-and-intents.md`, `docs/modules/entity-promotion.md`
+- Architecture: `docs/architecture/dnd-5e-agent-framework-integration.md`
+- Tenets: `docs/tenets.md` (Explicit over implicit, Build for observability)
 
 **Key Technologies**:
 
--   **WebLLM** (`@mlc-ai/web-llm`): Client-side LLM inference for PI-1
-    -   Docs: https://webllm.mlc.ai/docs/
-    -   NPM: https://www.npmjs.com/package/@mlc-ai/web-llm
-    -   Implementation: See issue #463
--   **Microsoft Agent Framework**: Server-side agent orchestration for PI-2
--   **Azure OpenAI**: Escalation path for complex/ambiguous intents
+- **WebLLM** (`@mlc-ai/web-llm`): Client-side LLM inference for PI-1
+    - Docs: https://webllm.mlc.ai/docs/
+    - NPM: https://www.npmjs.com/package/@mlc-ai/web-llm
+    - Implementation: See issue #463
+- **Microsoft Agent Framework**: Server-side agent orchestration for PI-2
+- **Azure OpenAI**: Escalation path for complex/ambiguous intents
