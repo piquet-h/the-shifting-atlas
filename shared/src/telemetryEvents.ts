@@ -44,6 +44,11 @@ export const GAME_EVENT_NAMES = [
     'Navigation.Look.Issued',
     // Exit generation fallback (Issue #35 - N4)
     'Navigation.Exit.GenerationRequested',
+    // Soft-denial UX telemetry (Issue #595 - Frontend response to generate status)
+    'Navigation.SoftDenial.Displayed',
+    'Navigation.SoftDenial.Retry',
+    'Navigation.SoftDenial.Explored',
+    'Navigation.SoftDenial.Quit',
     // Command layer (frontend CLI / parser)
     'Command.Executed',
     // UI interaction telemetry (M2 Observability - frontend correlation)

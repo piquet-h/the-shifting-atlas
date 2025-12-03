@@ -270,7 +270,7 @@ Atomic issues: exactly 1 scope + 1 type label.
 Epics: exactly 1 scope label + the coordination label `epic` (no type label applied).
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
-Milestones: M0 Foundation → M6 Dungeon Runs (narrative stages). Can add more. If so, add here and to Section 8.1 table
+Milestones: M0 Foundation → M7 Post-MVP (narrative stages). Can add more. If so, add here and to Section 8.1 table
 Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readiness, and scope impact.
 
 ### 8.1 Milestone ID vs Name Reference (IMPORTANT)
@@ -279,16 +279,18 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 
 GitHub milestones have both a numeric ID and a display name. The GitHub MCP search tools require the ID.
 
-| Milestone Name            | Milestone ID | Search Example                                            |
-| ------------------------- | ------------ | --------------------------------------------------------- |
-| M0 Foundation             | 1            | `milestone:"M0 Foundation"` or filter by ID 1             |
-| M1 Traversal              | 2            | `milestone:"M1 Traversal"` or filter by ID 2              |
-| M2 Observability          | 3            | `milestone:"M2 Observability"` or filter by ID 3          |
-| M3 AI Read                | 4            | `milestone:"M3 AI Read"` or filter by ID 4                |
-| M4 Layering & Enrichment  | 5            | `milestone:"M4 Layering & Enrichment"` or filter by ID 5  |
-| M5 Systems                | 7            | `milestone:"M5 Systems"` or filter by ID 7                |
-| M6 Dungeon Runs           | 8            | `milestone:"M6 Dungeon Runs"` or filter by ID 8           |
-| M7 Post-MVP Extensibility | 9            | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9 |
+| Milestone Name              | Milestone ID | Status | Focus | Search Example |
+| --------------------------- | ------------ | ------ | ----- | -------------- |
+| M0 Foundation               | 1            | CLOSED | Bootstrap, ping, telemetry scaffold | `milestone:"M0 Foundation"` or filter by ID 1 |
+| M1 Traversal                | 2            | CLOSED | Location persistence, exits, move/look | `milestone:"M1 Traversal"` or filter by ID 2 |
+| M2 Data Foundations         | 3            | CLOSED | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3 |
+| M3a Event Backbone          | 11           | CLOSED | Queue processing, idempotency, DLQ, correlation | `milestone:"M3a Event Backbone"` or filter by ID 11 |
+| M3b Player UI & Telemetry   | 12           | Active | SWA auth, game view, navigation, frontend↔backend correlation | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
+| M3c Temporal PI-0           | 13           | Active | WorldClock, PlayerClock, durations, reconcile policies | `milestone:"M3c Temporal PI-0"` or filter by ID 13 |
+| M4 AI Read                  | 4            | Active | MCP read-only, prompt templates, intent parser | `milestone:"M4 AI Read"` or filter by ID 4 |
+| M5 Quality & Depth          | 7            | Active | Layering engine, dashboards, alerts, integrity monitoring | `milestone:"M5 Quality & Depth"` or filter by ID 7 |
+| M6 Systems                  | 8            | Active | Dungeons, humor layer, entity promotion, Learn More | `milestone:"M6 Systems"` or filter by ID 8 |
+| M7 Post-MVP Extensibility   | 9            | Planning | Multiplayer, quests, economy, AI write path, region sharding | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9 |
 
 **Example confusion to avoid:**
 
