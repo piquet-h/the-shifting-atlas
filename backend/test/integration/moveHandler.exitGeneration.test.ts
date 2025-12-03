@@ -49,7 +49,8 @@ describe('Exit Generation Hint Integration', () => {
 
     test('returns generate status when canonical direction has no EXIT', async () => {
         const ctx = await createMockContext(fixture)
-        // STARTER_LOCATION_ID has many exits but not 'in'; request 'in' which doesn't exist
+        // STARTER_LOCATION_ID (Mosswell River Jetty) has many exits (north, south, east, west, etc.)
+        // but does not have 'in' exit; request 'in' which doesn't exist
         const req = makeMoveRequest({ dir: 'in' }) as HttpRequest
 
         const container = await fixture.getContainer()
@@ -115,6 +116,8 @@ describe('Exit Generation Hint Integration', () => {
         const req2 = makeMoveRequest({ dir: 'in' }) as HttpRequest
 
         const container = await fixture.getContainer()
+        // Use separate handler instances to simulate multiple concurrent requests
+        // The debounce store is global, so this properly tests cross-handler debouncing
         const handler1 = container.get(MoveHandler)
         const handler2 = container.get(MoveHandler)
         const telemetry = container.get<MockTelemetryClient>('ITelemetryClient')

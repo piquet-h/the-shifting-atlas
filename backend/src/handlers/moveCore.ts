@@ -5,7 +5,6 @@ import {
     getExitGenerationHintStore,
     getPlayerHeadingStore,
     hashPlayerIdForTelemetry,
-    isDirection,
     normalizeDirection,
     STARTER_LOCATION_ID
 } from '@piquet-h/shared'
@@ -189,62 +188,38 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
-            // Check if direction is valid canonical direction for exit generation hint
-            if (isDirection(dir)) {
-                // Valid canonical direction but no exit - emit generation hint
-                const hintStore = getExitGenerationHintStore()
-                const playerId = this.playerGuid || 'anonymous'
-                const hintResult = hintStore.checkAndRecord(playerId, fromId, dir)
+            // Valid canonical direction but no exit - emit generation hint
+            const hintStore = getExitGenerationHintStore()
+            const playerId = this.playerGuid || 'anonymous'
+            const hintResult = hintStore.checkAndRecord(playerId, fromId, dir)
 
-                // Emit telemetry event with hashed identifiers (privacy)
-                if (hintResult.shouldEmit) {
-                    const telemetryProps = {
-                        dir,
-                        originHashed: hashPlayerIdForTelemetry(fromId),
-                        playerHashed: hashPlayerIdForTelemetry(playerId),
-                        timestamp: hintResult.hint.timestamp,
-                        debounceHit: hintResult.debounceHit
-                    }
-                    this.track('Navigation.Exit.GenerationRequested', telemetryProps)
+            // Emit telemetry event with hashed identifiers (privacy)
+            if (hintResult.shouldEmit) {
+                const telemetryProps = {
+                    dir,
+                    originHashed: hashPlayerIdForTelemetry(fromId),
+                    playerHashed: hashPlayerIdForTelemetry(playerId),
+                    timestamp: hintResult.hint.timestamp,
+                    debounceHit: hintResult.debounceHit
                 }
-
-                // Return generate status with hint payload
-                const latencyMs = Date.now() - started
-                return {
-                    success: false,
-                    error: {
-                        type: 'generate',
-                        statusCode: 400,
-                        reason: 'no-exit',
-                        clarification: `No exit ${dir} from here yet. Your interest has been noted.`,
-                        generationHint: {
-                            originLocationId: fromId,
-                            direction: dir
-                        }
-                    },
-                    latencyMs
-                }
+                this.track('Navigation.Exit.GenerationRequested', telemetryProps)
             }
 
-            // Not a canonical direction - return standard no-exit error
-            const props = {
-                from: fromId,
-                direction: dir,
-                status: 400,
-                reason: 'no-exit',
-                latencyMs: Date.now() - started
-            }
-            enrichMovementAttributes(props, {
-                playerId: this.playerGuid,
-                fromLocationId: fromId,
-                exitDirection: dir
-            })
-            enrichErrorAttributes(props, { errorCode: 'no-exit' })
-            this.track('Navigation.Move.Blocked', props)
+            // Return generate status with hint payload
+            const latencyMs = Date.now() - started
             return {
                 success: false,
-                error: { type: 'no-exit', statusCode: 400, reason: 'no-exit' },
-                latencyMs: Date.now() - started
+                error: {
+                    type: 'generate',
+                    statusCode: 400,
+                    reason: 'no-exit',
+                    clarification: `No exit ${dir} from here yet. Your interest has been noted.`,
+                    generationHint: {
+                        originLocationId: fromId,
+                        direction: dir
+                    }
+                },
+                latencyMs
             }
         }
 
