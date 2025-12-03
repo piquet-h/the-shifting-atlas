@@ -9,8 +9,8 @@
 import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
-import { queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
 import type { IDescriptionRepository } from '../../src/repos/descriptionRepository.js'
+import { queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 

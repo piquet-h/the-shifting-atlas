@@ -2,13 +2,13 @@
 /**
  * Integration Tests for Dead-Letter Storage in Queue Processor
  */
+import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
+import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
-import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import type { Container } from 'inversify'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
-import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
+import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Queue Processor Dead-Letter Integration', () => {
     let fixture: IntegrationTestFixture

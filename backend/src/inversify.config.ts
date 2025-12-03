@@ -34,7 +34,6 @@ import { PlayerGetHandler } from './handlers/playerGet.js'
 import { PlayerLinkHandler } from './handlers/playerLink.js'
 import { PlayerMoveHandler } from './handlers/playerMove.js'
 import { QueueProcessExitGenerationHintHandler } from './handlers/queueProcessExitGenerationHint.js'
-import { QueueProcessWorldEventHandler } from './handlers/queueProcessWorldEvent.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from './persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from './repos/base/cosmosDbSqlClient.js'
 import { CosmosDeadLetterRepository } from './repos/deadLetterRepository.cosmos.js'
@@ -64,6 +63,7 @@ import { TelemetryService } from './telemetry/TelemetryService.js'
 import { EnvironmentChangeHandler } from './worldEvents/handlers/EnvironmentChangeHandler.js'
 import { ExitCreateHandler } from './worldEvents/handlers/ExitCreateHandler.js'
 import { NPCTickHandler } from './worldEvents/handlers/NPCTickHandler.js'
+import { QueueProcessWorldEventHandler } from './worldEvents/queueProcessWorldEvent.js'
 
 /**
  * Setup production container - requires full Cosmos DB configuration

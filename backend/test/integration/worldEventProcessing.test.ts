@@ -13,11 +13,8 @@
  *
  * Issue #402: World Event Integration Tests (Happy Path + Failures)
  */
-import type { Container } from 'inversify'
 import type { InvocationContext } from '@azure/functions'
-import assert from 'node:assert'
-import { afterEach, beforeEach, describe, test } from 'node:test'
-import { v4 as uuidv4 } from 'uuid'
+import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import {
     emitWorldEvent,
     isRetryableError,
@@ -25,13 +22,16 @@ import {
     ServiceBusUnavailableError,
     WorldEventValidationError
 } from '@piquet-h/shared/events'
-import type { DeadLetterRecord } from '@piquet-h/shared/deadLetter'
-import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/handlers/queueProcessWorldEvent.js'
+import type { Container } from 'inversify'
+import assert from 'node:assert'
+import { afterEach, beforeEach, describe, test } from 'node:test'
+import { v4 as uuidv4 } from 'uuid'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
+import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import type { InvocationContextMockResult } from '../helpers/TestFixture.js'
+import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
 /**
  * Generate a unique idempotency key for test isolation

@@ -4,8 +4,8 @@
  */
 import { inject, injectable } from 'inversify'
 import type { GremlinQueryResult, IGremlinClient } from '../../gremlin/gremlinClient.js'
-import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from '../../persistence/graphPartition.js'
 import type { TelemetryService } from '../../telemetry/TelemetryService.js'
+import { resolveGraphPartitionKey, WORLD_GRAPH_PARTITION_KEY_PROP } from './graphPartition.js'
 
 @injectable()
 export abstract class CosmosGremlinRepository {

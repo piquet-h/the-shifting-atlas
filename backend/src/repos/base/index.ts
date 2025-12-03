@@ -1,6 +1,7 @@
 /**
  * Base repository classes and utilities.
  */
-export { CosmosGremlinRepository } from './CosmosGremlinRepository.js'
+export { CosmosDbSqlClient, type CosmosDbSqlClientConfig, type ICosmosDbSqlClient } from './cosmosDbSqlClient.js'
 export { CosmosDbSqlRepository } from './CosmosDbSqlRepository.js'
-export { CosmosDbSqlClient, type ICosmosDbSqlClient, type CosmosDbSqlClientConfig } from './cosmosDbSqlClient.js'
+export { CosmosGremlinRepository } from './CosmosGremlinRepository.js'
+export * from './graphPartition.js'

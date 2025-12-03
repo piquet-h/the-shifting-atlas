@@ -17,13 +17,13 @@ import { safeValidateWorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { WORLD_EVENT_CACHE_MAX_SIZE, WORLD_EVENT_DUPLICATE_TTL_MS } from '../config/worldEventProcessorConfig.js'
+import { getContainer } from '../handlers/utils/contextHelpers.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../repos/processedEventRepository.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import { buildWorldEventHandlerRegistry } from '../worldEvents/registry.js'
-import type { IWorldEventHandler } from '../worldEvents/types.js'
-import { getContainer } from './utils/contextHelpers.js'
+import { buildWorldEventHandlerRegistry } from './registry.js'
+import type { IWorldEventHandler } from './types.js'
 
 // --- Error Message Truncation Limits (Issue #401) ----------------------------
 /** Max length for error messages in telemetry dimensions */

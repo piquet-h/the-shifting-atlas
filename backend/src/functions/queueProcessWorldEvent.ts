@@ -1,7 +1,7 @@
 import { app } from '@azure/functions'
-import { queueProcessWorldEvent } from '../handlers/queueProcessWorldEvent.js'
+import { queueProcessWorldEvent } from '../worldEvents/queueProcessWorldEvent.js'
 
-app.serviceBusQueue('QueueProcessWorldEvent', {
+app.serviceBusQueue('queueProcessWorldEvent', {
     connection: 'ServiceBusAtlas',
     queueName: 'world-events',
     handler: queueProcessWorldEvent
