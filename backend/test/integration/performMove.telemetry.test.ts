@@ -1,6 +1,7 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { resetExitGenerationHintStore } from '@piquet-h/shared'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
@@ -11,10 +12,13 @@ describe('PerformMove Telemetry Integration', () => {
     beforeEach(async () => {
         fixture = new IntegrationTestFixture('memory')
         await fixture.setup()
+        // Reset global hint store for test isolation
+        resetExitGenerationHintStore()
     })
 
     afterEach(async () => {
         await fixture.teardown()
+        resetExitGenerationHintStore()
     })
 
     /** Helper to create a mock InvocationContext with container */
@@ -124,24 +128,23 @@ describe('PerformMove Telemetry Integration', () => {
         const fromId = '00000000-0000-0000-0000-000000000004'
         await repo.upsert({ id: fromId, name: 'Delta', description: 'Start', exits: [] })
 
-        // valid direction but no exit
+        // valid direction but no exit - should trigger exit generation hint
         const req = makeMoveRequest({ dir: 'north', from: fromId }) as HttpRequest
         const container = await fixture.getContainer()
         const handler = container.get(MoveHandler)
         await handler.handle(req, ctx)
         const result = await handler.performMove(req)
         assert.equal(result.success, false)
-        assert.equal(result.error?.type, 'no-exit')
+        // NEW BEHAVIOR: canonical direction without exit returns 'generate' type
+        assert.equal(result.error?.type, 'generate')
+        assert.ok(result.error?.generationHint, 'Should include generationHint')
         if ('events' in telemetry) {
-            const blockedEvent = telemetry.events.find((e) => e.name === 'Navigation.Move.Blocked' && e.properties?.reason === 'no-exit')
-            assert.ok(blockedEvent, 'Navigation.Move.Blocked event missing for no-exit')
-            assert.equal(blockedEvent?.properties?.from, fromId)
-            assert.equal(blockedEvent?.properties?.direction, 'north')
-            assert.equal(blockedEvent?.properties?.status, 400)
-            // Verify game.* attributes
-            assert.equal(blockedEvent?.properties?.['game.location.from'], fromId)
-            assert.equal(blockedEvent?.properties?.['game.world.exit.direction'], 'north')
-            assert.equal(blockedEvent?.properties?.['game.error.code'], 'no-exit')
+            // NEW BEHAVIOR: should emit Navigation.Exit.GenerationRequested event
+            const generationEvent = telemetry.events.find((e) => e.name === 'Navigation.Exit.GenerationRequested')
+            assert.ok(generationEvent, 'Navigation.Exit.GenerationRequested event missing')
+            assert.equal(generationEvent?.properties?.dir, 'north')
+            assert.ok(generationEvent?.properties?.originHashed, 'Should have hashed origin')
+            assert.ok(generationEvent?.properties?.playerHashed, 'Should have hashed player')
         }
     })
 })
