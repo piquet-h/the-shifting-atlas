@@ -4,6 +4,7 @@
  * Main game play page wrapping the GameView component.
  * This page is the primary game interface for authenticated users.
  * Redirects unauthenticated users to the homepage.
+ * Players always load at their authoritative server-side location.
  */
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
