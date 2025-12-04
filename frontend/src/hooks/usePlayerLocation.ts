@@ -102,7 +102,9 @@ export function usePlayerLocation(playerGuid: string | null): UsePlayerLocationR
         queryFn: () => fetchPlayerState(playerGuid!),
         enabled: !!playerGuid,
         staleTime: 5 * 60 * 1000, // 5 minutes - player state doesn't change often
-        retry: 1
+        retry: 1,
+        refetchOnMount: false, // Don't refetch on component remount
+        refetchOnWindowFocus: false // Don't refetch when tab gains focus
     })
 
     // Step 2: Fetch location details (depends on player state)

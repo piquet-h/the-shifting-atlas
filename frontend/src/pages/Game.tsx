@@ -73,7 +73,7 @@ export default function Game(): React.ReactElement | null {
                     <p className="text-sm">Deep-link location support coming soon. Loading your current location.</p>
                 </div>
             )}
-            <GameView playerGuid={playerGuid} />
+            <GameView />
         </div>
     )
 }

@@ -12,6 +12,7 @@
 import type { LocationResponse } from '@piquet-h/shared'
 import { useQueryClient } from '@tanstack/react-query'
 import React, { useCallback, useState } from 'react'
+import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
 import { trackGameEventClient } from '../services/telemetry'
@@ -65,7 +66,6 @@ interface ExitInfo {
 }
 
 interface GameViewProps {
-    playerGuid: string | null
     className?: string
 }
 
@@ -331,9 +331,10 @@ function CommandHistoryPanel({
  * GameView
  * Main game view component orchestrating location, exits, stats, and command interface.
  */
-export default function GameView({ playerGuid, className }: GameViewProps): React.ReactElement {
+export default function GameView({ className }: GameViewProps): React.ReactElement {
     const isDesktop = useMediaQuery('(min-width: 768px)')
     const queryClient = useQueryClient()
+    const { playerGuid } = usePlayer()
 
     // Fetch player's current location using TanStack Query
     const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(playerGuid)
