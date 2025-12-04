@@ -161,3 +161,42 @@ test('unknown World.Event.* variant rejected', () => {
     assert.equal(isGameEventName('World.Event.Unknown'), false, 'Unknown World.Event.* variant should be rejected')
     assert.equal(isGameEventName('World.Event.Started'), false, 'Unregistered World.Event.* variant should be rejected')
 })
+
+// Navigation telemetry events tests (Issue #594)
+test('Navigation.Exit.GenerationRequested is registered', () => {
+    assert.ok(isGameEventName('Navigation.Exit.GenerationRequested'), 'Navigation.Exit.GenerationRequested should be recognized')
+})
+
+test('Navigation.SoftDenial.Displayed is registered', () => {
+    assert.ok(isGameEventName('Navigation.SoftDenial.Displayed'), 'Navigation.SoftDenial.Displayed should be recognized')
+})
+
+test('Navigation.SoftDenial.Retry is registered', () => {
+    assert.ok(isGameEventName('Navigation.SoftDenial.Retry'), 'Navigation.SoftDenial.Retry should be recognized')
+})
+
+test('Navigation.SoftDenial.Explored is registered', () => {
+    assert.ok(isGameEventName('Navigation.SoftDenial.Explored'), 'Navigation.SoftDenial.Explored should be recognized')
+})
+
+test('Navigation.SoftDenial.Quit is registered', () => {
+    assert.ok(isGameEventName('Navigation.SoftDenial.Quit'), 'Navigation.SoftDenial.Quit should be recognized')
+})
+
+test('Navigation.SoftDenial events match telemetry pattern', () => {
+    const softDenialEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Navigation.SoftDenial.'))
+    assert.ok(softDenialEvents.length === 4, `Expected 4 Navigation.SoftDenial events, found ${softDenialEvents.length}`)
+
+    for (const event of softDenialEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown Navigation.SoftDenial.* variant rejected', () => {
+    assert.equal(isGameEventName('Navigation.SoftDenial.Unknown'), false, 'Unknown Navigation.SoftDenial.* variant should be rejected')
+    assert.equal(
+        isGameEventName('Navigation.SoftDenial.Cancelled'),
+        false,
+        'Unregistered Navigation.SoftDenial.* variant should be rejected'
+    )
+})
