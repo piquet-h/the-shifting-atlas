@@ -5,15 +5,31 @@
  * This page is the primary game interface for authenticated users.
  * Redirects unauthenticated users to the homepage.
  * Players always load at their authoritative server-side location.
+ *
+ * Deep-link support: Accepts ?loc=<locationId> parameter.
+ * Note: Location hint feature is a placeholder for future implementation.
  */
-import React, { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import GameView from '../components/GameView'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
+    const [showLocationInfo, setShowLocationInfo] = useState(false)
+
+    // Extract location parameter from URL if present
+    // Currently informational only - will be implemented in future enhancement
+    useEffect(() => {
+        const loc = searchParams.get('loc')
+        if (loc) {
+            setShowLocationInfo(true)
+            // For now, just acknowledge the parameter exists
+            // Future: Pass to GameView for location-specific loading
+        }
+    }, [searchParams])
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
@@ -45,6 +61,16 @@ export default function Game(): React.ReactElement | null {
             <h1 id="game-page-title" tabIndex={-1} className="sr-only">
                 The Shifting Atlas - Game
             </h1>
+            {/* Info banner for location deep-link (future enhancement) */}
+            {showLocationInfo && (
+                <div
+                    role="status"
+                    className="mb-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-200"
+                    aria-live="polite"
+                >
+                    <p className="text-sm">Deep-link location support coming soon. Loading your current location.</p>
+                </div>
+            )}
             <GameView />
         </div>
     )

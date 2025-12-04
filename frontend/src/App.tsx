@@ -3,11 +3,14 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import Homepage from './components/Homepage'
 import LiveAnnouncer from './components/LiveAnnouncer'
 import Nav from './components/Nav'
+import ProtectedRoute from './components/ProtectedRoute'
 import ResponsiveLayout from './components/ResponsiveLayout'
 import About from './pages/About'
 import Game from './pages/Game'
 import Help from './pages/Help'
+import LearnMore from './pages/LearnMore'
 import NotFound from './pages/NotFound'
+import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 
 /** Moves focus to <h1> or main landmark after navigation. Main landmark is global; pages should not render their own <main>. */
@@ -46,6 +49,15 @@ export default function App(): React.ReactElement {
                         <Routes>
                             <Route path="/" element={<Homepage />} />
                             <Route path="/game" element={<Game />} />
+                            <Route path="/learn-more" element={<LearnMore />} />
+                            <Route
+                                path="/profile"
+                                element={
+                                    <ProtectedRoute>
+                                        <Profile />
+                                    </ProtectedRoute>
+                                }
+                            />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/help" element={<Help />} />
                             <Route path="/about" element={<About />} />

@@ -101,7 +101,9 @@ export default function Homepage(): React.ReactElement {
                                             {isNewUser ? 'Create Your Explorer' : 'Sign In to Continue'}
                                         </button>
                                         <button className="touch-target px-4 sm:px-5 py-3 rounded-lg border border-white/15 text-slate-200 text-responsive-base hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg">
-                                            Learn More
+                                            <a href="/learn-more" className="block">
+                                                Learn More
+                                            </a>
                                         </button>
                                     </div>
                                     <div id="mode-announcement" className="sr-only" aria-live="polite" />
