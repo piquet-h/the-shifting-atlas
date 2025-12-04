@@ -10,10 +10,12 @@
  * Responsive layout: single column on mobile, multi-column on desktop.
  */
 import type { LocationResponse } from '@piquet-h/shared'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import React, { useCallback, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
+import { usePlayerLocation } from '../hooks/usePlayerLocation'
 import { trackGameEventClient } from '../services/telemetry'
-import { buildHeaders, buildLocationUrl, buildMoveRequest, buildPlayerUrl } from '../utils/apiClient'
+import { buildHeaders, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
@@ -331,11 +333,10 @@ function CommandHistoryPanel({
  */
 export default function GameView({ playerGuid, className }: GameViewProps): React.ReactElement {
     const isDesktop = useMediaQuery('(min-width: 768px)')
+    const queryClient = useQueryClient()
 
-    // Location state
-    const [location, setLocation] = useState<LocationResponse | null>(null)
-    const [locationLoading, setLocationLoading] = useState(true)
-    const [locationError, setLocationError] = useState<string | null>(null)
+    // Fetch player's current location using TanStack Query
+    const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(playerGuid)
 
     // Player stats (placeholder until real API)
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
@@ -351,85 +352,6 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
      */
     const [commandHistory] = useState<CommandHistoryItem[]>([])
 
-    // Fetch location data
-    const fetchLocation = useCallback(async (locationId?: string) => {
-        setLocationLoading(true)
-        setLocationError(null)
-
-        try {
-            const correlationId = generateCorrelationId()
-            const url = buildLocationUrl(locationId)
-            const headers = buildHeaders({
-                ...buildCorrelationHeaders(correlationId)
-            })
-
-            const res = await fetch(url, { headers })
-            const json = await res.json().catch(() => ({}))
-            const unwrapped = unwrapEnvelope<LocationResponse>(json)
-
-            if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                const errorMsg = extractErrorMessage(res, json, unwrapped)
-                setLocationError(errorMsg)
-            } else if (unwrapped.data) {
-                const locationData = unwrapped.data
-                setLocation(locationData)
-                // Update player stats with location name
-                setPlayerStats((prev) => ({
-                    health: prev?.health ?? 100,
-                    maxHealth: prev?.maxHealth ?? 100,
-                    locationName: locationData.name,
-                    inventoryCount: prev?.inventoryCount ?? 0
-                }))
-            }
-        } catch (err) {
-            setLocationError(err instanceof Error ? err.message : 'Failed to load location')
-        } finally {
-            setLocationLoading(false)
-        }
-    }, [])
-
-    // Track if initial fetch has been triggered to prevent duplicate calls
-    const initialFetchTriggered = useRef(false)
-    const lastFetchedPlayerGuid = useRef<string | null>(null)
-
-    // Initial fetch on mount - fetch player's actual location from server
-    useEffect(() => {
-        // Prevent duplicate fetches (React strict mode, re-renders, etc.)
-        if (initialFetchTriggered.current && lastFetchedPlayerGuid.current === playerGuid) return
-
-        // Only fetch after player GUID is resolved to avoid race conditions
-        if (playerGuid) {
-            initialFetchTriggered.current = true
-            lastFetchedPlayerGuid.current = playerGuid
-            // Fetch player state to get their current location (authoritative)
-            fetch(buildPlayerUrl(playerGuid), {
-                headers: buildHeaders({
-                    ...buildCorrelationHeaders(generateCorrelationId())
-                })
-            })
-                .then((res) => res.json())
-                .then((json) => {
-                    const unwrapped = unwrapEnvelope<{ currentLocationId?: string }>(json)
-                    if (unwrapped.success && unwrapped.data?.currentLocationId) {
-                        // Fetch the location they're actually at (from database)
-                        fetchLocation(unwrapped.data.currentLocationId)
-                    } else {
-                        // Fallback to starter location if no current location
-                        fetchLocation()
-                    }
-                })
-                .catch(() => {
-                    // On error, fetch starter location as fallback
-                    fetchLocation()
-                })
-        } else if (!playerGuid) {
-            initialFetchTriggered.current = true
-            lastFetchedPlayerGuid.current = null
-            // No player GUID available, fetch starter location
-            fetchLocation()
-        }
-    }, [fetchLocation, playerGuid])
-
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
         const available = location?.exits?.some((e) => e.direction === direction) ?? false
@@ -439,9 +361,9 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
     // Extract available exit directions for autocomplete
     const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
 
-    // Initialize placeholder stats on mount
-    useEffect(() => {
-        if (!playerStats && location) {
+    // Initialize placeholder stats when location loads
+    React.useEffect(() => {
+        if (location && !playerStats) {
             setPlayerStats({
                 health: 100,
                 maxHealth: 100,
@@ -449,7 +371,7 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                 inventoryCount: 0
             })
         }
-    }, [playerStats, location])
+    }, [location, playerStats])
 
     // Navigation handler for NavigationUI component
     const [navigationBusy, setNavigationBusy] = useState(false)
@@ -487,7 +409,10 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                     console.error('Navigation failed:', errorMsg)
                 } else if (unwrapped.data) {
                     const newLocation = unwrapped.data
-                    setLocation(newLocation)
+                    // Invalidate queries to trigger refetch with new location
+                    await queryClient.invalidateQueries({ queryKey: ['player', playerGuid] })
+                    await queryClient.invalidateQueries({ queryKey: ['location'] })
+                    // Update player stats with new location name
                     setPlayerStats((prev) => ({
                         health: prev?.health ?? 100,
                         maxHealth: prev?.maxHealth ?? 100,
@@ -501,7 +426,7 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                 setNavigationBusy(false)
             }
         },
-        [playerGuid, location?.id, navigationBusy]
+        [playerGuid, location?.id, navigationBusy, queryClient]
     )
 
     return (
@@ -516,7 +441,7 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                             description={location?.description ?? ''}
                             loading={locationLoading}
                             error={locationError}
-                            onRetry={() => fetchLocation(location?.id)}
+                            onRetry={refetch}
                         />
                         <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
                         {/* Navigation UI for authenticated users */}
@@ -545,7 +470,7 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                         description={location?.description ?? ''}
                         loading={locationLoading}
                         error={locationError}
-                        onRetry={() => fetchLocation(location?.id)}
+                        onRetry={refetch}
                     />
                     <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
                     {/* Navigation UI for authenticated users */}
