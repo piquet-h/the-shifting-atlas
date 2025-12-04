@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { isValidGuid, buildPlayerUrl, buildLocationUrl, buildMoveRequest, buildHeaders } from '../src/utils/apiClient'
+import { describe, expect, it } from 'vitest'
+import { buildHeaders, buildLocationUrl, buildMoveRequest, buildPlayerUrl, isValidGuid } from '../src/utils/apiClient'
 
 describe('apiClient', () => {
     describe('isValidGuid', () => {
@@ -57,17 +57,14 @@ describe('apiClient', () => {
             expect(result.body).toEqual({ direction: 'north' })
         })
 
-        it('should include fromLocationId in body when provided', () => {
+        it('should only include direction in body (server reads location authoritatively)', () => {
             const playerId = '12345678-1234-1234-1234-123456789abc'
-            const fromLocationId = '87654321-4321-4321-4321-cba987654321'
-            const result = buildMoveRequest(playerId, 'south', fromLocationId)
+            const result = buildMoveRequest(playerId, 'south')
 
             expect(result.url).toBe(`/api/player/${playerId}/move`)
             expect(result.method).toBe('POST')
-            expect(result.body).toEqual({
-                direction: 'south',
-                fromLocationId
-            })
+            expect(result.body).toEqual({ direction: 'south' })
+            expect(result.body).not.toHaveProperty('fromLocationId')
         })
 
         it('should throw error with invalid playerId', () => {

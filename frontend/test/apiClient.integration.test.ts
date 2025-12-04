@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { buildPlayerUrl, buildLocationUrl, buildMoveRequest } from '../src/utils/apiClient'
+import { describe, expect, it } from 'vitest'
+import { buildLocationUrl, buildMoveRequest, buildPlayerUrl } from '../src/utils/apiClient'
 
 /**
  * Integration tests to verify RESTful URL patterns
@@ -20,14 +20,15 @@ describe('apiClient integration (RESTful patterns)', () => {
     })
 
     it('should use RESTful POST pattern for move', () => {
-        const result = buildMoveRequest(validPlayerId, 'north', validLocationId)
+        const result = buildMoveRequest(validPlayerId, 'north')
 
         expect(result.method).toBe('POST')
         expect(result.url).toBe(`/api/player/${validPlayerId}/move`)
         expect(result.body).toEqual({
-            direction: 'north',
-            fromLocationId: validLocationId
+            direction: 'north'
         })
+        // Server reads player location authoritatively from database
+        expect(result.body).not.toHaveProperty('fromLocationId')
     })
 
     it('should throw error when playerId is invalid', () => {
