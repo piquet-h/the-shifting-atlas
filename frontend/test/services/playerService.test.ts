@@ -95,7 +95,15 @@ describe('playerService', () => {
             const result = await bootstrapPlayer(existingGuid)
 
             expect(result).toEqual({ playerGuid: existingGuid, created: false })
-            expect(global.fetch).toHaveBeenCalledWith(`/api/player/${existingGuid}`, expect.any(Object))
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/player',
+                expect.objectContaining({
+                    method: 'GET',
+                    headers: expect.objectContaining({
+                        'x-player-guid': existingGuid
+                    })
+                })
+            )
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
             expect(telemetry.trackGameEventClient).not.toHaveBeenCalledWith('Onboarding.GuestGuid.Created', expect.any(Object))
             expect(localStorage.writeToStorage).not.toHaveBeenCalled()

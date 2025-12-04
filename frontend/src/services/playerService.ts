@@ -3,7 +3,7 @@
  * Handles player GUID allocation, persistence, and telemetry.
  */
 import type { PlayerBootstrapResponse } from '@piquet-h/shared'
-import { buildHeaders, buildPlayerUrl, isValidGuid } from '../utils/apiClient'
+import { buildHeaders, isValidGuid } from '../utils/apiClient'
 import { unwrapEnvelope } from '../utils/envelope'
 import { readFromStorage, writeToStorage } from '../utils/localStorage'
 import { trackGameEventClient } from './telemetry'
@@ -47,8 +47,9 @@ export function storePlayerGuid(guid: string): void {
 export async function bootstrapPlayer(existingGuid?: string | null): Promise<BootstrapResult> {
     trackGameEventClient('Onboarding.GuestGuid.Started')
 
-    const url = existingGuid ? buildPlayerUrl(existingGuid) : '/api/player'
-    const headers = buildHeaders()
+    // Always call bootstrap endpoint; pass existing GUID via header if present
+    const url = '/api/player'
+    const headers = buildHeaders(existingGuid ? { 'x-player-guid': existingGuid } : {})
 
     const res = await fetch(url, {
         method: 'GET',

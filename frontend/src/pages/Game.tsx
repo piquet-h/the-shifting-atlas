@@ -17,7 +17,7 @@ import { useAuth } from '../hooks/useAuth'
 
 export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
-    const { playerGuid, loading: guidLoading } = usePlayer()
+    const { loading: guidLoading } = usePlayer()
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const [showLocationInfo, setShowLocationInfo] = useState(false)
