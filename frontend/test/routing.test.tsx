@@ -34,28 +34,13 @@ describe('Page Components', () => {
         expect(html).toContain('Account Settings')
     })
 
-    it('renders NotFound (404) page structure', () => {
-        // Test only the text content, not Link component (requires Router context)
-        const NotFoundTestWrapper = () => (
-            <div className="min-h-screen flex flex-col items-center justify-center p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bg-dark">
-                <h1 className="text-4xl font-bold mb-4" tabIndex={-1}>
-                    404
-                </h1>
-                <h2 className="text-2xl font-semibold mb-3">Page Not Found</h2>
-                <p className="text-atlas-muted mb-6 text-center max-w-md">
-                    The location you&apos;re looking for doesn&apos;t exist in The Shifting Atlas. Perhaps it has shifted away...
-                </p>
-            </div>
-        )
-        const html = renderToString(<NotFoundTestWrapper />)
-        expect(html).toContain('404')
-        expect(html).toContain('Page Not Found')
-    })
-
-    it('NotFound component exports correctly', () => {
+    it('NotFound component is exported and valid', () => {
         // Verify the component is exported and can be imported
         expect(NotFound).toBeDefined()
         expect(typeof NotFound).toBe('function')
+        
+        // Verify component name for debugging
+        expect(NotFound.name).toBe('NotFound')
     })
 })
 
