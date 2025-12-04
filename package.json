@@ -22,7 +22,7 @@
         "lint:shared": "npm run lint --prefix shared",
         "lint:backend": "npm run lint --prefix backend",
         "lint:frontend": "npm run lint --prefix frontend",
-        "lint:repo": "npm run lint:shared && npm run lint:backend && npm run lint:frontend",
+        "lint": "npm run lint:shared && npm run lint:backend && npm run lint:frontend",
         "format:shared": "npm run format --prefix shared",
         "format:backend": "npm run format --prefix backend",
         "format:frontend": "npm run format --prefix frontend",

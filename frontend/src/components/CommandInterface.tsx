@@ -1,4 +1,3 @@
-/* global sessionStorage */
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
 import { useCallback, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
