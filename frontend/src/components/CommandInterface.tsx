@@ -123,7 +123,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     const dir = lower.split(/\s+/)[1]
                     // Generate correlation ID for move request
                     const correlationId = generateCorrelationId()
-                    const moveRequest = buildMoveRequest(playerGuid, dir, currentLocationId)
+                    const moveRequest = buildMoveRequest(playerGuid, dir)
                     const headers = buildHeaders({
                         'Content-Type': 'application/json',
                         ...buildCorrelationHeaders(correlationId)
