@@ -13,11 +13,13 @@ import type { LocationResponse } from '@piquet-h/shared'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
-import { buildHeaders, buildLocationUrl, buildPlayerUrl } from '../utils/apiClient'
+import { buildHeaders, buildLocationUrl, buildPlayerUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
+import { trackGameEventClient } from '../services/telemetry'
 import CommandInterface from './CommandInterface'
+import NavigationUI from './NavigationUI'
 
 /**
  * Cardinal & common text-adventure directions.
@@ -416,6 +418,59 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         }
     }, [playerStats, location])
 
+    // Navigation handler for NavigationUI component
+    const [navigationBusy, setNavigationBusy] = useState(false)
+    const handleNavigate = useCallback(
+        async (direction: Direction) => {
+            if (!playerGuid || navigationBusy) return
+
+            setNavigationBusy(true)
+            try {
+                const correlationId = generateCorrelationId()
+                const moveRequest = buildMoveRequest(playerGuid, direction)
+                const headers = buildHeaders({
+                    'Content-Type': 'application/json',
+                    ...buildCorrelationHeaders(correlationId)
+                })
+
+                // Track UI navigation button click
+                trackGameEventClient('UI.Navigate.Button', {
+                    correlationId,
+                    direction,
+                    fromLocationId: location?.id || null
+                })
+
+                const res = await fetch(moveRequest.url, {
+                    method: moveRequest.method,
+                    headers,
+                    body: JSON.stringify(moveRequest.body)
+                })
+
+                const json = await res.json().catch(() => ({}))
+                const unwrapped = unwrapEnvelope<LocationResponse>(json)
+
+                if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                    const errorMsg = extractErrorMessage(res, json, unwrapped)
+                    console.error('Navigation failed:', errorMsg)
+                } else if (unwrapped.data) {
+                    const newLocation = unwrapped.data
+                    setLocation(newLocation)
+                    setPlayerStats((prev) => ({
+                        health: prev?.health ?? 100,
+                        maxHealth: prev?.maxHealth ?? 100,
+                        locationName: newLocation.name,
+                        inventoryCount: prev?.inventoryCount ?? 0
+                    }))
+                }
+            } catch (err) {
+                console.error('Navigation error:', err)
+            } finally {
+                setNavigationBusy(false)
+            }
+        },
+        [playerGuid, location?.id, navigationBusy]
+    )
+
     return (
         <div className={['flex flex-col gap-4 sm:gap-5', className].filter(Boolean).join(' ')}>
             {/* Mobile: single column, Desktop: multi-column grid */}
@@ -431,6 +486,14 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             onRetry={() => fetchLocation(location?.id)}
                         />
                         <ExitsPanel exits={exits} />
+                        {/* Navigation UI for authenticated users */}
+                        {playerGuid && (
+                            <NavigationUI
+                                availableExits={availableExitDirections}
+                                onNavigate={handleNavigate}
+                                disabled={navigationBusy || guidLoading}
+                            />
+                        )}
                         {/* Command Interface for authenticated users */}
                         <section aria-labelledby="game-command-title">
                             <h3 id="game-command-title" className="text-responsive-base font-semibold text-white mb-3">
@@ -456,6 +519,14 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         onRetry={() => fetchLocation(location?.id)}
                     />
                     <ExitsPanel exits={exits} />
+                    {/* Navigation UI for authenticated users */}
+                    {playerGuid && (
+                        <NavigationUI
+                            availableExits={availableExitDirections}
+                            onNavigate={handleNavigate}
+                            disabled={navigationBusy || guidLoading}
+                        />
+                    )}
                     <PlayerStatsPanel stats={playerStats} />
                     {/* Command Interface */}
                     <section aria-labelledby="game-command-title-mobile">
