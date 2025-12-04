@@ -11,7 +11,7 @@
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useQueryClient } from '@tanstack/react-query'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
@@ -363,7 +363,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
 
     // Initialize placeholder stats when location loads
-    React.useEffect(() => {
+    useEffect(() => {
         if (location && !playerStats) {
             setPlayerStats({
                 health: 100,
@@ -381,8 +381,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             if (!playerGuid || navigationBusy) return
 
             setNavigationBusy(true)
+            const correlationId = generateCorrelationId()
             try {
-                const correlationId = generateCorrelationId()
                 const moveRequest = buildMoveRequest(playerGuid, direction)
                 const headers = buildHeaders({
                     'Content-Type': 'application/json',
@@ -407,7 +407,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
                 if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                     const errorMsg = extractErrorMessage(res, json, unwrapped)
-                    console.error('Navigation failed:', errorMsg)
+                    trackGameEventClient('UI.Navigate.Error', {
+                        correlationId,
+                        direction,
+                        error: errorMsg,
+                        statusCode: res.status
+                    })
                 } else if (unwrapped.data) {
                     const newLocation = unwrapped.data
                     // Invalidate queries to trigger refetch with new location
@@ -422,7 +427,11 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     }))
                 }
             } catch (err) {
-                console.error('Navigation error:', err)
+                trackGameEventClient('UI.Navigate.Exception', {
+                    correlationId,
+                    direction,
+                    error: err instanceof Error ? err.message : 'Unknown error'
+                })
             } finally {
                 setNavigationBusy(false)
             }
