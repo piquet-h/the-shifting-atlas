@@ -44,7 +44,22 @@ export default function Nav(): React.ReactElement {
                     The Shifting Atlas
                 </Link>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 relative flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 relative flex-shrink-0">
+                {/* Navigation links - visible on medium+ screens */}
+                <div className="hidden md:flex items-center gap-2 sm:gap-3">
+                    <Link
+                        to="/help"
+                        className="text-responsive-sm text-slate-300 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded px-2 py-1 transition-colors"
+                    >
+                        Help
+                    </Link>
+                    <Link
+                        to="/about"
+                        className="text-responsive-sm text-slate-300 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded px-2 py-1 transition-colors"
+                    >
+                        About
+                    </Link>
+                </div>
                 <span
                     aria-hidden="true"
                     className={`h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shadow ring-1 ring-black/40 transition-colors duration-300 ${
@@ -66,13 +81,36 @@ export default function Nav(): React.ReactElement {
                         <span className="sr-only">{label} user menu</span>
                     </summary>
                     <div className="absolute right-0 top-full mt-2 w-40 sm:w-44 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
-                        {user ? (
-                            <button
-                                onClick={() => signOut()}
-                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
+                        {/* Mobile-only navigation links */}
+                        <div className="md:hidden border-b border-white/10 pb-1 mb-1">
+                            <Link
+                                to="/help"
+                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors block"
                             >
-                                Sign Out
-                            </button>
+                                Help
+                            </Link>
+                            <Link
+                                to="/about"
+                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors block"
+                            >
+                                About
+                            </Link>
+                        </div>
+                        {user ? (
+                            <>
+                                <Link
+                                    to="/settings"
+                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
+                                >
+                                    Settings
+                                </Link>
+                                <button
+                                    onClick={() => signOut()}
+                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
+                                >
+                                    Sign Out
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <button
