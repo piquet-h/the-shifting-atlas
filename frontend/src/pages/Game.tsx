@@ -4,28 +4,22 @@
  * Main game play page wrapping the GameView component.
  * This page is the primary game interface for authenticated users.
  * Redirects unauthenticated users to the homepage.
- * Supports URL state preservation via ?loc=<locationId> query parameter.
+ * Players always load at their authoritative server-side location.
  */
 import React, { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import GameView from '../components/GameView'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
     const navigate = useNavigate()
-    const [searchParams] = useSearchParams()
-
-    // Get location ID from URL query parameter (lowercase 'loc')
-    const locationId = searchParams.get('loc') || undefined
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
-            // Save intended destination for post-login redirect
-            const destination = locationId ? `/game?loc=${locationId}` : '/game'
-            navigate('/', { replace: true, state: { returnTo: destination } })
+            navigate('/', { replace: true })
         }
-    }, [isAuthenticated, loading, navigate, locationId])
+    }, [isAuthenticated, loading, navigate])
 
     // Show loading state while auth check is in progress
     if (loading) {
@@ -51,7 +45,7 @@ export default function Game(): React.ReactElement | null {
             <h1 id="game-page-title" tabIndex={-1} className="sr-only">
                 The Shifting Atlas - Game
             </h1>
-            <GameView initialLocationId={locationId} />
+            <GameView />
         </div>
     )
 }

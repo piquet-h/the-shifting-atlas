@@ -1,6 +1,6 @@
 /**
  * Routing Tests
- * 
+ *
  * Tests for React Router setup including:
  * - Route definitions
  * - Page component rendering
@@ -38,7 +38,7 @@ describe('Page Components', () => {
         // Verify the component is exported and can be imported
         expect(NotFound).toBeDefined()
         expect(typeof NotFound).toBe('function')
-        
+
         // Verify component name for debugging
         expect(NotFound.name).toBe('NotFound')
     })
@@ -48,14 +48,8 @@ describe('Route Validation', () => {
     it('all new page routes use lowercase paths', () => {
         // Verify route paths are lowercase as per requirements
         const routes = ['/about', '/help', '/settings', '/game']
-        routes.forEach(route => {
+        routes.forEach((route) => {
             expect(route).toBe(route.toLowerCase())
         })
-    })
-
-    it('validates URL query parameter format for location', () => {
-        // Verify 'loc' parameter name is lowercase as per requirements
-        const paramName = 'loc'
-        expect(paramName).toBe(paramName.toLowerCase())
     })
 })

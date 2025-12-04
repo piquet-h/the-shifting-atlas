@@ -63,8 +63,6 @@ interface ExitInfo {
 
 interface GameViewProps {
     className?: string
-    /** Optional initial location ID from URL query parameter */
-    initialLocationId?: string
 }
 
 /**
@@ -306,7 +304,7 @@ function CommandHistoryPanel({
  * GameView
  * Main game view component orchestrating location, exits, stats, and command interface.
  */
-export default function GameView({ className, initialLocationId }: GameViewProps): React.ReactElement {
+export default function GameView({ className }: GameViewProps): React.ReactElement {
     const { playerGuid, loading: guidLoading } = usePlayerGuid()
     const isDesktop = useMediaQuery('(min-width: 768px)')
 
@@ -368,12 +366,6 @@ export default function GameView({ className, initialLocationId }: GameViewProps
 
     // Initial fetch on mount - fetch player's actual location from server
     useEffect(() => {
-        // If initialLocationId is provided from URL, use it directly
-        if (initialLocationId) {
-            fetchLocation(initialLocationId)
-            return
-        }
-
         // Only fetch after player GUID is resolved to avoid race conditions
         if (!guidLoading && playerGuid) {
             // Fetch player state to get their current location (authoritative)
@@ -401,7 +393,7 @@ export default function GameView({ className, initialLocationId }: GameViewProps
             // No player GUID available, fetch starter location
             fetchLocation()
         }
-    }, [fetchLocation, guidLoading, playerGuid, initialLocationId])
+    }, [fetchLocation, guidLoading, playerGuid])
 
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
