@@ -40,24 +40,18 @@ export function buildLocationUrl(locationId: string | null | undefined): string 
 
 /**
  * Build URL and body for move command
- * POST /api/player/{playerId}/move with body { direction, fromLocationId }
+ * POST /api/player/{playerId}/move with body { direction }
+ * Server reads player's current location from database (authoritative)
  * @throws Error if playerId is not a valid GUID
  */
-export function buildMoveRequest(
-    playerId: string | null,
-    direction: string,
-    fromLocationId?: string
-): { url: string; method: string; body: MoveRequest } {
+export function buildMoveRequest(playerId: string | null, direction: string): { url: string; method: string; body: MoveRequest } {
     if (!isValidGuid(playerId)) {
         throw new Error('Player ID must be a valid GUID')
     }
     return {
         url: `/api/player/${playerId}/move`,
         method: 'POST',
-        body: {
-            direction,
-            ...(fromLocationId ? { fromLocationId } : {})
-        }
+        body: { direction }
     }
 }
 

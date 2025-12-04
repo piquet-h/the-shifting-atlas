@@ -13,7 +13,7 @@ import type { LocationResponse } from '@piquet-h/shared'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
-import { buildHeaders, buildLocationUrl } from '../utils/apiClient'
+import { buildHeaders, buildLocationUrl, buildPlayerUrl } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
@@ -305,7 +305,7 @@ function CommandHistoryPanel({
  * Main game view component orchestrating location, exits, stats, and command interface.
  */
 export default function GameView({ className }: GameViewProps): React.ReactElement {
-    const { loading: guidLoading } = usePlayerGuid()
+    const { playerGuid, loading: guidLoading } = usePlayerGuid()
     const isDesktop = useMediaQuery('(min-width: 768px)')
 
     // Location state
@@ -364,13 +364,36 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         }
     }, [])
 
-    // Initial fetch on mount
+    // Initial fetch on mount - fetch player's actual location from server
     useEffect(() => {
         // Only fetch after player GUID is resolved to avoid race conditions
-        if (!guidLoading) {
+        if (!guidLoading && playerGuid) {
+            // Fetch player state to get their current location (authoritative)
+            fetch(buildPlayerUrl(playerGuid), {
+                headers: buildHeaders({
+                    ...buildCorrelationHeaders(generateCorrelationId())
+                })
+            })
+                .then((res) => res.json())
+                .then((json) => {
+                    const unwrapped = unwrapEnvelope<{ currentLocationId?: string }>(json)
+                    if (unwrapped.success && unwrapped.data?.currentLocationId) {
+                        // Fetch the location they're actually at (from database)
+                        fetchLocation(unwrapped.data.currentLocationId)
+                    } else {
+                        // Fallback to starter location if no current location
+                        fetchLocation()
+                    }
+                })
+                .catch(() => {
+                    // On error, fetch starter location as fallback
+                    fetchLocation()
+                })
+        } else if (!guidLoading && !playerGuid) {
+            // No player GUID available, fetch starter location
             fetchLocation()
         }
-    }, [fetchLocation, guidLoading])
+    }, [fetchLocation, guidLoading, playerGuid])
 
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {

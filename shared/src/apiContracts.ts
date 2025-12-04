@@ -11,7 +11,7 @@ export interface PlayerLinkRequest {
 /** POST /api/player/{playerId}/move - Request body */
 export interface MoveRequest {
     direction: string
-    fromLocationId?: string
+    // fromLocationId removed - server reads player.currentLocationId from database (authoritative)
 }
 
 /** POST /api/ping - Request body */

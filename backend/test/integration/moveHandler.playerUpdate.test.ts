@@ -72,21 +72,18 @@ describe('MoveHandler Player Location Update (E2E)', () => {
 
         const ctx = await createMockContext(fixture)
 
-        // Initialize handler context
-        await handler.handle(mockRequest, ctx)
+        // Execute move through handler - this calls performMove() internally
+        const response = await handler.handle(mockRequest, ctx)
 
-        // Execute move through handler
-        const result = await handler.performMove(mockRequest)
-
-        // Verify move succeeded
-        assert.strictEqual(result.success, true, 'move should succeed')
-        assert.ok(result.location, 'should return new location')
+        // Parse response to verify success
+        assert.strictEqual(response.status, 200, 'move should return 200 OK')
 
         // Verify player location was updated in repository
         const updatedPlayer = await playerRepo.get(player.id)
         assert.ok(updatedPlayer, 'player should still exist')
-        assert.strictEqual(updatedPlayer.currentLocationId, result.location?.id, 'player location should be updated to new location')
+        // Player should have moved from hub to north location
         assert.notStrictEqual(updatedPlayer.currentLocationId, hubLocation.id, 'player should have moved from hub')
+        assert.strictEqual(updatedPlayer.currentLocationId, locations[1].id, 'player should be at north location')
     })
 
     test('player location persists across handler invocations (simulated reconnect)', async () => {
@@ -119,18 +116,16 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         } as unknown as HttpRequest
 
         const ctx1 = await createMockContext(fixture)
-        await handler1.handle(request1, ctx1)
-        const result1 = await handler1.performMove(request1)
+        const response1 = await handler1.handle(request1, ctx1)
 
-        assert.strictEqual(result1.success, true)
-
-        const newLocationId = result1.location?.id
-        assert.ok(newLocationId, 'should have new location')
+        assert.strictEqual(response1.status, 200, 'first move should succeed')
 
         // Simulate reconnect - new handler instance, fetch player from repo
         const reconnectedPlayer = await playerRepo.get(player.id)
         assert.ok(reconnectedPlayer, 'player should be retrievable')
-        assert.strictEqual(reconnectedPlayer.currentLocationId, newLocationId, 'player location should persist across sessions')
+        // Player should have moved to north location
+        assert.strictEqual(reconnectedPlayer.currentLocationId, locations[1].id, 'player location should persist across sessions')
+        const newLocationId = reconnectedPlayer.currentLocationId
 
         // Second move from new location (reconnected session)
         const handler2 = container.get(MoveHandler)
@@ -145,14 +140,13 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         } as unknown as HttpRequest
 
         const ctx2 = await createMockContext(fixture)
-        await handler2.handle(request2, ctx2)
-        const result2 = await handler2.performMove(request2)
+        const response2 = await handler2.handle(request2, ctx2)
 
-        assert.strictEqual(result2.success, true)
+        assert.strictEqual(response2.status, 200, 'second move should succeed')
 
-        // Verify location updated again
+        // Verify location updated again (should be back at hub)
         const finalPlayer = await playerRepo.get(player.id)
-        assert.strictEqual(finalPlayer?.currentLocationId, result2.location?.id, 'second move should update location')
+        assert.strictEqual(finalPlayer?.currentLocationId, hubLocation.id, 'second move should return to hub')
     })
 
     test('MoveHandler handles missing player gracefully', async () => {

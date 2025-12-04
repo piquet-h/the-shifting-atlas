@@ -1,6 +1,6 @@
 /* global sessionStorage */
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
@@ -29,33 +29,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
     const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
     const [commandHistory, setCommandHistory] = useState<string[]>([])
 
-    // Persist current location id across reloads within a browser tab (session-scoped persistence)
-    // IMPORTANT: Only restore sessionStorage location if playerGuid is already available
-    // to prevent race condition where user has location but no player session yet
-    useEffect(() => {
-        try {
-            const stored = sessionStorage.getItem('tsa.currentLocationId')
-            // Only restore location if we have a playerGuid OR if guidLoading is complete
-            // This prevents stale location + missing player race condition
-            if (stored && (playerGuid || !guidLoading)) {
-                setCurrentLocationId(stored)
-            } else if (stored && guidLoading) {
-                // Clear stale location data while waiting for player GUID to load
-                sessionStorage.removeItem('tsa.currentLocationId')
-            }
-        } catch {
-            /* ignore storage errors */
-        }
-    }, [playerGuid, guidLoading])
-
-    useEffect(() => {
-        try {
-            if (currentLocationId) sessionStorage.setItem('tsa.currentLocationId', currentLocationId)
-            else sessionStorage.removeItem('tsa.currentLocationId')
-        } catch {
-            /* ignore */
-        }
-    }, [currentLocationId])
+    // currentLocationId tracked for UI display only (not persisted)
+    // Server reads player.currentLocationId from database for authoritative state
 
     const runCommand = useCallback(
         async (raw: string) => {

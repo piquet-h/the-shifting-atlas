@@ -1,7 +1,7 @@
 import type { HttpRequest, InvocationContext } from '@azure/functions'
+import { resetExitGenerationHintStore } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { resetExitGenerationHintStore } from '@piquet-h/shared'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
@@ -52,7 +52,7 @@ describe('PerformMove Telemetry Integration', () => {
         if ('events' in telemetry) {
             const navEvent = telemetry.events.find((e) => e.name === 'Navigation.Input.Ambiguous')
             assert.ok(navEvent, 'Navigation.Input.Ambiguous event missing')
-            assert.equal(navEvent?.properties?.from, 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21') // STARTER_LOCATION_ID
+            assert.equal(navEvent?.properties?.fromLocationId, 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21') // STARTER_LOCATION_ID
             assert.equal(navEvent?.properties?.reason, 'no-heading')
         }
     })

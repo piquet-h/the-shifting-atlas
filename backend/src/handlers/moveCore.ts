@@ -8,11 +8,11 @@ import {
     normalizeDirection,
     STARTER_LOCATION_ID
 } from '@piquet-h/shared'
+import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
-import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
@@ -63,26 +63,19 @@ export class MoveHandler extends BaseHandler {
      */
     async performMove(req: HttpRequest): Promise<MoveResult> {
         const started = Date.now()
-        // Prefer explicit from location provided via query param or JSON body; fallback to starter.
-        // NOTE: Frontend sends { direction, fromLocationId } in JSON body. Previous implementation
-        // ignored body.fromLocationId and always used STARTER_LOCATION_ID which caused subsequent
-        // moves to evaluate against the starter room rather than the player's current location.
-        // Additionally, Azure Functions v4 does not expose request.body directly; it must be read
-        // via request.json()/request.text(). The prior code attempted req.body access, leading to
-        // direction always being treated as empty and returning 400.
+
+        // Parse direction from request body or query params
         let parsedBody: Record<string, unknown> = {}
         const contentType = req.headers.get('content-type') || ''
         if (contentType.includes('application/json')) {
             try {
-                // request.json() is the canonical way to read the body in @azure/functions v4.
                 parsedBody = (await req.json()) as Record<string, unknown>
             } catch {
                 // Swallow JSON parse errors; leave parsedBody empty for graceful fallback.
             }
         }
 
-        // Body property names (dir | direction) for backward compatibility with earlier clients.
-        // Accept query param override first to allow bookmarking/testing via query string.
+        // Body property names (dir | direction) for backward compatibility
         let rawDir = req.query.get('dir') || req.query.get('direction') || ''
         if (!rawDir && parsedBody) {
             const dirVal = (parsedBody['dir'] || parsedBody['direction']) as string | undefined
@@ -90,8 +83,6 @@ export class MoveHandler extends BaseHandler {
         }
 
         // Test environment fallback: some integration tests construct HttpRequest mocks with a .body property
-        // (stringified JSON) but omit the content-type header. Support that shape to avoid forcing all tests to add
-        // headers while keeping production path strictly header-driven.
         if (!rawDir && Object.keys(parsedBody).length === 0 && (req as unknown as { body?: unknown }).body) {
             try {
                 const legacyBody = (req as unknown as { body?: unknown }).body
@@ -99,7 +90,7 @@ export class MoveHandler extends BaseHandler {
                     const parsed = JSON.parse(legacyBody) as Record<string, unknown>
                     const dirVal = (parsed['dir'] || parsed['direction']) as string | undefined
                     if (typeof dirVal === 'string') rawDir = dirVal
-                    // Merge into parsedBody for fromLocationId fallback below
+                    // Preserve fromLocationId for backward compatibility
                     parsedBody = parsed
                 } else if (legacyBody && typeof legacyBody === 'object') {
                     const dirVal = (legacyBody as Record<string, unknown>)['dir'] || (legacyBody as Record<string, unknown>)['direction']
@@ -111,8 +102,26 @@ export class MoveHandler extends BaseHandler {
             }
         }
 
-        const bodyFrom = (parsedBody['fromLocationId'] || parsedBody['from']) as string | undefined
-        const fromId = req.query.get('from') || bodyFrom || STARTER_LOCATION_ID
+        // Security: Determine origin location (authoritative)
+        // For authenticated moves: Read from player's database record (prevents client spoofing)
+        // For anonymous/test moves: Accept fromLocationId from request (backward compatibility)
+        let fromId: string
+        if (this.playerGuid) {
+            const player = await this.playerRepo.get(this.playerGuid)
+            if (player?.currentLocationId) {
+                // Use player's actual location from database (authoritative)
+                fromId = player.currentLocationId
+            } else {
+                // Player exists but has no location - this shouldn't happen after bootstrap
+                // Fall back to request-provided location or starter
+                const bodyFrom = (parsedBody['fromLocationId'] || parsedBody['from']) as string | undefined
+                fromId = req.query.get('from') || bodyFrom || STARTER_LOCATION_ID
+            }
+        } else {
+            // No player GUID (anonymous/test mode) - use request-provided location
+            const bodyFrom = (parsedBody['fromLocationId'] || parsedBody['from']) as string | undefined
+            fromId = req.query.get('from') || bodyFrom || STARTER_LOCATION_ID
+        }
 
         const headingStore = getPlayerHeadingStore()
         const lastHeading = this.playerGuid ? headingStore.getLastHeading(this.playerGuid) : undefined
@@ -120,7 +129,7 @@ export class MoveHandler extends BaseHandler {
 
         // Ambiguous relative direction
         if (normalizationResult.status === 'ambiguous') {
-            this.track('Navigation.Input.Ambiguous', { from: fromId, input: rawDir, reason: 'no-heading' })
+            this.track('Navigation.Input.Ambiguous', { fromLocationId: fromId, input: rawDir, reason: 'no-heading' })
             return {
                 success: false,
                 error: {
