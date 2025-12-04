@@ -390,15 +390,17 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
 
     // Track if initial fetch has been triggered to prevent duplicate calls
     const initialFetchTriggered = useRef(false)
+    const lastFetchedPlayerGuid = useRef<string | null>(null)
 
     // Initial fetch on mount - fetch player's actual location from server
     useEffect(() => {
         // Prevent duplicate fetches (React strict mode, re-renders, etc.)
-        if (initialFetchTriggered.current) return
+        if (initialFetchTriggered.current && lastFetchedPlayerGuid.current === playerGuid) return
 
         // Only fetch after player GUID is resolved to avoid race conditions
         if (playerGuid) {
             initialFetchTriggered.current = true
+            lastFetchedPlayerGuid.current = playerGuid
             // Fetch player state to get their current location (authoritative)
             fetch(buildPlayerUrl(playerGuid), {
                 headers: buildHeaders({
@@ -422,6 +424,7 @@ export default function GameView({ playerGuid, className }: GameViewProps): Reac
                 })
         } else if (!playerGuid) {
             initialFetchTriggered.current = true
+            lastFetchedPlayerGuid.current = null
             // No player GUID available, fetch starter location
             fetchLocation()
         }
