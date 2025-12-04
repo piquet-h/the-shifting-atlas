@@ -10,9 +10,8 @@
  * Responsive layout: single column on mobile, multi-column on desktop.
  */
 import type { LocationResponse } from '@piquet-h/shared'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
-import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest, buildPlayerUrl } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
@@ -64,6 +63,7 @@ interface ExitInfo {
 }
 
 interface GameViewProps {
+    playerGuid: string | null
     className?: string
 }
 
@@ -329,8 +329,7 @@ function CommandHistoryPanel({
  * GameView
  * Main game view component orchestrating location, exits, stats, and command interface.
  */
-export default function GameView({ className }: GameViewProps): React.ReactElement {
-    const { playerGuid, loading: guidLoading } = usePlayerGuid()
+export default function GameView({ playerGuid, className }: GameViewProps): React.ReactElement {
     const isDesktop = useMediaQuery('(min-width: 768px)')
 
     // Location state
@@ -389,10 +388,17 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         }
     }, [])
 
+    // Track if initial fetch has been triggered to prevent duplicate calls
+    const initialFetchTriggered = useRef(false)
+
     // Initial fetch on mount - fetch player's actual location from server
     useEffect(() => {
+        // Prevent duplicate fetches (React strict mode, re-renders, etc.)
+        if (initialFetchTriggered.current) return
+
         // Only fetch after player GUID is resolved to avoid race conditions
-        if (!guidLoading && playerGuid) {
+        if (playerGuid) {
+            initialFetchTriggered.current = true
             // Fetch player state to get their current location (authoritative)
             fetch(buildPlayerUrl(playerGuid), {
                 headers: buildHeaders({
@@ -414,11 +420,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     // On error, fetch starter location as fallback
                     fetchLocation()
                 })
-        } else if (!guidLoading && !playerGuid) {
+        } else if (!playerGuid) {
+            initialFetchTriggered.current = true
             // No player GUID available, fetch starter location
             fetchLocation()
         }
-    }, [fetchLocation, guidLoading, playerGuid])
+    }, [fetchLocation, playerGuid])
 
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
@@ -508,18 +515,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             error={locationError}
                             onRetry={() => fetchLocation(location?.id)}
                         />
-                        <ExitsPanel
-                            exits={exits}
-                            onNavigate={playerGuid ? handleNavigate : undefined}
-                            disabled={navigationBusy || guidLoading}
-                        />
+                        <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
                         {/* Navigation UI for authenticated users */}
                         {playerGuid && (
-                            <NavigationUI
-                                availableExits={availableExitDirections}
-                                onNavigate={handleNavigate}
-                                disabled={navigationBusy || guidLoading}
-                            />
+                            <NavigationUI availableExits={availableExitDirections} onNavigate={handleNavigate} disabled={navigationBusy} />
                         )}
                         {/* Command Interface for authenticated users */}
                         <section aria-labelledby="game-command-title">
@@ -545,18 +544,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         error={locationError}
                         onRetry={() => fetchLocation(location?.id)}
                     />
-                    <ExitsPanel
-                        exits={exits}
-                        onNavigate={playerGuid ? handleNavigate : undefined}
-                        disabled={navigationBusy || guidLoading}
-                    />
+                    <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
-                        <NavigationUI
-                            availableExits={availableExitDirections}
-                            onNavigate={handleNavigate}
-                            disabled={navigationBusy || guidLoading}
-                        />
+                        <NavigationUI availableExits={availableExitDirections} onNavigate={handleNavigate} disabled={navigationBusy} />
                     )}
                     <PlayerStatsPanel stats={playerStats} />
                     {/* Command Interface */}

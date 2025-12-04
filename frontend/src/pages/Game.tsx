@@ -12,10 +12,12 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import GameView from '../components/GameView'
+import { usePlayer } from '../contexts/PlayerContext'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
+    const { playerGuid, loading: guidLoading } = usePlayer()
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const [showLocationInfo, setShowLocationInfo] = useState(false)
@@ -37,8 +39,8 @@ export default function Game(): React.ReactElement | null {
         }
     }, [isAuthenticated, loading, navigate])
 
-    // Show loading state while auth check is in progress
-    if (loading) {
+    // Show loading state while auth check or player GUID resolution is in progress
+    if (loading || guidLoading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
@@ -71,7 +73,7 @@ export default function Game(): React.ReactElement | null {
                     <p className="text-sm">Deep-link location support coming soon. Loading your current location.</p>
                 </div>
             )}
-            <GameView />
+            <GameView playerGuid={playerGuid} />
         </div>
     )
 }

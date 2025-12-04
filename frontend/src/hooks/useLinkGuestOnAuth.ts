@@ -1,9 +1,9 @@
 /* global localStorage */
 import type { PlayerLinkRequest, PlayerLinkResponse } from '@piquet-h/shared'
 import { useEffect, useState } from 'react'
+import { usePlayer } from '../contexts/PlayerContext'
 import { unwrapEnvelope } from '../utils/envelope'
 import { useAuth } from './useAuth'
-import { usePlayerGuid } from './usePlayerGuid'
 
 /**
  * useLinkGuestOnAuth
@@ -13,7 +13,7 @@ import { usePlayerGuid } from './usePlayerGuid'
  */
 export function useLinkGuestOnAuth() {
     const { isAuthenticated } = useAuth()
-    const { playerGuid } = usePlayerGuid()
+    const { playerGuid } = usePlayer()
     const [linking, setLinking] = useState(false)
     const [linked, setLinked] = useState(false)
     const [error, setError] = useState<string | null>(null)

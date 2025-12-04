@@ -1,15 +1,15 @@
 /* global localStorage */
 import React, { useEffect, useRef, useState } from 'react'
+import { usePlayer } from '../contexts/PlayerContext'
 import { useAuth } from '../hooks/useAuth'
 import { useLinkGuestOnAuth } from '../hooks/useLinkGuestOnAuth'
-import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { useVisitState } from '../hooks/useVisitState'
 import CommandInterface from './CommandInterface'
 
 /** Homepage: new user vs returning user. Accessibility: single <h1>, ordered steps, skip-to-main anchor, focus styles. */
 export default function Homepage(): React.ReactElement {
     const { isNewUser, acknowledge } = useVisitState()
-    const { loading: guidLoading } = usePlayerGuid()
+    const { loading: guidLoading } = usePlayer()
     const { isAuthenticated, loading, user, signIn } = useAuth()
     const { linking, linked, error: linkError } = useLinkGuestOnAuth()
 
