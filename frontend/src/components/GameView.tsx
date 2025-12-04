@@ -13,11 +13,11 @@ import type { LocationResponse } from '@piquet-h/shared'
 import React, { useCallback, useEffect, useState } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
-import { buildHeaders, buildLocationUrl, buildPlayerUrl, buildMoveRequest } from '../utils/apiClient'
+import { trackGameEventClient } from '../services/telemetry'
+import { buildHeaders, buildLocationUrl, buildMoveRequest, buildPlayerUrl } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
-import { trackGameEventClient } from '../services/telemetry'
 import CommandInterface from './CommandInterface'
 import NavigationUI from './NavigationUI'
 
@@ -139,8 +139,17 @@ function LocationPanel({
 /**
  * ExitsPanel
  * Displays available exits with visual direction indicators.
+ * Clickable exits trigger navigation.
  */
-function ExitsPanel({ exits }: { exits: ExitInfo[] }): React.ReactElement {
+function ExitsPanel({
+    exits,
+    onNavigate,
+    disabled
+}: {
+    exits: ExitInfo[]
+    onNavigate?: (direction: Direction) => void
+    disabled?: boolean
+}): React.ReactElement {
     const availableExits = exits.filter((e) => e.available)
     const hasNoExits = availableExits.length === 0
 
@@ -172,23 +181,37 @@ function ExitsPanel({ exits }: { exits: ExitInfo[] }): React.ReactElement {
                     {directionLayout.map(({ direction, label, shortLabel }) => {
                         const exit = exits.find((e) => e.direction === direction)
                         const isAvailable = exit?.available ?? false
+                        const canClick = isAvailable && onNavigate && !disabled
+
+                        const Element = canClick ? 'button' : 'div'
 
                         return (
-                            <div
+                            <Element
                                 key={direction}
+                                {...(canClick
+                                    ? {
+                                          type: 'button',
+                                          onClick: () => onNavigate(direction),
+                                          disabled: disabled
+                                      }
+                                    : {})}
                                 role="listitem"
                                 className={[
                                     'flex flex-col items-center justify-center p-2 rounded-lg text-center transition-colors',
                                     isAvailable
-                                        ? 'bg-emerald-900/40 ring-1 ring-emerald-500/40 text-emerald-300'
+                                        ? canClick
+                                            ? 'bg-emerald-900/40 ring-1 ring-emerald-500/40 text-emerald-300 hover:bg-emerald-800/50 cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-400'
+                                            : 'bg-emerald-900/40 ring-1 ring-emerald-500/40 text-emerald-300'
                                         : 'bg-slate-800/30 ring-1 ring-slate-700/30 text-slate-500'
                                 ].join(' ')}
-                                title={isAvailable ? `Exit available: ${label}` : `No exit: ${label}`}
-                                aria-label={isAvailable ? `${label} exit available` : `No ${label} exit`}
+                                title={isAvailable ? `Exit available: ${label}${canClick ? ' (click to move)' : ''}` : `No exit: ${label}`}
+                                aria-label={
+                                    isAvailable ? `${label} exit available${canClick ? ', click to move' : ''}` : `No ${label} exit`
+                                }
                             >
                                 <span className="text-responsive-sm font-medium">{shortLabel}</span>
                                 <span className="text-[10px] sm:text-xs hidden sm:block">{label}</span>
-                            </div>
+                            </Element>
                         )
                     })}
                 </div>
@@ -485,7 +508,11 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             error={locationError}
                             onRetry={() => fetchLocation(location?.id)}
                         />
-                        <ExitsPanel exits={exits} />
+                        <ExitsPanel
+                            exits={exits}
+                            onNavigate={playerGuid ? handleNavigate : undefined}
+                            disabled={navigationBusy || guidLoading}
+                        />
                         {/* Navigation UI for authenticated users */}
                         {playerGuid && (
                             <NavigationUI
@@ -518,7 +545,11 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         error={locationError}
                         onRetry={() => fetchLocation(location?.id)}
                     />
-                    <ExitsPanel exits={exits} />
+                    <ExitsPanel
+                        exits={exits}
+                        onNavigate={playerGuid ? handleNavigate : undefined}
+                        disabled={navigationBusy || guidLoading}
+                    />
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
                         <NavigationUI
