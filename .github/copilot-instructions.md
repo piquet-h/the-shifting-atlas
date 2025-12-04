@@ -61,12 +61,12 @@ Low confidence assumptions require a guard (runtime check or test case).
 
 Use the highest applicable:
 
--   LOW – simple/internal edit
--   DATA-MODEL – schema, partition key, ID semantics
--   RUNTIME-BEHAVIOR – execution flow / side-effects change
--   BUILD-SCRIPT – CI / scripts / tooling logic
--   INFRA – Bicep, deployment, secret wiring
-    Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
+- LOW – simple/internal edit
+- DATA-MODEL – schema, partition key, ID semantics
+- RUNTIME-BEHAVIOR – execution flow / side-effects change
+- BUILD-SCRIPT – CI / scripts / tooling logic
+- INFRA – Bicep, deployment, secret wiring
+  Non‑LOW requires at least one additional verification step (extra targeted test or rationale note).
 
 ### 0.6 Response Structure (Non‑Trivial)
 
@@ -81,13 +81,13 @@ Use the highest applicable:
 ### 0.7 Self QA Footer
 
 ```
-Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Tests <x passed / y run> | Edge Cases Covered <yes/no> | Assumptions Logged <yes/no>
+Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Typecheck <PASS/FAIL> | Tests <x passed / y run> | Edge Cases Covered <yes/no> | Assumptions Logged <yes/no>
 ```
 
 ### 0.8 Hallucination Guardrails
 
--   Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
--   Never invent APIs; prefer searching codebase first.
+- Cite file paths for any referenced symbols; if not found: state "Not found in workspace" (do not fabricate).
+- Never invent APIs; prefer searching codebase first.
 
 ### 0.9 Test Spec Pattern (Inline)
 
@@ -95,8 +95,8 @@ Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1
 
 ### 0.10 Fast Path vs Full Workflow
 
--   Fast Path (Trivial): direct patch → run tests → summarize
--   Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
+- Fast Path (Trivial): direct patch → run tests → summarize
+- Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
 
 ### 0.11 New Azure Function High‑Level Flow
 
@@ -148,9 +148,9 @@ node --prof-process isolate-*-v8.log
 
 **Prohibited without evidence**:
 
--   Implementing architectural changes based solely on keywords in error messages
--   "This component is commonly associated with X problem" reasoning
--   Assuming previous similar issues have identical root causes without verification
+- Implementing architectural changes based solely on keywords in error messages
+- "This component is commonly associated with X problem" reasoning
+- Assuming previous similar issues have identical root causes without verification
 
 **Required sequence**:
 
@@ -158,9 +158,9 @@ node --prof-process isolate-*-v8.log
 
 **Exception**: If evidence gathering requires >5 minutes setup, you may attempt ONE quick hypothesis test first, but:
 
--   Document it as speculative in the response
--   Revert immediately if it doesn't resolve the symptom
--   Then proceed to evidence gathering
+- Document it as speculative in the response
+- Revert immediately if it doesn't resolve the symptom
+- Then proceed to evidence gathering
 
 **Trigger keywords**: "hanging", "won't exit", "memory leak", "slow", "timeout", "blocked", "frozen", "stuck", "never returns"
 
@@ -173,19 +173,19 @@ Backend and API: Azure Functions (HTTP player actions + queue world logic)
 Messaging: Azure Service Bus
 Data: Dual persistence (ADR-002) – UPDATED: Player storage cutover completed (ADR-004). Dual persistence now applies only to the architectural split between immutable world graph (Gremlin) and mutable player/inventory/events state (SQL API); players are no longer written to Gremlin.
 
--   Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
--   Cosmos DB SQL API: Documents (players, inventory, description layers, events)
-    Observability: Application Insights
-    Principle: Event‑driven, stateless functions, no polling loops.
+- Cosmos DB Gremlin: World graph (locations, exits, spatial relationships)
+- Cosmos DB SQL API: Documents (players, inventory, description layers, events)
+  Observability: Application Insights
+  Principle: Event‑driven, stateless functions, no polling loops.
 
 ---
 
 ## 2. Repo Layout (Essentials)
 
--   `frontend/` SWA client
--   `backend/` Functions
--   `shared/` Cross‑package domain models + telemetry
--   `docs/` Design & narrative sources
+- `frontend/` SWA client
+- `backend/` Functions
+- `shared/` Cross‑package domain models + telemetry
+- `docs/` Design & narrative sources
 
 ---
 
@@ -218,38 +218,38 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 Environment variables (wired in Bicep, available in Functions):
 
--   `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
--   `COSMOS_SQL_DATABASE` – Database name (`game`)
--   `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
--   `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
--   `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
--   `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
--   `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
+- `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
+- `COSMOS_SQL_DATABASE` – Database name (`game`)
+- `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
+- `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
+- `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
+- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
+- `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
 
 Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
 Partition key patterns (unchanged – reaffirmed post ADR-004):
 
--   Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
--   Inventory: Player GUID to colocate all items for a player.
--   Layers: Location GUID to colocate all layers for a location.
--   Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
+- Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
+- Inventory: Player GUID to colocate all items for a player.
+- Layers: Location GUID to colocate all layers for a location.
+- Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
 
 Cutover Notes (ADR-004):
 
--   Removed feature flag `DISABLE_GREMLIN_PLAYER_VERTEX`.
--   Eliminated telemetry events `Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`.
--   Player bootstrap now directly creates SQL PlayerDoc projection; Gremlin used only for spatial world entities.
--   Rollback (unlikely): Reintroduce archived player Gremlin vertex module + dual write-through events; document in ADR-004 rollback section.
+- Removed feature flag `DISABLE_GREMLIN_PLAYER_VERTEX`.
+- Eliminated telemetry events `Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`.
+- Player bootstrap now directly creates SQL PlayerDoc projection; Gremlin used only for spatial world entities.
+- Rollback (unlikely): Reintroduce archived player Gremlin vertex module + dual write-through events; document in ADR-004 rollback section.
 
 ---
 
 ## 6. Telemetry
 
--   **Module**: `shared/src/telemetry.ts`
--   **Purpose**: In-game events (player actions, world generation, navigation)
--   **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
--   **Destination**: Application Insights ONLY
--   **Location**: `shared/src/` folder ONLY
+- **Module**: `shared/src/telemetry.ts`
+- **Purpose**: In-game events (player actions, world generation, navigation)
+- **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+- **Destination**: Application Insights ONLY
+- **Location**: `shared/src/` folder ONLY
 
 Include correlation IDs across chained events.
 Avoid noisy high‑cardinality ad‑hoc logs.
@@ -279,23 +279,23 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 
 GitHub milestones have both a numeric ID and a display name. The GitHub MCP search tools require the ID.
 
-| Milestone Name              | Milestone ID | Status | Focus | Search Example |
-| --------------------------- | ------------ | ------ | ----- | -------------- |
-| M0 Foundation               | 1            | CLOSED | Bootstrap, ping, telemetry scaffold | `milestone:"M0 Foundation"` or filter by ID 1 |
-| M1 Traversal                | 2            | CLOSED | Location persistence, exits, move/look | `milestone:"M1 Traversal"` or filter by ID 2 |
-| M2 Data Foundations         | 3            | CLOSED | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3 |
-| M3a Event Backbone          | 11           | CLOSED | Queue processing, idempotency, DLQ, correlation | `milestone:"M3a Event Backbone"` or filter by ID 11 |
-| M3b Player UI & Telemetry   | 12           | Active | SWA auth, game view, navigation, frontend↔backend correlation | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
-| M3c Temporal PI-0           | 13           | Active | WorldClock, PlayerClock, durations, reconcile policies | `milestone:"M3c Temporal PI-0"` or filter by ID 13 |
-| M4 AI Read                  | 4            | Active | MCP read-only, prompt templates, intent parser | `milestone:"M4 AI Read"` or filter by ID 4 |
-| M5 Quality & Depth          | 7            | Active | Layering engine, dashboards, alerts, integrity monitoring | `milestone:"M5 Quality & Depth"` or filter by ID 7 |
-| M6 Systems                  | 8            | Active | Dungeons, humor layer, entity promotion, Learn More | `milestone:"M6 Systems"` or filter by ID 8 |
-| M7 Post-MVP Extensibility   | 9            | Planning | Multiplayer, quests, economy, AI write path, region sharding | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9 |
+| Milestone Name            | Milestone ID | Status   | Focus                                                                 | Search Example                                             |
+| ------------------------- | ------------ | -------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| M0 Foundation             | 1            | CLOSED   | Bootstrap, ping, telemetry scaffold                                   | `milestone:"M0 Foundation"` or filter by ID 1              |
+| M1 Traversal              | 2            | CLOSED   | Location persistence, exits, move/look                                | `milestone:"M1 Traversal"` or filter by ID 2               |
+| M2 Data Foundations       | 3            | CLOSED   | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3        |
+| M3a Event Backbone        | 11           | CLOSED   | Queue processing, idempotency, DLQ, correlation                       | `milestone:"M3a Event Backbone"` or filter by ID 11        |
+| M3b Player UI & Telemetry | 12           | Active   | SWA auth, game view, navigation, frontend↔backend correlation         | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
+| M3c Temporal PI-0         | 13           | Active   | WorldClock, PlayerClock, durations, reconcile policies                | `milestone:"M3c Temporal PI-0"` or filter by ID 13         |
+| M4 AI Read                | 4            | Active   | MCP read-only, prompt templates, intent parser                        | `milestone:"M4 AI Read"` or filter by ID 4                 |
+| M5 Quality & Depth        | 7            | Active   | Layering engine, dashboards, alerts, integrity monitoring             | `milestone:"M5 Quality & Depth"` or filter by ID 7         |
+| M6 Systems                | 8            | Active   | Dungeons, humor layer, entity promotion, Learn More                   | `milestone:"M6 Systems"` or filter by ID 8                 |
+| M7 Post-MVP Extensibility | 9            | Planning | Multiplayer, quests, economy, AI write path, region sharding          | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9  |
 
 **Example confusion to avoid:**
 
--   ❌ "Search for M1 issues" → searching for literal string "M1" finds nothing
--   ✅ "Search for M1 issues" → use `milestone:"M1 Traversal"` in GitHub search query
+- ❌ "Search for M1 issues" → searching for literal string "M1" finds nothing
+- ✅ "Search for M1 issues" → use `milestone:"M1 Traversal"` in GitHub search query
 
 **To find milestone ID from API response:**
 Milestone objects include both `number` (the ID) and `title` (the display name):
@@ -311,17 +311,17 @@ Milestone objects include both `number` (the ID) and `title` (the display name):
 
 **When working with GitHub issues, milestones, and dependencies, consult `.github/copilot-github-api-guidance.md` for**:
 
--   Tool selection strategy (MCP vs REST API)
--   Milestone assignment workflow (requires REST API)
--   Issue dependency relationships (REST API preferred, comment fallback if API unavailable)
--   Epic sub-issue management
--   Authentication and error handling
+- Tool selection strategy (MCP vs REST API)
+- Milestone assignment workflow (requires REST API)
+- Issue dependency relationships (REST API preferred, comment fallback if API unavailable)
+- Epic sub-issue management
+- Authentication and error handling
 
 **Quick reference**:
 
--   ✅ Use MCP tools (`mcp_github-remote_*`) for: reading, creating, updating issues, adding comments, searching
--   ✅ Use REST API (`curl` via `run_in_terminal`) for: assigning milestones, adding dependency relationships
--   ⚠️ If dependencies API returns 404 (temporary): fall back to structured comment workaround
+- ✅ Use MCP tools (`mcp_github-remote_*`) for: reading, creating, updating issues, adding comments, searching
+- ✅ Use REST API (`curl` via `run_in_terminal`) for: assigning milestones, adding dependency relationships
+- ⚠️ If dependencies API returns 404 (temporary): fall back to structured comment workaround
 
 See detailed workflows and examples in `copilot-github-api-guidance.md`.
 
@@ -348,15 +348,15 @@ Reference: For interaction workflow & templates see Section 0 (patterns) and App
 
 **Test Layer Separation:** Three-tier approach (unit/integration/e2e). See `backend/test/TEST_FIXTURE_GUIDE.md` for:
 
--   Decision matrix (what to test → which fixture → which directory)
--   Anti-patterns (no fake clients in unit tests, no direct repo instantiation)
--   Migration checklist (moving tests between layers)
+- Decision matrix (what to test → which fixture → which directory)
+- Anti-patterns (no fake clients in unit tests, no direct repo instantiation)
+- Migration checklist (moving tests between layers)
 
 **Quick rules:**
 
--   Unit tests: Pure logic + interface contracts only (`UnitTestFixture`, all mocked)
--   Integration tests: Repository implementations (`IntegrationTestFixture`, use `describeForBothModes()`)
--   E2E tests: Full system + performance (`E2ETestFixture`, cosmos only, post-merge)
+- Unit tests: Pure logic + interface contracts only (`UnitTestFixture`, all mocked)
+- Integration tests: Repository implementations (`IntegrationTestFixture`, use `describeForBothModes()`)
+- E2E tests: Full system + performance (`E2ETestFixture`, cosmos only, post-merge)
 
 **Test requirements:** Provide tests for happy path + edge cases. Run lint + typecheck before commit.
 
@@ -420,9 +420,9 @@ timer.unref() // REQUIRED for background cleanup timers
 
 ### Why This Matters:
 
--   **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
--   **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
--   **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
+- **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
+- **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
+- **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
 
 ### Agent Rules:
 
@@ -439,9 +439,9 @@ timer.unref() // REQUIRED for background cleanup timers
 
 ### Verification:
 
--   CI validation script checks for `file:` patterns in backend/package.json
--   Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
--   Backend tests will fail if file-based reference is used in a clean CI environment
+- CI validation script checks for `file:` patterns in backend/package.json
+- Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
+- Backend tests will fail if file-based reference is used in a clean CI environment
 
 ---
 
@@ -453,23 +453,21 @@ timer.unref() // REQUIRED for background cleanup timers
 
 Backend code cannot import from a shared package version that doesn't exist in GitHub Packages yet. If both are in one PR:
 
--   CI tries to `npm install` backend dependencies
--   Shared version X doesn't exist in registry yet
--   Build fails with "package not found"
+- CI tries to `npm install` backend dependencies
+- Shared version X doesn't exist in registry yet
+- Build fails with "package not found"
 
 ### Required Pattern: Two-Stage Merge
 
 #### Stage 1: Shared Package Changes Only
 
 1. **Create PR with ONLY shared/ changes:**
-
     - New utilities, types, or functions
     - Version bump in `shared/package.json`
     - Tests in `shared/test/`
     - NO backend integration code
 
 2. **Merge to main**
-
     - CI automatically publishes new version to GitHub Packages
     - Wait ~5 minutes for publish workflow to complete
 
@@ -482,7 +480,6 @@ Backend code cannot import from a shared package version that doesn't exist in G
 #### Stage 2: Backend Integration
 
 4. **Create follow-up PR with backend changes:**
-
     - Update `backend/package.json` to reference new shared version
     - Add backend code using new shared utilities
     - Integration tests
@@ -517,7 +514,6 @@ When the coding agent creates a PR that touches both `shared/` and `backend/`:
     ```
 
 3. **Update PR descriptions:**
-
     - Stage 1 PR: Mark as "Part 1: Shared package changes"
     - Add note: "Backend integration will follow in separate PR after publish"
     - Stage 2 PR: Reference stage 1 PR number, note dependency on published version
@@ -553,18 +549,18 @@ git add backend/package.json && git commit --amend --no-edit
 
 Single PR acceptable only if:
 
--   Shared changes are trivial hotfix (typo, comment)
--   No version bump required
--   Backend already compatible with current shared version
+- Shared changes are trivial hotfix (typo, comment)
+- No version bump required
+- Backend already compatible with current shared version
 
 ### Detection Heuristics
 
 Agent should split when PR includes:
 
--   ✅ New exports in `shared/src/index.ts`
--   ✅ Version bump in `shared/package.json`
--   ✅ New imports in backend from `@piquet-h/shared`
--   ✅ Backend code using newly-added shared functions
+- ✅ New exports in `shared/src/index.ts`
+- ✅ Version bump in `shared/package.json`
+- ✅ New imports in backend from `@piquet-h/shared`
+- ✅ Backend code using newly-added shared functions
 
 ---
 
@@ -609,13 +605,13 @@ Assumptions allowed: <yes/no>
 
 ### A.2 Success Criteria / Definition of Done Checklist
 
--   All acceptance criteria checkboxes addressed (Done/Deferred noted)
--   Risk tag declared (non‑LOW has extra verification)
--   Assumptions block present (if any inference)
--   Tests: existing pass + new tests for new logic (happy + 1 edge)
--   No stray telemetry literals (only enum)
--   No roadmap manual edits (Section 12 guardrails)
--   Build + lint + typecheck clean
+- All acceptance criteria checkboxes addressed (Done/Deferred noted)
+- Risk tag declared (non‑LOW has extra verification)
+- Assumptions block present (if any inference)
+- Tests: existing pass + new tests for new logic (happy + 1 edge)
+- No stray telemetry literals (only enum)
+- No roadmap manual edits (Section 12 guardrails)
+- Build + lint + typecheck clean
 
 ### A.3 Assumptions Block Pattern
 
@@ -634,14 +630,14 @@ Then it returns 400 (invalid: no starting location) and emits no world event
 
 ### A.5 New Azure Function Checklist
 
--   Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
--   Trigger binding & auth level appropriate
--   Input validation (shared validators) + clear 4xx vs 5xx handling
--   Telemetry: existing constants only; new constant added centrally if required
--   Cosmos operations idempotent / duplicate-safe
--   Queue/event emission includes correlation IDs
--   Tests: happy path + invalid input + (if side-effects) idempotency repeat
--   Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
+- Name `<Trigger><Action>` (e.g. `HttpMovePlayer`)
+- Trigger binding & auth level appropriate
+- Input validation (shared validators) + clear 4xx vs 5xx handling
+- Telemetry: existing constants only; new constant added centrally if required
+- Cosmos operations idempotent / duplicate-safe
+- Queue/event emission includes correlation IDs
+- Tests: happy path + invalid input + (if side-effects) idempotency repeat
+- Risk tag (likely RUNTIME-BEHAVIOR or INFRA) added in plan
 
 ### A.6 Refactor Safety Sequence
 
@@ -654,7 +650,7 @@ Then it returns 400 (invalid: no starting location) and emits no world event
 ### A.7 Self QA Footer (copy)
 
 ```
-Self QA: Build PASS | Lint PASS | Tests 12/12 | Edge Cases Covered yes | Assumptions Logged yes
+Self QA: Build PASS | Lint PASS | Typecheck PASS | Tests 12/12 | Edge Cases Covered yes | Assumptions Logged yes
 ```
 
 ### A.8 Risk Tag Quick Reference
@@ -671,8 +667,8 @@ The agent may read & edit files, run tests/lint, and present unified diffs; it m
 
 Approval signals (any of):
 
--   Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
--   User asks for a PR / pull request explicitly.
+- Explicit phrase: `stage now`, `commit now`, `apply and commit`, `open PR`.
+- User asks for a PR / pull request explicitly.
 
 Behavior by default (no approval present):
 
@@ -682,8 +678,8 @@ Behavior by default (no approval present):
 
 Escalation exceptions (still require explicit confirmation unless user inactive >1 interaction):
 
--   Hotfix: security/license violation or broken main build introduced by previous agent edit.
--   Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
+- Hotfix: security/license violation or broken main build introduced by previous agent edit.
+- Data loss prevention: revert obviously destructive accidental change (provide diff first if possible).
 
 Prohibited without approval: staging, committing, force-pushing, branch deletion.
 
@@ -722,17 +718,17 @@ If logs are expired / inaccessible (e.g., artifact retention lapsed), explicitly
 
 Secrets / Tokens:
 
--   Never echo raw secret values.
--   Diagnostics must use only: source, preflight result, length (redacted), and optionally first/last chars redacted if absolutely necessary (avoid unless explicitly requested for debugging).
+- Never echo raw secret values.
+- Diagnostics must use only: source, preflight result, length (redacted), and optionally first/last chars redacted if absolutely necessary (avoid unless explicitly requested for debugging).
 
 Prohibited Without Logs:
 
--   Broad refactors presented as “likely” fixes.
--   Multi‑file edits addressing hypothetical causes.
+- Broad refactors presented as “likely” fixes.
+- Multi‑file edits addressing hypothetical causes.
 
 Fast Path Heuristic:
 
--   If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
+- If an error class is already well‑characterized earlier in the same session (identical signature) and logs were captured, you may reference that prior evidence instead of refetching, but must link to the original run ID.
 
 Rationale:
 This codifies a “logs-first, patch-second” discipline prompted by prior wasted cycles where guessing preceded log retrieval.
@@ -750,12 +746,12 @@ Epic Issue: Organizational/coordination issue containing no implementation accep
 
 ### 17.2 Atomicity Heuristics (Failing ≥2 ⇒ Split)
 
--   Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
--   Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
--   Follow-up checklist >5 items or mixes runtime + infra + docs
--   Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
--   Requires more than one new Azure Function OR more than one new script
--   Adds both telemetry enumeration and feature logic simultaneously
+- Multiple distinct verbs / artifacts (e.g., "add helper + scanner + telemetry" )
+- Contains both design/spec authoring AND implementation acceptance in same body (non‑trivial)
+- Follow-up checklist >5 items or mixes runtime + infra + docs
+- Mentions “Stage”, “Phase”, “Groundwork”, or “Program” with implementation details
+- Requires more than one new Azure Function OR more than one new script
+- Adds both telemetry enumeration and feature logic simultaneously
 
 ### 17.3 Required Fields (Atomic Issue Template)
 
@@ -807,23 +803,23 @@ else:
 
 ### 17.6 Labeling Rules for Generated Issues
 
--   Exactly one `scope:*` label (reuse existing taxonomy Section 8)
--   Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
--   Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
--   Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
+- Exactly one `scope:*` label (reuse existing taxonomy Section 8)
+- Exactly one type label (atomic issues only): choose among `feature|enhancement|infra|docs|test|refactor|spike`
+- Epics use label `epic` only (no additional type like feature/enhancement) plus exactly one scope label
+- Child issues must not reuse “Phase/Stage” wording; keep titles imperative & specific
 
 ### 17.7 Prioritization Guidance
 
--   If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
--   Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
--   Avoid reshuffling active work unless a dependency block emerges.
--   If user specifies priority (e.g., “high priority telemetry”), reflect in Epic child checklist order.
--   If an issue blocks or is blocked by another issue, you must create that blocking relationship via GitHub API (see Section 8.2).
+- If user does not specify priority, default order: core data → essential logic → instrumentation → docs → optimization.
+- Do NOT invent numeric ordering fields; rely on milestone + dependency notes.
+- Avoid reshuffling active work unless a dependency block emerges.
+- If user specifies priority (e.g., “high priority telemetry”), reflect in Epic child checklist order.
+- If an issue blocks or is blocked by another issue, you must create that blocking relationship via GitHub API (see Section 8.2).
 
 ### 17.8 Telemetry & Security Separation When Splitting
 
--   Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
--   Security hardening (rate limits, secret rules) separated from functional feature increments.
+- Telemetry enumeration (adding event names) is its own issue distinct from feature behavior using them.
+- Security hardening (rate limits, secret rules) separated from functional feature increments.
 
 ### 17.9 DO / DO NOT
 
@@ -846,11 +842,11 @@ When the user requests issue creation for a broad feature:
 
 Each generated issue must:
 
--   Have ≤10 acceptance checkboxes
--   Contain ≤1 risk tag
--   Contain at least 1 edge case
--   Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
--   Not define more than one new function trigger or script
+- Have ≤10 acceptance checkboxes
+- Contain ≤1 risk tag
+- Contain at least 1 edge case
+- Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
+- Not define more than one new function trigger or script
 
 ### 17.13 Rationale
 
@@ -888,20 +884,20 @@ Purpose: Enforce clear altitude-based documentation layers where each layer serv
 
 **Allowed (Design Modules - 40k ft)**:
 
--   Gameplay mechanics and experiential rules
--   Player-facing systemic invariants (exit directions, dungeon logic)
--   Narrative voice and tone guidelines
--   Cross-module integration contracts
--   Rationale for immutable gameplay constraints
+- Gameplay mechanics and experiential rules
+- Player-facing systemic invariants (exit directions, dungeon logic)
+- Narrative voice and tone guidelines
+- Cross-module integration contracts
+- Rationale for immutable gameplay constraints
 
 **Prohibited (Design Modules)**:
 
--   Implementation sequencing (milestones, sprints, backlogs) → use `docs/roadmap.md` (Layer 5)
--   Technical architecture details (Cosmos partitions, function triggers) → use `docs/architecture/` (Layer 4)
--   Telemetry enumeration plans → use `docs/observability.md`
--   Performance tuning specifics → use ADRs or architecture docs
--   Unvalidated speculative systems (archive separately)
--   Inline acceptance criteria / task checklists
+- Implementation sequencing (milestones, sprints, backlogs) → use `docs/roadmap.md` (Layer 5)
+- Technical architecture details (Cosmos partitions, function triggers) → use `docs/architecture/` (Layer 4)
+- Telemetry enumeration plans → use `docs/observability.md`
+- Performance tuning specifics → use ADRs or architecture docs
+- Unvalidated speculative systems (archive separately)
+- Inline acceptance criteria / task checklists
 
 **Concept Subfolder**: `docs/concept/` contains detailed invariants for specific domains (exits, dungeons, direction resolution, DM persona). These feed into Design Modules but maintain granular detail.
 
@@ -923,16 +919,16 @@ Use relative links referencing filenames; never paste large blocks across layers
 
 **Examples**:
 
--   ✔ `See gameplay invariants in ../design-modules/README.md#navigation`
--   ✔ `Refer to WAF alignment in ../tenets.md#reliability`
--   ✔ `Implementation details in ../../backend/src/functions/player.ts`
--   ✘ Copying the exit direction table from design-modules into architecture
--   ✘ Duplicating WAF pillar descriptions in multiple files
+- ✔ `See gameplay invariants in ../design-modules/README.md#navigation`
+- ✔ `Refer to WAF alignment in ../tenets.md#reliability`
+- ✔ `Implementation details in ../../backend/src/functions/player.ts`
+- ✘ Copying the exit direction table from design-modules into architecture
+- ✘ Duplicating WAF pillar descriptions in multiple files
 
 **Navigation Shortcuts**:
 
--   README.md → Vision (60k ft) → links to all lower layers
--   Each layer doc includes "Related Documentation" table with altitude context
+- README.md → Vision (60k ft) → links to all lower layers
+- Each layer doc includes "Related Documentation" table with altitude context
 
 ### 18.5 Agent Workflow Before Editing Docs
 
@@ -949,21 +945,21 @@ Input path →
 
 PRE-EDIT CHECKLIST (Agent):
 
--   Identify layer from path (use table in 18.1)
--   Search for prohibited verbs (case-insensitive) if Design Modules/Concept layer
--   Confirm no milestone tables inside Design Modules or Concept
--   If adding new gameplay invariant → prepare atomic issue (automation will detect)
--   If editing Tenets → run dry diff, ensure WAF pillar cited
--   Verify no cross-layer content duplication
+- Identify layer from path (use table in 18.1)
+- Search for prohibited verbs (case-insensitive) if Design Modules/Concept layer
+- Confirm no milestone tables inside Design Modules or Concept
+- If adding new gameplay invariant → prepare atomic issue (automation will detect)
+- If editing Tenets → run dry diff, ensure WAF pillar cited
+- Verify no cross-layer content duplication
 
 ### 18.6 Automation Integration
 
 The script `scripts/generate-concept-issues.mjs` + workflow `concept-issue-generator.yml` enforce detection for:
 
--   InvariantAdded / InvariantRemoved
--   SystemScopeExpanded (new headings)
--   TenetAddedOrModified
--   CrossFacetLeak (planning verbs)
+- InvariantAdded / InvariantRemoved
+- SystemScopeExpanded (new headings)
+- TenetAddedOrModified
+- CrossFacetLeak (planning verbs)
 
 Opt‑out for benign editorial edits: add `<!-- concept-automation:ignore -->` to the changed line.
 
@@ -971,23 +967,23 @@ Opt‑out for benign editorial edits: add `<!-- concept-automation:ignore -->` t
 
 Create / update an ADR when a change:
 
--   Alters persistence schema expectations (new vertex/edge category)
--   Modifies traversal rules impacting existing function validation
--   Introduces cross-system dependency (economy influencing dungeon seed logic)
--   Changes a core tenet tradeoff (security, reliability, cost, performance)
--   Impacts partition strategy or dual persistence model
+- Alters persistence schema expectations (new vertex/edge category)
+- Modifies traversal rules impacting existing function validation
+- Introduces cross-system dependency (economy influencing dungeon seed logic)
+- Changes a core tenet tradeoff (security, reliability, cost, performance)
+- Impacts partition strategy or dual persistence model
 
 ### 18.8 Review Heuristics (PR Level)
 
 Reviewer / Agent should confirm:
 
--   Design Module/Concept diffs contain no planning verbs or issue sequencing
--   Roadmap changes do not re-declare gameplay invariants (link to Design Modules instead)
--   Architecture additions reference Design Modules/Concept but do not restate narrative tone
--   Tenet modifications include rationale line in PR description + WAF pillar citation
--   No duplication: same invariant table exists only once (Design Modules or Concept)
--   Vision changes cite external driver (user feedback, stakeholder input)
--   Examples synchronized with actual code, no fabricated implementations
+- Design Module/Concept diffs contain no planning verbs or issue sequencing
+- Roadmap changes do not re-declare gameplay invariants (link to Design Modules instead)
+- Architecture additions reference Design Modules/Concept but do not restate narrative tone
+- Tenet modifications include rationale line in PR description + WAF pillar citation
+- No duplication: same invariant table exists only once (Design Modules or Concept)
+- Vision changes cite external driver (user feedback, stakeholder input)
+- Examples synchronized with actual code, no fabricated implementations
 
 ### 18.9 Common Violations & Remedies
 
@@ -1004,21 +1000,21 @@ Reviewer / Agent should confirm:
 
 When editing documentation:
 
--   Abort adding implementation checklists to Design Modules/Concept
--   Suggest relocation for architecture or milestone content detected in wrong layer
--   Verify MECE: each change belongs to exactly one layer (mutually exclusive)
--   Confirm coverage: all content addressable through 7-layer hierarchy (collectively exhaustive)
+- Abort adding implementation checklists to Design Modules/Concept
+- Suggest relocation for architecture or milestone content detected in wrong layer
+- Verify MECE: each change belongs to exactly one layer (mutually exclusive)
+- Confirm coverage: all content addressable through 7-layer hierarchy (collectively exhaustive)
 
 ### 18.11 Definition of Done (Documentation Change)
 
--   MECE layer identified from path (use table 18.1)
--   No prohibited verbs in Design Modules/Concept layers
--   ADR linked if contract/persistence/tenet changed
--   WAF pillar cited if Tenets layer modified
--   Automation script would classify change correctly (dry run optional)
--   Diff minimal (only lines requiring semantic update)
--   Cross-references updated if paths changed
--   No cross-layer content duplication introduced
+- MECE layer identified from path (use table 18.1)
+- No prohibited verbs in Design Modules/Concept layers
+- ADR linked if contract/persistence/tenet changed
+- WAF pillar cited if Tenets layer modified
+- Automation script would classify change correctly (dry run optional)
+- Diff minimal (only lines requiring semantic update)
+- Cross-references updated if paths changed
+- No cross-layer content duplication introduced
 
 ### 18.12 Navigation Quick Reference
 
@@ -1032,11 +1028,11 @@ When editing documentation:
 
 ### 18.13 Future Enhancements (Non-Blocking)
 
--   Semantic similarity scan to prevent partial invariant duplication across layers
--   Automatic ADR stub creation when new vertex/edge pattern introduced
--   MECE compliance checker: verify each doc belongs to exactly one layer
--   Layer transition validator: ensure proper altitude progression in cross-references
--   Epic bundling if >3 related Design Module headings added in one PR
+- Semantic similarity scan to prevent partial invariant duplication across layers
+- Automatic ADR stub creation when new vertex/edge pattern introduced
+- MECE compliance checker: verify each doc belongs to exactly one layer
+- Layer transition validator: ensure proper altitude progression in cross-references
+- Epic bundling if >3 related Design Module headings added in one PR
 
 ---
 
