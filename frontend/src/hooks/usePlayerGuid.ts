@@ -26,9 +26,13 @@ export function usePlayerGuid(): PlayerGuidState {
     const [error, setError] = useState<string | null>(null)
     const [nonce, setNonce] = useState(0)
     const bootstrapInProgress = useRef(false)
+    const hasBootstrapped = useRef(false)
 
     useEffect(() => {
-        // Prevent concurrent bootstrap requests (React strict mode in dev runs effects twice)
+        // Prevent any bootstrap if we've already successfully completed one
+        if (hasBootstrapped.current) return
+
+        // Prevent concurrent bootstrap requests
         if (bootstrapInProgress.current) return
 
         let aborted = false
@@ -49,6 +53,7 @@ export function usePlayerGuid(): PlayerGuidState {
 
                 setPlayerGuid(result.playerGuid)
                 setCreated(result.created)
+                hasBootstrapped.current = true
             } catch (e) {
                 if (!aborted) {
                     setError(e instanceof Error ? e.message : 'Unknown error')
@@ -56,8 +61,8 @@ export function usePlayerGuid(): PlayerGuidState {
             } finally {
                 if (!aborted) {
                     setLoading(false)
-                    bootstrapInProgress.current = false
                 }
+                bootstrapInProgress.current = false
             }
         }
 
