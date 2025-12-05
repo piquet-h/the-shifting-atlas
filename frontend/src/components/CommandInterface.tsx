@@ -113,7 +113,28 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                 } else if (lower === 'look') {
                     // Generate correlation ID for look request
                     const correlationId = generateCorrelationId()
-                    const url = buildLocationUrl(currentLocationId)
+
+                    // If currentLocationId is not yet hydrated but playerGuid is available,
+                    // fetch the player's persisted location from the server first.
+                    // This handles the race condition after page refresh where hydration
+                    // hasn't completed yet.
+                    let locationToFetch = currentLocationId
+                    if (!locationToFetch && playerGuid) {
+                        try {
+                            const playerRes = await fetch(`/api/player/${playerGuid}`)
+                            const playerJson = await playerRes.json().catch(() => ({}))
+                            const playerData = unwrapEnvelope<{ id: string; currentLocationId?: string }>(playerJson)
+                            if (playerData?.data?.currentLocationId) {
+                                locationToFetch = playerData.data.currentLocationId
+                                // Update local state for future commands
+                                setCurrentLocationId(locationToFetch)
+                            }
+                        } catch {
+                            // Fall back to default (starter) location if player fetch fails
+                        }
+                    }
+
+                    const url = buildLocationUrl(locationToFetch)
                     const headers = buildHeaders({
                         ...buildCorrelationHeaders(correlationId)
                     })
@@ -121,7 +142,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     // Backend events will track processing outcome using the same correlationId
                     trackGameEventClient('UI.Location.Look', {
                         correlationId,
-                        locationId: currentLocationId || null
+                        locationId: locationToFetch || null
                     })
                     const res = await fetch(url, { headers })
                     const json = await res.json().catch(() => ({}))
@@ -148,6 +169,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     const moveRequest = buildMoveRequest(playerGuid, dir)
                     const headers = buildHeaders({
                         'Content-Type': 'application/json',
+                        'x-player-guid': playerGuid || '',
                         ...buildCorrelationHeaders(correlationId)
                     })
                     // Track UI event BEFORE request to capture user intent (dispatch time)
