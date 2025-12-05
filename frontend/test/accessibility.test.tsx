@@ -15,14 +15,16 @@
 import { renderToString } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-// Mock the hooks used by components
+// Mock the hooks used by components (PlayerContext uses usePlayerGuid internally)
 vi.mock('../src/hooks/usePlayerGuid', () => ({
     usePlayerGuid: () => ({
         playerGuid: null,
+        currentLocationId: null,
         loading: false,
         created: null,
         error: null,
-        refresh: () => {}
+        refresh: () => {},
+        updateCurrentLocationId: () => {}
     })
 }))
 

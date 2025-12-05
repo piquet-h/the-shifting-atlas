@@ -11,11 +11,12 @@ import { trackGameEventClient } from './telemetry'
 const STORAGE_KEY = 'tsa.playerGuid'
 
 /**
- * Bootstrap result with player GUID and creation status
+ * Bootstrap result with player GUID, creation status, and current location
  */
 export interface BootstrapResult {
     playerGuid: string
     created: boolean
+    currentLocationId: string
 }
 
 /**
@@ -67,7 +68,7 @@ export async function bootstrapPlayer(existingGuid?: string | null): Promise<Boo
         throw new Error('Invalid response format from bootstrap')
     }
 
-    const { playerGuid, created } = unwrapped.data
+    const { playerGuid, created, currentLocationId } = unwrapped.data
 
     // Persist new or confirmed GUID
     if (playerGuid !== existingGuid) {
@@ -79,5 +80,5 @@ export async function bootstrapPlayer(existingGuid?: string | null): Promise<Boo
         trackGameEventClient('Onboarding.GuestGuid.Created', { playerGuid })
     }
 
-    return { playerGuid, created }
+    return { playerGuid, created, currentLocationId }
 }

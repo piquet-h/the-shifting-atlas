@@ -1,6 +1,6 @@
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
-import { useCallback, useEffect, useState } from 'react'
-import { usePlayerGuid } from '../hooks/usePlayerGuid'
+import { useCallback, useState } from 'react'
+import { usePlayer } from '../contexts/PlayerContext'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
@@ -22,36 +22,14 @@ interface CommandInterfaceProps {
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
 export default function CommandInterface({ className, availableExits = [] }: CommandInterfaceProps): React.ReactElement {
-    const { playerGuid, loading: guidLoading, error: guidError } = usePlayerGuid()
+    // Use PlayerContext for playerGuid and currentLocationId (no redundant API calls)
+    const { playerGuid, currentLocationId, loading: guidLoading, error: guidError, updateCurrentLocationId } = usePlayer()
     const [history, setHistory] = useState<CommandRecord[]>([])
     const [busy, setBusy] = useState(false)
-    const [currentLocationId, setCurrentLocationId] = useState<string | undefined>(undefined)
     const [commandHistory, setCommandHistory] = useState<string[]>([])
 
-    // currentLocationId tracked for UI display only (not persisted)
-    // Server reads player.currentLocationId from database for authoritative state
-
-    // On mount or when playerGuid is resolved, hydrate currentLocationId from backend
-    useEffect(() => {
-        let aborted = false
-        const hydrate = async () => {
-            try {
-                if (!playerGuid) return
-                const res = await fetch(`/api/player/${playerGuid}`)
-                const json = await res.json().catch(() => ({}))
-                const unwrapped = unwrapEnvelope<{ id: string; currentLocationId?: string }>(json)
-                if (!aborted && unwrapped?.data?.currentLocationId) {
-                    setCurrentLocationId(unwrapped.data.currentLocationId)
-                }
-            } catch {
-                // ignore – command flow will still work using starter location on first look
-            }
-        }
-        hydrate()
-        return () => {
-            aborted = true
-        }
-    }, [playerGuid])
+    // currentLocationId now comes from PlayerContext
+    // No separate hydration useEffect needed
 
     const runCommand = useCallback(
         async (raw: string) => {
@@ -114,25 +92,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     // Generate correlation ID for look request
                     const correlationId = generateCorrelationId()
 
-                    // If currentLocationId is not yet hydrated but playerGuid is available,
-                    // fetch the player's persisted location from the server first.
-                    // This handles the race condition after page refresh where hydration
-                    // hasn't completed yet.
-                    let locationToFetch = currentLocationId
-                    if (!locationToFetch && playerGuid) {
-                        try {
-                            const playerRes = await fetch(`/api/player/${playerGuid}`)
-                            const playerJson = await playerRes.json().catch(() => ({}))
-                            const playerData = unwrapEnvelope<{ id: string; currentLocationId?: string }>(playerJson)
-                            if (playerData?.data?.currentLocationId) {
-                                locationToFetch = playerData.data.currentLocationId
-                                // Update local state for future commands
-                                setCurrentLocationId(locationToFetch)
-                            }
-                        } catch {
-                            // Fall back to default (starter) location if player fetch fails
-                        }
-                    }
+                    // Use currentLocationId from context (no separate fetch needed)
+                    const locationToFetch = currentLocationId
 
                     const url = buildLocationUrl(locationToFetch)
                     const headers = buildHeaders({
@@ -153,7 +114,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     } else {
                         const loc = unwrapped.data
                         if (loc) {
-                            setCurrentLocationId(loc.id)
+                            updateCurrentLocationId(loc.id)
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
@@ -192,7 +153,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     } else {
                         const loc = unwrapped.data
                         if (loc) {
-                            setCurrentLocationId(loc.id)
+                            updateCurrentLocationId(loc.id)
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
@@ -219,7 +180,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                 })
             }
         },
-        [playerGuid, currentLocationId]
+        [playerGuid, currentLocationId, updateCurrentLocationId]
     )
 
     return (

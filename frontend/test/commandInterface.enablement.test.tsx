@@ -4,19 +4,22 @@ import { describe, expect, it, vi } from 'vitest'
 // Mutable state object used by the mocked hook
 const mockState = {
     playerGuid: null as string | null,
+    currentLocationId: null as string | null,
     loading: false,
     created: null as boolean | null,
     error: null as string | null
 }
 
-// Hoisted mock: always reads latest values from mockState when component renders
-vi.mock('../src/hooks/usePlayerGuid', () => ({
-    usePlayerGuid: () => ({
+// Hoisted mock: mock the PlayerContext's usePlayer hook
+vi.mock('../src/contexts/PlayerContext', () => ({
+    usePlayer: () => ({
         playerGuid: mockState.playerGuid,
+        currentLocationId: mockState.currentLocationId,
         loading: mockState.loading,
         created: mockState.created,
         error: mockState.error,
-        refresh: () => {}
+        refresh: () => {},
+        updateCurrentLocationId: () => {}
     })
 }))
 

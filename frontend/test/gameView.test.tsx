@@ -18,18 +18,23 @@ import { PlayerProvider } from '../src/contexts/PlayerContext'
 // Mock state for usePlayerGuid hook
 const mockGuidState = {
     playerGuid: null as string | null,
+    currentLocationId: null as string | null,
     loading: false,
     error: null as string | null
 }
 
-// Mock usePlayerGuid hook
+// Mock usePlayerGuid hook (used by PlayerContext internally)
 vi.mock('../src/hooks/usePlayerGuid', () => ({
     usePlayerGuid: () => ({
         playerGuid: mockGuidState.playerGuid,
+        currentLocationId: mockGuidState.currentLocationId,
         loading: mockGuidState.loading,
         created: null,
         error: mockGuidState.error,
-        refresh: () => {}
+        refresh: () => {},
+        updateCurrentLocationId: (id: string) => {
+            mockGuidState.currentLocationId = id
+        }
     })
 }))
 
@@ -65,6 +70,7 @@ describe('GameView Component', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         mockGuidState.playerGuid = null
+        mockGuidState.currentLocationId = null
         mockGuidState.loading = false
         mockGuidState.error = null
         mockIsDesktop = false

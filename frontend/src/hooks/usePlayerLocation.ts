@@ -2,20 +2,20 @@
  * usePlayerLocation
  * Fetches player's current location using TanStack Query.
  *
- * Handles the pattern:
- * 1. Fetch player state to get currentLocationId
- * 2. Fetch compiled location description with layers for that locationId
- * 3. Cache both for optimal performance
+ * Optimized pattern:
+ * - Uses currentLocationId from PlayerContext (already fetched at bootstrap)
+ * - Only fetches the compiled location description
+ * - No redundant player state fetch
  *
- * Benefits over manual useEffect:
- * - Automatic deduplication (multiple components can call safely)
- * - Smart caching (5 minute stale time)
+ * Benefits:
+ * - Single API call for location data
+ * - Smart caching (2 minute stale time)
  * - Loading/error states handled
- * - No manual ref guards needed
+ * - Automatic deduplication via TanStack Query
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useQuery } from '@tanstack/react-query'
-import { buildCompiledLocationUrl, buildHeaders, buildPlayerUrl } from '../utils/apiClient'
+import { buildCompiledLocationUrl, buildHeaders } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
@@ -32,37 +32,6 @@ export interface CompiledLocationResponse extends Omit<LocationResponse, 'descri
         layersApplied: string[]
         supersededSentences: number
     }
-}
-
-interface PlayerState {
-    currentLocationId?: string
-}
-
-/**
- * Fetch player state from API
- */
-async function fetchPlayerState(playerGuid: string): Promise<PlayerState> {
-    const correlationId = generateCorrelationId()
-    const res = await fetch(buildPlayerUrl(playerGuid), {
-        headers: buildHeaders({
-            ...buildCorrelationHeaders(correlationId)
-        })
-    })
-
-    if (!res.ok) {
-        const json = await res.json().catch(() => ({}))
-        const unwrapped = unwrapEnvelope(json)
-        throw new Error(extractErrorMessage(res, json, unwrapped))
-    }
-
-    const json = await res.json()
-    const unwrapped = unwrapEnvelope<PlayerState>(json)
-
-    if (!unwrapped.success || !unwrapped.data) {
-        throw new Error('Invalid player state response')
-    }
-
-    return unwrapped.data
 }
 
 /**
@@ -107,43 +76,35 @@ export interface UsePlayerLocationResult {
 
 /**
  * Hook to fetch player's current location with compiled description
- * @param playerGuid - Player GUID (null if not authenticated)
+ * @param currentLocationId - Current location ID from PlayerContext (null if not yet loaded)
  * @returns Location data with compiled description, loading state, and error
  */
-export function usePlayerLocation(playerGuid: string | null): UsePlayerLocationResult {
-    // Step 1: Fetch player state to get currentLocationId
-    const {
-        data: playerState,
-        isLoading: playerLoading,
-        error: playerError
-    } = useQuery({
-        queryKey: ['player', playerGuid],
-        queryFn: () => fetchPlayerState(playerGuid!),
-        enabled: !!playerGuid,
-        staleTime: 5 * 60 * 1000, // 5 minutes - player state doesn't change often
-        retry: 1,
-        refetchOnMount: false, // Don't refetch on component remount
-        refetchOnWindowFocus: false // Don't refetch when tab gains focus
-    })
-
-    // Step 2: Fetch location details (depends on player state)
+export function usePlayerLocation(currentLocationId: string | null): UsePlayerLocationResult {
+    // Fetch location details - no separate player fetch needed
+    // currentLocationId comes from PlayerContext which already has it from bootstrap
     const {
         data: location,
         isLoading: locationLoading,
+        isFetching,
         error: locationError,
         refetch
     } = useQuery({
-        queryKey: ['location', playerState?.currentLocationId || 'starter'],
-        queryFn: () => fetchLocation(playerState?.currentLocationId),
-        enabled: !playerLoading && !playerError, // Only fetch after player state loads
+        queryKey: ['location', currentLocationId || 'starter'],
+        queryFn: () => fetchLocation(currentLocationId || undefined),
+        enabled: !!currentLocationId,
         staleTime: 2 * 60 * 1000, // 2 minutes - locations can change more frequently
         retry: 1
     })
 
+    // Consider loading if:
+    // 1. currentLocationId is not yet available (context still loading)
+    // 2. Query is loading or fetching
+    const isLoading = !currentLocationId || locationLoading || isFetching
+
     return {
         location: location || null,
-        isLoading: playerLoading || locationLoading,
-        error: (playerError as Error)?.message || (locationError as Error)?.message || null,
+        isLoading,
+        error: (locationError as Error)?.message || null,
         refetch
     }
 }

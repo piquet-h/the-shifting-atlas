@@ -58,6 +58,7 @@ describe('playerService', () => {
     describe('bootstrapPlayer', () => {
         it('should bootstrap new player when no existing GUID', async () => {
             const newGuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+            const locationId = 'a7e3f8c0-1234-4abc-9def-1234567890ab'
 
             // Override MSW handler for this test
             server.use(
@@ -66,14 +67,15 @@ describe('playerService', () => {
                         success: true,
                         data: {
                             playerGuid: newGuid,
-                            created: true
+                            created: true,
+                            currentLocationId: locationId
                         }
                     })
                 })
             )
             const result = await bootstrapPlayer(null)
 
-            expect(result).toEqual({ playerGuid: newGuid, created: true })
+            expect(result).toEqual({ playerGuid: newGuid, created: true, currentLocationId: locationId })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Created', { playerGuid: newGuid })
             expect(localStorage.writeToStorage).toHaveBeenCalledWith('tsa.playerGuid', newGuid)
@@ -81,6 +83,7 @@ describe('playerService', () => {
 
         it('should confirm existing GUID when provided', async () => {
             const existingGuid = '12345678-1234-1234-1234-123456789abc'
+            const locationId = 'a7e3f8c0-1234-4abc-9def-1234567890ab'
 
             server.use(
                 http.get('/api/player', () => {
@@ -88,14 +91,15 @@ describe('playerService', () => {
                         success: true,
                         data: {
                             playerGuid: existingGuid,
-                            created: false
+                            created: false,
+                            currentLocationId: locationId
                         }
                     })
                 })
             )
             const result = await bootstrapPlayer(existingGuid)
 
-            expect(result).toEqual({ playerGuid: existingGuid, created: false })
+            expect(result).toEqual({ playerGuid: existingGuid, created: false, currentLocationId: locationId })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
             expect(telemetry.trackGameEventClient).not.toHaveBeenCalledWith('Onboarding.GuestGuid.Created', expect.any(Object))
             expect(localStorage.writeToStorage).not.toHaveBeenCalled()

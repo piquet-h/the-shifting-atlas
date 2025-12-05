@@ -337,10 +337,11 @@ function CommandHistoryPanel({
 export default function GameView({ className }: GameViewProps): React.ReactElement {
     const isDesktop = useMediaQuery('(min-width: 768px)')
     const queryClient = useQueryClient()
-    const { playerGuid } = usePlayer()
+    const { playerGuid, currentLocationId, updateCurrentLocationId } = usePlayer()
 
     // Fetch player's current location using TanStack Query
-    const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(playerGuid)
+    // Uses currentLocationId from context (already fetched at bootstrap)
+    const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(currentLocationId)
 
     // Player stats (placeholder until real API)
     const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
@@ -448,25 +449,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             return { previousPlayerStats, direction }
         },
         onSuccess: (newLocation) => {
-            // Update cache optimistically with new location ID to avoid race condition
-            // The backend has already updated the player's currentLocationId, but Cosmos DB
-            // propagation can be slower than the query refetch, causing the old location to load
-            queryClient.setQueryData(['player', playerGuid], (old: unknown) => {
-                if (old && typeof old === 'object' && 'currentLocationId' in old) {
-                    return {
-                        ...old,
-                        currentLocationId: newLocation.id
-                    }
-                }
-                return old
-            })
+            // Update context's currentLocationId immediately
+            // This ensures all components using PlayerContext see the new location
+            updateCurrentLocationId(newLocation.id)
 
-            // Invalidate queries to trigger refetch with new server state
-            // Small delay to allow Cosmos DB write to propagate
-            setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ['player', playerGuid] })
-                queryClient.invalidateQueries({ queryKey: ['location'] })
-            }, 100)
+            // Invalidate location query to refetch with new location data
+            queryClient.invalidateQueries({ queryKey: ['location'] })
 
             // Update player stats with actual new location
             setPlayerStats((prev) => ({

@@ -13,14 +13,18 @@ import { bootstrapPlayer, getStoredPlayerGuid } from '../services/playerService'
 
 export interface PlayerGuidState {
     playerGuid: string | null
+    currentLocationId: string | null
     loading: boolean
     created: boolean | null // null until first response
     error: string | null
     refresh: () => void // force re-run bootstrap (rare)
+    /** Update currentLocationId after navigation (called by move mutation) */
+    updateCurrentLocationId: (locationId: string) => void
 }
 
 export function usePlayerGuid(): PlayerGuidState {
     const [playerGuid, setPlayerGuid] = useState<string | null>(null)
+    const [currentLocationId, setCurrentLocationId] = useState<string | null>(null)
     const [created, setCreated] = useState<boolean | null>(null)
     const [loading, setLoading] = useState<boolean>(true)
     const [error, setError] = useState<string | null>(null)
@@ -52,6 +56,7 @@ export function usePlayerGuid(): PlayerGuidState {
                 if (aborted) return
 
                 setPlayerGuid(result.playerGuid)
+                setCurrentLocationId(result.currentLocationId)
                 setCreated(result.created)
                 hasBootstrapped.current = true
             } catch (e) {
@@ -77,7 +82,11 @@ export function usePlayerGuid(): PlayerGuidState {
         setNonce((n) => n + 1)
     }, [])
 
-    return { playerGuid, loading, created, error, refresh }
+    const updateCurrentLocationId = useCallback((locationId: string) => {
+        setCurrentLocationId(locationId)
+    }, [])
+
+    return { playerGuid, currentLocationId, loading, created, error, refresh, updateCurrentLocationId }
 }
 
 export default usePlayerGuid
