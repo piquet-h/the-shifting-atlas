@@ -266,7 +266,7 @@ export class MoveHandler extends BaseHandler {
             try {
                 const player = await this.playerRepo.get(this.playerGuid)
                 if (!player) {
-                    // Player document missing - this is a critical error, move should fail
+                    // Player document missing - CRITICAL ERROR, fail the move
                     this.track('Player.Update', {
                         playerId: this.playerGuid,
                         success: false,
@@ -279,10 +279,8 @@ export class MoveHandler extends BaseHandler {
                         latencyMs: Date.now() - started
                     }
                 }
-
                 player.currentLocationId = result.location.id
                 await this.playerRepo.update(player)
-
                 // Emit success telemetry for persistence
                 this.track('Player.Update', {
                     playerId: this.playerGuid,
@@ -291,7 +289,7 @@ export class MoveHandler extends BaseHandler {
                     latencyMs: Date.now() - started
                 })
             } catch (error) {
-                // Update failed - move should fail to maintain consistency
+                // Update failed - FAIL THE MOVE
                 this.track('Player.Update', {
                     playerId: this.playerGuid,
                     success: false,

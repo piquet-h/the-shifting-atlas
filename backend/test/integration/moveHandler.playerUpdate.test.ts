@@ -177,9 +177,10 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         const ctx = await createMockContext(fixture)
         await handler.handle(mockRequest, ctx)
 
-        // Move should still succeed (stateless operation)
+        // Move should fail if player is missing (fail-fast consistency)
         const result = await handler.performMove(mockRequest)
-        assert.strictEqual(result.success, true, 'move should succeed even if player update fails')
-        assert.ok(result.location, 'should return new location')
+        assert.strictEqual(result.success, false, 'move should fail if player update fails')
+        assert.ok(result.error, 'should return error object')
+        assert.strictEqual(result.error?.reason, 'player-not-found', 'error reason should be player-not-found')
     })
 })
