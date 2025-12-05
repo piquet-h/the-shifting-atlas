@@ -58,7 +58,7 @@ describe('playerService', () => {
     describe('bootstrapPlayer', () => {
         it('should bootstrap new player when no existing GUID', async () => {
             const newGuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-            
+
             // Override MSW handler for this test
             server.use(
                 http.get('/api/player', () => {
@@ -70,7 +70,8 @@ describe('playerService', () => {
                         }
                     })
                 })
-            )            const result = await bootstrapPlayer(null)
+            )
+            const result = await bootstrapPlayer(null)
 
             expect(result).toEqual({ playerGuid: newGuid, created: true })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
@@ -80,7 +81,7 @@ describe('playerService', () => {
 
         it('should confirm existing GUID when provided', async () => {
             const existingGuid = '12345678-1234-1234-1234-123456789abc'
-            
+
             server.use(
                 http.get('/api/player', () => {
                     return HttpResponse.json({
@@ -91,7 +92,8 @@ describe('playerService', () => {
                         }
                     })
                 })
-            )            const result = await bootstrapPlayer(existingGuid)
+            )
+            const result = await bootstrapPlayer(existingGuid)
 
             expect(result).toEqual({ playerGuid: existingGuid, created: false })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')

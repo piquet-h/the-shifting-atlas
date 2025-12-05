@@ -362,6 +362,14 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         return { direction, available }
     })
 
+    // Build available exits with descriptions for NavigationUI
+    const availableExitsWithHints = React.useMemo(() => {
+        return (location?.exits || []).map((exit) => ({
+            direction: exit.direction as Direction,
+            description: exit.description
+        }))
+    }, [location?.exits])
+
     // Extract available exit directions for autocomplete
     const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
 
@@ -517,7 +525,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         {/* Navigation UI for authenticated users */}
                         {playerGuid && (
                             <NavigationUI
-                                availableExits={availableExitDirections}
+                                availableExits={availableExitsWithHints}
                                 onNavigate={handleNavigate}
                                 disabled={navigateMutation.isPending}
                             />
@@ -550,7 +558,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
                         <NavigationUI
-                            availableExits={availableExitDirections}
+                            availableExits={availableExitsWithHints}
                             onNavigate={handleNavigate}
                             disabled={navigateMutation.isPending}
                         />

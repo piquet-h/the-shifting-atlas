@@ -48,7 +48,7 @@ export interface LocationResponse {
     id: string
     name: string
     description: string
-    exits?: Array<{ direction: string }>
+    exits?: Array<{ direction: string; description?: string }>
     latencyMs?: number
     metadata?: {
         exitsSummaryCache?: string

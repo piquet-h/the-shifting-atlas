@@ -27,7 +27,7 @@ export interface MoveValidationError {
 
 export interface MoveResult {
     success: boolean
-    location?: { id: string; name: string; description: string; exits?: { direction: string }[] }
+    location?: { id: string; name: string; description: string; exits?: { direction: string; description?: string }[] }
     error?: MoveValidationError
     latencyMs: number
 }
