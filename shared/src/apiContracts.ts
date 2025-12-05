@@ -72,3 +72,51 @@ export type MoveResponse = LocationResponse
 
 /** GET /api/location or GET /api/location/{locationId} - Location details */
 export type LocationLookResponse = LocationResponse
+
+// ============================================================================
+// Header Contract Definitions
+// ============================================================================
+
+/**
+ * Header names used across the API.
+ * Use these constants instead of string literals to prevent typos and ensure
+ * frontend/backend stay in sync.
+ */
+export const API_HEADERS = {
+    /** Player identifier header - REQUIRED for player-specific operations */
+    PLAYER_GUID: 'x-player-guid',
+    /** Request correlation ID for distributed tracing */
+    CORRELATION_ID: 'x-correlation-id',
+    /** Standard content type header */
+    CONTENT_TYPE: 'Content-Type'
+} as const
+
+/**
+ * Validates that a headers object meets the move request contract.
+ * Use this in tests to verify header compliance.
+ *
+ * CRITICAL: The backend MoveHandler requires x-player-guid to persist
+ * player location after a move. Without it, moves succeed but location
+ * is not saved.
+ */
+export function validateMoveHeaders(headers: Record<string, string | undefined>): {
+    valid: boolean
+    errors: string[]
+} {
+    const errors: string[] = []
+
+    if (!headers[API_HEADERS.PLAYER_GUID]) {
+        errors.push('Missing required header: x-player-guid')
+    } else if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(headers[API_HEADERS.PLAYER_GUID]!)) {
+        errors.push('Invalid x-player-guid format: must be a valid UUID')
+    }
+
+    if (headers[API_HEADERS.CONTENT_TYPE] !== 'application/json') {
+        errors.push('Content-Type must be application/json')
+    }
+
+    return {
+        valid: errors.length === 0,
+        errors
+    }
+}
