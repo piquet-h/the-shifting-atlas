@@ -29,6 +29,9 @@ export interface DescriptionLayer {
 
     /** ISO 8601 timestamp when layer was authored/created */
     authoredAt: string
+
+    /** Optional attributes for filtering and superseding (weatherType, timeBucket, supersedes, etc.) */
+    attributes?: Record<string, unknown>
 }
 
 /**
