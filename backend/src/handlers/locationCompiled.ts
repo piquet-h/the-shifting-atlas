@@ -113,7 +113,10 @@ export class LocationCompiledDescriptionHandler extends BaseHandler {
                 name: location.name,
                 compiledDescription: compiled.text,
                 compiledDescriptionHtml: compiled.html,
-                exits: (location.exits || []).map((e) => e.direction),
+                exits: (location.exits || []).map((e) => ({
+                    direction: e.direction,
+                    description: e.description
+                })),
                 provenance: {
                     compiledAt: compiled.provenance.compiledAt,
                     layersApplied: compiled.provenance.layers.map((l) => l.layerType),

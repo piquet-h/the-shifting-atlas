@@ -17,9 +17,15 @@ import React, { useCallback, useEffect } from 'react'
 /** Direction type matching shared domain models */
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
 
+/** Exit information including optional hint text */
+interface ExitInfo {
+    direction: Direction
+    description?: string
+}
+
 interface NavigationUIProps {
-    /** Available exit directions for the current location */
-    availableExits: Direction[]
+    /** Available exits with optional descriptions */
+    availableExits: ExitInfo[]
     /** Callback invoked when user selects a direction */
     onNavigate: (direction: Direction) => void
     /** Whether navigation is currently disabled (e.g., during command execution) */
@@ -62,19 +68,20 @@ const DIRECTION_CONFIGS: DirectionConfig[] = [
 
 /**
  * DirectionButton
- * Individual button for a single direction with visual feedback.
+ * Individual button for a single direction with visual feedback and optional hint text.
  */
 function DirectionButton({
     config,
-    available,
+    exitInfo,
     disabled,
     onClick
 }: {
     config: DirectionConfig
-    available: boolean
+    exitInfo?: ExitInfo
     disabled: boolean
     onClick: () => void
 }): React.ReactElement {
+    const available = !!exitInfo
     const buttonEnabled = available && !disabled
 
     return (
@@ -96,6 +103,11 @@ function DirectionButton({
         >
             <span className="text-base sm:text-lg font-semibold">{config.shortLabel}</span>
             <span className="text-[10px] sm:text-xs mt-0.5 hidden sm:block">{config.label}</span>
+            {exitInfo?.description && (
+                <span className="text-[10px] text-emerald-200/80 mt-1 italic line-clamp-1" title={exitInfo.description}>
+                    {exitInfo.description}
+                </span>
+            )}
         </button>
     )
 }
@@ -105,6 +117,15 @@ function DirectionButton({
  * Main component rendering direction buttons in a logical grid layout.
  */
 export default function NavigationUI({ availableExits, onNavigate, disabled = false, className }: NavigationUIProps): React.ReactElement {
+    // Build exit map for quick lookup: direction -> ExitInfo
+    const exitMap = React.useMemo(() => {
+        const map = new Map<Direction, ExitInfo>()
+        availableExits.forEach((exit) => {
+            map.set(exit.direction, exit)
+        })
+        return map
+    }, [availableExits])
+
     // Build keyboard mapping: key -> direction
     const keyMap = React.useMemo(() => {
         const map = new Map<string, Direction>()
@@ -131,12 +152,12 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
             }
 
             const direction = keyMap.get(event.key)
-            if (direction && availableExits.includes(direction) && !disabled) {
+            if (direction && exitMap.has(direction) && !disabled) {
                 event.preventDefault() // Prevent browser default (e.g., page scroll)
                 onNavigate(direction)
             }
         },
-        [keyMap, availableExits, onNavigate, disabled]
+        [keyMap, exitMap, onNavigate, disabled]
     )
 
     // Register keyboard event listener
@@ -151,6 +172,9 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
     const verticals = DIRECTION_CONFIGS.filter((c) => c.group === 'vertical')
     const radials = DIRECTION_CONFIGS.filter((c) => c.group === 'radial')
 
+    // Check if there are no exits at all
+    const hasNoExits = availableExits.length === 0
+
     return (
         <section
             className={['rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5', className].filter(Boolean).join(' ')}
@@ -160,94 +184,100 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
                 Navigate
             </h3>
 
-            {/* Cardinal & Intercardinal Directions - 3x3 Grid */}
-            <div className="mb-3" role="group" aria-label="Cardinal and intercardinal directions">
-                <div className="grid grid-cols-3 gap-2 max-w-[300px] mx-auto">
-                    {/* Row 1: NW, N, NE */}
-                    <DirectionButton
-                        config={intercardinals.find((c) => c.direction === 'northwest')!}
-                        available={availableExits.includes('northwest')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('northwest')}
-                    />
-                    <DirectionButton
-                        config={cardinals.find((c) => c.direction === 'north')!}
-                        available={availableExits.includes('north')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('north')}
-                    />
-                    <DirectionButton
-                        config={intercardinals.find((c) => c.direction === 'northeast')!}
-                        available={availableExits.includes('northeast')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('northeast')}
-                    />
+            {hasNoExits ? (
+                <p className="text-responsive-sm text-amber-400 italic text-center py-4">No visible exits — this appears to be a dead end.</p>
+            ) : (
+                <>
+                    {/* Cardinal & Intercardinal Directions - 3x3 Grid */}
+                    <div className="mb-3" role="group" aria-label="Cardinal and intercardinal directions">
+                        <div className="grid grid-cols-3 gap-2 max-w-[300px] mx-auto">
+                            {/* Row 1: NW, N, NE */}
+                            <DirectionButton
+                                config={intercardinals.find((c) => c.direction === 'northwest')!}
+                                exitInfo={exitMap.get('northwest')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('northwest')}
+                            />
+                            <DirectionButton
+                                config={cardinals.find((c) => c.direction === 'north')!}
+                                exitInfo={exitMap.get('north')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('north')}
+                            />
+                            <DirectionButton
+                                config={intercardinals.find((c) => c.direction === 'northeast')!}
+                                exitInfo={exitMap.get('northeast')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('northeast')}
+                            />
 
-                    {/* Row 2: W, (center empty), E */}
-                    <DirectionButton
-                        config={cardinals.find((c) => c.direction === 'west')!}
-                        available={availableExits.includes('west')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('west')}
-                    />
-                    <div className="flex items-center justify-center text-slate-500 text-xs" aria-hidden="true">
-                        <span>◉</span>
+                            {/* Row 2: W, (center empty), E */}
+                            <DirectionButton
+                                config={cardinals.find((c) => c.direction === 'west')!}
+                                exitInfo={exitMap.get('west')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('west')}
+                            />
+                            <div className="flex items-center justify-center text-slate-500 text-xs" aria-hidden="true">
+                                <span>◉</span>
+                            </div>
+                            <DirectionButton
+                                config={cardinals.find((c) => c.direction === 'east')!}
+                                exitInfo={exitMap.get('east')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('east')}
+                            />
+
+                            {/* Row 3: SW, S, SE */}
+                            <DirectionButton
+                                config={intercardinals.find((c) => c.direction === 'southwest')!}
+                                exitInfo={exitMap.get('southwest')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('southwest')}
+                            />
+                            <DirectionButton
+                                config={cardinals.find((c) => c.direction === 'south')!}
+                                exitInfo={exitMap.get('south')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('south')}
+                            />
+                            <DirectionButton
+                                config={intercardinals.find((c) => c.direction === 'southeast')!}
+                                exitInfo={exitMap.get('southeast')}
+                                disabled={disabled}
+                                onClick={() => onNavigate('southeast')}
+                            />
+                        </div>
                     </div>
-                    <DirectionButton
-                        config={cardinals.find((c) => c.direction === 'east')!}
-                        available={availableExits.includes('east')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('east')}
-                    />
 
-                    {/* Row 3: SW, S, SE */}
-                    <DirectionButton
-                        config={intercardinals.find((c) => c.direction === 'southwest')!}
-                        available={availableExits.includes('southwest')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('southwest')}
-                    />
-                    <DirectionButton
-                        config={cardinals.find((c) => c.direction === 'south')!}
-                        available={availableExits.includes('south')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('south')}
-                    />
-                    <DirectionButton
-                        config={intercardinals.find((c) => c.direction === 'southeast')!}
-                        available={availableExits.includes('southeast')}
-                        disabled={disabled}
-                        onClick={() => onNavigate('southeast')}
-                    />
-                </div>
-            </div>
+                    {/* Vertical & Radial Directions - Horizontal Row */}
+                    <div className="flex justify-center gap-2 flex-wrap" role="group" aria-label="Vertical and radial directions">
+                        {verticals.map((config) => (
+                            <DirectionButton
+                                key={config.direction}
+                                config={config}
+                                exitInfo={exitMap.get(config.direction)}
+                                disabled={disabled}
+                                onClick={() => onNavigate(config.direction)}
+                            />
+                        ))}
+                        {radials.map((config) => (
+                            <DirectionButton
+                                key={config.direction}
+                                config={config}
+                                exitInfo={exitMap.get(config.direction)}
+                                disabled={disabled}
+                                onClick={() => onNavigate(config.direction)}
+                            />
+                        ))}
+                    </div>
 
-            {/* Vertical & Radial Directions - Horizontal Row */}
-            <div className="flex justify-center gap-2 flex-wrap" role="group" aria-label="Vertical and radial directions">
-                {verticals.map((config) => (
-                    <DirectionButton
-                        key={config.direction}
-                        config={config}
-                        available={availableExits.includes(config.direction)}
-                        disabled={disabled}
-                        onClick={() => onNavigate(config.direction)}
-                    />
-                ))}
-                {radials.map((config) => (
-                    <DirectionButton
-                        key={config.direction}
-                        config={config}
-                        available={availableExits.includes(config.direction)}
-                        disabled={disabled}
-                        onClick={() => onNavigate(config.direction)}
-                    />
-                ))}
-            </div>
-
-            {/* Keyboard shortcut hint */}
-            <p className="mt-3 text-xs text-slate-400 text-center">
-                Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal directions
-            </p>
+                    {/* Keyboard shortcut hint */}
+                    <p className="mt-3 text-xs text-slate-400 text-center">
+                        Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal directions
+                    </p>
+                </>
+            )}
         </section>
     )
 }

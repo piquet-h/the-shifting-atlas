@@ -85,7 +85,8 @@ export class LocationLookHandler extends BaseHandler {
                 name: loc.name,
                 description: loc.description,
                 exits: (loc.exits || []).map((e) => ({
-                    direction: e.direction
+                    direction: e.direction,
+                    description: e.description
                 })),
                 metadata: {
                     exitsSummaryCache,
