@@ -29,7 +29,9 @@ describe('NavigationUI Component', () => {
     describe('Rendering', () => {
         it('renders navigation section with proper ARIA structure', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/aria-labelledby="navigation-title"/)
             expect(markup).toMatch(/Navigate/)
@@ -92,7 +94,9 @@ describe('NavigationUI Component', () => {
     describe('Visual States', () => {
         it('applies available state styling to exits that exist', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} />
+            )
 
             // Available buttons should have aria labels for movement
             expect(markup).toMatch(/aria-label="Move North"/)
@@ -109,7 +113,9 @@ describe('NavigationUI Component', () => {
 
         it('applies disabled state when disabled prop is true', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} disabled={true} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'south' }]} onNavigate={onNavigate} disabled={true} />
+            )
 
             // All buttons should be disabled when component is disabled
             expect(markup).toMatch(/aria-disabled="true"/)
@@ -119,7 +125,9 @@ describe('NavigationUI Component', () => {
     describe('Accessibility', () => {
         it('includes ARIA labels for available exits', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }, { direction: 'east' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'east' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/aria-label="Move North"/)
             expect(markup).toMatch(/aria-label="Move East"/)
@@ -182,7 +190,9 @@ describe('NavigationUI Component', () => {
 
         it('handles only vertical exits', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'up' }, { direction: 'down' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'up' }, { direction: 'down' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/aria-label="Move Up"/)
             expect(markup).toMatch(/aria-label="Move Down"/)
@@ -190,7 +200,9 @@ describe('NavigationUI Component', () => {
 
         it('handles only radial exits', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'in' }, { direction: 'out' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'in' }, { direction: 'out' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/aria-label="Move In"/)
             expect(markup).toMatch(/aria-label="Move Out"/)
@@ -198,7 +210,9 @@ describe('NavigationUI Component', () => {
 
         it('handles diagonal/intercardinal-only exits', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'northeast' }, { direction: 'southwest' }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'northeast' }, { direction: 'southwest' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/aria-label="Move Northeast"/)
             expect(markup).toMatch(/aria-label="Move Southwest"/)
@@ -216,7 +230,9 @@ describe('NavigationUI Component', () => {
         it('accepts disabled prop defaulting to false', () => {
             const onNavigate = vi.fn()
             const markupEnabled = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
-            const markupDisabled = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} disabled={false} />)
+            const markupDisabled = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} disabled={false} />
+            )
 
             // Both should have same enabled state when disabled is false or omitted
             expect(markupEnabled).toMatch(/aria-disabled="false"/)
@@ -272,7 +288,9 @@ describe('NavigationUI Component', () => {
         it('truncates long hint text with line-clamp', () => {
             const onNavigate = vi.fn()
             const longHint = 'A very long description that should be truncated'
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north', description: longHint }]} onNavigate={onNavigate} />)
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north', description: longHint }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/line-clamp-1/)
             expect(markup).toMatch(new RegExp(longHint))

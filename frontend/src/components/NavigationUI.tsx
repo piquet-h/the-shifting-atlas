@@ -185,7 +185,9 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
             </h3>
 
             {hasNoExits ? (
-                <p className="text-responsive-sm text-amber-400 italic text-center py-4">No visible exits — this appears to be a dead end.</p>
+                <p className="text-responsive-sm text-amber-400 italic text-center py-4">
+                    No visible exits — this appears to be a dead end.
+                </p>
             ) : (
                 <>
                     {/* Cardinal & Intercardinal Directions - 3x3 Grid */}
@@ -274,7 +276,8 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
 
                     {/* Keyboard shortcut hint */}
                     <p className="mt-3 text-xs text-slate-400 text-center">
-                        Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal directions
+                        Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal
+                        directions
                     </p>
                 </>
             )}

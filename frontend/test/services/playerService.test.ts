@@ -58,7 +58,7 @@ describe('playerService', () => {
     describe('bootstrapPlayer', () => {
         it('should bootstrap new player when no existing GUID', async () => {
             const newGuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-            
+
             // Override MSW handler for this test
             server.use(
                 http.get('/api/player', () => {
@@ -81,7 +81,7 @@ describe('playerService', () => {
 
         it('should confirm existing GUID when provided', async () => {
             const existingGuid = '12345678-1234-1234-1234-123456789abc'
-            
+
             server.use(
                 http.get('/api/player', () => {
                     return HttpResponse.json({
