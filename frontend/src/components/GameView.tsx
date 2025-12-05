@@ -481,13 +481,15 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     })
 
     // Navigation handler wrapper for UI components
+    // Extract stable mutate function to avoid callback recreation on every render
+    const { mutate: navigateMutate } = navigateMutation
     const handleNavigate = useCallback(
         (direction: Direction) => {
             if (!playerGuid) return
             const correlationId = generateCorrelationId()
-            navigateMutation.mutate({ direction, correlationId })
+            navigateMutate({ direction, correlationId })
         },
-        [playerGuid, navigateMutation]
+        [playerGuid, navigateMutate]
     )
 
     return (
