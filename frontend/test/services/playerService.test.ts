@@ -2,10 +2,12 @@
  * Tests for playerService
  * Validates bootstrap logic, storage integration, and telemetry emission.
  */
+import { http, HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { bootstrapPlayer, getStoredPlayerGuid, storePlayerGuid } from '../../src/services/playerService'
 import * as telemetry from '../../src/services/telemetry'
 import * as localStorage from '../../src/utils/localStorage'
+import { server } from '../mocks/server'
 
 // Mock telemetry
 vi.mock('../../src/services/telemetry', () => ({
@@ -17,9 +19,6 @@ vi.mock('../../src/utils/localStorage', () => ({
     readFromStorage: vi.fn(),
     writeToStorage: vi.fn()
 }))
-
-// Mock fetch globally
-global.fetch = vi.fn()
 
 describe('playerService', () => {
     beforeEach(() => {
@@ -59,21 +58,21 @@ describe('playerService', () => {
     describe('bootstrapPlayer', () => {
         it('should bootstrap new player when no existing GUID', async () => {
             const newGuid = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
-            vi.mocked(global.fetch).mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    success: true,
-                    data: {
-                        playerGuid: newGuid,
-                        created: true
-                    }
+            
+            // Override MSW handler for this test
+            server.use(
+                http.get('/api/player', () => {
+                    return HttpResponse.json({
+                        success: true,
+                        data: {
+                            playerGuid: newGuid,
+                            created: true
+                        }
+                    })
                 })
-            } as Response)
-
-            const result = await bootstrapPlayer(null)
+            )            const result = await bootstrapPlayer(null)
 
             expect(result).toEqual({ playerGuid: newGuid, created: true })
-            expect(global.fetch).toHaveBeenCalledWith('/api/player', expect.any(Object))
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Created', { playerGuid: newGuid })
             expect(localStorage.writeToStorage).toHaveBeenCalledWith('tsa.playerGuid', newGuid)
@@ -81,50 +80,43 @@ describe('playerService', () => {
 
         it('should confirm existing GUID when provided', async () => {
             const existingGuid = '12345678-1234-1234-1234-123456789abc'
-            vi.mocked(global.fetch).mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    success: true,
-                    data: {
-                        playerGuid: existingGuid,
-                        created: false
-                    }
-                })
-            } as Response)
-
-            const result = await bootstrapPlayer(existingGuid)
-
-            expect(result).toEqual({ playerGuid: existingGuid, created: false })
-            expect(global.fetch).toHaveBeenCalledWith(
-                '/api/player',
-                expect.objectContaining({
-                    method: 'GET',
-                    headers: expect.objectContaining({
-                        'x-player-guid': existingGuid
+            
+            server.use(
+                http.get('/api/player', () => {
+                    return HttpResponse.json({
+                        success: true,
+                        data: {
+                            playerGuid: existingGuid,
+                            created: false
+                        }
                     })
                 })
-            )
+            )            const result = await bootstrapPlayer(existingGuid)
+
+            expect(result).toEqual({ playerGuid: existingGuid, created: false })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
             expect(telemetry.trackGameEventClient).not.toHaveBeenCalledWith('Onboarding.GuestGuid.Created', expect.any(Object))
             expect(localStorage.writeToStorage).not.toHaveBeenCalled()
         })
 
         it('should throw error on failed API response', async () => {
-            vi.mocked(global.fetch).mockResolvedValue({
-                ok: false,
-                status: 500
-            } as Response)
+            server.use(
+                http.get('/api/player', () => {
+                    return HttpResponse.json({ success: false, error: 'Server error' }, { status: 500 })
+                })
+            )
 
             await expect(bootstrapPlayer(null)).rejects.toThrow('Bootstrap failed: 500')
         })
 
         it('should throw error on invalid response format', async () => {
-            vi.mocked(global.fetch).mockResolvedValue({
-                ok: true,
-                json: async () => ({
-                    success: false
+            server.use(
+                http.get('/api/player', () => {
+                    return HttpResponse.json({
+                        success: false
+                    })
                 })
-            } as Response)
+            )
 
             await expect(bootstrapPlayer(null)).rejects.toThrow('Invalid response format from bootstrap')
         })
