@@ -1,5 +1,5 @@
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePlayerGuid } from '../hooks/usePlayerGuid'
 import { trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
@@ -30,6 +30,28 @@ export default function CommandInterface({ className, availableExits = [] }: Com
 
     // currentLocationId tracked for UI display only (not persisted)
     // Server reads player.currentLocationId from database for authoritative state
+
+    // On mount or when playerGuid is resolved, hydrate currentLocationId from backend
+    useEffect(() => {
+        let aborted = false
+        const hydrate = async () => {
+            try {
+                if (!playerGuid) return
+                const res = await fetch(`/api/player/${playerGuid}`)
+                const json = await res.json().catch(() => ({}))
+                const unwrapped = unwrapEnvelope<{ id: string; currentLocationId?: string }>(json)
+                if (!aborted && unwrapped?.data?.currentLocationId) {
+                    setCurrentLocationId(unwrapped.data.currentLocationId)
+                }
+            } catch {
+                // ignore – command flow will still work using starter location on first look
+            }
+        }
+        hydrate()
+        return () => {
+            aborted = true
+        }
+    }, [playerGuid])
 
     const runCommand = useCallback(
         async (raw: string) => {
