@@ -70,7 +70,8 @@ describe('playerService', () => {
                         }
                     })
                 })
-            )            const result = await bootstrapPlayer(null)
+            )
+            const result = await bootstrapPlayer(null)
 
             expect(result).toEqual({ playerGuid: newGuid, created: true })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
@@ -91,7 +92,8 @@ describe('playerService', () => {
                         }
                     })
                 })
-            )            const result = await bootstrapPlayer(existingGuid)
+            )
+            const result = await bootstrapPlayer(existingGuid)
 
             expect(result).toEqual({ playerGuid: existingGuid, created: false })
             expect(telemetry.trackGameEventClient).toHaveBeenCalledWith('Onboarding.GuestGuid.Started')
