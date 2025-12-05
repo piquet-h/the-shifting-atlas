@@ -53,26 +53,31 @@ This section provides a reference for all major components with their props, usa
 ### Layout Components
 
 #### `<App />`
+
 **File:** `src/App.tsx`  
 **Purpose:** Root application component with global router, skip link, and main landmark.
 
 **Key Features:**
+
 - Global `<main id="main">` landmark (pages must NOT add their own)
 - Skip navigation link for keyboard users
 - `RouteFocusManager` for screen reader navigation announcements
 - Global `<LiveAnnouncer>` for dynamic content updates
 
 **Example:**
+
 ```tsx
 // App.tsx is the entry point - no direct usage needed
 // Rendered from main.tsx
 ```
 
 #### `<ResponsiveLayout />`
+
 **File:** `src/components/ResponsiveLayout.tsx`  
 **Purpose:** Wrapper providing responsive container constraints and background effects.
 
 **Props:**
+
 ```typescript
 interface ResponsiveLayoutProps {
     children: React.ReactNode
@@ -81,6 +86,7 @@ interface ResponsiveLayoutProps {
 ```
 
 **Example:**
+
 ```tsx
 <ResponsiveLayout>
     <YourPageContent />
@@ -88,16 +94,19 @@ interface ResponsiveLayoutProps {
 ```
 
 #### `<Nav />`
+
 **File:** `src/components/Nav.tsx`  
 **Purpose:** Primary navigation bar with authentication controls and branding.
 
 **Features:**
+
 - Sticky header with backdrop blur on desktop
 - Sign in/out controls
 - Auth status indicator
 - Mobile-responsive menu
 
 **Example:**
+
 ```tsx
 // Nav is rendered globally in App.tsx
 // Auth state automatically managed via useAuth hook
@@ -106,36 +115,43 @@ interface ResponsiveLayoutProps {
 ### Page Components
 
 #### `<Homepage />`
+
 **File:** `src/components/Homepage.tsx`  
 **Purpose:** Landing page with marketing content and sign-in CTA.
 
 **Features:**
+
 - New vs. returning user differentiation
 - Auth-aware hero section
 - Guest GUID bootstrap integration
 - Welcome toast notifications
 
 **State Dependencies:**
+
 - `useAuth()` - Authentication state
 - `usePlayerGuid()` - Player session state
 - `useVisitState()` - First-visit detection
 - `useLinkGuestOnAuth()` - Guest account linking
 
 **Example:**
+
 ```tsx
 <Route path="/" element={<Homepage />} />
 ```
 
 #### `<Game />`
+
 **File:** `src/pages/Game.tsx`  
 **Purpose:** Protected game page wrapping GameView, requires authentication.
 
 **Features:**
+
 - Auto-redirects unauthenticated users to homepage
 - Loading state during auth check
 - Wraps `<GameView>` component
 
 **Example:**
+
 ```tsx
 <Route path="/game" element={<Game />} />
 ```
@@ -143,10 +159,12 @@ interface ResponsiveLayoutProps {
 ### Game Components
 
 #### `<GameView />`
+
 **File:** `src/components/GameView.tsx`  
 **Purpose:** Main game interface orchestrating location, exits, stats, and commands.
 
 **Props:**
+
 ```typescript
 interface GameViewProps {
     className?: string
@@ -154,6 +172,7 @@ interface GameViewProps {
 ```
 
 **Features:**
+
 - Responsive layout (single column mobile, multi-column desktop)
 - Location panel with description truncation
 - Exit compass visualization
@@ -162,12 +181,14 @@ interface GameViewProps {
 - Integrated `<CommandInterface>`
 
 **Sub-components:**
+
 - `LocationPanel` - Current location name and description
 - `ExitsPanel` - Visual compass showing available exits
 - `PlayerStatsPanel` - Health, location, inventory stats
 - `CommandHistoryPanel` - Recent command log
 
 **Example:**
+
 ```tsx
 import GameView from '../components/GameView'
 
@@ -177,10 +198,12 @@ export default function Game() {
 ```
 
 #### `<CommandInterface />`
+
 **File:** `src/components/CommandInterface.tsx`  
 **Purpose:** Command input/output lifecycle with built-in command parsing.
 
 **Props:**
+
 ```typescript
 interface CommandInterfaceProps {
     className?: string
@@ -188,12 +211,14 @@ interface CommandInterfaceProps {
 ```
 
 **Built-in Commands:**
+
 - `ping [message]` - Backend health check with latency display
 - `move <direction>` - Player movement (e.g., `move north`)
 - `look [locationId]` - Location inspection
 - `clear` - Clear command history
 
 **Features:**
+
 - Command history navigation (up/down arrows)
 - Auto-focus on component mount
 - Correlation ID tracking per command
@@ -201,43 +226,62 @@ interface CommandInterfaceProps {
 - Session storage for current location
 
 **Example:**
+
 ```tsx
 <CommandInterface className="my-4" />
 ```
 
 #### `<CommandInput />`
+
 **File:** `src/components/CommandInput.tsx`  
-**Purpose:** Text input with command submission and history navigation.
+**Purpose:** Accessible command input with autocomplete, history navigation, and validation.
 
 **Props:**
+
 ```typescript
 interface CommandInputProps {
-    onSubmit: (command: string) => void
     disabled?: boolean
-    autoFocus?: boolean
+    busy?: boolean
+    placeholder?: string
+    onSubmit: (command: string) => Promise<void> | void
+    /** Available exits for autocomplete (directions) */
+    availableExits?: string[]
+    /** Command history for up/down arrow navigation */
+    commandHistory?: string[]
 }
 ```
 
 **Features:**
-- Arrow key navigation through history
-- Enter to submit
-- Auto-focus support
-- Disabled state styling
+
+- Autocomplete suggestions for directions and commands
+- Arrow up/down for history and autocomplete navigation
+- Tab/Enter to accept suggestions, Escape to close
+- Input validation with fuzzy matching for typos
+- "Did you mean" suggestions for unknown commands
+- Accessibility: ARIA combobox pattern with proper listbox semantics
+- Visual indicators for available exits in suggestions
+- Scrollable suggestion list for long results
 
 **Example:**
+
 ```tsx
-<CommandInput 
-    onSubmit={(cmd) => handleCommand(cmd)}
-    disabled={isProcessing}
-    autoFocus={true}
+<CommandInput
+    onSubmit={async (cmd) => await handleCommand(cmd)}
+    busy={isExecuting}
+    disabled={isLoading}
+    availableExits={['north', 'south', 'east']}
+    commandHistory={['ping', 'look', 'move north']}
+    placeholder="Enter a command (e.g., ping)"
 />
 ```
 
 #### `<CommandOutput />`
+
 **File:** `src/components/CommandOutput.tsx`  
 **Purpose:** Displays command execution history with responses and errors.
 
 **Props:**
+
 ```typescript
 interface CommandOutputProps {
     records: CommandRecord[]
@@ -254,36 +298,39 @@ interface CommandRecord {
 ```
 
 **Features:**
+
 - Auto-scroll to latest
 - Timestamp display
 - Error vs. success styling
 - Truncation for long output
 
 **Example:**
+
 ```tsx
-<CommandOutput 
-    records={commandHistory}
-    maxRecords={50}
-/>
+<CommandOutput records={commandHistory} maxRecords={50} />
 ```
 
 ### Utility Components
 
 #### `<LiveAnnouncer />`
+
 **File:** `src/components/LiveAnnouncer.tsx`  
 **Purpose:** Screen reader announcements for dynamic content changes (ARIA live region).
 
 **Usage:**
+
 ```tsx
 // Rendered globally in App.tsx
 // Announcements triggered via event system or imperative API
 ```
 
 #### `<Logo />`
+
 **File:** `src/components/Logo.tsx`  
 **Purpose:** Branded logo component with consistent styling.
 
 **Props:**
+
 ```typescript
 interface LogoProps {
     className?: string
@@ -300,19 +347,22 @@ The frontend uses **React Context** for cross-cutting concerns and **local compo
 ### Context Providers
 
 #### AuthContext
+
 **File:** `src/hooks/useAuth.tsx`  
 **Purpose:** Manages Azure Static Web Apps authentication state.
 
 **Provider:**
+
 ```tsx
 import { AuthProvider } from './hooks/useAuth'
 
-<AuthProvider>
+;<AuthProvider>
     <App />
 </AuthProvider>
 ```
 
 **Hook API:**
+
 ```typescript
 const {
     loading: boolean,           // Auth check in progress
@@ -326,16 +376,17 @@ const {
 ```
 
 **Usage Example:**
+
 ```tsx
 import { useAuth } from '../hooks/useAuth'
 
 function MyComponent() {
     const { isAuthenticated, user, signIn, signOut } = useAuth()
-    
+
     if (!isAuthenticated) {
         return <button onClick={() => signIn('msa')}>Sign In</button>
     }
-    
+
     return (
         <div>
             <p>Welcome, {user.userDetails}</p>
@@ -351,10 +402,12 @@ Sign-out broadcasts to other tabs via `localStorage` events, ensuring consistent
 ### Custom Hooks
 
 #### `usePlayerGuid()`
+
 **File:** `src/hooks/usePlayerGuid.ts`  
 **Purpose:** Manages player GUID bootstrap and persistence.
 
 **Returns:**
+
 ```typescript
 {
     playerGuid: string | null,
@@ -366,6 +419,7 @@ Sign-out broadcasts to other tabs via `localStorage` events, ensuring consistent
 ```
 
 **Behavior:**
+
 - Reads from `localStorage` (key: `tsa.playerGuid`)
 - Validates existing GUID with backend
 - Allocates new GUID if none exists
@@ -373,23 +427,26 @@ Sign-out broadcasts to other tabs via `localStorage` events, ensuring consistent
 - Emits telemetry events (`Onboarding.GuestGuid.*`)
 
 **Usage Example:**
+
 ```tsx
 function MyGameComponent() {
     const { playerGuid, loading, error } = usePlayerGuid()
-    
+
     if (loading) return <Spinner />
     if (error) return <Error message={error} />
     if (!playerGuid) return <p>No session</p>
-    
+
     return <GameView playerGuid={playerGuid} />
 }
 ```
 
 #### `useMediaQueries()`
+
 **File:** `src/hooks/useMediaQueries.ts`  
 **Purpose:** Reactive media query hooks for responsive behavior.
 
 **Available Hooks:**
+
 ```typescript
 useMediaQuery(query: string): boolean
 usePointerFine(): boolean  // true if precise pointer (mouse)
@@ -397,13 +454,14 @@ usePrefersReducedMotion(): boolean
 ```
 
 **Usage Example:**
+
 ```tsx
 import { useMediaQuery, usePointerFine } from '../hooks/useMediaQueries'
 
 function ResponsiveComponent() {
     const isDesktop = useMediaQuery('(min-width: 768px)')
     const hasFineMouse = usePointerFine()
-    
+
     return (
         <div>
             {isDesktop && <Sidebar />}
@@ -414,10 +472,12 @@ function ResponsiveComponent() {
 ```
 
 #### `useVisitState()`
+
 **File:** `src/hooks/useVisitState.ts`  
 **Purpose:** First-visit detection for onboarding flows.
 
 **Returns:**
+
 ```typescript
 {
     isNewUser: boolean,
@@ -426,10 +486,12 @@ function ResponsiveComponent() {
 ```
 
 #### `useLinkGuestOnAuth()`
+
 **File:** `src/hooks/useLinkGuestOnAuth.ts`  
 **Purpose:** Automatically links guest GUID to authenticated identity on sign-in.
 
 **Returns:**
+
 ```typescript
 {
     linking: boolean,
@@ -439,10 +501,12 @@ function ResponsiveComponent() {
 ```
 
 #### `usePing()`
+
 **File:** `src/hooks/usePing.ts`  
 **Purpose:** Backend health check with latency measurement.
 
 **Returns:**
+
 ```typescript
 {
     ping: () => Promise<void>,
@@ -455,22 +519,26 @@ function ResponsiveComponent() {
 ### Data Flow Patterns
 
 **1. Server State (API Data)**
+
 - Fetched in components via `fetch()` + `useState/useEffect`
 - Wrapped in envelope format (see [API Integration](#api-integration))
 - Correlation IDs attached to every request
 - Loading/error states managed locally
 
 **2. Client State (UI State)**
+
 - Local `useState` for component-specific UI (modals, inputs, etc.)
 - `sessionStorage` for per-tab persistence (current location)
 - `localStorage` for cross-tab persistence (player GUID, visit state)
 
 **3. Global State (Auth, Player)**
+
 - React Context for auth (`useAuth`)
 - Custom hooks for player session (`usePlayerGuid`)
 - No prop drilling - contexts accessed via hooks
 
 **Example: Typical Data Flow**
+
 ```
 User Action
     ↓
@@ -508,19 +576,15 @@ Vite dev server can proxy `/api` to backend if needed (configure in `vite.config
 import { buildPlayerUrl, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 
 // Player operations
-const url = buildPlayerUrl(playerGuid)  // /api/player/{guid}
+const url = buildPlayerUrl(playerGuid) // /api/player/{guid}
 // throws Error if GUID invalid
 
 // Location operations
-const url = buildLocationUrl(locationId)  // /api/location/{guid}
-const url = buildLocationUrl(null)        // /api/location (default)
+const url = buildLocationUrl(locationId) // /api/location/{guid}
+const url = buildLocationUrl(null) // /api/location (default)
 
 // Move operation
-const { url, method, body } = buildMoveRequest(
-    playerGuid, 
-    'north', 
-    currentLocationId
-)
+const { url, method, body } = buildMoveRequest(playerGuid, 'north', currentLocationId)
 // POST /api/player/{guid}/move
 // body: { direction: 'north', fromLocationId: '...' }
 ```
@@ -585,106 +649,109 @@ if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
 **Step-by-step guide:**
 
 1. **Define the API contract in `@piquet-h/shared`:**
-   ```typescript
-   // shared/src/apiContracts.ts
-   export interface MyNewRequest {
-       param1: string
-       param2?: number
-   }
-   
-   export interface MyNewResponse {
-       result: string
-       metadata: Record<string, unknown>
-   }
-   ```
+
+    ```typescript
+    // shared/src/apiContracts.ts
+    export interface MyNewRequest {
+        param1: string
+        param2?: number
+    }
+
+    export interface MyNewResponse {
+        result: string
+        metadata: Record<string, unknown>
+    }
+    ```
 
 2. **Create the backend Function:**
-   ```typescript
-   // backend/src/functions/myNewFunction.ts
-   import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
-   import { MyNewRequest, MyNewResponse } from '@piquet-h/shared'
-   
-   app.http('myNewFunction', {
-       methods: ['POST'],
-       route: 'my-endpoint',
-       handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
-           const body: MyNewRequest = await req.json()
-           // ... handle request
-           return {
-               status: 200,
-               jsonBody: {
-                   success: true,
-                   data: { result: '...', metadata: {} } satisfies MyNewResponse
-               }
-           }
-       }
-   })
-   ```
+
+    ```typescript
+    // backend/src/functions/myNewFunction.ts
+    import { app, HttpRequest, HttpResponseInit } from '@azure/functions'
+    import { MyNewRequest, MyNewResponse } from '@piquet-h/shared'
+
+    app.http('myNewFunction', {
+        methods: ['POST'],
+        route: 'my-endpoint',
+        handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+            const body: MyNewRequest = await req.json()
+            // ... handle request
+            return {
+                status: 200,
+                jsonBody: {
+                    success: true,
+                    data: { result: '...', metadata: {} } satisfies MyNewResponse
+                }
+            }
+        }
+    })
+    ```
 
 3. **Add utility to `apiClient.ts`:**
-   ```typescript
-   // frontend/src/utils/apiClient.ts
-   export function buildMyNewRequestUrl(id: string): string {
-       if (!isValidGuid(id)) {
-           throw new Error('ID must be valid GUID')
-       }
-       return `/api/my-endpoint/${id}`
-   }
-   ```
+
+    ```typescript
+    // frontend/src/utils/apiClient.ts
+    export function buildMyNewRequestUrl(id: string): string {
+        if (!isValidGuid(id)) {
+            throw new Error('ID must be valid GUID')
+        }
+        return `/api/my-endpoint/${id}`
+    }
+    ```
 
 4. **Create a service wrapper (optional but recommended):**
-   ```typescript
-   // frontend/src/services/myNewService.ts
-   import type { MyNewRequest, MyNewResponse } from '@piquet-h/shared'
-   import { buildHeaders } from '../utils/apiClient'
-   import { unwrapEnvelope } from '../utils/envelope'
-   import { trackGameEventClient } from './telemetry'
-   
-   export async function myNewOperation(
-       params: MyNewRequest
-   ): Promise<MyNewResponse> {
-       trackGameEventClient('MyFeature.Started')
-       
-       const res = await fetch('/api/my-endpoint', {
-           method: 'POST',
-           headers: buildHeaders({ 'Content-Type': 'application/json' }),
-           body: JSON.stringify(params)
-       })
-       
-       const json = await res.json()
-       const unwrapped = unwrapEnvelope<MyNewResponse>(json)
-       
-       if (!res.ok || !unwrapped.success) {
-           throw new Error('Operation failed')
-       }
-       
-       trackGameEventClient('MyFeature.Completed')
-       return unwrapped.data!
-   }
-   ```
+
+    ```typescript
+    // frontend/src/services/myNewService.ts
+    import type { MyNewRequest, MyNewResponse } from '@piquet-h/shared'
+    import { buildHeaders } from '../utils/apiClient'
+    import { unwrapEnvelope } from '../utils/envelope'
+    import { trackGameEventClient } from './telemetry'
+
+    export async function myNewOperation(params: MyNewRequest): Promise<MyNewResponse> {
+        trackGameEventClient('MyFeature.Started')
+
+        const res = await fetch('/api/my-endpoint', {
+            method: 'POST',
+            headers: buildHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(params)
+        })
+
+        const json = await res.json()
+        const unwrapped = unwrapEnvelope<MyNewResponse>(json)
+
+        if (!res.ok || !unwrapped.success) {
+            throw new Error('Operation failed')
+        }
+
+        trackGameEventClient('MyFeature.Completed')
+        return unwrapped.data!
+    }
+    ```
 
 5. **Use in components:**
-   ```tsx
-   import { myNewOperation } from '../services/myNewService'
-   
-   function MyComponent() {
-       const [loading, setLoading] = useState(false)
-       
-       const handleAction = async () => {
-           setLoading(true)
-           try {
-               const result = await myNewOperation({ param1: 'value' })
-               // Handle success
-           } catch (err) {
-               // Handle error
-           } finally {
-               setLoading(false)
-           }
-       }
-       
-       return <button onClick={handleAction}>Do Thing</button>
-   }
-   ```
+
+    ```tsx
+    import { myNewOperation } from '../services/myNewService'
+
+    function MyComponent() {
+        const [loading, setLoading] = useState(false)
+
+        const handleAction = async () => {
+            setLoading(true)
+            try {
+                const result = await myNewOperation({ param1: 'value' })
+                // Handle success
+            } catch (err) {
+                // Handle error
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        return <button onClick={handleAction}>Do Thing</button>
+    }
+    ```
 
 ### Best Practices
 
@@ -709,56 +776,63 @@ if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
 ### Initial Setup
 
 1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/piquet-h/the-shifting-atlas.git
-   cd the-shifting-atlas/frontend
-   ```
+
+    ```bash
+    git clone https://github.com/piquet-h/the-shifting-atlas.git
+    cd the-shifting-atlas/frontend
+    ```
 
 2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+
+    ```bash
+    npm install
+    ```
 
 3. **Set up environment variables:**
-   ```bash
-   cp .env.development.example .env.development
-   ```
-   
-   Edit `.env.development` with your values:
-   ```bash
-   # Application Insights (optional - telemetry disabled if not set)
-   VITE_APPINSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint=https://...
-   
-   # Backend API (default: http://localhost:7071 for local Functions)
-   # VITE_API_BASE_URL=http://localhost:7071
-   ```
+
+    ```bash
+    cp .env.development.example .env.development
+    ```
+
+    Edit `.env.development` with your values:
+
+    ```bash
+    # Application Insights (optional - telemetry disabled if not set)
+    VITE_APPINSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint=https://...
+
+    # Backend API (default: http://localhost:7071 for local Functions)
+    # VITE_API_BASE_URL=http://localhost:7071
+    ```
 
 4. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-   
-   Frontend will be available at `http://localhost:5173`
+
+    ```bash
+    npm run dev
+    ```
+
+    Frontend will be available at `http://localhost:5173`
 
 5. **Start the backend (in separate terminal):**
-   ```bash
-   cd ../backend
-   npm install
-   npm start
-   ```
-   
-   Backend will be available at `http://localhost:7071`
+
+    ```bash
+    cd ../backend
+    npm install
+    npm start
+    ```
+
+    Backend will be available at `http://localhost:7071`
 
 ### Environment Variables
 
 All environment variables must be prefixed with `VITE_` to be accessible in the browser.
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `VITE_APPINSIGHTS_CONNECTION_STRING` | No | undefined | Application Insights telemetry (gracefully disabled if not set) |
-| `VITE_API_BASE_URL` | No | `/api` | Backend API base URL (uses relative path by default for SWA proxy) |
+| Variable                             | Required | Default   | Purpose                                                            |
+| ------------------------------------ | -------- | --------- | ------------------------------------------------------------------ |
+| `VITE_APPINSIGHTS_CONNECTION_STRING` | No       | undefined | Application Insights telemetry (gracefully disabled if not set)    |
+| `VITE_API_BASE_URL`                  | No       | `/api`    | Backend API base URL (uses relative path by default for SWA proxy) |
 
 **Accessing in code:**
+
 ```typescript
 const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
 const telemetryKey = import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING
@@ -766,6 +840,7 @@ const telemetryKey = import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING
 
 **Type definitions:**  
 Extend types in `src/vite-env.d.ts` if you add custom environment variables:
+
 ```typescript
 /// <reference types="vite/client" />
 
@@ -791,6 +866,7 @@ interface ImportMeta {
 #### VS Code Debugging
 
 Launch configuration (`.vscode/launch.json`):
+
 ```json
 {
     "version": "0.2.0",
@@ -828,6 +904,7 @@ Set breakpoints in `.tsx` files and press F5 to debug.
 ### Hot Module Replacement (HMR)
 
 Vite provides instant updates without full page refresh:
+
 - **Component edits:** React Fast Refresh preserves state
 - **CSS edits:** Injected immediately
 - **Config changes:** Require full restart (`npm run dev` again)
@@ -884,6 +961,7 @@ test/
 ### Writing Unit Tests
 
 **Component test example:**
+
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -894,7 +972,7 @@ describe('MyComponent', () => {
         render(<MyComponent title="Hello" />)
         expect(screen.getByRole('heading', { name: 'Hello' })).toBeInTheDocument()
     })
-    
+
     it('handles button click', async () => {
         const { user } = render(<MyComponent />)
         await user.click(screen.getByRole('button', { name: 'Submit' }))
@@ -904,6 +982,7 @@ describe('MyComponent', () => {
 ```
 
 **Service test example:**
+
 ```typescript
 import { describe, it, expect, vi } from 'vitest'
 import { myService } from '../src/services/myService'
@@ -915,9 +994,9 @@ describe('myService', () => {
             json: async () => ({ success: true, data: { result: 'ok' } })
         })
         global.fetch = mockFetch
-        
+
         await myService.doThing('param')
-        
+
         expect(mockFetch).toHaveBeenCalledWith(
             '/api/my-endpoint',
             expect.objectContaining({
@@ -945,7 +1024,7 @@ describe('Homepage accessibility', () => {
         const results = await axe(container)
         expect(results).toHaveNoViolations()
     })
-    
+
     it('has landmark regions', () => {
         render(<Homepage />)
         expect(screen.getByRole('main')).toBeInTheDocument()
@@ -955,17 +1034,20 @@ describe('Homepage accessibility', () => {
 ```
 
 **Automated axe tests:**
+
 ```bash
 npm run a11y
 ```
 
 This:
+
 1. Starts Vite dev server on port 5173
 2. Runs axe-core CLI against configured routes
 3. Fails build if violations found
 4. Generates reports in `frontend/axe-report/`
 
 Configure additional routes in `scripts/run-axe.mjs`:
+
 ```javascript
 const paths = process.env.A11Y_PATHS?.split(',') || ['/']
 ```
@@ -980,6 +1062,7 @@ const paths = process.env.A11Y_PATHS?.split(',') || ['/']
 6. **Use descriptive names:** Test names should explain the scenario
 
 **Anti-patterns to avoid:**
+
 - Testing internal component state directly
 - Shallow rendering (use full render)
 - Testing implementation details (CSS classes, internal methods)
@@ -991,27 +1074,28 @@ const paths = process.env.A11Y_PATHS?.split(',') || ['/']
 
 Complete list of available npm scripts:
 
-| Script              | Purpose                                                               | When to Use |
-| ------------------- | --------------------------------------------------------------------- | ----------- |
-| `npm run dev`       | Start Vite dev server (React Fast Refresh).                           | Local development with fast HMR |
-| `npm run build`     | Create production build (Vite).                                       | Before deployment, in CI |
-| `npm run preview`   | Preview production build locally.                                     | Test production build locally |
-| `npm run swa`       | Run with SWA CLI (includes auth emulation).                           | Test authentication flows locally |
-| `npm run typecheck` | Run `tsc --noEmit` for full type safety.                              | Before committing, in CI |
-| `npm run lint`      | Run ESLint on `src/` and `test/` directories.                        | Before committing, in CI |
-| `npm run format`    | Format code with Prettier.                                            | Code cleanup, manual formatting |
-| `npm run format:check` | Check code formatting without changes.                             | In CI, pre-commit hooks |
-| `npm test`          | Run all Vitest tests once.                                            | CI, pre-commit validation |
-| `npm run test:watch`| Run tests in watch mode (reruns on file changes).                    | During test development |
-| `npm run test:coverage` | Run tests with coverage report.                                   | Coverage analysis |
-| `npm run a11y`      | Run accessibility tests with axe-core.                                | Before merging, in CI |
-| `npm run a11y:serve`| Start dev server for a11y tests (internal).                          | Used by `npm run a11y` |
-| `npm run a11y:scan` | Run axe-core CLI scan (internal).                                     | Used by `npm run a11y` |
-| `npm run clean`     | Remove build artifacts (`dist/`, `.cache/`, `coverage/`).             | Clean build, troubleshooting |
+| Script                  | Purpose                                                   | When to Use                       |
+| ----------------------- | --------------------------------------------------------- | --------------------------------- |
+| `npm run dev`           | Start Vite dev server (React Fast Refresh).               | Local development with fast HMR   |
+| `npm run build`         | Create production build (Vite).                           | Before deployment, in CI          |
+| `npm run preview`       | Preview production build locally.                         | Test production build locally     |
+| `npm run swa`           | Run with SWA CLI (includes auth emulation).               | Test authentication flows locally |
+| `npm run typecheck`     | Run `tsc --noEmit` for full type safety.                  | Before committing, in CI          |
+| `npm run lint`          | Run ESLint on `src/` and `test/` directories.             | Before committing, in CI          |
+| `npm run format`        | Format code with Prettier.                                | Code cleanup, manual formatting   |
+| `npm run format:check`  | Check code formatting without changes.                    | In CI, pre-commit hooks           |
+| `npm test`              | Run all Vitest tests once.                                | CI, pre-commit validation         |
+| `npm run test:watch`    | Run tests in watch mode (reruns on file changes).         | During test development           |
+| `npm run test:coverage` | Run tests with coverage report.                           | Coverage analysis                 |
+| `npm run a11y`          | Run accessibility tests with axe-core.                    | Before merging, in CI             |
+| `npm run a11y:serve`    | Start dev server for a11y tests (internal).               | Used by `npm run a11y`            |
+| `npm run a11y:scan`     | Run axe-core CLI scan (internal).                         | Used by `npm run a11y`            |
+| `npm run clean`         | Remove build artifacts (`dist/`, `.cache/`, `coverage/`). | Clean build, troubleshooting      |
 
 **Common workflows:**
 
 **Local Development:**
+
 ```bash
 # Terminal 1: Start backend
 cd backend && npm start
@@ -1021,6 +1105,7 @@ cd frontend && npm run dev
 ```
 
 **Pre-commit checklist:**
+
 ```bash
 npm run typecheck  # Type safety
 npm run lint       # Code quality
@@ -1029,6 +1114,7 @@ npm run a11y       # Accessibility
 ```
 
 **Testing auth flows:**
+
 ```bash
 # Use SWA CLI instead of regular dev server
 npm run swa
@@ -1048,6 +1134,7 @@ npm run swa
 - **Props Interfaces:** Define explicit interfaces for component props
 
 **Example:**
+
 ```typescript
 // ✅ Good
 interface MyComponentProps {
@@ -1068,6 +1155,7 @@ export default function MyComponent({ title, count }) {
 ### Component Structure
 
 **Functional components only** (no class components):
+
 ```typescript
 // Component structure template
 import React, { useState, useEffect } from 'react'
@@ -1079,17 +1167,17 @@ interface Props {
 export default function ComponentName({ prop1, prop2 }: Props): React.ReactElement {
     // 1. Hooks
     const [state, setState] = useState()
-    
+
     // 2. Effects
     useEffect(() => {
         // Side effects
     }, [])
-    
+
     // 3. Event handlers
     const handleClick = () => {
         // Handler logic
     }
-    
+
     // 4. Render
     return (
         <div>
@@ -1102,6 +1190,7 @@ export default function ComponentName({ prop1, prop2 }: Props): React.ReactEleme
 ### Styling Conventions
 
 **Tailwind classes only** (no inline styles unless dynamic):
+
 ```tsx
 // ✅ Good - Tailwind utility classes
 <button className="px-4 py-2 bg-atlas-accent text-white rounded-lg hover:bg-atlas-accent-dark">
@@ -1118,15 +1207,15 @@ export default function ComponentName({ prop1, prop2 }: Props): React.ReactEleme
 ```
 
 **Responsive classes:**
+
 ```tsx
 // Mobile-first approach
-<div className="text-sm md:text-base lg:text-lg">
-    {/* Base = mobile, md = tablet, lg = desktop */}
-</div>
+<div className="text-sm md:text-base lg:text-lg">{/* Base = mobile, md = tablet, lg = desktop */}</div>
 ```
 
 **Custom CSS classes:**  
 Add to `tailwind.css` only for truly reusable patterns:
+
 ```css
 /* src/tailwind.css */
 @layer components {
@@ -1176,17 +1265,20 @@ import styles from './MyComponent.module.css'
 ### Comment Guidelines
 
 **When to comment:**
+
 - Complex business logic that's not self-evident
 - Workarounds for browser/library bugs
 - "Why" not "what" (code should be self-documenting for "what")
 - Public API documentation (JSDoc for exported functions)
 
 **When NOT to comment:**
+
 - Obvious code (`// Set x to 5` - NO)
 - Commented-out code (delete it - it's in git history)
 - TODO comments (create an issue instead)
 
 **JSDoc for exported utilities:**
+
 ```typescript
 /**
  * Validates a string is a valid GUID format (UUID v4).
@@ -1247,14 +1339,14 @@ When telemetry is enabled, the frontend automatically:
 
 All frontend telemetry events include:
 
-| Attribute | Description |
-|-----------|-------------|
-| `game.session.id` | Unique session ID (UUID) generated on page load |
-| `game.user.id` | Microsoft Account ID from SWA auth (when authenticated) |
-| `game.action.type` | Type of player action (e.g., 'navigate', 'move', 'look') |
-| `game.latency.ms` | Latency in milliseconds for API calls |
-| `game.error.code` | Error classification for UI.Error events |
-| `game.event.correlation.id` | Correlation ID for backend request tracing |
+| Attribute                   | Description                                              |
+| --------------------------- | -------------------------------------------------------- |
+| `game.session.id`           | Unique session ID (UUID) generated on page load          |
+| `game.user.id`              | Microsoft Account ID from SWA auth (when authenticated)  |
+| `game.action.type`          | Type of player action (e.g., 'navigate', 'move', 'look') |
+| `game.latency.ms`           | Latency in milliseconds for API calls                    |
+| `game.error.code`           | Error classification for UI.Error events                 |
+| `game.event.correlation.id` | Correlation ID for backend request tracing               |
 
 ### Implementation Details
 
@@ -1264,17 +1356,17 @@ All frontend telemetry events include:
 ### API Reference
 
 ```typescript
-import { 
-    initTelemetry,          // Initialize App Insights (called in main.tsx)
-    trackEvent,             // Track custom event
-    trackGameEventClient,   // Track validated game event
-    trackUIError,           // Track UI.Error with error details
-    trackPlayerNavigate,    // Track Player.Navigate event
-    trackPlayerCommand,     // Track Player.Command event
-    debounceTrack,          // Create debounced tracker
-    setUserId,              // Set authenticated user ID
-    getSessionId,           // Get current session ID
-    isTelemetryEnabled      // Check if telemetry is active
+import {
+    initTelemetry, // Initialize App Insights (called in main.tsx)
+    trackEvent, // Track custom event
+    trackGameEventClient, // Track validated game event
+    trackUIError, // Track UI.Error with error details
+    trackPlayerNavigate, // Track Player.Navigate event
+    trackPlayerCommand, // Track Player.Command event
+    debounceTrack, // Create debounced tracker
+    setUserId, // Set authenticated user ID
+    getSessionId, // Get current session ID
+    isTelemetryEnabled // Check if telemetry is active
 } from './services/telemetry'
 
 // Track navigation with latency and correlation
@@ -1324,7 +1416,8 @@ The frontend uses **Azure Static Web Apps (SWA) built-in authentication** with A
 **Local Development:**  
 Behavior when auth unavailable locally: hook returns `isAuthenticated=false` without throwing errors.
 
-**Planned Enhancements:**  
+**Planned Enhancements:**
+
 - Role/claim helpers
 - ProtectedRoute component
 - Server-side authorization checks in Functions using `x-ms-client-principal`
@@ -1334,6 +1427,7 @@ Behavior when auth unavailable locally: hook returns `isAuthenticated=false` wit
 Guest players receive a temporary GUID stored in localStorage. When they sign in with a Microsoft account, the guest session is automatically linked to their authenticated identity.
 
 **Flow:**
+
 1. User visits without auth → receives guest GUID
 2. User plays as guest (progress saved to GUID)
 3. User signs in → `useLinkGuestOnAuth` hook calls `/api/player/link`
@@ -1341,12 +1435,13 @@ Guest players receive a temporary GUID stored in localStorage. When they sign in
 5. User retains all progress from guest session
 
 **Hook Usage:**
+
 ```tsx
 import { useLinkGuestOnAuth } from '../hooks/useLinkGuestOnAuth'
 
 function MyComponent() {
     const { linking, linked, error } = useLinkGuestOnAuth()
-    
+
     if (linking) return <p>Linking account...</p>
     if (linked) return <p>✓ Account linked!</p>
     if (error) return <p>Link failed: {error}</p>
@@ -1368,6 +1463,7 @@ The SWA CLI provides a lightweight built-in auth simulation. Real AAD issuer red
 `http://localhost:4280/.auth/login/aad/callback`
 
 **Secret Handling:**
+
 - Rotate the client secret in Entra ID, then update the GitHub secret (no code change required)
 - Avoid logging values—only presence/absence
 - If reverting to dynamic tenant substitution, remove the hard-coded issuer and restore a placeholder prior to commit
@@ -1398,6 +1494,7 @@ Moves focus to the first `<h1>` (or `main` if none) after route changes for scre
 "Skip to main content" link becomes visible on keyboard focus and targets `#main`.
 
 **Example:**
+
 ```tsx
 // App.tsx provides global skip link
 <a href="#main" className="skip-link sr-only focus:not-sr-only ...">
@@ -1411,6 +1508,7 @@ Moves focus to the first `<h1>` (or `main` if none) after route changes for scre
 Lives inside `<main>` so announcements are within landmark scope. Command output uses a polite live region to announce results or failures.
 
 **Usage:**
+
 ```tsx
 // LiveAnnouncer renders globally
 <LiveAnnouncer />
@@ -1424,6 +1522,7 @@ Lives inside `<main>` so announcements are within landmark scope. Command output
 ### Color & Contrast
 
 **Guidelines:**
+
 - Reduced use of low-contrast `text-slate-500` on dark surfaces
 - Replaced with `text-slate-300/400` where needed for readability
 - Inline `<code>` tokens styled with darker background and lighter foreground (≥ 4.5:1 ratio)
@@ -1432,12 +1531,14 @@ Lives inside `<main>` so announcements are within landmark scope. Command output
 ### ARIA Usage
 
 **Best Practices:**
+
 - Avoid redundant `aria-label` when native semantics suffice
 - Status indicators use `aria-hidden` with sibling `role="status"` text for screen readers
 - Live regions for dynamic content announcements
 - Proper heading hierarchy (`<h1>` → `<h2>` → `<h3>`)
 
 **Example:**
+
 ```tsx
 // ✅ Good - semantic HTML, no extra ARIA needed
 <button onClick={handleClick}>Submit</button>
@@ -1455,16 +1556,18 @@ Lives inside `<main>` so announcements are within landmark scope. Command output
 Launches a Vite server then executes a custom wrapper (`scripts/run-axe.mjs`) around `@axe-core/cli`.
 
 **Features:**
+
 - Normalizes phantom secondary URL scan issue
 - Fails the build ONLY when real violations exist
 - Parses JSON reports under `frontend/axe-report`
 - Multi-page scanning supported via environment variables:
-  - `A11Y_BASE` (default: `http://localhost:5173`)
-  - `A11Y_PATHS` comma-separated paths (e.g., `"/,/about,/game"`)
-  - Phantom numeric hosts (e.g., `http://0`) are ignored automatically
+    - `A11Y_BASE` (default: `http://localhost:5173`)
+    - `A11Y_PATHS` comma-separated paths (e.g., `"/,/about,/game"`)
+    - Phantom numeric hosts (e.g., `http://0`) are ignored automatically
 - Axe report directory created proactively to avoid ENOENT flakes
 
 **Configuration:**
+
 ```bash
 # Scan multiple pages
 A11Y_PATHS="/,/game,/about" npm run a11y
@@ -1503,11 +1606,13 @@ Mobile is the baseline (single column, minimal decoration). Larger screens and c
 - Decorative radial background layer behind main content on large screens
 
 **Utility Hooks:**
+
 - `useMediaQuery` - Reactive media query matching
 - `usePointerFine` - Detect fine pointer input (mouse vs touch)
 - `usePrefersReducedMotion` - Respect user motion preferences
 
 **Typography:**
+
 - Heading size clamp utility `.heading-clamp` (reserved for future hero typography refinements)
 - Reduced footer prominence on large screens (smaller text baseline, subtle color shift)
 
@@ -1536,25 +1641,25 @@ Mobile is the baseline (single column, minimal decoration). Larger screens and c
 
 Quick reference for key files in the project:
 
-| File | Purpose |
-|------|---------|
-| `index.html` | Vite entry point |
-| `src/main.tsx` | React bootstrap + telemetry initialization |
-| `src/App.tsx` | Root component with router + global landmarks |
-| `src/components/Homepage.tsx` | Landing UI (auth-aware hero + personalized state) |
-| `src/components/Nav.tsx` | Navigation bar with sign in/out menu |
-| `src/components/GameView.tsx` | Main game interface (location, exits, commands) |
-| `src/pages/Game.tsx` | Protected game page (requires auth) |
-| `src/services/playerService.ts` | Player GUID bootstrap and persistence |
-| `src/services/telemetry.ts` | Application Insights integration |
-| `src/utils/apiClient.ts` | API request utilities and GUID validation |
-| `src/utils/envelope.ts` | Response envelope unwrapping |
-| `src/hooks/useAuth.tsx` | SWA authentication context |
-| `src/hooks/usePlayerGuid.ts` | Player session management |
-| `tailwind.config.ts` | Tailwind configuration (typed) |
-| `tsconfig.json` | TypeScript configuration (strict mode) |
-| `vite.config.ts` | Vite build configuration |
-| `test/` | All test files (Vitest + happy-dom) |
+| File                            | Purpose                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `index.html`                    | Vite entry point                                  |
+| `src/main.tsx`                  | React bootstrap + telemetry initialization        |
+| `src/App.tsx`                   | Root component with router + global landmarks     |
+| `src/components/Homepage.tsx`   | Landing UI (auth-aware hero + personalized state) |
+| `src/components/Nav.tsx`        | Navigation bar with sign in/out menu              |
+| `src/components/GameView.tsx`   | Main game interface (location, exits, commands)   |
+| `src/pages/Game.tsx`            | Protected game page (requires auth)               |
+| `src/services/playerService.ts` | Player GUID bootstrap and persistence             |
+| `src/services/telemetry.ts`     | Application Insights integration                  |
+| `src/utils/apiClient.ts`        | API request utilities and GUID validation         |
+| `src/utils/envelope.ts`         | Response envelope unwrapping                      |
+| `src/hooks/useAuth.tsx`         | SWA authentication context                        |
+| `src/hooks/usePlayerGuid.ts`    | Player session management                         |
+| `tailwind.config.ts`            | Tailwind configuration (typed)                    |
+| `tsconfig.json`                 | TypeScript configuration (strict mode)            |
+| `vite.config.ts`                | Vite build configuration                          |
+| `test/`                         | All test files (Vitest + happy-dom)               |
 
 **Global styles:** `src/tailwind.css` (single source). Typography + Forms plugins enabled.
 
@@ -1606,12 +1711,14 @@ Quick reference for key files in the project:
 **Documentation Issues:**  
 Found something unclear or outdated? Open an issue or submit a PR to improve this documentation.
 
-**Getting Started Help:**  
+**Getting Started Help:**
+
 - Check [Developer Setup](#developer-setup) first
 - Review [Testing Guide](#testing-guide) for test patterns
 - See [API Integration](#api-integration) for backend communication
 
-**Architecture Questions:**  
+**Architecture Questions:**
+
 - See [Architecture Overview](#architecture-overview) for high-level design
 - Review `docs/architecture/overview.md` for full system architecture
 - Check `docs/architecture/frontend-api-contract.md` for API contracts
