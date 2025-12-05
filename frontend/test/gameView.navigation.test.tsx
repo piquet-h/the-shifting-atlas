@@ -74,9 +74,7 @@ describe('GameView Navigation Optimization', () => {
         // Verify there's a comment explaining the pattern
         // This helps future developers understand the optimization
         const hasOptimizationComment =
-            source.includes('stable mutate function') ||
-            source.includes('Extract stable') ||
-            source.includes('avoid callback recreation')
+            source.includes('stable mutate function') || source.includes('Extract stable') || source.includes('avoid callback recreation')
 
         expect(hasOptimizationComment).toBe(true)
     })

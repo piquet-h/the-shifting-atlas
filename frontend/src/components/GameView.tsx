@@ -21,6 +21,7 @@ import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInterface from './CommandInterface'
+import DescriptionRenderer from './DescriptionRenderer'
 import NavigationUI from './NavigationUI'
 
 /**
@@ -124,7 +125,9 @@ function LocationPanel({
             <h2 id="location-title" className="text-responsive-xl font-semibold text-white mb-2">
                 {name || 'Unknown Location'}
             </h2>
-            <p className="text-responsive-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{displayDescription}</p>
+            <div className="whitespace-pre-wrap">
+                <DescriptionRenderer content={displayDescription} format="markdown" />
+            </div>
             {needsTruncation && (
                 <button
                     onClick={() => setExpanded(!expanded)}
@@ -501,7 +504,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
-                            description={location?.description ?? ''}
+                            description={location?.compiledDescription ?? ''}
                             loading={locationLoading}
                             error={locationError}
                             onRetry={refetch}
@@ -538,7 +541,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     {/* Mobile layout: stacked sections */}
                     <LocationPanel
                         name={location?.name ?? ''}
-                        description={location?.description ?? ''}
+                        description={location?.compiledDescription ?? ''}
                         loading={locationLoading}
                         error={locationError}
                         onRetry={refetch}
