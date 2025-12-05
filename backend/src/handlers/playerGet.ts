@@ -44,8 +44,9 @@ export class PlayerGetHandler extends BaseHandler {
             return errorResponse(404, 'NotFound', 'Player not found', { correlationId: this.correlationId })
         }
         this.track('Player.Get', { playerGuid: id, status: 200 })
+        // Include currentLocationId so frontend can persist and restore player location on refresh
         return okResponse(
-            { id: rec.id, guest: rec.guest, externalId: rec.externalId },
+            { id: rec.id, guest: rec.guest, externalId: rec.externalId, currentLocationId: rec.currentLocationId },
             { correlationId: this.correlationId, playerGuid: rec.id }
         )
     }

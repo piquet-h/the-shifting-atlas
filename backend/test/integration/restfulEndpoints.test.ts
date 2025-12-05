@@ -13,16 +13,16 @@
  */
 
 import type { HttpRequest, InvocationContext } from '@azure/functions'
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { bootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
+import { linkRoomsHandler } from '../../src/handlers/linkRooms.js'
+import { getLocationLookHandler } from '../../src/handlers/locationLook.js'
 import { getPlayerHandler } from '../../src/handlers/playerGet.js'
 import { handlePlayerMove } from '../../src/handlers/playerMove.js'
-import { getLocationLookHandler } from '../../src/handlers/locationLook.js'
-import { bootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
-import { linkRoomsHandler } from '../../src/handlers/linkRooms.js'
 
 describe('RESTful Endpoints Integration', () => {
     let fixture: IntegrationTestFixture
@@ -110,11 +110,19 @@ describe('RESTful Endpoints Integration', () => {
             assert.strictEqual(res.status, 200, 'Should return 200 OK')
 
             // Validate response envelope structure
-            const body = res.jsonBody as { success: boolean; data: { id: string; guest: boolean; externalId?: string } }
+            const body = res.jsonBody as {
+                success: boolean
+                data: { id: string; guest: boolean; externalId?: string; currentLocationId?: string }
+            }
             assert.strictEqual(body.success, true, 'Response should have success=true')
             assert.ok(body.data, 'Response should have data field')
             assert.strictEqual(body.data.id, playerId, 'Should return correct player ID')
             assert.strictEqual(typeof body.data.guest, 'boolean', 'Should have guest field')
+            // Critical for frontend refresh persistence: currentLocationId must be present
+            assert.ok(
+                body.data.currentLocationId && typeof body.data.currentLocationId === 'string',
+                'Should include currentLocationId in player GET response'
+            )
 
             // Validate headers
             assert.ok(res.headers, 'Should have headers')
