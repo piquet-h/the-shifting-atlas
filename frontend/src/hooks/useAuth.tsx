@@ -35,10 +35,15 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 const LS_BROADCAST_KEY = 'tsa.auth.refresh'
 
 async function fetchPrincipal(signal?: AbortSignal): Promise<ClientPrincipal | null> {
-    const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal })
-    if (!res.ok) return null // 404/204 -> anonymous
-    const data = await res.json()
-    return (data?.clientPrincipal as ClientPrincipal) ?? null
+    try {
+        const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal })
+        if (!res.ok) return null // 404/204 -> anonymous
+        const data = await res.json()
+        return (data?.clientPrincipal as ClientPrincipal) ?? null
+    } catch {
+        // Network error or fetch failure
+        throw new Error('Login temporarily unavailable')
+    }
 }
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
