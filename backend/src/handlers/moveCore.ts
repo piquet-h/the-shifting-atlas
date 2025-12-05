@@ -265,20 +265,33 @@ export class MoveHandler extends BaseHandler {
         if (this.playerGuid) {
             try {
                 const player = await this.playerRepo.get(this.playerGuid)
-                if (player) {
-                    player.currentLocationId = result.location.id
-                    await this.playerRepo.update(player)
-                } else {
-                    // Player document missing - log warning but allow move to complete
+                if (!player) {
+                    // Player document missing - this is a critical error, move should fail
                     this.track('Player.Update', {
                         playerId: this.playerGuid,
                         success: false,
                         reason: 'player-not-found',
                         toLocationId: result.location.id
                     })
+                    return {
+                        success: false,
+                        error: { type: 'move-failed', statusCode: 500, reason: 'player-not-found' },
+                        latencyMs: Date.now() - started
+                    }
                 }
+
+                player.currentLocationId = result.location.id
+                await this.playerRepo.update(player)
+
+                // Emit success telemetry for persistence
+                this.track('Player.Update', {
+                    playerId: this.playerGuid,
+                    success: true,
+                    toLocationId: result.location.id,
+                    latencyMs: Date.now() - started
+                })
             } catch (error) {
-                // Update failed - log error but allow move to complete (stateless still works)
+                // Update failed - move should fail to maintain consistency
                 this.track('Player.Update', {
                     playerId: this.playerGuid,
                     success: false,
@@ -286,6 +299,11 @@ export class MoveHandler extends BaseHandler {
                     toLocationId: result.location.id,
                     error: error instanceof Error ? error.message : String(error)
                 })
+                return {
+                    success: false,
+                    error: { type: 'move-failed', statusCode: 500, reason: 'persistence-failed' },
+                    latencyMs: Date.now() - started
+                }
             }
         }
 

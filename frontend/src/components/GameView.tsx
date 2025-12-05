@@ -10,7 +10,7 @@
  * Responsive layout: single column on mobile, multi-column on desktop.
  */
 import type { LocationResponse } from '@piquet-h/shared'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import React, { useCallback, useEffect, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
@@ -374,69 +374,120 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         }
     }, [location, playerStats])
 
-    // Navigation handler for NavigationUI component
-    const [navigationBusy, setNavigationBusy] = useState(false)
-    const handleNavigate = useCallback(
-        async (direction: Direction) => {
-            if (!playerGuid || navigationBusy) return
+    // Navigation mutation using TanStack Query for proper cache management
+    const navigateMutation = useMutation({
+        mutationFn: async ({ direction, correlationId }: { direction: Direction; correlationId: string }) => {
+            if (!playerGuid) throw new Error('No player GUID available')
 
-            setNavigationBusy(true)
-            const correlationId = generateCorrelationId()
-            try {
-                const moveRequest = buildMoveRequest(playerGuid, direction)
-                const headers = buildHeaders({
-                    'Content-Type': 'application/json',
-                    ...buildCorrelationHeaders(correlationId)
-                })
+            const moveRequest = buildMoveRequest(playerGuid, direction)
+            const headers = buildHeaders({
+                'Content-Type': 'application/json',
+                ...buildCorrelationHeaders(correlationId)
+            })
 
-                // Track UI navigation button click
-                trackGameEventClient('UI.Navigate.Button', {
+            // Track UI navigation button click
+            trackGameEventClient('UI.Navigate.Button', {
+                correlationId,
+                direction,
+                fromLocationId: location?.id || null
+            })
+
+            const res = await fetch(moveRequest.url, {
+                method: moveRequest.method,
+                headers,
+                body: JSON.stringify(moveRequest.body)
+            })
+
+            const json = await res.json().catch(() => ({}))
+            const unwrapped = unwrapEnvelope<LocationResponse>(json)
+
+            if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                const errorMsg = extractErrorMessage(res, json, unwrapped)
+                trackGameEventClient('UI.Navigate.Error', {
                     correlationId,
                     direction,
-                    fromLocationId: location?.id || null
+                    error: errorMsg,
+                    statusCode: res.status
                 })
-
-                const res = await fetch(moveRequest.url, {
-                    method: moveRequest.method,
-                    headers,
-                    body: JSON.stringify(moveRequest.body)
-                })
-
-                const json = await res.json().catch(() => ({}))
-                const unwrapped = unwrapEnvelope<LocationResponse>(json)
-
-                if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                    const errorMsg = extractErrorMessage(res, json, unwrapped)
-                    trackGameEventClient('UI.Navigate.Error', {
-                        correlationId,
-                        direction,
-                        error: errorMsg,
-                        statusCode: res.status
-                    })
-                } else if (unwrapped.data) {
-                    const newLocation = unwrapped.data
-                    // Invalidate queries to trigger refetch with new location
-                    await queryClient.invalidateQueries({ queryKey: ['player', playerGuid] })
-                    await queryClient.invalidateQueries({ queryKey: ['location'] })
-                    // Update player stats with new location name
-                    setPlayerStats((prev) => ({
-                        health: prev?.health ?? 100,
-                        maxHealth: prev?.maxHealth ?? 100,
-                        locationName: newLocation.name,
-                        inventoryCount: prev?.inventoryCount ?? 0
-                    }))
-                }
-            } catch (err) {
-                trackGameEventClient('UI.Navigate.Exception', {
-                    correlationId,
-                    direction,
-                    error: err instanceof Error ? err.message : 'Unknown error'
-                })
-            } finally {
-                setNavigationBusy(false)
+                throw new Error(errorMsg)
             }
+
+            if (!unwrapped.data) {
+                throw new Error('No location data in response')
+            }
+
+            return unwrapped.data
         },
-        [playerGuid, location?.id, navigationBusy, queryClient]
+        onMutate: async ({ direction }) => {
+            // Cancel outbound refetches to avoid race conditions
+            await queryClient.cancelQueries({ queryKey: ['player', playerGuid] })
+            await queryClient.cancelQueries({ queryKey: ['location'] })
+
+            // Snapshot previous values for rollback
+            const previousPlayerStats = playerStats
+
+            // Optimistically update UI with moving state
+            setPlayerStats((prev) => ({
+                health: prev?.health ?? 100,
+                maxHealth: prev?.maxHealth ?? 100,
+                locationName: 'Moving...',
+                inventoryCount: prev?.inventoryCount ?? 0
+            }))
+
+            return { previousPlayerStats, direction }
+        },
+        onSuccess: (newLocation) => {
+            // Update cache optimistically with new location ID to avoid race condition
+            // The backend has already updated the player's currentLocationId, but Cosmos DB
+            // propagation can be slower than the query refetch, causing the old location to load
+            queryClient.setQueryData(['player', playerGuid], (old: unknown) => {
+                if (old && typeof old === 'object' && 'currentLocationId' in old) {
+                    return {
+                        ...old,
+                        currentLocationId: newLocation.id
+                    }
+                }
+                return old
+            })
+
+            // Invalidate queries to trigger refetch with new server state
+            // Small delay to allow Cosmos DB write to propagate
+            setTimeout(() => {
+                queryClient.invalidateQueries({ queryKey: ['player', playerGuid] })
+                queryClient.invalidateQueries({ queryKey: ['location'] })
+            }, 100)
+
+            // Update player stats with actual new location
+            setPlayerStats((prev) => ({
+                health: prev?.health ?? 100,
+                maxHealth: prev?.maxHealth ?? 100,
+                locationName: newLocation.name,
+                inventoryCount: prev?.inventoryCount ?? 0
+            }))
+        },
+        onError: (err, { direction, correlationId }, context) => {
+            // Rollback to previous state on error
+            if (context?.previousPlayerStats) {
+                setPlayerStats(context.previousPlayerStats)
+            }
+
+            // Track exception
+            trackGameEventClient('UI.Navigate.Exception', {
+                correlationId,
+                direction,
+                error: err instanceof Error ? err.message : 'Unknown error'
+            })
+        }
+    })
+
+    // Navigation handler wrapper for UI components
+    const handleNavigate = useCallback(
+        (direction: Direction) => {
+            if (!playerGuid) return
+            const correlationId = generateCorrelationId()
+            navigateMutation.mutate({ direction, correlationId })
+        },
+        [playerGuid, navigateMutation]
     )
 
     return (
@@ -453,10 +504,18 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             error={locationError}
                             onRetry={refetch}
                         />
-                        <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
+                        <ExitsPanel
+                            exits={exits}
+                            onNavigate={playerGuid ? handleNavigate : undefined}
+                            disabled={navigateMutation.isPending}
+                        />
                         {/* Navigation UI for authenticated users */}
                         {playerGuid && (
-                            <NavigationUI availableExits={availableExitDirections} onNavigate={handleNavigate} disabled={navigationBusy} />
+                            <NavigationUI
+                                availableExits={availableExitDirections}
+                                onNavigate={handleNavigate}
+                                disabled={navigateMutation.isPending}
+                            />
                         )}
                         {/* Command Interface for authenticated users */}
                         <section aria-labelledby="game-command-title">
@@ -482,10 +541,14 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         error={locationError}
                         onRetry={refetch}
                     />
-                    <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigationBusy} />
+                    <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigateMutation.isPending} />
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
-                        <NavigationUI availableExits={availableExitDirections} onNavigate={handleNavigate} disabled={navigationBusy} />
+                        <NavigationUI
+                            availableExits={availableExitDirections}
+                            onNavigate={handleNavigate}
+                            disabled={navigateMutation.isPending}
+                        />
                     )}
                     <PlayerStatsPanel stats={playerStats} />
                     {/* Command Interface */}
