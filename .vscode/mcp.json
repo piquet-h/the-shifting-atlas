@@ -1,27 +1,34 @@
 {
-    "servers": {
-        "github-remote-mcp-server": {
-            "url": "https://api.githubcopilot.com/mcp/",
-            "type": "http"
-        },
-        "mcp-the-shifting-atlas": {
-            "type": "http",
-            "url": "http://localhost:7071/runtime/webhooks/mcp"
-        },
-        "live-the-shifting-atlas": {
-            "type": "http",
-            "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
-            "headers": {
-                "x-functions-key": "${input:functions-mcp-extension-system-key}"
-            }
-        }
-    },
-    "inputs": [
-        {
-            "type": "promptString",
-            "id": "functions-mcp-extension-system-key",
-            "description": "Azure Functions MCP Extension System Key",
-            "password": true
-        }
-    ]
+	"servers": {
+		"github-remote-mcp-server": {
+			"url": "https://api.githubcopilot.com/mcp/",
+			"type": "http"
+		},
+		"mcp-the-shifting-atlas": {
+			"type": "http",
+			"url": "http://localhost:7071/runtime/webhooks/mcp"
+		},
+		"live-the-shifting-atlas": {
+			"type": "http",
+			"url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
+			"headers": {
+				"x-functions-key": "${input:functions-mcp-extension-system-key}"
+			}
+		},
+		"playwright": {
+			"command": "npx",
+			"args": [
+				"@playwright/mcp@latest"
+			],
+			"type": "stdio"
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "functions-mcp-extension-system-key",
+			"description": "Azure Functions MCP Extension System Key",
+			"password": true
+		}
+	]
 }
