@@ -16,7 +16,7 @@ import Logo from './Logo'
  */
 
 export default function Nav(): React.ReactElement {
-    const { user, loading, signOut, signIn } = useAuth()
+    const { user, loading, signOut, signIn, error } = useAuth()
     const { data: ping, loading: pingLoading } = usePing({ intervalMs: 45000 })
     const statusLabel = React.useMemo(() => {
         if (pingLoading) return 'Checking service status'
@@ -99,6 +99,12 @@ export default function Nav(): React.ReactElement {
                         {user ? (
                             <>
                                 <Link
+                                    to="/profile"
+                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
+                                >
+                                    Profile
+                                </Link>
+                                <Link
                                     to="/settings"
                                     className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
                                 >
@@ -113,12 +119,18 @@ export default function Nav(): React.ReactElement {
                             </>
                         ) : (
                             <>
-                                <button
-                                    onClick={() => signIn('msa', '/')}
-                                    className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
-                                >
-                                    Sign In with Microsoft
-                                </button>
+                                {error ? (
+                                    <div className="px-2 py-2 text-responsive-sm text-red-400" role="alert">
+                                        {error}
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => signIn('msa', '/')}
+                                        className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
+                                    >
+                                        Sign In with Microsoft
+                                    </button>
+                                )}
                             </>
                         )}
                     </div>
