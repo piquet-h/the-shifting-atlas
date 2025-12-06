@@ -52,6 +52,12 @@ const MAX_DESCRIPTION_LENGTH = 1000
 /** Number of command history items to display */
 const COMMAND_HISTORY_LIMIT = 10
 
+/** Placeholder health value (until real backend integration) */
+const PLACEHOLDER_HEALTH = 100
+
+/** Placeholder inventory count (until real backend integration) */
+const PLACEHOLDER_INVENTORY_COUNT = 0
+
 /** Player stats placeholder (until real backend integration) */
 interface PlayerStats {
     health: number
@@ -361,10 +367,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     // TODO: Replace hardcoded health/inventory with real API data
     const playerStats: PlayerStats | null = location
         ? {
-              health: 100,
-              maxHealth: 100,
+              health: PLACEHOLDER_HEALTH,
+              maxHealth: PLACEHOLDER_HEALTH,
               locationName: isNavigating ? 'Moving...' : location.name,
-              inventoryCount: 0
+              inventoryCount: PLACEHOLDER_INVENTORY_COUNT
           }
         : null
 
