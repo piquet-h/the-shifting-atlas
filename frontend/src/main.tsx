@@ -26,7 +26,7 @@ root.render(
         <AuthProvider>
             <QueryClientProvider client={queryClient}>
                 <App />
-                <ReactQueryDevtools initialIsOpen={false} />
+                <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" position="bottom-right" />
             </QueryClientProvider>
         </AuthProvider>
     </TelemetryProvider>
