@@ -382,7 +382,7 @@ export default function CommandInput({
                                         aria-selected={isSelected}
                                         tabIndex={-1}
                                         className={[
-                                            'px-3 py-2 cursor-pointer text-responsive-sm transition-colors',
+                                            'px-3 py-2 cursor-pointer text-responsive-sm transition-colors touch-target',
                                             isSelected ? 'bg-atlas-accent/20 text-atlas-accent' : 'text-slate-200 hover:bg-white/10',
                                             isAvailable ? 'font-medium' : ''
                                         ].join(' ')}

@@ -234,8 +234,11 @@ function ExitsPanel({
 /**
  * PlayerStatsPanel
  * Displays player health, current location, and inventory count.
+ * On mobile (<640px), the panel is collapsible to save screen space.
  */
-function PlayerStatsPanel({ stats }: { stats: PlayerStats | null }): React.ReactElement {
+function PlayerStatsPanel({ stats, collapsible = false }: { stats: PlayerStats | null; collapsible?: boolean }): React.ReactElement {
+    const [isExpanded, setIsExpanded] = useState(true)
+
     if (!stats) {
         return (
             <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
@@ -252,40 +255,58 @@ function PlayerStatsPanel({ stats }: { stats: PlayerStats | null }): React.React
 
     return (
         <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
-            <h3 id="stats-title" className="text-responsive-base font-semibold text-white mb-3">
-                Explorer Status
-            </h3>
-            <div className="space-y-3">
-                {/* Health bar */}
-                <div>
-                    <div className="flex justify-between text-responsive-sm mb-1">
-                        <span className="text-slate-300">Health</span>
-                        <span className="text-white font-medium">
-                            {stats.health}/{stats.maxHealth}
-                        </span>
+            <button
+                onClick={() => collapsible && setIsExpanded(!isExpanded)}
+                className={[
+                    'w-full flex items-center justify-between mb-3',
+                    collapsible ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded' : ''
+                ].join(' ')}
+                aria-expanded={isExpanded}
+                aria-controls={collapsible ? 'stats-content' : undefined}
+                disabled={!collapsible}
+            >
+                <h3 id="stats-title" className="text-responsive-base font-semibold text-white">
+                    Explorer Status
+                </h3>
+                {collapsible && (
+                    <span className="text-slate-400 transition-transform" aria-hidden="true">
+                        {isExpanded ? '▼' : '▶'}
+                    </span>
+                )}
+            </button>
+            {isExpanded && (
+                <div id="stats-content" className="space-y-3">
+                    {/* Health bar */}
+                    <div>
+                        <div className="flex justify-between text-responsive-sm mb-1">
+                            <span className="text-slate-300">Health</span>
+                            <span className="text-white font-medium">
+                                {stats.health}/{stats.maxHealth}
+                            </span>
+                        </div>
+                        <div
+                            className="h-2 bg-slate-700 rounded-full overflow-hidden"
+                            role="progressbar"
+                            aria-valuenow={stats.health}
+                            aria-valuemin={0}
+                            aria-valuemax={stats.maxHealth}
+                            aria-label="Health"
+                        >
+                            <div className={`h-full ${healthColor} transition-all duration-300`} style={{ width: `${healthPercent}%` }} />
+                        </div>
                     </div>
-                    <div
-                        className="h-2 bg-slate-700 rounded-full overflow-hidden"
-                        role="progressbar"
-                        aria-valuenow={stats.health}
-                        aria-valuemin={0}
-                        aria-valuemax={stats.maxHealth}
-                        aria-label="Health"
-                    >
-                        <div className={`h-full ${healthColor} transition-all duration-300`} style={{ width: `${healthPercent}%` }} />
+                    {/* Location */}
+                    <div className="flex justify-between text-responsive-sm">
+                        <span className="text-slate-300">Location</span>
+                        <span className="text-white font-medium truncate max-w-[60%]">{stats.locationName}</span>
+                    </div>
+                    {/* Inventory */}
+                    <div className="flex justify-between text-responsive-sm">
+                        <span className="text-slate-300">Inventory</span>
+                        <span className="text-white font-medium">{stats.inventoryCount} items</span>
                     </div>
                 </div>
-                {/* Location */}
-                <div className="flex justify-between text-responsive-sm">
-                    <span className="text-slate-300">Location</span>
-                    <span className="text-white font-medium truncate max-w-[60%]">{stats.locationName}</span>
-                </div>
-                {/* Inventory */}
-                <div className="flex justify-between text-responsive-sm">
-                    <span className="text-slate-300">Inventory</span>
-                    <span className="text-white font-medium">{stats.inventoryCount} items</span>
-                </div>
-            </div>
+            )}
         </section>
     )
 }
@@ -339,9 +360,14 @@ function CommandHistoryPanel({
 /**
  * GameView
  * Main game view component orchestrating location, exits, stats, and command interface.
+ * Responsive breakpoints:
+ * - Mobile (<640px): Single column, collapsible stats panel
+ * - Tablet (640px-1024px): Two-column layout with navigation sidebar
+ * - Desktop (≥1024px): Three-column layout with dedicated history panel
  */
 export default function GameView({ className }: GameViewProps): React.ReactElement {
-    const isDesktop = useMediaQuery('(min-width: 768px)')
+    const isTablet = useMediaQuery('(min-width: 640px)')
+    const isDesktop = useMediaQuery('(min-width: 1024px)')
     const queryClient = useQueryClient()
     const { playerGuid, currentLocationId, updateCurrentLocationId } = usePlayer()
 
@@ -483,11 +509,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     return (
         <div className={['flex flex-col gap-4 sm:gap-5', className].filter(Boolean).join(' ')}>
-            {/* Mobile: single column, Desktop: multi-column grid */}
+            {/* Responsive layouts: Mobile (<640px), Tablet (640-1024px), Desktop (≥1024px) */}
             {isDesktop ? (
-                <div className="grid grid-cols-12 gap-4 sm:gap-5">
+                /* Desktop: Three-column layout with dedicated history panel */
+                <div className="grid grid-cols-12 gap-4 lg:gap-5">
                     {/* Main content area */}
-                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
+                    <div className="col-span-7 flex flex-col gap-4 lg:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
                             description={location?.description?.text ?? ''}
@@ -509,22 +536,61 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             />
                         )}
                         {/* Command Interface for authenticated users */}
-                        <section aria-labelledby="game-command-title">
-                            <h3 id="game-command-title" className="text-responsive-base font-semibold text-white mb-3">
+                        <section aria-labelledby="game-command-title-desktop">
+                            <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
                                 Command Interface
                             </h3>
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Sidebar */}
-                    <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
+                    {/* Right sidebar: Stats and History */}
+                    <aside className="col-span-5 flex flex-col gap-4 lg:gap-5">
                         <PlayerStatsPanel stats={playerStats} />
                         <CommandHistoryPanel history={commandHistory} />
                     </aside>
                 </div>
+            ) : isTablet ? (
+                /* Tablet: Two-column layout with navigation sidebar */
+                <div className="grid grid-cols-12 gap-4 sm:gap-5">
+                    {/* Main content area */}
+                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
+                        <LocationPanel
+                            name={location?.name ?? ''}
+                            description={location?.description?.text ?? ''}
+                            loading={locationLoading}
+                            error={locationError}
+                            onRetry={refetch}
+                        />
+                        <ExitsPanel
+                            exits={exits}
+                            onNavigate={playerGuid ? handleNavigate : undefined}
+                            disabled={navigateMutation.isPending}
+                        />
+                        {/* Command Interface for authenticated users */}
+                        <section aria-labelledby="game-command-title-tablet">
+                            <h3 id="game-command-title-tablet" className="text-responsive-base font-semibold text-white mb-3">
+                                Command Interface
+                            </h3>
+                            <CommandInterface availableExits={availableExitDirections} />
+                        </section>
+                    </div>
+                    {/* Right sidebar: Stats and Navigation */}
+                    <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
+                        <PlayerStatsPanel stats={playerStats} />
+                        {/* Navigation UI for authenticated users */}
+                        {playerGuid && (
+                            <NavigationUI
+                                availableExits={availableExitsWithHints}
+                                onNavigate={handleNavigate}
+                                disabled={navigateMutation.isPending}
+                            />
+                        )}
+                        <CommandHistoryPanel history={commandHistory} />
+                    </aside>
+                </div>
             ) : (
+                /* Mobile: Single column stacked layout with collapsible stats */
                 <>
-                    {/* Mobile layout: stacked sections */}
                     <LocationPanel
                         name={location?.name ?? ''}
                         description={location?.description?.text ?? ''}
@@ -533,6 +599,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         onRetry={refetch}
                     />
                     <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigateMutation.isPending} />
+                    {/* Collapsible stats panel on mobile */}
+                    <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
                         <NavigationUI
@@ -541,7 +609,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             disabled={navigateMutation.isPending}
                         />
                     )}
-                    <PlayerStatsPanel stats={playerStats} />
                     {/* Command Interface */}
                     <section aria-labelledby="game-command-title-mobile">
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
