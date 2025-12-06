@@ -176,10 +176,7 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
     const hasNoExits = availableExits.length === 0
 
     return (
-        <section
-            className={['rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5', className].filter(Boolean).join(' ')}
-            aria-labelledby="navigation-title"
-        >
+        <section className={['card rounded-xl p-4 sm:p-5', className].filter(Boolean).join(' ')} aria-labelledby="navigation-title">
             <h3 id="navigation-title" className="text-responsive-base font-semibold text-white mb-3">
                 Navigate
             </h3>

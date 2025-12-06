@@ -100,7 +100,7 @@ function LocationPanel({
 
     if (loading) {
         return (
-            <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="location-title" aria-busy="true">
+            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title" aria-busy="true">
                 <div className="flex items-center gap-3">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
                     <span className="text-slate-400 text-responsive-sm">Loading location...</span>
@@ -127,7 +127,7 @@ function LocationPanel({
     }
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="location-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title">
             <h2 id="location-title" className="text-responsive-xl font-semibold text-white mb-2">
                 {name || 'Unknown Location'}
             </h2>
@@ -181,7 +181,7 @@ function ExitsPanel({
     ]
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="exits-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="exits-title">
             <h3 id="exits-title" className="text-responsive-base font-semibold text-white mb-3">
                 Available Exits
             </h3>
@@ -241,7 +241,7 @@ function PlayerStatsPanel({ stats, collapsible = false }: { stats: PlayerStats |
 
     if (!stats) {
         return (
-            <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
+            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title">
                 <h3 id="stats-title" className="text-responsive-base font-semibold text-white mb-3">
                     Explorer Status
                 </h3>
@@ -254,7 +254,7 @@ function PlayerStatsPanel({ stats, collapsible = false }: { stats: PlayerStats |
     const healthColor = healthPercent > 60 ? 'bg-emerald-500' : healthPercent > 30 ? 'bg-amber-500' : 'bg-red-500'
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title">
             <button
                 onClick={() => collapsible && setIsExpanded(!isExpanded)}
                 className={[
@@ -333,7 +333,7 @@ function CommandHistoryPanel({
     const visible = history.slice(-limit)
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="history-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="history-title">
             <h3 id="history-title" className="text-responsive-base font-semibold text-white mb-3">
                 Recent Actions
             </h3>

@@ -212,10 +212,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                 commandHistory={commandHistory}
             />
             <p className="mt-2 text-responsive-sm text-slate-300">
-                Commands: <code className="px-1 rounded bg-slate-700/70 text-slate-100">ping</code>,{' '}
-                <code className="px-1 rounded bg-slate-700/70 text-slate-100">look</code>,{' '}
-                <code className="px-1 rounded bg-slate-700/70 text-slate-100">move &lt;direction&gt;</code>,{' '}
-                <code className="px-1 rounded bg-slate-700/70 text-slate-100">clear</code>.
+                Commands: <code className="code-inline">ping</code>, <code className="code-inline">look</code>,{' '}
+                <code className="code-inline">move &lt;direction&gt;</code>, <code className="code-inline">clear</code>.
             </p>
         </div>
     )
