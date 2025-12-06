@@ -26,7 +26,8 @@ root.render(
         <AuthProvider>
             <QueryClientProvider client={queryClient}>
                 <App />
-                <ReactQueryDevtools initialIsOpen={false} />
+                {/* Only show devtools in development - production builds exclude this via tree-shaking */}
+                {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
             </QueryClientProvider>
         </AuthProvider>
     </TelemetryProvider>
