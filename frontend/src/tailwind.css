@@ -22,27 +22,6 @@
     .focus-outline-enhanced:focus-visible {
         @apply outline-none ring-2 ring-atlas-accent ring-offset-2 ring-offset-atlas-bg;
     }
-
-    /* React Query Devtools button positioning - ensure consistent placement across breakpoints */
-    [class*='tsqd-']:where(button) {
-        /* Keep consistent position across all breakpoints */
-        bottom: 0.75rem !important;
-        right: 0.75rem !important;
-    }
-
-    @media (min-width: 640px) {
-        [class*='tsqd-']:where(button) {
-            bottom: 1rem !important;
-            right: 1rem !important;
-        }
-    }
-
-    @media (min-width: 1024px) {
-        [class*='tsqd-']:where(button) {
-            bottom: 1.25rem !important;
-            right: 1.25rem !important;
-        }
-    }
 }
 
 @layer utilities {
