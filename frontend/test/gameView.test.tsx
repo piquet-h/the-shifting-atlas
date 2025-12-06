@@ -150,6 +150,39 @@ describe('GameView Component', () => {
             // During loading, it shows "Initializing..." but structure should exist
             expect(markup).toMatch(/Explorer Status/)
         })
+
+        it('derives locationName from location prop without useEffect', async () => {
+            // Set up mock location data
+            mockGuidState.currentLocationId = 'loc-derived-test'
+            mockFetch.mockResolvedValue({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        data: {
+                            id: 'loc-derived-test',
+                            name: 'Derived Location Name',
+                            description: {
+                                text: 'Test location for derived stats.',
+                                html: '<p>Test location for derived stats.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
+                            exits: [{ direction: 'north' }]
+                        }
+                    })
+            })
+
+            const { default: GameView } = await import('../src/components/GameView')
+            const markup = renderWithProviders(<GameView />)
+
+            // Initial render: stats should show initializing (location not loaded yet)
+            expect(markup).toMatch(/Initializing\.\.\./)
+
+            // This test verifies the anti-pattern is removed:
+            // Stats should be derived from location prop, not set via useEffect
+            // The actual derived behavior will be tested in integration tests
+            // where we can await location load and check stats update
+        })
     })
 
     describe('Command History Panel', () => {

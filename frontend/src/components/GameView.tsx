@@ -11,7 +11,7 @@
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
@@ -343,9 +343,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     // Uses currentLocationId from context (already fetched at bootstrap)
     const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(currentLocationId)
 
-    // Player stats (placeholder until real API)
-    const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
-
     /**
      * Command history state (placeholder for future unified history integration).
      *
@@ -356,6 +353,20 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
      * to unify command tracking across components.
      */
     const [commandHistory] = useState<CommandHistoryItem[]>([])
+
+    // Track optimistic navigation state for "Moving..." display
+    const [isNavigating, setIsNavigating] = useState(false)
+
+    // Derive player stats from location (no useEffect needed)
+    // TODO: Replace hardcoded health/inventory with real API data
+    const playerStats: PlayerStats | null = location
+        ? {
+              health: 100,
+              maxHealth: 100,
+              locationName: isNavigating ? 'Moving...' : location.name,
+              inventoryCount: 0
+          }
+        : null
 
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
@@ -373,18 +384,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     // Extract available exit directions for autocomplete
     const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
-
-    // Initialize placeholder stats when location loads
-    useEffect(() => {
-        if (location && !playerStats) {
-            setPlayerStats({
-                health: 100,
-                maxHealth: 100,
-                locationName: location.name,
-                inventoryCount: 0
-            })
-        }
-    }, [location, playerStats])
 
     // Navigation mutation using TanStack Query for proper cache management
     const navigateMutation = useMutation({
@@ -435,18 +434,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             await queryClient.cancelQueries({ queryKey: ['player', playerGuid] })
             await queryClient.cancelQueries({ queryKey: ['location'] })
 
-            // Snapshot previous values for rollback
-            const previousPlayerStats = playerStats
+            // Set navigating flag for optimistic "Moving..." display
+            setIsNavigating(true)
 
-            // Optimistically update UI with moving state
-            setPlayerStats((prev) => ({
-                health: prev?.health ?? 100,
-                maxHealth: prev?.maxHealth ?? 100,
-                locationName: 'Moving...',
-                inventoryCount: prev?.inventoryCount ?? 0
-            }))
-
-            return { previousPlayerStats, direction }
+            return { direction }
         },
         onSuccess: (newLocation) => {
             // Update context's currentLocationId immediately
@@ -456,19 +447,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             // Invalidate location query to refetch with new location data
             queryClient.invalidateQueries({ queryKey: ['location'] })
 
-            // Update player stats with actual new location
-            setPlayerStats((prev) => ({
-                health: prev?.health ?? 100,
-                maxHealth: prev?.maxHealth ?? 100,
-                locationName: newLocation.name,
-                inventoryCount: prev?.inventoryCount ?? 0
-            }))
+            // Clear navigating flag - stats will derive from new location
+            setIsNavigating(false)
         },
-        onError: (err, { direction, correlationId }, context) => {
-            // Rollback to previous state on error
-            if (context?.previousPlayerStats) {
-                setPlayerStats(context.previousPlayerStats)
-            }
+        onError: (err, { direction, correlationId }) => {
+            // Clear navigating flag on error
+            setIsNavigating(false)
 
             // Track exception
             trackGameEventClient('UI.Navigate.Exception', {
