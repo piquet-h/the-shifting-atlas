@@ -1,6 +1,6 @@
 {
     "name": "@piquet-h/shared",
-    "version": "0.3.85",
+    "version": "0.3.86",
     "private": false,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
