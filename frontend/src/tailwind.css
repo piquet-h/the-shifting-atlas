@@ -22,6 +22,26 @@
     .focus-outline-enhanced:focus-visible {
         @apply outline-none ring-2 ring-atlas-accent ring-offset-2 ring-offset-atlas-bg;
     }
+
+    /* Page container with gradient background - used across all page layouts */
+    .page-container {
+        @apply min-h-screen p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bgDark;
+    }
+
+    /* Card/section component with glass morphism effect - used for content sections */
+    .card {
+        @apply p-4 rounded-lg bg-white/5 ring-1 ring-white/10;
+    }
+
+    /* Inline code snippet styling - used for command references */
+    .code-inline {
+        @apply px-1 rounded bg-slate-700/70 text-slate-100;
+    }
+
+    /* Primary button with gradient and focus states - used for CTAs */
+    .btn-primary {
+        @apply px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg;
+    }
 }
 
 @layer utilities {
