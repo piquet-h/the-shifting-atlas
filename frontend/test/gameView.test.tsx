@@ -84,7 +84,11 @@ describe('GameView Component', () => {
                     data: {
                         id: 'loc-123',
                         name: 'Test Location',
-                        description: 'A mysterious chamber with ancient runes.',
+                        description: {
+                            text: 'A mysterious chamber with ancient runes.',
+                            html: '<p>A mysterious chamber with ancient runes.</p>',
+                            provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                        },
                         exits: [{ direction: 'north' }, { direction: 'south' }]
                     }
                 })
@@ -219,7 +223,11 @@ describe('GameView Component', () => {
                         data: {
                             id: 'dead-end',
                             name: 'Dead End',
-                            description: 'A passage that leads nowhere.',
+                            description: {
+                                text: 'A passage that leads nowhere.',
+                                html: '<p>A passage that leads nowhere.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
                             exits: []
                         }
                     })

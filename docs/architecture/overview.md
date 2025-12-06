@@ -1,6 +1,6 @@
 # Architecture Overview
 
-> Status Accuracy (2025-10-22): Basic traversal implemented: HTTP movement + look endpoints, direction normalization, and world event queue processor with envelope validation. Cosmos DB Gremlin used for location graph; Cosmos DB SQL API active for players, inventory, layers, and events. This overview reflects current implementation and planned direction.
+> Status Accuracy (2025-12-06): Basic traversal with compiled descriptions: HTTP movement + look endpoints return unified `LocationResponse` with compiled description structure (text, HTML, provenance). Direction normalization and world event queue processor with envelope validation operational. Cosmos DB Gremlin used for location graph; Cosmos DB SQL API active for players, inventory, layers, and events. Backend owns description composition via `DescriptionComposer` (ADR-005).
 >
 > Terminology Note: _Status Accuracy_ captures the last date the factual implementation claims were manually audited. The footer _Last updated_ reflects the last structural/content edit (which may add future-looking sections without changing audited status lines).
 
@@ -32,6 +32,7 @@ Implemented (thin slice – see repo for exact handlers):
 - Guest GUID bootstrap with canonical telemetry events (`Onboarding.GuestGuid.Started/Created`)
 - Canonical telemetry framework (`trackGameEventStrict`, event name governance)
 - Direction normalization (shortcuts, typos, relative directions)
+- **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata (ADR-005)
 - Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry), `telemetry` (read-only AI usage & decision logging)
 
 Still provisioned but not yet fully integrated: Service Bus (queue processor operates without Service Bus binding), Key Vault (secret management planned for M2).

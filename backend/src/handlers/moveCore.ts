@@ -1,5 +1,6 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import {
+    CompiledDescription,
     enrichErrorAttributes,
     enrichMovementAttributes,
     getExitGenerationHintStore,
@@ -13,6 +14,7 @@ import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
+import { DescriptionComposer } from '../services/descriptionComposer.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
@@ -27,7 +29,7 @@ export interface MoveValidationError {
 
 export interface MoveResult {
     success: boolean
-    location?: { id: string; name: string; description: string; exits?: { direction: string; description?: string }[] }
+    location?: { id: string; name: string; description: CompiledDescription; exits?: { direction: string; description?: string }[] }
     error?: MoveValidationError
     latencyMs: number
 }
@@ -37,7 +39,8 @@ export class MoveHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
         @inject('ILocationRepository') private locationRepo: ILocationRepository,
-        @inject('IPlayerRepository') private playerRepo: IPlayerRepository
+        @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
+        @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer
     ) {
         super(telemetry)
     }
@@ -305,6 +308,11 @@ export class MoveHandler extends BaseHandler {
             }
         }
 
+        // Compile description for the new location
+        const compiled = await this.descriptionComposer.compileForLocation(result.location.id, {
+            timestamp: new Date().toISOString()
+        })
+
         const latencyMs = Date.now() - started
         const props = {
             from: fromId,
@@ -322,6 +330,23 @@ export class MoveHandler extends BaseHandler {
         })
         this.track('Navigation.Move.Success', props)
 
-        return { success: true, location: result.location, latencyMs }
+        return {
+            success: true,
+            location: {
+                id: result.location.id,
+                name: result.location.name,
+                description: {
+                    text: compiled.text,
+                    html: compiled.html,
+                    provenance: {
+                        compiledAt: compiled.provenance.compiledAt,
+                        layersApplied: compiled.provenance.layers.map((l) => l.layerType),
+                        supersededSentences: 0
+                    }
+                },
+                exits: result.location.exits
+            },
+            latencyMs
+        }
     }
 }

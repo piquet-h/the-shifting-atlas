@@ -39,23 +39,6 @@ export function buildLocationUrl(locationId: string | null | undefined): string 
 }
 
 /**
- * Build URL for GET /api/locations/{locationId}/compiled
- * Returns compiled description with layer composition
- * @throws Error if locationId is not a valid GUID
- */
-export function buildCompiledLocationUrl(locationId: string, queryParams?: Record<string, string>): string {
-    if (!isValidGuid(locationId)) {
-        throw new Error('Location ID must be a valid GUID')
-    }
-    const url = `/api/locations/${locationId}/compiled`
-    if (queryParams && Object.keys(queryParams).length > 0) {
-        const params = new URLSearchParams(queryParams)
-        return `${url}?${params.toString()}`
-    }
-    return url
-}
-
-/**
  * Build URL and body for move command
  * POST /api/player/{playerId}/move with body { direction }
  * Server reads player's current location from database (authoritative)

@@ -4,7 +4,7 @@
  *
  * Optimized pattern:
  * - Uses currentLocationId from PlayerContext (already fetched at bootstrap)
- * - Only fetches the compiled location description
+ * - Fetches location with compiled description (unified endpoint)
  * - No redundant player state fetch
  *
  * Benefits:
@@ -15,36 +15,22 @@
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useQuery } from '@tanstack/react-query'
-import { buildCompiledLocationUrl, buildHeaders } from '../utils/apiClient'
+import { buildHeaders, buildLocationUrl } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 
 /**
- * Extended location response with compiled description and provenance
+ * Fetch location details from API
+ * Uses the unified endpoint which returns compiled description with layers
  */
-export interface CompiledLocationResponse extends Omit<LocationResponse, 'description'> {
-    locationId: string
-    compiledDescription: string
-    compiledDescriptionHtml: string
-    provenance: {
-        compiledAt: string
-        layersApplied: string[]
-        supersededSentences: number
-    }
-}
-
-/**
- * Fetch compiled location details from API
- * Uses the /compiled endpoint which returns pre-composed description layers
- */
-async function fetchLocation(locationId?: string): Promise<CompiledLocationResponse> {
+async function fetchLocation(locationId?: string): Promise<LocationResponse> {
     if (!locationId) {
-        throw new Error('Location ID is required for compiled endpoint')
+        throw new Error('Location ID is required')
     }
 
     const correlationId = generateCorrelationId()
-    const url = buildCompiledLocationUrl(locationId)
+    const url = buildLocationUrl(locationId)
     const res = await fetch(url, {
         headers: buildHeaders({
             ...buildCorrelationHeaders(correlationId)
@@ -58,7 +44,7 @@ async function fetchLocation(locationId?: string): Promise<CompiledLocationRespo
     }
 
     const json = await res.json()
-    const unwrapped = unwrapEnvelope<CompiledLocationResponse>(json)
+    const unwrapped = unwrapEnvelope<LocationResponse>(json)
 
     if (!unwrapped.success || !unwrapped.data) {
         throw new Error('Invalid location response')
@@ -68,7 +54,7 @@ async function fetchLocation(locationId?: string): Promise<CompiledLocationRespo
 }
 
 export interface UsePlayerLocationResult {
-    location: CompiledLocationResponse | null
+    location: LocationResponse | null
     isLoading: boolean
     error: string | null
     refetch: () => void

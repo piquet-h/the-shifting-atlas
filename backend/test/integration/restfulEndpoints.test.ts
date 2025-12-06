@@ -330,9 +330,21 @@ describe('RESTful Endpoints Integration', () => {
     })
 
     describe('GET /location/{locationId}', () => {
-        test('returns location data with correct structure', async () => {
+        test('returns location data with compiled description structure', async () => {
             const ctx = await createMockContext(fixture)
             const telemetry = await getTelemetryClient(fixture)
+            const layerRepo = await fixture.getLayerRepository()
+
+            // Add a base layer for the starter location to test compilation
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId: STARTER_LOCATION_ID,
+                layerType: 'base',
+                content: 'A peaceful dock where boats gently bob.',
+                priority: 100,
+                authoredAt: new Date().toISOString()
+            })
+
             telemetry.clear()
 
             // Get the starter location
@@ -349,7 +361,15 @@ describe('RESTful Endpoints Integration', () => {
                 data: {
                     id: string
                     name: string
-                    description: string
+                    description: {
+                        text: string
+                        html: string
+                        provenance: {
+                            compiledAt: string
+                            layersApplied: string[]
+                            supersededSentences: number
+                        }
+                    }
                     exits?: Array<{ direction: string }>
                     metadata?: {
                         exitsSummaryCache?: string
@@ -362,7 +382,20 @@ describe('RESTful Endpoints Integration', () => {
             assert.ok(body.data, 'Should have data field')
             assert.strictEqual(body.data.id, STARTER_LOCATION_ID)
             assert.ok(body.data.name, 'Should have location name')
-            assert.ok(body.data.description, 'Should have description')
+
+            // Validate compiled description structure
+            assert.ok(body.data.description, 'Should have description object')
+            assert.ok(body.data.description.text, 'Should have description.text')
+            assert.ok(body.data.description.html, 'Should have description.html')
+            assert.ok(body.data.description.provenance, 'Should have description.provenance')
+            assert.ok(body.data.description.provenance.compiledAt, 'Should have compiledAt timestamp')
+            assert.ok(Array.isArray(body.data.description.provenance.layersApplied), 'Should have layersApplied array')
+            assert.strictEqual(
+                typeof body.data.description.provenance.supersededSentences,
+                'number',
+                'Should have supersededSentences count'
+            )
+
             assert.ok(Array.isArray(body.data.exits), 'Should have exits array')
 
             // Validate telemetry
@@ -498,10 +531,11 @@ describe('RESTful Endpoints Integration', () => {
             assert.ok(eventNames.includes('Player.Get'), 'Should emit Player.Get event')
             assert.ok(eventNames.includes('Navigation.Look.Issued'), 'Should emit Navigation.Look.Issued event')
 
-            // Verify no unexpected event name changes
+            // Verify no unexpected event name changes (allow Description.* for compiled descriptions)
             for (const event of telemetry.events) {
                 assert.ok(
-                    event.name.includes('.') && (event.name.startsWith('Player.') || event.name.startsWith('Navigation.')),
+                    event.name.includes('.') &&
+                        (event.name.startsWith('Player.') || event.name.startsWith('Navigation.') || event.name.startsWith('Description.')),
                     `Event name should follow expected pattern: ${event.name}`
                 )
             }

@@ -43,11 +43,41 @@ export interface PlayerGetResponse {
     externalId?: string
 }
 
-/** Location data returned by look/move endpoints */
+/**
+ * Provenance metadata for compiled descriptions.
+ * Tracks which layers were applied and when compilation occurred.
+ */
+export interface DescriptionProvenance {
+    /** ISO timestamp when description was compiled */
+    compiledAt: string
+    /** List of layer types that were applied (e.g., ['dynamic', 'ambient']) */
+    layersApplied: string[]
+    /** Count of base sentences that were superseded by structural layers */
+    supersededSentences: number
+}
+
+/**
+ * Compiled description object.
+ * Backend always compiles descriptions through DescriptionComposer service.
+ */
+export interface CompiledDescription {
+    /** Compiled markdown text */
+    text: string
+    /** Sanitized HTML version */
+    html: string
+    /** Compilation provenance metadata */
+    provenance: DescriptionProvenance
+}
+
+/**
+ * Location data returned by look/move endpoints.
+ * Backend owns composition logic - description is always compiled.
+ */
 export interface LocationResponse {
     id: string
     name: string
-    description: string
+    /** Compiled description with text, HTML, and provenance */
+    description: CompiledDescription
     exits?: Array<{ direction: string; description?: string }>
     latencyMs?: number
     metadata?: {

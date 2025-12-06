@@ -70,7 +70,11 @@ describe('CommandInterface - Guest Hydration', () => {
                         data: {
                             id: NORTH_ROAD_LOCATION_ID,
                             name: 'North Road',
-                            description: 'Slight rise leading north; bustle of the square fades behind.',
+                            description: {
+                                text: 'Slight rise leading north; bustle of the square fades behind.',
+                                html: '<p>Slight rise leading north; bustle of the square fades behind.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
                             exits: [{ direction: 'south', targetId: STARTER_LOCATION_ID }]
                         }
                     })
@@ -81,7 +85,11 @@ describe('CommandInterface - Guest Hydration', () => {
                         data: {
                             id: STARTER_LOCATION_ID,
                             name: 'Mosswell River Jetty',
-                            description: 'Timbered jetty where river current meets brackish tide.',
+                            description: {
+                                text: 'Timbered jetty where river current meets brackish tide.',
+                                html: '<p>Timbered jetty where river current meets brackish tide.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
                             exits: [{ direction: 'north', targetId: NORTH_ROAD_LOCATION_ID }]
                         }
                     })
@@ -156,7 +164,11 @@ describe('CommandInterface - Guest Hydration', () => {
                         data: {
                             id: STARTER_LOCATION_ID,
                             name: 'Mosswell River Jetty',
-                            description: 'Timbered jetty where river current meets brackish tide.',
+                            description: {
+                                text: 'Timbered jetty where river current meets brackish tide.',
+                                html: '<p>Timbered jetty where river current meets brackish tide.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
                             exits: [{ direction: 'north', targetId: NORTH_ROAD_LOCATION_ID }]
                         }
                     })
@@ -170,7 +182,11 @@ describe('CommandInterface - Guest Hydration', () => {
                     data: {
                         id: STARTER_LOCATION_ID,
                         name: 'Mosswell River Jetty',
-                        description: 'Timbered jetty where river current meets brackish tide.',
+                        description: {
+                            text: 'Timbered jetty where river current meets brackish tide.',
+                            html: '<p>Timbered jetty where river current meets brackish tide.</p>',
+                            provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                        },
                         exits: [{ direction: 'north', targetId: NORTH_ROAD_LOCATION_ID }]
                     }
                 })
@@ -181,7 +197,11 @@ describe('CommandInterface - Guest Hydration', () => {
                     data: {
                         id: NORTH_ROAD_LOCATION_ID,
                         name: 'North Road',
-                        description: 'Slight rise leading north; bustle of the square fades behind.',
+                        description: {
+                            text: 'Slight rise leading north; bustle of the square fades behind.',
+                            html: '<p>Slight rise leading north; bustle of the square fades behind.</p>',
+                            provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                        },
                         exits: [{ direction: 'south', targetId: STARTER_LOCATION_ID }]
                     }
                 })

@@ -500,7 +500,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
-                            description={location?.compiledDescription ?? ''}
+                            description={location?.description?.text ?? ''}
                             loading={locationLoading}
                             error={locationError}
                             onRetry={refetch}
@@ -537,7 +537,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     {/* Mobile layout: stacked sections */}
                     <LocationPanel
                         name={location?.name ?? ''}
-                        description={location?.compiledDescription ?? ''}
+                        description={location?.description?.text ?? ''}
                         loading={locationLoading}
                         error={locationError}
                         onRetry={refetch}
