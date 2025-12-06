@@ -15,10 +15,10 @@ import React, { useCallback, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
-import { trackGameEventClient } from '../services/telemetry'
+import { getSessionId, trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
-import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
+import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInterface from './CommandInterface'
 import DescriptionRenderer from './DescriptionRenderer'
@@ -399,7 +399,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             const moveRequest = buildMoveRequest(playerGuid, direction)
             const headers = buildHeaders({
                 'Content-Type': 'application/json',
-                ...buildCorrelationHeaders(correlationId)
+                ...buildCorrelationHeaders(correlationId),
+                ...buildSessionHeaders(getSessionId())
             })
 
             // Track UI navigation button click

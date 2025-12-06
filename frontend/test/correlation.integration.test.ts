@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildHeaders } from '../src/utils/apiClient'
-import { buildCorrelationHeaders, generateCorrelationId } from '../src/utils/correlation'
+import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../src/utils/correlation'
 
 describe('API correlation integration', () => {
     describe('buildHeaders with correlation', () => {
@@ -87,6 +87,57 @@ describe('API correlation integration', () => {
 
             // Empty string is falsy, so no header should be added
             expect(headers).not.toHaveProperty('x-correlation-id')
+        })
+    })
+
+    describe('session header propagation', () => {
+        let originalEnv: ImportMetaEnv
+
+        beforeEach(() => {
+            vi.resetModules()
+            originalEnv = { ...import.meta.env }
+        })
+
+        afterEach(() => {
+            Object.assign(import.meta.env, originalEnv)
+        })
+
+        it('should include x-session-id header when sessionId is provided', () => {
+            const sessionId = 'test-session-123'
+            const headers = buildHeaders({
+                ...buildSessionHeaders(sessionId)
+            })
+
+            expect(headers).toHaveProperty('x-session-id', sessionId)
+        })
+
+        it('should merge session and correlation headers together', () => {
+            const sessionId = 'test-session-abc'
+            const correlationId = generateCorrelationId()
+
+            const headers = buildHeaders({
+                ...buildCorrelationHeaders(correlationId),
+                ...buildSessionHeaders(sessionId)
+            })
+
+            expect(headers['x-correlation-id']).toBe(correlationId)
+            expect(headers['x-session-id']).toBe(sessionId)
+        })
+
+        it('should not include x-session-id when sessionId is undefined', () => {
+            const headers = buildHeaders({
+                ...buildSessionHeaders(undefined)
+            })
+
+            expect(headers).not.toHaveProperty('x-session-id')
+        })
+
+        it('should not include x-session-id when sessionId is empty string', () => {
+            const headers = buildHeaders({
+                ...buildSessionHeaders('')
+            })
+
+            expect(headers).not.toHaveProperty('x-session-id')
         })
     })
 })

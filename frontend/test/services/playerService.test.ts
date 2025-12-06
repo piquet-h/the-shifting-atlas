@@ -11,7 +11,8 @@ import { server } from '../mocks/server'
 
 // Mock telemetry
 vi.mock('../../src/services/telemetry', () => ({
-    trackGameEventClient: vi.fn()
+    trackGameEventClient: vi.fn(),
+    getSessionId: vi.fn(() => 'test-session-id-123')
 }))
 
 // Mock localStorage utils

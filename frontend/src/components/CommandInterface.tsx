@@ -1,10 +1,10 @@
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
 import { useCallback, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
-import { trackGameEventClient } from '../services/telemetry'
+import { getSessionId, trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
-import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
+import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
@@ -75,7 +75,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(playerGuid ? { 'x-player-guid': playerGuid } : {})
+                            ...(playerGuid ? { 'x-player-guid': playerGuid } : {}),
+                            ...buildSessionHeaders(getSessionId())
                         },
                         body: JSON.stringify(requestBody)
                     })
@@ -97,7 +98,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
 
                     const url = buildLocationUrl(locationToFetch)
                     const headers = buildHeaders({
-                        ...buildCorrelationHeaders(correlationId)
+                        ...buildCorrelationHeaders(correlationId),
+                        ...buildSessionHeaders(getSessionId())
                     })
                     // Track UI event BEFORE request to capture user intent (dispatch time)
                     // Backend events will track processing outcome using the same correlationId
@@ -131,7 +133,8 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                     const headers = buildHeaders({
                         'Content-Type': 'application/json',
                         'x-player-guid': playerGuid || '',
-                        ...buildCorrelationHeaders(correlationId)
+                        ...buildCorrelationHeaders(correlationId),
+                        ...buildSessionHeaders(getSessionId())
                     })
                     // Track UI event BEFORE request to capture user intent (dispatch time)
                     // Backend events will track processing outcome using the same correlationId
