@@ -76,7 +76,7 @@ export default function Homepage(): React.ReactElement {
                     <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 md:col-span-8 lg:col-span-8 xl:col-span-9">
                         {/* Hero / Intro */}
                         <section
-                            className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5 md:p-6 flex flex-col gap-3 sm:gap-4"
+                            className="card relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 flex flex-col gap-3 sm:gap-4"
                             aria-labelledby="hero-title"
                         >
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -96,7 +96,7 @@ export default function Homepage(): React.ReactElement {
                                                 }
                                                 signIn('msa', '/game')
                                             }}
-                                            className="touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
+                                            className="touch-target btn-primary px-4 sm:px-5 py-3 text-responsive-base"
                                         >
                                             {isNewUser ? 'Create Your Explorer' : 'Sign In to Continue'}
                                         </button>
@@ -193,7 +193,7 @@ export default function Homepage(): React.ReactElement {
                     {/* Desktop/Tablet side panel (progressive enhancement) */}
                     <aside className="hidden md:flex md:col-span-4 lg:col-span-4 xl:col-span-3">
                         <div
-                            className="w-full rounded-xl md:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 md:p-5 flex flex-col gap-3 md:gap-4 sticky top-16 md:top-20 max-h-[calc(100vh-5rem)] md:max-h-[calc(100vh-6rem)] overflow-auto"
+                            className="card w-full rounded-xl md:rounded-2xl p-4 md:p-5 flex flex-col gap-3 md:gap-4 sticky top-16 md:top-20 max-h-[calc(100vh-5rem)] md:max-h-[calc(100vh-6rem)] overflow-auto"
                             aria-labelledby="world-feed-title"
                         >
                             <h2 id="world-feed-title" className="text-responsive-sm font-semibold tracking-wide">
@@ -224,7 +224,7 @@ export default function Homepage(): React.ReactElement {
                 <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 md:grid md:grid-cols-12 md:items-start">
                     <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 md:col-span-8 lg:col-span-8 xl:col-span-9">
                         {/* Welcome back section */}
-                        <section className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5 md:p-6 flex flex-col gap-3 sm:gap-4">
+                        <section className="card relative overflow-hidden rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 flex flex-col gap-3 sm:gap-4">
                             <h2 className="text-responsive-2xl font-semibold max-w-readable">
                                 Welcome back, {user?.userDetails?.split(' ')[0] || 'Explorer'}
                             </h2>
@@ -232,10 +232,7 @@ export default function Homepage(): React.ReactElement {
                                 Your exploration continues. The Atlas has shifted since your last visit.
                             </p>
                             <div className="mt-2">
-                                <a
-                                    href="/game"
-                                    className="inline-block touch-target px-4 sm:px-5 py-3 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
-                                >
+                                <a href="/game" className="inline-block touch-target btn-primary px-4 sm:px-5 py-3 text-responsive-base">
                                     Enter the Atlas →
                                 </a>
                             </div>
@@ -265,7 +262,7 @@ export default function Homepage(): React.ReactElement {
                     </div>
                     <aside className="hidden md:flex md:col-span-4 lg:col-span-4 xl:col-span-3">
                         <div
-                            className="w-full rounded-xl md:rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 md:p-5 flex flex-col gap-3 md:gap-4 sticky top-16 md:top-20 max-h-[calc(100vh-5rem)] md:max-h-[calc(100vh-6rem)] overflow-auto"
+                            className="card w-full rounded-xl md:rounded-2xl p-4 md:p-5 flex flex-col gap-3 md:gap-4 sticky top-16 md:top-20 max-h-[calc(100vh-5rem)] md:max-h-[calc(100vh-6rem)] overflow-auto"
                             aria-labelledby="player-feed-title"
                         >
                             <h2 id="player-feed-title" className="text-responsive-sm font-semibold tracking-wide">

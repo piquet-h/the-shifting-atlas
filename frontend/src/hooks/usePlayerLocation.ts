@@ -15,9 +15,10 @@
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useQuery } from '@tanstack/react-query'
+import { getSessionId } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
-import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
+import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 
 /**
@@ -33,7 +34,8 @@ async function fetchLocation(locationId?: string): Promise<LocationResponse> {
     const url = buildLocationUrl(locationId)
     const res = await fetch(url, {
         headers: buildHeaders({
-            ...buildCorrelationHeaders(correlationId)
+            ...buildCorrelationHeaders(correlationId),
+            ...buildSessionHeaders(getSessionId())
         })
     })
 

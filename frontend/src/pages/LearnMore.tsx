@@ -8,14 +8,14 @@ import React from 'react'
 
 export default function LearnMore(): React.ReactElement {
     return (
-        <div className="min-h-screen p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bg-dark">
+        <div className="page-container">
             <h1 className="text-2xl font-semibold" tabIndex={-1}>
                 Learn More About The Shifting Atlas
             </h1>
 
             <div className="mt-6 flex flex-col gap-6 max-w-3xl">
                 {/* Overview */}
-                <section className="p-4 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <section className="card">
                     <h2 className="text-lg font-medium mb-3">What is The Shifting Atlas?</h2>
                     <p className="text-slate-300 leading-relaxed">
                         The Shifting Atlas is a living, persistent text-based world where locations shift, evolve, and respond to player
@@ -25,7 +25,7 @@ export default function LearnMore(): React.ReactElement {
                 </section>
 
                 {/* Core Features */}
-                <section className="p-4 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <section className="card">
                     <h2 className="text-lg font-medium mb-3">Core Features</h2>
                     <ul className="space-y-3 text-slate-300">
                         <li className="flex items-start gap-2">
@@ -59,7 +59,7 @@ export default function LearnMore(): React.ReactElement {
                 </section>
 
                 {/* How to Play */}
-                <section className="p-4 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <section className="card">
                     <h2 className="text-lg font-medium mb-3">How to Play</h2>
                     <ol className="space-y-3 text-slate-300 list-decimal list-inside">
                         <li>
@@ -79,21 +79,18 @@ export default function LearnMore(): React.ReactElement {
                 </section>
 
                 {/* Getting Started */}
-                <section className="p-4 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <section className="card">
                     <h2 className="text-lg font-medium mb-3">Getting Started</h2>
                     <p className="text-slate-300 leading-relaxed mb-4">
                         Ready to begin your journey? Sign in to create your explorer and enter the Atlas.
                     </p>
-                    <a
-                        href="/"
-                        className="inline-block touch-target px-4 py-2 rounded-lg font-semibold text-responsive-base bg-gradient-to-r from-atlas-accent to-green-400 text-emerald-900 shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white focus-visible:ring-offset-atlas-bg"
-                    >
+                    <a href="/" className="inline-block touch-target btn-primary px-4 py-2 text-responsive-base">
                         Get Started →
                     </a>
                 </section>
 
                 {/* Technical Details */}
-                <section className="p-4 rounded-lg bg-white/5 ring-1 ring-white/10">
+                <section className="card">
                     <h2 className="text-lg font-medium mb-3">About This Project</h2>
                     <p className="text-slate-300 leading-relaxed">
                         The Shifting Atlas is built on Azure Functions, Cosmos DB, and Azure Static Web Apps. It demonstrates asynchronous

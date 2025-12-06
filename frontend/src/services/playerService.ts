@@ -4,9 +4,10 @@
  */
 import type { PlayerBootstrapResponse } from '@piquet-h/shared'
 import { buildHeaders, isValidGuid } from '../utils/apiClient'
+import { buildSessionHeaders } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import { readFromStorage, writeToStorage } from '../utils/localStorage'
-import { trackGameEventClient } from './telemetry'
+import { getSessionId, trackGameEventClient } from './telemetry'
 
 const STORAGE_KEY = 'tsa.playerGuid'
 
@@ -50,7 +51,10 @@ export async function bootstrapPlayer(existingGuid?: string | null): Promise<Boo
 
     // Always call bootstrap endpoint; pass existing GUID via header if present
     const url = '/api/player'
-    const headers = buildHeaders(existingGuid ? { 'x-player-guid': existingGuid } : {})
+    const headers = buildHeaders({
+        ...(existingGuid ? { 'x-player-guid': existingGuid } : {}),
+        ...buildSessionHeaders(getSessionId())
+    })
 
     const res = await fetch(url, {
         method: 'GET',

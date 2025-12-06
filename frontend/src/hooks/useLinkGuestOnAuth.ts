@@ -2,6 +2,8 @@
 import type { PlayerLinkRequest, PlayerLinkResponse } from '@piquet-h/shared'
 import { useEffect, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
+import { getSessionId } from '../services/telemetry'
+import { buildSessionHeaders } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import { useAuth } from './useAuth'
 
@@ -33,7 +35,10 @@ export function useLinkGuestOnAuth() {
                 const requestBody: PlayerLinkRequest = { playerGuid }
                 const res = await fetch('/api/player/link', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...buildSessionHeaders(getSessionId())
+                    },
                     body: JSON.stringify(requestBody)
                 })
                 if (!res.ok) throw new Error(`Link failed: ${res.status}`)

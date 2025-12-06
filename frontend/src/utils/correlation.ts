@@ -40,3 +40,19 @@ export function buildCorrelationHeaders(correlationId?: string): Record<string, 
         'x-correlation-id': correlationId
     }
 }
+
+/**
+ * Build session headers for API requests
+ * Includes x-session-id if sessionId is provided, enabling frontend↔backend correlation
+ *
+ * @param sessionId - Optional session ID to include in headers
+ * @returns Headers object with session ID if provided
+ */
+export function buildSessionHeaders(sessionId?: string): Record<string, string> {
+    if (!sessionId) {
+        return {}
+    }
+    return {
+        'x-session-id': sessionId
+    }
+}

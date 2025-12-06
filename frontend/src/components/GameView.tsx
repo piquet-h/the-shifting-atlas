@@ -11,14 +11,14 @@
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
-import { trackGameEventClient } from '../services/telemetry'
+import { getSessionId, trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
-import { buildCorrelationHeaders, generateCorrelationId } from '../utils/correlation'
+import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInterface from './CommandInterface'
 import DescriptionRenderer from './DescriptionRenderer'
@@ -51,6 +51,12 @@ const MAX_DESCRIPTION_LENGTH = 1000
 
 /** Number of command history items to display */
 const COMMAND_HISTORY_LIMIT = 10
+
+/** Placeholder health value (until real backend integration) */
+const PLACEHOLDER_HEALTH = 100
+
+/** Placeholder inventory count (until real backend integration) */
+const PLACEHOLDER_INVENTORY_COUNT = 0
 
 /** Player stats placeholder (until real backend integration) */
 interface PlayerStats {
@@ -94,7 +100,7 @@ function LocationPanel({
 
     if (loading) {
         return (
-            <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="location-title" aria-busy="true">
+            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title" aria-busy="true">
                 <div className="flex items-center gap-3">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
                     <span className="text-slate-400 text-responsive-sm">Loading location...</span>
@@ -121,7 +127,7 @@ function LocationPanel({
     }
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="location-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title">
             <h2 id="location-title" className="text-responsive-xl font-semibold text-white mb-2">
                 {name || 'Unknown Location'}
             </h2>
@@ -175,7 +181,7 @@ function ExitsPanel({
     ]
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="exits-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="exits-title">
             <h3 id="exits-title" className="text-responsive-base font-semibold text-white mb-3">
                 Available Exits
             </h3>
@@ -228,11 +234,14 @@ function ExitsPanel({
 /**
  * PlayerStatsPanel
  * Displays player health, current location, and inventory count.
+ * On mobile (<640px), the panel is collapsible to save screen space.
  */
-function PlayerStatsPanel({ stats }: { stats: PlayerStats | null }): React.ReactElement {
+function PlayerStatsPanel({ stats, collapsible = false }: { stats: PlayerStats | null; collapsible?: boolean }): React.ReactElement {
+    const [isExpanded, setIsExpanded] = useState(true)
+
     if (!stats) {
         return (
-            <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
+            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title">
                 <h3 id="stats-title" className="text-responsive-base font-semibold text-white mb-3">
                     Explorer Status
                 </h3>
@@ -245,41 +254,59 @@ function PlayerStatsPanel({ stats }: { stats: PlayerStats | null }): React.React
     const healthColor = healthPercent > 60 ? 'bg-emerald-500' : healthPercent > 30 ? 'bg-amber-500' : 'bg-red-500'
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="stats-title">
-            <h3 id="stats-title" className="text-responsive-base font-semibold text-white mb-3">
-                Explorer Status
-            </h3>
-            <div className="space-y-3">
-                {/* Health bar */}
-                <div>
-                    <div className="flex justify-between text-responsive-sm mb-1">
-                        <span className="text-slate-300">Health</span>
-                        <span className="text-white font-medium">
-                            {stats.health}/{stats.maxHealth}
-                        </span>
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title">
+            <button
+                onClick={() => collapsible && setIsExpanded(!isExpanded)}
+                className={[
+                    'w-full flex items-center justify-between mb-3',
+                    collapsible ? 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded' : ''
+                ].join(' ')}
+                aria-expanded={isExpanded}
+                aria-controls={collapsible ? 'stats-content' : undefined}
+                disabled={!collapsible}
+            >
+                <h3 id="stats-title" className="text-responsive-base font-semibold text-white">
+                    Explorer Status
+                </h3>
+                {collapsible && (
+                    <span className="text-slate-400 transition-transform" aria-hidden="true">
+                        {isExpanded ? '▼' : '▶'}
+                    </span>
+                )}
+            </button>
+            {isExpanded && (
+                <div id="stats-content" className="space-y-3">
+                    {/* Health bar */}
+                    <div>
+                        <div className="flex justify-between text-responsive-sm mb-1">
+                            <span className="text-slate-300">Health</span>
+                            <span className="text-white font-medium">
+                                {stats.health}/{stats.maxHealth}
+                            </span>
+                        </div>
+                        <div
+                            className="h-2 bg-slate-700 rounded-full overflow-hidden"
+                            role="progressbar"
+                            aria-valuenow={stats.health}
+                            aria-valuemin={0}
+                            aria-valuemax={stats.maxHealth}
+                            aria-label="Health"
+                        >
+                            <div className={`h-full ${healthColor} transition-all duration-300`} style={{ width: `${healthPercent}%` }} />
+                        </div>
                     </div>
-                    <div
-                        className="h-2 bg-slate-700 rounded-full overflow-hidden"
-                        role="progressbar"
-                        aria-valuenow={stats.health}
-                        aria-valuemin={0}
-                        aria-valuemax={stats.maxHealth}
-                        aria-label="Health"
-                    >
-                        <div className={`h-full ${healthColor} transition-all duration-300`} style={{ width: `${healthPercent}%` }} />
+                    {/* Location */}
+                    <div className="flex justify-between text-responsive-sm">
+                        <span className="text-slate-300">Location</span>
+                        <span className="text-white font-medium truncate max-w-[60%]">{stats.locationName}</span>
+                    </div>
+                    {/* Inventory */}
+                    <div className="flex justify-between text-responsive-sm">
+                        <span className="text-slate-300">Inventory</span>
+                        <span className="text-white font-medium">{stats.inventoryCount} items</span>
                     </div>
                 </div>
-                {/* Location */}
-                <div className="flex justify-between text-responsive-sm">
-                    <span className="text-slate-300">Location</span>
-                    <span className="text-white font-medium truncate max-w-[60%]">{stats.locationName}</span>
-                </div>
-                {/* Inventory */}
-                <div className="flex justify-between text-responsive-sm">
-                    <span className="text-slate-300">Inventory</span>
-                    <span className="text-white font-medium">{stats.inventoryCount} items</span>
-                </div>
-            </div>
+            )}
         </section>
     )
 }
@@ -306,7 +333,7 @@ function CommandHistoryPanel({
     const visible = history.slice(-limit)
 
     return (
-        <section className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4 sm:p-5" aria-labelledby="history-title">
+        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="history-title">
             <h3 id="history-title" className="text-responsive-base font-semibold text-white mb-3">
                 Recent Actions
             </h3>
@@ -333,18 +360,20 @@ function CommandHistoryPanel({
 /**
  * GameView
  * Main game view component orchestrating location, exits, stats, and command interface.
+ * Responsive breakpoints:
+ * - Mobile (<640px): Single column, collapsible stats panel
+ * - Tablet (640px-1024px): Two-column layout with navigation sidebar
+ * - Desktop (≥1024px): Three-column layout with dedicated history panel
  */
 export default function GameView({ className }: GameViewProps): React.ReactElement {
-    const isDesktop = useMediaQuery('(min-width: 768px)')
+    const isTablet = useMediaQuery('(min-width: 640px)')
+    const isDesktop = useMediaQuery('(min-width: 1024px)')
     const queryClient = useQueryClient()
     const { playerGuid, currentLocationId, updateCurrentLocationId } = usePlayer()
 
     // Fetch player's current location using TanStack Query
     // Uses currentLocationId from context (already fetched at bootstrap)
     const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(currentLocationId)
-
-    // Player stats (placeholder until real API)
-    const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null)
 
     /**
      * Command history state (placeholder for future unified history integration).
@@ -356,6 +385,20 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
      * to unify command tracking across components.
      */
     const [commandHistory] = useState<CommandHistoryItem[]>([])
+
+    // Track optimistic navigation state for "Moving..." display
+    const [isNavigating, setIsNavigating] = useState(false)
+
+    // Derive player stats from location (no useEffect needed)
+    // TODO: Replace hardcoded health/inventory with real API data
+    const playerStats: PlayerStats | null = location
+        ? {
+              health: PLACEHOLDER_HEALTH,
+              maxHealth: PLACEHOLDER_HEALTH,
+              locationName: isNavigating ? 'Moving...' : location.name,
+              inventoryCount: PLACEHOLDER_INVENTORY_COUNT
+          }
+        : null
 
     // Build exits info from location data
     const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
@@ -374,18 +417,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     // Extract available exit directions for autocomplete
     const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
 
-    // Initialize placeholder stats when location loads
-    useEffect(() => {
-        if (location && !playerStats) {
-            setPlayerStats({
-                health: 100,
-                maxHealth: 100,
-                locationName: location.name,
-                inventoryCount: 0
-            })
-        }
-    }, [location, playerStats])
-
     // Navigation mutation using TanStack Query for proper cache management
     const navigateMutation = useMutation({
         mutationFn: async ({ direction, correlationId }: { direction: Direction; correlationId: string }) => {
@@ -394,7 +425,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             const moveRequest = buildMoveRequest(playerGuid, direction)
             const headers = buildHeaders({
                 'Content-Type': 'application/json',
-                ...buildCorrelationHeaders(correlationId)
+                ...buildCorrelationHeaders(correlationId),
+                ...buildSessionHeaders(getSessionId())
             })
 
             // Track UI navigation button click
@@ -435,18 +467,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             await queryClient.cancelQueries({ queryKey: ['player', playerGuid] })
             await queryClient.cancelQueries({ queryKey: ['location'] })
 
-            // Snapshot previous values for rollback
-            const previousPlayerStats = playerStats
+            // Set navigating flag for optimistic "Moving..." display
+            setIsNavigating(true)
 
-            // Optimistically update UI with moving state
-            setPlayerStats((prev) => ({
-                health: prev?.health ?? 100,
-                maxHealth: prev?.maxHealth ?? 100,
-                locationName: 'Moving...',
-                inventoryCount: prev?.inventoryCount ?? 0
-            }))
-
-            return { previousPlayerStats, direction }
+            return { direction }
         },
         onSuccess: (newLocation) => {
             // Update context's currentLocationId immediately
@@ -456,19 +480,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             // Invalidate location query to refetch with new location data
             queryClient.invalidateQueries({ queryKey: ['location'] })
 
-            // Update player stats with actual new location
-            setPlayerStats((prev) => ({
-                health: prev?.health ?? 100,
-                maxHealth: prev?.maxHealth ?? 100,
-                locationName: newLocation.name,
-                inventoryCount: prev?.inventoryCount ?? 0
-            }))
+            // Clear navigating flag - stats will derive from new location
+            setIsNavigating(false)
         },
-        onError: (err, { direction, correlationId }, context) => {
-            // Rollback to previous state on error
-            if (context?.previousPlayerStats) {
-                setPlayerStats(context.previousPlayerStats)
-            }
+        onError: (err, { direction, correlationId }) => {
+            // Clear navigating flag on error
+            setIsNavigating(false)
 
             // Track exception
             trackGameEventClient('UI.Navigate.Exception', {
@@ -493,11 +510,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     return (
         <div className={['flex flex-col gap-4 sm:gap-5', className].filter(Boolean).join(' ')}>
-            {/* Mobile: single column, Desktop: multi-column grid */}
+            {/* Responsive layouts: Mobile (<640px), Tablet (640-1024px), Desktop (≥1024px) */}
             {isDesktop ? (
-                <div className="grid grid-cols-12 gap-4 sm:gap-5">
+                /* Desktop: Three-column layout with dedicated history panel */
+                <div className="grid grid-cols-12 gap-4 lg:gap-5">
                     {/* Main content area */}
-                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
+                    <div className="col-span-7 flex flex-col gap-4 lg:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
                             description={location?.description?.text ?? ''}
@@ -519,22 +537,61 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             />
                         )}
                         {/* Command Interface for authenticated users */}
-                        <section aria-labelledby="game-command-title">
-                            <h3 id="game-command-title" className="text-responsive-base font-semibold text-white mb-3">
+                        <section aria-labelledby="game-command-title-desktop">
+                            <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
                                 Command Interface
                             </h3>
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Sidebar */}
-                    <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
+                    {/* Right sidebar: Stats and History */}
+                    <aside className="col-span-5 flex flex-col gap-4 lg:gap-5">
                         <PlayerStatsPanel stats={playerStats} />
                         <CommandHistoryPanel history={commandHistory} />
                     </aside>
                 </div>
+            ) : isTablet ? (
+                /* Tablet: Two-column layout with navigation sidebar */
+                <div className="grid grid-cols-12 gap-4 sm:gap-5">
+                    {/* Main content area */}
+                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
+                        <LocationPanel
+                            name={location?.name ?? ''}
+                            description={location?.description?.text ?? ''}
+                            loading={locationLoading}
+                            error={locationError}
+                            onRetry={refetch}
+                        />
+                        <ExitsPanel
+                            exits={exits}
+                            onNavigate={playerGuid ? handleNavigate : undefined}
+                            disabled={navigateMutation.isPending}
+                        />
+                        {/* Command Interface for authenticated users */}
+                        <section aria-labelledby="game-command-title-tablet">
+                            <h3 id="game-command-title-tablet" className="text-responsive-base font-semibold text-white mb-3">
+                                Command Interface
+                            </h3>
+                            <CommandInterface availableExits={availableExitDirections} />
+                        </section>
+                    </div>
+                    {/* Right sidebar: Stats and Navigation */}
+                    <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
+                        <PlayerStatsPanel stats={playerStats} />
+                        {/* Navigation UI for authenticated users */}
+                        {playerGuid && (
+                            <NavigationUI
+                                availableExits={availableExitsWithHints}
+                                onNavigate={handleNavigate}
+                                disabled={navigateMutation.isPending}
+                            />
+                        )}
+                        <CommandHistoryPanel history={commandHistory} />
+                    </aside>
+                </div>
             ) : (
+                /* Mobile: Single column stacked layout with collapsible stats */
                 <>
-                    {/* Mobile layout: stacked sections */}
                     <LocationPanel
                         name={location?.name ?? ''}
                         description={location?.description?.text ?? ''}
@@ -543,6 +600,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         onRetry={refetch}
                     />
                     <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigateMutation.isPending} />
+                    {/* Collapsible stats panel on mobile */}
+                    <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     {/* Navigation UI for authenticated users */}
                     {playerGuid && (
                         <NavigationUI
@@ -551,7 +610,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             disabled={navigateMutation.isPending}
                         />
                     )}
-                    <PlayerStatsPanel stats={playerStats} />
                     {/* Command Interface */}
                     <section aria-labelledby="game-command-title-mobile">
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
