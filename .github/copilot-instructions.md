@@ -9,6 +9,22 @@ Source of truth for daily generation. Quick mnemonic: `./copilot-quickref.md`. L
 
 ---
 
+## ⚠️ CRITICAL: TDD-First Development (Non-Negotiable)
+
+**All code changes MUST follow Test-Driven Development:**
+
+1. **Write failing tests FIRST** — before any implementation
+2. **Run tests to confirm RED** (failure) — proves test is valid
+3. **Write minimal code to pass** — then confirm GREEN
+4. **Refactor if needed** — tests stay GREEN
+
+**This applies to:** Features, bug fixes, API changes, refactors.
+**Exceptions only:** Pure docs, config without runtime logic, exploratory spikes (which never merge without tests).
+
+See Section 10.1 for full TDD workflow details.
+
+---
+
 ## 0. Interaction & Prompt Patterns
 
 Purpose: Make every agent exchange deterministic: clear goal, bounded scope, explicit success criteria, no hidden assumptions.
@@ -346,7 +362,51 @@ Reference: For interaction workflow & templates see Section 0 (patterns) and App
 
 ## 10. Testing Baseline
 
-**Test Layer Separation:** Three-tier approach (unit/integration/e2e). See `backend/test/TEST_FIXTURE_GUIDE.md` for:
+### 10.1 TDD-First Development (MANDATORY)
+
+All feature development MUST follow Test-Driven Development:
+
+**Red → Green → Refactor Cycle:**
+
+1. **Red**: Write failing test(s) first that define expected behavior
+2. **Green**: Write minimal implementation to make tests pass
+3. **Refactor**: Clean up code while keeping tests green
+
+**TDD Workflow for Agent:**
+
+```
+1. Understand requirement → define acceptance criteria
+2. Write test(s) expressing criteria (they MUST fail initially)
+3. Run tests → confirm RED (failure)
+4. Implement minimal code to pass
+5. Run tests → confirm GREEN (passing)
+6. Refactor if needed → tests stay GREEN
+7. Repeat for next criterion
+```
+
+**When to Write Tests First:**
+
+- ✅ New features (handlers, services, utilities)
+- ✅ Bug fixes (reproduce bug as failing test first)
+- ✅ API contract changes (test new contract shape)
+- ✅ Refactors affecting behavior (lock in current behavior first)
+
+**Exceptions (test-after acceptable):**
+
+- Pure documentation changes
+- Config/infrastructure with no runtime logic
+- Exploratory spikes (but spike code never merges without tests)
+
+**TDD Anti-Patterns:**
+
+- ❌ Writing implementation then retrofitting tests
+- ❌ Skipping the RED phase (tests must fail first)
+- ❌ Writing tests that pass immediately (not testing anything)
+- ❌ Testing implementation details instead of behavior
+
+### 10.2 Test Layer Separation
+
+Three-tier approach (unit/integration/e2e). See `backend/test/TEST_FIXTURE_GUIDE.md` for:
 
 - Decision matrix (what to test → which fixture → which directory)
 - Anti-patterns (no fake clients in unit tests, no direct repo instantiation)
