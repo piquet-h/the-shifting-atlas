@@ -76,11 +76,21 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         const startTime = Date.now()
 
         // Single-partition query (efficient)
-        // Sort by priority DESC (higher first), then by id ASC (deterministic ties)
-        const queryText = 'SELECT * FROM c WHERE c.locationId = @locationId ORDER BY c.priority DESC, c.id ASC'
+        // Note: ORDER BY with multiple properties (DESC/ASC) requires composite index in Cosmos DB.
+        // To avoid index management complexity for a small result set (<10 items typical),
+        // we fetch unsorted and sort in-memory instead.
+        const queryText = 'SELECT * FROM c WHERE c.locationId = @locationId'
         const parameters = [{ name: '@locationId', value: locationId }]
 
         const { items } = await this.query(queryText, parameters)
+
+        // Sort in-memory: priority DESC (higher first), then by id ASC (deterministic ties)
+        items.sort((a, b) => {
+            if (a.priority !== b.priority) {
+                return b.priority - a.priority // Higher priority first
+            }
+            return a.id.localeCompare(b.id) // Deterministic tie-break
+        })
 
         this.telemetryService.trackGameEvent('Layer.GetForLocation', {
             locationId,
