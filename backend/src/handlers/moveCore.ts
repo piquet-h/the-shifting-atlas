@@ -309,9 +309,12 @@ export class MoveHandler extends BaseHandler {
         }
 
         // Compile description for the new location
-        const compiled = await this.descriptionComposer.compileForLocation(result.location.id, {
-            timestamp: new Date().toISOString()
-        })
+        // Pass location's description as the base - layers are applied on top
+        const compiled = await this.descriptionComposer.compileForLocation(
+            result.location.id,
+            { timestamp: new Date().toISOString() },
+            { baseDescription: result.location.description }
+        )
 
         const latencyMs = Date.now() - started
         const props = {

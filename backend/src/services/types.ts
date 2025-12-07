@@ -59,3 +59,15 @@ export interface CompiledDescription {
     /** Provenance metadata showing which layers contributed */
     provenance: CompiledProvenance
 }
+
+/**
+ * Options for description compilation
+ */
+export interface CompileOptions {
+    /**
+     * The canonical base description for the location (from Location.description).
+     * This is the immutable foundation that layers are applied on top of.
+     * Layers in the repository (dynamic, ambient, enhancement) modify/augment this base.
+     */
+    baseDescription?: string
+}

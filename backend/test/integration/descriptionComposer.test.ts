@@ -2,12 +2,15 @@
  * Integration tests for Description Composer Service
  *
  * Tests compilation with real repository implementations (memory mode).
+ *
+ * Design: The base description comes from Location.description (passed via options.baseDescription).
+ * Layers in the repository (dynamic, ambient, enhancement) are overlays applied on top of the base.
  */
 
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import type { ViewContext } from '../../src/services/types.js'
+import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Description Composer Integration', () => {
     let fixture: IntegrationTestFixture
@@ -26,15 +29,7 @@ describe('Description Composer Integration', () => {
         const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        // Add base layer
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A marketplace bustles with activity. Wooden stalls line the square.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A marketplace bustles with activity. Wooden stalls line the square.'
 
         // Add structural (dynamic) layer
         await layerRepo.addLayer({
@@ -77,7 +72,7 @@ describe('Description Composer Integration', () => {
             timestamp: new Date().toISOString()
         }
 
-        const result = await composer.compileForLocation(locationId, context)
+        const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
         // Should have base + structural + day ambient
         assert.ok(result.text.includes('marketplace'))
@@ -85,7 +80,7 @@ describe('Description Composer Integration', () => {
         assert.ok(result.text.includes('sunlight'))
         assert.ok(!result.text.includes('Torches'))
 
-        // Should have 2 non-base layers in provenance
+        // Should have 2 layers in provenance (dynamic + ambient)
         assert.strictEqual(result.provenance.layers.length, 2)
 
         // HTML should be converted
@@ -94,49 +89,34 @@ describe('Description Composer Integration', () => {
 
     test('should compile location with empty layers (base only)', async () => {
         const composer = await fixture.getDescriptionComposer()
-        const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        // Only base layer
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A quiet glade surrounded by ancient oaks.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A quiet glade surrounded by ancient oaks.'
 
         const context: ViewContext = {
             timestamp: new Date().toISOString()
         }
 
-        const result = await composer.compileForLocation(locationId, context)
+        // No layers in repository, just base description
+        const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
         assert.strictEqual(result.text, 'A quiet glade surrounded by ancient oaks.')
         assert.ok(result.html.includes('quiet glade'))
-        assert.strictEqual(result.provenance.layers.length, 0) // No non-base layers
+        assert.strictEqual(result.provenance.layers.length, 0) // No overlay layers
     })
 
     test('should compile location with single base-only layer', async () => {
         const composer = await fixture.getDescriptionComposer()
-        const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'The throne room is vast and imposing.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'The throne room is vast and imposing.'
 
         const context: ViewContext = {
             timestamp: new Date().toISOString()
         }
 
-        const result = await composer.compileForLocation(locationId, context)
+        // No layers in repository
+        const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
         assert.ok(result.text.includes('throne room'))
         assert.strictEqual(result.provenance.layers.length, 0)
@@ -148,14 +128,7 @@ describe('Description Composer Integration', () => {
         const locationId = crypto.randomUUID()
 
         // Base with multiple sentences
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A wooden gate stands at the entrance. The walls are made of stone. Guards patrol the battlements.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A wooden gate stands at the entrance. The walls are made of stone. Guards patrol the battlements.'
 
         // Structural layer superseding first sentence
         await layerRepo.addLayer({
@@ -187,7 +160,7 @@ describe('Description Composer Integration', () => {
             timestamp: new Date().toISOString()
         }
 
-        const result = await composer.compileForLocation(locationId, context)
+        const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
         // First and third sentences should be superseded
         assert.ok(!result.text.includes('wooden gate stands'))
@@ -206,16 +179,9 @@ describe('Description Composer Integration', () => {
         const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        // Add layers with same priority
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'Base content.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'Base content.'
 
+        // Add layers with same priority
         await layerRepo.addLayer({
             id: 'layer-alpha',
             locationId,
@@ -249,9 +215,9 @@ describe('Description Composer Integration', () => {
 
         // Compile multiple times
         const results = await Promise.all([
-            composer.compileForLocation(locationId, context),
-            composer.compileForLocation(locationId, context),
-            composer.compileForLocation(locationId, context)
+            composer.compileForLocation(locationId, context, { baseDescription }),
+            composer.compileForLocation(locationId, context, { baseDescription }),
+            composer.compileForLocation(locationId, context, { baseDescription })
         ])
 
         // All results should be identical
@@ -269,14 +235,7 @@ describe('Description Composer Integration', () => {
         const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A forest path.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A forest path.'
 
         // Rain during day
         await layerRepo.addLayer({
@@ -321,32 +280,44 @@ describe('Description Composer Integration', () => {
         })
 
         // Test rain + day
-        const rainDayResult = await composer.compileForLocation(locationId, {
-            weather: 'rain',
-            time: 'day',
-            timestamp: new Date().toISOString()
-        })
+        const rainDayResult = await composer.compileForLocation(
+            locationId,
+            {
+                weather: 'rain',
+                time: 'day',
+                timestamp: new Date().toISOString()
+            },
+            { baseDescription }
+        )
 
         assert.ok(rainDayResult.text.includes('patters on the leaves in daylight'))
         assert.ok(!rainDayResult.text.includes('darkness'))
         assert.ok(!rainDayResult.text.includes('Sunlight filters'))
 
         // Test rain + night
-        const rainNightResult = await composer.compileForLocation(locationId, {
-            weather: 'rain',
-            time: 'night',
-            timestamp: new Date().toISOString()
-        })
+        const rainNightResult = await composer.compileForLocation(
+            locationId,
+            {
+                weather: 'rain',
+                time: 'night',
+                timestamp: new Date().toISOString()
+            },
+            { baseDescription }
+        )
 
         assert.ok(rainNightResult.text.includes('falls in darkness'))
         assert.ok(!rainNightResult.text.includes('daylight'))
 
         // Test clear + day
-        const clearDayResult = await composer.compileForLocation(locationId, {
-            weather: 'clear',
-            time: 'day',
-            timestamp: new Date().toISOString()
-        })
+        const clearDayResult = await composer.compileForLocation(
+            locationId,
+            {
+                weather: 'clear',
+                time: 'day',
+                timestamp: new Date().toISOString()
+            },
+            { baseDescription }
+        )
 
         assert.ok(clearDayResult.text.includes('Sunlight filters'))
         assert.ok(!clearDayResult.text.includes('Rain'))
@@ -357,14 +328,7 @@ describe('Description Composer Integration', () => {
         const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A bridge spans the river.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A bridge spans the river.'
 
         // Only snow ambient layer
         await layerRepo.addLayer({
@@ -380,10 +344,14 @@ describe('Description Composer Integration', () => {
         })
 
         // Request with rain context (no matching layer)
-        const result = await composer.compileForLocation(locationId, {
-            weather: 'rain',
-            timestamp: new Date().toISOString()
-        })
+        const result = await composer.compileForLocation(
+            locationId,
+            {
+                weather: 'rain',
+                timestamp: new Date().toISOString()
+            },
+            { baseDescription }
+        )
 
         // Should only have base
         assert.strictEqual(result.text, 'A bridge spans the river.')
@@ -396,14 +364,7 @@ describe('Description Composer Integration', () => {
         const layerRepo = await fixture.getLayerRepository()
         const locationId = crypto.randomUUID()
 
-        await layerRepo.addLayer({
-            id: crypto.randomUUID(),
-            locationId,
-            layerType: 'base',
-            content: 'A temple entrance.',
-            priority: 100,
-            authoredAt: new Date().toISOString()
-        })
+        const baseDescription = 'A temple entrance.'
 
         // Ambient layer without weather/time attributes (always active)
         await layerRepo.addLayer({
@@ -415,11 +376,15 @@ describe('Description Composer Integration', () => {
             authoredAt: new Date().toISOString()
         })
 
-        const result = await composer.compileForLocation(locationId, {
-            weather: 'clear',
-            time: 'day',
-            timestamp: new Date().toISOString()
-        })
+        const result = await composer.compileForLocation(
+            locationId,
+            {
+                weather: 'clear',
+                time: 'day',
+                timestamp: new Date().toISOString()
+            },
+            { baseDescription }
+        )
 
         // Ambient layer should be included regardless of context
         assert.ok(result.text.includes('Incense smoke'))

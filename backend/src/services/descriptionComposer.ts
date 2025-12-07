@@ -14,12 +14,12 @@
  * - Provenance tracking: records which layers contributed
  */
 
+import type { DescriptionLayer as BaseDescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { inject, injectable } from 'inversify'
 import { marked } from 'marked'
-import type { DescriptionLayer as BaseDescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { CompiledDescription, CompiledProvenance, LayerProvenance, ViewContext } from './types.js'
+import type { CompiledDescription, CompiledProvenance, CompileOptions, LayerProvenance, ViewContext } from './types.js'
 
 /**
  * Extended layer type with attributes support for filtering and supersedes.
@@ -54,66 +54,49 @@ export class DescriptionComposer {
     ) {}
 
     /**
-     * Compile all description layers for a location into a single rendered view.
+     * Compile location description with layers applied on top.
+     *
+     * The baseDescription (from Location.description) is the immutable foundation.
+     * Layers from the repository (dynamic, ambient, enhancement) are applied on top.
      *
      * Assembly order: base → structural (dynamic) → ambient → enhancement
-     * - Base layer provides foundation text
+     * - Base description is the canonical location prose (from options.baseDescription)
      * - Structural layers apply supersede masking to hide replaced base sentences
      * - Ambient layers are filtered by weather/time context
      * - Result is deterministic for same inputs
      *
      * @param locationId - Location GUID to compile
      * @param context - View context (weather, time, etc.)
+     * @param options - Optional compilation options including baseDescription
      * @returns Compiled description with text, HTML, and provenance
      */
-    async compileForLocation(locationId: string, context: ViewContext): Promise<CompiledDescription> {
+    async compileForLocation(locationId: string, context: ViewContext, options?: CompileOptions): Promise<CompiledDescription> {
         const startTime = Date.now()
 
-        // 1. Fetch all layers for location
+        // The base description comes from the Location entity (options.baseDescription)
+        const baseDescription = options?.baseDescription || ''
+
+        // 1. Fetch all layers for location (these are overlays, not the base)
         const allLayers = await this.layerRepository.getLayersForLocation(locationId)
 
-        // Edge case: No layers exist → return minimal result
-        if (allLayers.length === 0) {
-            this.telemetryService.trackGameEvent('Description.Compile', {
-                locationId,
-                layerCount: 0,
-                result: 'empty',
-                latencyMs: Date.now() - startTime
-            })
+        // 2. Filter active layers based on context (excludes 'base' type layers from repo if any)
+        const overlayLayers = allLayers.filter((l) => l.layerType !== 'base')
+        const activeLayers = this.filterActiveLayers(overlayLayers, context)
 
-            return {
-                text: '',
-                html: '',
-                provenance: {
-                    locationId,
-                    layers: [],
-                    context,
-                    compiledAt: new Date().toISOString()
-                }
-            }
-        }
+        // 3. Apply supersede masking to base content (structural layers can mask base sentences)
+        const maskedBase = this.applySupersedeMaskToBase(baseDescription, activeLayers)
 
-        // 2. Separate base from other layers
-        const baseLayers = allLayers.filter((l) => l.layerType === 'base')
-        const otherLayers = allLayers.filter((l) => l.layerType !== 'base')
-
-        // 3. Filter active ambient layers based on context
-        const activeLayers = this.filterActiveLayers(otherLayers, context)
-
-        // 4. Apply supersede masking to base content
-        const maskedBase = this.applySupersedeMask(baseLayers, activeLayers)
-
-        // 5. Assemble layers in deterministic order
+        // 4. Assemble layers in deterministic order
         const { text, provenance } = this.assembleLayers(maskedBase, activeLayers, locationId, context)
 
-        // 6. Convert to HTML
+        // 5. Convert to HTML
         const html = this.markdownToHtml(text)
 
         this.telemetryService.trackGameEvent('Description.Compile', {
             locationId,
             layerCount: allLayers.length,
             activeLayerCount: activeLayers.length,
-            baseLayerCount: baseLayers.length,
+            hasBaseDescription: !!baseDescription,
             supersededSentences: provenance.layers.filter((l) => l.superseded).length,
             latencyMs: Date.now() - startTime
         })
@@ -170,19 +153,18 @@ export class DescriptionComposer {
     }
 
     /**
-     * Apply supersede masking to base layer content.
+     * Apply supersede masking to the base description.
      *
      * Structural (dynamic) layers may specify `supersedes` attribute containing
      * an array of sentence fragments from the base description. Matching sentences
      * are removed from the base content.
      *
-     * @param baseLayers - Base description layers
+     * @param baseDescription - The canonical base description text (from Location.description)
      * @param activeLayers - Active layers (structural may have supersedes)
      * @returns Base content with superseded sentences removed
      */
-    private applySupersedeMask(baseLayers: DescriptionLayer[], activeLayers: DescriptionLayer[]): string {
-        // Combine all base layer content
-        let baseText = baseLayers.map((l) => l.content).join(' ')
+    private applySupersedeMaskToBase(baseDescription: string, activeLayers: DescriptionLayer[]): string {
+        let baseText = baseDescription
 
         // Collect all supersede patterns from structural (dynamic) layers
         const supersedes: string[] = []

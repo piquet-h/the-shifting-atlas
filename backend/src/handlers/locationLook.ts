@@ -97,7 +97,10 @@ export class LocationLookHandler extends BaseHandler {
             const startCompilation = Date.now()
 
             // Compile description using DescriptionComposer
-            const compiled = await this.descriptionComposer.compileForLocation(id, context)
+            // Pass location's description as the base - layers are applied on top
+            const compiled = await this.descriptionComposer.compileForLocation(id, context, {
+                baseDescription: loc.description
+            })
 
             const compilationLatency = Date.now() - startCompilation
 
