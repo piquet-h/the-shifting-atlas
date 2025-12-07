@@ -25,7 +25,7 @@ Navigate the documentation by altitude—each layer serves a distinct purpose wi
 | **1. Vision**         | 60,000 ft    | Inspire and set direction                                   | This README (Vision section above)                                                                           |
 | **2. Tenets**         | 50,000 ft    | Non-negotiable decision-making rules                        | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework)                                 |
 | **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                        |
-| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                     |
+| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/), [Frontend Components](docs/frontend/components.md) |
 | **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                   |
 | **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md) (function endpoints, Gremlin queries, seed scripts, a11y tests)          |
 | **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
@@ -67,10 +67,15 @@ scripts/          Automation (seed data, validation, deployment helpers)
 - `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
 - `backend/src/handlers/*` – Business logic (separated from routing)
 - `shared/src/` – Domain models, telemetry constants, direction normalizer
+- `frontend/src/components/*` – React components (GameView, CommandInput, StatusPanel, NavigationUI)
 - `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
+- `docs/frontend/` – Frontend component architecture & style guide
+- `docs/ux/` – User experience guidelines (accessibility, auth, templates)
 - `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
 
-**Learn more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
+**Learn more**: 
+- [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
+- [Frontend Component Architecture & Style Guide](docs/frontend/components.md)
 
 ---
 
