@@ -51,7 +51,7 @@ export interface UseSessionTimerResult {
  * Updates every second for smooth timer display
  */
 export function useSessionTimer(): UseSessionTimerResult {
-    const [sessionStart] = useState<number>(getSessionStart)
+    const [sessionStart, setSessionStart] = useState<number>(getSessionStart)
     const [elapsedMs, setElapsedMs] = useState<number>(Date.now() - sessionStart)
 
     useEffect(() => {
@@ -65,6 +65,7 @@ export function useSessionTimer(): UseSessionTimerResult {
     const reset = () => {
         const now = Date.now()
         localStorage.setItem(SESSION_START_KEY, now.toString())
+        setSessionStart(now)
         setElapsedMs(0)
     }
 
