@@ -120,7 +120,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
-                            response = `${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
+                            response = `${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
                         } else {
                             error = 'Malformed location response'
                         }
@@ -160,7 +160,7 @@ export default function CommandInterface({ className, availableExits = [] }: Com
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
-                            response = `Moved ${dir} -> ${loc.name}: ${loc.description}${exits ? `\nExits: ${exits}` : ''}`
+                            response = `Moved ${dir} -> ${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
                         } else {
                             error = 'Malformed move response'
                         }
