@@ -23,6 +23,7 @@ import { unwrapEnvelope } from '../utils/envelope'
 import CommandInterface from './CommandInterface'
 import DescriptionRenderer from './DescriptionRenderer'
 import NavigationUI from './NavigationUI'
+import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './SoftDenialOverlay'
 
 /**
  * Cardinal & common text-adventure directions.
@@ -389,6 +390,13 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     // Track optimistic navigation state for "Moving..." display
     const [isNavigating, setIsNavigating] = useState(false)
 
+    // Soft-denial state for 'generate' status responses
+    const [softDenial, setSoftDenial] = useState<{
+        direction: Direction
+        generationHint?: GenerationHint
+        correlationId?: string
+    } | null>(null)
+
     // Derive player stats from location (no useEffect needed)
     // TODO: Replace hardcoded health/inventory with real API data
     const playerStats: PlayerStats | null = location
@@ -446,6 +454,27 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             const unwrapped = unwrapEnvelope<LocationResponse>(json)
 
             if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
+                // Check for 'generate' status (ExitGenerationRequested) - soft denial
+                const jsonObj = json as Record<string, unknown>
+                const errorObj = jsonObj?.error as Record<string, unknown> | undefined
+                const errorCode = unwrapped.error?.code || errorObj?.code
+                if (errorCode === 'ExitGenerationRequested') {
+                    // Extract generationHint from response payload
+                    const generationHint = jsonObj?.generationHint as { direction?: string; originLocationId?: string } | undefined
+
+                    // Return special marker for soft-denial handling
+                    return {
+                        __softDenial: true as const,
+                        direction,
+                        correlationId,
+                        generationHint: generationHint
+                            ? {
+                                  direction: generationHint.direction || direction
+                              }
+                            : undefined
+                    }
+                }
+
                 const errorMsg = extractErrorMessage(res, json, unwrapped)
                 trackGameEventClient('UI.Navigate.Error', {
                     correlationId,
@@ -472,16 +501,34 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
             return { direction }
         },
-        onSuccess: (newLocation) => {
+        onSuccess: (result) => {
+            // Clear navigating flag
+            setIsNavigating(false)
+
+            // Check for soft-denial marker
+            if (result && '__softDenial' in result && result.__softDenial) {
+                const softDenialResult = result as {
+                    __softDenial: true
+                    direction: Direction
+                    correlationId: string
+                    generationHint?: GenerationHint
+                }
+                setSoftDenial({
+                    direction: softDenialResult.direction,
+                    generationHint: softDenialResult.generationHint,
+                    correlationId: softDenialResult.correlationId
+                })
+                return
+            }
+
+            // Normal success: update location
+            const newLocation = result as LocationResponse
             // Update context's currentLocationId immediately
             // This ensures all components using PlayerContext see the new location
             updateCurrentLocationId(newLocation.id)
 
             // Invalidate location query to refetch with new location data
             queryClient.invalidateQueries({ queryKey: ['location'] })
-
-            // Clear navigating flag - stats will derive from new location
-            setIsNavigating(false)
         },
         onError: (err, { direction, correlationId }) => {
             // Clear navigating flag on error
@@ -508,8 +555,77 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         [playerGuid, navigateMutate]
     )
 
+    // Soft-denial action handlers
+    const handleSoftDenialRetry = useCallback(() => {
+        if (!softDenial) return
+        setSoftDenial(null)
+        // Retry the same direction
+        handleNavigate(softDenial.direction)
+    }, [softDenial, handleNavigate])
+
+    const handleSoftDenialExplore = useCallback(() => {
+        // Just dismiss the overlay - player will explore other exits
+        setSoftDenial(null)
+    }, [])
+
+    const handleSoftDenialDismiss = useCallback(() => {
+        setSoftDenial(null)
+    }, [])
+
+    // Derive location context for soft-denial narratives
+    // This is a simple heuristic based on location name/description keywords
+    const locationContextForDenial: LocationContext = React.useMemo(() => {
+        if (!location) return 'unknown'
+        const text = `${location.name} ${location.description?.text || ''}`.toLowerCase()
+        if (text.includes('cave') || text.includes('tunnel') || text.includes('underground') || text.includes('cavern')) {
+            return 'underground'
+        }
+        if (
+            text.includes('street') ||
+            text.includes('city') ||
+            text.includes('town') ||
+            text.includes('market') ||
+            text.includes('alley')
+        ) {
+            return 'urban'
+        }
+        if (
+            text.includes('room') ||
+            text.includes('chamber') ||
+            text.includes('hall') ||
+            text.includes('corridor') ||
+            text.includes('building')
+        ) {
+            return 'indoor'
+        }
+        if (
+            text.includes('forest') ||
+            text.includes('field') ||
+            text.includes('river') ||
+            text.includes('mountain') ||
+            text.includes('path') ||
+            text.includes('road')
+        ) {
+            return 'outdoor'
+        }
+        return 'unknown'
+    }, [location])
+
     return (
         <div className={['flex flex-col gap-4 sm:gap-5', className].filter(Boolean).join(' ')}>
+            {/* Soft-denial overlay for 'generate' status responses */}
+            {softDenial && (
+                <SoftDenialOverlay
+                    direction={softDenial.direction}
+                    generationHint={softDenial.generationHint}
+                    locationContext={locationContextForDenial}
+                    locationName={location?.name}
+                    onRetry={handleSoftDenialRetry}
+                    onExplore={handleSoftDenialExplore}
+                    onDismiss={handleSoftDenialDismiss}
+                    correlationId={softDenial.correlationId}
+                />
+            )}
             {/* Responsive layouts: Mobile (<640px), Tablet (640-1024px), Desktop (≥1024px) */}
             {isDesktop ? (
                 /* Desktop: Three-column layout with dedicated history panel */
