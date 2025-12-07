@@ -27,11 +27,11 @@ interface InventoryDocument extends InventoryItem {
 
 @injectable()
 export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDocument> implements IInventoryRepository {
-    constructor(
-        @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
-    ) {
-        super(sqlClient, 'inventory')
+    private readonly _telemetry: TelemetryService
+
+    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient, @inject(TelemetryService) telemetryService: TelemetryService) {
+        super(sqlClient, 'inventory', telemetryService)
+        this._telemetry = telemetryService
     }
 
     async addItem(item: InventoryItem): Promise<InventoryItem> {
@@ -59,7 +59,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
         // Use upsert to handle create or update
         const { resource } = await this.upsert(doc)
 
-        this.telemetryService.trackGameEvent('Inventory.AddItem', {
+        this._telemetry.trackGameEvent('Inventory.AddItem', {
             playerId: item.playerId,
             itemId: item.id,
             itemType: item.itemType,
@@ -76,7 +76,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
         // Delete the item document
         const deleted = await this.delete(itemId, playerId)
 
-        this.telemetryService.trackGameEvent('Inventory.RemoveItem', {
+        this._telemetry.trackGameEvent('Inventory.RemoveItem', {
             playerId,
             itemId,
             deleted,
@@ -95,7 +95,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
 
         const { items } = await this.query(queryText, parameters)
 
-        this.telemetryService.trackGameEvent('Inventory.ListItems', {
+        this._telemetry.trackGameEvent('Inventory.ListItems', {
             playerId,
             itemCount: items.length,
             latencyMs: Date.now() - startTime
@@ -110,7 +110,7 @@ export class CosmosInventoryRepository extends CosmosDbSqlRepository<InventoryDo
 
         const item = await this.getById(itemId, playerId)
 
-        this.telemetryService.trackGameEvent('Inventory.GetItem', {
+        this._telemetry.trackGameEvent('Inventory.GetItem', {
             playerId,
             itemId,
             found: item !== null,

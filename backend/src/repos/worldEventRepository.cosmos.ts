@@ -32,8 +32,8 @@ interface WorldEventDocument extends WorldEventRecord {
  * Similar pattern to how Gremlin repositories wrap the client.
  */
 class WorldEventSqlHelper extends CosmosDbSqlRepository<WorldEventDocument> {
-    constructor(sqlClient: ICosmosDbSqlClient) {
-        super(sqlClient, 'worldEvents')
+    constructor(sqlClient: ICosmosDbSqlClient, telemetryService?: TelemetryService) {
+        super(sqlClient, 'worldEvents', telemetryService)
     }
 
     // Expose upsert for public use (avoids conflict with protected create)
@@ -60,9 +60,9 @@ export class CosmosWorldEventRepository implements IWorldEventRepository {
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
+        @inject(TelemetryService) private telemetryService: TelemetryService
     ) {
-        this.sql = new WorldEventSqlHelper(sqlClient)
+        this.sql = new WorldEventSqlHelper(sqlClient, telemetryService)
     }
 
     async create(event: WorldEventRecord): Promise<WorldEventRecord> {

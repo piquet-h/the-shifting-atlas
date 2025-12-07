@@ -28,11 +28,11 @@ interface LayerDocument extends DescriptionLayer {
 
 @injectable()
 export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> implements ILayerRepository {
-    constructor(
-        @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
-    ) {
-        super(sqlClient, 'descriptionLayers')
+    private readonly _telemetry: TelemetryService
+
+    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient, @inject(TelemetryService) telemetryService: TelemetryService) {
+        super(sqlClient, 'descriptionLayers', telemetryService)
+        this._telemetry = telemetryService
     }
 
     async addLayer(layer: DescriptionLayer): Promise<DescriptionLayer> {
@@ -60,7 +60,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         // Use upsert to handle create or update
         const { resource } = await this.upsert(doc)
 
-        this.telemetryService.trackGameEvent('Layer.Add', {
+        this._telemetry.trackGameEvent('Layer.Add', {
             layerId: layer.id,
             locationId: layer.locationId,
             layerType: layer.layerType,
@@ -92,7 +92,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             return a.id.localeCompare(b.id) // Deterministic tie-break
         })
 
-        this.telemetryService.trackGameEvent('Layer.GetForLocation', {
+        this._telemetry.trackGameEvent('Layer.GetForLocation', {
             locationId,
             layerCount: items.length,
             latencyMs: Date.now() - startTime
@@ -112,7 +112,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         // Get existing layer
         const existing = await this.getById(layerId, locationId)
         if (!existing) {
-            this.telemetryService.trackGameEvent('Layer.Update', {
+            this._telemetry.trackGameEvent('Layer.Update', {
                 layerId,
                 locationId,
                 updated: false,
@@ -142,7 +142,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
 
         const { resource } = await this.upsert(updated)
 
-        this.telemetryService.trackGameEvent('Layer.Update', {
+        this._telemetry.trackGameEvent('Layer.Update', {
             layerId,
             locationId,
             updated: true,
@@ -158,7 +158,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
 
         const deleted = await this.delete(layerId, locationId)
 
-        this.telemetryService.trackGameEvent('Layer.Delete', {
+        this._telemetry.trackGameEvent('Layer.Delete', {
             layerId,
             locationId,
             deleted,
