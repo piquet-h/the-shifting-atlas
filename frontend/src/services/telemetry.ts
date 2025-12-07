@@ -378,6 +378,39 @@ export function debounceTrack<T extends (...args: Parameters<T>) => void>(fn: T,
 }
 
 /**
+ * Track page view with explicit correlation IDs
+ * Emits PageView event with operationId and sessionId for frontend-backend correlation
+ *
+ * @param pageName - Name of the page/route (e.g., '/game', '/profile')
+ * @param pageUrl - Full URL of the page (optional)
+ */
+export function trackPageView(pageName?: string, pageUrl?: string): void {
+    if (!appInsights) return
+
+    const properties: Record<string, unknown> = {
+        service: 'frontend-web'
+    }
+
+    // Add session correlation
+    if (sessionId) {
+        properties[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+    }
+    if (userId) {
+        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+    }
+
+    // Generate operation ID for this page view
+    const operationId = crypto.randomUUID()
+    properties['operationId'] = operationId
+
+    appInsights.trackPageView({
+        name: pageName,
+        uri: pageUrl,
+        properties
+    })
+}
+
+/**
  * Get the Application Insights instance (for advanced usage)
  */
 export function getAppInsights(): ApplicationInsights | undefined {
