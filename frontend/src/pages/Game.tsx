@@ -12,15 +12,25 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import GameView from '../components/GameView'
+import StatusPanel from '../components/StatusPanel'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useAuth } from '../hooks/useAuth'
+import { usePlayerLocation } from '../hooks/usePlayerLocation'
+
+// Placeholder health/inventory values (until real backend integration)
+const PLACEHOLDER_HEALTH = 100
+const PLACEHOLDER_MAX_HEALTH = 100
+const PLACEHOLDER_INVENTORY_COUNT = 0
 
 export default function Game(): React.ReactElement | null {
     const { isAuthenticated, loading } = useAuth()
-    const { loading: guidLoading } = usePlayer()
+    const { loading: guidLoading, currentLocationId } = usePlayer()
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const [showLocationInfo, setShowLocationInfo] = useState(false)
+
+    // Fetch current location for status panel
+    const { location } = usePlayerLocation(currentLocationId)
 
     // Extract location parameter from URL if present
     // Currently informational only - will be implemented in future enhancement
@@ -72,6 +82,15 @@ export default function Game(): React.ReactElement | null {
                 >
                     <p className="text-sm">Deep-link location support coming soon. Loading your current location.</p>
                 </div>
+            )}
+            {/* Status Panel - Fixed position overlay */}
+            {location && (
+                <StatusPanel
+                    health={PLACEHOLDER_HEALTH}
+                    maxHealth={PLACEHOLDER_MAX_HEALTH}
+                    locationName={location.name}
+                    inventoryCount={PLACEHOLDER_INVENTORY_COUNT}
+                />
             )}
             <GameView />
         </div>
