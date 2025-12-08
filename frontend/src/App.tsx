@@ -13,15 +13,21 @@ import LearnMore from './pages/LearnMore'
 import NotFound from './pages/NotFound'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
+import { useTelemetry } from './telemetry/TelemetryContext'
 
 /** Moves focus to <h1> or main landmark after navigation. Main landmark is global; pages should not render their own <main>. */
 function RouteFocusManager({ mainRef }: { mainRef: React.RefObject<HTMLElement | null> }): null {
     const location = useLocation()
+    const telemetry = useTelemetry()
+
     useEffect(() => {
         const heading = mainRef.current?.querySelector('h1')
         if (heading instanceof HTMLElement) heading.focus()
         else if (mainRef.current) mainRef.current.focus()
-    }, [location, mainRef])
+
+        // Track page view with explicit operationId and sessionId
+        telemetry.trackPageView(location.pathname, window.location.href)
+    }, [location, mainRef, telemetry])
     return null
 }
 

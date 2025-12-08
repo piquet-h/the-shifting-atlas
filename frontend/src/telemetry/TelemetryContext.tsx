@@ -4,6 +4,7 @@ import {
     isTelemetryEnabled,
     trackError,
     trackGameEventClient,
+    trackPageView,
     trackPlayerCommand,
     trackPlayerNavigate,
     trackUIError
@@ -15,6 +16,7 @@ export interface ITelemetryClient {
     trackError: (error: Error, props?: Record<string, unknown>) => void
     trackPlayerNavigate: (direction: string, latencyMs?: number, correlationId?: string) => void
     trackPlayerCommand: (command: string, actionType: string, latencyMs?: number, correlationId?: string) => void
+    trackPageView: (pageName?: string, pageUrl?: string) => void
     isEnabled: () => boolean
 }
 
@@ -25,6 +27,7 @@ const noopClient: ITelemetryClient = {
     trackError: () => void 0,
     trackPlayerNavigate: () => void 0,
     trackPlayerCommand: () => void 0,
+    trackPageView: () => void 0,
     isEnabled: () => false
 }
 
@@ -56,6 +59,7 @@ export const TelemetryProvider: React.FC<TelemetryProviderProps> = ({ children, 
             trackError,
             trackPlayerNavigate,
             trackPlayerCommand,
+            trackPageView,
             isEnabled: isTelemetryEnabled
         }
     }, [disabled])
