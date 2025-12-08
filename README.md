@@ -27,7 +27,7 @@ Navigate the documentation by altitude—each layer serves a distinct purpose wi
 | **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                        |
 | **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                     |
 | **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                   |
-| **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md) (function endpoints, Gremlin queries, seed scripts, a11y tests)          |
+| **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md), [Frontend Components](docs/frontend/components.md), [UX Guidelines](docs/ux/README.md) |
 | **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
 
 **For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
@@ -67,10 +67,17 @@ scripts/          Automation (seed data, validation, deployment helpers)
 - `backend/src/functions/*` – HTTP endpoints (player, location, movement, health)
 - `backend/src/handlers/*` – Business logic (separated from routing)
 - `shared/src/` – Domain models, telemetry constants, direction normalizer
+- `frontend/src/components/*` – React components (GameView, CommandInput, NavigationUI)
+- `frontend/src/contexts/*` – React contexts (PlayerContext for state management)
 - `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
 - `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
+- `docs/frontend/` – Frontend component architecture, style guide, accessibility patterns
+- `docs/ux/` – UX documentation, wireframes, accessibility guidelines
 
-**Learn more**: [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
+**Learn more**:
+- [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
+- [Frontend Component Architecture](docs/frontend/components.md)
+- [Accessibility Guidelines](docs/ux/accessibility-guidelines.md)
 
 ---
 
