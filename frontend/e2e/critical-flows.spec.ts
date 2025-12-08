@@ -179,8 +179,9 @@ test.describe('Critical Flow: Game Page Load', () => {
         // CRITICAL: Location description appears
         await expect(page.getByText(/Timbered jetty/)).toBeVisible()
 
-        // CRITICAL: Exit indicators appear
-        await expect(page.getByRole('heading', { name: 'Available Exits' })).toBeVisible()
+        // CRITICAL: Navigation UI appears (in sidebar)
+        // Note: NavigationUI heading is "Navigate" not "Available Exits" (removed in #665)
+        await expect(page.getByRole('heading', { name: 'Navigate' })).toBeVisible()
     })
 })
 

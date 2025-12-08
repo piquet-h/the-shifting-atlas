@@ -2,17 +2,18 @@
  * GameView Component
  *
  * Main game view displaying:
- * - Location name and description
- * - Available exits with visual indicators
- * - Player health/stats panel
- * - Command history panel
+ * - Location name and description (narrative-focused main area)
+ * - Command interface (text input)
+ * - Right sidebar: player stats + optional navigation UI
  *
- * Responsive layout: single column on mobile, multi-column on desktop.
+ * Responsive layout: single column on mobile, two-column on desktop/tablet.
+ * Navigation UI is optional and can be toggled via user preferences.
  */
 import type { LocationResponse } from '@piquet-h/shared'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import React, { useCallback, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
+import { useGamePreferences } from '../hooks/useGamePreferences'
 import { useMediaQuery } from '../hooks/useMediaQueries'
 import { usePlayerLocation } from '../hooks/usePlayerLocation'
 import { getSessionId, trackGameEventClient } from '../services/telemetry'
@@ -65,12 +66,6 @@ interface PlayerStats {
     maxHealth: number
     locationName: string
     inventoryCount: number
-}
-
-/** Exit display info */
-interface ExitInfo {
-    direction: Direction
-    available: boolean
 }
 
 interface GameViewProps {
@@ -143,90 +138,6 @@ function LocationPanel({
                 >
                     {expanded ? 'Read less' : 'Read more'}
                 </button>
-            )}
-        </section>
-    )
-}
-
-/**
- * ExitsPanel
- * Displays available exits with visual direction indicators.
- * Clickable exits trigger navigation.
- */
-function ExitsPanel({
-    exits,
-    onNavigate,
-    disabled
-}: {
-    exits: ExitInfo[]
-    onNavigate?: (direction: Direction) => void
-    disabled?: boolean
-}): React.ReactElement {
-    const availableExits = exits.filter((e) => e.available)
-    const hasNoExits = availableExits.length === 0
-
-    // Direction layout configuration for visual compass display
-    const directionLayout: { direction: Direction; label: string; shortLabel: string }[] = [
-        { direction: 'north', label: 'North', shortLabel: 'N' },
-        { direction: 'south', label: 'South', shortLabel: 'S' },
-        { direction: 'east', label: 'East', shortLabel: 'E' },
-        { direction: 'west', label: 'West', shortLabel: 'W' },
-        { direction: 'northeast', label: 'Northeast', shortLabel: 'NE' },
-        { direction: 'northwest', label: 'Northwest', shortLabel: 'NW' },
-        { direction: 'southeast', label: 'Southeast', shortLabel: 'SE' },
-        { direction: 'southwest', label: 'Southwest', shortLabel: 'SW' },
-        { direction: 'up', label: 'Up', shortLabel: '↑' },
-        { direction: 'down', label: 'Down', shortLabel: '↓' },
-        { direction: 'in', label: 'In', shortLabel: '→' },
-        { direction: 'out', label: 'Out', shortLabel: '←' }
-    ]
-
-    return (
-        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="exits-title">
-            <h3 id="exits-title" className="text-responsive-base font-semibold text-white mb-3">
-                Available Exits
-            </h3>
-            {hasNoExits ? (
-                <p className="text-responsive-sm text-amber-400 italic">No visible exits — this appears to be a dead end.</p>
-            ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2" role="list" aria-label="Exit directions">
-                    {directionLayout.map(({ direction, label, shortLabel }) => {
-                        const exit = exits.find((e) => e.direction === direction)
-                        const isAvailable = exit?.available ?? false
-                        const canClick = isAvailable && onNavigate && !disabled
-
-                        const Element = canClick ? 'button' : 'div'
-
-                        return (
-                            <Element
-                                key={direction}
-                                {...(canClick
-                                    ? {
-                                          type: 'button',
-                                          onClick: () => onNavigate(direction),
-                                          disabled: disabled
-                                      }
-                                    : {})}
-                                role="listitem"
-                                className={[
-                                    'flex flex-col items-center justify-center p-2 rounded-lg text-center transition-colors',
-                                    isAvailable
-                                        ? canClick
-                                            ? 'bg-emerald-900/40 ring-1 ring-emerald-500/40 text-emerald-300 hover:bg-emerald-800/50 cursor-pointer active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-400'
-                                            : 'bg-emerald-900/40 ring-1 ring-emerald-500/40 text-emerald-300'
-                                        : 'bg-slate-800/30 ring-1 ring-slate-700/30 text-slate-500'
-                                ].join(' ')}
-                                title={isAvailable ? `Exit available: ${label}${canClick ? ' (click to move)' : ''}` : `No exit: ${label}`}
-                                aria-label={
-                                    isAvailable ? `${label} exit available${canClick ? ', click to move' : ''}` : `No ${label} exit`
-                                }
-                            >
-                                <span className="text-responsive-sm font-medium">{shortLabel}</span>
-                                <span className="text-[10px] sm:text-xs hidden sm:block">{label}</span>
-                            </Element>
-                        )
-                    })}
-                </div>
             )}
         </section>
     )
@@ -369,6 +280,7 @@ function CommandHistoryPanel({
 export default function GameView({ className }: GameViewProps): React.ReactElement {
     const isTablet = useMediaQuery('(min-width: 640px)')
     const isDesktop = useMediaQuery('(min-width: 1024px)')
+    const { navigationUIEnabled } = useGamePreferences()
     const queryClient = useQueryClient()
     const { playerGuid, currentLocationId, updateCurrentLocationId } = usePlayer()
 
@@ -408,12 +320,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
           }
         : null
 
-    // Build exits info from location data
-    const exits: ExitInfo[] = DIRECTIONS.map((direction) => {
-        const available = location?.exits?.some((e) => e.direction === direction) ?? false
-        return { direction, available }
-    })
-
     // Build available exits with descriptions for NavigationUI
     const availableExitsWithHints = React.useMemo(() => {
         return (location?.exits || []).map((exit) => ({
@@ -422,8 +328,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         }))
     }, [location?.exits])
 
-    // Extract available exit directions for autocomplete
-    const availableExitDirections = exits.filter((e) => e.available).map((e) => e.direction)
+    // Extract available exit directions for autocomplete (from actual location exits)
+    const availableExitDirections = (location?.exits || []).map((e) => e.direction)
 
     // Navigation mutation using TanStack Query for proper cache management
     const navigateMutation = useMutation({
@@ -631,7 +537,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 /* Desktop: Three-column layout with dedicated history panel */
                 <div className="grid grid-cols-12 gap-4 lg:gap-5">
                     {/* Main content area */}
-                    <div className="col-span-7 flex flex-col gap-4 lg:gap-5">
+                    <div className="col-span-8 flex flex-col gap-4 lg:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
                             description={location?.description?.text ?? ''}
@@ -639,19 +545,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             error={locationError}
                             onRetry={refetch}
                         />
-                        <ExitsPanel
-                            exits={exits}
-                            onNavigate={playerGuid ? handleNavigate : undefined}
-                            disabled={navigateMutation.isPending}
-                        />
-                        {/* Navigation UI for authenticated users */}
-                        {playerGuid && (
-                            <NavigationUI
-                                availableExits={availableExitsWithHints}
-                                onNavigate={handleNavigate}
-                                disabled={navigateMutation.isPending}
-                            />
-                        )}
                         {/* Command Interface for authenticated users */}
                         <section aria-labelledby="game-command-title-desktop">
                             <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
@@ -660,16 +553,24 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Right sidebar: Stats and History */}
-                    <aside className="col-span-5 flex flex-col gap-4 lg:gap-5">
+                    {/* Right sidebar: Stats and optional Navigation */}
+                    <aside className="col-span-4 flex flex-col gap-4 lg:gap-5">
                         <PlayerStatsPanel stats={playerStats} />
+                        {/* Navigation UI - optional based on user preference */}
+                        {playerGuid && navigationUIEnabled && (
+                            <NavigationUI
+                                availableExits={availableExitsWithHints}
+                                onNavigate={handleNavigate}
+                                disabled={navigateMutation.isPending}
+                            />
+                        )}
                         <CommandHistoryPanel history={commandHistory} />
                     </aside>
                 </div>
             ) : isTablet ? (
-                /* Tablet: Two-column layout with navigation sidebar */
+                /* Tablet: Two-column layout with narrative focus + sidebar */
                 <div className="grid grid-cols-12 gap-4 sm:gap-5">
-                    {/* Main content area */}
+                    {/* Main content area: narrative immersion */}
                     <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
                         <LocationPanel
                             name={location?.name ?? ''}
@@ -677,11 +578,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             loading={locationLoading}
                             error={locationError}
                             onRetry={refetch}
-                        />
-                        <ExitsPanel
-                            exits={exits}
-                            onNavigate={playerGuid ? handleNavigate : undefined}
-                            disabled={navigateMutation.isPending}
                         />
                         {/* Command Interface for authenticated users */}
                         <section aria-labelledby="game-command-title-tablet">
@@ -691,11 +587,11 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Right sidebar: Stats and Navigation */}
+                    {/* Right sidebar: Stats and optional Navigation */}
                     <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
                         <PlayerStatsPanel stats={playerStats} />
-                        {/* Navigation UI for authenticated users */}
-                        {playerGuid && (
+                        {/* Navigation UI - optional based on user preference */}
+                        {playerGuid && navigationUIEnabled && (
                             <NavigationUI
                                 availableExits={availableExitsWithHints}
                                 onNavigate={handleNavigate}
@@ -706,7 +602,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     </aside>
                 </div>
             ) : (
-                /* Mobile: Single column stacked layout with collapsible stats */
+                /* Mobile: Single column with narrative focus */
                 <>
                     <LocationPanel
                         name={location?.name ?? ''}
@@ -715,11 +611,10 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         error={locationError}
                         onRetry={refetch}
                     />
-                    <ExitsPanel exits={exits} onNavigate={playerGuid ? handleNavigate : undefined} disabled={navigateMutation.isPending} />
                     {/* Collapsible stats panel on mobile */}
                     <PlayerStatsPanel stats={playerStats} collapsible={true} />
-                    {/* Navigation UI for authenticated users */}
-                    {playerGuid && (
+                    {/* Navigation UI - optional based on user preference */}
+                    {playerGuid && navigationUIEnabled && (
                         <NavigationUI
                             availableExits={availableExitsWithHints}
                             onNavigate={handleNavigate}
