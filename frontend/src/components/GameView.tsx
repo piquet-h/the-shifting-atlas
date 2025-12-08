@@ -553,9 +553,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Right sidebar: Stats and optional Navigation */}
+                    {/* Right sidebar: Navigation and Stats */}
                     <aside className="col-span-4 flex flex-col gap-4 lg:gap-5">
-                        <PlayerStatsPanel stats={playerStats} />
                         {/* Navigation UI - optional based on user preference */}
                         {playerGuid && navigationUIEnabled && (
                             <NavigationUI
@@ -564,6 +563,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                                 disabled={navigateMutation.isPending}
                             />
                         )}
+                        <PlayerStatsPanel stats={playerStats} />
                         <CommandHistoryPanel history={commandHistory} />
                     </aside>
                 </div>
@@ -587,9 +587,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <CommandInterface availableExits={availableExitDirections} />
                         </section>
                     </div>
-                    {/* Right sidebar: Stats and optional Navigation */}
+                    {/* Right sidebar: Navigation and Stats */}
                     <aside className="col-span-4 flex flex-col gap-4 sm:gap-5">
-                        <PlayerStatsPanel stats={playerStats} />
                         {/* Navigation UI - optional based on user preference */}
                         {playerGuid && navigationUIEnabled && (
                             <NavigationUI
@@ -598,6 +597,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                                 disabled={navigateMutation.isPending}
                             />
                         )}
+                        <PlayerStatsPanel stats={playerStats} />
                         <CommandHistoryPanel history={commandHistory} />
                     </aside>
                 </div>
@@ -611,8 +611,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         error={locationError}
                         onRetry={refetch}
                     />
-                    {/* Collapsible stats panel on mobile */}
-                    <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     {/* Navigation UI - optional based on user preference */}
                     {playerGuid && navigationUIEnabled && (
                         <NavigationUI
@@ -621,6 +619,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             disabled={navigateMutation.isPending}
                         />
                     )}
+                    {/* Collapsible stats panel on mobile */}
+                    <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     {/* Command Interface */}
                     <section aria-labelledby="game-command-title-mobile">
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
