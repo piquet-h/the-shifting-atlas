@@ -16,7 +16,10 @@
         "a11y:serve": "vite --port 5173",
         "a11y:scan": "node ./scripts/run-axe.mjs",
         "a11y": "start-server-and-test a11y:serve http-get://localhost:5173 a11y:scan",
-        "test": "vitest run"
+        "test": "vitest run",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test:e2e:headed": "playwright test --headed"
     },
     "engines": {
         "node": "22.x",
@@ -35,6 +38,7 @@
     },
     "devDependencies": {
         "@axe-core/cli": "^4.9.0",
+        "@playwright/test": "^1.57.0",
         "@tailwindcss/forms": "^0.5.4",
         "@tailwindcss/typography": "^0.5.9",
         "@testing-library/jest-dom": "^6.9.1",
