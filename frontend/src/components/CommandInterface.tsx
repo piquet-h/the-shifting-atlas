@@ -1,5 +1,5 @@
 import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
-import { useCallback, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { getSessionId, trackGameEventClient } from '../services/telemetry'
 import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
@@ -15,13 +15,25 @@ interface CommandInterfaceProps {
     availableExits?: string[]
 }
 
+export interface CommandInterfaceHandle {
+    appendRecord: (record: { command: string; response?: string; error?: string; latencyMs?: number }) => void
+}
+
+export function formatMoveResponse(direction: string, loc: LocationResponse): string {
+    const exits: string | undefined = Array.isArray(loc.exits) ? loc.exits.map((e) => e.direction).join(', ') : undefined
+    return `Moved ${direction} -> ${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
+}
+
 /**
  * CommandInterface
  * Orchestrates the command input/output lifecycle.
  * MVP Implementation: supports a single built-in `ping` command invoking `/api/ping`.
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
-export default function CommandInterface({ className, availableExits = [] }: CommandInterfaceProps): React.ReactElement {
+const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProps>(function CommandInterface(
+    { className, availableExits = [] }: CommandInterfaceProps,
+    ref
+): React.ReactElement {
     // Use PlayerContext for playerGuid and currentLocationId (no redundant API calls)
     const { playerGuid, currentLocationId, loading: guidLoading, error: guidError, updateCurrentLocationId } = usePlayer()
     const [history, setHistory] = useState<CommandRecord[]>([])
@@ -186,6 +198,25 @@ export default function CommandInterface({ className, availableExits = [] }: Com
         [playerGuid, currentLocationId, updateCurrentLocationId]
     )
 
+    useImperativeHandle(
+        ref,
+        () => ({
+            appendRecord: ({ command, response, error, latencyMs }) => {
+                const id = crypto.randomUUID()
+                const ts = Date.now()
+                setHistory((h) => [...h, { id, command, response, error, latencyMs, ts }])
+
+                if (command && command !== 'clear') {
+                    setCommandHistory((prev) => {
+                        const next = [...prev, command]
+                        return next.slice(-50)
+                    })
+                }
+            }
+        }),
+        []
+    )
+
     return (
         <div className={className}>
             <CommandOutput items={history} className="mb-3 sm:mb-4" />
@@ -217,4 +248,6 @@ export default function CommandInterface({ className, availableExits = [] }: Com
             </p>
         </div>
     )
-}
+})
+
+export default CommandInterface

@@ -21,7 +21,7 @@ import { buildHeaders, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
-import CommandInterface from './CommandInterface'
+import CommandInterface, { formatMoveResponse, type CommandInterfaceHandle } from './CommandInterface'
 import DescriptionRenderer from './DescriptionRenderer'
 import NavigationUI from './NavigationUI'
 import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './SoftDenialOverlay'
@@ -31,22 +31,6 @@ import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './
  * Mirrors shared/src/domainModels.ts but defined locally for browser bundle compatibility.
  */
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
-
-/** Set of allowed directions for validation / display. */
-const DIRECTIONS: readonly Direction[] = [
-    'north',
-    'south',
-    'east',
-    'west',
-    'northeast',
-    'northwest',
-    'southeast',
-    'southwest',
-    'up',
-    'down',
-    'in',
-    'out'
-] as const
 
 /** Maximum description length before truncation */
 const MAX_DESCRIPTION_LENGTH = 1000
@@ -297,7 +281,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
      * Future: Lift history state to a shared context or integrate with a global event store
      * to unify command tracking across components.
      */
-    const [commandHistory] = useState<CommandHistoryItem[]>([])
+    const [commandHistory, setCommandHistory] = useState<CommandHistoryItem[]>([])
+
+    const commandInterfaceRef = React.useRef<CommandInterfaceHandle | null>(null)
 
     // Track optimistic navigation state for "Moving..." display
     const [isNavigating, setIsNavigating] = useState(false)
@@ -332,6 +318,20 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     const availableExitDirections = (location?.exits || []).map((e) => e.direction)
 
     // Navigation mutation using TanStack Query for proper cache management
+    const appendCommandLog = useCallback(
+        ({ command, response, error, latencyMs }: { command: string; response?: string; error?: string; latencyMs?: number }) => {
+            const id = crypto.randomUUID()
+            const timestamp = Date.now()
+            setCommandHistory((prev) => {
+                const next = [...prev, { id, command, response, error, timestamp }]
+                return next.slice(-COMMAND_HISTORY_LIMIT)
+            })
+
+            commandInterfaceRef.current?.appendRecord({ command, response, error, latencyMs })
+        },
+        []
+    )
+
     const navigateMutation = useMutation({
         mutationFn: async ({ direction, correlationId }: { direction: Direction; correlationId: string }) => {
             if (!playerGuid) throw new Error('No player GUID available')
@@ -405,9 +405,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             // Set navigating flag for optimistic "Moving..." display
             setIsNavigating(true)
 
-            return { direction }
+            return { direction, startTime: performance.now() }
         },
-        onSuccess: (result) => {
+        onSuccess: (result, variables, context) => {
             // Clear navigating flag
             setIsNavigating(false)
 
@@ -424,6 +424,13 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     generationHint: softDenialResult.generationHint,
                     correlationId: softDenialResult.correlationId
                 })
+                const softLatency = context?.startTime ? Math.round(performance.now() - context.startTime) : undefined
+                const softDirection = context?.direction || variables.direction
+                appendCommandLog({
+                    command: `move ${softDirection}`,
+                    response: 'The path is being charted. Try again in a moment.',
+                    latencyMs: softLatency
+                })
                 return
             }
 
@@ -433,10 +440,19 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             // This ensures all components using PlayerContext see the new location
             updateCurrentLocationId(newLocation.id)
 
+            const latencyMs = context?.startTime ? Math.round(performance.now() - context.startTime) : undefined
+            const direction = context?.direction || variables.direction
+
+            appendCommandLog({
+                command: `move ${direction}`,
+                response: formatMoveResponse(direction, newLocation),
+                latencyMs
+            })
+
             // Invalidate location query to refetch with new location data
             queryClient.invalidateQueries({ queryKey: ['location'] })
         },
-        onError: (err, { direction, correlationId }) => {
+        onError: (err, { direction, correlationId }, context) => {
             // Clear navigating flag on error
             setIsNavigating(false)
 
@@ -445,6 +461,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 correlationId,
                 direction,
                 error: err instanceof Error ? err.message : 'Unknown error'
+            })
+
+            appendCommandLog({
+                command: `move ${direction}`,
+                error: err instanceof Error ? err.message : 'Unknown error',
+                latencyMs: context?.startTime ? Math.round(performance.now() - context.startTime) : undefined
             })
         }
     })
@@ -550,7 +572,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
                                 Command Interface
                             </h3>
-                            <CommandInterface availableExits={availableExitDirections} />
+                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
                         </section>
                     </div>
                     {/* Right sidebar: Navigation and Stats */}
@@ -584,7 +606,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                             <h3 id="game-command-title-tablet" className="text-responsive-base font-semibold text-white mb-3">
                                 Command Interface
                             </h3>
-                            <CommandInterface availableExits={availableExitDirections} />
+                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
                         </section>
                     </div>
                     {/* Right sidebar: Navigation and Stats */}
@@ -626,7 +648,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
                             Command Interface
                         </h3>
-                        <CommandInterface availableExits={availableExitDirections} />
+                        <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
                     </section>
                     <CommandHistoryPanel history={commandHistory} />
                 </>

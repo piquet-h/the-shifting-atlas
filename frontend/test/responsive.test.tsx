@@ -14,8 +14,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { PlayerProvider } from '../src/contexts/PlayerContext'
 import GameView from '../src/components/GameView'
+import { PlayerProvider } from '../src/contexts/PlayerContext'
 
 // Mock hooks
 vi.mock('../src/hooks/usePlayerLocation', () => ({
@@ -152,9 +152,9 @@ describe('Responsive Layout - Breakpoints', () => {
         const gridElements = container.querySelectorAll('.grid.grid-cols-12')
         expect(gridElements.length).toBeGreaterThan(0)
 
-        // Should have three-column split (col-span-7 and col-span-5 for desktop)
-        const mainColumn = container.querySelector('.col-span-7')
-        const sideColumn = container.querySelector('.col-span-5')
+        // Should have two-column split (col-span-8 main and col-span-4 sidebar)
+        const mainColumn = container.querySelector('.col-span-8')
+        const sideColumn = container.querySelector('.col-span-4')
 
         expect(mainColumn).not.toBeNull()
         expect(sideColumn).not.toBeNull()
@@ -170,7 +170,7 @@ describe('Responsive Layout - Breakpoints', () => {
         })
 
         // Should still render all key elements
-        expect(screen.getByText('Available Exits')).toBeInTheDocument()
+        expect(screen.getByText('Navigate')).toBeInTheDocument()
         expect(screen.getByText('Explorer Status')).toBeInTheDocument()
         expect(screen.getByText('Command Interface')).toBeInTheDocument()
     })
@@ -184,9 +184,9 @@ describe('Responsive Layout - Breakpoints', () => {
             expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
         })
 
-        // Should have desktop layout with three columns
-        const mainColumn = container.querySelector('.col-span-7')
-        const sideColumn = container.querySelector('.col-span-5')
+        // Should have desktop layout with two columns (col-span-8 main + col-span-4 sidebar)
+        const mainColumn = container.querySelector('.col-span-8')
+        const sideColumn = container.querySelector('.col-span-4')
 
         expect(mainColumn).not.toBeNull()
         expect(sideColumn).not.toBeNull()

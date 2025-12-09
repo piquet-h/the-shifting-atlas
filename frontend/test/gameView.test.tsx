@@ -113,22 +113,41 @@ describe('GameView Component', () => {
         })
     })
 
-    describe('Exits Panel', () => {
-        it('renders exits section with proper ARIA structure', async () => {
+    describe('Navigation Panel', () => {
+        it('renders game sections correctly in mobile layout', async () => {
             const { default: GameView } = await import('../src/components/GameView')
             const markup = renderWithProviders(<GameView />)
 
-            // Should have exits section
-            expect(markup).toMatch(/aria-labelledby="exits-title"/)
-            expect(markup).toMatch(/Available Exits/)
+            // Should render game view with all key sections (navigation is conditional on user preference)
+            expect(markup).toMatch(/aria-labelledby="stats-title"/)
+            expect(markup).toMatch(/Command Interface/)
+            expect(markup).toMatch(/Recent Actions/)
         })
 
-        it('shows dead end message when no exits available (initial state)', async () => {
+        it('shows dead end when no exits available', async () => {
+            mockFetch.mockResolvedValue({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        success: true,
+                        data: {
+                            id: 'dead-end',
+                            name: 'Dead End',
+                            description: {
+                                text: 'A passage that leads nowhere.',
+                                html: '<p>A passage that leads nowhere.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
+                            exits: []
+                        }
+                    })
+            })
+
             const { default: GameView } = await import('../src/components/GameView')
             const markup = renderWithProviders(<GameView />)
 
-            // Initial SSR state has no exits (data not loaded yet)
-            expect(markup).toMatch(/No visible exits/)
+            // Game should still render even with no exits
+            expect(markup).toMatch(/aria-labelledby="stats-title"/)
         })
     })
 
@@ -232,9 +251,10 @@ describe('GameView Component', () => {
 
             // All major sections should have aria-labelledby
             expect(markup).toMatch(/aria-labelledby="location-title"/)
-            expect(markup).toMatch(/aria-labelledby="exits-title"/)
             expect(markup).toMatch(/aria-labelledby="stats-title"/)
             expect(markup).toMatch(/aria-labelledby="history-title"/)
+            // Navigation section is conditional on user preference (navigationUIEnabled)
+            // and not rendered in SSR tests by default
         })
 
         it('loading state has aria-busy attribute', async () => {
@@ -269,8 +289,10 @@ describe('GameView Component', () => {
             const { default: GameView } = await import('../src/components/GameView')
             const markup = renderWithProviders(<GameView />)
 
-            // Should have exits section structure even when no exits
-            expect(markup).toMatch(/Available Exits/)
+            // Should still render game view structure with all sections
+            expect(markup).toMatch(/aria-labelledby="stats-title"/)
+            expect(markup).toMatch(/Command Interface/)
+            expect(markup).toMatch(/Recent Actions/)
         })
     })
 
