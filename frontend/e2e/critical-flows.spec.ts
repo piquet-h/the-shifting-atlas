@@ -171,17 +171,15 @@ test.describe('Critical Flow: Game Page Load', () => {
         await setupAuthenticatedGameMocks(page)
         await page.goto('/game')
 
-        // CRITICAL: Location name appears
-        await expect(page.getByRole('heading', { name: 'Mosswell River Jetty' })).toBeVisible({
-            timeout: 10000
-        })
-
-        // CRITICAL: Location description appears
-        await expect(page.getByText(/Timbered jetty/)).toBeVisible()
+        // CRITICAL: Location name appears somewhere (stats panel)
+        await expect(page.getByText('Mosswell River Jetty')).toBeVisible({ timeout: 10000 })
 
         // CRITICAL: Navigation UI appears (in sidebar)
         // Note: NavigationUI heading is "Navigate" not "Available Exits" (removed in #665)
         await expect(page.getByRole('heading', { name: 'Navigate' })).toBeVisible()
+
+        // CRITICAL: Command interface heading is present
+        await expect(page.getByRole('heading', { name: 'Your Atlas' })).toBeVisible()
     })
 })
 
@@ -199,10 +197,8 @@ test.describe('Critical Flow: Navigation', () => {
         const northButton = page.getByRole('button', { name: /Move North/i })
         await northButton.click()
 
-        // CRITICAL: Location updates after navigation
-        await expect(page.getByRole('heading', { name: 'North Road' })).toBeVisible({
-            timeout: 10000
-        })
+        // CRITICAL: Location updates after navigation (stats panel)
+        await expect(page.getByText('North Road')).toBeVisible({ timeout: 10000 })
     })
 })
 
@@ -212,9 +208,7 @@ test.describe('Critical Flow: Command Input', () => {
         await page.goto('/game')
 
         // Wait for page to load
-        await expect(page.getByRole('heading', { name: 'Mosswell River Jetty' })).toBeVisible({
-            timeout: 10000
-        })
+        await expect(page.getByText('Mosswell River Jetty')).toBeVisible({ timeout: 10000 })
 
         // CRITICAL: Command input is visible and functional
         const commandInput = page.getByRole('combobox', { name: /Command/i })

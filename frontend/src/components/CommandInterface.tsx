@@ -218,8 +218,8 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
     )
 
     return (
-        <div className={className}>
-            <CommandOutput items={history} className="mb-3 sm:mb-4" />
+        <div className={['flex flex-col h-full', className].filter(Boolean).join(' ')}>
+            <CommandOutput items={history} className="mb-3 sm:mb-4 flex-1 min-h-0" />
             {/* Show status message if player GUID is loading or errored */}
             {guidLoading && !playerGuid && (
                 <div className="mb-2 text-responsive-sm text-amber-400 flex items-center gap-2">

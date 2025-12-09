@@ -22,7 +22,6 @@ import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInterface, { formatMoveResponse, type CommandInterfaceHandle } from './CommandInterface'
-import DescriptionRenderer from './DescriptionRenderer'
 import NavigationUI from './NavigationUI'
 import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './SoftDenialOverlay'
 
@@ -31,9 +30,6 @@ import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './
  * Mirrors shared/src/domainModels.ts but defined locally for browser bundle compatibility.
  */
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
-
-/** Maximum description length before truncation */
-const MAX_DESCRIPTION_LENGTH = 1000
 
 /** Number of command history items to display */
 const COMMAND_HISTORY_LIMIT = 10
@@ -54,77 +50,6 @@ interface PlayerStats {
 
 interface GameViewProps {
     className?: string
-}
-
-/**
- * LocationPanel
- * Displays the current location name and description with truncation support.
- */
-function LocationPanel({
-    name,
-    description,
-    loading,
-    error,
-    onRetry
-}: {
-    name: string
-    description: string
-    loading: boolean
-    error: string | null
-    onRetry: () => void
-}): React.ReactElement {
-    const [expanded, setExpanded] = useState(false)
-    const needsTruncation = description.length > MAX_DESCRIPTION_LENGTH
-
-    const displayDescription = expanded || !needsTruncation ? description : description.slice(0, MAX_DESCRIPTION_LENGTH) + '...'
-
-    if (loading) {
-        return (
-            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title" aria-busy="true">
-                <div className="flex items-center gap-3">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
-                    <span className="text-slate-400 text-responsive-sm">Loading location...</span>
-                </div>
-            </section>
-        )
-    }
-
-    if (error) {
-        return (
-            <section className="rounded-xl bg-red-900/20 ring-1 ring-red-500/30 p-4 sm:p-5" aria-labelledby="location-error" role="alert">
-                <h2 id="location-error" className="text-responsive-lg font-semibold text-red-400 mb-2">
-                    Failed to Load Location
-                </h2>
-                <p className="text-responsive-sm text-red-300 mb-3">{error}</p>
-                <button
-                    onClick={onRetry}
-                    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-responsive-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-400"
-                >
-                    Retry
-                </button>
-            </section>
-        )
-    }
-
-    return (
-        <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="location-title">
-            <h2 id="location-title" className="text-responsive-xl font-semibold text-white mb-2">
-                {name || 'Unknown Location'}
-            </h2>
-            <div className="whitespace-pre-wrap">
-                <DescriptionRenderer content={displayDescription} format="markdown" />
-            </div>
-            {needsTruncation && (
-                <button
-                    onClick={() => setExpanded(!expanded)}
-                    className="mt-2 text-atlas-accent text-responsive-sm hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-atlas-accent"
-                    aria-expanded={expanded}
-                >
-                    {expanded ? 'Read less' : 'Read more'}
-                </button>
-            )}
-        </section>
-    )
 }
 
 /**
@@ -270,7 +195,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     // Fetch player's current location using TanStack Query
     // Uses currentLocationId from context (already fetched at bootstrap)
-    const { location, isLoading: locationLoading, error: locationError, refetch } = usePlayerLocation(currentLocationId)
+    const { location } = usePlayerLocation(currentLocationId)
 
     /**
      * Command history state (placeholder for future unified history integration).
@@ -540,7 +465,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     }, [location])
 
     return (
-        <div className={['flex flex-col gap-4 sm:gap-5', className].filter(Boolean).join(' ')}>
+        <div className={['flex flex-col gap-4 sm:gap-5 min-h-screen', className].filter(Boolean).join(' ')}>
             {/* Soft-denial overlay for 'generate' status responses */}
             {softDenial && (
                 <SoftDenialOverlay
@@ -556,23 +481,17 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             )}
             {/* Responsive layouts: Mobile (<640px), Tablet (640-1024px), Desktop (≥1024px) */}
             {isDesktop ? (
-                /* Desktop: Three-column layout with dedicated history panel */
-                <div className="grid grid-cols-12 gap-4 lg:gap-5">
-                    {/* Main content area */}
-                    <div className="col-span-8 flex flex-col gap-4 lg:gap-5">
-                        <LocationPanel
-                            name={location?.name ?? ''}
-                            description={location?.description?.text ?? ''}
-                            loading={locationLoading}
-                            error={locationError}
-                            onRetry={refetch}
-                        />
-                        {/* Command Interface for authenticated users */}
-                        <section aria-labelledby="game-command-title-desktop">
+                /* Desktop: Two-column layout: Command panel + sidebar */
+                <div className="grid grid-cols-12 gap-4 lg:gap-5 min-h-screen">
+                    {/* Main content area (Your Atlas) */}
+                    <div className="col-span-8 flex flex-col gap-4 lg:gap-5 min-h-screen">
+                        <section aria-labelledby="game-command-title-desktop" className="card rounded-xl flex flex-col flex-1 min-h-0">
                             <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
-                                Command Interface
+                                Your Atlas
                             </h3>
-                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
+                            <div className="flex flex-col flex-1 min-h-0">
+                                <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                            </div>
                         </section>
                     </div>
                     {/* Right sidebar: Navigation and Stats */}
@@ -590,23 +509,17 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     </aside>
                 </div>
             ) : isTablet ? (
-                /* Tablet: Two-column layout with narrative focus + sidebar */
-                <div className="grid grid-cols-12 gap-4 sm:gap-5">
-                    {/* Main content area: narrative immersion */}
-                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5">
-                        <LocationPanel
-                            name={location?.name ?? ''}
-                            description={location?.description?.text ?? ''}
-                            loading={locationLoading}
-                            error={locationError}
-                            onRetry={refetch}
-                        />
-                        {/* Command Interface for authenticated users */}
-                        <section aria-labelledby="game-command-title-tablet">
+                /* Tablet: Two-column layout with sidebar */
+                <div className="grid grid-cols-12 gap-4 sm:gap-5 min-h-screen">
+                    {/* Main content area: Your Atlas */}
+                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5 min-h-screen">
+                        <section aria-labelledby="game-command-title-tablet" className="card rounded-xl flex flex-col flex-1 min-h-0">
                             <h3 id="game-command-title-tablet" className="text-responsive-base font-semibold text-white mb-3">
-                                Command Interface
+                                Your Atlas
                             </h3>
-                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
+                            <div className="flex flex-col flex-1 min-h-0">
+                                <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                            </div>
                         </section>
                     </div>
                     {/* Right sidebar: Navigation and Stats */}
@@ -624,15 +537,8 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     </aside>
                 </div>
             ) : (
-                /* Mobile: Single column with narrative focus */
+                /* Mobile: Single column */
                 <>
-                    <LocationPanel
-                        name={location?.name ?? ''}
-                        description={location?.description?.text ?? ''}
-                        loading={locationLoading}
-                        error={locationError}
-                        onRetry={refetch}
-                    />
                     {/* Navigation UI - optional based on user preference */}
                     {playerGuid && navigationUIEnabled && (
                         <NavigationUI
@@ -644,11 +550,13 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                     {/* Collapsible stats panel on mobile */}
                     <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     {/* Command Interface */}
-                    <section aria-labelledby="game-command-title-mobile">
+                    <section aria-labelledby="game-command-title-mobile" className="card rounded-xl flex flex-col flex-1 min-h-0">
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
-                            Command Interface
+                            Your Atlas
                         </h3>
-                        <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} />
+                        <div className="flex flex-col flex-1 min-h-0">
+                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                        </div>
                     </section>
                     <CommandHistoryPanel history={commandHistory} />
                 </>

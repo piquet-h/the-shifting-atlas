@@ -95,24 +95,6 @@ describe('GameView Component', () => {
         })
     })
 
-    describe('Location Panel', () => {
-        it('renders location title heading', async () => {
-            const { default: GameView } = await import('../src/components/GameView')
-            const markup = renderWithProviders(<GameView />)
-
-            // Should have location section with proper heading
-            expect(markup).toMatch(/aria-labelledby="location-title"/)
-        })
-
-        it('shows loading state while fetching location', async () => {
-            const { default: GameView } = await import('../src/components/GameView')
-            const markup = renderWithProviders(<GameView />)
-
-            // Initial render shows loading (since fetch is async)
-            expect(markup).toMatch(/Loading location/)
-        })
-    })
-
     describe('Navigation Panel', () => {
         it('renders game sections correctly in mobile layout', async () => {
             const { default: GameView } = await import('../src/components/GameView')
@@ -120,7 +102,7 @@ describe('GameView Component', () => {
 
             // Should render game view with all key sections (navigation is conditional on user preference)
             expect(markup).toMatch(/aria-labelledby="stats-title"/)
-            expect(markup).toMatch(/Command Interface/)
+            expect(markup).toMatch(/Your Atlas/)
             expect(markup).toMatch(/Recent Actions/)
         })
 
@@ -222,6 +204,15 @@ describe('GameView Component', () => {
         })
     })
 
+    describe('Command Interface Heading', () => {
+        it('renders the Your Atlas heading', async () => {
+            const { default: GameView } = await import('../src/components/GameView')
+            const markup = renderWithProviders(<GameView />)
+
+            expect(markup).toMatch(/Your Atlas/)
+        })
+    })
+
     describe('Responsive Layout', () => {
         it('renders mobile layout by default (single column)', async () => {
             // mockIsDesktop is false by default in beforeEach
@@ -240,7 +231,7 @@ describe('GameView Component', () => {
             const markup = renderWithProviders(<GameView />)
 
             // Should have command interface section
-            expect(markup).toMatch(/Command Interface/)
+            expect(markup).toMatch(/Your Atlas/)
         })
     })
 
@@ -250,7 +241,6 @@ describe('GameView Component', () => {
             const markup = renderWithProviders(<GameView />)
 
             // All major sections should have aria-labelledby
-            expect(markup).toMatch(/aria-labelledby="location-title"/)
             expect(markup).toMatch(/aria-labelledby="stats-title"/)
             expect(markup).toMatch(/aria-labelledby="history-title"/)
             // Navigation section is conditional on user preference (navigationUIEnabled)
@@ -291,7 +281,7 @@ describe('GameView Component', () => {
 
             // Should still render game view structure with all sections
             expect(markup).toMatch(/aria-labelledby="stats-title"/)
-            expect(markup).toMatch(/Command Interface/)
+            expect(markup).toMatch(/Your Atlas/)
             expect(markup).toMatch(/Recent Actions/)
         })
     })

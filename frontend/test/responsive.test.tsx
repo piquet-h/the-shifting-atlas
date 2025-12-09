@@ -172,7 +172,7 @@ describe('Responsive Layout - Breakpoints', () => {
         // Should still render all key elements
         expect(screen.getByText('Navigate')).toBeInTheDocument()
         expect(screen.getByText('Explorer Status')).toBeInTheDocument()
-        expect(screen.getByText('Command Interface')).toBeInTheDocument()
+        expect(screen.getByText('Your Atlas')).toBeInTheDocument()
     })
 
     it('renders ultra-wide viewport with proper constraints (1920px+)', async () => {

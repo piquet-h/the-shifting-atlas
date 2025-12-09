@@ -48,10 +48,10 @@ export default function CommandOutput({
     }, [last])
 
     return (
-        <div className={className} aria-label={ariaLabel} role="region">
+        <div className={['flex flex-col min-h-0', className].filter(Boolean).join(' ')} aria-label={ariaLabel} role="region">
             <div
                 ref={scrollRef}
-                className="h-40 sm:h-48 md:h-56 overflow-auto rounded-md bg-white/5 border border-white/10 p-2 sm:p-3 text-responsive-sm font-mono space-y-2"
+                className="flex-1 min-h-0 overflow-auto rounded-md bg-white/5 border border-white/10 p-2 sm:p-3 text-responsive-sm font-mono space-y-2"
             >
                 {visible.length === 0 && <p className="text-slate-300 italic">No commands issued yet.</p>}
                 {visible.map((rec) => (
