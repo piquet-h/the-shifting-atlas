@@ -11,7 +11,7 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 | **M2 Data Foundations** ✅    | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation                                                                               | **CLOSED** 2025-11-23  | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
 | **M3 Core Loop (Umbrella)**   | Event processing + player UI + time                      | Split into M3a/M3b/M3c slices (see below)                                                                                                                 | **Split** (see slices) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
 | **M3a Event Backbone**        | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                                                                                      | **CLOSED** 2025-11-30  | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
-| **M3b Player UI & Telemetry** | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs                                                                                 | See GitHub milestone   | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                     |
+| **M3b Player UI & Telemetry** | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs                                                                                 | **CLOSED** 2025-12-11  | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                    |
 | **M3c Temporal PI-0**         | World time fundamentals                                  | WorldClock, PlayerClock, LocationClock, durations, reconcile policies, ledger, tests                                                                      | See GitHub milestone   | Temporal clocks advance; reconcile policies applied; ledger + telemetry; integration tests                                                        |
 | **M4 AI Read**                | Safe advisory AI context only                            | `world-query` (MCP read-only). Prompt templates, prompt registry, and telemetry live in `shared/` and backend helper endpoints; intent parser foundations | See GitHub milestone   | AI can query world state via MCP; prompts versioned & hashed in `shared`; intent parser handles basic commands                                    |
 | **M5 Quality & Depth**        | Content enrichment + observability                       | Description layering engine, layer validation, dashboards, alerts, integrity monitoring                                                                   | See GitHub milestone   | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                                                 |
@@ -52,8 +52,8 @@ graph TD
     classDef active fill:#fb8500,stroke:#d67000,color:#fff
     classDef future fill:#6e7781,stroke:#57606a,color:#fff
 
-    class M0,M1,M2,M3a closed
-    class M3b,M3c,M4,M5,M6,M7,M5A,M5B future
+    class M0,M1,M2,M3a,M3b closed
+    class M3c,M4,M5,M6,M7,M5A,M5B future
 
     subgraph MVP["MVP = M2 + M3 + M4"]
         M2
@@ -82,7 +82,7 @@ graph TD
 - M5 Dashboards can start after M2 telemetry consolidation completes
 - M6 Systems planning/design can start during M4 (no code dependencies)
 
-**MVP Completion Path**: M3a (2–3 weeks) → M3b (2 weeks) → M3c (2 weeks) → M4 (3 weeks) = **~9–10 weeks to MVP**
+**MVP Completion Path**: M3a ✅ → M3b ✅ → M3c (2 weeks) → M4 (3 weeks) = **~5 weeks to MVP** (as of 2025-12-11)
 
 ## M2 Data Foundations (Closed)
 

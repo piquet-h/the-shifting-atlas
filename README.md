@@ -20,15 +20,15 @@ The platform balances imaginative emergence with architectural discipline: a **d
 
 Navigate the documentation by altitude—each layer serves a distinct purpose with no overlap:
 
-| Layer                 | Altitude     | Purpose                                                     | Key Documents                                                                                                |
-| --------------------- | ------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **1. Vision**         | 60,000 ft    | Inspire and set direction                                   | This README (Vision section above)                                                                           |
-| **2. Tenets**         | 50,000 ft    | Non-negotiable decision-making rules                        | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework)                                 |
-| **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                        |
-| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                     |
-| **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                   |
+| Layer                 | Altitude     | Purpose                                                     | Key Documents                                                                                                               |
+| --------------------- | ------------ | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **1. Vision**         | 60,000 ft    | Inspire and set direction                                   | This README (Vision section above)                                                                                          |
+| **2. Tenets**         | 50,000 ft    | Non-negotiable decision-making rules                        | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework)                                                |
+| **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                                       |
+| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                                    |
+| **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                                  |
 | **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md), [Frontend Components](docs/frontend/components.md), [UX Guidelines](docs/ux/README.md) |
-| **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/) |
+| **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/)                |
 
 **For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
 
@@ -75,6 +75,7 @@ scripts/          Automation (seed data, validation, deployment helpers)
 - `docs/ux/` – UX documentation, wireframes, accessibility guidelines
 
 **Learn more**:
+
 - [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
 - [Frontend Component Architecture](docs/frontend/components.md)
 - [Accessibility Guidelines](docs/ux/accessibility-guidelines.md)
@@ -85,7 +86,7 @@ scripts/          Automation (seed data, validation, deployment helpers)
 
 | Area                           | Status                         | Notes                                                                                 |
 | ------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------- |
-| Frontend UI                    | Auth-aware shell + routing     | Landing homepage (hero + auth states); game view in M3b                               |
+| Frontend UI                    | Game view + routing + auth     | Landing homepage (hero + auth states); full game view with navigation (M3b ✅)        |
 | Backend Functions (`backend/`) | Player + location endpoints    | Source of all HTTP game actions (migrated from SWA)                                   |
 | Frontend API (co‑located)      | Removed                        | Replaced by unified backend Function App                                              |
 | Queue / world logic            | M3a complete (Event Backbone)  | Event schema, processor implemented; Service Bus integration and DLQ/replay validated |
@@ -98,7 +99,7 @@ scripts/          Automation (seed data, validation, deployment helpers)
 **Read more**:
 
 - [Architecture Overview](docs/architecture/mvp-azure-architecture.md) (Current vs Planned)
-- [Roadmap](docs/roadmap.md) (Milestone status: M0–M1 ✅ closed, M2 ✅ closed 2025-11-23, M3 split into M3a/M3b/M3c — M3a ✅ closed 2025-11-30; M3b/M3c active, M4–M7 planned)
+- [Roadmap](docs/roadmap.md) (Milestone status: M0–M1 ✅ closed, M2 ✅ closed 2025-11-23, M3 split into M3a/M3b/M3c — M3a ✅ closed 2025-11-30, M3b ✅ closed 2025-12-11; M3c active, M4–M7 planned)
 - [Examples](docs/examples/README.md) (Practical code walkthroughs)
 
 ---
