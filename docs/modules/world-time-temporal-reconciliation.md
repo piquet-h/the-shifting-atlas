@@ -187,6 +187,10 @@ interface LocationClockManager {
 
 **Purpose**: Define time costs for player actions
 
+**Status**: ✅ **IMPLEMENTED** (M3c Temporal PI-0)
+
+**Location**: `shared/src/temporal/actionRegistry.ts`
+
 **Data Structure**:
 
 ```typescript
@@ -200,41 +204,78 @@ interface ActionModifier {
     condition: string // e.g., "inventory_weight > 50"
     multiplier: number // e.g., 1.5 for encumbered movement
 }
-
-// Example registry
-const ACTION_REGISTRY: ActionDuration[] = [
-    { actionType: 'move', baseDurationMs: 60000 }, // 1 minute
-    { actionType: 'move_overland', baseDurationMs: 3600000 }, // 1 hour
-    { actionType: 'move_long_distance', baseDurationMs: 86400000 }, // 1 day
-    { actionType: 'look', baseDurationMs: 5000 }, // 5 seconds
-    { actionType: 'examine', baseDurationMs: 30000 }, // 30 seconds
-    { actionType: 'rest', baseDurationMs: 28800000 }, // 8 hours
-    { actionType: 'battle_round', baseDurationMs: 6000 }, // 6 seconds (D&D convention)
-    { actionType: 'idle', baseDurationMs: 0 } // No time cost (drift applies instead)
-]
 ```
+
+**Default Action Duration Table**:
+
+| Action Type            | Base Duration | Time Unit  | Notes                              |
+| ---------------------- | ------------- | ---------- | ---------------------------------- |
+| `move`                 | 60000 ms      | 1 minute   | Standard location-to-location move |
+| `move_overland`        | 3600000 ms    | 1 hour     | Long-distance overland travel      |
+| `move_long_distance`   | 86400000 ms   | 1 day      | Very long journey                  |
+| `look`                 | 5000 ms       | 5 seconds  | Quick look at current location     |
+| `examine`              | 30000 ms      | 30 seconds | Detailed examination of object     |
+| `rest`                 | 28800000 ms   | 8 hours    | Full rest period                   |
+| `battle_round`         | 6000 ms       | 6 seconds  | Single combat round (D&D standard) |
+| `idle`                 | 0 ms          | 0 seconds  | No time cost (drift applies)       |
 
 **API**:
 
 ```typescript
-interface ActionRegistry {
+interface IActionRegistry {
     // Get duration for action type with optional context
     getDuration(actionType: string, context?: Record<string, any>): number
 
     // Register new action type (admin/system)
-    registerAction(action: ActionDuration): Promise<void>
+    registerAction(action: ActionDuration): void
 }
 ```
 
 **Storage**:
 
--   Initial: In-memory registry (code-defined)
+-   Initial: In-memory registry (code-defined) ✅ **IMPLEMENTED**
 -   Future (M6+): Cosmos SQL `actionDurations` container for runtime configuration
 
 **Modifier Evaluation**:
 
--   Simple condition parser (e.g., `inventory_weight > 50`)
--   Apply modifiers multiplicatively: `finalDuration = baseDuration * modifier1 * modifier2`
+-   Simple condition parser supporting:
+    -   Comparison operators: `>`, `<`, `>=`, `<=`, `===`, `==`
+    -   Boolean flags: `is_wounded`, `is_encumbered`
+    -   Example: `inventory_weight > 50`
+-   Multiple modifiers applied multiplicatively: `finalDuration = baseDuration * modifier1 * modifier2`
+
+**Unknown Action Types**:
+
+-   Returns default duration of 60000ms (1 minute)
+-   Emits console warning (telemetry integration pending)
+
+**Example Usage**:
+
+```typescript
+import { ActionRegistry } from '@piquet-h/shared'
+
+const registry = new ActionRegistry()
+
+// Get base duration
+const moveDuration = registry.getDuration('move')
+// => 60000
+
+// Get duration with context
+registry.registerAction({
+    actionType: 'encumbered_move',
+    baseDurationMs: 60000,
+    modifiers: [
+        { condition: 'inventory_weight > 50', multiplier: 1.5 },
+        { condition: 'is_wounded', multiplier: 2.0 }
+    ]
+})
+
+const duration = registry.getDuration('encumbered_move', {
+    inventory_weight: 75,
+    is_wounded: true
+})
+// => 180000 (60000 * 1.5 * 2.0)
+```
 
 ---
 
