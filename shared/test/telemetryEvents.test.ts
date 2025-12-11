@@ -200,3 +200,70 @@ test('unknown Navigation.SoftDenial.* variant rejected', () => {
         'Unregistered Navigation.SoftDenial.* variant should be rejected'
     )
 })
+
+// Temporal telemetry events tests (M3c Temporal PI-0 - Issue #506)
+test('World.Clock.Advanced is registered', () => {
+    assert.ok(isGameEventName('World.Clock.Advanced'), 'World.Clock.Advanced should be recognized')
+})
+
+test('World.Clock.Queried is registered', () => {
+    assert.ok(isGameEventName('World.Clock.Queried'), 'World.Clock.Queried should be recognized')
+})
+
+test('Player.Clock.Advanced is registered', () => {
+    assert.ok(isGameEventName('Player.Clock.Advanced'), 'Player.Clock.Advanced should be recognized')
+})
+
+test('Player.Clock.DriftApplied is registered', () => {
+    assert.ok(isGameEventName('Player.Clock.DriftApplied'), 'Player.Clock.DriftApplied should be recognized')
+})
+
+test('Player.Clock.Reconciled is registered', () => {
+    assert.ok(isGameEventName('Player.Clock.Reconciled'), 'Player.Clock.Reconciled should be recognized')
+})
+
+test('Temporal.Narrative.Generated is registered', () => {
+    assert.ok(isGameEventName('Temporal.Narrative.Generated'), 'Temporal.Narrative.Generated should be recognized')
+})
+
+test('World.Clock events match telemetry pattern', () => {
+    const worldClockEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('World.Clock.'))
+    assert.ok(worldClockEvents.length === 2, `Expected 2 World.Clock events, found ${worldClockEvents.length}`)
+
+    for (const event of worldClockEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('Player.Clock events match telemetry pattern', () => {
+    const playerClockEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Player.Clock.'))
+    assert.ok(playerClockEvents.length === 3, `Expected 3 Player.Clock events, found ${playerClockEvents.length}`)
+
+    for (const event of playerClockEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('Temporal.Narrative events match telemetry pattern', () => {
+    const temporalNarrativeEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Temporal.Narrative.'))
+    assert.ok(temporalNarrativeEvents.length === 1, `Expected 1 Temporal.Narrative event, found ${temporalNarrativeEvents.length}`)
+
+    for (const event of temporalNarrativeEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown World.Clock.* variant rejected', () => {
+    assert.equal(isGameEventName('World.Clock.Unknown'), false, 'Unknown World.Clock.* variant should be rejected')
+    assert.equal(isGameEventName('World.Clock.Rewound'), false, 'Unregistered World.Clock.* variant should be rejected')
+})
+
+test('unknown Player.Clock.* variant rejected', () => {
+    assert.equal(isGameEventName('Player.Clock.Unknown'), false, 'Unknown Player.Clock.* variant should be rejected')
+    assert.equal(isGameEventName('Player.Clock.Stopped'), false, 'Unregistered Player.Clock.* variant should be rejected')
+})
+
+test('unknown Temporal.Narrative.* variant rejected', () => {
+    assert.equal(isGameEventName('Temporal.Narrative.Unknown'), false, 'Unknown Temporal.Narrative.* variant should be rejected')
+    assert.equal(isGameEventName('Temporal.Narrative.Failed'), false, 'Unregistered Temporal.Narrative.* variant should be rejected')
+})

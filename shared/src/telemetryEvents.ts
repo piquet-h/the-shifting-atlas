@@ -140,7 +140,17 @@ export const GAME_EVENT_NAMES = [
     'Description.Integrity.Mismatch', // Hash mismatch detected (potential corruption)
     // DM (Dungeon Master) humor telemetry (M5 Quality & Depth - Issue #393)
     'DM.Humor.QuipShown', // Quip shown to player (includes quipId, actionType, probabilityUsed)
-    'DM.Humor.QuipSuppressed' // Quip suppressed (includes suppressionReason: serious|exhausted|probability)
+    'DM.Humor.QuipSuppressed', // Quip suppressed (includes suppressionReason: serious|exhausted|probability)
+    // Temporal telemetry (M3c Temporal PI-0 - Issue #506)
+    // World Clock events - properties: { durationMs, newTick, reason }
+    'World.Clock.Advanced', // World clock advanced by duration
+    'World.Clock.Queried', // World clock queried
+    // Player Clock events
+    'Player.Clock.Advanced', // Player clock advanced by action - properties: { playerId, actionType, durationMs, newTick }
+    'Player.Clock.DriftApplied', // Idle drift applied to player clock - properties: { playerId, realTimeElapsedMs, driftMs, newTick }
+    'Player.Clock.Reconciled', // Player clock reconciled to location anchor - properties: { playerId, locationId, method, offsetMs, narrativeGenerated }
+    // Temporal narrative generation
+    'Temporal.Narrative.Generated' // Temporal narrative generated for wait/compress - properties: { durationMs, bucket, templateUsed }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
