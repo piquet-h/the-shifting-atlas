@@ -29,17 +29,8 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
      * Get the current world clock state
      */
     async get(): Promise<WorldClock | null> {
-        try {
-            const clockId = buildWorldClockId()
-            const result = await this.read(clockId, clockId)
-            return result.resource
-        } catch (error) {
-            // 404 means clock not initialized yet
-            if (error && typeof error === 'object' && 'code' in error && error.code === 404) {
-                return null
-            }
-            throw error
-        }
+        const clockId = buildWorldClockId()
+        return await this.getById(clockId, clockId)
     }
 
     /**
