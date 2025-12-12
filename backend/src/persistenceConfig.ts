@@ -21,6 +21,7 @@ export interface IPersistenceConfig {
             deadLetters: string
             processedEvents: string
             exitHintDebounce: string
+            temporalLedger: string
         }
     }
 }
@@ -53,6 +54,7 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         const sqlContainerDeadLetters = process.env.COSMOS_SQL_CONTAINER_DEADLETTERS || 'deadLetters'
         const sqlContainerProcessedEvents = process.env.COSMOS_SQL_CONTAINER_PROCESSED_EVENTS || 'processedEvents'
         const sqlContainerExitHintDebounce = process.env.COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE || 'exitHintDebounce'
+        const sqlContainerTemporalLedger = process.env.COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER || 'temporalLedger'
 
         // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
@@ -118,7 +120,8 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                     events: sqlContainerEvents,
                     deadLetters: sqlContainerDeadLetters,
                     processedEvents: sqlContainerProcessedEvents,
-                    exitHintDebounce: sqlContainerExitHintDebounce
+                    exitHintDebounce: sqlContainerExitHintDebounce,
+                    temporalLedger: sqlContainerTemporalLedger
                 }
             }
         }

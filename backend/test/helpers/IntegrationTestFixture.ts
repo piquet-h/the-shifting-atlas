@@ -217,6 +217,23 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return repo
     }
 
+    /** Get TemporalLedgerRepository instance from DI container */
+    async getTemporalLedgerRepository(): Promise<import('../../src/repos/temporalLedgerRepository.js').ITemporalLedgerRepository> {
+        const container = await this.getContainer()
+        const repo = container.get<import('../../src/repos/temporalLedgerRepository.js').ITemporalLedgerRepository>('ITemporalLedgerRepository')
+        // Auto-registration wrapper (cosmos mode only)
+        if (this.persistenceMode === 'cosmos' && this.sqlDocTracker && 'log' in repo) {
+            const original = repo.log.bind(repo)
+            repo.log = async (entry) => {
+                const result = await original(entry)
+                // Container temporalLedger, PK /scopeKey
+                this.sqlDocTracker?.register('temporalLedger', entry.scopeKey, entry.id)
+                return result
+            }
+        }
+        return repo
+    }
+
     /**
      * Get the telemetry client from the container
      * In test mode, this returns MockTelemetryClient for assertions

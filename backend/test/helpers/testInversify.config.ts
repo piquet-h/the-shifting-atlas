@@ -64,6 +64,9 @@ import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRe
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
+import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
+import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
+import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -222,6 +225,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
                 .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         }
+
+        // Temporal Ledger Repository (SQL API)
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.temporalLedger) {
+            container.bind<string>('CosmosContainer:TemporalLedger').toConstantValue(sqlConfig.containers.temporalLedger)
+            container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryCosmos).inSingletonScope()
+        } else {
+            container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -239,6 +250,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container
             .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+        container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -258,6 +270,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container
             .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+        container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
     }
 
     // Register services (available in all modes)
