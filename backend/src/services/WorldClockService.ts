@@ -71,10 +71,16 @@ export class WorldClockService implements IWorldClockService {
             return null
         }
 
-        // If timestamp is before first advancement, check initialization
+        // Check if timestamp is before clock initialization
+        const initTime = new Date(clock.lastAdvanced)
+        if (timestamp < initTime && clock.advancementHistory.length === 0) {
+            // Timestamp is before the clock was initialized
+            return null
+        }
+
+        // If no advancements yet, clock is at initial state (0)
         if (clock.advancementHistory.length === 0) {
-            // Clock exists but no advancements yet - return 0 if timestamp >= lastAdvanced
-            return new Date(clock.lastAdvanced) <= timestamp ? clock.currentTick : null
+            return 0
         }
 
         // Find the last advancement before or at the timestamp
@@ -91,9 +97,13 @@ export class WorldClockService implements IWorldClockService {
             }
         }
 
-        // If timestamp is before all advancements, return null (before clock started)
+        // If timestamp is before the first advancement, return 0 (initialized state)
         const firstAdvancement = new Date(clock.advancementHistory[0].timestamp)
-        if (timestamp < firstAdvancement && tickAtTime === 0) {
+        if (timestamp < firstAdvancement) {
+            // Check if timestamp is after initialization
+            if (timestamp >= initTime) {
+                return 0
+            }
             return null
         }
 

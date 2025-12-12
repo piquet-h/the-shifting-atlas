@@ -20,9 +20,10 @@ import { ConcurrentAdvancementError, type IWorldClockRepository } from './worldC
 export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock> implements IWorldClockRepository {
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
+        @inject('CosmosContainer:WorldClock') containerName: string,
         @inject(TelemetryService) protected telemetryService: TelemetryService
     ) {
-        super(sqlClient, 'worldClock', telemetryService)
+        super(sqlClient, containerName, telemetryService)
     }
 
     /**
