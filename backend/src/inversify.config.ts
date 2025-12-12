@@ -53,6 +53,8 @@ import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { CosmosProcessedEventRepository } from './repos/processedEventRepository.cosmos.js'
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
+import { TemporalLedgerRepositoryCosmos } from './repos/temporalLedgerRepository.cosmos.js'
+import type { ITemporalLedgerRepository } from './repos/temporalLedgerRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
@@ -195,6 +197,13 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(config.cosmosSql.containers.exitHintDebounce)
     container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
     container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
+
+    // === Temporal Ledger Container ===
+    if (!config.cosmosSql?.containers.temporalLedger) {
+        throw new Error('Temporal ledger container configuration missing. Required: COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER')
+    }
+    container.bind<string>('CosmosContainer:TemporalLedger').toConstantValue(config.cosmosSql.containers.temporalLedger)
+    container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryCosmos).inSingletonScope()
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
