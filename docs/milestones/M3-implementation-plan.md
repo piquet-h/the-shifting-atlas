@@ -1,6 +1,6 @@
 # M3 Core Loop – Implementation Plan
 
-> **Status:** Split into mini-milestones — **M3a** 20 (all issues closed) ✅ closed 2025-11-30, **M3b** 14 (1 closed, 13 open), **M3c** 10 (0 closed, 10 open). Critical Path: M3a (#407 → #101 → #102 → #258) → M3b (UI/telemetry) → M3c (temporal). | Updated 2025-11-30
+> **Status:** Split into mini-milestones — **M3a** 20 (all issues closed) ✅ closed 2025-11-30, **M3b** 14 (all issues closed) ✅ closed 2025-12-11, **M3c** 10 (in progress). Critical Path: M3a ✅ → M3b ✅ → M3c (temporal). | Updated 2025-12-11
 > **Goal:** Enable players to interact through the web UI with event-driven backend processing and temporal reconciliation.
 > **Dependencies:** M2 Data Foundations (World Events container #407, Player state #404), Telemetry enrichment (#312), SQL API repositories
 > **Blocks:** M4 AI Read (MCP server integration), M5 dashboards (client telemetry), temporal narrative layers
@@ -143,6 +143,6 @@ Parallelizable:
 ## Notes
 
 - This plan mirrors `docs/roadmap.md` M3 section; keep `roadmap.md` as the single high-level narrative. This file is Layer 5 (milestones) and should remain tactical.
-- **Naming note:** Legacy references to “M3 AI Read” map to current **M4 AI Read**. M3 is **Core Loop** per `docs/roadmap.md`.
+- **Naming note:** Legacy references to "M3 AI Read" map to current **M4 AI Read**. M3 is **Core Loop** per `docs/roadmap.md`.
 - Avoid mixing M4/M5 scope; create atomic issues per Section 17 policy when splitting.
-  Status refresh 2025-11-30: M3a 20 (20 closed/0 open) ✅. M3b 14 (1 closed/13 open), M3c 10 (0/10). Dependencies annotated directly in issues (#413–#419, #422, #498–#506). Closed: #258.
+  Status refresh 2025-12-11: M3a 20 (20 closed/0 open) ✅. M3b 14 (14 closed/0 open) ✅. M3c 10 (in progress). Critical path complete through UI/telemetry; temporal reconciliation underway.

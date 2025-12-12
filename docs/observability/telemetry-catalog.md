@@ -311,6 +311,66 @@ Central registry documenting all game domain telemetry events, including when th
 
 ---
 
+### Temporal System (M3c Temporal PI-0)
+
+> **Status:** Events enumerated (Issue #506); component implementation in progress  
+> **Epic:** [#497 World Time & Temporal Reconciliation Framework](https://github.com/piquet-h/the-shifting-atlas/issues/497)  
+> **Implementation Note:** Events defined in `shared/src/telemetryEvents.ts`; emission points will be added when WorldClockService, PlayerClockAPI, and NarrativeLayer components are implemented.
+
+#### `World.Clock.Advanced`
+
+**Trigger:** Global world clock advanced by specified duration  
+**Dimensions:** `durationMs` (duration advanced), `newTick` (resulting world clock tick), `reason` (advancement trigger)  
+**Severity:** Informational  
+**Purpose:** Track world time progression; audit temporal system integrity  
+**Retention:** 180 days  
+**Future Alert:** World clock advancement frequency outside expected range (e.g., >1 hour between advancements when scheduled)
+
+#### `World.Clock.Queried`
+
+**Trigger:** World clock current tick queried  
+**Dimensions:** `tick` (current world clock value), `querySource` (service/component requesting tick)  
+**Severity:** Debug  
+**Purpose:** Monitor world clock access patterns; identify temporal dependencies  
+**Retention:** 30 days
+
+#### `Player.Clock.Advanced`
+
+**Trigger:** Player clock advanced by action duration  
+**Dimensions:** `playerId`, `actionType` (e.g., "move", "rest"), `durationMs` (action duration), `newTick` (resulting player clock tick)  
+**Severity:** Informational  
+**Purpose:** Track player time progression; correlate actions with temporal costs  
+**Retention:** 90 days  
+**Future Alert:** Player clock advancement rate anomalies (e.g., >1000 actions/hour per player)
+
+#### `Player.Clock.DriftApplied`
+
+**Trigger:** Idle drift applied to player clock on reconnect or periodic update  
+**Dimensions:** `playerId`, `realTimeElapsedMs` (real time since last action), `driftMs` (game time drift applied), `newTick` (resulting player clock tick)  
+**Severity:** Informational  
+**Purpose:** Monitor idle player time accumulation; validate drift calculation accuracy  
+**Retention:** 90 days  
+**Future Alert:** Excessive drift accumulation (e.g., >7 days game time drift) indicating inactive player cleanup needed
+
+#### `Player.Clock.Reconciled`
+
+**Trigger:** Player clock reconciled to location anchor (on movement or login)  
+**Dimensions:** `playerId`, `locationId`, `method` ("wait" | "slow" | "compress"), `offsetMs` (time offset before reconciliation), `narrativeGenerated` (boolean, whether temporal narrative was created)  
+**Severity:** Informational  
+**Purpose:** Track reconciliation policy usage; measure temporal desync patterns  
+**Retention:** 90 days  
+**Future Alert:** High reconciliation offset frequency (>50% "compress" method) indicating drift policy tuning needed
+
+#### `Temporal.Narrative.Generated`
+
+**Trigger:** Temporal narrative text generated for wait/compress scenario  
+**Dimensions:** `durationMs` (time span being narrated), `bucket` (template category: "short" | "medium" | "long" | "veryLong"), `templateUsed` (template ID or "ai-generated")  
+**Severity:** Informational  
+**Purpose:** Monitor narrative generation patterns; track AI vs template usage in Phase 2  
+**Retention:** 90 days
+
+---
+
 ### AI Prompt & Generation
 
 #### `Prompt.Genesis.Issued`
@@ -805,8 +865,8 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 > -   **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
 > -   **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
-**Last Updated:** 2025-11-16  
-**Event Count:** 82 canonical events
+**Last Updated:** 2025-12-11  
+**Event Count:** 88 canonical events (includes 6 temporal events from Issue #506)
 
 ## Deprecated Events
 
