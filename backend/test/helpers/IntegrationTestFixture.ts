@@ -235,6 +235,19 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return repo
     }
 
+    /** Get WorldClockRepository instance from DI container */
+    async getWorldClockRepository(): Promise<import('../../src/repos/worldClockRepository.js').IWorldClockRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/worldClockRepository.js').IWorldClockRepository>('IWorldClockRepository')
+    }
+
+    /** Get WorldClockService instance from DI container */
+    async getWorldClockService(): Promise<import('../../src/services/types.js').IWorldClockService> {
+        const container = await this.getContainer()
+        const { WorldClockService } = await import('../../src/services/WorldClockService.js')
+        return container.get(WorldClockService)
+    }
+
     /**
      * Get the telemetry client from the container
      * In test mode, this returns MockTelemetryClient for assertions

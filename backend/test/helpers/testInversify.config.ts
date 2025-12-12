@@ -67,6 +67,7 @@ import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository
 import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
 import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
 import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
+import { WorldClockRepositoryCosmos } from '../../src/repos/worldClockRepository.cosmos.js'
 import { IWorldClockRepository } from '../../src/repos/worldClockRepository.js'
 import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
@@ -237,9 +238,13 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         }
 
-        // World Clock Repository (SQL API) - for E2E tests, fallback to memory for now
-        // TODO: Add Cosmos implementation when worldClock container is provisioned
-        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        // World Clock Repository (SQL API)
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.worldClock) {
+            container.bind<string>('CosmosContainer:WorldClock').toConstantValue(sqlConfig.containers.worldClock)
+            container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
+        } else {
+            container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -258,6 +263,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
+        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
