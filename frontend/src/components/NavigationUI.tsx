@@ -13,6 +13,7 @@
  */
 
 import React, { useCallback, useEffect } from 'react'
+import CompassRoseIcon from '../assets/compass-rose.svg?react'
 
 /** Direction type matching shared domain models */
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
@@ -188,8 +189,13 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
             ) : (
                 <>
                     {/* Cardinal & Intercardinal Directions - 3x3 Grid */}
-                    <div className="mb-3" role="group" aria-label="Cardinal and intercardinal directions">
-                        <div className="grid grid-cols-3 gap-2 max-w-[300px] mx-auto">
+                    <div className="mb-3 relative" role="group" aria-label="Cardinal and intercardinal directions">
+                        {/* Compass Rose Background */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                            <CompassRoseIcon className="w-full h-full max-w-[280px] max-h-[280px] opacity-30" />
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 max-w-[300px] mx-auto relative z-10">
                             {/* Row 1: NW, N, NE */}
                             <DirectionButton
                                 config={intercardinals.find((c) => c.direction === 'northwest')!}

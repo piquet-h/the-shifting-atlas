@@ -1,0 +1,37 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="rgb(52 211 153 / 0.4)" stroke-width="1" />
+  <circle cx="100" cy="100" r="85" fill="none" stroke="rgb(16 185 129 / 0.3)" stroke-width="0.5" />
+
+  <!-- Cardinal points (North, South, East, West) - larger -->
+  <path d="M 100,10 L 105,50 L 100,45 L 95,50 Z" fill="rgb(52 211 153 / 0.6)" />
+  <path d="M 100,190 L 105,150 L 100,155 L 95,150 Z" fill="rgb(52 211 153 / 0.6)" />
+  <path d="M 190,100 L 150,105 L 155,100 L 150,95 Z" fill="rgb(52 211 153 / 0.6)" />
+  <path d="M 10,100 L 50,105 L 45,100 L 50,95 Z" fill="rgb(52 211 153 / 0.6)" />
+
+  <!-- Intercardinal points (NE, SE, SW, NW) - smaller -->
+  <path d="M 165,35 L 155,55 L 152,50 L 147,53 Z" fill="rgb(148 163 184 / 0.5)" />
+  <path d="M 165,165 L 155,145 L 152,150 L 147,147 Z" fill="rgb(148 163 184 / 0.5)" />
+  <path d="M 35,165 L 45,145 L 48,150 L 53,147 Z" fill="rgb(148 163 184 / 0.5)" />
+  <path d="M 35,35 L 45,55 L 48,50 L 53,53 Z" fill="rgb(148 163 184 / 0.5)" />
+
+  <!-- Center ornament -->
+  <circle cx="100" cy="100" r="8" fill="rgb(16 185 129 / 0.4)" />
+  <circle cx="100" cy="100" r="4" fill="rgb(71 85 105 / 0.6)" />
+
+  <!-- Compass rays from center -->
+  <line x1="100" y1="100" x2="100" y2="15" stroke="rgb(16 185 129 / 0.3)" stroke-width="1.5" />
+  <line x1="100" y1="100" x2="100" y2="185" stroke="rgb(16 185 129 / 0.3)" stroke-width="1.5" />
+  <line x1="100" y1="100" x2="185" y2="100" stroke="rgb(16 185 129 / 0.3)" stroke-width="1.5" />
+  <line x1="100" y1="100" x2="15" y2="100" stroke="rgb(16 185 129 / 0.3)" stroke-width="1.5" />
+  <line x1="100" y1="100" x2="163" y2="37" stroke="rgb(100 116 139 / 0.3)" stroke-width="0.8" />
+  <line x1="100" y1="100" x2="163" y2="163" stroke="rgb(100 116 139 / 0.3)" stroke-width="0.8" />
+  <line x1="100" y1="100" x2="37" y2="163" stroke="rgb(100 116 139 / 0.3)" stroke-width="0.8" />
+  <line x1="100" y1="100" x2="37" y2="37" stroke="rgb(100 116 139 / 0.3)" stroke-width="0.8" />
+
+  <!-- Direction labels -->
+  <text x="100" y="8" text-anchor="middle" font-size="10" fill="rgb(110 231 183 / 0.5)" font-weight="600">N</text>
+  <text x="100" y="197" text-anchor="middle" font-size="10" fill="rgb(110 231 183 / 0.5)" font-weight="600">S</text>
+  <text x="195" y="103" text-anchor="middle" font-size="10" fill="rgb(110 231 183 / 0.5)" font-weight="600">E</text>
+  <text x="5" y="103" text-anchor="middle" font-size="10" fill="rgb(110 231 183 / 0.5)" font-weight="600">W</text>
+</svg>
