@@ -86,6 +86,51 @@ describe('MoveHandler Player Location Update (E2E)', () => {
         assert.strictEqual(updatedPlayer.currentLocationId, locations[1].id, 'player should be at north location')
     })
 
+    test('MoveHandler uses path playerId when header is missing', async () => {
+        const container = await fixture.getContainer()
+        const locationRepo = await fixture.getLocationRepository()
+        const playerRepo = await fixture.getPlayerRepository()
+
+        // Seed test world
+        const { locations } = await seedTestWorld({
+            locationRepository: locationRepo,
+            blueprint: getDefaultTestLocations()
+        })
+
+        // Create player
+        const { record: player } = await playerRepo.getOrCreate()
+        const hubLocation = locations[0]
+
+        // Place player at hub
+        player.currentLocationId = hubLocation.id
+        await playerRepo.update(player)
+
+        // Get MoveHandler from DI container
+        const handler = container.get(MoveHandler)
+
+        // Create mock request with playerId in path params only (no x-player-guid header)
+        const mockRequest = {
+            json: async () => ({ direction: 'north' }),
+            query: new Map(),
+            headers: new Map([['content-type', 'application/json']]),
+            params: { playerId: player.id }
+        } as unknown as HttpRequest
+
+        const ctx = await createMockContext(fixture)
+
+        const response = await handler.handle(mockRequest, ctx)
+
+        assert.strictEqual(response.status, 200, 'move should succeed using path playerId when header missing')
+
+        const updatedPlayer = await playerRepo.get(player.id)
+        assert.ok(updatedPlayer, 'player should still exist')
+        assert.strictEqual(
+            updatedPlayer?.currentLocationId,
+            locations[1].id,
+            'player location should update when playerId comes from path params'
+        )
+    })
+
     test('player location persists across handler invocations (simulated reconnect)', async () => {
         const container = await fixture.getContainer()
         const locationRepo = await fixture.getLocationRepository()

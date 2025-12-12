@@ -18,6 +18,7 @@ import { DescriptionComposer } from '../services/descriptionComposer.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
+import { isValidGuid } from './utils/validation.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
@@ -102,6 +103,14 @@ export class MoveHandler extends BaseHandler {
                 }
             } catch {
                 /* ignore legacy body parse errors */
+            }
+        }
+
+        // Ensure player GUID is populated when provided via route params (fallback for clients that omit header)
+        if (!this.playerGuid) {
+            const playerIdFromParams = req.params?.playerId
+            if (isValidGuid(playerIdFromParams)) {
+                this.playerGuid = playerIdFromParams
             }
         }
 
