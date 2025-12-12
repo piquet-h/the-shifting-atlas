@@ -55,9 +55,12 @@ import { CosmosProcessedEventRepository } from './repos/processedEventRepository
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
 import { TemporalLedgerRepositoryCosmos } from './repos/temporalLedgerRepository.cosmos.js'
 import type { ITemporalLedgerRepository } from './repos/temporalLedgerRepository.js'
+import { WorldClockRepositoryCosmos } from './repos/worldClockRepository.cosmos.js'
+import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
+import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
 import { TelemetryService } from './telemetry/TelemetryService.js'
@@ -205,8 +208,12 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:TemporalLedger').toConstantValue(config.cosmosSql.containers.temporalLedger)
     container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryCosmos).inSingletonScope()
 
+    container.bind<string>('CosmosContainer:WorldClock').toConstantValue(config.cosmosSql.containers.worldClock)
+    container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
+
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind(WorldClockService).toSelf().inSingletonScope()
 
     return container
 }

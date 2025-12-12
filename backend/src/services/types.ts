@@ -1,8 +1,12 @@
 /**
- * Types for Description Composer Service
+ * Service Types
  *
- * These types support deterministic description composition from layered content.
+ * Interfaces and types for backend services.
  */
+
+// ---------------------------------------------------------------------------
+// Description Composer Service
+// ---------------------------------------------------------------------------
 
 /**
  * Context information for determining which layers are active
@@ -70,4 +74,41 @@ export interface CompileOptions {
      * Layers in the repository (dynamic, ambient, enhancement) modify/augment this base.
      */
     baseDescription?: string
+}
+
+// ---------------------------------------------------------------------------
+// World Clock Service
+// ---------------------------------------------------------------------------
+
+/**
+ * Service interface for world clock operations
+ */
+export interface IWorldClockService {
+    /**
+     * Get the current world clock tick
+     * @returns Current tick in milliseconds, or 0 if clock not initialized
+     */
+    getCurrentTick(): Promise<number>
+
+    /**
+     * Advance the world clock by duration
+     * Emits World.Clock.Advanced telemetry event
+     * Uses optimistic concurrency control to prevent conflicts
+     *
+     * @param durationMs - Duration to advance in milliseconds (must be positive)
+     * @param reason - Reason for advancement (e.g., "scheduled", "admin", "test")
+     * @returns New tick value after advancement
+     * @throws Error if durationMs is negative or zero
+     * @throws ConcurrentAdvancementError if another advancement occurred concurrently
+     */
+    advanceTick(durationMs: number, reason: string): Promise<number>
+
+    /**
+     * Query world clock tick at specific timestamp (historical query)
+     * Reconstructs tick state by replaying advancement history
+     *
+     * @param timestamp - ISO 8601 timestamp to query
+     * @returns Tick value at that timestamp, or null if timestamp before clock initialization
+     */
+    getTickAt(timestamp: Date): Promise<number | null>
 }
