@@ -36,6 +36,15 @@ The dedicated workbook provides real-time visibility into:
 | `inventory` | `/playerId` | Player GUID | Colocates all items for a player; efficient cross-item queries |
 | `descriptionLayers` | `/locationId` | Location GUID | Colocates all layers for a location; supports layer composition |
 | `worldEvents` | `/scopeKey` | Scope pattern | Partitions by event scope (`loc:<id>` or `player:<id>`) for efficient timelines |
+| `temporalLedger` | `/scopeKey` | Scope pattern | Partitions by event scope (`wc` for world clock, `player:<id>` for player events) |
+
+**Expected RU Consumption (temporalLedger)**:
+- **Write operations** (`log`): ~3-5 RU per entry (upsert with partition key)
+- **Query by player** (single partition): ~2.5-3 RU per query + 0.5 RU per result
+- **Query by world clock** (single partition): ~2.5-3 RU per query + 0.5 RU per result
+- **Query by time range** (cross-partition): ~10-50 RU depending on time window and result count
+- **Estimated daily RU** (100 active players, 10 actions each): ~5,000-7,000 RU/day for writes
+- **Hot partition risk**: LOW - world clock events write to single `wc` partition but infrequent (advancement only); player events well-distributed
 
 ### Partition Key Patterns
 
