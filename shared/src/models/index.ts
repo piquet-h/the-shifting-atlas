@@ -3,3 +3,4 @@
  */
 
 export * from './PlayerDoc.js'
+export * from './TemporalLedgerEntry.js'

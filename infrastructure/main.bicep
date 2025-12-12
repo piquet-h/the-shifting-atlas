@@ -351,6 +351,23 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
         options: {}
       }
     }
+
+    // Temporal Ledger container (immutable audit log for temporal events)
+    resource sqlTemporalLedger 'containers' = {
+      name: 'temporalLedger'
+      properties: {
+        resource: {
+          id: 'temporalLedger'
+          partitionKey: {
+            paths: ['/scopeKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: 7776000 // 90 days in seconds (90 * 24 * 60 * 60)
+        }
+        options: {}
+      }
+    }
   }
 
   // Dedicated test database mirroring production containers for isolation of integration/E2E tests
@@ -449,6 +466,22 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
             kind: 'Hash'
             version: 2
           }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlTemporalLedgerTest 'containers' = {
+      name: 'temporalLedger'
+      properties: {
+        resource: {
+          id: 'temporalLedger'
+          partitionKey: {
+            paths: ['/scopeKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: 7776000 // 90 days in seconds (90 * 24 * 60 * 60)
         }
         options: {}
       }
