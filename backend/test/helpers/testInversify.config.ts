@@ -67,7 +67,10 @@ import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository
 import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
 import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
 import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
+import { IWorldClockRepository } from '../../src/repos/worldClockRepository.js'
+import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { EnvironmentChangeHandler } from '../../src/worldEvents/handlers/EnvironmentChangeHandler.js'
@@ -233,6 +236,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         } else {
             container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         }
+
+        // World Clock Repository (SQL API) - for E2E tests, fallback to memory for now
+        // TODO: Add Cosmos implementation when worldClock container is provisioned
+        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -271,10 +278,12 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
+        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
     }
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind(WorldClockService).toSelf().inSingletonScope()
 
     return container
 }

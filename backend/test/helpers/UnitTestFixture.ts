@@ -107,6 +107,15 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get WorldClockService instance from DI container
+     */
+    async getWorldClockService(): Promise<import('../../src/services/types.js').IWorldClockService> {
+        const container = await this.getContainer()
+        const { WorldClockService } = await import('../../src/services/WorldClockService.js')
+        return container.get(WorldClockService)
+    }
+
+    /**
      * Get or create a mock invocation context
      */
     getInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {
