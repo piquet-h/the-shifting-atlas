@@ -37,7 +37,7 @@ export interface IActionRegistry {
      * @param context Optional context for modifier evaluation (e.g., { inventory_weight: 75 })
      * @returns Duration in milliseconds
      */
-    getDuration(actionType: string, context?: Record<string, any>): number
+    getDuration(actionType: string, context?: Record<string, unknown>): number
 
     /**
      * Register a new action type or update existing one.
@@ -85,7 +85,7 @@ export class ActionRegistry implements IActionRegistry {
     /**
      * Get duration for an action type with optional context for modifier evaluation.
      */
-    getDuration(actionType: string, context?: Record<string, any>): number {
+    getDuration(actionType: string, context?: Record<string, unknown>): number {
         const action = this.actions.get(actionType)
 
         if (!action) {
@@ -121,7 +121,7 @@ export class ActionRegistry implements IActionRegistry {
      * Supports basic comparisons: property > value, property < value, property === value
      * Returns false for invalid syntax.
      */
-    private evaluateCondition(condition: string, context: Record<string, any>): boolean {
+    private evaluateCondition(condition: string, context: Record<string, unknown>): boolean {
         try {
             // Simple condition parser for MVP
             // Supports: "property > value", "property < value", "property >= value", "property <= value", "property === value"
@@ -175,7 +175,7 @@ export class ActionRegistry implements IActionRegistry {
     /**
      * Parse value from string (handles numbers, booleans, strings).
      */
-    private parseValue(value: string): any {
+    private parseValue(value: string): unknown {
         // Try parsing as number
         const num = Number(value)
         if (!isNaN(num)) {

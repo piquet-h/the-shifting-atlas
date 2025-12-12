@@ -2,14 +2,9 @@
  * Unit tests for Temporal Ledger Entry models and utilities
  */
 
+import { buildPlayerScopeKey, buildWcScopeKey, parseScopeKey, type TemporalLedgerEntry } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import {
-    buildPlayerScopeKey,
-    buildWcScopeKey,
-    parseScopeKey,
-    type TemporalLedgerEntry
-} from '@piquet-h/shared'
 
 describe('TemporalLedgerEntry utilities', () => {
     describe('buildWcScopeKey', () => {
@@ -51,17 +46,11 @@ describe('TemporalLedgerEntry utilities', () => {
         })
 
         test('throws on invalid scope key', () => {
-            assert.throws(
-                () => parseScopeKey('invalid'),
-                /Invalid temporal ledger scope key/
-            )
+            assert.throws(() => parseScopeKey('invalid'), /Invalid temporal ledger scope key/)
         })
 
         test('throws on malformed player scope key', () => {
-            assert.throws(
-                () => parseScopeKey('player'),
-                /Invalid temporal ledger scope key/
-            )
+            assert.throws(() => parseScopeKey('player'), /Invalid temporal ledger scope key/)
         })
     })
 

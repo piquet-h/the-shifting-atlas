@@ -14,11 +14,7 @@
 /**
  * Event types logged in the temporal ledger
  */
-export type TemporalEventType =
-    | 'WorldClockAdvanced'
-    | 'PlayerActionAdvanced'
-    | 'PlayerDriftApplied'
-    | 'Reconciled'
+export type TemporalEventType = 'WorldClockAdvanced' | 'PlayerActionAdvanced' | 'PlayerDriftApplied' | 'Reconciled'
 
 /**
  * Reconciliation method used when aligning player and location clocks
