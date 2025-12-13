@@ -39,7 +39,7 @@ export class PlayerClockService implements IPlayerClockAPI {
      */
     async advancePlayerTime(playerId: string, durationMs: number, actionType: string): Promise<void> {
         if (durationMs < 0) {
-            throw new Error('Duration must be positive or zero')
+            throw new Error('Duration must be non-negative')
         }
 
         // Get current player state
@@ -74,7 +74,7 @@ export class PlayerClockService implements IPlayerClockAPI {
      */
     async applyDrift(playerId: string, realTimeElapsedMs: number): Promise<void> {
         if (realTimeElapsedMs < 0) {
-            throw new Error('Real-time elapsed must be positive or zero')
+            throw new Error('Real-time elapsed must be non-negative')
         }
 
         // Get current player state

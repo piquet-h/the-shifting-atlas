@@ -104,7 +104,7 @@ describe('PlayerClockService (unit)', () => {
 
             await assert.rejects(
                 async () => service.advancePlayerTime(playerId, -1000, 'invalid'),
-                /duration must be positive/i,
+                /duration must be non-negative/i,
                 'Should reject negative duration'
             )
         })
@@ -194,7 +194,7 @@ describe('PlayerClockService (unit)', () => {
 
             await assert.rejects(
                 async () => service.applyDrift(playerId, -5000),
-                /elapsed.*must be.*positive/i,
+                /elapsed.*must be non-negative/i,
                 'Should reject negative elapsed time'
             )
         })
