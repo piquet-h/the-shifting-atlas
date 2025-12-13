@@ -7,7 +7,6 @@ import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 import type { IWorldClockService } from '../../src/services/types.js'
-import { ConcurrentAdvancementError } from '../../src/repos/worldClockRepository.js'
 
 describe('WorldClockService (unit)', () => {
     let fixture: UnitTestFixture
@@ -32,7 +31,7 @@ describe('WorldClockService (unit)', () => {
         test('returns current tick after advancement', async () => {
             // Advance clock
             await service.advanceTick(1000, 'test')
-            
+
             const tick = await service.getCurrentTick()
             assert.strictEqual(tick, 1000)
         })
@@ -41,7 +40,7 @@ describe('WorldClockService (unit)', () => {
             await service.advanceTick(1000, 'first')
             await service.advanceTick(500, 'second')
             await service.advanceTick(250, 'third')
-            
+
             const tick = await service.getCurrentTick()
             assert.strictEqual(tick, 1750)
         })
@@ -54,25 +53,19 @@ describe('WorldClockService (unit)', () => {
         })
 
         test('rejects negative duration', async () => {
-            await assert.rejects(
-                async () => service.advanceTick(-1000, 'invalid'),
-                /must be positive/i
-            )
+            await assert.rejects(async () => service.advanceTick(-1000, 'invalid'), /must be positive/i)
         })
 
         test('rejects zero duration', async () => {
-            await assert.rejects(
-                async () => service.advanceTick(0, 'invalid'),
-                /must be positive/i
-            )
+            await assert.rejects(async () => service.advanceTick(0, 'invalid'), /must be positive/i)
         })
 
         test('emits World.Clock.Advanced telemetry event', async () => {
             const telemetry = await fixture.getTelemetryClient()
-            
+
             await service.advanceTick(2000, 'test reason')
-            
-            const events = telemetry.events.filter(e => e.name === 'World.Clock.Advanced')
+
+            const events = telemetry.events.filter((e) => e.name === 'World.Clock.Advanced')
             assert.strictEqual(events.length, 1)
             assert.strictEqual(events[0].properties?.durationMs, 2000)
             assert.strictEqual(events[0].properties?.newTick, 2000)
@@ -89,7 +82,7 @@ describe('WorldClockService (unit)', () => {
 
             // Note: This test validates the service handles the repository error correctly
             // The actual concurrency test will be in integration tests with real Cosmos
-            
+
             // For now, we verify that the error type is properly propagated
             // Integration tests will test actual concurrent behavior
         })
@@ -97,7 +90,7 @@ describe('WorldClockService (unit)', () => {
         test('records advancement in history', async () => {
             await service.advanceTick(1000, 'first')
             await service.advanceTick(500, 'second')
-            
+
             // History should be recorded (verified via repository in integration tests)
             // Unit test verifies the service calls repository correctly
             const tick = await service.getCurrentTick()
@@ -115,10 +108,10 @@ describe('WorldClockService (unit)', () => {
         test('returns tick at specific timestamp', async () => {
             const startTime = new Date()
             await service.advanceTick(1000, 'first')
-            
+
             const queryTime = new Date(startTime.getTime() + 500)
             await service.advanceTick(1000, 'second')
-            
+
             // Should return tick as it was at queryTime
             // (In this simplified test, we verify the method exists and returns a number)
             const tick = await service.getTickAt(queryTime)
@@ -127,7 +120,7 @@ describe('WorldClockService (unit)', () => {
 
         test('returns current tick for future timestamp', async () => {
             await service.advanceTick(1000, 'test')
-            
+
             const futureDate = new Date(Date.now() + 10000)
             const tick = await service.getTickAt(futureDate)
             assert.strictEqual(tick, 1000)

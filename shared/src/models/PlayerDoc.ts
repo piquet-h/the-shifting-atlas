@@ -30,4 +30,13 @@ export interface PlayerDoc {
 
     /** Version counter for inventory synchronization across containers */
     inventoryVersion?: number
+
+    /** Player clock tick in milliseconds (temporal framework) */
+    clockTick?: number
+
+    /** ISO 8601 timestamp of last player action (for drift calculation) */
+    lastAction?: string
+
+    /** ISO 8601 timestamp of last drift application */
+    lastDrift?: string
 }

@@ -60,6 +60,7 @@ import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
+import { PlayerClockService } from './services/PlayerClockService.js'
 import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
@@ -213,6 +214,7 @@ export const setupContainer = async (container: Container) => {
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
 
     return container

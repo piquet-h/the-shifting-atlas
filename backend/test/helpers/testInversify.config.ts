@@ -71,6 +71,7 @@ import { WorldClockRepositoryCosmos } from '../../src/repos/worldClockRepository
 import { IWorldClockRepository } from '../../src/repos/worldClockRepository.js'
 import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { PlayerClockService } from '../../src/services/PlayerClockService.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -290,6 +291,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
+    container.bind(PlayerClockService).toSelf().inSingletonScope()
 
     return container
 }

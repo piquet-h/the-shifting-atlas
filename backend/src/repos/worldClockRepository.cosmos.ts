@@ -39,7 +39,7 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
      */
     async initialize(initialTick: number = 0): Promise<WorldClock> {
         const clockId = buildWorldClockId()
-        
+
         // Check if already exists
         const existing = await this.get()
         if (existing) {
@@ -66,7 +66,7 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
         }
 
         const clockId = buildWorldClockId()
-        
+
         // Read current state to verify ETag
         const current = await this.get()
         if (!current) {

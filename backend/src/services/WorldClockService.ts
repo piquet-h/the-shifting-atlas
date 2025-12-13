@@ -22,13 +22,13 @@ export class WorldClockService implements IWorldClockService {
      */
     async getCurrentTick(): Promise<number> {
         const clock = await this.repository.get()
-        
+
         // Auto-initialize if not exists
         if (!clock) {
             const initialized = await this.repository.initialize(0)
             return initialized.currentTick
         }
-        
+
         return clock.currentTick
     }
 
@@ -42,7 +42,7 @@ export class WorldClockService implements IWorldClockService {
 
         // Get current clock state
         let clock = await this.repository.get()
-        
+
         // Auto-initialize if not exists
         if (!clock) {
             clock = await this.repository.initialize(0)
@@ -50,7 +50,7 @@ export class WorldClockService implements IWorldClockService {
 
         // Advance with optimistic concurrency control
         const updated = await this.repository.advance(durationMs, reason, clock._etag!)
-        
+
         // Emit telemetry event
         this.telemetry.trackGameEvent('World.Clock.Advanced', {
             durationMs,
@@ -66,7 +66,7 @@ export class WorldClockService implements IWorldClockService {
      */
     async getTickAt(timestamp: Date): Promise<number | null> {
         const clock = await this.repository.get()
-        
+
         if (!clock) {
             return null
         }
@@ -85,10 +85,10 @@ export class WorldClockService implements IWorldClockService {
 
         // Find the last advancement before or at the timestamp
         let tickAtTime = 0 // Start from initialization
-        
+
         for (const advancement of clock.advancementHistory) {
             const advancementTime = new Date(advancement.timestamp)
-            
+
             if (advancementTime <= timestamp) {
                 tickAtTime = advancement.tickAfter
             } else {
