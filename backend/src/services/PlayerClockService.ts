@@ -17,14 +17,30 @@ import { WorldClockService } from './WorldClockService.js'
  * If player is ahead by less than this amount, location might catch up (rare)
  * Default: 1 hour (3600000ms)
  */
-const SLOW_THRESHOLD_MS = parseInt(process.env.TEMPORAL_SLOW_THRESHOLD_MS || '3600000', 10)
+const SLOW_THRESHOLD_MS = (() => {
+    const value = parseInt(process.env.TEMPORAL_SLOW_THRESHOLD_MS || '3600000', 10)
+    // Validate: must be positive and reasonable (< 7 days)
+    if (isNaN(value) || value <= 0 || value > 7 * 24 * 60 * 60 * 1000) {
+        console.warn(`Invalid TEMPORAL_SLOW_THRESHOLD_MS: ${process.env.TEMPORAL_SLOW_THRESHOLD_MS}, using default 3600000ms`)
+        return 3600000
+    }
+    return value
+})()
 
 /**
  * Drift rate configuration: real-time elapsed → game-time drift
  * Default: 1.0 (1 real minute = 1 game minute)
  * Can be tuned for slower drift (e.g., 0.1 = 1 real minute = 6 game seconds)
  */
-const DRIFT_RATE = parseFloat(process.env.TEMPORAL_DRIFT_RATE || '1.0')
+const DRIFT_RATE = (() => {
+    const value = parseFloat(process.env.TEMPORAL_DRIFT_RATE || '1.0')
+    // Validate: must be non-negative and reasonable (< 100x multiplier)
+    if (isNaN(value) || value < 0 || value > 100) {
+        console.warn(`Invalid TEMPORAL_DRIFT_RATE: ${process.env.TEMPORAL_DRIFT_RATE}, using default 1.0`)
+        return 1.0
+    }
+    return value
+})()
 
 @injectable()
 export class PlayerClockService implements IPlayerClockAPI {
@@ -117,8 +133,10 @@ export class PlayerClockService implements IPlayerClockAPI {
             throw new Error(`Player not found: ${playerId}`)
         }
 
-        // Get world clock (represents location anchor for now)
-        // TODO: When LocationClockManager is implemented, use location-specific anchor
+        // NOTE: locationId parameter accepted for interface contract but not currently validated
+        // LocationClockManager (separate issue) will provide location-specific anchors
+        // For now, use world clock as proxy for all location anchors
+        // TODO: When LocationClockManager is implemented, validate locationId and use location-specific anchor
         const worldClockTick = await this.worldClockService.getCurrentTick()
 
         // Get player clock (initialize to 0 if undefined)

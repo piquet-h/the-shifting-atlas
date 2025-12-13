@@ -40,7 +40,7 @@ export interface IPlayerClockAPI {
      * Emits Player.Clock.Advanced telemetry event
      *
      * @param playerId - Player unique identifier
-     * @param durationMs - Duration to advance in milliseconds (must be positive)
+     * @param durationMs - Duration to advance in milliseconds (must be non-negative)
      * @param actionType - Type of action that triggered advancement (e.g., "move", "look")
      * @throws Error if playerId not found or durationMs is negative
      */
@@ -53,7 +53,7 @@ export interface IPlayerClockAPI {
      * Emits Player.Clock.DriftApplied telemetry event
      *
      * @param playerId - Player unique identifier
-     * @param realTimeElapsedMs - Real-world time elapsed in milliseconds
+     * @param realTimeElapsedMs - Real-world time elapsed in milliseconds (must be non-negative)
      * @throws Error if playerId not found or realTimeElapsedMs is negative
      */
     applyDrift(playerId: string, realTimeElapsedMs: number): Promise<void>
