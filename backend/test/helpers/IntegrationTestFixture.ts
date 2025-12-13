@@ -248,6 +248,13 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get(WorldClockService)
     }
 
+    /** Get PlayerClockService instance from DI container */
+    async getPlayerClockService(): Promise<import('../../src/services/types.js').IPlayerClockAPI> {
+        const container = await this.getContainer()
+        const { PlayerClockService } = await import('../../src/services/PlayerClockService.js')
+        return container.get(PlayerClockService)
+    }
+
     /**
      * Get the telemetry client from the container
      * In test mode, this returns MockTelemetryClient for assertions

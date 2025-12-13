@@ -116,6 +116,23 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get PlayerClockService instance from DI container
+     */
+    async getPlayerClockService(): Promise<import('../../src/services/types.js').IPlayerClockAPI> {
+        const container = await this.getContainer()
+        const { PlayerClockService } = await import('../../src/services/PlayerClockService.js')
+        return container.get(PlayerClockService)
+    }
+
+    /**
+     * Get PlayerDocRepository instance from DI container
+     */
+    async getPlayerDocRepository(): Promise<import('../../src/repos/PlayerDocRepository.js').IPlayerDocRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/PlayerDocRepository.js').IPlayerDocRepository>('IPlayerDocRepository')
+    }
+
+    /**
      * Get or create a mock invocation context
      */
     getInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {

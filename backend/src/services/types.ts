@@ -112,3 +112,10 @@ export interface IWorldClockService {
      */
     getTickAt(timestamp: Date): Promise<number | null>
 }
+
+// ---------------------------------------------------------------------------
+// Player Clock API
+// ---------------------------------------------------------------------------
+
+// Re-export types from shared package for convenience
+export type { IPlayerClockAPI, ReconciliationResult, ReconciliationMethod } from '@piquet-h/shared'
