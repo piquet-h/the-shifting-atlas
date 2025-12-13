@@ -167,7 +167,7 @@ describe('LocationClockManager (unit)', () => {
         // 1. PlayerDocRepository.queryByLocationAndTick(locationId, tick) method
         // 2. Cross-partition query: SELECT c.id FROM c WHERE c.currentLocationId = @loc AND c.clockTick <= @tick
         // 3. Performance optimization: index on (currentLocationId, clockTick)
-        
+
         test.skip('returns players present at location at specific tick (placeholder - requires PlayerDocRepository bulk query)', async () => {
             // Given: Players at location with matching clock ticks
             const playerDocRepo = await fixture.getPlayerDocRepository()

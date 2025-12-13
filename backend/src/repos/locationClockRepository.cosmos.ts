@@ -3,60 +3,47 @@
  * Stores location temporal anchors in dedicated SQL container
  */
 
-import { buildLocationClockId, type LocationClock } from '@piquet-h/shared'
+import { type LocationClock } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
+import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { ILocationClockRepository } from './locationClockRepository.js'
 
 @injectable()
-export class LocationClockRepositoryCosmos implements ILocationClockRepository {
-    private readonly containerName: string
-
-    constructor(@inject('CosmosDbSqlClient') private readonly sqlClient: ICosmosDbSqlClient) {
+export class LocationClockRepositoryCosmos extends CosmosDbSqlRepository<LocationClock> implements ILocationClockRepository {
+    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient, @inject(TelemetryService) telemetryService: TelemetryService) {
         // Container name from environment (should be 'locationClocks')
-        this.containerName = process.env.COSMOS_SQL_CONTAINER_LOCATION_CLOCKS || 'locationClocks'
+        const containerName = process.env.COSMOS_SQL_CONTAINER_LOCATION_CLOCKS || 'locationClocks'
+        super(sqlClient, containerName, telemetryService)
     }
 
     /**
      * Get location clock by ID
      */
     async get(locationId: string): Promise<LocationClock | undefined> {
-        const id = buildLocationClockId(locationId)
-
-        try {
-            const result = await this.sqlClient.readItem<LocationClock>(this.containerName, id, id)
-            return result || undefined
-        } catch (error: unknown) {
-            // 404 Not Found is expected for uninitialized locations
-            if (error && typeof error === 'object' && 'code' in error && error.code === 404) {
-                return undefined
-            }
-            throw error
-        }
+        const result = await this.getById(locationId, locationId)
+        return result || undefined
     }
 
     /**
      * Initialize new location clock
      */
     async initialize(locationId: string, worldClockTick: number): Promise<LocationClock> {
-        const id = buildLocationClockId(locationId)
-
         const locationClock: LocationClock = {
             id: locationId,
             clockAnchor: worldClockTick,
             lastSynced: new Date().toISOString()
         }
 
-        const created = await this.sqlClient.createItem<LocationClock>(this.containerName, locationClock)
-        return created
+        const { resource } = await this.create(locationClock)
+        return resource
     }
 
     /**
      * Update location clock anchor
      */
     async update(locationId: string, worldClockTick: number, etag?: string): Promise<LocationClock> {
-        const id = buildLocationClockId(locationId)
-
         // Try to get existing clock
         const existing = await this.get(locationId)
 
@@ -74,13 +61,13 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
         // Use provided ETag for concurrency control, or existing one
         const useEtag = etag || existing._etag
 
-        const result = await this.sqlClient.upsertItem<LocationClock>(this.containerName, updated, useEtag)
-        return result
+        const { resource } = await this.replace(locationId, updated, locationId, useEtag)
+        return resource
     }
 
     /**
      * Batch update all location clocks
-     * 
+     *
      * Updates only existing location clocks (lazy initialization on first access).
      * Uses parallel batches of 50 to balance throughput and Cosmos RU limits.
      */
@@ -97,21 +84,19 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
 
         // Process all batches in parallel
         const batchResults = await Promise.all(
-            batches.map((batch) =>
-                Promise.all(batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
-            )
+            batches.map((batch) => Promise.all(batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag))))
         )
 
         // Count total updates (each batch returns array of results)
-        return batchResults.reduce((total, batchResult) => total + batchResult.length, 0)
+        return batchResults.reduce((total: number, batchResult: LocationClock[]) => total + batchResult.length, 0)
     }
 
     /**
      * List all location clocks
      */
     async listAll(): Promise<LocationClock[]> {
-        const query = 'SELECT * FROM c'
-        const results = await this.sqlClient.queryItems<LocationClock>(this.containerName, query)
-        return results
+        const queryText = 'SELECT * FROM c'
+        const { items } = await this.query(queryText)
+        return items
     }
 }

@@ -77,19 +77,20 @@ export class LocationClockManager implements ILocationClockManager {
 
     /**
      * Query players present at location at specific tick
-     * 
+     *
      * **MVP Implementation**: Returns empty array (placeholder)
-     * 
+     *
      * Full implementation requires PlayerDocRepository.queryByLocationAndTick():
      * - SQL query: SELECT c.id FROM c WHERE c.currentLocationId = @loc AND c.clockTick <= @tick
      * - Composite index needed: (currentLocationId, clockTick)
      * - Tracked in: M5 Quality & Depth milestone
-     * 
-     * @param locationId - Location to query
-     * @param tick - World clock tick to query at
+     *
+     * @param _locationId - Location to query (unused in placeholder)
+     * @param _tick - World clock tick to query at (unused in placeholder)
      * @returns Player IDs at location at that tick (empty for MVP)
      */
-    async getOccupantsAtTick(locationId: string, tick: number): Promise<string[]> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getOccupantsAtTick(_locationId: string, _tick: number): Promise<string[]> {
         // Placeholder: requires PlayerDocRepository enhancement
         return []
     }

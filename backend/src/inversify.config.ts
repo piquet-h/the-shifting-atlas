@@ -217,7 +217,7 @@ export const setupContainer = async (container: Container) => {
 
     // === Location Clock Container ===
     // Default container name for location clocks (can be overridden via env var)
-    const locationClocksContainer = process.env.COSMOS_SQL_CONTAINER_LOCATION_CLOCKS || 'locationClocks'
+    // Note: Container name is read directly in LocationClockRepositoryCosmos constructor
     container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
 
     // === Services ===

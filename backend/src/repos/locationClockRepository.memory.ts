@@ -77,11 +77,7 @@ export class MemoryLocationClockRepository implements ILocationClockRepository {
         const allClocks = Array.from(this.store.values())
 
         // Update all in parallel (simulated)
-        await Promise.all(
-            allClocks.map((clock) =>
-                this.update(clock.id, worldClockTick, clock._etag)
-            )
-        )
+        await Promise.all(allClocks.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
 
         return allClocks.length
     }
