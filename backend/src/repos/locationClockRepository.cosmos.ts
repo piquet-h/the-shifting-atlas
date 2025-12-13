@@ -87,7 +87,7 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
     async batchUpdateAll(worldClockTick: number): Promise<number> {
         const allClocks = await this.listAll()
 
-        // Process in parallel batches
+        // Group into batches
         const BATCH_SIZE = 50
         const batches: LocationClock[][] = []
 
@@ -95,15 +95,15 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
             batches.push(allClocks.slice(i, i + BATCH_SIZE))
         }
 
-        let totalUpdated = 0
+        // Process all batches in parallel
+        const batchResults = await Promise.all(
+            batches.map((batch) =>
+                Promise.all(batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
+            )
+        )
 
-        for (const batch of batches) {
-            const updatePromises = batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag))
-            await Promise.all(updatePromises)
-            totalUpdated += batch.length
-        }
-
-        return totalUpdated
+        // Count total updates (each batch returns array of results)
+        return batchResults.reduce((total, batchResult) => total + batchResult.length, 0)
     }
 
     /**
