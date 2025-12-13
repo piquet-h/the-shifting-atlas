@@ -80,18 +80,15 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
 
     /**
      * Batch update all location clocks
-     * Uses parallel updates for performance
+     * 
+     * Updates only existing location clocks (lazy initialization on first access).
+     * Uses parallel batches of 50 to balance throughput and Cosmos RU limits.
      */
     async batchUpdateAll(worldClockTick: number): Promise<number> {
-        // Get all existing location clocks
         const allClocks = await this.listAll()
 
-        // Also get all locations from location repository to ensure we initialize any new ones
-        // Note: This requires location repository dependency or we only update existing clocks
-        // For MVP, we'll only update existing location clocks (locations get initialized on first access)
-
-        // Update all in parallel batches to avoid overwhelming Cosmos
-        const BATCH_SIZE = 50 // Cosmos SQL API can handle good parallelism
+        // Process in parallel batches
+        const BATCH_SIZE = 50
         const batches: LocationClock[][] = []
 
         for (let i = 0; i < allClocks.length; i += BATCH_SIZE) {
@@ -102,7 +99,6 @@ export class LocationClockRepositoryCosmos implements ILocationClockRepository {
 
         for (const batch of batches) {
             const updatePromises = batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag))
-
             await Promise.all(updatePromises)
             totalUpdated += batch.length
         }
