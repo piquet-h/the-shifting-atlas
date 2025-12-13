@@ -69,10 +69,9 @@ describe('PlayerClockService (unit)', () => {
             const updated = await playerRepo.getPlayer(playerId)
             assert.ok(updated, 'Player should exist')
             assert.ok(updated.lastAction, 'lastAction should be set')
-            
+
             const lastActionTime = new Date(updated.lastAction)
-            assert.ok(lastActionTime >= beforeTime && lastActionTime <= afterTime, 
-                'lastAction should be current timestamp')
+            assert.ok(lastActionTime >= beforeTime && lastActionTime <= afterTime, 'lastAction should be current timestamp')
         })
 
         test('initializes clockTick to 0 if undefined', async () => {
@@ -132,7 +131,7 @@ describe('PlayerClockService (unit)', () => {
             const telemetry = await fixture.getTelemetryClient()
             await service.advancePlayerTime(playerId, 2000, 'move')
 
-            const events = telemetry.events.filter(e => e.name === 'Player.Clock.Advanced')
+            const events = telemetry.events.filter((e) => e.name === 'Player.Clock.Advanced')
             assert.strictEqual(events.length, 1, 'Should emit one telemetry event')
             assert.strictEqual(events[0].properties?.playerId, playerId)
             assert.strictEqual(events[0].properties?.actionType, 'move')
@@ -177,10 +176,9 @@ describe('PlayerClockService (unit)', () => {
 
             const updated = await playerRepo.getPlayer(playerId)
             assert.ok(updated?.lastDrift, 'lastDrift should be set')
-            
+
             const lastDriftTime = new Date(updated.lastDrift)
-            assert.ok(lastDriftTime >= beforeTime && lastDriftTime <= afterTime,
-                'lastDrift should be current timestamp')
+            assert.ok(lastDriftTime >= beforeTime && lastDriftTime <= afterTime, 'lastDrift should be current timestamp')
         })
 
         test('rejects negative realTimeElapsed', async () => {
@@ -215,7 +213,7 @@ describe('PlayerClockService (unit)', () => {
             const telemetry = await fixture.getTelemetryClient()
             await service.applyDrift(playerId, 10000)
 
-            const events = telemetry.events.filter(e => e.name === 'Player.Clock.DriftApplied')
+            const events = telemetry.events.filter((e) => e.name === 'Player.Clock.DriftApplied')
             assert.strictEqual(events.length, 1, 'Should emit one telemetry event')
             assert.strictEqual(events[0].properties?.playerId, playerId)
             assert.strictEqual(events[0].properties?.realTimeElapsedMs, 10000)
@@ -331,7 +329,7 @@ describe('PlayerClockService (unit)', () => {
             const telemetry = await fixture.getTelemetryClient()
             await service.reconcile(playerId, locationId)
 
-            const events = telemetry.events.filter(e => e.name === 'Player.Clock.Reconciled')
+            const events = telemetry.events.filter((e) => e.name === 'Player.Clock.Reconciled')
             assert.strictEqual(events.length, 1, 'Should emit one telemetry event')
             assert.strictEqual(events[0].properties?.playerId, playerId)
             assert.strictEqual(events[0].properties?.locationId, locationId)

@@ -30,7 +30,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
             // Setup: Create player and advance world clock
             const playerId = 'integration-test-player-1'
             const locationId = 'integration-test-location-1'
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -39,7 +39,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
                 clockTick: 0
             }
             await playerRepo.upsertPlayer(initialPlayer)
-            
+
             // Advance world clock to 100 seconds
             await worldClockService.advanceTick(100000, 'integration test setup')
 
@@ -72,9 +72,9 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
             // Setup: Create player aligned with world clock
             const playerId = 'integration-test-player-2'
             const locationId = 'integration-test-location-2'
-            
+
             await worldClockService.advanceTick(50000, 'test setup')
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -110,9 +110,9 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
             // Setup: Player far ahead (simulating days of accumulated drift)
             const playerId = 'integration-test-player-3'
             const locationId = 'integration-test-location-3'
-            
+
             const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000 // 604800000ms
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -121,7 +121,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
                 clockTick: SEVEN_DAYS_MS // Player 7 days ahead
             }
             await playerRepo.upsertPlayer(initialPlayer)
-            
+
             // World clock is at 0 (player far ahead)
             await worldClockService.getCurrentTick() // Initialize at 0
 
@@ -147,7 +147,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
 
             // Setup: Create player
             const playerId = 'integration-test-player-4'
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -174,7 +174,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
 
             // Setup: Create player
             const playerId = 'integration-test-player-5'
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -208,7 +208,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
             // Setup
             const playerId = 'integration-test-player-6'
             const locationId = 'integration-test-location-6'
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
@@ -225,9 +225,9 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
             await service.reconcile(playerId, locationId)
 
             // Verify telemetry events
-            const advanceEvents = telemetry.events.filter(e => e.name === 'Player.Clock.Advanced')
-            const driftEvents = telemetry.events.filter(e => e.name === 'Player.Clock.DriftApplied')
-            const reconcileEvents = telemetry.events.filter(e => e.name === 'Player.Clock.Reconciled')
+            const advanceEvents = telemetry.events.filter((e) => e.name === 'Player.Clock.Advanced')
+            const driftEvents = telemetry.events.filter((e) => e.name === 'Player.Clock.DriftApplied')
+            const reconcileEvents = telemetry.events.filter((e) => e.name === 'Player.Clock.Reconciled')
 
             assert.strictEqual(advanceEvents.length, 1, 'Should emit Player.Clock.Advanced')
             assert.strictEqual(driftEvents.length, 1, 'Should emit Player.Clock.DriftApplied')
@@ -256,7 +256,7 @@ describeForBothModes('PlayerClockService Integration', (mode) => {
 
             // Setup: Create player
             const playerId = 'integration-test-player-7'
-            
+
             const initialPlayer: PlayerDoc = {
                 id: playerId,
                 createdUtc: new Date().toISOString(),
