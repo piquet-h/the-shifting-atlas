@@ -64,6 +64,9 @@ import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRe
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
+import { LocationClockRepositoryCosmos } from '../../src/repos/locationClockRepository.cosmos.js'
+import { MemoryLocationClockRepository } from '../../src/repos/locationClockRepository.memory.js'
+import { ILocationClockRepository } from '../../src/repos/locationClockRepository.js'
 import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
 import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
 import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
@@ -71,6 +74,7 @@ import { WorldClockRepositoryCosmos } from '../../src/repos/worldClockRepository
 import { IWorldClockRepository } from '../../src/repos/worldClockRepository.js'
 import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { LocationClockManager } from '../../src/services/LocationClockManager.js'
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
@@ -246,6 +250,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         } else {
             container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
         }
+
+        // Location Clock Repository (SQL API)
+        // Note: Uses same SQL client and database as world clock
+        if (sqlConfig?.endpoint && sqlConfig?.database) {
+            container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+        } else {
+            container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -265,6 +277,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -286,12 +299,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
     }
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
+    container.bind(LocationClockManager).toSelf().inSingletonScope()
 
     return container
 }

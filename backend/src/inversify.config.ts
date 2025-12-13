@@ -53,6 +53,8 @@ import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { CosmosProcessedEventRepository } from './repos/processedEventRepository.cosmos.js'
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
+import { LocationClockRepositoryCosmos } from './repos/locationClockRepository.cosmos.js'
+import type { ILocationClockRepository } from './repos/locationClockRepository.js'
 import { TemporalLedgerRepositoryCosmos } from './repos/temporalLedgerRepository.cosmos.js'
 import type { ITemporalLedgerRepository } from './repos/temporalLedgerRepository.js'
 import { WorldClockRepositoryCosmos } from './repos/worldClockRepository.cosmos.js'
@@ -60,6 +62,7 @@ import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
+import { LocationClockManager } from './services/LocationClockManager.js'
 import { PlayerClockService } from './services/PlayerClockService.js'
 import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
@@ -212,10 +215,16 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:WorldClock').toConstantValue(config.cosmosSql.containers.worldClock)
     container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
 
+    // === Location Clock Container ===
+    // Default container name for location clocks (can be overridden via env var)
+    // Note: Container name is read directly in LocationClockRepositoryCosmos constructor
+    container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
+    container.bind(LocationClockManager).toSelf().inSingletonScope()
 
     return container
 }
