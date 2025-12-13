@@ -8,11 +8,11 @@
 
 ## Objectives
 
--   Enable asynchronous player actions to reconcile into a shared, consistent timeline
--   Provide simulation accuracy (travel takes days, battles take minutes) without breaking playability
--   Ensure locations act as temporal anchors where player timelines align
--   Generate narratively rich "time passes" text when players wait or drift
--   Support future episodic content (dungeons, quests) with discrete time costs
+- Enable asynchronous player actions to reconcile into a shared, consistent timeline
+- Provide simulation accuracy (travel takes days, battles take minutes) without breaking playability
+- Ensure locations act as temporal anchors where player timelines align
+- Generate narratively rich "time passes" text when players wait or drift
+- Support future episodic content (dungeons, quests) with discrete time costs
 
 ---
 
@@ -72,19 +72,19 @@ interface WorldClockService {
 
 **Storage**:
 
--   `worldClock` document in Cosmos SQL API (single document, PK: `/id` = `"global"`)
--   Fields: `currentTick: number`, `lastAdvanced: string (ISO)`, `advancementHistory: AdvancementLog[]`
+- `worldClock` document in Cosmos SQL API (single document, PK: `/id` = `"global"`)
+- Fields: `currentTick: number`, `lastAdvanced: string (ISO)`, `advancementHistory: AdvancementLog[]`
 
 **Advancement Strategy**:
 
--   Initial implementation: Manual advancement (dev/admin triggered)
--   Future (M6+): Scheduled advancement (e.g., 1 real hour = 1 in-game hour)
--   Advancement emits `World.Clock.Advanced` telemetry event
+- Initial implementation: Manual advancement (dev/admin triggered)
+- Future (M6+): Scheduled advancement (e.g., 1 real hour = 1 in-game hour)
+- Advancement emits `World.Clock.Advanced` telemetry event
 
 **Edge Cases**:
 
--   Concurrent advancement attempts → optimistic concurrency control via document ETag
--   Rollback requests → denied (immutable progression per tenet)
+- Concurrent advancement attempts → optimistic concurrency control via document ETag
+- Rollback requests → denied (immutable progression per tenet)
 
 ---
 
@@ -120,8 +120,8 @@ interface ReconciliationResult {
 
 **Storage**:
 
--   Add to existing `players` container (SQL API, PK: `/id`)
--   New fields: `clockTick: number`, `lastAction: string (ISO)`, `lastDrift: string (ISO)`
+- Add to existing `players` container (SQL API, PK: `/id`)
+- New fields: `clockTick: number`, `lastAction: string (ISO)`, `lastDrift: string (ISO)`
 
 **Drift Calculation**:
 
@@ -142,8 +142,8 @@ function calculateDrift(realTimeElapsedMs: number): number {
 
 **Edge Cases**:
 
--   Player disconnected for days → massive drift → reconciliation compresses narrative ("You lost track of time...")
--   Multiple players at same location with different offsets → reconcile all to location anchor sequentially
+- Player disconnected for days → massive drift → reconciliation compresses narrative ("You lost track of time...")
+- Multiple players at same location with different offsets → reconcile all to location anchor sequentially
 
 ---
 
@@ -168,18 +168,18 @@ interface LocationClockManager {
 
 **Storage**:
 
--   Add to location vertices in Gremlin graph: `clockAnchor: number` property
--   Alternative (if graph updates expensive): Separate `locationClocks` SQL container (PK: `/id` = locationId)
+- Add to location vertices in Gremlin graph: `clockAnchor: number` property
+- Alternative (if graph updates expensive): Separate `locationClocks` SQL container (PK: `/id` = locationId)
 
 **Synchronization**:
 
--   On `World.Clock.Advanced` event → update all location anchors
--   Batch update strategy for performance (avoid N sequential graph writes)
+- On `World.Clock.Advanced` event → update all location anchors
+- Batch update strategy for performance (avoid N sequential graph writes)
 
 **Occupant Queries**:
 
--   Cross-reference player clocks + player locations at requested tick
--   Used for: "Who was here when Fred arrived?" historical queries
+- Cross-reference player clocks + player locations at requested tick
+- Used for: "Who was here when Fred arrived?" historical queries
 
 ---
 
@@ -208,16 +208,16 @@ interface ActionModifier {
 
 **Default Action Duration Table**:
 
-| Action Type            | Base Duration | Time Unit  | Notes                              |
-| ---------------------- | ------------- | ---------- | ---------------------------------- |
-| `move`                 | 60000 ms      | 1 minute   | Standard location-to-location move |
-| `move_overland`        | 3600000 ms    | 1 hour     | Long-distance overland travel      |
-| `move_long_distance`   | 86400000 ms   | 1 day      | Very long journey                  |
-| `look`                 | 5000 ms       | 5 seconds  | Quick look at current location     |
-| `examine`              | 30000 ms      | 30 seconds | Detailed examination of object     |
-| `rest`                 | 28800000 ms   | 8 hours    | Full rest period                   |
-| `battle_round`         | 6000 ms       | 6 seconds  | Single combat round (D&D standard) |
-| `idle`                 | 0 ms          | 0 seconds  | No time cost (drift applies)       |
+| Action Type          | Base Duration | Time Unit  | Notes                              |
+| -------------------- | ------------- | ---------- | ---------------------------------- |
+| `move`               | 60000 ms      | 1 minute   | Standard location-to-location move |
+| `move_overland`      | 3600000 ms    | 1 hour     | Long-distance overland travel      |
+| `move_long_distance` | 86400000 ms   | 1 day      | Very long journey                  |
+| `look`               | 5000 ms       | 5 seconds  | Quick look at current location     |
+| `examine`            | 30000 ms      | 30 seconds | Detailed examination of object     |
+| `rest`               | 28800000 ms   | 8 hours    | Full rest period                   |
+| `battle_round`       | 6000 ms       | 6 seconds  | Single combat round (D&D standard) |
+| `idle`               | 0 ms          | 0 seconds  | No time cost (drift applies)       |
 
 **API**:
 
@@ -233,21 +233,21 @@ interface IActionRegistry {
 
 **Storage**:
 
--   Initial: In-memory registry (code-defined) ✅ **IMPLEMENTED**
--   Future (M6+): Cosmos SQL `actionDurations` container for runtime configuration
+- Initial: In-memory registry (code-defined) ✅ **IMPLEMENTED**
+- Future (M6+): Cosmos SQL `actionDurations` container for runtime configuration
 
 **Modifier Evaluation**:
 
--   Simple condition parser supporting:
-    -   Comparison operators: `>`, `<`, `>=`, `<=`, `===`, `==`
-    -   Boolean flags: `is_wounded`, `is_encumbered`
-    -   Example: `inventory_weight > 50`
--   Multiple modifiers applied multiplicatively: `finalDuration = baseDuration * modifier1 * modifier2`
+- Simple condition parser supporting:
+    - Comparison operators: `>`, `<`, `>=`, `<=`, `===`, `==`
+    - Boolean flags: `is_wounded`, `is_encumbered`
+    - Example: `inventory_weight > 50`
+- Multiple modifiers applied multiplicatively: `finalDuration = baseDuration * modifier1 * modifier2`
 
 **Unknown Action Types**:
 
--   Returns default duration of 60000ms (1 minute)
--   Emits console warning (telemetry integration pending)
+- Returns default duration of 60000ms (1 minute)
+- Emits console warning (telemetry integration pending)
 
 **Example Usage**:
 
@@ -341,14 +341,14 @@ const SLOW_THRESHOLD = 3600000 // 1 hour
 
 **Reconciliation Triggers**:
 
--   Player moves to new location (explicit reconcile)
--   Player logs in after disconnect (reconcile to current location)
--   Admin reconciliation command (manual)
+- Player moves to new location (explicit reconcile)
+- Player logs in after disconnect (reconcile to current location)
+- Admin reconciliation command (manual)
 
 **Edge Cases**:
 
--   Two players with opposite offsets (one ahead, one behind) → reconcile each independently to location anchor
--   Location with no anchor set → initialize to current world clock
+- Two players with opposite offsets (one ahead, one behind) → reconcile each independently to location anchor
+- Location with no anchor set → initialize to current world clock
 
 ---
 
@@ -377,14 +377,14 @@ interface NarrativeContext {
 
 **Implementation Strategy**:
 
--   **Phase 1 (M5)**: Template-based generation with duration buckets
-    -   `< 1 minute`: "A moment passes..."
-    -   `1 min - 1 hour`: "Minutes pass as you wait..."
-    -   `1 hour - 1 day`: "Hours slip by..."
-    -   `1 day+`: "Days pass, and you lose track of time..."
--   **Phase 2 (M6+)**: AI-generated narrative using prompt templates
-    -   Input: duration, location description, player state
-    -   Output: Contextual narrative (e.g., "You spend the afternoon watching travelers cross the bridge...")
+- **Phase 1 (M5)**: Template-based generation with duration buckets
+    - `< 1 minute`: "A moment passes..."
+    - `1 min - 1 hour`: "Minutes pass as you wait..."
+    - `1 hour - 1 day`: "Hours slip by..."
+    - `1 day+`: "Days pass, and you lose track of time..."
+- **Phase 2 (M6+)**: AI-generated narrative using prompt templates
+    - Input: duration, location description, player state
+    - Output: Contextual narrative (e.g., "You spend the afternoon watching travelers cross the bridge...")
 
 **Template Examples**:
 
@@ -407,8 +407,8 @@ const WAIT_TEMPLATES = {
 
 **AI Integration (Future)**:
 
--   Prompt template: "Generate a 1-2 sentence narrative describing {duration} passing at {location}. Tone: {dmPersona}. Context: {weatherLayer}."
--   Caching: Store generated narratives by duration bucket + location hash for reuse
+- Prompt template: "Generate a 1-2 sentence narrative describing {duration} passing at {location}. Tone: {dmPersona}. Context: {weatherLayer}."
+- Caching: Store generated narratives by duration bucket + location hash for reuse
 
 ---
 
@@ -434,20 +434,20 @@ interface TemporalLedgerEntry {
 
 **Storage**:
 
--   Cosmos SQL API container: `temporalLedger`
--   Partition key: `/scopeKey` (pattern: `wc` for world clock, `player:<id>` for player events)
--   TTL: Configurable (default: 90 days for audit, then archive or delete)
+- Cosmos SQL API container: `temporalLedger`
+- Partition key: `/scopeKey` (pattern: `wc` for world clock, `player:<id>` for player events)
+- TTL: Configurable (default: 90 days for audit, then archive or delete)
 
 **Queries**:
 
--   Get all events for player: `SELECT * FROM c WHERE c.scopeKey = 'player:<id>' ORDER BY c.timestamp`
--   Get world clock advancement history: `SELECT * FROM c WHERE c.scopeKey = 'wc' AND c.eventType = 'WorldClockAdvanced'`
--   Debugging timeline: Reconstruct player's clock state at any point by replaying log
+- Get all events for player: `SELECT * FROM c WHERE c.scopeKey = 'player:<id>' ORDER BY c.timestamp`
+- Get world clock advancement history: `SELECT * FROM c WHERE c.scopeKey = 'wc' AND c.eventType = 'WorldClockAdvanced'`
+- Debugging timeline: Reconstruct player's clock state at any point by replaying log
 
 **Telemetry Integration**:
 
--   Emit Application Insights events for real-time monitoring
--   TemporalLedger provides durable audit trail (telemetry may have sampling/retention limits)
+- Emit Application Insights events for real-time monitoring
+- TemporalLedger provides durable audit trail (telemetry may have sampling/retention limits)
 
 ---
 
@@ -568,10 +568,10 @@ export enum TelemetryEvent {
 
 **Event Properties**:
 
--   `World.Clock.Advanced`: `{ durationMs, newTick, reason }`
--   `Player.Clock.Advanced`: `{ playerId, actionType, durationMs, newTick }`
--   `Player.Clock.DriftApplied`: `{ playerId, realTimeElapsedMs, driftMs, newTick }`
--   `Player.Clock.Reconciled`: `{ playerId, locationId, method, offsetMs, narrativeGenerated }`
+- `World.Clock.Advanced`: `{ durationMs, newTick, reason }`
+- `Player.Clock.Advanced`: `{ playerId, actionType, durationMs, newTick }`
+- `Player.Clock.DriftApplied`: `{ playerId, realTimeElapsedMs, driftMs, newTick }`
+- `Player.Clock.Reconciled`: `{ playerId, locationId, method, offsetMs, narrativeGenerated }`
 
 ---
 
@@ -594,22 +594,22 @@ Environment variables (add to `backend/local.settings.json` and Azure App Settin
 
 ### Unit Tests
 
--   ActionRegistry: duration lookup with modifiers
--   ReconcileEngine: all three policies (wait, slow, compress)
--   PlayerClockAPI: drift calculation accuracy
--   NarrativeLayer: template selection by duration bucket
+- ActionRegistry: duration lookup with modifiers
+- ReconcileEngine: all three policies (wait, slow, compress)
+- PlayerClockAPI: drift calculation accuracy
+- NarrativeLayer: template selection by duration bucket
 
 ### Integration Tests
 
--   Full flow: player action → clock advance → reconcile → narrative
--   Multi-player scenario: two players at same location, different offsets → both reconcile
--   Drift accumulation: simulate 24h offline → verify drift applied correctly
+- Full flow: player action → clock advance → reconcile → narrative
+- Multi-player scenario: two players at same location, different offsets → both reconcile
+- Drift accumulation: simulate 24h offline → verify drift applied correctly
 
 ### Edge Case Tests
 
--   Massive drift (player offline for months)
--   Reconciliation race condition (two players reconcile simultaneously)
--   World clock rollback attempt (should fail)
+- Massive drift (player offline for months)
+- Reconciliation race condition (two players reconcile simultaneously)
+- World clock rollback attempt (should fail)
 
 ---
 
@@ -624,9 +624,9 @@ Environment variables (add to `backend/local.settings.json` and Azure App Settin
 
 ### Monitoring
 
--   Track median reconciliation latency (target: <50ms)
--   Alert on drift accumulation >7 days (indicates inactive player cleanup needed)
--   Monitor TemporalLedger growth (storage costs)
+- Track median reconciliation latency (target: <50ms)
+- Alert on drift accumulation >7 days (indicates inactive player cleanup needed)
+- Monitor TemporalLedger growth (storage costs)
 
 ---
 
@@ -634,26 +634,26 @@ Environment variables (add to `backend/local.settings.json` and Azure App Settin
 
 ### Phase 2: AI-Generated Narratives
 
--   Replace template-based NarrativeLayer with AI prompt calls
--   Context-aware generation (weather, player state, location ambiance)
--   Caching by duration + context hash
+- Replace template-based NarrativeLayer with AI prompt calls
+- Context-aware generation (weather, player state, location ambiance)
+- Caching by duration + context hash
 
 ### Phase 3: Scheduled World Clock Advancement
 
--   Configurable real-time → game-time ratio
--   Background job advancing WC every N real minutes
--   Player notifications on significant time shifts
+- Configurable real-time → game-time ratio
+- Background job advancing WC every N real minutes
+- Player notifications on significant time shifts
 
 ### Phase 4: Temporal Queries & Time Travel
 
--   "Who was at this location 3 days ago?" queries
--   Event replay from TemporalLedger
--   Admin time rewind (limited, audited)
+- "Who was at this location 3 days ago?" queries
+- Event replay from TemporalLedger
+- Admin time rewind (limited, audited)
 
 ### Phase 5: Episodic Time Zones (Dungeons)
 
--   Dungeon instances with independent time flow (e.g., "time moves faster inside")
--   Special reconciliation on dungeon exit
+- Dungeon instances with independent time flow (e.g., "time moves faster inside")
+- Special reconciliation on dungeon exit
 
 ---
 
@@ -661,26 +661,26 @@ Environment variables (add to `backend/local.settings.json` and Azure App Settin
 
 ### Existing Systems
 
--   **World Events**: Temporal events may emit world events (e.g., "season changed")
--   **Player State**: Extends existing player documents with clock fields
--   **Location Model**: Adds clockAnchor property to location vertices
--   **Telemetry**: Uses existing Application Insights infrastructure
+- **World Events**: Temporal events may emit world events (e.g., "season changed")
+- **Player State**: Extends existing player documents with clock fields
+- **Location Model**: Adds clockAnchor property to location vertices
+- **Telemetry**: Uses existing Application Insights infrastructure
 
 ### New Infrastructure
 
--   Cosmos SQL API container: `temporalLedger` (PK: `/scopeKey`)
--   Optional: Cosmos SQL API container: `locationClocks` (if not storing in graph)
--   Optional: Cosmos SQL API container: `actionDurations` (for runtime config)
+- Cosmos SQL API container: `temporalLedger` (PK: `/scopeKey`)
+- Optional: Cosmos SQL API container: `locationClocks` (if not storing in graph)
+- Optional: Cosmos SQL API container: `actionDurations` (for runtime config)
 
 ---
 
 ## Non-Goals (Out of Scope for MVP)
 
--   Real-time tick synchronization (tick-based instead)
--   Player-controllable time manipulation (no time spells, no rewind)
--   Calendar/season system (add in M6+ if gameplay value proven)
--   Cross-region time zone differences (single world time for MVP)
--   Multiplayer party time coordination (M7 Multiplayer feature)
+- Real-time tick synchronization (tick-based instead)
+- Player-controllable time manipulation (no time spells, no rewind)
+- Calendar/season system (add in M6+ if gameplay value proven)
+- Cross-region time zone differences (single world time for MVP)
+- Multiplayer party time coordination (M7 Multiplayer feature)
 
 ---
 
@@ -695,15 +695,16 @@ Environment variables (add to `backend/local.settings.json` and Azure App Settin
 
 ## Related Documentation
 
-| Topic                           | Document                                   |
-| ------------------------------- | ------------------------------------------ |
-| Design Module (40k ft)          | `../design-modules/README.md` (Module 10)  |
-| World Event Contract            | `../architecture/world-event-contract.md`  |
-| Player State (SQL API)          | `../architecture/cosmos-sql-containers.md` |
-| Telemetry Standards             | `../observability.md`                      |
-| Multiplayer Mechanics (future)  | `../modules/multiplayer-mechanics.md`      |
-| Dungeon Temporal Zones (future) | `../modules/dungeons.md`                   |
+| Topic                           | Document                                          |
+| ------------------------------- | ------------------------------------------------- |
+| Design Module (40k ft)          | `../design-modules/README.md` (World Time module) |
+| World Event Contract            | `../architecture/world-event-contract.md`         |
+| Player State (SQL API)          | `../architecture/cosmos-sql-containers.md`        |
+| Realm Hierarchy (zones)         | `../architecture/realm-hierarchy.md`              |
+| Telemetry Standards             | `../observability.md`                             |
+| Multiplayer Mechanics (future)  | `../modules/multiplayer-mechanics.md`             |
+| Dungeon Temporal Zones (future) | `../modules/dungeons.md`                          |
 
 ---
 
-_Last updated: 2025-11-11 (initial creation; aligns with Design Module #10)_
+_Last updated: 2025-12-13 (adds realm hierarchy reference; aligns with Design Module updates)_

@@ -23,10 +23,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Invariants**:
 
--   Graph-first spatial model (locations as vertices, exits as directed edges)
--   Immutable base descriptions (additive layering only)
--   Stable GUID identifiers for all entities
--   Deterministic world state (no hidden randomness)
+- Graph-first spatial model (locations as vertices, exits as directed edges)
+- Immutable base descriptions (additive layering only)
+- Stable GUID identifiers for all entities
+- Deterministic world state (no hidden randomness)
 
 **Document**: `../modules/world-rules-and-lore.md`
 
@@ -40,10 +40,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts**:
 
--   Normalized direction vocabulary (north, south, east, west, up, down, in, out)
--   Exit reciprocity rules (enforced or optional depending on context)
--   Movement validation (player-location-exit triad)
--   Telemetry events: `Location.Move` (success/failure), `Location.Look`
+- Normalized direction vocabulary (north, south, east, west, up, down, in, out)
+- Exit reciprocity rules (enforced or optional depending on context)
+- Movement validation (player-location-exit triad)
+- Telemetry events: `Location.Move` (success/failure), `Location.Look`
 
 **Document**: `../modules/navigation-and-traversal.md`
 
@@ -57,10 +57,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts**:
 
--   Guest players receive stable GUID on first visit (cookie-backed)
--   Azure AD (Entra) integration for authenticated players
--   Role attributes (future: faction affiliation, reputation)
--   Player-location tracking (edge-based model per ADR)
+- Guest players receive stable GUID on first visit (cookie-backed)
+- Azure AD (Entra) integration for authenticated players
+- Role attributes (future: faction affiliation, reputation)
+- Player-location tracking (edge-based model per ADR)
 
 **Document**: `../modules/player-identity-and-roles.md`
 
@@ -74,10 +74,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Invariants**:
 
--   Base description layer is immutable (canonical world text)
--   Structural layers (weather, time-of-day) applied additively
--   Ambient layers (AI-generated micro-lore) validated before persistence
--   Provenance tracking (prompt hash + validator decision) for all AI layers
+- Base description layer is immutable (canonical world text)
+- Structural layers (weather, time-of-day) applied additively
+- Ambient layers (AI-generated micro-lore) validated before persistence
+- Provenance tracking (prompt hash + validator decision) for all AI layers
 
 **Document**: `../modules/description-layering-and-variation.md`
 
@@ -93,9 +93,9 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts** (draft):
 
--   Quest graph (vertices: states, edges: transitions)
--   Dialogue options validated against player context (location, inventory, faction)
--   Event-driven quest progression (no polling)
+- Quest graph (vertices: states, edges: transitions)
+- Dialogue options validated against player context (location, inventory, faction)
+- Event-driven quest progression (no polling)
 
 **Document**: `../modules/quest-and-dialogue-trees.md`
 
@@ -111,9 +111,9 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts** (draft):
 
--   Economy signals (price fluctuations) as world events
--   Trade actions validated against inventory and location
--   Anti-exploit heuristics (rate limiting, value sanity checks)
+- Economy signals (price fluctuations) as world events
+- Trade actions validated against inventory and location
+- Anti-exploit heuristics (rate limiting, value sanity checks)
 
 **Document**: `../modules/economy-and-trade-systems.md`
 
@@ -129,9 +129,9 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts** (draft):
 
--   Faction reputation as player attribute (SQL document)
--   Faction-specific description layers (additive, conditional)
--   Group actions (cooperative dungeon scaling, faction quests)
+- Faction reputation as player attribute (SQL document)
+- Faction-specific description layers (additive, conditional)
+- Group actions (cooperative dungeon scaling, faction quests)
 
 **Document**: `../modules/factions-and-governance.md`
 
@@ -145,10 +145,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Invariants**:
 
--   Prompt templates stored in version-controlled registry
--   Prompt hash recorded with all AI-generated content
--   Advisory AI (read-only) before mutation AI (write proposals)
--   Classification taxonomy: ambient, structural, ephemeral, flavor
+- Prompt templates stored in version-controlled registry
+- Prompt hash recorded with all AI-generated content
+- Advisory AI (read-only) before mutation AI (write proposals)
+- Classification taxonomy: ambient, structural, ephemeral, flavor
 
 **Document**: `../modules/ai-prompt-engineering.md`
 
@@ -162,10 +162,10 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Invariants**:
 
--   Consistent DM voice (lightly eccentric, humorous, non-blocking)
--   Player clarity > simulation realism
--   Ambiguity resolved playfully (never punitive)
--   Ephemeral narration does not override canonical base prose
+- Consistent DM voice (lightly eccentric, humorous, non-blocking)
+- Player clarity > simulation realism
+- Ambiguity resolved playfully (never punitive)
+- Ephemeral narration does not override canonical base prose
 
 **Document**: `../concept/dungeon-master-style-guide.md`, `../modules/narration-governance.md`
 
@@ -179,18 +179,18 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts**:
 
--   Hybrid expansion (player-triggered + scheduled frontier growth)
--   Description-driven exit inference (AI extracts topology from prose)
--   Eager batch generation (root location + neighbors in single API call)
--   Terrain guidance as hints, not rules (AI decides spatial logic contextually)
--   Reciprocal arrival paths guaranteed (players can always return)
+- Hybrid expansion (player-triggered + scheduled frontier growth)
+- Description-driven exit inference (AI extracts topology from prose)
+- Eager batch generation (root location + neighbors in single API call)
+- Terrain guidance as hints, not rules (AI decides spatial logic contextually)
+- Reciprocal arrival paths guaranteed (players can always return)
 
 **Key Invariants**:
 
--   Exits must be justified by description text or clear spatial implications
--   AI interprets terrain contextually (fog/obstacles override typical patterns)
--   Seasonal/dynamic variations handled via world state overlays (not description rewrites)
--   Batch size ≤20 locations per AI call (cost optimization)
+- Exits must be justified by description text or clear spatial implications
+- AI interprets terrain contextually (fog/obstacles override typical patterns)
+- Seasonal/dynamic variations handled via world state overlays (not description rewrites)
+- Batch size ≤20 locations per AI call (cost optimization)
 
 **Document**: `../modules/world-spatial-generation.md`
 
@@ -204,28 +204,28 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Key Contracts**:
 
--   Global World Clock advances in fixed ticks (never rewinds, immutable history)
--   Player Clocks advance by action duration; idle drift prevents timeline paradoxes
--   Location Clocks act as reconciliation anchors for shared spaces
--   Action durations mapped to time costs (battle = minutes, travel = hours/days)
--   Narrative compression smooths idle/wait time into lore-consistent text
+- Global World Clock advances in fixed ticks (never rewinds, immutable history)
+- Player Clocks advance by action duration; idle drift prevents timeline paradoxes
+- Location Clocks act as reconciliation anchors for shared spaces
+- Action durations mapped to time costs (battle = minutes, travel = hours/days)
+- Narrative compression smooths idle/wait time into lore-consistent text
 
 **Key Invariants**:
 
--   World Clock persistence: all actions logged in TemporalLedger, no rewinding
--   Player agency: short actions resolve quickly, long actions consume more WC ticks
--   Hybrid drift: idle players advance slowly to maintain continuity
--   Location anchors: locations define temporal "truth" for occupants
--   Narrative elegance: waiting and idle time compressed in output
+- World Clock persistence: all actions logged in TemporalLedger, no rewinding
+- Player agency: short actions resolve quickly, long actions consume more WC ticks
+- Hybrid drift: idle players advance slowly to maintain continuity
+- Location anchors: locations define temporal "truth" for occupants
+- Narrative elegance: waiting and idle time compressed in output
 
 **API Surface (pseudo-spec)**:
 
--   `WorldClockService`: tick advancement, query current state
--   `PlayerClockAPI`: advance by action, apply drift, reconcile to location
--   `LocationClockManager`: sync players, query occupants at specific tick
--   `ActionRegistry`: duration tables with modifiers
--   `ReconcileEngine`: wait/slow/compress policies
--   `NarrativeLayer`: generate "time passes" text
+- `WorldClockService`: tick advancement, query current state
+- `PlayerClockAPI`: advance by action, apply drift, reconcile to location
+- `LocationClockManager`: sync players, query occupants at specific tick
+- `ActionRegistry`: duration tables with modifiers
+- `ReconcileEngine`: wait/slow/compress policies
+- `NarrativeLayer`: generate "time passes" text
 
 **Example Flow**:
 
@@ -243,40 +243,56 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
-### 11. Character-Driven Roleplaying
+### 12. World Structure (Realms & Zones)
+
+**Focus**: Coherent spatial and conceptual grouping of locations into realms for narrative context and regional behaviors (e.g., weather).
+
+**Key Invariants**:
+
+- Locations remain atomic points; realms provide grouping layers
+- A location may belong to multiple realms (geographic, political, functional)
+- Weather and other structural layers can target realms (zone-wide effects)
+
+**Document**: `../architecture/realm-hierarchy.md`
+
+**Depends On**: World Rules & Lore, Description Layering
+
+---
+
+### 13. Character-Driven Roleplaying
 
 **Focus**: Narrative capability assessment without universal skill mechanics
 
 **Key Invariants**:
 
--   No standardized skill lists (Persuasion, Athletics, etc.)
--   Character backgrounds grant narrative authorities, not numerical bonuses
--   AI DM adjudicates based on character fiction and established capabilities
--   Player commands describe what character does and why they can do it
--   Outcomes framed narratively (natural consequences, not mechanical pass/fail)
+- No standardized skill lists (Persuasion, Athletics, etc.)
+- Character backgrounds grant narrative authorities, not numerical bonuses
+- AI DM adjudicates based on character fiction and established capabilities
+- Player commands describe what character does and why they can do it
+- Outcomes framed narratively (natural consequences, not mechanical pass/fail)
 
 **Key Contracts**:
 
--   Character creation stores background + narrative capabilities as metadata
--   Intent parsing extracts `justification` and `backgroundReference` from player text
--   AI DM prompts include character context for plausibility evaluation
--   Demonstrated capabilities tracked over time (emergent recognition)
--   No skill proficiency ratings, ability modifiers, or dice roll mechanics
+- Character creation stores background + narrative capabilities as metadata
+- Intent parsing extracts `justification` and `backgroundReference` from player text
+- AI DM prompts include character context for plausibility evaluation
+- Demonstrated capabilities tracked over time (emergent recognition)
+- No skill proficiency ratings, ability modifiers, or dice roll mechanics
 
 **Philosophy**:
 
 Inspired by early D&D approaches (vs. 5e universal skills), players declare actions based on **who their character is** rather than selecting from skill lists. The AI Dungeon Master evaluates plausibility contextually:
 
--   "As a former sailor, I climb the rigging" → Background supports this
--   "My cartographic training helps me read this map" → Narrative authority applies
--   Not: "I roll Investigation with +2 bonus" → No mechanical skill system
+- "As a former sailor, I climb the rigging" → Background supports this
+- "My cartographic training helps me read this map" → Narrative authority applies
+- Not: "I roll Investigation with +2 bonus" → No mechanical skill system
 
 **Benefits**:
 
--   Richer characterization (players think about identity, not stat optimization)
--   Emergent stories (backgrounds create natural adventure hooks)
--   Accessibility (new players don't need to learn skill rules)
--   Unique characters (no two "rogues" mechanically identical)
+- Richer characterization (players think about identity, not stat optimization)
+- Emergent stories (backgrounds create natural adventure hooks)
+- Accessibility (new players don't need to learn skill rules)
+- Unique characters (no two "rogues" mechanically identical)
 
 **Status**: Planned (M5+ for full implementation; philosophy documented now)
 
@@ -292,11 +308,11 @@ Inspired by early D&D approaches (vs. 5e universal skills), players declare acti
 
 These documents define immutable rules and semantic constraints (not gameplay features):
 
--   **Exits**: `../concept/exits.md` – Exit invariants, reciprocity, uniqueness constraints
--   **Direction Resolution**: `../concept/direction-resolution-rules.md` – Normalizing cardinal, ordinal, semantic, and relative directions
--   **Dungeons**: `../concept/dungeons.md` – Instance-based subgraph mechanics (M6 focus)
--   **Parameterized Actions**: `../concept/parameterized-action-flow.md` – Command parsing and parameter resolution
--   **Perception Actions**: `../concept/perception-actions.md` – `look`, `examine`, sensory detail hierarchy
+- **Exits**: `../concept/exits.md` – Exit invariants, reciprocity, uniqueness constraints
+- **Direction Resolution**: `../concept/direction-resolution-rules.md` – Normalizing cardinal, ordinal, semantic, and relative directions
+- **Dungeons**: `../concept/dungeons.md` – Instance-based subgraph mechanics (M6 focus)
+- **Parameterized Actions**: `../concept/parameterized-action-flow.md` – Command parsing and parameter resolution
+- **Perception Actions**: `../concept/perception-actions.md` – `look`, `examine`, sensory detail hierarchy
 
 ---
 
@@ -347,19 +363,19 @@ Vision & Tenets
 
 ### For Developers:
 
--   **Starting a new feature?** Check if a design module already defines the contracts.
--   **Unclear about invariants?** Read the relevant module + concept docs before writing code.
--   **Introducing a new mechanic?** Propose a design module document first (small PRs, design doc reference).
+- **Starting a new feature?** Check if a design module already defines the contracts.
+- **Unclear about invariants?** Read the relevant module + concept docs before writing code.
+- **Introducing a new mechanic?** Propose a design module document first (small PRs, design doc reference).
 
 ### For Designers:
 
--   **Defining a new system?** Create a new module document under `../modules/` following the template below.
--   **Updating an existing system?** Edit the module doc and cross-reference any affected ADRs or architecture docs.
+- **Defining a new system?** Create a new module document under `../modules/` following the template below.
+- **Updating an existing system?** Edit the module doc and cross-reference any affected ADRs or architecture docs.
 
 ### For AI Context (Copilot, MCP Agents):
 
--   **Need gameplay rules?** Read design modules for the authoritative "what" and "why."
--   **Need implementation details?** Refer to `../architecture/` for the "how."
+- **Need gameplay rules?** Read design modules for the authoritative "what" and "why."
+- **Need implementation details?** Refer to `../architecture/` for the "how."
 
 ---
 
@@ -378,30 +394,30 @@ When creating a new design module:
 
 ## Objectives
 
--   Bullet list of player-facing goals
--   What experience does this enable?
+- Bullet list of player-facing goals
+- What experience does this enable?
 
 ---
 
 ## Key Contracts
 
--   Interfaces or events other systems depend on
--   Invariants that must never be violated
+- Interfaces or events other systems depend on
+- Invariants that must never be violated
 
 ---
 
 ## Rules & Constraints
 
--   Gameplay rules (e.g., "exits must be reciprocal")
--   Performance/cost constraints (e.g., "RU budget < 50 per query")
--   Accessibility requirements (e.g., "keyboard-navigable menus")
+- Gameplay rules (e.g., "exits must be reciprocal")
+- Performance/cost constraints (e.g., "RU budget < 50 per query")
+- Accessibility requirements (e.g., "keyboard-navigable menus")
 
 ---
 
 ## Dependencies
 
--   Other design modules this depends on
--   Concept documents that define foundational semantics
+- Other design modules this depends on
+- Concept documents that define foundational semantics
 
 ---
 
@@ -415,9 +431,9 @@ When creating a new design module:
 
 ## Related Documentation
 
--   Architecture: [link]
--   ADR: [link]
--   Concept: [link]
+- Architecture: [link]
+- ADR: [link]
+- Concept: [link]
 
 ---
 
