@@ -35,12 +35,12 @@ export interface LocationClock {
 
 /**
  * Build location clock document ID from location ID
- * 
+ *
  * Currently a 1:1 identity mapping, but function provides:
  * - API consistency with other ID builders (buildWorldClockId, buildPlayerScopeKey)
  * - Future extensibility point for ID prefixing/namespacing without breaking callers
  * - Clear contract: "location ID → location clock document ID"
- * 
+ *
  * @param locationId - Location GUID
  * @returns Location clock document ID (same as locationId for 1:1 mapping)
  */
