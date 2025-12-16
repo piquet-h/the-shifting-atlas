@@ -114,8 +114,62 @@ export interface IWorldClockService {
 }
 
 // ---------------------------------------------------------------------------
-// Player Clock API
+// Location Clock Manager
 // ---------------------------------------------------------------------------
 
-// Re-export types from shared package for convenience
-export type { IPlayerClockAPI, ReconciliationResult, ReconciliationMethod } from '@piquet-h/shared'
+/**
+ * Service interface for location clock operations
+ * Manages temporal anchors for locations, enabling reconciliation of player clocks
+ * when entering shared spaces.
+ */
+export interface ILocationClockManager {
+    /**
+     * Get the current clock anchor for a location
+     * Auto-initializes to world clock tick if not found
+     *
+     * @param locationId - Location unique identifier
+     * @returns Clock anchor tick for the location
+     */
+    getLocationAnchor(locationId: string): Promise<number>
+
+    /**
+     * Sync a location's clock anchor to the world clock
+     * Called when world clock advances
+     *
+     * @param locationId - Location unique identifier
+     * @param newAnchor - New anchor tick (typically current world clock tick)
+     * @returns Updated location clock
+     */
+    syncLocation(locationId: string, newAnchor: number): Promise<{ clockAnchor: number; locationId: string; lastAnchorUpdate: string }>
+
+    /**
+     * Batch sync multiple locations to the world clock
+     * Optimized for bulk updates on world clock advancement
+     *
+     * @param locationIds - Array of location IDs to sync
+     * @param newAnchor - New anchor tick for all locations
+     * @returns Number of locations successfully synced
+     */
+    batchSyncLocations(locationIds: string[], newAnchor: number): Promise<number>
+
+    /**
+     * Get all players present at a location at a specific world clock tick
+     * Supports historical queries for timeline reconstruction
+     *
+     * @param locationId - Location unique identifier
+     * @param tick - World clock tick to query
+     * @returns Array of player IDs at the location at that tick
+     */
+    getOccupantsAtTick(locationId: string, tick: number): Promise<string[]>
+
+    /**
+     * Sync all known locations on world clock advancement
+     * Called by WorldClockService after advancement
+     *
+     * @param newWorldClockTick - New world clock tick
+     * @returns Number of locations synced
+     */
+    syncAllLocationsOnClockAdvance(newWorldClockTick: number): Promise<number>
+}
+
+// ---------------------------------------------------------------------------

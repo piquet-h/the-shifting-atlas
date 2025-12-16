@@ -5,11 +5,11 @@
  * Per world-time-temporal-reconciliation.md Section 2 (PlayerClockAPI).
  */
 
-import type { ReconciliationResult } from '@piquet-h/shared'
+import type { IPlayerClockAPI, ReconciliationResult } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import type { IPlayerDocRepository } from '../repos/PlayerDocRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { IPlayerClockAPI, IWorldClockService } from './types.js'
+import type { IWorldClockService } from './types.js'
 import { WorldClockService } from './WorldClockService.js'
 
 /**
