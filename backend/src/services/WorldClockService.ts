@@ -5,16 +5,17 @@
  * Provides authoritative time source for all world events and player clock reconciliation.
  */
 
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
 import type { IWorldClockRepository } from '../repos/worldClockRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { IWorldClockService } from './types.js'
+import type { ILocationClockManager, IWorldClockService } from './types.js'
 
 @injectable()
 export class WorldClockService implements IWorldClockService {
     constructor(
         @inject('IWorldClockRepository') private readonly repository: IWorldClockRepository,
-        @inject(TelemetryService) private readonly telemetry: TelemetryService
+        @inject(TelemetryService) private readonly telemetry: TelemetryService,
+        @inject('ILocationClockManager') @optional() private readonly locationClockManager?: ILocationClockManager
     ) {}
 
     /**
@@ -57,6 +58,23 @@ export class WorldClockService implements IWorldClockService {
             newTick: updated.currentTick,
             reason
         })
+
+        // Sync location clocks on world clock advancement
+        // TODO: Requires ILocationRepository.listAllLocationIds() to enumerate all locations
+        // For now, LocationClockManager can be manually triggered or auto-inits on access
+        if (this.locationClockManager) {
+            // Note: syncAllLocationsOnClockAdvance is a placeholder that needs location enumeration
+            // Implementation deferred until ILocationRepository has a listAllLocationIds method
+            try {
+                await this.locationClockManager.syncAllLocationsOnClockAdvance(updated.currentTick)
+            } catch (error) {
+                // Log but don't fail world clock advancement if location sync fails
+                this.telemetry.trackGameEvent('Location.Clock.SyncFailed', {
+                    error: error instanceof Error ? error.message : String(error),
+                    worldClockTick: updated.currentTick
+                })
+            }
+        }
 
         return updated.currentTick
     }

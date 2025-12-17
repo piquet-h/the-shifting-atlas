@@ -6,28 +6,19 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { ILocationClockRepository } from '../../src/repos/locationClockRepository.js'
+import { LocationClockRepositoryMemory } from '../../src/repos/locationClockRepository.memory.js'
 import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
-import type { IWorldClockService } from '../../src/services/types.js'
 import { LocationClockManager, type ILocationClockManager } from '../../src/services/LocationClockManager.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
-import { LocationClockRepositoryMemory } from '../../src/repos/locationClockRepository.memory.js'
 
 describe('LocationClockManager (unit)', () => {
     let manager: ILocationClockManager
     let locationClockRepo: ILocationClockRepository
-    let worldClockService: IWorldClockService
     let telemetryService: TelemetryService
 
     beforeEach(() => {
         // Set up mock services
         locationClockRepo = new LocationClockRepositoryMemory()
-
-        // Mock world clock service
-        worldClockService = {
-            getCurrentTick: async () => 1000,
-            advanceTick: async () => 2000,
-            getTickAt: async () => 1000
-        } as unknown as IWorldClockService
 
         // Mock player repository (not heavily used in these tests)
         const playerRepo = {} as unknown as IPlayerRepository
@@ -37,12 +28,7 @@ describe('LocationClockManager (unit)', () => {
             trackGameEvent: () => {} // No-op for tests
         } as unknown as TelemetryService
 
-        manager = new LocationClockManager(
-            locationClockRepo,
-            playerRepo,
-            worldClockService,
-            telemetryService
-        )
+        manager = new LocationClockManager(locationClockRepo, playerRepo, telemetryService)
     })
 
     afterEach(() => {
@@ -55,17 +41,18 @@ describe('LocationClockManager (unit)', () => {
             const locationId = 'loc-001'
             await locationClockRepo.syncSingle(locationId, 500)
 
-            const anchor = await manager.getLocationAnchor(locationId)
+            const anchor = await manager.getLocationAnchor(locationId, 1000)
 
             assert.strictEqual(anchor, 500)
         })
 
         test('auto-initializes to world clock tick if location not found', async () => {
             const locationId = 'loc-002'
+            const currentWorldTick = 1000
 
-            const anchor = await manager.getLocationAnchor(locationId)
+            const anchor = await manager.getLocationAnchor(locationId, currentWorldTick)
 
-            // Should initialize to current world clock (1000)
+            // Should initialize to current world clock
             assert.strictEqual(anchor, 1000)
         })
     })
@@ -127,9 +114,7 @@ describe('LocationClockManager (unit)', () => {
         })
 
         test('handles large batch', async () => {
-            const locationIds = Array.from({ length: 100 }, (_, i) =>
-                `loc-batch-${i}`
-            )
+            const locationIds = Array.from({ length: 100 }, (_, i) => `loc-batch-${i}`)
             const newAnchor = 3000
 
             const count = await manager.batchSyncLocations(locationIds, newAnchor)

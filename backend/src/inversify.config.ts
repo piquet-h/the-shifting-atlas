@@ -46,6 +46,8 @@ import { CosmosInventoryRepository } from './repos/inventoryRepository.cosmos.js
 import { IInventoryRepository } from './repos/inventoryRepository.js'
 import { CosmosLayerRepository } from './repos/layerRepository.cosmos.js'
 import { ILayerRepository } from './repos/layerRepository.js'
+import { LocationClockRepositoryCosmos } from './repos/locationClockRepository.cosmos.js'
+import type { ILocationClockRepository } from './repos/locationClockRepository.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository } from './repos/locationRepository.js'
 import { IPlayerDocRepository, PlayerDocRepository } from './repos/PlayerDocRepository.js'
@@ -60,7 +62,9 @@ import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
+import { LocationClockManager } from './services/LocationClockManager.js'
 import { PlayerClockService } from './services/PlayerClockService.js'
+import type { ILocationClockManager } from './services/types.js'
 import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
@@ -212,8 +216,16 @@ export const setupContainer = async (container: Container) => {
     container.bind<string>('CosmosContainer:WorldClock').toConstantValue(config.cosmosSql.containers.worldClock)
     container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
 
+    // === Location Clock Container ===
+    if (!config.cosmosSql?.containers.locationClocks) {
+        throw new Error('Location clocks container configuration missing. Required: COSMOS_SQL_CONTAINER_LOCATION_CLOCKS')
+    }
+    container.bind<string>('CosmosContainer:LocationClocks').toConstantValue(config.cosmosSql.containers.locationClocks)
+    container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind<ILocationClockManager>('ILocationClockManager').to(LocationClockManager).inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
 

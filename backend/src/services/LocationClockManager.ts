@@ -10,7 +10,6 @@ import { inject, injectable } from 'inversify'
 import type { ILocationClockRepository, LocationClock } from '../repos/locationClockRepository.js'
 import type { IPlayerRepository } from '../repos/playerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { IWorldClockService } from './types.js'
 
 /**
  * Service interface for location clock operations
@@ -21,9 +20,10 @@ export interface ILocationClockManager {
      * Auto-initializes to world clock tick if not found
      *
      * @param locationId - Location unique identifier
+     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
      * @returns Clock anchor tick for the location
      */
-    getLocationAnchor(locationId: string): Promise<number>
+    getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number>
 
     /**
      * Sync a location's clock anchor to the world clock
@@ -72,8 +72,6 @@ export class LocationClockManager implements ILocationClockManager {
         private readonly locationClockRepository: ILocationClockRepository,
         @inject('IPlayerRepository')
         private readonly playerRepository: IPlayerRepository,
-        @inject('IWorldClockService')
-        private readonly worldClockService: IWorldClockService,
         @inject(TelemetryService)
         private readonly telemetry: TelemetryService
     ) {}
@@ -81,12 +79,12 @@ export class LocationClockManager implements ILocationClockManager {
     /**
      * Get the current clock anchor for a location
      * Auto-initializes if not found
+     *
+     * @param locationId - Location unique identifier
+     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
      */
-    async getLocationAnchor(locationId: string): Promise<number> {
-        // Get current world clock tick as fallback for auto-init
-        const currentTick = await this.worldClockService.getCurrentTick()
-
-        const locationClock = await this.locationClockRepository.get(locationId, currentTick)
+    async getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number> {
+        const locationClock = await this.locationClockRepository.get(locationId, currentWorldClockTick)
 
         this.telemetry.trackGameEvent('Location.Clock.Queried', {
             locationId,

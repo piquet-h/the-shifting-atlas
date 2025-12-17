@@ -128,9 +128,10 @@ export interface ILocationClockManager {
      * Auto-initializes to world clock tick if not found
      *
      * @param locationId - Location unique identifier
+     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
      * @returns Clock anchor tick for the location
      */
-    getLocationAnchor(locationId: string): Promise<number>
+    getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number>
 
     /**
      * Sync a location's clock anchor to the world clock

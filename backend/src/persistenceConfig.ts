@@ -23,6 +23,7 @@ export interface IPersistenceConfig {
             exitHintDebounce: string
             temporalLedger: string
             worldClock: string
+            locationClocks: string
         }
     }
 }
@@ -57,6 +58,7 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
         const sqlContainerExitHintDebounce = process.env.COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE || 'exitHintDebounce'
         const sqlContainerTemporalLedger = process.env.COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER || 'temporalLedger'
         const sqlContainerWorldClock = process.env.COSMOS_SQL_CONTAINER_WORLD_CLOCK || 'worldClock'
+        const sqlContainerLocationClocks = process.env.COSMOS_SQL_CONTAINER_LOCATION_CLOCKS || 'locationClocks'
 
         // Validate required Gremlin config
         if (!endpoint || !database || !graph) {
@@ -124,7 +126,8 @@ export async function loadPersistenceConfigAsync(): Promise<IPersistenceConfig> 
                     processedEvents: sqlContainerProcessedEvents,
                     exitHintDebounce: sqlContainerExitHintDebounce,
                     temporalLedger: sqlContainerTemporalLedger,
-                    worldClock: sqlContainerWorldClock
+                    worldClock: sqlContainerWorldClock,
+                    locationClocks: sqlContainerLocationClocks
                 }
             }
         }

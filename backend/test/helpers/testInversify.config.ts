@@ -49,6 +49,9 @@ import { MemoryInventoryRepository } from '../../src/repos/inventoryRepository.m
 import { CosmosLayerRepository } from '../../src/repos/layerRepository.cosmos.js'
 import { ILayerRepository } from '../../src/repos/layerRepository.js'
 import { MemoryLayerRepository } from '../../src/repos/layerRepository.memory.js'
+import { LocationClockRepositoryCosmos } from '../../src/repos/locationClockRepository.cosmos.js'
+import type { ILocationClockRepository } from '../../src/repos/locationClockRepository.js'
+import { LocationClockRepositoryMemory } from '../../src/repos/locationClockRepository.memory.js'
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
@@ -61,17 +64,19 @@ import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memor
 import { CosmosProcessedEventRepository } from '../../src/repos/processedEventRepository.cosmos.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRepository.memory.js'
-import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
-import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
-import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
 import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
 import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
 import { WorldClockRepositoryCosmos } from '../../src/repos/worldClockRepository.cosmos.js'
 import { IWorldClockRepository } from '../../src/repos/worldClockRepository.js'
 import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository.memory.js'
+import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
+import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
+import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { LocationClockManager } from '../../src/services/LocationClockManager.js'
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
+import type { ILocationClockManager } from '../../src/services/types.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -246,6 +251,14 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         } else {
             container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
         }
+
+        // Location Clock Repository (SQL API)
+        if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.locationClocks) {
+            container.bind<string>('CosmosContainer:LocationClocks').toConstantValue(sqlConfig.containers.locationClocks)
+            container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+        } else {
+            container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryMemory).inSingletonScope()
+        }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
@@ -265,6 +278,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryMemory).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -286,10 +300,12 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryMemory).inSingletonScope()
     }
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind<ILocationClockManager>('ILocationClockManager').to(LocationClockManager).inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
 
