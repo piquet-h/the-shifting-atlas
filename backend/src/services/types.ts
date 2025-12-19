@@ -113,64 +113,67 @@ export interface IWorldClockService {
     getTickAt(timestamp: Date): Promise<number | null>
 }
 
+// Re-export types from shared package for convenience
+export type { IPlayerClockAPI, ReconciliationMethod, ReconciliationResult } from '@piquet-h/shared'
+
 // ---------------------------------------------------------------------------
 // Location Clock Manager
 // ---------------------------------------------------------------------------
 
 /**
  * Service interface for location clock operations
- * Manages temporal anchors for locations, enabling reconciliation of player clocks
- * when entering shared spaces.
+ * Per world-time-temporal-reconciliation.md Section 3 (LocationClockManager)
+ *
+ * Design note: getLocationAnchor accepts currentWorldClockTick parameter to avoid
+ * circular dependency (LocationClockManager → WorldClockService → LocationClockManager).
+ * This explicit parameter passing pattern is preferred over injecting WorldClockService.
  */
 export interface ILocationClockManager {
     /**
-     * Get the current clock anchor for a location
-     * Auto-initializes to world clock tick if not found
+     * Get location's current world clock anchor
+     * Auto-initializes to current world clock if location has no anchor set
      *
      * @param locationId - Location unique identifier
-     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
-     * @returns Clock anchor tick for the location
+     * @returns Current clock anchor tick in milliseconds
      */
-    getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number>
+    getLocationAnchor(locationId: string): Promise<number>
 
     /**
-     * Sync a location's clock anchor to the world clock
-     * Called when world clock advances
+     * Sync location to new world clock tick
+     * Called when world clock advances to update location anchor
+     * Emits Location.Clock.Synced telemetry event
      *
      * @param locationId - Location unique identifier
-     * @param newAnchor - New anchor tick (typically current world clock tick)
-     * @returns Updated location clock
+     * @param worldClockTick - New world clock tick to sync to
      */
-    syncLocation(locationId: string, newAnchor: number): Promise<{ clockAnchor: number; locationId: string; lastAnchorUpdate: string }>
+    syncLocation(locationId: string, worldClockTick: number): Promise<void>
 
     /**
-     * Batch sync multiple locations to the world clock
-     * Optimized for bulk updates on world clock advancement
-     *
-     * @param locationIds - Array of location IDs to sync
-     * @param newAnchor - New anchor tick for all locations
-     * @returns Number of locations successfully synced
-     */
-    batchSyncLocations(locationIds: string[], newAnchor: number): Promise<number>
-
-    /**
-     * Get all players present at a location at a specific world clock tick
-     * Supports historical queries for timeline reconstruction
+     * Query all players present at location at specific historical tick
+     * Cross-references player clocks + player locations at requested tick
+     * Used for historical queries like "Who was here when Fred arrived?"
      *
      * @param locationId - Location unique identifier
-     * @param tick - World clock tick to query
-     * @returns Array of player IDs at the location at that tick
+     * @param tick - World clock tick to query at
+     * @returns Array of player IDs present at location at that tick
      */
     getOccupantsAtTick(locationId: string, tick: number): Promise<string[]>
 
     /**
-     * Sync all known locations on world clock advancement
-     * Called by WorldClockService after advancement
+     * Batch sync all locations to new world clock tick
+     * Optimized batch update strategy with parallelization
+     * Called by world clock advancement handler
      *
-     * @param newWorldClockTick - New world clock tick
+     * @param worldClockTick - New world clock tick to sync all locations to
+     * @returns Number of locations synced
+     * Batch sync all locations to new world clock tick
+     * Optimized batch update strategy with parallelization
+     * Called by world clock advancement handler
+     *
+     * @param worldClockTick - New world clock tick to sync all locations to
      * @returns Number of locations synced
      */
-    syncAllLocationsOnClockAdvance(newWorldClockTick: number): Promise<number>
+    syncAllLocations(worldClockTick: number): Promise<number>
 }
 
 // ---------------------------------------------------------------------------

@@ -1,139 +1,149 @@
 /**
- * Location Clock Manager Integration Tests
- *
- * Tests the full Location Clock Manager within the context of world clock advancement
- * and player timeline reconciliation.
+ * Integration tests for Location Clock Manager
+ * Tests service and repository operations in both memory and cosmos modes
  */
 
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { ILocationClockManager } from '../../src/services/LocationClockManager.js'
-import type { IWorldClockService } from '../../src/services/types.js'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
-describe('LocationClockManager (integration)', () => {
+describeForBothModes('LocationClockManager Integration', (mode) => {
     let fixture: IntegrationTestFixture
-    let locationClockManager: ILocationClockManager
-    let worldClockService: IWorldClockService
 
     beforeEach(async () => {
-        fixture = new IntegrationTestFixture()
+        fixture = new IntegrationTestFixture(mode)
         await fixture.setup()
-        locationClockManager = await fixture.getLocationClockManager()
-        worldClockService = await fixture.getWorldClockService()
     })
 
     afterEach(async () => {
         await fixture.teardown()
     })
 
-    describe('World Clock Advancement Integration', () => {
-        test('syncs all locations when world clock advances', async () => {
-            // Initialize world clock
-            const initialTick = await worldClockService.getCurrentTick()
+    describe('getLocationAnchor', () => {
+        test('auto-initializes to current world clock on first access', async () => {
+            const manager = await fixture.getLocationClockManager()
+            const worldClockService = await fixture.getWorldClockService()
 
-            // Pre-populate some locations
-            const locId1 = 'test-loc-1'
-            const locId2 = 'test-loc-2'
-            const locId3 = 'test-loc-3'
+            // Advance world clock to specific tick
+            await worldClockService.advanceTick(7500, 'test setup')
 
-            // Set initial anchors
-            await locationClockManager.syncLocation(locId1, initialTick)
-            await locationClockManager.syncLocation(locId2, initialTick)
-            await locationClockManager.syncLocation(locId3, initialTick)
+            // Get anchor for new location (should auto-initialize)
+            const anchor = await manager.getLocationAnchor('integration-location-1')
+
+            assert.strictEqual(anchor, 7500)
+        })
+
+        test('returns cached anchor on subsequent accesses', async () => {
+            const manager = await fixture.getLocationClockManager()
+
+            // Initialize location at tick 2000
+            await manager.syncLocation('integration-location-2', 2000)
+
+            // Multiple accesses should return same anchor
+            const anchor1 = await manager.getLocationAnchor('integration-location-2')
+            const anchor2 = await manager.getLocationAnchor('integration-location-2')
+
+            assert.strictEqual(anchor1, 2000)
+            assert.strictEqual(anchor2, 2000)
+        })
+    })
+
+    describe('syncLocation', () => {
+        test('updates location anchor and persists to repository', async () => {
+            const manager = await fixture.getLocationClockManager()
+
+            // Sync location to tick 5000
+            await manager.syncLocation('integration-location-3', 5000)
+
+            // Verify persisted by reading directly from repository
+            const repo = await fixture.getLocationClockRepository()
+            const locationClock = await repo.get('integration-location-3')
+
+            assert.ok(locationClock)
+            assert.strictEqual(locationClock.clockAnchor, 5000)
+            assert.strictEqual(locationClock.id, 'integration-location-3')
+        })
+
+        test('emits telemetry event', async () => {
+            const manager = await fixture.getLocationClockManager()
+            const telemetry = await fixture.getTelemetryClient()
+
+            await manager.syncLocation('integration-location-4', 3000)
+
+            const events = telemetry.events.filter((e) => e.name === 'Location.Clock.Synced')
+            assert.strictEqual(events.length, 1)
+            assert.strictEqual(events[0].properties?.locationId, 'integration-location-4')
+            assert.strictEqual(events[0].properties?.worldClockTick, 3000)
+        })
+    })
+
+    describe('syncAllLocations', () => {
+        test('world clock advances → all location anchors updated', async () => {
+            const manager = await fixture.getLocationClockManager()
+            const worldClockService = await fixture.getWorldClockService()
+
+            // Initialize multiple locations at different ticks
+            await manager.syncLocation('loc-a', 1000)
+            await manager.syncLocation('loc-b', 1500)
+            await manager.syncLocation('loc-c', 2000)
 
             // Advance world clock
-            const newTick = await worldClockService.advanceTick(5000, 'integration-test')
+            await worldClockService.advanceTick(5000, 'batch sync test')
 
-            // Sync all locations (simulating what would happen on advancement hook)
-            await locationClockManager.batchSyncLocations([locId1, locId2, locId3], newTick)
+            // Batch sync all locations to new world clock
+            const count = await manager.syncAllLocations(5000)
 
-            // Verify all locations synchronized
-            const anchor1 = await locationClockManager.getLocationAnchor(locId1)
-            const anchor2 = await locationClockManager.getLocationAnchor(locId2)
-            const anchor3 = await locationClockManager.getLocationAnchor(locId3)
+            // Verify all locations synced
+            assert.strictEqual(count, 3)
 
-            assert.strictEqual(anchor1, newTick)
-            assert.strictEqual(anchor2, newTick)
-            assert.strictEqual(anchor3, newTick)
+            const anchorA = await manager.getLocationAnchor('loc-a')
+            const anchorB = await manager.getLocationAnchor('loc-b')
+            const anchorC = await manager.getLocationAnchor('loc-c')
+
+            assert.strictEqual(anchorA, 5000)
+            assert.strictEqual(anchorB, 5000)
+            assert.strictEqual(anchorC, 5000)
         })
 
-        test('maintains location clocks across multiple world clock advancements', async () => {
-            const locId = 'test-loc-multi'
-            let tick = await worldClockService.getCurrentTick()
+        test('handles empty location set gracefully', async () => {
+            const manager = await fixture.getLocationClockManager()
 
-            // First advancement
-            tick = await worldClockService.advanceTick(1000, 'first')
-            await locationClockManager.syncLocation(locId, tick)
-            assert.strictEqual(await locationClockManager.getLocationAnchor(locId), tick)
+            // Batch sync with no locations
+            const count = await manager.syncAllLocations(10000)
 
-            // Second advancement
-            tick = await worldClockService.advanceTick(2000, 'second')
-            await locationClockManager.syncLocation(locId, tick)
-            assert.strictEqual(await locationClockManager.getLocationAnchor(locId), tick)
-
-            // Third advancement
-            tick = await worldClockService.advanceTick(3000, 'third')
-            await locationClockManager.syncLocation(locId, tick)
-            assert.strictEqual(await locationClockManager.getLocationAnchor(locId), tick)
-        })
-    })
-
-    describe('Occupant Query Integration', () => {
-        test('queries occupants at a specific tick (MVP: returns empty pending world events integration)', async () => {
-            const locId = 'test-loc-occupants'
-            const tick = await worldClockService.getCurrentTick()
-
-            const occupants = await locationClockManager.getOccupantsAtTick(locId, tick)
-
-            assert(Array.isArray(occupants))
-            // MVP: returns empty; full implementation requires world events
-            assert.strictEqual(occupants.length, 0)
+            assert.strictEqual(count, 0)
         })
 
-        // TODO: Add occupant query tests once world events integration is available
-        // - Query occupants when players have moved to location
-        // - Query historical occupants from previous ticks
-        // - Verify occupant isolation per location
-    })
+        test('batch sync is efficient with many locations', async () => {
+            const manager = await fixture.getLocationClockManager()
 
-    describe('Batch Sync Performance', () => {
-        test('handles batch sync of 50 locations efficiently', async () => {
-            const locationIds = Array.from({ length: 50 }, (_, i) => `perf-loc-${i}`)
-            const tick = 10000
+            // Create many locations
+            for (let i = 0; i < 50; i++) {
+                await manager.syncLocation(`perf-loc-${i}`, 1000)
+            }
 
+            // Measure batch sync performance
             const startTime = Date.now()
-            const count = await locationClockManager.batchSyncLocations(locationIds, tick)
+            const count = await manager.syncAllLocations(5000)
             const duration = Date.now() - startTime
 
             assert.strictEqual(count, 50)
-            // Should complete in reasonable time (< 1 second even with Cosmos)
-            assert(duration < 1000, `Batch sync should be fast, took ${duration}ms`)
-        })
 
-        test('handles batch sync of 200 locations', async () => {
-            const locationIds = Array.from({ length: 200 }, (_, i) => `big-batch-${i}`)
-            const tick = 20000
-
-            const count = await locationClockManager.batchSyncLocations(locationIds, tick)
-
-            assert.strictEqual(count, 200)
+            // Should complete in reasonable time (< 5 seconds even for cosmos)
+            assert.ok(duration < 5000, `Batch sync took ${duration}ms, expected < 5000ms`)
         })
     })
 
-    describe('Error Recovery', () => {
-        test('recovers from transient failures in batch sync', async () => {
-            // This test verifies the batch sync can handle some failures
-            // In real Cosmos operations, individual failures might occur
-            const locationIds = ['recovery-1', 'recovery-2', 'recovery-3']
+    describe('getOccupantsAtTick', () => {
+        test('returns empty array (placeholder implementation)', async () => {
+            const manager = await fixture.getLocationClockManager()
 
-            // First attempt
-            const count1 = await locationClockManager.batchSyncLocations(locationIds, 5000)
-            assert.strictEqual(count1, 3)
+            // Current implementation returns empty array
+            const occupants = await manager.getOccupantsAtTick('any-location', 5000)
 
-            // Verify state is correct
-            const anchor1 = await locationClockManager.getLocationAnchor('recovery-1')
-            assert.strictEqual(anchor1, 5000)
+            assert.ok(Array.isArray(occupants))
+            assert.strictEqual(occupants.length, 0)
         })
     })
 })

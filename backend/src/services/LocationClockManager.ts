@@ -1,166 +1,108 @@
 /**
- * Location Clock Manager Service Implementation
+ * Location Clock Manager Implementation
  *
- * Manages temporal anchors for locations, enabling reconciliation of player clocks
- * when entering shared spaces. Maintains location-based time synchronization with
- * the world clock.
+ * Manages location temporal anchors and synchronization with world clock.
+ * Per world-time-temporal-reconciliation.md Section 3 (LocationClockManager).
  */
 
-import { inject, injectable } from 'inversify'
-import type { ILocationClockRepository, LocationClock } from '../repos/locationClockRepository.js'
-import type { IPlayerRepository } from '../repos/playerRepository.js'
+import { inject, injectable, optional } from 'inversify'
+import type { IPlayerDocRepository } from '../repos/PlayerDocRepository.js'
+import type { ILocationClockRepository } from '../repos/locationClockRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-
-/**
- * Service interface for location clock operations
- */
-export interface ILocationClockManager {
-    /**
-     * Get the current clock anchor for a location
-     * Auto-initializes to world clock tick if not found
-     *
-     * @param locationId - Location unique identifier
-     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
-     * @returns Clock anchor tick for the location
-     */
-    getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number>
-
-    /**
-     * Sync a location's clock anchor to the world clock
-     * Called when world clock advances
-     *
-     * @param locationId - Location unique identifier
-     * @param newAnchor - New anchor tick (typically current world clock tick)
-     * @returns Updated location clock
-     */
-    syncLocation(locationId: string, newAnchor: number): Promise<LocationClock>
-
-    /**
-     * Batch sync multiple locations to the world clock
-     * Optimized for bulk updates on world clock advancement
-     *
-     * @param locationIds - Array of location IDs to sync
-     * @param newAnchor - New anchor tick for all locations
-     * @returns Number of locations successfully synced
-     */
-    batchSyncLocations(locationIds: string[], newAnchor: number): Promise<number>
-
-    /**
-     * Get all players present at a location at a specific world clock tick
-     * Supports historical queries for timeline reconstruction
-     *
-     * @param locationId - Location unique identifier
-     * @param tick - World clock tick to query
-     * @returns Array of player IDs at the location at that tick
-     */
-    getOccupantsAtTick(locationId: string, tick: number): Promise<string[]>
-
-    /**
-     * Sync all known locations on world clock advancement
-     * Called by WorldClockService after advancement
-     *
-     * @param newWorldClockTick - New world clock tick
-     * @returns Number of locations synced
-     */
-    syncAllLocationsOnClockAdvance(newWorldClockTick: number): Promise<number>
-}
+import type { ILocationClockManager, IWorldClockService } from './types.js'
 
 @injectable()
 export class LocationClockManager implements ILocationClockManager {
     constructor(
-        @inject('ILocationClockRepository')
-        private readonly locationClockRepository: ILocationClockRepository,
-        @inject('IPlayerRepository')
-        private readonly playerRepository: IPlayerRepository,
-        @inject(TelemetryService)
-        private readonly telemetry: TelemetryService
+        @inject('ILocationClockRepository') private readonly repository: ILocationClockRepository,
+        @inject('IPlayerDocRepository') private readonly playerDocRepo: IPlayerDocRepository,
+        @inject(TelemetryService) private readonly telemetry: TelemetryService,
+        @inject('IWorldClockService') @optional() private readonly worldClockService?: IWorldClockService
     ) {}
 
     /**
-     * Get the current clock anchor for a location
-     * Auto-initializes if not found
-     *
-     * @param locationId - Location unique identifier
-     * @param currentWorldClockTick - Current world clock tick for auto-initialization fallback
+     * Get location's current world clock anchor
+     * Auto-initializes to current world clock if location has no anchor set
      */
-    async getLocationAnchor(locationId: string, currentWorldClockTick: number): Promise<number> {
-        const locationClock = await this.locationClockRepository.get(locationId, currentWorldClockTick)
+    async getLocationAnchor(locationId: string): Promise<number> {
+        const existing = await this.repository.get(locationId)
 
-        this.telemetry.trackGameEvent('Location.Clock.Queried', {
+        if (existing) {
+            this.telemetry.trackGameEvent('Location.Clock.Queried', {
+                locationId,
+                clockAnchor: existing.clockAnchor,
+                alreadyInitialized: true
+            })
+            return existing.clockAnchor
+        }
+
+        // Get current world clock tick for auto-initialization
+        const currentTick = this.worldClockService ? await this.worldClockService.getCurrentTick() : 0
+
+        // Auto-initialize to current world clock
+        const initialized = await this.repository.initialize(locationId, currentTick)
+
+        this.telemetry.trackGameEvent('Location.Clock.Initialized', {
             locationId,
-            anchor: locationClock.clockAnchor
+            clockAnchor: initialized.clockAnchor,
+            worldClockTick: currentTick
         })
 
-        return locationClock.clockAnchor
+        return initialized.clockAnchor
     }
 
     /**
-     * Sync a location to a new anchor
+     * Sync location to new world clock tick
+     * Called when world clock advances to update location anchor
      */
-    async syncLocation(locationId: string, newAnchor: number): Promise<LocationClock> {
-        const updated = await this.locationClockRepository.syncSingle(locationId, newAnchor)
+    async syncLocation(locationId: string, worldClockTick: number): Promise<void> {
+        const existing = await this.repository.get(locationId)
+
+        if (existing) {
+            await this.repository.update(locationId, worldClockTick, existing._etag)
+        } else {
+            await this.repository.initialize(locationId, worldClockTick)
+        }
 
         this.telemetry.trackGameEvent('Location.Clock.Synced', {
             locationId,
-            newAnchor,
-            previousAnchor: updated.clockAnchor
+            worldClockTick
         })
-
-        return updated
     }
 
     /**
-     * Batch sync multiple locations
-     */
-    async batchSyncLocations(locationIds: string[], newAnchor: number): Promise<number> {
-        if (locationIds.length === 0) {
-            return 0
-        }
-
-        const updated = await this.locationClockRepository.batchSync(locationIds, newAnchor)
-
-        this.telemetry.trackGameEvent('Location.Clock.BatchSynced', {
-            count: updated,
-            newAnchor,
-            totalRequested: locationIds.length
-        })
-
-        return updated
-    }
-
-    /**
-     * Get occupants at a location at a specific tick
+     * Query all players present at location at specific historical tick
+     * MVP: Returns empty array - full implementation requires world events integration
      */
     async getOccupantsAtTick(locationId: string, tick: number): Promise<string[]> {
-        const occupants = await this.locationClockRepository.getOccupantsAtTick(locationId, tick)
+        // TODO: Implement cross-reference with world events container
+        // Need to query:
+        // 1. Player location history (which players were at locationId around tick)
+        // 2. Player clock states (filter to those whose clock includes tick)
+        // For now, return empty array as placeholder
 
-        this.telemetry.trackGameEvent('Location.Occupants.Queried', {
+        this.telemetry.trackGameEvent('Location.Clock.OccupantQuery', {
             locationId,
             tick,
-            count: occupants.length
+            implemented: false
         })
 
-        return occupants
+        return []
     }
 
     /**
-     * Sync all locations on world clock advancement
-     * This is called by a world clock advancement handler
+     * Batch sync all locations to new world clock tick
+     * Optimized batch update strategy with parallelization
+     * Called by world clock advancement handler
      */
-    async syncAllLocationsOnClockAdvance(newWorldClockTick: number): Promise<number> {
-        // Get all location IDs (from a location repository)
-        // For MVP, this is a placeholder; actual implementation depends on
-        // having a method to enumerate all locations
-        // For now, we'll just track the call
+    async syncAllLocations(worldClockTick: number): Promise<number> {
+        const updated = await this.repository.batchUpdateAll(worldClockTick)
 
-        this.telemetry.trackGameEvent('Location.Clock.AdvancementSync', {
-            newWorldClockTick
+        this.telemetry.trackGameEvent('Location.Clock.BatchSynced', {
+            worldClockTick,
+            locationsUpdated: updated
         })
 
-        // TODO: Implement full location enumeration and batch sync
-        // This likely requires adding a method to ILocationRepository
-        // to get all location IDs efficiently
-
-        return 0 // Placeholder
+        return updated
     }
 }

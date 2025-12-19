@@ -1,184 +1,102 @@
 /**
- * Location Clock Repository - Cosmos SQL Implementation
- *
- * Stores location clock anchors in Cosmos DB SQL API for efficient batch updates
- * and historical queries of occupant presence.
+ * Cosmos SQL API implementation of location clock repository
+ * Stores location temporal anchors in dedicated SQL container
  */
 
-import type { Container } from '@azure/cosmos'
+import { type LocationClock } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
-import type { ILocationClockRepository, LocationClock } from './locationClockRepository.js'
+import type { ILocationClockRepository } from './locationClockRepository.js'
 
 @injectable()
 export class LocationClockRepositoryCosmos extends CosmosDbSqlRepository<LocationClock> implements ILocationClockRepository {
-    constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient) {
-        super(client, 'locationClocks')
+    constructor(@inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient, @inject(TelemetryService) telemetryService: TelemetryService) {
+        // Container name from environment (should be 'locationClocks')
+        const containerName = process.env.COSMOS_SQL_CONTAINER_LOCATION_CLOCKS || 'locationClocks'
+        super(sqlClient, containerName, telemetryService)
     }
 
     /**
-     * Get the location clock container
+     * Get location clock by ID
      */
-    private getContainer(): Container {
-        return this.container
+    async get(locationId: string): Promise<LocationClock | undefined> {
+        const result = await this.getById(locationId, locationId)
+        return result || undefined
     }
 
     /**
-     * Get a location clock, auto-initializing if not found
+     * Initialize new location clock
      */
-    async get(locationId: string, currentWorldClockTick: number): Promise<LocationClock> {
-        const container = this.getContainer()
-
-        try {
-            const { resource } = await container.item(locationId).read<LocationClock>()
-            if (resource) {
-                return resource
-            }
-        } catch (error) {
-            // 404 is expected on first access
-            if (error instanceof Error && error.message.includes('NotFound')) {
-                // Fall through to create
-            } else {
-                throw error
-            }
-        }
-
-        // Auto-initialize
-        const now = new Date().toISOString()
-        const newClock: LocationClock = {
+    async initialize(locationId: string, worldClockTick: number): Promise<LocationClock> {
+        const locationClock: LocationClock = {
             id: locationId,
-            locationId,
-            clockAnchor: currentWorldClockTick,
-            lastAnchorUpdate: now
+            clockAnchor: worldClockTick,
+            lastSynced: new Date().toISOString()
         }
 
-        const { resource: created } = await container.items.create(newClock)
-        return created as LocationClock
+        const { resource } = await this.create(locationClock)
+        return resource
     }
 
     /**
-     * Batch sync multiple locations
+     * Update location clock anchor
      */
-    async batchSync(locationIds: string[], newClockAnchor: number): Promise<number> {
-        const container = this.getContainer()
-        const now = new Date().toISOString()
+    async update(locationId: string, worldClockTick: number, etag?: string): Promise<LocationClock> {
+        // Try to get existing clock
+        const existing = await this.get(locationId)
 
-        let synced = 0
-
-        // Process in parallel with reasonable batch size
-        const batchSize = 25
-        for (let i = 0; i < locationIds.length; i += batchSize) {
-            const batch = locationIds.slice(i, i + batchSize)
-
-            const promises = batch.map(async (locationId) => {
-                try {
-                    // Get current state first
-                    const { resource: current } = await container.item(locationId).read<LocationClock>()
-
-                    if (current) {
-                        // Update existing
-                        const updated: LocationClock = {
-                            ...current,
-                            clockAnchor: newClockAnchor,
-                            lastAnchorUpdate: now
-                        }
-
-                        await container.item(locationId).replace(updated)
-                        return 1
-                    }
-                } catch (error) {
-                    if (error instanceof Error && error.message.includes('NotFound')) {
-                        // Create new if not found
-                        const newClock: LocationClock = {
-                            id: locationId,
-                            locationId,
-                            clockAnchor: newClockAnchor,
-                            lastAnchorUpdate: now
-                        }
-
-                        try {
-                            await container.items.create(newClock)
-                            return 1
-                        } catch {
-                            // Ignore concurrent creation
-                            return 0
-                        }
-                    }
-                }
-
-                return 0
-            })
-
-            const results = await Promise.all(promises)
-            synced += results.filter((n) => n === 1).length
+        // Auto-initialize if not exists
+        if (!existing) {
+            return this.initialize(locationId, worldClockTick)
         }
 
-        return synced
+        const updated: LocationClock = {
+            ...existing,
+            clockAnchor: worldClockTick,
+            lastSynced: new Date().toISOString()
+        }
+
+        // Use provided ETag for concurrency control, or existing one
+        const useEtag = etag || existing._etag
+
+        const { resource } = await this.replace(locationId, updated, locationId, useEtag)
+        return resource
     }
 
     /**
-     * Sync a single location
-     */
-    async syncSingle(locationId: string, newClockAnchor: number): Promise<LocationClock> {
-        const container = this.getContainer()
-        const now = new Date().toISOString()
-
-        try {
-            // Try to read and update
-            const { resource: current } = await container.item(locationId).read<LocationClock>()
-
-            if (current) {
-                const updated: LocationClock = {
-                    ...current,
-                    clockAnchor: newClockAnchor,
-                    lastAnchorUpdate: now
-                }
-
-                const { resource: result } = await container.item(locationId).replace(updated)
-
-                return result as LocationClock
-            }
-        } catch (error) {
-            if (!(error instanceof Error) || !error.message.includes('NotFound')) {
-                throw error
-            }
-        }
-
-        // Create if not found
-        const newClock: LocationClock = {
-            id: locationId,
-            locationId,
-            clockAnchor: newClockAnchor,
-            lastAnchorUpdate: now
-        }
-
-        const { resource: created } = await container.items.create(newClock)
-        return created as LocationClock
-    }
-
-    /**
-     * Get occupants at a location at a specific tick
+     * Batch update all location clocks
      *
-     * This queries player location history and player clocks to determine
-     * who was at the location at the requested tick.
-     * Requires cross-referencing with player state and world events.
-     *
-     * TODO: Implement cross-container query or require occupant query
-     * via world events service
+     * Updates only existing location clocks (lazy initialization on first access).
+     * Uses parallel batches of 50 to balance throughput and Cosmos RU limits.
      */
-    async getOccupantsAtTick(locationId: string, tick: number): Promise<string[]> {
-        // Placeholder: this requires querying player location history
-        // which is tracked via world events (player moved to location).
-        // Implementation depends on world events container structure.
+    async batchUpdateAll(worldClockTick: number): Promise<number> {
+        const allClocks = await this.listAll()
 
-        // For MVP, return empty array
-        // Full implementation will query world events filtered by:
-        // - event type: player movement
-        // - target location: locationId
-        // - tick range that includes the query tick
-        // - check player clock hasn't advanced past this tick
+        // Group into batches
+        const BATCH_SIZE = 50
+        const batches: LocationClock[][] = []
 
-        return []
+        for (let i = 0; i < allClocks.length; i += BATCH_SIZE) {
+            batches.push(allClocks.slice(i, i + BATCH_SIZE))
+        }
+
+        // Process all batches in parallel
+        const batchResults = await Promise.all(
+            batches.map((batch) => Promise.all(batch.map((clock) => this.update(clock.id, worldClockTick, clock._etag))))
+        )
+
+        // Count total updates (each batch returns array of results)
+        return batchResults.reduce((total: number, batchResult: LocationClock[]) => total + batchResult.length, 0)
+    }
+
+    /**
+     * List all location clocks
+     */
+    async listAll(): Promise<LocationClock[]> {
+        const queryText = 'SELECT * FROM c'
+        const { items } = await this.query(queryText)
+        return items
     }
 }

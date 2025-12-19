@@ -1,117 +1,95 @@
 /**
- * Location Clock Repository - In-Memory Implementation
- *
- * Simple in-memory implementation for testing and development.
- * Stores location clocks in a Map, with no persistence.
+ * In-memory implementation of location clock repository
+ * For unit tests and local development without Cosmos DB
  */
 
+import { type LocationClock } from '@piquet-h/shared'
 import { injectable } from 'inversify'
-import type { ILocationClockRepository, LocationClock } from './locationClockRepository.js'
+import type { ILocationClockRepository } from './locationClockRepository.js'
 
 @injectable()
-export class LocationClockRepositoryMemory implements ILocationClockRepository {
-    private clocks = new Map<string, LocationClock>()
+export class MemoryLocationClockRepository implements ILocationClockRepository {
+    private store: Map<string, LocationClock> = new Map()
+    private etagCounter = 0
 
     /**
-     * Get a location clock, auto-initializing if not found
+     * Get location clock by ID
      */
-    async get(locationId: string, currentWorldClockTick: number): Promise<LocationClock> {
-        let clock = this.clocks.get(locationId)
+    async get(locationId: string): Promise<LocationClock | undefined> {
+        return this.store.get(locationId)
+    }
 
-        if (!clock) {
-            // Auto-initialize
-            clock = {
-                id: locationId,
-                locationId,
-                clockAnchor: currentWorldClockTick,
-                lastAnchorUpdate: new Date().toISOString()
-            }
-
-            this.clocks.set(locationId, clock)
+    /**
+     * Initialize new location clock
+     */
+    async initialize(locationId: string, worldClockTick: number): Promise<LocationClock> {
+        // Check if already exists
+        if (this.store.has(locationId)) {
+            throw new Error(`Location clock already exists: ${locationId}`)
         }
 
-        return clock
-    }
-
-    /**
-     * Batch sync multiple locations
-     */
-    async batchSync(locationIds: string[], newClockAnchor: number): Promise<number> {
-        const now = new Date().toISOString()
-
-        let synced = 0
-
-        for (const locationId of locationIds) {
-            let clock = this.clocks.get(locationId)
-
-            if (!clock) {
-                // Create if not found
-                clock = {
-                    id: locationId,
-                    locationId,
-                    clockAnchor: newClockAnchor,
-                    lastAnchorUpdate: now
-                }
-            } else {
-                // Update existing
-                clock = {
-                    ...clock,
-                    clockAnchor: newClockAnchor,
-                    lastAnchorUpdate: now
-                }
-            }
-
-            this.clocks.set(locationId, clock)
-            synced++
+        const locationClock: LocationClock = {
+            id: locationId,
+            clockAnchor: worldClockTick,
+            lastSynced: new Date().toISOString(),
+            _etag: `etag-${++this.etagCounter}`
         }
 
-        return synced
+        this.store.set(locationId, locationClock)
+        return locationClock
     }
 
     /**
-     * Sync a single location
+     * Update location clock anchor
      */
-    async syncSingle(locationId: string, newClockAnchor: number): Promise<LocationClock> {
-        const now = new Date().toISOString()
+    async update(locationId: string, worldClockTick: number, etag?: string): Promise<LocationClock> {
+        const existing = this.store.get(locationId)
 
-        let clock = this.clocks.get(locationId)
-
-        if (!clock) {
-            // Create if not found
-            clock = {
-                id: locationId,
-                locationId,
-                clockAnchor: newClockAnchor,
-                lastAnchorUpdate: now
-            }
-        } else {
-            // Update existing
-            clock = {
-                ...clock,
-                clockAnchor: newClockAnchor,
-                lastAnchorUpdate: now
-            }
+        // Auto-initialize if not exists
+        if (!existing) {
+            return this.initialize(locationId, worldClockTick)
         }
 
-        this.clocks.set(locationId, clock)
-        return clock
+        // Check ETag for concurrency control if provided
+        if (etag && existing._etag !== etag) {
+            throw new Error(`Concurrent modification detected for location clock: ${locationId}`)
+        }
+
+        const updated: LocationClock = {
+            ...existing,
+            clockAnchor: worldClockTick,
+            lastSynced: new Date().toISOString(),
+            _etag: `etag-${++this.etagCounter}`
+        }
+
+        this.store.set(locationId, updated)
+        return updated
     }
 
     /**
-     * Get occupants at a location at a specific tick
-     *
-     * In-memory implementation: return empty array
-     * Full implementation requires world events cross-reference
+     * Batch update all location clocks
      */
-    async getOccupantsAtTick(locationId: string, tick: number): Promise<string[]> {
-        // Placeholder: requires world events cross-reference
-        return []
+    async batchUpdateAll(worldClockTick: number): Promise<number> {
+        const allClocks = Array.from(this.store.values())
+
+        // Update all in parallel (simulated)
+        await Promise.all(allClocks.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
+
+        return allClocks.length
     }
 
     /**
-     * Clear all clocks (for testing)
+     * List all location clocks
+     */
+    async listAll(): Promise<LocationClock[]> {
+        return Array.from(this.store.values())
+    }
+
+    /**
+     * Clear all data (test helper)
      */
     clear(): void {
-        this.clocks.clear()
+        this.store.clear()
+        this.etagCounter = 0
     }
 }

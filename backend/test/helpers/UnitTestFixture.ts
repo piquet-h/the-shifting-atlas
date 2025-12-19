@@ -133,6 +133,15 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get LocationClockManager instance from DI container
+     */
+    async getLocationClockManager(): Promise<import('../../src/services/types.js').ILocationClockManager> {
+        const container = await this.getContainer()
+        const { LocationClockManager } = await import('../../src/services/LocationClockManager.js')
+        return container.get(LocationClockManager)
+    }
+
+    /**
      * Get or create a mock invocation context
      */
     getInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {

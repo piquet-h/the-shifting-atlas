@@ -1,74 +1,48 @@
-/**
- * Location Clock Repository - Interface and types
- *
- * Repository for managing location-based temporal anchors in Cosmos SQL API.
- * Each location maintains a clock anchor (world clock tick) that serves as
- * a reconciliation point when players enter shared spaces.
- *
- * Container: `locationClocks` (PK: `/locationId`)
- */
+import type { LocationClock } from '@piquet-h/shared'
 
 /**
- * Location clock document schema
- */
-export interface LocationClock {
-    /** Unique identifier (location ID) */
-    id: string
-
-    /** Location ID (for clarity in queries) */
-    locationId: string
-
-    /** Current world clock anchor tick for this location */
-    clockAnchor: number
-
-    /** ISO 8601 timestamp of last anchor update */
-    lastAnchorUpdate: string
-
-    /** ETag for optimistic concurrency control */
-    _etag?: string
-}
-
-/**
- * Repository interface for location clock operations
+ * Repository contract for location clock persistence
+ * Per world-time-temporal-reconciliation.md Section 3 (LocationClockManager)
  */
 export interface ILocationClockRepository {
     /**
-     * Get the location clock for a specific location
-     * Auto-initializes to current world clock if not found
-     *
+     * Get location clock document by location ID
      * @param locationId - Location unique identifier
-     * @param currentWorldClockTick - Current world clock tick (for auto-init)
-     * @returns The location clock document
+     * @returns LocationClock document or undefined if not found
      */
-    get(locationId: string, currentWorldClockTick: number): Promise<LocationClock>
+    get(locationId: string): Promise<LocationClock | undefined>
 
     /**
-     * Batch update location clocks to sync with world clock
-     * Called when world clock advances to keep all locations synchronized.
-     * Uses bulk operations for efficiency.
-     *
-     * @param locationIds - Array of location IDs to sync
-     * @param newClockAnchor - New anchor tick to set for all locations
+     * Initialize location clock with world clock anchor
+     * Creates new document with given tick as initial anchor
+     * @param locationId - Location unique identifier
+     * @param worldClockTick - Initial anchor tick
+     * @returns Created LocationClock document
+     */
+    initialize(locationId: string, worldClockTick: number): Promise<LocationClock>
+
+    /**
+     * Update location clock anchor to new tick
+     * Uses optimistic concurrency control via ETag if provided
+     * @param locationId - Location unique identifier
+     * @param worldClockTick - New anchor tick
+     * @param etag - Optional ETag for concurrency control
+     * @returns Updated LocationClock document
+     */
+    update(locationId: string, worldClockTick: number, etag?: string): Promise<LocationClock>
+
+    /**
+     * Batch update all location clocks to new tick
+     * Optimized for performance with parallel updates
+     * @param worldClockTick - New anchor tick for all locations
      * @returns Number of locations updated
      */
-    batchSync(locationIds: string[], newClockAnchor: number): Promise<number>
+    batchUpdateAll(worldClockTick: number): Promise<number>
 
     /**
-     * Sync a single location to a new clock anchor
-     *
-     * @param locationId - Location unique identifier
-     * @param newClockAnchor - New anchor tick
-     * @returns Updated location clock document
+     * List all location clock documents
+     * Used for batch operations and diagnostics
+     * @returns Array of all LocationClock documents
      */
-    syncSingle(locationId: string, newClockAnchor: number): Promise<LocationClock>
-
-    /**
-     * Query occupants of a location at a specific world clock tick
-     * Cross-references player location history and player clocks
-     *
-     * @param locationId - Location unique identifier
-     * @param tick - World clock tick to query
-     * @returns Array of player IDs present at the location at the specified tick
-     */
-    getOccupantsAtTick(locationId: string, tick: number): Promise<string[]>
+    listAll(): Promise<LocationClock[]>
 }

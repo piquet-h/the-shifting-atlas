@@ -60,13 +60,14 @@ export class WorldClockService implements IWorldClockService {
         })
 
         // Sync location clocks on world clock advancement
-        // TODO: Requires ILocationRepository.listAllLocationIds() to enumerate all locations
-        // For now, LocationClockManager can be manually triggered or auto-inits on access
+        // Uses batchUpdateAll strategy: only updates existing location clocks (lazy initialization)
         if (this.locationClockManager) {
-            // Note: syncAllLocationsOnClockAdvance is a placeholder that needs location enumeration
-            // Implementation deferred until ILocationRepository has a listAllLocationIds method
             try {
-                await this.locationClockManager.syncAllLocationsOnClockAdvance(updated.currentTick)
+                const synced = await this.locationClockManager.syncAllLocations(updated.currentTick)
+                this.telemetry.trackGameEvent('Location.Clock.BatchSynced', {
+                    worldClockTick: updated.currentTick,
+                    locationsSynced: synced
+                })
             } catch (error) {
                 // Log but don't fail world clock advancement if location sync fails
                 this.telemetry.trackGameEvent('Location.Clock.SyncFailed', {
