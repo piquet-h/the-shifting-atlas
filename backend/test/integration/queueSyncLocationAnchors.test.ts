@@ -21,10 +21,10 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
         fixture = new IntegrationTestFixture(mode)
         await fixture.setup()
         manager = await fixture.getLocationClockManager()
-        
+
         const container = await fixture.getContainer()
         handler = container.get(QueueSyncLocationAnchorsHandler)
-        
+
         // Create minimal mock context
         mockContext = {
             invocationId: 'integration-test-invocation',
@@ -43,7 +43,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             // Given: World clock at tick 1000 with 5 locations initialized
             const worldClockService = await fixture.getWorldClockService()
             await worldClockService.advanceTick(1000, 'test setup')
-            
+
             const locationIds = ['loc-1', 'loc-2', 'loc-3', 'loc-4', 'loc-5']
             for (const locationId of locationIds) {
                 await manager.getLocationAnchor(locationId) // Auto-initializes at tick 1000
@@ -80,7 +80,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             // Given: 100 locations initialized at tick 500
             const worldClockService = await fixture.getWorldClockService()
             await worldClockService.advanceTick(500, 'test setup')
-            
+
             const locationIds = Array.from({ length: 100 }, (_, i) => `perf-loc-${i}`)
             for (const locationId of locationIds) {
                 await manager.getLocationAnchor(locationId)
@@ -95,7 +95,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             // Then: All locations updated in reasonable time
             assert.strictEqual(result.locationsUpdated, 100)
             assert.strictEqual(result.worldClockTick, 2500)
-            
+
             // Performance assertion: Should complete in <5 seconds for 100 locations
             // (Memory mode should be much faster, Cosmos mode may be slower)
             if (mode === 'memory') {
@@ -118,7 +118,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             // Given: 3 locations at tick 1000
             const worldClockService = await fixture.getWorldClockService()
             await worldClockService.advanceTick(1000, 'test setup')
-            
+
             const locationIds = ['idem-loc-1', 'idem-loc-2', 'idem-loc-3']
             for (const locationId of locationIds) {
                 await manager.getLocationAnchor(locationId)
@@ -132,7 +132,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             // Then: Both succeed, second updates all locations (not currently optimized for skip)
             assert.strictEqual(result1.locationsUpdated, 3)
             assert.strictEqual(result2.locationsUpdated, 3)
-            
+
             // Locations still at correct tick
             for (const locationId of locationIds) {
                 const anchor = await manager.getLocationAnchor(locationId)
@@ -209,7 +209,7 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
 
             // Then: New location gets current world clock, not the sync tick
             // (This demonstrates that sync operates on existing locations at time of execution)
-            const worldClock = await worldClockService.getCurrentTick()
+            await worldClockService.getCurrentTick()
             const newLocationAnchor = await manager.getLocationAnchor('edge-loc-2')
             // New location should be at world clock (which hasn't advanced beyond setup)
             assert.ok(newLocationAnchor >= 1000)

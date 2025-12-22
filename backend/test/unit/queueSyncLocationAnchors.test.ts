@@ -20,7 +20,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
         fixture = new UnitTestFixture()
         await fixture.setup()
         manager = await fixture.getLocationClockManager()
-        
+
         // Create minimal mock context
         mockContext = {
             invocationId: 'test-invocation-id',
@@ -98,7 +98,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             const { QueueSyncLocationAnchorsHandler } = await import('../../src/handlers/queueSyncLocationAnchors.js')
             const container = await fixture.getContainer()
             const handler = container.get(QueueSyncLocationAnchorsHandler)
-            
+
             // Then: Should not throw
             await assert.doesNotReject(async () => {
                 await handler.handle(payload, mockContext)
@@ -113,7 +113,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             const { QueueSyncLocationAnchorsHandler } = await import('../../src/handlers/queueSyncLocationAnchors.js')
             const container = await fixture.getContainer()
             const handler = container.get(QueueSyncLocationAnchorsHandler)
-            
+
             // Then: Should not throw
             await assert.doesNotReject(async () => {
                 await handler.handle(payload, mockContext)
@@ -125,7 +125,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
         test('calls LocationClockManager.syncAllLocations with correct tick', async () => {
             // Given: Valid payload
             const payload = { worldClockTick: 7500, advancementReason: 'test' }
-            
+
             // Track calls to syncAllLocations
             let syncCalledWithTick: number | undefined
             const originalSyncAll = manager.syncAllLocations.bind(manager)
@@ -148,7 +148,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             // Given: Some locations exist
             const worldClockService = await fixture.getWorldClockService()
             await worldClockService.advanceTick(1000, 'setup')
-            
+
             // Initialize 3 locations
             await manager.getLocationAnchor('loc-1')
             await manager.getLocationAnchor('loc-2')
@@ -179,9 +179,9 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             const { QueueSyncLocationAnchorsHandler } = await import('../../src/handlers/queueSyncLocationAnchors.js')
             const container = await fixture.getContainer()
             const handler = container.get(QueueSyncLocationAnchorsHandler)
-            
+
             const result1 = await handler.handle(payload, mockContext)
-            const result2 = await handler.handle(payload, mockContext)
+            await handler.handle(payload, mockContext) // result2 ignored - idempotent call should succeed
 
             // Then: Both should succeed, second should update 0 locations (already at tick)
             assert.strictEqual(result1.locationsUpdated, 2)
