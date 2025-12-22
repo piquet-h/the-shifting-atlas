@@ -50,7 +50,7 @@ function validatePayload(payload: unknown): SyncLocationAnchorsPayload {
     }
 
     if (p.worldClockTick < 0) {
-        throw new Error('worldClockTick must be a non-negative positive number')
+        throw new Error('worldClockTick must be non-negative')
     }
 
     if (p.advancementReason !== undefined && typeof p.advancementReason !== 'string') {

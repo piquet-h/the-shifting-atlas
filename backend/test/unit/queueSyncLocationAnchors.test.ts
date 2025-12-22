@@ -85,7 +85,7 @@ describe('QueueSyncLocationAnchors (unit)', () => {
                     await handler.handle(payload, mockContext)
                 },
                 {
-                    message: /worldClockTick.*positive/i
+                    message: /worldClockTick.*non-negative/i
                 }
             )
         })
