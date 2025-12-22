@@ -577,16 +577,65 @@ export enum TelemetryEvent {
 
 ## Configuration
 
-Environment variables (add to `backend/local.settings.json` and Azure App Settings):
+### Temporal Configuration Module
+
+The temporal system configuration is centralized in `shared/src/temporal/config.ts` and provides tunable parameters for reconciliation behavior. Configuration is loaded from environment variables at startup with validation.
+
+**Configuration Interface** (`TemporalConfig`):
+
+```typescript
+interface TemporalConfig {
+    epsilonMs: number          // Silent snap window (default: 300000 = 5 minutes)
+    slowThresholdMs: number    // Small nudge window (default: 3600000 = 1 hour)
+    compressThresholdMs: number // Narrative compression trigger (default: 86400000 = 1 day)
+    driftRate: number          // Idle drift multiplier (default: 1.0)
+    waitMaxStepMs: number      // Max wait advance per reconcile (default: 1800000 = 30 minutes)
+    slowMaxStepMs: number      // Max slow nudge per WC advancement (default: 600000 = 10 minutes)
+}
+```
+
+**Environment Variables** (add to `backend/local.settings.json` and Azure App Settings):
 
 ```json
 {
-    "TEMPORAL_DRIFT_RATE": "1.0",
+    "TEMPORAL_EPSILON_MS": "300000",
     "TEMPORAL_SLOW_THRESHOLD_MS": "3600000",
+    "TEMPORAL_COMPRESS_THRESHOLD_MS": "86400000",
+    "TEMPORAL_DRIFT_RATE": "1.0",
+    "TEMPORAL_WAIT_MAX_STEP_MS": "1800000",
+    "TEMPORAL_SLOW_MAX_STEP_MS": "600000",
     "TEMPORAL_LEDGER_TTL_DAYS": "90",
     "TEMPORAL_ENABLE_AUTO_ADVANCEMENT": "false"
 }
 ```
+
+**Validation Rules**:
+- All time values (Ms) must be positive integers
+- `driftRate` must be non-negative (0 = paused time)
+- Thresholds must satisfy: `epsilonMs < slowThresholdMs < compressThresholdMs`
+- Invalid configuration throws error at startup (fail-fast)
+
+**Usage**:
+
+```typescript
+import { getTemporalConfig } from '@piquet-h/shared/temporal'
+
+const config = getTemporalConfig() // Singleton, loads once
+const offsetMs = playerClockTick - worldClockTick
+
+if (Math.abs(offsetMs) <= config.epsilonMs) {
+    // Within epsilon window - silent snap
+} else if (offsetMs > 0 && offsetMs < config.slowThresholdMs) {
+    // Player ahead by less than slow threshold - slow nudge
+} else if (offsetMs >= config.compressThresholdMs) {
+    // Player far ahead - narrative compression
+}
+```
+
+**Notes**:
+- Configuration requires application restart to change (no runtime reload)
+- Missing environment variables use defaults (no error)
+- Per-location or per-player threshold overrides are out of scope for M3c
 
 ---
 

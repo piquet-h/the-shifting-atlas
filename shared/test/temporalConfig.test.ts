@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { getTemporalConfig, type TemporalConfig } from '../src/temporal/config.js'
+import { getTemporalConfig } from '../src/temporal/config.js'
 
 describe('TemporalConfig', () => {
     describe('default configuration', () => {
@@ -68,4 +68,3 @@ describe('TemporalConfig', () => {
         })
     })
 })
-

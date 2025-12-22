@@ -39,7 +39,7 @@ const DEFAULT_CONFIG: TemporalConfig = {
     compressThresholdMs: 86400000, // 1 day
     driftRate: 1.0, // 1:1 real time to game time
     waitMaxStepMs: 1800000, // 30 minutes
-    slowMaxStepMs: 600000, // 10 minutes
+    slowMaxStepMs: 600000 // 10 minutes
 }
 
 /**
@@ -103,7 +103,7 @@ function loadConfig(): TemporalConfig {
         compressThresholdMs: parseEnvNumber('TEMPORAL_COMPRESS_THRESHOLD_MS', DEFAULT_CONFIG.compressThresholdMs),
         driftRate: parseEnvNumber('TEMPORAL_DRIFT_RATE', DEFAULT_CONFIG.driftRate),
         waitMaxStepMs: parseEnvNumber('TEMPORAL_WAIT_MAX_STEP_MS', DEFAULT_CONFIG.waitMaxStepMs),
-        slowMaxStepMs: parseEnvNumber('TEMPORAL_SLOW_MAX_STEP_MS', DEFAULT_CONFIG.slowMaxStepMs),
+        slowMaxStepMs: parseEnvNumber('TEMPORAL_SLOW_MAX_STEP_MS', DEFAULT_CONFIG.slowMaxStepMs)
     }
 
     validateConfig(config)
