@@ -269,6 +269,88 @@ export const err = (code: string, message: string, correlationId?: string): ApiE
     correlationId
 })
 
+// --- Realm ------------------------------------------------------------------
+
+/**
+ * Realm type enumeration for hierarchical spatial/conceptual groupings.
+ * Represents different categories of realms from world-level to dungeon-specific.
+ */
+export type RealmType =
+    | 'WORLD'
+    | 'CONTINENT'
+    | 'MOUNTAIN_RANGE'
+    | 'FOREST'
+    | 'KINGDOM'
+    | 'CITY'
+    | 'DISTRICT'
+    | 'WEATHER_ZONE'
+    | 'TRADE_NETWORK'
+    | 'ALLIANCE'
+    | 'DUNGEON'
+
+/** Set of allowed realm types for validation. */
+export const REALM_TYPES: readonly RealmType[] = [
+    'WORLD',
+    'CONTINENT',
+    'MOUNTAIN_RANGE',
+    'FOREST',
+    'KINGDOM',
+    'CITY',
+    'DISTRICT',
+    'WEATHER_ZONE',
+    'TRADE_NETWORK',
+    'ALLIANCE',
+    'DUNGEON'
+] as const
+
+/**
+ * Realm scope enumeration for hierarchical organization levels.
+ * Orders realms from global (world-wide) to micro (smallest units).
+ */
+export type RealmScope = 'GLOBAL' | 'CONTINENTAL' | 'MACRO' | 'REGIONAL' | 'LOCAL' | 'MICRO'
+
+/** Set of allowed realm scopes for validation. */
+export const REALM_SCOPES: readonly RealmScope[] = ['GLOBAL', 'CONTINENTAL', 'MACRO', 'REGIONAL', 'LOCAL', 'MICRO'] as const
+
+/**
+ * Realm vertex representing a spatial or conceptual grouping in the world graph.
+ * Realms provide hierarchical context for locations via 'within' edges.
+ *
+ * Label: `realm` (Gremlin vertex)
+ *
+ * Examples:
+ * - Geographic: continents, mountain ranges, forests
+ * - Political: kingdoms, cities, districts
+ * - Functional: weather zones, trade networks
+ * - Narrative: alliances, dungeons
+ */
+export interface RealmVertex {
+    /** Unique identifier (GUID). */
+    id: string
+    /** Human-readable realm name. */
+    name: string
+    /** Classification of the realm (geographic, political, functional). */
+    realmType: RealmType
+    /** Hierarchical level of the realm. */
+    scope: RealmScope
+    /** Optional narrative description of the realm. */
+    description?: string
+    /** Optional tags for faceted queries (e.g., ['mysterious', 'ancient']). */
+    narrativeTags?: string[]
+    /** Optional domain-specific attributes (e.g., climate, government, culturalTraits). */
+    properties?: Record<string, unknown>
+}
+
+/** Type guard for RealmType validation. */
+export function isRealmType(value: string): value is RealmType {
+    return (REALM_TYPES as readonly string[]).includes(value)
+}
+
+/** Type guard for RealmScope validation. */
+export function isRealmScope(value: string): value is RealmScope {
+    return (REALM_SCOPES as readonly string[]).includes(value)
+}
+
 // Future extension placeholders:
 // - NPC entity model
 // - Faction / Governance structures
