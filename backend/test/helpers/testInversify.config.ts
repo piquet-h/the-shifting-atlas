@@ -31,6 +31,7 @@ import { PlayerGetHandler } from '../../src/handlers/playerGet.js'
 import { PlayerLinkHandler } from '../../src/handlers/playerLink.js'
 import { PlayerMoveHandler } from '../../src/handlers/playerMove.js'
 import { QueueProcessExitGenerationHintHandler } from '../../src/handlers/queueProcessExitGenerationHint.js'
+import { QueueSyncLocationAnchorsHandler } from '../../src/handlers/queueSyncLocationAnchors.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
 import { CosmosDeadLetterRepository } from '../../src/repos/deadLetterRepository.cosmos.js'
@@ -142,6 +143,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
     container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
     container.bind(QueueProcessExitGenerationHintHandler).toSelf().inSingletonScope()
+    container.bind(QueueSyncLocationAnchorsHandler).toSelf().inSingletonScope()
     container.bind(ExitCreateHandler).toSelf().inSingletonScope()
     container.bind(NPCTickHandler).toSelf().inSingletonScope()
     container.bind(EnvironmentChangeHandler).toSelf().inSingletonScope()
