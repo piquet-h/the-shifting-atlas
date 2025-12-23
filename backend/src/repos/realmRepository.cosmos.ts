@@ -95,8 +95,13 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
 
             // Add properties bag as a single property (Cosmos Gremlin supports JSON objects)
             if (realm.properties !== undefined) {
-                bindings.props = JSON.stringify(realm.properties)
-                query += `.property('properties', props)`
+                try {
+                    bindings.props = JSON.stringify(realm.properties)
+                    query += `.property('properties', props)`
+                } catch (error) {
+                    // Log JSON serialization error but continue (properties are optional)
+                    console.warn(`[RealmRepository.upsert] Failed to serialize properties for realm ${realm.id}:`, error)
+                }
             }
 
             await this.queryWithTelemetry('realm.upsert.write', query, bindings)
@@ -130,8 +135,9 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
             throw new Error(`Cannot add within edge: would create cycle (${parentId} is already within ${childId}'s containment chain)`)
         }
 
-        // Ensure vertices exist
-        await this.ensureVertex('location', childId) // Could be location or realm
+        // Ensure vertices exist - child could be location or realm, parent is always realm
+        // We use a permissive approach: try location first, will be no-op if vertex exists with different label
+        await this.ensureVertex('location', childId)
         await this.ensureVertex('realm', parentId)
 
         // Check if edge already exists
@@ -161,8 +167,9 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
     }
 
     async addMembershipEdge(entityId: string, realmId: string): Promise<{ created: boolean }> {
-        // Ensure vertices exist
-        await this.ensureVertex('location', entityId) // Could be location or realm
+        // Ensure vertices exist - entity could be location or realm, realm is always realm
+        // We use a permissive approach: try location first, will be no-op if vertex exists with different label
+        await this.ensureVertex('location', entityId)
         await this.ensureVertex('realm', realmId)
 
         // Check if edge already exists

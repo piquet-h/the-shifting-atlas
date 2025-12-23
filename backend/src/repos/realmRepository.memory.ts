@@ -144,8 +144,10 @@ export class InMemoryRealmRepository implements IRealmRepository {
         const chain: RealmVertex[] = []
         const visited = new Set<string>()
         const queue: string[] = [entityId]
+        const maxDepth = 50 // Prevent infinite loops in case of data corruption
 
-        while (queue.length > 0) {
+        let depth = 0
+        while (queue.length > 0 && depth < maxDepth) {
             const currentId = queue.shift()!
             if (visited.has(currentId)) continue
             visited.add(currentId)
@@ -160,6 +162,8 @@ export class InMemoryRealmRepository implements IRealmRepository {
                     }
                 }
             }
+
+            depth++
         }
 
         return chain
