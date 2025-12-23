@@ -351,6 +351,47 @@ export function isRealmScope(value: string): value is RealmScope {
     return (REALM_SCOPES as readonly string[]).includes(value)
 }
 
+// --- Realm Edge Types & Properties ------------------------------------------
+
+/**
+ * Edge labels for realm relationships in the world graph.
+ *
+ * Edge semantics:
+ * - `within`: Containment hierarchy (Location → Realm, Realm → Realm). Forms a DAG (no cycles).
+ * - `member_of`: Overlapping classification (Location → Realm, Realm → Realm). Allows entities to belong to multiple realms.
+ * - `borders`: Adjacency between realms (Realm ↔ Realm). Bidirectional/symmetric.
+ * - `on_route`: Infrastructure connection (Location → Location). Has routeName property.
+ * - `vassal_of`: Political subordination (Realm → Realm). Directional.
+ * - `allied_with`: Political alliance (Realm → Realm). Directional.
+ * - `at_war_with`: Political conflict (Realm → Realm). Directional.
+ */
+export type RealmEdgeLabel = 'within' | 'member_of' | 'borders' | 'on_route' | 'vassal_of' | 'allied_with' | 'at_war_with'
+
+/** Set of allowed realm edge labels for validation. */
+export const REALM_EDGE_LABELS: readonly RealmEdgeLabel[] = [
+    'within',
+    'member_of',
+    'borders',
+    'on_route',
+    'vassal_of',
+    'allied_with',
+    'at_war_with'
+] as const
+
+/** Type guard for RealmEdgeLabel validation. */
+export function isRealmEdgeLabel(value: string): value is RealmEdgeLabel {
+    return (REALM_EDGE_LABELS as readonly string[]).includes(value)
+}
+
+/**
+ * Edge properties for `on_route` infrastructure connections.
+ * Represents named routes/roads connecting locations.
+ */
+export interface RouteEdge {
+    /** Human-readable name of the route (e.g., "The King's Road", "Merchant's Path"). */
+    routeName: string
+}
+
 // Future extension placeholders:
 // - NPC entity model
 // - Faction / Governance structures
