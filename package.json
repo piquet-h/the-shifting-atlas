@@ -31,7 +31,8 @@
         "format:backend": "npm run format --prefix backend",
         "format:frontend": "npm run format --prefix frontend",
         "format": "npm run format:shared && npm run format:backend && npm run format:frontend",
-        "validate:partitions": "tsx scripts/validate-partition-distribution.ts"
+        "validate:partitions": "tsx scripts/validate-partition-distribution.ts",
+        "update:shared": "npm install @piquet-h/shared@latest --prefix backend && npm install @piquet-h/shared@latest --prefix frontend"
     },
     "engines": {
         "node": "22.x"
