@@ -254,6 +254,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get<import('../../src/repos/locationClockRepository.js').ILocationClockRepository>('ILocationClockRepository')
     }
 
+    /** Get RealmRepository instance from DI container */
+    async getRealmRepository(): Promise<import('../../src/repos/realmRepository.js').IRealmRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/realmRepository.js').IRealmRepository>('IRealmRepository')
+    }
+
     /** Get LocationClockManager instance from DI container */
     async getLocationClockManager(): Promise<import('../../src/services/types.js').ILocationClockManager> {
         const container = await this.getContainer()
