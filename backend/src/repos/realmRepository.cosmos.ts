@@ -152,11 +152,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         }
 
         // Create edge
-        await this.queryWithTelemetry(
-            'realm.addWithinEdge.create',
-            "g.V(cid).addE('within').to(g.V(pid))",
-            { cid: childId, pid: parentId }
-        )
+        await this.queryWithTelemetry('realm.addWithinEdge.create', "g.V(cid).addE('within').to(g.V(pid))", { cid: childId, pid: parentId })
 
         this.telemetryService?.trackGameEventStrict('World.Realm.WithinEdge.Created', {
             childId,
@@ -184,11 +180,10 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         }
 
         // Create edge
-        await this.queryWithTelemetry(
-            'realm.addMembershipEdge.create',
-            "g.V(eid).addE('member_of').to(g.V(rid))",
-            { eid: entityId, rid: realmId }
-        )
+        await this.queryWithTelemetry('realm.addMembershipEdge.create', "g.V(eid).addE('member_of').to(g.V(rid))", {
+            eid: entityId,
+            rid: realmId
+        })
 
         return { created: true }
     }
@@ -221,20 +216,18 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
 
         // Create first edge if needed
         if (created1) {
-            await this.queryWithTelemetry(
-                'realm.addBorderEdge.create1',
-                "g.V(r1).addE('borders').to(g.V(r2))",
-                { r1: realm1Id, r2: realm2Id }
-            )
+            await this.queryWithTelemetry('realm.addBorderEdge.create1', "g.V(r1).addE('borders').to(g.V(r2))", {
+                r1: realm1Id,
+                r2: realm2Id
+            })
         }
 
         // Create reciprocal edge if needed
         if (created2) {
-            await this.queryWithTelemetry(
-                'realm.addBorderEdge.create2',
-                "g.V(r2).addE('borders').to(g.V(r1))",
-                { r1: realm1Id, r2: realm2Id }
-            )
+            await this.queryWithTelemetry('realm.addBorderEdge.create2', "g.V(r2).addE('borders').to(g.V(r1))", {
+                r1: realm1Id,
+                r2: realm2Id
+            })
         }
 
         return { created: created1, reciprocalCreated: created2 }
@@ -262,11 +255,11 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         }
 
         // Create edge with routeName property
-        await this.queryWithTelemetry(
-            'realm.addRouteEdge.create',
-            "g.V(fid).addE('on_route').to(g.V(tid)).property('routeName', rname)",
-            { fid: fromId, tid: toId, rname: routeName }
-        )
+        await this.queryWithTelemetry('realm.addRouteEdge.create', "g.V(fid).addE('on_route').to(g.V(tid)).property('routeName', rname)", {
+            fid: fromId,
+            tid: toId,
+            rname: routeName
+        })
 
         return { created: true }
     }
@@ -297,11 +290,10 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         }
 
         // Create edge
-        await this.queryWithTelemetry(
-            'realm.addPoliticalEdge.create',
-            `g.V(sid).addE('${edgeType}').to(g.V(tid))`,
-            { sid: sourceId, tid: targetId }
-        )
+        await this.queryWithTelemetry('realm.addPoliticalEdge.create', `g.V(sid).addE('${edgeType}').to(g.V(tid))`, {
+            sid: sourceId,
+            tid: targetId
+        })
 
         return { created: true }
     }

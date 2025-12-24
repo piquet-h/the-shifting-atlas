@@ -1,22 +1,9 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import {
-    REALM_EDGE_LABELS,
-    isRealmEdgeLabel,
-    type RouteEdge,
-    type RealmEdgeLabel
-} from '../src/domainModels.js'
+import { REALM_EDGE_LABELS, isRealmEdgeLabel, type RouteEdge, type RealmEdgeLabel } from '../src/domainModels.js'
 
 test('REALM_EDGE_LABELS contains all required edge labels', () => {
-    const requiredLabels: RealmEdgeLabel[] = [
-        'within',
-        'member_of',
-        'borders',
-        'on_route',
-        'vassal_of',
-        'allied_with',
-        'at_war_with'
-    ]
+    const requiredLabels: RealmEdgeLabel[] = ['within', 'member_of', 'borders', 'on_route', 'vassal_of', 'allied_with', 'at_war_with']
 
     for (const label of requiredLabels) {
         assert.ok(REALM_EDGE_LABELS.includes(label), `REALM_EDGE_LABELS should include ${label}`)
@@ -42,17 +29,17 @@ test('isRealmEdgeLabel rejects invalid edge labels', () => {
 
 test('RouteEdge can be created with routeName property', () => {
     const routeEdge: RouteEdge = {
-        routeName: 'The King\'s Road'
+        routeName: "The King's Road"
     }
 
-    assert.equal(routeEdge.routeName, 'The King\'s Road')
+    assert.equal(routeEdge.routeName, "The King's Road")
 })
 
 test('RouteEdge routeName is required', () => {
     // TypeScript compile-time check - this test validates the type system
     // @ts-expect-error - routeName is required
     const invalidEdge: RouteEdge = {}
-    
+
     // Runtime validation would happen in Gremlin helpers
     assert.ok(invalidEdge !== undefined)
 })
@@ -61,10 +48,10 @@ test('RouteEdge with empty routeName is structurally valid but semantically ques
     const edge: RouteEdge = {
         routeName: ''
     }
-    
+
     // Structurally valid (TypeScript allows it)
     assert.equal(edge.routeName, '')
-    
+
     // Semantic validation should happen in repository layer
 })
 
@@ -73,14 +60,14 @@ test('RouteEdge with long route name', () => {
     const edge: RouteEdge = {
         routeName: longName
     }
-    
+
     assert.equal(edge.routeName, longName)
 })
 
 test('RouteEdge routeName can contain special characters', () => {
     const edge: RouteEdge = {
-        routeName: 'The Dragon\'s Path (Dangerous!)'
+        routeName: "The Dragon's Path (Dangerous!)"
     }
-    
-    assert.equal(edge.routeName, 'The Dragon\'s Path (Dangerous!)')
+
+    assert.equal(edge.routeName, "The Dragon's Path (Dangerous!)")
 })

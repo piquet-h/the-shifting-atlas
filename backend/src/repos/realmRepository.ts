@@ -1,4 +1,4 @@
-import { RealmVertex, RealmEdgeLabel } from '@piquet-h/shared'
+import { RealmVertex } from '@piquet-h/shared'
 
 /**
  * Repository contract for realm vertex and edge operations.
@@ -78,7 +78,11 @@ export interface IRealmRepository {
      * @param edgeType - Political relationship type
      * @returns Result with created flag
      */
-    addPoliticalEdge(sourceId: string, targetId: string, edgeType: 'vassal_of' | 'allied_with' | 'at_war_with'): Promise<{ created: boolean }>
+    addPoliticalEdge(
+        sourceId: string,
+        targetId: string,
+        edgeType: 'vassal_of' | 'allied_with' | 'at_war_with'
+    ): Promise<{ created: boolean }>
 
     /**
      * Query containment chain (ancestors) for a given entity.

@@ -1,4 +1,4 @@
-import { RealmVertex, RealmScope, RealmType } from '@piquet-h/shared'
+import { RealmScope, RealmType, RealmVertex } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, test } from 'node:test'
 import { describeForBothModes } from '../helpers/describeForBothModes.js'
@@ -332,7 +332,6 @@ describeForBothModes('Realm Repository', (mode) => {
 
     test('addRouteEdge creates route with name property', async () => {
         const repo = await fixture.getRealmRepository()
-        const locationRepo = await fixture.getLocationRepository()
 
         // Use existing locations from world seed
         const loc1Id = 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21' // Mosswell River Jetty

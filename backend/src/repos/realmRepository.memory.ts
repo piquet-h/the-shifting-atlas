@@ -211,19 +211,19 @@ export class InMemoryRealmRepository implements IRealmRepository {
         this.politicalEdges.delete(id)
 
         // Remove edges from other entities pointing to this realm
-        for (const [_, parentSet] of this.withinEdges) {
+        for (const [, parentSet] of this.withinEdges) {
             parentSet.delete(id)
         }
-        for (const [_, realmSet] of this.membershipEdges) {
+        for (const [, realmSet] of this.membershipEdges) {
             realmSet.delete(id)
         }
-        for (const [_, borderSet] of this.borderEdges) {
+        for (const [, borderSet] of this.borderEdges) {
             borderSet.delete(id)
         }
-        for (const [_, toMap] of this.routeEdges) {
+        for (const [, toMap] of this.routeEdges) {
             toMap.delete(id)
         }
-        for (const [_, targetMap] of this.politicalEdges) {
+        for (const [, targetMap] of this.politicalEdges) {
             targetMap.delete(id)
         }
 

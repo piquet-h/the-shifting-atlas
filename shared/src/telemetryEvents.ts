@@ -67,6 +67,9 @@ export const GAME_EVENT_NAMES = [
     'World.Layer.Added',
     'World.Exit.Created',
     'World.Exit.Removed',
+    // Realm hierarchy and relationship telemetry
+    'World.Realm.Upsert',
+    'World.Realm.WithinEdge.Created',
     // World Event Lifecycle Telemetry (Issue #395 - World Event Telemetry Constants)
     'World.Event.Emitted',
     'World.Event.QueuePublish', // Queue message published to Service Bus with correlationId
