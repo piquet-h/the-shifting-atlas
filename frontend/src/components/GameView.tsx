@@ -62,7 +62,7 @@ function PlayerStatsPanel({ stats, collapsible = false }: { stats: PlayerStats |
 
     if (!stats) {
         return (
-            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title">
+            <section className="card rounded-xl p-4 sm:p-5" aria-labelledby="stats-title" aria-busy="true">
                 <h3 id="stats-title" className="text-responsive-base font-semibold text-white mb-3">
                     Explorer Status
                 </h3>

@@ -188,8 +188,8 @@ test.describe('Critical Flow: Navigation', () => {
         await setupAuthenticatedGameMocks(page)
         await page.goto('/game')
 
-        // Wait for initial location
-        await expect(page.getByRole('heading', { name: 'Mosswell River Jetty' })).toBeVisible({
+        // Wait for initial location (displayed in Explorer Status panel)
+        await expect(page.getByText('Mosswell River Jetty')).toBeVisible({
             timeout: 10000
         })
 
@@ -198,7 +198,8 @@ test.describe('Critical Flow: Navigation', () => {
         await northButton.click()
 
         // CRITICAL: Location updates after navigation (stats panel)
-        await expect(page.getByText('North Road')).toBeVisible({ timeout: 10000 })
+        const explorerStatus = page.getByRole('region', { name: 'Explorer Status' })
+        await expect(explorerStatus.getByText('North Road', { exact: true })).toBeVisible({ timeout: 10000 })
     })
 })
 

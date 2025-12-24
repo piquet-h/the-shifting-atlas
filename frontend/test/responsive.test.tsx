@@ -107,7 +107,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Should have single column layout (no grid with col-span)
@@ -124,7 +124,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Should have grid layout
@@ -145,7 +145,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Should have grid layout
@@ -166,7 +166,7 @@ describe('Responsive Layout - Breakpoints', () => {
         renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Should still render all key elements
@@ -181,7 +181,7 @@ describe('Responsive Layout - Breakpoints', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Should have desktop layout with two columns (col-span-8 main + col-span-4 sidebar)
@@ -200,7 +200,7 @@ describe('Responsive Layout - Collapsible Stats Panel', () => {
         renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Stats panel should have collapse button functionality
@@ -216,7 +216,7 @@ describe('Responsive Layout - Collapsible Stats Panel', () => {
         renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         const statsButton = screen.getByRole('button', { name: /Explorer Status/i })
@@ -238,7 +238,7 @@ describe('Responsive Layout - Collapsible Stats Panel', () => {
         renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Stats panel button should be disabled (not collapsible)
@@ -300,7 +300,7 @@ describe('Responsive Layout - No Horizontal Scroll', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // All elements should fit within viewport width
@@ -322,7 +322,7 @@ describe('Responsive Layout - No Horizontal Scroll', () => {
         const { container } = renderGameView()
 
         await waitFor(() => {
-            expect(screen.getByRole('heading', { name: 'Test Location' })).toBeInTheDocument()
+            expect(screen.getByText('Test Location')).toBeInTheDocument()
         })
 
         // Grid layout should fit within container
