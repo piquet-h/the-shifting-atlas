@@ -154,7 +154,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         // Create edge
         await this.queryWithTelemetry('realm.addWithinEdge.create', "g.V(cid).addE('within').to(g.V(pid))", { cid: childId, pid: parentId })
 
-        this.telemetryService?.trackGameEventStrict('World.Realm.WithinEdge.Created', {
+        this.telemetryService?.trackGameEventStrict('World.Realm.EdgeCreated', {
             childId,
             parentId
         })
