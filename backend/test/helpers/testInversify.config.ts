@@ -31,6 +31,7 @@ import { PlayerGetHandler } from '../../src/handlers/playerGet.js'
 import { PlayerLinkHandler } from '../../src/handlers/playerLink.js'
 import { PlayerMoveHandler } from '../../src/handlers/playerMove.js'
 import { QueueProcessExitGenerationHintHandler } from '../../src/handlers/queueProcessExitGenerationHint.js'
+import { QueueSyncLocationAnchorsHandler } from '../../src/handlers/queueSyncLocationAnchors.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
 import { CosmosDeadLetterRepository } from '../../src/repos/deadLetterRepository.cosmos.js'
@@ -64,6 +65,9 @@ import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memor
 import { CosmosProcessedEventRepository } from '../../src/repos/processedEventRepository.cosmos.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import { MemoryProcessedEventRepository } from '../../src/repos/processedEventRepository.memory.js'
+import { CosmosRealmRepository } from '../../src/repos/realmRepository.cosmos.js'
+import { IRealmRepository } from '../../src/repos/realmRepository.js'
+import { InMemoryRealmRepository } from '../../src/repos/realmRepository.memory.js'
 import { TemporalLedgerRepositoryCosmos } from '../../src/repos/temporalLedgerRepository.cosmos.js'
 import { ITemporalLedgerRepository } from '../../src/repos/temporalLedgerRepository.js'
 import { TemporalLedgerRepositoryMemory } from '../../src/repos/temporalLedgerRepository.memory.js'
@@ -142,6 +146,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
     container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
     container.bind(QueueProcessExitGenerationHintHandler).toSelf().inSingletonScope()
+    container.bind(QueueSyncLocationAnchorsHandler).toSelf().inSingletonScope()
     container.bind(ExitCreateHandler).toSelf().inSingletonScope()
     container.bind(NPCTickHandler).toSelf().inSingletonScope()
     container.bind(EnvironmentChangeHandler).toSelf().inSingletonScope()
@@ -169,6 +174,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
         container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
         container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
+        container.bind<IRealmRepository>('IRealmRepository').to(CosmosRealmRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
         container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
@@ -284,6 +290,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         // since exits are stored as nested properties of locations in memory
         container.bind<ILocationRepository>('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
         container.bind<IExitRepository>('IExitRepository').toService('ILocationRepository')
+        container.bind<IRealmRepository>('IRealmRepository').to(InMemoryRealmRepository).inSingletonScope()
         container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
