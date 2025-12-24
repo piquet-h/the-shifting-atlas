@@ -274,6 +274,13 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get(PlayerClockService)
     }
 
+    /** Get ReconcileEngine instance from DI container */
+    async getReconcileEngine(): Promise<import('../../src/services/ReconcileEngine.js').IReconcileEngine> {
+        const container = await this.getContainer()
+        const { ReconcileEngine } = await import('../../src/services/ReconcileEngine.js')
+        return container.get(ReconcileEngine)
+    }
+
     /**
      * Get the telemetry client from the container
      * In test mode, this returns MockTelemetryClient for assertions

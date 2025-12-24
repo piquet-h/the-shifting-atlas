@@ -142,6 +142,15 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get ReconcileEngine instance from DI container
+     */
+    async getReconcileEngine(): Promise<import('@piquet-h/shared').IReconcileEngine> {
+        const container = await this.getContainer()
+        const { ReconcileEngine } = await import('../../src/services/ReconcileEngine.js')
+        return container.get(ReconcileEngine)
+    }
+
+    /**
      * Get or create a mock invocation context
      */
     getInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {
