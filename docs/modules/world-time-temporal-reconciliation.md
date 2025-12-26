@@ -356,59 +356,161 @@ const SLOW_THRESHOLD = 3600000 // 1 hour
 
 **Purpose**: Generate lore-consistent "time passes" text for waiting/drift scenarios
 
+**Status**: ✅ **IMPLEMENTED** (M3c Temporal PI-0)
+
+**Location**: `shared/src/temporal/narrativeLayer.ts`
+
 **API**:
 
 ```typescript
-interface NarrativeLayer {
+interface INarrativeLayer {
     // Generate wait narrative (player behind, catching up)
-    generateWaitNarrative(durationMs: number, context?: NarrativeContext): Promise<string>
+    generateWaitNarrative(durationMs: number, context?: NarrativeContext): string
 
     // Generate compression narrative (player far ahead, time summarized)
-    generateCompressNarrative(durationMs: number, context?: NarrativeContext): Promise<string>
+    generateCompressNarrative(durationMs: number, context?: NarrativeContext): string
 }
 
 interface NarrativeContext {
     locationId: string
     locationDescription?: string
     weatherLayer?: string
-    playerState?: any
+    playerState?: unknown
 }
 ```
 
 **Implementation Strategy**:
 
-- **Phase 1 (M5)**: Template-based generation with duration buckets
-    - `< 1 minute`: "A moment passes..."
-    - `1 min - 1 hour`: "Minutes pass as you wait..."
-    - `1 hour - 1 day`: "Hours slip by..."
-    - `1 day+`: "Days pass, and you lose track of time..."
+- **Phase 1 (M3c)**: ✅ Template-based generation with duration buckets
+    - `< 1 minute` (short): "A moment passes..."
+    - `1 min - 1 hour` (medium): "Minutes pass as you wait..."
+    - `1 hour - 1 day` (long): "Hours slip by..."
+    - `1 day+` (veryLong): "Days pass, and you lose track of time..."
 - **Phase 2 (M6+)**: AI-generated narrative using prompt templates
     - Input: duration, location description, player state
     - Output: Contextual narrative (e.g., "You spend the afternoon watching travelers cross the bridge...")
 
+**Bucket Selection Rules**:
+
+- Boundary durations use higher bucket: `durationMs >= threshold` (e.g., exactly 60000ms = 1 minute uses medium bucket, not short)
+- Negative durations treated as zero (uses short bucket)
+- Very long durations (>365 days) use veryLong bucket (no special case)
+
 **Template Examples**:
 
+**Wait Narratives** (player catching up):
+
 ```typescript
-const WAIT_TEMPLATES = {
-    short: ['A moment passes.', 'You wait briefly.', 'Time passes...'],
-    medium: ['Minutes pass as you wait at {location}.', 'You idle for a while, observing your surroundings.', 'Time slips by quietly.'],
-    long: [
-        'Hours pass. The sun arcs across the sky.',
-        'You lose yourself in thought as the hours drift by.',
-        'Time flows steadily, and eventually...'
-    ],
-    veryLong: [
-        'Days pass. You lose track of time.',
-        'Seasons seem to shift as you wait.',
-        'Much time has passed since you last remember clearly.'
-    ]
-}
+short: [
+    'A moment passes.',
+    'You wait briefly.',
+    'The air stirs, settling again.',
+    'Time passes...'
+]
+
+medium: [
+    'Minutes drift by as you idle at {location}.',
+    'You lose yourself in thought, watching the shadows shift.',
+    'Time slips past like a distracted cat.',
+    'Minutes pass as you wait.',
+    'You idle for a while, observing your surroundings.'
+]
+
+long: [
+    'Hours pass. The sun arcs across the sky with theatrical inevitability.',
+    'You wait. The world continues its business around you, indifferent as always.',
+    'Time flows steadily. Eventually, as it tends to do, something happens.',
+    'Hours slip by at {location}.',
+    'You lose yourself in thought as the hours drift by.'
+]
+
+veryLong: [
+    'Days pass. You lose track of time, which seems unbothered by the whole affair.',
+    'Seasons seem to shift. Or perhaps just your patience.',
+    'Much time has passed. History marches on, dragging you along for the ride.',
+    'Days pass at {location}. You lose track of time.',
+    'You wait. Days turn into a blur of routine and contemplation.'
+]
 ```
 
-**AI Integration (Future)**:
+**Compression Narratives** (player reconciling after drift):
+
+```typescript
+short: [
+    'You shake off a momentary fugue.',
+    'The world snaps back into focus.',
+    'A brief moment of disorientation passes.',
+    'You blink. Where were you?'
+]
+
+medium: [
+    "The world snaps back into focus. You've lost some time.",
+    'Minutes have passed in what felt like a heartbeat.',
+    'You shake off the haze. Time has been... negotiable.',
+    'A fog lifts from your mind. How long has it been?',
+    'You return to the present moment, time having slipped away.'
+]
+
+long: [
+    'Hours have passed. The world feels slightly different.',
+    'You blink. Hours have vanished like morning mist.',
+    'Time reasserts itself. Hours have drifted by unnoticed.',
+    'The fog clears. Hours have passed at {location}.',
+    'You emerge from a fugue state. The sun has moved significantly.'
+]
+
+veryLong: [
+    'You blink. Days have passed. Memory feels... negotiable.',
+    'Reality snaps back into place. Days have vanished.',
+    'You shake off a profound daze. How many days has it been?',
+    'Time catches up with you at {location}. Days have passed in a blur.',
+    'The world comes back into focus. Much time has passed, leaving only fragments.'
+]
+```
+
+**Location Interpolation**:
+
+- Templates with `{location}` placeholder are replaced with `context.locationDescription` when provided
+- If context missing or `locationDescription` empty: generic fallback (removes location reference or uses "here")
+- Example: `"Minutes drift by as you idle at {location}."` → `"Minutes drift by as you idle at the Broken Bridge."`
+
+**Random Template Selection**:
+
+- Each call randomly selects from available templates in the bucket (3-5 variations per bucket)
+- Provides narrative diversity for repeated temporal transitions
+- Future: Consider session-based variation tracking to avoid immediate repeats
+
+**Usage Example**:
+
+```typescript
+import { NarrativeLayer } from '@piquet-h/shared/temporal'
+
+const narrativeLayer = new NarrativeLayer()
+
+// Wait scenario (player behind)
+const waitText = narrativeLayer.generateWaitNarrative(1800000, {
+    locationId: 'loc-123',
+    locationDescription: 'the Ancient Library'
+})
+// => "Minutes drift by as you idle at the Ancient Library."
+
+// Compression scenario (player far ahead)
+const compressText = narrativeLayer.generateCompressNarrative(7200000, {
+    locationId: 'loc-456',
+    locationDescription: 'the Windswept Peak'
+})
+// => "The fog clears. Hours have passed at the Windswept Peak."
+
+// Missing context gracefully handled
+const genericText = narrativeLayer.generateWaitNarrative(30000)
+// => "A moment passes." (no location reference)
+```
+
+**AI Integration (Future Phase 2)**:
 
 - Prompt template: "Generate a 1-2 sentence narrative describing {duration} passing at {location}. Tone: {dmPersona}. Context: {weatherLayer}."
 - Caching: Store generated narratives by duration bucket + location hash for reuse
+- Contextual enrichment: Weather, player state, time of day, location ambiance
 
 ---
 
