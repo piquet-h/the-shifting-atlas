@@ -356,59 +356,41 @@ const SLOW_THRESHOLD = 3600000 // 1 hour
 
 **Purpose**: Generate lore-consistent "time passes" text for waiting/drift scenarios
 
+**Status**: ✅ **IMPLEMENTED** (M3c Temporal PI-0)
+
+**Location**: `shared/src/temporal/narrativeLayer.ts`
+
 **API**:
 
 ```typescript
-interface NarrativeLayer {
+interface INarrativeLayer {
     // Generate wait narrative (player behind, catching up)
-    generateWaitNarrative(durationMs: number, context?: NarrativeContext): Promise<string>
+    generateWaitNarrative(durationMs: number, context?: NarrativeContext): string
 
     // Generate compression narrative (player far ahead, time summarized)
-    generateCompressNarrative(durationMs: number, context?: NarrativeContext): Promise<string>
+    generateCompressNarrative(durationMs: number, context?: NarrativeContext): string
 }
 
 interface NarrativeContext {
     locationId: string
     locationDescription?: string
     weatherLayer?: string
-    playerState?: any
+    playerState?: unknown
 }
 ```
 
 **Implementation Strategy**:
 
-- **Phase 1 (M5)**: Template-based generation with duration buckets
-    - `< 1 minute`: "A moment passes..."
-    - `1 min - 1 hour`: "Minutes pass as you wait..."
-    - `1 hour - 1 day`: "Hours slip by..."
-    - `1 day+`: "Days pass, and you lose track of time..."
+- **Phase 1 (M3c)**: ✅ Template-based generation with duration buckets (short, medium, long, veryLong)
 - **Phase 2 (M6+)**: AI-generated narrative using prompt templates
     - Input: duration, location description, player state
     - Output: Contextual narrative (e.g., "You spend the afternoon watching travelers cross the bridge...")
 
-**Template Examples**:
-
-```typescript
-const WAIT_TEMPLATES = {
-    short: ['A moment passes.', 'You wait briefly.', 'Time passes...'],
-    medium: ['Minutes pass as you wait at {location}.', 'You idle for a while, observing your surroundings.', 'Time slips by quietly.'],
-    long: [
-        'Hours pass. The sun arcs across the sky.',
-        'You lose yourself in thought as the hours drift by.',
-        'Time flows steadily, and eventually...'
-    ],
-    veryLong: [
-        'Days pass. You lose track of time.',
-        'Seasons seem to shift as you wait.',
-        'Much time has passed since you last remember clearly.'
-    ]
-}
-```
-
-**AI Integration (Future)**:
+**AI Integration (Future Phase 2)**:
 
 - Prompt template: "Generate a 1-2 sentence narrative describing {duration} passing at {location}. Tone: {dmPersona}. Context: {weatherLayer}."
 - Caching: Store generated narratives by duration bucket + location hash for reuse
+- Contextual enrichment: Weather, player state, time of day, location ambiance
 
 ---
 
