@@ -65,6 +65,7 @@ import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
 import { LocationClockManager } from './services/LocationClockManager.js'
 import { PlayerClockService } from './services/PlayerClockService.js'
+import { ReconcileEngine } from './services/ReconcileEngine.js'
 import type { ILocationClockManager, IWorldClockService } from './services/types.js'
 import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
@@ -228,6 +229,7 @@ export const setupContainer = async (container: Container) => {
     container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind<IWorldClockService>('IWorldClockService').to(WorldClockService).inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
+    container.bind(ReconcileEngine).toSelf().inSingletonScope()
 
     return container
 }

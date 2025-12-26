@@ -80,6 +80,7 @@ import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
 import { LocationClockManager } from '../../src/services/LocationClockManager.js'
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
+import { ReconcileEngine } from '../../src/services/ReconcileEngine.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -315,6 +316,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(WorldClockService).toSelf().inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind(LocationClockManager).toSelf().inSingletonScope()
+    container.bind(ReconcileEngine).toSelf().inSingletonScope()
 
     return container
 }
