@@ -30,10 +30,5 @@ export interface IReconcileEngine {
      * @param locationId - Location unique identifier (for telemetry/narrative context)
      * @returns ReconciliationResult with method used, ticks before/after, and optional narrative
      */
-    reconcile(
-        playerClock: number,
-        locationClock: number,
-        playerId: string,
-        locationId: string
-    ): Promise<ReconciliationResult>
+    reconcile(playerClock: number, locationClock: number, playerId: string, locationId: string): Promise<ReconciliationResult>
 }
