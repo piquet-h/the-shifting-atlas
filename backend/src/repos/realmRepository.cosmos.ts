@@ -379,4 +379,30 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
 
         return { deleted: true }
     }
+
+    async getWeatherZoneForLocation(locationId: string): Promise<RealmVertex | null> {
+        // Traverse 'within' edges upward through containment chain
+        // Filter for realms with realmType='WEATHER_ZONE'
+        // Return the first match (nearest weather zone)
+        const result = await this.queryWithTelemetry<Record<string, unknown>>(
+            'realm.getWeatherZoneForLocation',
+            "g.V(lid).repeat(out('within').simplePath()).emit().hasLabel('realm').has('realmType', 'WEATHER_ZONE').limit(1).valueMap(true)",
+            { lid: locationId }
+        )
+
+        if (!result || result.length === 0) {
+            return null
+        }
+
+        const v = result[0]
+        return {
+            id: String(v.id || v['id']),
+            name: firstScalar(v.name) || 'Unknown Realm',
+            realmType: firstScalar(v.realmType) as any,
+            scope: firstScalar(v.scope) as any,
+            description: firstScalar(v.description) as string | undefined,
+            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
+            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
+        }
+    }
 }

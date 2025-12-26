@@ -414,4 +414,167 @@ describeForBothModes('Realm Repository', (mode) => {
         const result = await repo.addPoliticalEdge('war-kingdom-1', 'war-kingdom-2', 'at_war_with')
         assert.strictEqual(result.created, true)
     })
+
+    // --- Weather Zone Queries ---
+
+    test('getWeatherZoneForLocation returns weather zone for location within zone', async () => {
+        const repo = await fixture.getRealmRepository()
+        const locRepo = await fixture.getLocationRepository()
+
+        // Create a weather zone realm
+        const weatherZone: RealmVertex = {
+            id: 'mosswell-coastal-zone',
+            name: 'Mosswell Coastal Weather Zone',
+            realmType: 'WEATHER_ZONE' as RealmType,
+            scope: 'REGIONAL' as RealmScope,
+            description: 'Coastal weather zone covering Mosswell area'
+        }
+        await repo.upsert(weatherZone)
+
+        // Create a test location
+        const locationId = 'test-location-001'
+        await locRepo.upsert({
+            id: locationId,
+            name: 'Test Location',
+            description: 'A test location'
+        })
+
+        // Add within edge from location to weather zone
+        await repo.addWithinEdge(locationId, 'mosswell-coastal-zone')
+
+        // Query weather zone for location
+        const result = await repo.getWeatherZoneForLocation(locationId)
+
+        assert.ok(result, 'Weather zone should be found')
+        assert.strictEqual(result.id, 'mosswell-coastal-zone')
+        assert.strictEqual(result.realmType, 'WEATHER_ZONE')
+    })
+
+    test('getWeatherZoneForLocation returns null for location without weather zone', async () => {
+        const repo = await fixture.getRealmRepository()
+        const locRepo = await fixture.getLocationRepository()
+
+        // Create a test location without any weather zone
+        const locationId = 'test-location-002'
+        await locRepo.upsert({
+            id: locationId,
+            name: 'Test Location Without Zone',
+            description: 'A test location not in any weather zone'
+        })
+
+        // Query weather zone for location
+        const result = await repo.getWeatherZoneForLocation(locationId)
+
+        assert.strictEqual(result, null, 'Weather zone should be null for location without zone')
+    })
+
+    test('getWeatherZoneForLocation finds weather zone via containment chain', async () => {
+        const repo = await fixture.getRealmRepository()
+        const locRepo = await fixture.getLocationRepository()
+
+        // Create nested realm hierarchy: Location -> District -> Weather Zone
+        const weatherZone: RealmVertex = {
+            id: 'market-weather-zone',
+            name: 'Market District Weather Zone',
+            realmType: 'WEATHER_ZONE' as RealmType,
+            scope: 'REGIONAL' as RealmScope
+        }
+        const district: RealmVertex = {
+            id: 'market-district',
+            name: 'Market District',
+            realmType: 'DISTRICT' as RealmType,
+            scope: 'LOCAL' as RealmScope
+        }
+        await repo.upsert(weatherZone)
+        await repo.upsert(district)
+
+        // Create location
+        const locationId = 'test-location-003'
+        await locRepo.upsert({
+            id: locationId,
+            name: 'Market Square',
+            description: 'A location in the market district'
+        })
+
+        // Build containment chain: Location -> District -> Weather Zone
+        await repo.addWithinEdge(locationId, 'market-district')
+        await repo.addWithinEdge('market-district', 'market-weather-zone')
+
+        // Query weather zone - should traverse upward through district
+        const result = await repo.getWeatherZoneForLocation(locationId)
+
+        assert.ok(result, 'Weather zone should be found via containment chain')
+        assert.strictEqual(result.id, 'market-weather-zone')
+        assert.strictEqual(result.realmType, 'WEATHER_ZONE')
+    })
+
+    test('getWeatherZoneForLocation returns first weather zone when multiple exist', async () => {
+        const repo = await fixture.getRealmRepository()
+        const locRepo = await fixture.getLocationRepository()
+
+        // Create two weather zones
+        const zone1: RealmVertex = {
+            id: 'weather-zone-1',
+            name: 'Weather Zone 1',
+            realmType: 'WEATHER_ZONE' as RealmType,
+            scope: 'REGIONAL' as RealmScope
+        }
+        const zone2: RealmVertex = {
+            id: 'weather-zone-2',
+            name: 'Weather Zone 2',
+            realmType: 'WEATHER_ZONE' as RealmType,
+            scope: 'REGIONAL' as RealmScope
+        }
+        await repo.upsert(zone1)
+        await repo.upsert(zone2)
+
+        // Create location
+        const locationId = 'test-location-004'
+        await locRepo.upsert({
+            id: locationId,
+            name: 'Border Location',
+            description: 'A location on the border of two weather zones'
+        })
+
+        // Add within edges to both zones
+        await repo.addWithinEdge(locationId, 'weather-zone-1')
+        await repo.addWithinEdge(locationId, 'weather-zone-2')
+
+        // Query should return a weather zone (implementation may return either one)
+        const result = await repo.getWeatherZoneForLocation(locationId)
+
+        assert.ok(result, 'Weather zone should be found')
+        assert.strictEqual(result.realmType, 'WEATHER_ZONE')
+        // Accept either zone as valid (deterministic within same query)
+        assert.ok(result.id === 'weather-zone-1' || result.id === 'weather-zone-2')
+    })
+
+    test('getWeatherZoneForLocation ignores non-weather-zone realms', async () => {
+        const repo = await fixture.getRealmRepository()
+        const locRepo = await fixture.getLocationRepository()
+
+        // Create a non-weather-zone realm
+        const district: RealmVertex = {
+            id: 'some-district',
+            name: 'Some District',
+            realmType: 'DISTRICT' as RealmType,
+            scope: 'LOCAL' as RealmScope
+        }
+        await repo.upsert(district)
+
+        // Create location within district (but not within weather zone)
+        const locationId = 'test-location-005'
+        await locRepo.upsert({
+            id: locationId,
+            name: 'District Location',
+            description: 'A location in a district without weather zone'
+        })
+
+        await repo.addWithinEdge(locationId, 'some-district')
+
+        // Query should return null (district is not a weather zone)
+        const result = await repo.getWeatherZoneForLocation(locationId)
+
+        assert.strictEqual(result, null, 'Should ignore non-weather-zone realms')
+    })
 })
