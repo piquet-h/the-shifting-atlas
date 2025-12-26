@@ -15,8 +15,8 @@
  *   1 - Dangling exits or missing reciprocal exits detected
  */
 
-import { createGremlinClient } from '../backend/src/gremlin/gremlinClient.js'
-import { loadPersistenceConfigAsync } from '../backend/src/persistenceConfig.js'
+import { createGremlinClient } from '../backend/dist/src/gremlin/gremlinClient.js'
+import { loadPersistenceConfigAsync } from '../backend/dist/src/persistenceConfig.js'
 import { getOppositeDirection, isDirection } from '../shared/dist/domainModels.js'
 
 const SEED_LOCATION_IDS = new Set(['village-square', 'spawn', 'start', 'entrance'])

@@ -136,7 +136,7 @@ Examples:
         const backendRequire = createRequire(new URL('../backend/package.json', import.meta.url))
         backendRequire('reflect-metadata')
         const { Container } = backendRequire('inversify')
-        const { setupContainer } = await import('../backend/dist/inversify.config.js')
+        const { setupContainer } = await import('../backend/dist/src/inversify.config.js')
         const container = new Container()
         await setupContainer(container, mode)
 
@@ -144,7 +144,7 @@ Examples:
         const locationRepository = container.get('ILocationRepository')
 
         // Dynamic import of seedWorld to avoid loading backend modules before env is set
-        const { seedWorld } = await import('../backend/dist/seeding/seedWorld.js')
+        const { seedWorld } = await import('../backend/dist/src/seeding/seedWorld.js')
 
         // Custom logger for capturing output
         const logs = []
