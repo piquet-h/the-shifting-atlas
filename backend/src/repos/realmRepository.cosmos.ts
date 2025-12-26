@@ -1,4 +1,4 @@
-import { RealmVertex, isRealmEdgeLabel } from '@piquet-h/shared'
+import { RealmVertex, RealmType, RealmScope, isRealmEdgeLabel } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -27,8 +27,8 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         return {
             id: String(v.id || v['id']),
             name: firstScalar(v.name) || 'Unknown Realm',
-            realmType: firstScalar(v.realmType) as any,
-            scope: firstScalar(v.scope) as any,
+            realmType: firstScalar(v.realmType) as RealmType,
+            scope: firstScalar(v.scope) as RealmScope,
             description: firstScalar(v.description) as string | undefined,
             narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
             properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
