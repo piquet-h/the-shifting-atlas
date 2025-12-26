@@ -19,6 +19,22 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
         super(client, telemetryService)
     }
 
+    /**
+     * Convert Gremlin valueMap result to RealmVertex.
+     * Extracts scalar values from Gremlin's array-based property format.
+     */
+    private mapToRealmVertex(v: Record<string, unknown>): RealmVertex {
+        return {
+            id: String(v.id || v['id']),
+            name: firstScalar(v.name) || 'Unknown Realm',
+            realmType: firstScalar(v.realmType) as any,
+            scope: firstScalar(v.scope) as any,
+            description: firstScalar(v.description) as string | undefined,
+            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
+            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
+        }
+    }
+
     async get(id: string): Promise<RealmVertex | undefined> {
         try {
             const vertices = await this.query<Record<string, unknown>>('g.V(realmId).hasLabel("realm").valueMap(true)', { realmId: id })
@@ -26,16 +42,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
                 return undefined
             }
 
-            const v = vertices[0]
-            return {
-                id: String(v.id || v['id']),
-                name: firstScalar(v.name) || 'Unknown Realm',
-                realmType: firstScalar(v.realmType) as any, // Type assertion needed; validated on write
-                scope: firstScalar(v.scope) as any,
-                description: firstScalar(v.description) as string | undefined,
-                narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
-                properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
-            }
+            return this.mapToRealmVertex(vertices[0])
         } catch (error) {
             console.error(`[RealmRepository.get] Error fetching realm ${id}:`, error)
             throw error
@@ -310,15 +317,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
             return []
         }
 
-        return result.map((v) => ({
-            id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Realm',
-            realmType: firstScalar(v.realmType) as any,
-            scope: firstScalar(v.scope) as any,
-            description: firstScalar(v.description) as string | undefined,
-            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
-            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
-        }))
+        return result.map((v) => this.mapToRealmVertex(v))
     }
 
     async getMemberships(entityId: string): Promise<RealmVertex[]> {
@@ -333,15 +332,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
             return []
         }
 
-        return result.map((v) => ({
-            id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Realm',
-            realmType: firstScalar(v.realmType) as any,
-            scope: firstScalar(v.scope) as any,
-            description: firstScalar(v.description) as string | undefined,
-            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
-            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
-        }))
+        return result.map((v) => this.mapToRealmVertex(v))
     }
 
     async getBorderingRealms(realmId: string): Promise<RealmVertex[]> {
@@ -356,15 +347,7 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
             return []
         }
 
-        return result.map((v) => ({
-            id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Realm',
-            realmType: firstScalar(v.realmType) as any,
-            scope: firstScalar(v.scope) as any,
-            description: firstScalar(v.description) as string | undefined,
-            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
-            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
-        }))
+        return result.map((v) => this.mapToRealmVertex(v))
     }
 
     async deleteRealm(id: string): Promise<{ deleted: boolean }> {
@@ -382,11 +365,10 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
 
     async getWeatherZoneForLocation(locationId: string): Promise<RealmVertex | null> {
         // Traverse 'within' edges upward through containment chain
-        // Filter for realms with realmType='WEATHER_ZONE'
-        // Return the first match (nearest weather zone)
+        // Stop at the first WEATHER_ZONE realm using until() for efficiency
         const result = await this.queryWithTelemetry<Record<string, unknown>>(
             'realm.getWeatherZoneForLocation',
-            "g.V(lid).repeat(out('within').simplePath()).emit().hasLabel('realm').has('realmType', 'WEATHER_ZONE').limit(1).valueMap(true)",
+            "g.V(lid).repeat(out('within').simplePath()).until(hasLabel('realm').has('realmType', 'WEATHER_ZONE')).limit(1).valueMap(true)",
             { lid: locationId }
         )
 
@@ -394,15 +376,6 @@ export class CosmosRealmRepository extends CosmosGremlinRepository implements IR
             return null
         }
 
-        const v = result[0]
-        return {
-            id: String(v.id || v['id']),
-            name: firstScalar(v.name) || 'Unknown Realm',
-            realmType: firstScalar(v.realmType) as any,
-            scope: firstScalar(v.scope) as any,
-            description: firstScalar(v.description) as string | undefined,
-            narrativeTags: Array.isArray(v.narrativeTags) ? (v.narrativeTags as string[]) : undefined,
-            properties: v.properties ? (v.properties as Record<string, unknown>) : undefined
-        }
+        return this.mapToRealmVertex(result[0])
     }
 }
