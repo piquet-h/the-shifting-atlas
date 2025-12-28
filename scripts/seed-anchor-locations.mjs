@@ -177,6 +177,7 @@ Examples:
         console.log(`  Locations processed:        ${result.locationsProcessed}`)
         console.log(`  Location vertices created:  ${result.locationVerticesCreated}`)
         console.log(`  Exits created:              ${result.exitsCreated}`)
+        console.log(`  Exits removed:              ${result.exitsRemoved}`)
         console.log()
         console.log(`  Elapsed time:               ${elapsedMs}ms`)
         console.log()

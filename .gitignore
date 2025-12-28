@@ -37,3 +37,4 @@ infrastructure/*.json
 # Historical ordering artifacts directory (no longer produced)
 artifacts/ordering/*.json
 !artifacts/ordering/.gitkeep
+.env.cosmos.production
