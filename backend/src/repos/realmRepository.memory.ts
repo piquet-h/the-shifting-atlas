@@ -229,4 +229,17 @@ export class InMemoryRealmRepository implements IRealmRepository {
 
         return { deleted: true }
     }
+
+    async getWeatherZoneForLocation(locationId: string): Promise<RealmVertex | null> {
+        // Traverse containment chain to find first WEATHER_ZONE realm
+        const chain = await this.getContainmentChain(locationId)
+
+        for (const realm of chain) {
+            if (realm.realmType === 'WEATHER_ZONE') {
+                return realm
+            }
+        }
+
+        return null
+    }
 }
