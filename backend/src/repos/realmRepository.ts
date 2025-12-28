@@ -118,4 +118,14 @@ export interface IRealmRepository {
      * @returns Result with deleted flag
      */
     deleteRealm(id: string): Promise<{ deleted: boolean }>
+
+    /**
+     * Get the weather zone realm for a given location.
+     * Traverses `within` edges upward through containment chain to find
+     * the first realm with realmType='WEATHER_ZONE'.
+     *
+     * @param locationId - Location ID
+     * @returns Weather zone realm or null if not found
+     */
+    getWeatherZoneForLocation(locationId: string): Promise<RealmVertex | null>
 }
