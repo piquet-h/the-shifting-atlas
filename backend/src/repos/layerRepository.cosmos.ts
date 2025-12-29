@@ -296,7 +296,11 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         return items
     }
 
-    async updateLayer(layerId: string, scopeId: string, updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>): Promise<DescriptionLayer | null> {
+    async updateLayer(
+        layerId: string,
+        scopeId: string,
+        updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>
+    ): Promise<DescriptionLayer | null> {
         const startTime = Date.now()
 
         // Get existing layer

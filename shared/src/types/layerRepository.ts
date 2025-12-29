@@ -146,7 +146,11 @@ export interface ILayerRepository {
      * @param updates - Partial layer updates
      * @returns The updated layer or null if not found
      */
-    updateLayer(layerId: string, scopeId: string, updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>): Promise<DescriptionLayer | null>
+    updateLayer(
+        layerId: string,
+        scopeId: string,
+        updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>
+    ): Promise<DescriptionLayer | null>
 
     /**
      * Delete a layer by ID.

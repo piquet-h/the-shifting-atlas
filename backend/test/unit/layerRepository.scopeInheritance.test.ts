@@ -5,7 +5,7 @@
 
 import assert from 'node:assert'
 import { describe, test, beforeEach, afterEach } from 'node:test'
-import type { DescriptionLayer, LayerType } from '@piquet-h/shared/types/layerRepository'
+import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('Layer Repository Scope Inheritance (Unit)', () => {
@@ -131,9 +131,7 @@ describe('Layer Repository Scope Inheritance (Unit)', () => {
 
             // Test boundary conditions
             const isActive = (tick: number) => {
-                return (
-                    tick >= layer.effectiveFromTick && (layer.effectiveToTick === null || tick <= layer.effectiveToTick)
-                )
+                return tick >= layer.effectiveFromTick && (layer.effectiveToTick === null || tick <= layer.effectiveToTick)
             }
 
             assert.strictEqual(isActive(999), false) // Before range
@@ -155,9 +153,7 @@ describe('Layer Repository Scope Inheritance (Unit)', () => {
             }
 
             const isActive = (tick: number) => {
-                return (
-                    tick >= layer.effectiveFromTick && (layer.effectiveToTick === null || tick <= layer.effectiveToTick)
-                )
+                return tick >= layer.effectiveFromTick && (layer.effectiveToTick === null || tick <= layer.effectiveToTick)
             }
 
             assert.strictEqual(isActive(99), false)

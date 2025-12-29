@@ -110,9 +110,7 @@ export class MemoryLayerRepository implements ILayerRepository {
      * Helper: Find active layer for a scope at a specific tick
      */
     private findActiveLayer(scopeId: string, layerType: LayerType, tick: number): DescriptionLayer | null {
-        const scopeLayers = Array.from(this.layers.values()).filter(
-            (layer) => layer.scopeId === scopeId && layer.layerType === layerType
-        )
+        const scopeLayers = Array.from(this.layers.values()).filter((layer) => layer.scopeId === scopeId && layer.layerType === layerType)
 
         // Find layers active at this tick
         const activeLayers = scopeLayers.filter((layer) => {
@@ -168,7 +166,11 @@ export class MemoryLayerRepository implements ILayerRepository {
         })
     }
 
-    async updateLayer(layerId: string, scopeId: string, updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>): Promise<DescriptionLayer | null> {
+    async updateLayer(
+        layerId: string,
+        scopeId: string,
+        updates: Partial<Pick<DescriptionLayer, 'value' | 'layerType'>>
+    ): Promise<DescriptionLayer | null> {
         const existing = this.layers.get(layerId)
 
         if (!existing || existing.scopeId !== scopeId) {
