@@ -267,8 +267,10 @@ export class DescriptionComposer {
                 return typeB - typeA // Higher type priority first
             }
 
-            if (a.priority !== b.priority) {
-                return b.priority - a.priority // Higher priority first
+            const aPriority = a.priority ?? 0
+            const bPriority = b.priority ?? 0
+            if (aPriority !== bPriority) {
+                return bPriority - aPriority // Higher priority first
             }
 
             return a.id.localeCompare(b.id) // Deterministic tie-break
@@ -278,12 +280,13 @@ export class DescriptionComposer {
         // NOTE: Using double newline for paragraph separation in markdown format
         // This creates visual breaks between layer content while maintaining readability
         for (const layer of sorted) {
-            sections.push(layer.content)
+            const content = layer.content ?? layer.value ?? ''
+            sections.push(content)
 
             provenanceLayers.push({
                 id: layer.id,
                 layerType: layer.layerType,
-                priority: layer.priority,
+                priority: layer.priority ?? 0,
                 authoredAt: layer.authoredAt
             })
         }
