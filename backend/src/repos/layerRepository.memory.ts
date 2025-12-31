@@ -109,12 +109,7 @@ export class MemoryLayerRepository implements ILayerRepository {
         return { ...layer }
     }
 
-    async queryLayerHistory(
-        scopeId: string,
-        layerType: LayerType,
-        startTick?: number,
-        endTick?: number
-    ): Promise<DescriptionLayer[]> {
+    async queryLayerHistory(scopeId: string, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]> {
         let scopeLayers = Array.from(this.layers.values()).filter((layer) => layer.scopeId === scopeId && layer.layerType === layerType)
 
         // Apply temporal filtering

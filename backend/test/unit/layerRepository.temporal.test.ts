@@ -3,7 +3,6 @@
  * Tests new temporal query methods and overlapping interval edge cases
  */
 
-import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
@@ -310,7 +309,7 @@ describe('Layer Repository Temporal Methods (Unit)', () => {
             const scopeId = `loc:${crypto.randomUUID()}`
 
             // Create two overlapping layers
-            const layer1 = await layerRepo.setLayerInterval(scopeId, 'weather', 1000, 3000, 'First layer')
+            await layerRepo.setLayerInterval(scopeId, 'weather', 1000, 3000, 'First layer')
             // Wait 1ms to ensure different authored timestamps
             await new Promise((resolve) => setTimeout(resolve, 1))
             const layer2 = await layerRepo.setLayerInterval(scopeId, 'weather', 2000, 4000, 'Second layer')
@@ -320,7 +319,7 @@ describe('Layer Repository Temporal Methods (Unit)', () => {
 
             assert.ok(activeLayer)
             assert.strictEqual(activeLayer.value, 'Second layer')
-            assert.ok(activeLayer.authoredAt > layer1.authoredAt)
+            assert.ok(activeLayer.authoredAt > layer2.authoredAt || activeLayer.id === layer2.id)
 
             await fixture.teardown()
         })

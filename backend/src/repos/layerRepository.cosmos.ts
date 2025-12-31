@@ -185,12 +185,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         return resource
     }
 
-    async queryLayerHistory(
-        scopeId: string,
-        layerType: LayerType,
-        startTick?: number,
-        endTick?: number
-    ): Promise<DescriptionLayer[]> {
+    async queryLayerHistory(scopeId: string, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]> {
         const startTime = Date.now()
 
         let queryText = `
@@ -198,7 +193,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             WHERE c.scopeId = @scopeId 
             AND c.layerType = @layerType
         `
-        const parameters: Array<{ name: string; value: any }> = [
+        const parameters: Array<{ name: string; value: string | number }> = [
             { name: '@scopeId', value: scopeId },
             { name: '@layerType', value: layerType }
         ]

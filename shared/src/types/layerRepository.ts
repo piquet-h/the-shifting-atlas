@@ -167,12 +167,7 @@ export interface ILayerRepository {
      * @param endTick - Optional end of time range (inclusive)
      * @returns Array of layers in chronological order
      */
-    queryLayerHistory(
-        scopeId: ScopeId,
-        layerType: LayerType,
-        startTick?: number,
-        endTick?: number
-    ): Promise<DescriptionLayer[]>
+    queryLayerHistory(scopeId: ScopeId, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]>
 
     /**
      * @deprecated Use getActiveLayerForLocation instead
