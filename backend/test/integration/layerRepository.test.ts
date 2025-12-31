@@ -3,9 +3,9 @@
  * Tests repository operations with dependency injection container
  */
 
+import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Layer Repository Integration', () => {
@@ -255,7 +255,7 @@ describe('Layer Repository Integration', () => {
 
             await repo.addLayer(layer)
 
-            const updated = await repo.updateLayer(layer.id, locationId, {
+            const updated = await repo.updateLayer(layer.id, `loc:${locationId}`, {
                 content: 'Updated content'
             })
 
@@ -279,7 +279,7 @@ describe('Layer Repository Integration', () => {
 
             await repo.addLayer(layer)
 
-            const updated = await repo.updateLayer(layer.id, locationId, {
+            const updated = await repo.updateLayer(layer.id, `loc:${locationId}`, {
                 priority: 75
             })
 
@@ -303,7 +303,7 @@ describe('Layer Repository Integration', () => {
 
             await repo.addLayer(layer)
 
-            const updated = await repo.updateLayer(layer.id, locationId, {
+            const updated = await repo.updateLayer(layer.id, `loc:${locationId}`, {
                 layerType: 'dynamic'
             })
 
@@ -315,7 +315,7 @@ describe('Layer Repository Integration', () => {
             const repo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
 
-            const updated = await repo.updateLayer('nonexistent-id', locationId, {
+            const updated = await repo.updateLayer('nonexistent-id', `loc:${locationId}`, {
                 content: 'Updated content'
             })
 
@@ -363,7 +363,7 @@ describe('Layer Repository Integration', () => {
 
             await repo.addLayer(layer)
 
-            const deleted = await repo.deleteLayer(layer.id, locationId)
+            const deleted = await repo.deleteLayer(layer.id, `loc:${locationId}`)
             assert.strictEqual(deleted, true)
 
             const layers = await repo.getLayersForLocation(locationId)
@@ -374,7 +374,7 @@ describe('Layer Repository Integration', () => {
             const repo = await fixture.getLayerRepository()
             const locationId = crypto.randomUUID()
 
-            const deleted = await repo.deleteLayer('nonexistent-id', locationId)
+            const deleted = await repo.deleteLayer('nonexistent-id', `loc:${locationId}`)
             assert.strictEqual(deleted, false)
         })
 
@@ -468,7 +468,7 @@ describe('Layer Repository Integration', () => {
 
             // Update with large content
             const largeContent = 'y'.repeat(101000)
-            const updated = await repo.updateLayer(layer.id, locationId, {
+            const updated = await repo.updateLayer(layer.id, `loc:${locationId}`, {
                 content: largeContent
             })
 
