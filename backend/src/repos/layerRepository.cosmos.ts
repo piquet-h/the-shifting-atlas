@@ -120,31 +120,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         value: string,
         metadata?: Record<string, unknown>
     ): Promise<DescriptionLayer> {
-        const startTime = Date.now()
-
-        const layer: LayerDocument = {
-            id: crypto.randomUUID(),
-            scopeId: `realm:${realmId}`,
-            layerType,
-            value,
-            effectiveFromTick: fromTick,
-            effectiveToTick: toTick,
-            authoredAt: new Date().toISOString(),
-            metadata
-        }
-
-        const { resource } = await this.upsert(layer)
-
-        this._telemetry.trackGameEvent('Layer.SetForRealm', {
-            layerId: layer.id,
-            realmId,
-            layerType,
-            fromTick,
-            toTick: toTick ?? 'indefinite',
-            latencyMs: Date.now() - startTime
-        })
-
-        return resource
+        return this.setLayerInterval(`realm:${realmId}`, layerType, fromTick, toTick, value, metadata)
     }
 
     async setLayerForLocation(
@@ -155,11 +131,38 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         value: string,
         metadata?: Record<string, unknown>
     ): Promise<DescriptionLayer> {
+        return this.setLayerInterval(`loc:${locationId}`, layerType, fromTick, toTick, value, metadata)
+    }
+
+    async getActiveLayer(scopeId: string, layerType: LayerType, tick: number): Promise<DescriptionLayer | null> {
+        const startTime = Date.now()
+
+        const layer = await this.findActiveLayer(scopeId, layerType, tick)
+
+        this._telemetry.trackGameEvent('Layer.GetActive.Direct', {
+            scopeId,
+            layerType,
+            tick,
+            found: !!layer,
+            latencyMs: Date.now() - startTime
+        })
+
+        return layer
+    }
+
+    async setLayerInterval(
+        scopeId: string,
+        layerType: LayerType,
+        fromTick: number,
+        toTick: number | null,
+        value: string,
+        metadata?: Record<string, unknown>
+    ): Promise<DescriptionLayer> {
         const startTime = Date.now()
 
         const layer: LayerDocument = {
             id: crypto.randomUUID(),
-            scopeId: `loc:${locationId}`,
+            scopeId,
             layerType,
             value,
             effectiveFromTick: fromTick,
@@ -170,9 +173,9 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
 
         const { resource } = await this.upsert(layer)
 
-        this._telemetry.trackGameEvent('Layer.SetForLocation', {
+        this._telemetry.trackGameEvent('Layer.SetInterval', {
             layerId: layer.id,
-            locationId,
+            scopeId,
             layerType,
             fromTick,
             toTick: toTick ?? 'indefinite',
@@ -180,6 +183,50 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         })
 
         return resource
+    }
+
+    async queryLayerHistory(
+        scopeId: string,
+        layerType: LayerType,
+        startTick?: number,
+        endTick?: number
+    ): Promise<DescriptionLayer[]> {
+        const startTime = Date.now()
+
+        let queryText = `
+            SELECT * FROM c 
+            WHERE c.scopeId = @scopeId 
+            AND c.layerType = @layerType
+        `
+        const parameters: Array<{ name: string; value: any }> = [
+            { name: '@scopeId', value: scopeId },
+            { name: '@layerType', value: layerType }
+        ]
+
+        if (startTick !== undefined) {
+            queryText += ' AND c.effectiveFromTick >= @startTick'
+            parameters.push({ name: '@startTick', value: startTick })
+        }
+
+        if (endTick !== undefined) {
+            queryText += ' AND (c.effectiveToTick IS NULL OR c.effectiveToTick <= @endTick)'
+            parameters.push({ name: '@endTick', value: endTick })
+        }
+
+        queryText += ' ORDER BY c.effectiveFromTick ASC'
+
+        const { items } = await this.query(queryText, parameters)
+
+        this._telemetry.trackGameEvent('Layer.QueryHistory', {
+            scopeId,
+            layerType,
+            startTick: startTick ?? 'unbounded',
+            endTick: endTick ?? 'unbounded',
+            resultCount: items.length,
+            latencyMs: Date.now() - startTime
+        })
+
+        return items
     }
 
     /**

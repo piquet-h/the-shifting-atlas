@@ -68,9 +68,35 @@ export class MemoryLayerRepository implements ILayerRepository {
         value: string,
         metadata?: Record<string, unknown>
     ): Promise<DescriptionLayer> {
+        return this.setLayerInterval(`realm:${realmId}`, layerType, fromTick, toTick, value, metadata)
+    }
+
+    async setLayerForLocation(
+        locationId: string,
+        layerType: LayerType,
+        fromTick: number,
+        toTick: number | null,
+        value: string,
+        metadata?: Record<string, unknown>
+    ): Promise<DescriptionLayer> {
+        return this.setLayerInterval(`loc:${locationId}`, layerType, fromTick, toTick, value, metadata)
+    }
+
+    async getActiveLayer(scopeId: string, layerType: LayerType, tick: number): Promise<DescriptionLayer | null> {
+        return this.findActiveLayer(scopeId, layerType, tick)
+    }
+
+    async setLayerInterval(
+        scopeId: string,
+        layerType: LayerType,
+        fromTick: number,
+        toTick: number | null,
+        value: string,
+        metadata?: Record<string, unknown>
+    ): Promise<DescriptionLayer> {
         const layer: DescriptionLayer = {
             id: crypto.randomUUID(),
-            scopeId: `realm:${realmId}`,
+            scopeId,
             layerType,
             value,
             effectiveFromTick: fromTick,
@@ -83,27 +109,27 @@ export class MemoryLayerRepository implements ILayerRepository {
         return { ...layer }
     }
 
-    async setLayerForLocation(
-        locationId: string,
+    async queryLayerHistory(
+        scopeId: string,
         layerType: LayerType,
-        fromTick: number,
-        toTick: number | null,
-        value: string,
-        metadata?: Record<string, unknown>
-    ): Promise<DescriptionLayer> {
-        const layer: DescriptionLayer = {
-            id: crypto.randomUUID(),
-            scopeId: `loc:${locationId}`,
-            layerType,
-            value,
-            effectiveFromTick: fromTick,
-            effectiveToTick: toTick,
-            authoredAt: new Date().toISOString(),
-            metadata
+        startTick?: number,
+        endTick?: number
+    ): Promise<DescriptionLayer[]> {
+        let scopeLayers = Array.from(this.layers.values()).filter((layer) => layer.scopeId === scopeId && layer.layerType === layerType)
+
+        // Apply temporal filtering
+        if (startTick !== undefined) {
+            scopeLayers = scopeLayers.filter((layer) => layer.effectiveFromTick >= startTick)
         }
 
-        this.layers.set(layer.id, { ...layer })
-        return { ...layer }
+        if (endTick !== undefined) {
+            scopeLayers = scopeLayers.filter((layer) => layer.effectiveToTick === null || layer.effectiveToTick <= endTick)
+        }
+
+        // Sort by effectiveFromTick ascending (chronological order)
+        scopeLayers.sort((a, b) => a.effectiveFromTick - b.effectiveFromTick)
+
+        return scopeLayers
     }
 
     /**
