@@ -5,9 +5,9 @@
 
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { ConcurrentAdvancementError } from '../../src/repos/worldClockRepository.js'
 import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import { ConcurrentAdvancementError } from '../../src/repos/worldClockRepository.js'
 
 describeForBothModes('WorldClockService Integration', (mode) => {
     let fixture: IntegrationTestFixture
@@ -101,8 +101,9 @@ describeForBothModes('WorldClockService Integration', (mode) => {
     describe('getTickAt', () => {
         test('returns null for timestamp before initialization', async () => {
             const service = await fixture.getWorldClockService()
+            const clock = await fixture.getClock()
 
-            const pastDate = new Date(Date.now() - 10000)
+            const pastDate = new Date(clock.now().getTime() - 10000)
             const tick = await service.getTickAt(pastDate)
 
             assert.strictEqual(tick, null)
@@ -110,29 +111,33 @@ describeForBothModes('WorldClockService Integration', (mode) => {
 
         test('returns 0 for timestamp at initialization', async () => {
             const service = await fixture.getWorldClockService()
+            const clock = await fixture.getClock()
 
             // Initialize clock
             await service.getCurrentTick()
 
-            // Query at roughly the same time
-            const tick = await service.getTickAt(new Date())
+            // Query at initialization time
+            const tick = await service.getTickAt(clock.now())
 
             assert.strictEqual(tick, 0)
         })
 
         test('returns tick at specific timestamp after advancements', async () => {
             const service = await fixture.getWorldClockService()
+            const clock = await fixture.getClock()
 
-            // Initialize
+            // Initialize at T0
             await service.getCurrentTick()
-            await new Promise((resolve) => setTimeout(resolve, 10)) // Small delay
 
-            const firstTime = new Date()
+            // Advance time and advance tick
+            clock.advance(10)
             await service.advanceTick(1000, 'first')
+            const firstTime = clock.now() // Capture after advancement
 
-            await new Promise((resolve) => setTimeout(resolve, 10)) // Small delay
-            const secondTime = new Date()
+            // Advance time and advance tick again
+            clock.advance(10)
             await service.advanceTick(500, 'second')
+            const secondTime = clock.now() // Capture after advancement
 
             // Query at first timestamp should return 1000
             const tickAtFirst = await service.getTickAt(firstTime)
@@ -145,10 +150,11 @@ describeForBothModes('WorldClockService Integration', (mode) => {
 
         test('returns current tick for future timestamp', async () => {
             const service = await fixture.getWorldClockService()
+            const clock = await fixture.getClock()
 
             await service.advanceTick(1000, 'test')
 
-            const futureDate = new Date(Date.now() + 10000)
+            const futureDate = new Date(clock.now().getTime() + 10000)
             const tick = await service.getTickAt(futureDate)
 
             assert.strictEqual(tick, 1000)

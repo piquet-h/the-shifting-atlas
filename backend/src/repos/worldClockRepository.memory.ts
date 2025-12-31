@@ -3,9 +3,9 @@
  * For testing and local development
  */
 
-import type { WorldClock } from '@piquet-h/shared'
+import type { IClock, WorldClock } from '@piquet-h/shared'
 import { buildWorldClockId } from '@piquet-h/shared'
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
 import { ConcurrentAdvancementError, type IWorldClockRepository } from './worldClockRepository.js'
 
 /**
@@ -14,6 +14,8 @@ import { ConcurrentAdvancementError, type IWorldClockRepository } from './worldC
 @injectable()
 export class WorldClockRepositoryMemory implements IWorldClockRepository {
     private clock: WorldClock | null = null
+
+    constructor(@inject('IClock') private readonly clockProvider: IClock) {}
 
     /**
      * Get the current world clock state
@@ -33,7 +35,7 @@ export class WorldClockRepositoryMemory implements IWorldClockRepository {
         this.clock = {
             id: buildWorldClockId(),
             currentTick: initialTick,
-            lastAdvanced: new Date().toISOString(),
+            lastAdvanced: this.clockProvider.nowIso(),
             advancementHistory: [],
             _etag: this.generateEtag()
         }
@@ -58,7 +60,7 @@ export class WorldClockRepositoryMemory implements IWorldClockRepository {
             throw new ConcurrentAdvancementError('ETag mismatch: concurrent modification detected')
         }
 
-        const now = new Date().toISOString()
+        const now = this.clockProvider.nowIso()
         const newTick = this.clock.currentTick + durationMs
 
         // Create advancement log entry
@@ -85,7 +87,7 @@ export class WorldClockRepositoryMemory implements IWorldClockRepository {
      * Generate a mock ETag for concurrency testing
      */
     private generateEtag(): string {
-        return `"${Date.now()}-${Math.random().toString(36).substr(2, 9)}"`
+        return `"${this.clockProvider.now().getTime()}-${Math.random().toString(36).substr(2, 9)}"`
     }
 
     /**

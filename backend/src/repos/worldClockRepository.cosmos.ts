@@ -5,7 +5,7 @@
  * Container: `worldClock` (PK: `/id`)
  */
 
-import type { WorldClock } from '@piquet-h/shared'
+import type { IClock, WorldClock } from '@piquet-h/shared'
 import { buildWorldClockId } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -21,7 +21,8 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
         @inject('CosmosContainer:WorldClock') containerName: string,
-        @inject(TelemetryService) protected telemetryService: TelemetryService
+        @inject(TelemetryService) protected telemetryService: TelemetryService,
+        @inject('IClock') private readonly clockProvider: IClock
     ) {
         super(sqlClient, containerName, telemetryService)
     }
@@ -49,7 +50,7 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
         const clock: WorldClock = {
             id: clockId,
             currentTick: initialTick,
-            lastAdvanced: new Date().toISOString(),
+            lastAdvanced: this.clockProvider.nowIso(),
             advancementHistory: []
         }
 
@@ -78,7 +79,7 @@ export class WorldClockRepositoryCosmos extends CosmosDbSqlRepository<WorldClock
             throw new ConcurrentAdvancementError('ETag mismatch: concurrent modification detected')
         }
 
-        const now = new Date().toISOString()
+        const now = this.clockProvider.nowIso()
         const newTick = current.currentTick + durationMs
 
         // Create advancement log entry

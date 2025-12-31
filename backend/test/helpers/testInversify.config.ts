@@ -11,6 +11,7 @@
  * - Supports 'cosmos' mode for E2E tests (but still mocks telemetry)
  */
 
+import { FakeClock, type IClock } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
@@ -309,6 +310,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
         container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
     }
+
+    // === Clock (Time Abstraction) ===
+    // Always use FakeClock in tests for deterministic time control
+    container.bind<IClock>('IClock').toConstantValue(new FakeClock())
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()

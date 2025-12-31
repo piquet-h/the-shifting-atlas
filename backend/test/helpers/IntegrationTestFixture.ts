@@ -260,6 +260,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get<import('../../src/repos/realmRepository.js').IRealmRepository>('IRealmRepository')
     }
 
+    /** Get FakeClock instance from DI container (for deterministic time control in tests) */
+    async getClock(): Promise<import('@piquet-h/shared').FakeClock> {
+        const container = await this.getContainer()
+        return container.get<import('@piquet-h/shared').IClock>('IClock') as import('@piquet-h/shared').FakeClock
+    }
+
     /** Get LocationClockManager instance from DI container */
     async getLocationClockManager(): Promise<import('../../src/services/types.js').ILocationClockManager> {
         const container = await this.getContainer()

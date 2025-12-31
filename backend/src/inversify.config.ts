@@ -13,6 +13,7 @@
  *
  * NO memory mode fallbacks - production deploys with full infrastructure or fails.
  */
+import { SystemClock, type IClock } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
@@ -222,6 +223,9 @@ export const setupContainer = async (container: Container) => {
     // === Location Clock Container ===
     // Note: Container name is read directly in LocationClockRepositoryCosmos constructor from env var
     container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+
+    // === Clock (Time Abstraction) ===
+    container.bind<IClock>('IClock').toConstantValue(new SystemClock())
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
