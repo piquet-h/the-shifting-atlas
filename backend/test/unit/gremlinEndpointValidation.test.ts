@@ -5,7 +5,9 @@ import { validateGremlinEndpoint } from '../../src/gremlin/gremlinClient.js'
 // Happy path conversion
 test('validateGremlinEndpoint converts documents endpoint to gremlin websocket', () => {
     const ws = validateGremlinEndpoint('https://example.documents.azure.com:443/')
-    assert.equal(ws.startsWith('wss://example.gremlin.cosmos.azure.com'), true)
+    const url = new URL(ws)
+    assert.equal(url.protocol, 'wss:')
+    assert.equal(url.host, 'example.gremlin.cosmos.azure.com')
 })
 
 // Already gremlin form
