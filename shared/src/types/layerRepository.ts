@@ -123,6 +123,53 @@ export interface ILayerRepository {
     ): Promise<DescriptionLayer>
 
     /**
+     * Get the active layer for a specific scope at a specific tick (direct scope query).
+     * Does NOT perform realm inheritance - queries only the specified scope.
+     * For realm inheritance, use getActiveLayerForLocation instead.
+     *
+     * @param scopeId - Scope ID ('loc:<locationId>' or 'realm:<realmId>')
+     * @param layerType - Type of layer to retrieve
+     * @param tick - World clock tick for temporal filtering
+     * @returns Active layer or null if none found
+     */
+    getActiveLayer(scopeId: ScopeId, layerType: LayerType, tick: number): Promise<DescriptionLayer | null>
+
+    /**
+     * Set a layer for any scope (generic setter for both locations and realms).
+     * Validates that overlapping intervals for the same scopeId+layerType are not created.
+     *
+     * Policy: If multiple layers are active at the same tick, the most recently authored layer wins.
+     *
+     * @param scopeId - Scope ID ('loc:<locationId>' or 'realm:<realmId>')
+     * @param layerType - Type of layer
+     * @param fromTick - World clock tick when layer becomes active
+     * @param toTick - World clock tick when layer expires (null = indefinite)
+     * @param value - Text content of the layer
+     * @param metadata - Optional metadata
+     * @returns The created layer
+     */
+    setLayerInterval(
+        scopeId: ScopeId,
+        layerType: LayerType,
+        fromTick: number,
+        toTick: number | null,
+        value: string,
+        metadata?: Record<string, unknown>
+    ): Promise<DescriptionLayer>
+
+    /**
+     * Query layer history for a scope and layer type within an optional time range.
+     * Returns all layers matching the criteria, ordered by effectiveFromTick ascending.
+     *
+     * @param scopeId - Scope ID ('loc:<locationId>' or 'realm:<realmId>')
+     * @param layerType - Type of layer to retrieve
+     * @param startTick - Optional start of time range (inclusive)
+     * @param endTick - Optional end of time range (inclusive)
+     * @returns Array of layers in chronological order
+     */
+    queryLayerHistory(scopeId: ScopeId, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]>
+
+    /**
      * @deprecated Use getActiveLayerForLocation instead
      * Get all layers for a location (single-partition query).
      * @param locationId - Location ID (partition key)
