@@ -9,6 +9,7 @@
 
 import type { RealmVertex, RealmType, Location } from '@piquet-h/shared'
 import type { IRealmService, LocationContext } from '@piquet-h/shared/types/realmService'
+import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { inject, injectable } from 'inversify'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { IRealmRepository } from '../repos/realmRepository.js'
@@ -178,13 +179,13 @@ export class RealmService implements IRealmService {
      * Queries layers for all layer types that might be active.
      * @private
      */
-    private async getActiveLayersForLocation(locationId: string, tick: number): Promise<import('@piquet-h/shared/types/layerRepository').DescriptionLayer[]> {
+    private async getActiveLayersForLocation(locationId: string, tick: number): Promise<DescriptionLayer[]> {
         const layerTypes: Array<'base' | 'ambient' | 'dynamic' | 'weather' | 'lighting'> = ['base', 'ambient', 'dynamic', 'weather', 'lighting']
 
         const layers = await Promise.all(layerTypes.map((layerType) => this.layerRepository.getActiveLayerForLocation(locationId, layerType, tick)))
 
         // Filter out null results and return
-        return layers.filter((layer): layer is import('@piquet-h/shared/types/layerRepository').DescriptionLayer => layer !== null)
+        return layers.filter((layer): layer is DescriptionLayer => layer !== null)
     }
 
     /**
