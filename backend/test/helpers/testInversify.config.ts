@@ -79,6 +79,7 @@ import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { RealmService } from '../../src/services/RealmService.js'
 import { LocationClockManager } from '../../src/services/LocationClockManager.js'
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
 import { ReconcileEngine } from '../../src/services/ReconcileEngine.js'
@@ -317,6 +318,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind(RealmService).toSelf().inSingletonScope()
     container.bind<IWorldClockService>('IWorldClockService').to(WorldClockService).inSingletonScope()
     container.bind(WorldClockService).toSelf().inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()

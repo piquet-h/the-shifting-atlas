@@ -72,6 +72,11 @@
             "import": "./dist/types/exitHintDebounceRepository.js",
             "types": "./dist/types/exitHintDebounceRepository.d.ts",
             "default": "./dist/types/exitHintDebounceRepository.js"
+        },
+        "./types/realmService": {
+            "import": "./dist/types/realmService.js",
+            "types": "./dist/types/realmService.d.ts",
+            "default": "./dist/types/realmService.js"
         }
     },
     "browser": {
