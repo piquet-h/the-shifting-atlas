@@ -57,6 +57,8 @@ import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js
 import { IPlayerRepository } from './repos/playerRepository.js'
 import { CosmosProcessedEventRepository } from './repos/processedEventRepository.cosmos.js'
 import type { IProcessedEventRepository } from './repos/processedEventRepository.js'
+import { CosmosRealmRepository } from './repos/realmRepository.cosmos.js'
+import type { IRealmRepository } from './repos/realmRepository.js'
 import { TemporalLedgerRepositoryCosmos } from './repos/temporalLedgerRepository.cosmos.js'
 import type { ITemporalLedgerRepository } from './repos/temporalLedgerRepository.js'
 import { WorldClockRepositoryCosmos } from './repos/worldClockRepository.cosmos.js'
@@ -64,6 +66,7 @@ import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
+import { RealmService } from './services/RealmService.js'
 import { LocationClockManager } from './services/LocationClockManager.js'
 import { PlayerClockService } from './services/PlayerClockService.js'
 import { ReconcileEngine } from './services/ReconcileEngine.js'
@@ -184,6 +187,7 @@ export const setupContainer = async (container: Container) => {
     // === Cosmos Repositories ===
     container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
     container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
+    container.bind<IRealmRepository>('IRealmRepository').to(CosmosRealmRepository).inSingletonScope()
     container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
     container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
     container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
@@ -229,6 +233,7 @@ export const setupContainer = async (container: Container) => {
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
+    container.bind(RealmService).toSelf().inSingletonScope()
     container.bind<ILocationClockManager>('ILocationClockManager').to(LocationClockManager).inSingletonScope()
     container.bind(PlayerClockService).toSelf().inSingletonScope()
     container.bind<IWorldClockService>('IWorldClockService').to(WorldClockService).inSingletonScope()
