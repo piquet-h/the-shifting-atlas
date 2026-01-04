@@ -22,6 +22,7 @@ import type { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
 import type { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
+import { RealmService } from '../../src/services/RealmService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
@@ -175,6 +176,12 @@ export class IntegrationTestFixture extends BaseTestFixture {
     async getDescriptionComposer(): Promise<DescriptionComposer> {
         const container = await this.getContainer()
         return container.get(DescriptionComposer)
+    }
+
+    /** Get RealmService instance from DI container */
+    async getRealmService(): Promise<RealmService> {
+        const container = await this.getContainer()
+        return container.get(RealmService)
     }
 
     /** Get WorldEventRepository instance from DI container */
