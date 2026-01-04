@@ -12,7 +12,7 @@
 
 import assert from 'node:assert'
 import { describe, it, beforeEach } from 'node:test'
-import type { RealmVertex, RealmType, Location } from '@piquet-h/shared'
+import type { RealmVertex, Location } from '@piquet-h/shared'
 import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import { RealmService } from '../../dist/src/services/RealmService.js'
 
@@ -104,7 +104,9 @@ class MockLayerRepository {
 
     async getActiveLayerForLocation(locationId: string, layerType: string, tick: number): Promise<DescriptionLayer | null> {
         const layers = this.layers.get(locationId) || []
-        const layer = layers.find((l) => l.layerType === layerType && l.effectiveFromTick <= tick && (l.effectiveToTick === null || l.effectiveToTick >= tick))
+        const layer = layers.find(
+            (l) => l.layerType === layerType && l.effectiveFromTick <= tick && (l.effectiveToTick === null || l.effectiveToTick >= tick)
+        )
         return layer || null
     }
 
@@ -156,12 +158,7 @@ describe('RealmService - Unit Tests', () => {
         mockLayerRepo = new MockLayerRepository()
         mockTelemetry = new MockTelemetryService()
 
-        realmService = new RealmService(
-            mockRealmRepo as any,
-            mockLocationRepo as any,
-            mockLayerRepo as any,
-            mockTelemetry as any
-        )
+        realmService = new RealmService(mockRealmRepo as any, mockLocationRepo as any, mockLayerRepo as any, mockTelemetry as any)
     })
 
     describe('getContainingRealms', () => {

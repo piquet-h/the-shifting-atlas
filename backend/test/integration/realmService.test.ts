@@ -154,7 +154,10 @@ describe('Realm Service (Integration)', () => {
 
             // Verify narrative tags (deduplicated and sorted)
             assert.strictEqual(context.narrativeTags.length, 8)
-            assert.deepStrictEqual(context.narrativeTags, ['ancient', 'bustling', 'coastal', 'commercial', 'magical', 'mild', 'mysterious', 'powerful'].sort())
+            assert.deepStrictEqual(
+                context.narrativeTags,
+                ['ancient', 'bustling', 'coastal', 'commercial', 'magical', 'mild', 'mysterious', 'powerful'].sort()
+            )
 
             // Verify layers
             assert.strictEqual(context.layers.length, 2) // ambient + weather

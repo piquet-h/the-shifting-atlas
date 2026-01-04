@@ -180,9 +180,17 @@ export class RealmService implements IRealmService {
      * @private
      */
     private async getActiveLayersForLocation(locationId: string, tick: number): Promise<DescriptionLayer[]> {
-        const layerTypes: Array<'base' | 'ambient' | 'dynamic' | 'weather' | 'lighting'> = ['base', 'ambient', 'dynamic', 'weather', 'lighting']
+        const layerTypes: Array<'base' | 'ambient' | 'dynamic' | 'weather' | 'lighting'> = [
+            'base',
+            'ambient',
+            'dynamic',
+            'weather',
+            'lighting'
+        ]
 
-        const layers = await Promise.all(layerTypes.map((layerType) => this.layerRepository.getActiveLayerForLocation(locationId, layerType, tick)))
+        const layers = await Promise.all(
+            layerTypes.map((layerType) => this.layerRepository.getActiveLayerForLocation(locationId, layerType, tick))
+        )
 
         // Filter out null results and return
         return layers.filter((layer): layer is DescriptionLayer => layer !== null)
