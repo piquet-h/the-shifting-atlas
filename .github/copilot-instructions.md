@@ -239,7 +239,7 @@ Environment variables (wired in Bicep, available in Functions):
 - `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
 - `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
 - `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
-- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId`)
+- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/scopeId` — **Current deployed: `/locationId`**, migration in progress)
 - `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
 
 Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
@@ -247,7 +247,7 @@ Partition key patterns (unchanged – reaffirmed post ADR-004):
 
 - Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
 - Inventory: Player GUID to colocate all items for a player.
-- Layers: Location GUID to colocate all layers for a location.
+- Layers: Scope pattern `loc:<locationId>` or `realm:<realmId>` for efficient layer queries. **Note**: Deployed containers may use `/locationId` PK; application code supports both.
 - Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
 
 Cutover Notes (ADR-004):
