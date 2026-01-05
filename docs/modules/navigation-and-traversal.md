@@ -58,7 +58,7 @@ Exit Edge (`EXIT`):
 - `name` (player-facing label; e.g. `North Gate`, `Archway`, `Tunnel`)
 - `kind` (`cardinal` | `vertical` | `radial` | `semantic` | `portal`)
 - `distance` (relative units or abstract difficulty metric)
-- `travelMs` (approx movement time; default null initially)
+- `travelMs` (approx movement time; default null initially; semantics: see `../adr/ADR-006-exit-edge-traversal-time.md`)
 - `state` (`open` | `closed` | `locked` | `concealed`)
 - `gating` (optional expression: e.g. `requires:item:bronze_key` or `skill:athletics>=12`)
 - `accessibility` (object: `{ mobility: boolean, lowVision: boolean }` future)

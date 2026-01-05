@@ -10,6 +10,16 @@ Authoritative reference for SQL API containers used by The Shifting Atlas.
 
 ## Containers
 
+### worldClock
+
+- PK: `/id`
+- Purpose: Global world tick advancement state (single logical document)
+
+### locationClocks
+
+- PK: `/id`
+- Purpose: Per-location clock anchors (mutable operational state)
+
 ### players
 
 - PK: `/id`

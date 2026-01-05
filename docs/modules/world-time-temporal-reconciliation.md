@@ -2,7 +2,9 @@
 
 **Focus**: Technical implementation of coherent, persistent time simulation balancing narrative richness with multiplayer playability
 
-**Status**: Planned (M5+)
+**Status**: Partially implemented (Temporal PI-0 scaffolding landed; PI-1 wiring tracked in Epic #696)
+
+> Note: This document mixes implemented PI-0 building blocks with aspirational future phases. Execution tracking lives in GitHub issues/epics; treat this as a contract/tradeoff reference rather than a backlog.
 
 ---
 
@@ -168,8 +170,8 @@ interface LocationClockManager {
 
 **Storage**:
 
-- Add to location vertices in Gremlin graph: `clockAnchor: number` property
-- Alternative (if graph updates expensive): Separate `locationClocks` SQL container (PK: `/id` = locationId)
+- Implemented: Separate `locationClocks` SQL container (PK: `/id` = locationId). See `docs/architecture/location-clock-storage-decision.md`.
+- Alternative (if graph updates ever become desirable): Add `clockAnchor: number` property to location vertices in Gremlin graph.
 
 **Synchronization**:
 
@@ -528,7 +530,7 @@ async function onPlayerReconnect(playerId: string) {
 
 ## Telemetry Events
 
-Add to `shared/src/telemetry.ts`:
+Telemetry events are centrally defined in `shared/src/telemetryEvents.ts`.
 
 ```typescript
 export enum TelemetryEvent {
@@ -567,12 +569,12 @@ The temporal system configuration is centralized in `shared/src/temporal/config.
 
 ```typescript
 interface TemporalConfig {
-    epsilonMs: number          // Silent snap window (default: 300000 = 5 minutes)
-    slowThresholdMs: number    // Small nudge window (default: 3600000 = 1 hour)
+    epsilonMs: number // Silent snap window (default: 300000 = 5 minutes)
+    slowThresholdMs: number // Small nudge window (default: 3600000 = 1 hour)
     compressThresholdMs: number // Narrative compression trigger (default: 86400000 = 1 day)
-    driftRate: number          // Idle drift multiplier (default: 1.0)
-    waitMaxStepMs: number      // Max wait advance per reconcile (default: 1800000 = 30 minutes)
-    slowMaxStepMs: number      // Max slow nudge per WC advancement (default: 600000 = 10 minutes)
+    driftRate: number // Idle drift multiplier (default: 1.0)
+    waitMaxStepMs: number // Max wait advance per reconcile (default: 1800000 = 30 minutes)
+    slowMaxStepMs: number // Max slow nudge per WC advancement (default: 600000 = 10 minutes)
 }
 ```
 
@@ -592,6 +594,7 @@ interface TemporalConfig {
 ```
 
 **Validation Rules**:
+
 - All time values (Ms) must be positive integers
 - `driftRate` must be non-negative (0 = paused time)
 - Thresholds must satisfy: `epsilonMs < slowThresholdMs < compressThresholdMs`
@@ -615,6 +618,7 @@ if (Math.abs(offsetMs) <= config.epsilonMs) {
 ```
 
 **Notes**:
+
 - Configuration requires application restart to change (no runtime reload)
 - Missing environment variables use defaults (no error)
 - Per-location or per-player threshold overrides are out of scope for M3c
