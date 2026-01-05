@@ -102,6 +102,54 @@ describe('persistenceConfig strict mode', () => {
         )
     })
 
+    test('strict mode enabled: throws error when COSMOS_SQL_CONTAINER_LAYERS missing', async () => {
+        process.env.PERSISTENCE_MODE = 'cosmos'
+        process.env.PERSISTENCE_STRICT = '1'
+        // Complete Gremlin config
+        process.env.COSMOS_GREMLIN_ENDPOINT = 'wss://example.gremlin.cosmos.azure.com:443/'
+        process.env.COSMOS_GREMLIN_DATABASE = 'game'
+        process.env.COSMOS_GREMLIN_GRAPH = 'world'
+        // Incomplete SQL API config - omit LAYERS container
+        process.env.COSMOS_SQL_ENDPOINT = 'https://example.documents.azure.com:443/'
+        process.env.COSMOS_SQL_DATABASE = 'game'
+        process.env.COSMOS_SQL_CONTAINER_PLAYERS = 'players'
+        process.env.COSMOS_SQL_CONTAINER_INVENTORY = 'inventory'
+        // Intentionally omit COSMOS_SQL_CONTAINER_LAYERS
+        process.env.COSMOS_SQL_CONTAINER_EVENTS = 'worldEvents'
+
+        await assert.rejects(
+            async () => await loadPersistenceConfigAsync(),
+            {
+                message: /PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete.*COSMOS_SQL_CONTAINER_LAYERS/
+            },
+            'Should throw error when COSMOS_SQL_CONTAINER_LAYERS missing in strict mode'
+        )
+    })
+
+    test('strict mode enabled: throws error when COSMOS_SQL_CONTAINER_EVENTS missing', async () => {
+        process.env.PERSISTENCE_MODE = 'cosmos'
+        process.env.PERSISTENCE_STRICT = '1'
+        // Complete Gremlin config
+        process.env.COSMOS_GREMLIN_ENDPOINT = 'wss://example.gremlin.cosmos.azure.com:443/'
+        process.env.COSMOS_GREMLIN_DATABASE = 'game'
+        process.env.COSMOS_GREMLIN_GRAPH = 'world'
+        // Incomplete SQL API config - omit EVENTS container
+        process.env.COSMOS_SQL_ENDPOINT = 'https://example.documents.azure.com:443/'
+        process.env.COSMOS_SQL_DATABASE = 'game'
+        process.env.COSMOS_SQL_CONTAINER_PLAYERS = 'players'
+        process.env.COSMOS_SQL_CONTAINER_INVENTORY = 'inventory'
+        process.env.COSMOS_SQL_CONTAINER_LAYERS = 'descriptionLayers'
+        // Intentionally omit COSMOS_SQL_CONTAINER_EVENTS
+
+        await assert.rejects(
+            async () => await loadPersistenceConfigAsync(),
+            {
+                message: /PERSISTENCE_STRICT enabled but Cosmos SQL API configuration incomplete.*COSMOS_SQL_CONTAINER_EVENTS/
+            },
+            'Should throw error when COSMOS_SQL_CONTAINER_EVENTS missing in strict mode'
+        )
+    })
+
     test('strict mode enabled with string "true": throws error when config incomplete', async () => {
         process.env.PERSISTENCE_MODE = 'cosmos'
         process.env.PERSISTENCE_STRICT = 'true'
