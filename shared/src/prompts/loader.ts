@@ -15,7 +15,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dirname } from 'node:path'
-import type { PromptTemplate, PromptBundle } from './schema.js'
+import type { PromptTemplateFile, PromptBundle } from './schema.js'
 import { validatePromptTemplate, validatePromptBundle } from './schema.js'
 import { computeTemplateHash } from './canonicalize.js'
 
@@ -26,7 +26,7 @@ const __dirname = dirname(__filename)
  * Cache entry with TTL
  */
 interface CacheEntry {
-    template: PromptTemplate
+    template: PromptTemplateFile
     hash: string
     loadedAt: number
 }
@@ -86,7 +86,7 @@ export class PromptLoader {
     /**
      * Get template by ID
      */
-    async getById(id: string): Promise<PromptTemplate | null> {
+    async getById(id: string): Promise<PromptTemplateFile | null> {
         // Check cache first
         const cached = this.getCached(id)
         if (cached) {
@@ -94,7 +94,7 @@ export class PromptLoader {
         }
 
         // Load template
-        let template: PromptTemplate | null = null
+        let template: PromptTemplateFile | null = null
 
         if (this.config.source === 'bundle') {
             template = await this.loadFromBundle(id)
@@ -121,7 +121,7 @@ export class PromptLoader {
      * by a delimiter (-) or end of string. This prevents ambiguous matches.
      * Example: prefix 'user' matches 'user' and 'user-v2' but not 'user-profile'
      */
-    async getLatest(idPrefix: string): Promise<PromptTemplate | null> {
+    async getLatest(idPrefix: string): Promise<PromptTemplateFile | null> {
         if (this.config.source === 'bundle') {
             return this.getLatestFromBundle(idPrefix)
         } else {
@@ -132,7 +132,7 @@ export class PromptLoader {
     /**
      * Get template by hash (content-addressed lookup)
      */
-    async getByHash(hash: string): Promise<PromptTemplate | null> {
+    async getByHash(hash: string): Promise<PromptTemplateFile | null> {
         // Check cache first
         for (const entry of this.cache.values()) {
             if (entry.hash === hash) {
@@ -220,7 +220,7 @@ export class PromptLoader {
         return age < this.config.cacheTtlMs
     }
 
-    private addToCache(id: string, template: PromptTemplate, hash: string): void {
+    private addToCache(id: string, template: PromptTemplateFile, hash: string): void {
         if (this.config.cacheTtlMs === 0) {
             return // Caching disabled
         }
@@ -240,7 +240,7 @@ export class PromptLoader {
         })
     }
 
-    private async loadFromBundle(id: string): Promise<PromptTemplate | null> {
+    private async loadFromBundle(id: string): Promise<PromptTemplateFile | null> {
         if (!this.bundle) {
             await this.preloadBundle()
         }
@@ -266,7 +266,7 @@ export class PromptLoader {
         return template
     }
 
-    private async loadFromFile(id: string): Promise<PromptTemplate | null> {
+    private async loadFromFile(id: string): Promise<PromptTemplateFile | null> {
         try {
             const filePath = join(this.config.basePath, `${id}.json`)
             const content = await readFile(filePath, 'utf-8')
@@ -286,7 +286,7 @@ export class PromptLoader {
         }
     }
 
-    private async getLatestFromBundle(idPrefix: string): Promise<PromptTemplate | null> {
+    private async getLatestFromBundle(idPrefix: string): Promise<PromptTemplateFile | null> {
         if (!this.bundle) {
             await this.preloadBundle()
         }
@@ -335,7 +335,7 @@ export class PromptLoader {
         return 0
     }
 
-    private async getLatestFromFiles(idPrefix: string): Promise<PromptTemplate | null> {
+    private async getLatestFromFiles(idPrefix: string): Promise<PromptTemplateFile | null> {
         // File-based getLatest is not currently supported
         // This would require scanning the filesystem for matching files and comparing versions
         // For production use, prefer bundle mode which supports this feature

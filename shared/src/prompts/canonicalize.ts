@@ -11,7 +11,7 @@
  */
 
 import crypto from 'node:crypto'
-import type { PromptTemplate } from './schema.js'
+import type { PromptTemplateFile } from './schema.js'
 
 /**
  * Canonicalize a prompt template to deterministic JSON string
@@ -22,7 +22,7 @@ import type { PromptTemplate } from './schema.js'
  * 3. Normalize whitespace in template content
  * 4. Return compact JSON (no extra whitespace)
  */
-export function canonicalizeTemplate(template: PromptTemplate): string {
+export function canonicalizeTemplate(template: PromptTemplateFile): string {
     // Deep sort keys recursively
     const sortedTemplate = sortObjectKeys(template)
 
@@ -35,7 +35,7 @@ export function canonicalizeTemplate(template: PromptTemplate): string {
  *
  * Returns hex-encoded digest for content addressing and version control
  */
-export function computeTemplateHash(template: PromptTemplate): string {
+export function computeTemplateHash(template: PromptTemplateFile): string {
     const canonical = canonicalizeTemplate(template)
     return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex')
 }
@@ -73,7 +73,7 @@ function sortObjectKeys(obj: unknown): unknown {
 /**
  * Verify template hash matches expected value
  */
-export function verifyTemplateHash(template: PromptTemplate, expectedHash: string): boolean {
+export function verifyTemplateHash(template: PromptTemplateFile, expectedHash: string): boolean {
     const actualHash = computeTemplateHash(template)
     return actualHash === expectedHash
 }
@@ -81,7 +81,7 @@ export function verifyTemplateHash(template: PromptTemplate, expectedHash: strin
 /**
  * Batch hash multiple templates
  */
-export function hashTemplates(templates: Record<string, PromptTemplate>): Record<string, string> {
+export function hashTemplates(templates: Record<string, PromptTemplateFile>): Record<string, string> {
     const hashes: Record<string, string> = {}
 
     for (const [id, template] of Object.entries(templates)) {

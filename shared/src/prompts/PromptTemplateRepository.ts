@@ -5,7 +5,7 @@
  * Supports retrieval by id, version, and content hash with TTL-based caching.
  */
 
-import { computeTemplateHash } from './hash.js'
+import { computeContentHash } from './hash.js'
 import type { IPromptTemplateRepository, PromptTemplate, PromptTemplateQuery, PromptCacheConfig } from './types.js'
 import { getWorldTemplate, type WorldPromptKey } from './worldTemplates.js'
 
@@ -116,7 +116,7 @@ export class PromptTemplateRepository implements IPromptTemplateRepository {
 
         try {
             const content = getWorldTemplate(id as WorldPromptKey)
-            const hash = computeTemplateHash(content)
+            const hash = computeContentHash(content)
 
             return {
                 id,
