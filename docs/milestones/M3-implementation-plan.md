@@ -1,6 +1,6 @@
 # M3 Core Loop – Implementation Plan
 
-> **Status:** Split into mini-milestones — **M3a** 20 (all issues closed) ✅ closed 2025-11-30, **M3b** 14 (all issues closed) ✅ closed 2025-12-11, **M3c** 10 (in progress). Critical Path: M3a ✅ → M3b ✅ → M3c (temporal). | Updated 2025-12-11
+> **Status:** Split into mini-milestones — **M3a** ✅ closed 2025-11-30, **M3b** ✅ closed 2025-12-11, **M3c** ✅ closed 2026-01-05. Critical Path: M3a ✅ → M3b ✅ → M3c (temporal). | Updated 2026-01-05
 > **Goal:** Enable players to interact through the web UI with event-driven backend processing and temporal reconciliation.
 > **Dependencies:** M2 Data Foundations (World Events container #407, Player state #404), Telemetry enrichment (#312), SQL API repositories
 > **Blocks:** M4 AI Read (MCP server integration), M5 dashboards (client telemetry), temporal narrative layers
