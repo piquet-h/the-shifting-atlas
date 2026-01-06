@@ -257,8 +257,9 @@ function validateScopeKey(scopeKey: string): void {
 
     const [, prefix, value] = match
 
-    // Validate value part is not empty
-    if (!value || value.trim().length === 0) {
+    // Validate value part is not empty after trimming
+    const trimmedValue = value.trim()
+    if (trimmedValue.length === 0) {
         throw new WorldEventValidationError(`scopeKey value cannot be empty after prefix "${prefix}:"`, [
             {
                 path: 'scopeKey',
@@ -270,9 +271,9 @@ function validateScopeKey(scopeKey: string): void {
 
     // For loc and player prefixes, validate UUID format
     if (prefix === 'loc' || prefix === 'player') {
-        const uuidResult = z.string().uuid().safeParse(value)
+        const uuidResult = z.string().uuid().safeParse(trimmedValue)
         if (!uuidResult.success) {
-            throw new WorldEventValidationError(`scopeKey value must be a valid UUID for "${prefix}:" prefix. Got: "${value}"`, [
+            throw new WorldEventValidationError(`scopeKey value must be a valid UUID for "${prefix}:" prefix. Got: "${trimmedValue}"`, [
                 {
                     path: 'scopeKey',
                     message: `Value after "${prefix}:" must be a valid UUID`,

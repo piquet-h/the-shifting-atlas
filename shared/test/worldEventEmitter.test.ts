@@ -99,17 +99,16 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('Invalid event type'))
                     assert.strictEqual(error.issues.length, 1)
                     assert.strictEqual(error.issues[0].path, 'eventType')
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for empty scopeKey', () => {
@@ -121,16 +120,15 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('scopeKey cannot be empty'))
                     assert.strictEqual(error.issues[0].path, 'scopeKey')
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for invalid scopeKey pattern (missing prefix)', () => {
@@ -142,17 +140,16 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('Invalid scopeKey format'))
                     assert.ok(error.message.includes('Must follow pattern'))
                     assert.strictEqual(error.issues[0].path, 'scopeKey')
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for invalid scopeKey pattern (wrong prefix)', () => {
@@ -164,15 +161,14 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('Invalid scopeKey format'))
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for scopeKey with empty value after prefix', () => {
@@ -184,15 +180,14 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('scopeKey value cannot be empty'))
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for loc: prefix with non-UUID value', () => {
@@ -204,15 +199,14 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('must be a valid UUID'))
+                    return true
                 }
-            }
+            )
         })
 
         it('should throw WorldEventValidationError for player: prefix with non-UUID value', () => {
@@ -224,15 +218,14 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
-            try {
-                emitWorldEvent(options)
-                assert.fail('Should have thrown WorldEventValidationError')
-            } catch (error) {
-                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
-                if (isValidationError(error)) {
+            assert.throws(
+                () => emitWorldEvent(options),
+                (error: any) => {
+                    assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
                     assert.ok(error.message.includes('must be a valid UUID'))
+                    return true
                 }
-            }
+            )
         })
 
         it('should accept valid loc: scopeKey with UUID', () => {
