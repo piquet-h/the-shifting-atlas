@@ -241,6 +241,7 @@ function validateScopeKey(scopeKey: string): void {
     }
 
     // Validate canonical pattern: prefix:value
+    // Pattern accepts any characters after colon; whitespace handling done via trim() below
     const match = scopeKey.match(/^(loc|player|global):(.+)$/)
     if (!match) {
         throw new WorldEventValidationError(
