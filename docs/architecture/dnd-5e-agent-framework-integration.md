@@ -88,21 +88,13 @@ You currently have **two basic MCP servers** implemented as Azure Functions:
 
 **Purpose**: Provides read-only access to world graph state (locations from Cosmos DB Gremlin).
 
-#### B. Prompt Template Registry (`shared/src/prompts/` + optional backend endpoint)
+#### B. Prompt Templates (`shared/src/prompts/` + optional backend endpoint)
 
-```typescript
-// Operations:
-// - op=list (lists all prompt templates)
-// - op=get&name=<templateName> (retrieves specific template)
-```
-
-**Purpose**: Exposes versioned prompt templates for AI generation (currently only `ambience.location.v1`).
+**Purpose**: Store canonical prompt templates in the shared package. A versioned registry and/or backend helper endpoint can be added when external tooling needs HTTP access.
 
 ### 3.2 Existing Prompts
 
-Current template inventory:
-
-- `ambience.location.v1` - Generates ambient sensory descriptions for locations
+Current seed templates live in `shared/src/prompts/worldTemplates.ts` (e.g., `location`, `npc_dialogue`, `quest`).
 
 **Gap**: No D&D-specific prompts for combat, spell effects, NPC behavior, item descriptions, etc.
 

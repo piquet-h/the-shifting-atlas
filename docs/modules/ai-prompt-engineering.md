@@ -307,10 +307,10 @@ When a capability is demonstrated 3+ times successfully, it can be added to thei
 
 #### Prompt Template Registry & Versioning
 
-Templates are retrieved through the canonical prompt registry implemented in `shared/src/prompts/` (and optionally exposed via backend helper endpoints) to ensure:
+Templates should be sourced from the canonical prompt templates folder in `shared/src/prompts/` (and optionally exposed via backend helper endpoints) to ensure:
 
-- Immutable versions (semantic name + semver + SHA256 hash)
-- Reproducibility (hash stored alongside each AI decision)
+- Deterministic review (prompt text is version-controlled)
+- Reproducibility (a prompt hash can be stored alongside AI decisions)
 - Change review (diff old/new template bodies before rollout)
 
 Example template metadata (conceptual):

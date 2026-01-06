@@ -401,7 +401,7 @@ M2:#517-519 (Player) ──> #514 (MCP Foundation) ──> #515 (Location/Player
 
 - ✅ Prompts stored in SQL with versioning + content hash
 - ✅ MCP world-query tool can retrieve location + exit data
-- ✅ Prompt templates retrievable via shared prompt registry (`shared/src/prompts/`) and backend helper API
+- ⏳ Prompt templates stored under `shared/src/prompts/` (seed templates). Versioned registry + backend retrieval API tracked separately.
 - ✅ AI invocations tracked with cost telemetry (model, tokens, latency)
 - ✅ Authentication propagates identity through MCP calls
 - ✅ Intent parsing and event classification decisions can be produced in **shadow mode** (recorded + replayable, not mutating shared state)
