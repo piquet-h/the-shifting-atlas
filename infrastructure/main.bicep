@@ -152,6 +152,10 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_EVENTS: 'worldEvents'
       COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
       COSMOS_SQL_CONTAINER_DEADLETTERS: 'deadLetters'
+      COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE: 'exitHintDebounce'
+      COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER: 'temporalLedger'
+      COSMOS_SQL_CONTAINER_WORLD_CLOCK: 'worldClock'
+      COSMOS_SQL_CONTAINER_LOCATION_CLOCKS: 'locationClocks'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
     }
   }
@@ -336,6 +340,23 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
       }
     }
 
+    // Exit Hint Debounce container (per-player throttling) - PK: /scopeKey, per-item TTL enabled
+    resource sqlExitHintDebounce 'containers' = {
+      name: 'exitHintDebounce'
+      properties: {
+        resource: {
+          id: 'exitHintDebounce'
+          partitionKey: {
+            paths: ['/scopeKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: -1 // Enable per-item TTL (ttl property)
+        }
+        options: {}
+      }
+    }
+
     // Dead Letters container (stores failed world events) - partition key constant value 'deadletter'
     resource sqlDeadLetters 'containers' = {
       name: 'deadLetters'
@@ -364,6 +385,38 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
             version: 2
           }
           defaultTtl: 7776000 // 90 days in seconds (90 * 24 * 60 * 60)
+        }
+        options: {}
+      }
+    }
+
+    // World Clock container (single logical document; global tick state)
+    resource sqlWorldClock 'containers' = {
+      name: 'worldClock'
+      properties: {
+        resource: {
+          id: 'worldClock'
+          partitionKey: {
+            paths: ['/id']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    // Location Clocks container (per-location anchors)
+    resource sqlLocationClocks 'containers' = {
+      name: 'locationClocks'
+      properties: {
+        resource: {
+          id: 'locationClocks'
+          partitionKey: {
+            paths: ['/id']
+            kind: 'Hash'
+            version: 2
+          }
         }
         options: {}
       }
@@ -456,6 +509,22 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
       }
     }
 
+    resource sqlExitHintDebounceTest 'containers' = {
+      name: 'exitHintDebounce'
+      properties: {
+        resource: {
+          id: 'exitHintDebounce'
+          partitionKey: {
+            paths: ['/scopeKey']
+            kind: 'Hash'
+            version: 2
+          }
+          defaultTtl: -1
+        }
+        options: {}
+      }
+    }
+
     resource sqlDeadLettersTest 'containers' = {
       name: 'deadLetters'
       properties: {
@@ -482,6 +551,36 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
             version: 2
           }
           defaultTtl: 7776000 // 90 days in seconds (90 * 24 * 60 * 60)
+        }
+        options: {}
+      }
+    }
+
+    resource sqlWorldClockTest 'containers' = {
+      name: 'worldClock'
+      properties: {
+        resource: {
+          id: 'worldClock'
+          partitionKey: {
+            paths: ['/id']
+            kind: 'Hash'
+            version: 2
+          }
+        }
+        options: {}
+      }
+    }
+
+    resource sqlLocationClocksTest 'containers' = {
+      name: 'locationClocks'
+      properties: {
+        resource: {
+          id: 'locationClocks'
+          partitionKey: {
+            paths: ['/id']
+            kind: 'Hash'
+            version: 2
+          }
         }
         options: {}
       }

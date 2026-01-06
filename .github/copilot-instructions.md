@@ -236,18 +236,23 @@ Environment variables (wired in Bicep, available in Functions):
 
 - `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
 - `COSMOS_SQL_DATABASE` – Database name (`game`)
-- `COSMOS_SQL_KEY_SECRET_NAME` – Key Vault secret name (`cosmos-sql-primary-key`)
 - `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
 - `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
-- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/scopeId` — **Current deployed: `/locationId`**, migration in progress)
+- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId` today; `/scopeId` migration in progress)
 - `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
+- `COSMOS_SQL_CONTAINER_PROCESSED_EVENTS` – `processedEvents` (PK: `/idempotencyKey`)
+- `COSMOS_SQL_CONTAINER_DEADLETTERS` – `deadLetters` (PK: `/partitionKey`)
+- `COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE` – `exitHintDebounce` (PK: `/scopeKey`)
+- `COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER` – `temporalLedger` (PK: `/scopeKey`)
+- `COSMOS_SQL_CONTAINER_WORLD_CLOCK` – `worldClock` (PK: `/id`)
+- `COSMOS_SQL_CONTAINER_LOCATION_CLOCKS` – `locationClocks` (PK: `/id`)
 
-Access pattern: Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret.
+Access pattern: Use `@azure/cosmos` SDK with Azure AD (Managed Identity) for production; avoid account keys.
 Partition key patterns (unchanged – reaffirmed post ADR-004):
 
 - Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
 - Inventory: Player GUID to colocate all items for a player.
-- Layers: Scope pattern `loc:<locationId>` or `realm:<realmId>` for efficient layer queries. **Note**: Deployed containers may use `/locationId` PK; application code supports both.
+- Layers: Location GUID to colocate all layers for a location.
 - Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
 
 Cutover Notes (ADR-004):
@@ -301,7 +306,7 @@ GitHub milestones have both a numeric ID and a display name. The GitHub MCP sear
 | M1 Traversal              | 2            | CLOSED   | Location persistence, exits, move/look                                | `milestone:"M1 Traversal"` or filter by ID 2               |
 | M2 Data Foundations       | 3            | CLOSED   | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3        |
 | M3a Event Backbone        | 11           | CLOSED   | Queue processing, idempotency, DLQ, correlation                       | `milestone:"M3a Event Backbone"` or filter by ID 11        |
-| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation        | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
+| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation         | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
 | M3c Temporal PI-0         | 13           | Active   | WorldClock, PlayerClock, durations, reconcile policies                | `milestone:"M3c Temporal PI-0"` or filter by ID 13         |
 | M4 AI Read                | 4            | Active   | MCP read-only, prompt templates, intent parser                        | `milestone:"M4 AI Read"` or filter by ID 4                 |
 | M5 Quality & Depth        | 7            | Active   | Layering engine, dashboards, alerts, integrity monitoring             | `milestone:"M5 Quality & Depth"` or filter by ID 7         |

@@ -66,9 +66,9 @@ import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
 import { DescriptionComposer } from './services/descriptionComposer.js'
-import { RealmService } from './services/RealmService.js'
 import { LocationClockManager } from './services/LocationClockManager.js'
 import { PlayerClockService } from './services/PlayerClockService.js'
+import { RealmService } from './services/RealmService.js'
 import { ReconcileEngine } from './services/ReconcileEngine.js'
 import type { ILocationClockManager, IWorldClockService } from './services/types.js'
 import { WorldClockService } from './services/WorldClockService.js'
@@ -217,7 +217,7 @@ export const setupContainer = async (container: Container) => {
     container.bind<IDeadLetterRepository>('IDeadLetterRepository').to(CosmosDeadLetterRepository).inSingletonScope()
 
     if (!config.cosmosSql?.containers.processedEvents) {
-        throw new Error('Processed events container configuration missing. Required: COSMOS_SQL_CONTAINER_PROCESSEDEVENTS')
+        throw new Error('Processed events container configuration missing. Required: COSMOS_SQL_CONTAINER_PROCESSED_EVENTS')
     }
     container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(config.cosmosSql.containers.processedEvents)
     container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()

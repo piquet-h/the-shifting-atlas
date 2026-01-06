@@ -48,14 +48,16 @@ npm start   # builds then starts the Functions host
 Tests support both in-memory and Cosmos DB persistence modes:
 
 ```bash
-# Run tests (defaults to memory mode)
+# Run unit + integration tests (defaults to memory mode)
 npm test
 
 # Explicitly use memory mode (fast, no external dependencies)
-npm run test:memory
+npm run use:memory
+npm test
 
-# Use Cosmos DB mode (requires valid Azure credentials)
-npm run test:cosmos
+# Use Cosmos DB mode (requires valid Azure credentials via Azure AD)
+npm run use:cosmos
+npm test
 ```
 
 **Important:** The test runner automatically loads configuration from `local.settings.json`. If this file doesn't exist, tests will default to memory mode.
@@ -88,6 +90,13 @@ The `local.settings.json` file is created by:
 - `func start` (Azure Functions CLI) - may create it based on your environment
 
 **Tip:** Run `npm run use:memory` before running tests to ensure fast execution.
+
+### Cosmos mode auth (local vs prod)
+
+- **Production** uses Azure AD via **Managed Identity**.
+- **Local development** uses Azure AD via `DefaultAzureCredential` (typically `az login` / VS Code Azure sign-in).
+
+Key-based Cosmos SQL authentication is intentionally not supported to keep local dev aligned with production.
 
 ## Deployment
 

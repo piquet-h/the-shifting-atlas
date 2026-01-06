@@ -6,7 +6,7 @@
  * for repositories following the dual persistence architecture (ADR-002).
  */
 
-import { CosmosClient, Database, Container } from '@azure/cosmos'
+import { Container, CosmosClient, Database } from '@azure/cosmos'
 import { DefaultAzureCredential } from '@azure/identity'
 import { inject, injectable } from 'inversify'
 
@@ -16,7 +16,6 @@ import { inject, injectable } from 'inversify'
 export interface CosmosDbSqlClientConfig {
     endpoint: string
     database: string
-    key?: string
 }
 
 /**
@@ -49,13 +48,18 @@ export class CosmosDbSqlClient implements ICosmosDbSqlClient {
     private databaseName: string
 
     constructor(@inject('CosmosDbSqlConfig') config: CosmosDbSqlClientConfig) {
-        // Use Managed Identity (DefaultAzureCredential) for authentication unless key provided
-        if (config.key) {
-            this.client = new CosmosClient({ endpoint: config.endpoint, key: config.key })
-        } else {
-            const credential = new DefaultAzureCredential()
-            this.client = new CosmosClient({ endpoint: config.endpoint, aadCredentials: credential })
+        // Azure AD only (Managed Identity in Azure, developer identity locally via DefaultAzureCredential)
+        // Reject legacy key-based auth explicitly so local dev stays aligned with production.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const legacyKey = (config as any).key
+        if (legacyKey) {
+            throw new Error(
+                'Cosmos SQL key authentication is not supported. Use Azure AD (DefaultAzureCredential) and assign Cosmos DB data-plane RBAC roles.'
+            )
         }
+
+        const credential = new DefaultAzureCredential()
+        this.client = new CosmosClient({ endpoint: config.endpoint, aadCredentials: credential })
 
         this.databaseName = config.database
         this.database = this.client.database(config.database)

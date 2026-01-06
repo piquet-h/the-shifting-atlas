@@ -36,13 +36,13 @@ export abstract class CosmosDbSqlRepository<T extends { id: string }> {
 
 All Cosmos errors are translated to domain exceptions (shared package):
 
-| Exception | Status Code | Semantics | Retryable |
-|-----------|-------------|-----------|-----------|
-| `NotFoundException` | 404 | Resource not found | No |
-| `ConcurrencyException` | 409 | Conflict (duplicate key) | No |
-| `RetryableException` | 429 | Throttling | Yes (with backoff) |
-| `PreconditionFailedException` | 412 | ETag mismatch | No |
-| `ValidationException` | 400 | Bad request | No |
+| Exception                     | Status Code | Semantics                | Retryable          |
+| ----------------------------- | ----------- | ------------------------ | ------------------ |
+| `NotFoundException`           | 404         | Resource not found       | No                 |
+| `ConcurrencyException`        | 409         | Conflict (duplicate key) | No                 |
+| `RetryableException`          | 429         | Throttling               | Yes (with backoff) |
+| `PreconditionFailedException` | 412         | ETag mismatch            | No                 |
+| `ValidationException`         | 400         | Bad request              | No                 |
 
 ```typescript
 import { NotFoundException, ConcurrencyException, RetryableException } from '@piquet-h/shared'
@@ -79,7 +79,7 @@ export interface IPlayerSqlRepository {
 @injectable()
 export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecord> implements IPlayerSqlRepository {
     constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient) {
-        super(client, 'players')  // Container name
+        super(client, 'players') // Container name
     }
 
     async getById(id: string): Promise<PlayerRecord | null> {
@@ -105,28 +105,20 @@ export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecor
 // backend/src/inversify.config.ts
 if (resolvedMode === 'cosmos') {
     const persistenceConfig = container.get<IPersistenceConfig>('PersistenceConfig')
-    
+
     // Register SQL client configuration
-    container
-        .bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig')
-        .toConstantValue({
-            endpoint: persistenceConfig.cosmos.sqlEndpoint,
-            database: 'game'
-        })
-    
+    container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({
+        endpoint: persistenceConfig.cosmos.sqlEndpoint,
+        database: 'game'
+    })
+
     // Register SQL client (singleton)
-    container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient')
-        .to(CosmosDbSqlClient)
-        .inSingletonScope()
-    
+    container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+
     // Register repository (singleton)
-    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository')
-        .to(CosmosPlayerSqlRepository)
-        .inSingletonScope()
+    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository').to(CosmosPlayerSqlRepository).inSingletonScope()
 } else {
-    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository')
-        .to(InMemoryPlayerSqlRepository)
-        .inSingletonScope()
+    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository').to(InMemoryPlayerSqlRepository).inSingletonScope()
 }
 ```
 
@@ -135,9 +127,7 @@ if (resolvedMode === 'cosmos') {
 ```typescript
 // backend/src/handlers/playerGet.ts
 export class PlayerGetHandler {
-    constructor(
-        @inject('IPlayerSqlRepository') private playerRepo: IPlayerSqlRepository
-    ) {}
+    constructor(@inject('IPlayerSqlRepository') private playerRepo: IPlayerSqlRepository) {}
 
     async handle(playerId: string): Promise<PlayerRecord | null> {
         try {
@@ -229,12 +219,12 @@ Emitted on errors:
 
 Per ADR-002 and Copilot Instructions Section 5:
 
-| Container | Partition Key | Pattern |
-|-----------|---------------|---------|
-| `players` | `/id` | Player GUID |
-| `inventory` | `/playerId` | Player GUID |
-| `descriptionLayers` | `/locationId` | Location GUID |
-| `worldEvents` | `/scopeKey` | `loc:<id>` or `player:<id>` |
+| Container           | Partition Key | Pattern                     |
+| ------------------- | ------------- | --------------------------- |
+| `players`           | `/id`         | Player GUID                 |
+| `inventory`         | `/playerId`   | Player GUID                 |
+| `descriptionLayers` | `/locationId` | Location GUID               |
+| `worldEvents`       | `/scopeKey`   | `loc:<id>` or `player:<id>` |
 
 ## Configuration
 
@@ -243,8 +233,9 @@ Environment variables (wired in Bicep):
 ```bash
 COSMOS_SQL_ENDPOINT=https://<account>.documents.azure.com:443/
 COSMOS_SQL_DATABASE=game
-COSMOS_SQL_KEY_SECRET_NAME=cosmos-sql-primary-key  # Key Vault secret
 ```
+
+Cosmos SQL API access uses Azure AD (Managed Identity) in production; no SQL key environment variable is required.
 
 ## Error Handling Guidelines
 
