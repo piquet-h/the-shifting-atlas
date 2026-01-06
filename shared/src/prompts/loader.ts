@@ -79,8 +79,7 @@ export class PromptLoader {
             basePath: config.basePath ?? join(__dirname, 'templates'),
             cacheTtlMs: config.cacheTtlMs ?? 5 * 60 * 1000, // 5 minutes
             maxCacheSize: config.maxCacheSize ?? 100,
-            verifyHashes:
-                config.verifyHashes ?? (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production')
+            verifyHashes: config.verifyHashes ?? (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production')
         }
     }
 
@@ -131,7 +130,7 @@ export class PromptLoader {
      */
     async getByHash(hash: string): Promise<PromptTemplate | null> {
         // Check cache first
-        for (const [_id, entry] of this.cache.entries()) {
+        for (const entry of this.cache.values()) {
             if (entry.hash === hash) {
                 if (this.isEntryValid(entry)) {
                     return entry.template
@@ -309,6 +308,7 @@ export class PromptLoader {
         return this.getById(matching[0])
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private async getLatestFromFiles(_idPrefix: string): Promise<PromptTemplate | null> {
         // TODO: Implement file scanning and version comparison
         // For now, just return null

@@ -1,11 +1,6 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import {
-    canonicalizeTemplate,
-    computeTemplateHash,
-    verifyTemplateHash,
-    hashTemplates
-} from '../src/prompts/canonicalize.js'
+import { canonicalizeTemplate, computeTemplateHash, verifyTemplateHash, hashTemplates } from '../src/prompts/canonicalize.js'
 import type { PromptTemplate } from '../src/prompts/schema.js'
 
 const sampleTemplate: PromptTemplate = {

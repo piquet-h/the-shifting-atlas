@@ -16,7 +16,11 @@ import { z } from 'zod'
  * Prompt template metadata schema
  */
 export const PromptTemplateMetadataSchema = z.object({
-    id: z.string().min(1).max(100).regex(/^[a-z0-9-_]+$/),
+    id: z
+        .string()
+        .min(1)
+        .max(100)
+        .regex(/^[a-z0-9-_]+$/),
     version: z.string().regex(/^\d+\.\d+\.\d+$/),
     name: z.string().min(1).max(200),
     description: z.string().min(1).max(1000),
@@ -31,7 +35,10 @@ export type PromptTemplateMetadata = z.infer<typeof PromptTemplateMetadataSchema
  * Variable definition schema for template interpolation
  */
 export const VariableDefinitionSchema = z.object({
-    name: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
+    name: z
+        .string()
+        .min(1)
+        .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/),
     description: z.string().min(1),
     required: z.boolean().default(true),
     defaultValue: z.string().optional()

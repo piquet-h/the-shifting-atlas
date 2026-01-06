@@ -1,11 +1,6 @@
 import assert from 'node:assert'
 import test from 'node:test'
-import {
-    validatePromptTemplate,
-    validatePromptBundle,
-    containsProtectedTokens,
-    type PromptTemplate
-} from '../src/prompts/schema.js'
+import { validatePromptTemplate, validatePromptBundle, containsProtectedTokens } from '../src/prompts/schema.js'
 
 test('prompt template schema: valid minimal template', () => {
     const template = {

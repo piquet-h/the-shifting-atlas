@@ -67,7 +67,7 @@ test('loader: caching works', async () => {
     assert.equal(stats.size, 1)
 })
 
-test('loader: cache TTL expiration', async (t) => {
+test('loader: cache TTL expiration', async () => {
     const loader = new PromptLoader({
         source: 'files',
         basePath: fixturesPath,
