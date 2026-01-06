@@ -85,7 +85,12 @@ export interface EmitWorldEventOptions {
 
     /**
      * Scope key for partition-efficient queries.
-     * Patterns: 'loc:<locationId>', 'player:<playerId>', 'global:<category>'
+     * Must follow canonical patterns:
+     * - 'loc:<locationId>' for location-scoped events
+     * - 'player:<playerId>' for player-scoped events
+     * - 'global:<category>' for system-wide events (e.g., 'global:maintenance')
+     *
+     * Invalid patterns will throw WorldEventValidationError.
      */
     scopeKey: string
 
@@ -215,6 +220,70 @@ function validateActor(actor: Actor): void {
 }
 
 /**
+ * Validate scopeKey against canonical patterns.
+ * Throws WorldEventValidationError if invalid.
+ *
+ * Canonical patterns:
+ * - loc:<locationId> (e.g., 'loc:550e8400-e29b-41d4-a716-446655440000')
+ * - player:<playerId> (e.g., 'player:550e8400-e29b-41d4-a716-446655440000')
+ * - global:<category> (e.g., 'global:maintenance', 'global:tick')
+ */
+function validateScopeKey(scopeKey: string): void {
+    // Check for empty or missing scopeKey
+    if (!scopeKey || scopeKey.trim().length === 0) {
+        throw new WorldEventValidationError('scopeKey cannot be empty', [
+            {
+                path: 'scopeKey',
+                message: 'scopeKey is required and cannot be empty',
+                code: 'invalid_string'
+            }
+        ])
+    }
+
+    // Validate canonical pattern: prefix:value
+    const match = scopeKey.match(/^(loc|player|global):(.+)$/)
+    if (!match) {
+        throw new WorldEventValidationError(
+            `Invalid scopeKey format: "${scopeKey}". Must follow pattern: "loc:<id>", "player:<id>", or "global:<category>"`,
+            [
+                {
+                    path: 'scopeKey',
+                    message: 'Must be "loc:<locationId>", "player:<playerId>", or "global:<category>"',
+                    code: 'invalid_string'
+                }
+            ]
+        )
+    }
+
+    const [, prefix, value] = match
+
+    // Validate value part is not empty
+    if (!value || value.trim().length === 0) {
+        throw new WorldEventValidationError(`scopeKey value cannot be empty after prefix "${prefix}:"`, [
+            {
+                path: 'scopeKey',
+                message: `Value after "${prefix}:" cannot be empty`,
+                code: 'invalid_string'
+            }
+        ])
+    }
+
+    // For loc and player prefixes, validate UUID format
+    if (prefix === 'loc' || prefix === 'player') {
+        const uuidResult = z.string().uuid().safeParse(value)
+        if (!uuidResult.success) {
+            throw new WorldEventValidationError(`scopeKey value must be a valid UUID for "${prefix}:" prefix. Got: "${value}"`, [
+                {
+                    path: 'scopeKey',
+                    message: `Value after "${prefix}:" must be a valid UUID`,
+                    code: 'invalid_string'
+                }
+            ])
+        }
+    }
+}
+
+/**
  * Generate an idempotency key from event details.
  * Pattern: <actorKind>:<eventType>:<scopeKey>:<minuteBucket>
  */
@@ -244,10 +313,13 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     // 1. Validate event type
     const validatedEventType = validateEventType(options.eventType)
 
-    // 2. Validate actor
+    // 2. Validate scopeKey format
+    validateScopeKey(options.scopeKey)
+
+    // 3. Validate actor
     validateActor(options.actor)
 
-    // 3. Generate or use correlation ID
+    // 4. Generate or use correlation ID
     let correlationId: string
     let correlationIdGenerated = false
     if (options.correlationId) {
@@ -270,7 +342,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
         warnings.push(`correlationId not provided, auto-generated: ${correlationId}`)
     }
 
-    // 4. Validate causation ID if provided
+    // 5. Validate causation ID if provided
     if (options.causationId) {
         const uuidResult = z.string().uuid().safeParse(options.causationId)
         if (!uuidResult.success) {
@@ -284,14 +356,14 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
         }
     }
 
-    // 5. Generate event ID and timestamps
+    // 6. Generate event ID and timestamps
     const eventId = generateUuid()
     const occurredUtc = options.occurredUtc || new Date().toISOString()
 
-    // 6. Generate idempotency key if not provided
+    // 7. Generate idempotency key if not provided
     const idempotencyKey = options.idempotencyKey || generateIdempotencyKey(validatedEventType, options.scopeKey, options.actor.kind)
 
-    // 7. Build the envelope
+    // 8. Build the envelope
     const envelope: WorldEventEnvelope = {
         eventId,
         type: validatedEventType,
@@ -308,10 +380,10 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
         envelope.causationId = options.causationId
     }
 
-    // 8. Final schema validation
+    // 9. Final schema validation
     const validationResult = WorldEventEnvelopeSchema.safeParse(envelope)
     if (!validationResult.success) {
-        const issues = validationResult.error.issues.map((issue) => ({
+        const issues = validationResult.error.issues.map((issue: { path: (string | number)[]; message: string; code: string }) => ({
             path: issue.path.join('.'),
             message: issue.message,
             code: String(issue.code)
@@ -319,7 +391,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
         throw new WorldEventValidationError('Event envelope validation failed', issues)
     }
 
-    // 9. Prepare message properties for Service Bus
+    // 10. Prepare message properties for Service Bus
     const messageProperties: EmitWorldEventResult['messageProperties'] = {
         correlationId,
         eventType: validatedEventType,

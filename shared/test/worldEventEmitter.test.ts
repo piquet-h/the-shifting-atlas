@@ -99,6 +99,194 @@ describe('World Event Emitter', () => {
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('Invalid event type'))
+                    assert.strictEqual(error.issues.length, 1)
+                    assert.strictEqual(error.issues[0].path, 'eventType')
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for empty scopeKey', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: '',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('scopeKey cannot be empty'))
+                    assert.strictEqual(error.issues[0].path, 'scopeKey')
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for invalid scopeKey pattern (missing prefix)', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'invalid-scope-key',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('Invalid scopeKey format'))
+                    assert.ok(error.message.includes('Must follow pattern'))
+                    assert.strictEqual(error.issues[0].path, 'scopeKey')
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for invalid scopeKey pattern (wrong prefix)', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'invalid:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('Invalid scopeKey format'))
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for scopeKey with empty value after prefix', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('scopeKey value cannot be empty'))
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for loc: prefix with non-UUID value', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:not-a-uuid',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('must be a valid UUID'))
+                }
+            }
+        })
+
+        it('should throw WorldEventValidationError for player: prefix with non-UUID value', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'player:not-a-uuid',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            try {
+                emitWorldEvent(options)
+                assert.fail('Should have thrown WorldEventValidationError')
+            } catch (error) {
+                assert.ok(isValidationError(error), 'Should be WorldEventValidationError')
+                if (isValidationError(error)) {
+                    assert.ok(error.message.includes('must be a valid UUID'))
+                }
+            }
+        })
+
+        it('should accept valid loc: scopeKey with UUID', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const result = emitWorldEvent(options)
+            assert.strictEqual(result.messageProperties.scopeKey, 'loc:12345678-1234-4234-8234-123456789abc')
+        })
+
+        it('should accept valid player: scopeKey with UUID', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'Player.Move',
+                scopeKey: 'player:12345678-1234-4234-8234-123456789abc',
+                payload: {},
+                actor: { kind: 'player' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const result = emitWorldEvent(options)
+            assert.strictEqual(result.messageProperties.scopeKey, 'player:12345678-1234-4234-8234-123456789abc')
+        })
+
+        it('should accept valid global: scopeKey with non-UUID category', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'World.Ambience.Generated',
+                scopeKey: 'global:maintenance',
+                payload: {},
+                actor: { kind: 'system' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const result = emitWorldEvent(options)
+            assert.strictEqual(result.messageProperties.scopeKey, 'global:maintenance')
+        })
+
+        it('should accept global:tick as valid scopeKey', () => {
+            const options: EmitWorldEventOptions = {
+                eventType: 'World.Ambience.Generated',
+                scopeKey: 'global:tick',
+                payload: {},
+                actor: { kind: 'system' },
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+
+            const result = emitWorldEvent(options)
+            assert.strictEqual(result.messageProperties.scopeKey, 'global:tick')
+        })
+
             assert.throws(
                 () => emitWorldEvent(options),
                 (error: any) => {

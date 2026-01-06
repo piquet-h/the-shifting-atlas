@@ -51,9 +51,37 @@ Authoritative reference for SQL API containers used by The Shifting Atlas.
 
 ### worldEvents
 
-- PK: `/scopeKey` (e.g., `loc:<id>`, `player:<id>`, `wc`)
+- PK: `/scopeKey` (e.g., `loc:<id>`, `player:<id>`, `global:<category>`)
 - Purpose: Durable event stream for world and player timelines
 - **Environment variable**: `COSMOS_SQL_CONTAINER_EVENTS` (default: `worldEvents`)
+
+#### Scope Key Patterns (REQUIRED)
+
+All world events **MUST** use one of these canonical `scopeKey` patterns:
+
+1. **Location-scoped events**: `loc:<locationId>` (UUID required)
+   - Example: `loc:550e8400-e29b-41d4-a716-446655440000`
+   - Use for: Events tied to a specific location (exits, NPC spawns, ambient changes)
+
+2. **Player-scoped events**: `player:<playerId>` (UUID required)
+   - Example: `player:6ba7b810-9dad-11d1-80b4-00c04fd430c8`
+   - Use for: Events specific to a player (move, look, inventory changes)
+
+3. **Global system events**: `global:<category>` (any category string)
+   - Examples: `global:maintenance`, `global:tick`, `global:worldclock`
+   - Use for: System-wide events not tied to a specific entity
+
+#### Validation Rules
+
+- `scopeKey` cannot be empty or missing
+- Must match pattern: `<prefix>:<value>` where prefix is `loc`, `player`, or `global`
+- For `loc:` and `player:` prefixes, the value **MUST** be a valid UUID
+- For `global:` prefix, the value can be any non-empty category string
+- Invalid patterns are rejected with `WorldEventValidationError` during event creation
+
+**Runtime enforcement**: The `emitWorldEvent()` function validates scopeKey format before event creation. See `shared/src/events/worldEventEmitter.ts` for implementation.
+
+**Test coverage**: Validation tests ensure invalid patterns (missing prefix, wrong format, empty values) are rejected. See `shared/test/worldEventEmitter.test.ts`.
 
 ### temporalLedger
 
