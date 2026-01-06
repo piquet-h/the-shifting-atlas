@@ -2,7 +2,7 @@
 
 > **Temporary**: This is a working checklist meant for day-to-day progress. When M4a closes, either delete this file or replace it with a proper closure summary.
 >
-> Last updated: 2026-01-05
+> Last updated: 2026-01-06
 
 ## How to use
 
@@ -24,7 +24,7 @@ These guardrails prevent drift between infra ↔ code and prevent accidental cro
 
 - [x] #699 — Test: Verify Cosmos SQL container partition keys match expected schema
 - [x] #624 — Prompt Template Schema & Versioning Model (env var + layers/events container wiring; includes `/locationId` PK requirements)
-- [ ] #627 — worldEvents scopeKey contract & PK correctness _(enforce `loc:`/`player:` patterns + `/scopeKey` PK correctness + tests)_
+- [x] #627 — worldEvents scopeKey contract & PK correctness _(enforce `loc:`/`player:` patterns + `/scopeKey` PK correctness + tests)_
 
 ### 1.2 Implement registry storage + loader (source of truth)
 

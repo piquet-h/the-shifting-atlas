@@ -80,9 +80,8 @@ Prompt templates and the canonical registry are implementation concerns and MUST
 
 Suggested helpers / functions:
 
-- `shared/src/prompts/getTemplate(name, version?)`
-- `shared/src/prompts/listTemplates(tag?)`
-- `shared/src/prompts/computePromptHash(template)`
+- Current (seed): `shared/src/prompts/worldTemplates.ts` → `getWorldTemplate(key)`
+- Planned (registry): `getTemplate(name, version?)`, `listTemplates(tag?)`, `computePromptHash(template)`
 
 ### Telemetry & Observability (NOT an MCP server)
 
@@ -320,16 +319,16 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 
 The table below lists the primary MCP servers / backend helpers with their purpose, representative methods, and short auth notes.
 
-| Server / Helper                      |            Stage | Representative methods                                                                                | Auth / Notes                                                                                                |
-| ------------------------------------ | ---------------: | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| world-query                          |   M4 (read-only) | getRoom(roomId), getPlayerState(playerId), getNeighbors(roomId,depth), listRecentEvents(roomId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                                    |
-| lore-memory                          |               M4 | semanticSearchLore(query,k), getCanonicalFact(entityId)                                               | Vector store access; sanitized snippets; auth via backend helper                                            |
-| classification-mcp                   |               M4 | classifyIntent(utterance), moderateContent(text)                                                      | Requires model usage telemetry; used in Validation & Policy                                                 |
-| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                      | Prefer server-side implementation; minimal world-query calls for resolution                                 |
-| prompt registry (shared)             | shared (not MCP) | getTemplate(name,version), listTemplates(tag), computePromptHash(template)                            | Versioned templates in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
-| world-mutation / proposal API        |       M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                               | Protected; proposals must pass Validation & Policy gates before persistence                                 |
-| simulation-planner                   |               M6 | simulateScenario(seed,steps), generateArc(seed,constraints)                                           | Heavy compute; used offline or in gated background tasks                                                    |
-| telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                             | Curated aggregates only; no raw AppInsights surface exposed to agents                                       |
+| Server / Helper                      |            Stage | Representative methods                                                                                            | Auth / Notes                                                                                           |
+| ------------------------------------ | ---------------: | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| world-query                          |   M4 (read-only) | getRoom(roomId), getPlayerState(playerId), getNeighbors(roomId,depth), listRecentEvents(roomId,limit)             | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
+| lore-memory                          |               M4 | semanticSearchLore(query,k), getCanonicalFact(entityId)                                                           | Vector store access; sanitized snippets; auth via backend helper                                       |
+| classification-mcp                   |               M4 | classifyIntent(utterance), moderateContent(text)                                                                  | Requires model usage telemetry; used in Validation & Policy                                            |
+| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                  | Prefer server-side implementation; minimal world-query calls for resolution                            |
+| prompt templates (shared)            | shared (not MCP) | getWorldTemplate(key) (seed); planned: getTemplate(name,version), listTemplates(tag), computePromptHash(template) | Templates live in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
+| world-mutation / proposal API        |       M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                                           | Protected; proposals must pass Validation & Policy gates before persistence                            |
+| simulation-planner                   |               M6 | simulateScenario(seed,steps), generateArc(seed,constraints)                                                       | Heavy compute; used offline or in gated background tasks                                               |
+| telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                                         | Curated aggregates only; no raw AppInsights surface exposed to agents                                  |
 
 _Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate limits, and correlate requests with operationId/correlationId for traceability.
 

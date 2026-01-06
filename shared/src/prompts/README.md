@@ -1,4 +1,4 @@
-# Prompt Registry (shared)
+# Prompt Templates (shared)
 
 Location: `shared/src/prompts/`
 
