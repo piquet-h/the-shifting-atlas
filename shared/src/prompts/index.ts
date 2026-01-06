@@ -3,4 +3,7 @@
 export * from './hash.js'
 export * from './PromptTemplateRepository.js'
 export * from './types.js'
+export * from './canonicalize.js'
+export * from './loader.js'
+export * from './schema.js'
 export * from './worldTemplates.js'

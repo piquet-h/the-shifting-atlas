@@ -1,0 +1,10 @@
+{
+    "metadata": {
+        "id": "npc-dialogue",
+        "version": "1.0.0",
+        "name": "NPC Dialogue Generator",
+        "description": "Generates NPC dialogue",
+        "tags": ["npc", "dialogue"]
+    },
+    "template": "Generate dialogue for [npc_name]."
+}

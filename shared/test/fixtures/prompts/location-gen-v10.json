@@ -1,0 +1,10 @@
+{
+    "metadata": {
+        "id": "location-gen-v10",
+        "version": "10.0.0",
+        "name": "Location Generator v10",
+        "description": "Version 10 for semver testing",
+        "tags": ["location", "world"]
+    },
+    "template": "Generate a [terrain_type] location (v10)."
+}

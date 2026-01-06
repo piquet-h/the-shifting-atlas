@@ -1,0 +1,52 @@
+{
+    "metadata": {
+        "id": "npc-dialogue-generator",
+        "version": "1.0.0",
+        "name": "NPC Dialogue Generator",
+        "description": "Generates contextual dialogue for NPCs based on personality and world events",
+        "tags": ["npc", "dialogue", "interaction"],
+        "author": "system"
+    },
+    "template": "Generate dialogue for [npc_name] ([faction], [alignment]).\n\nContext:\n- Current world events: [current_world_events]\n- Player reputation: [player_reputation]\n\nNPC Characteristics:\n- Personality traits: [personality_traits]\n- Current mood/motivation: [npc_mood]\n\nInclude:\n- Dialogue options that reflect personality and faction perspective\n- Opportunities for skill checks (persuasion, intimidation, deception)\n- References to faction goals or world state\n\nMaintain:\n- Character consistency across interactions\n- Lore accuracy\n- Appropriate tone and vocabulary for character background",
+    "variables": [
+        {
+            "name": "npc_name",
+            "description": "Name of the NPC",
+            "required": true
+        },
+        {
+            "name": "faction",
+            "description": "NPC's faction affiliation",
+            "required": true
+        },
+        {
+            "name": "alignment",
+            "description": "D&D alignment (e.g., Lawful Good, Chaotic Neutral)",
+            "required": true
+        },
+        {
+            "name": "current_world_events",
+            "description": "Relevant world events the NPC would know about",
+            "required": false,
+            "defaultValue": "none of note"
+        },
+        {
+            "name": "player_reputation",
+            "description": "How the NPC views the player",
+            "required": false,
+            "defaultValue": "unknown stranger"
+        },
+        {
+            "name": "personality_traits",
+            "description": "Key personality traits",
+            "required": false,
+            "defaultValue": "cautious, practical"
+        },
+        {
+            "name": "npc_mood",
+            "description": "Current emotional state or motivation",
+            "required": false,
+            "defaultValue": "neutral"
+        }
+    ]
+}
