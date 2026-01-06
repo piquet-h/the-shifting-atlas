@@ -1,0 +1,27 @@
+{
+    "metadata": {
+        "id": "location-gen-v2",
+        "version": "2.0.0",
+        "name": "Location Generator v2",
+        "description": "Enhanced location generation",
+        "tags": ["location", "world"]
+    },
+    "template": "Generate a [terrain_type] location with [feature] connected to [existing_location].",
+    "variables": [
+        {
+            "name": "terrain_type",
+            "description": "Type of terrain",
+            "required": true
+        },
+        {
+            "name": "feature",
+            "description": "Special feature",
+            "required": false
+        },
+        {
+            "name": "existing_location",
+            "description": "Connected location name",
+            "required": true
+        }
+    ]
+}

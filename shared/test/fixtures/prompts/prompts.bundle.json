@@ -1,0 +1,79 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-01-06T12:46:26.517Z",
+  "templates": {
+    "location-gen-v1": {
+      "metadata": {
+        "id": "location-gen-v1",
+        "version": "1.0.0",
+        "name": "Location Generator",
+        "description": "Generates location descriptions",
+        "tags": [
+          "location",
+          "world"
+        ]
+      },
+      "template": "Generate a [terrain_type] location connected to [existing_location].",
+      "variables": [
+        {
+          "name": "terrain_type",
+          "description": "Type of terrain",
+          "required": true
+        },
+        {
+          "name": "existing_location",
+          "description": "Connected location name",
+          "required": true
+        }
+      ]
+    },
+    "location-gen-v2": {
+      "metadata": {
+        "id": "location-gen-v2",
+        "version": "2.0.0",
+        "name": "Location Generator v2",
+        "description": "Enhanced location generation",
+        "tags": [
+          "location",
+          "world"
+        ]
+      },
+      "template": "Generate a [terrain_type] location with [feature] connected to [existing_location].",
+      "variables": [
+        {
+          "name": "terrain_type",
+          "description": "Type of terrain",
+          "required": true
+        },
+        {
+          "name": "feature",
+          "description": "Special feature",
+          "required": false
+        },
+        {
+          "name": "existing_location",
+          "description": "Connected location name",
+          "required": true
+        }
+      ]
+    },
+    "npc-dialogue": {
+      "metadata": {
+        "id": "npc-dialogue",
+        "version": "1.0.0",
+        "name": "NPC Dialogue Generator",
+        "description": "Generates NPC dialogue",
+        "tags": [
+          "npc",
+          "dialogue"
+        ]
+      },
+      "template": "Generate dialogue for [npc_name]."
+    }
+  },
+  "hashes": {
+    "location-gen-v1": "a83922c85ffd28baefaa3d7316ca88623ee19ea7476dae18780cd1c4d37a76cf",
+    "location-gen-v2": "623dfdc64f23a7fab5b009023c11f5a511af001f2df556367311541c489a8e18",
+    "npc-dialogue": "52d2f5e3ad6840b5e2e1e5e018845ce3aa00c2f24066fa6e502e36e0467d7db9"
+  }
+}
