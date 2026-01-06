@@ -60,7 +60,7 @@ export interface PromptLoaderConfig {
 
     /**
      * Verify hashes on load
-     * Default: true in production, false otherwise
+     * Default: false (can be enabled explicitly)
      */
     verifyHashes?: boolean
 }
@@ -115,7 +115,11 @@ export class PromptLoader {
 
     /**
      * Get latest version of template by ID prefix
-     * (finds highest semver version)
+     * (finds highest semver version with exact prefix match before delimiter)
+     *
+     * Note: Prefix matching looks for templates starting with `idPrefix` followed
+     * by a delimiter (-) or end of string. This prevents ambiguous matches.
+     * Example: prefix 'user' matches 'user' and 'user-v2' but not 'user-profile'
      */
     async getLatest(idPrefix: string): Promise<PromptTemplate | null> {
         if (this.config.source === 'bundle') {
@@ -292,7 +296,12 @@ export class PromptLoader {
         }
 
         // Find all templates matching prefix
-        const matching = Object.keys(this.bundle.templates).filter((id) => id.startsWith(idPrefix))
+        // Match exact prefix or prefix followed by delimiter
+        const matching = Object.keys(this.bundle.templates).filter((id) => {
+            if (id === idPrefix) return true
+            if (id.startsWith(idPrefix + '-')) return true
+            return false
+        })
 
         if (matching.length === 0) {
             return null
@@ -326,12 +335,11 @@ export class PromptLoader {
         return 0
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private async getLatestFromFiles(idPrefix: string): Promise<PromptTemplate | null> {
         // File-based getLatest is not currently supported
         // This would require scanning the filesystem for matching files and comparing versions
         // For production use, prefer bundle mode which supports this feature
-        throw new Error('getLatest is not supported in file-based mode. Use bundle mode or getById instead.')
+        throw new Error(`getLatest is not supported in file-based mode (prefix: ${idPrefix}). Use bundle mode or getById instead.`)
     }
 }
 

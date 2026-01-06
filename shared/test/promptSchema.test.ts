@@ -139,7 +139,9 @@ test('protected tokens: detects secret', () => {
 })
 
 test('protected tokens: detects OpenAI-style keys', () => {
-    assert.ok(containsProtectedTokens('sk-proj-abcdefghijklmnopqrstuvwxyz123456'))
+    // OpenAI keys are exactly sk- followed by 48 characters
+    assert.ok(containsProtectedTokens('sk-' + 'a'.repeat(48)))
+    assert.equal(containsProtectedTokens('sk-short'), false) // Too short
 })
 
 test('protected tokens: safe template passes', () => {

@@ -116,7 +116,7 @@ export const PROTECTED_TOKEN_PATTERNS = [
     /token/i,
     /credential/i,
     /-----BEGIN.*PRIVATE KEY-----/,
-    /sk-[a-zA-Z0-9-]{20,}/ // OpenAI-style keys (more lenient)
+    /sk-[a-zA-Z0-9]{48}/ // OpenAI API keys (exact format)
 ]
 
 /**
