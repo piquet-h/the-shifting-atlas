@@ -241,8 +241,9 @@ function validateScopeKey(scopeKey: string): void {
     }
 
     // Validate canonical pattern: prefix:value
-    // Pattern accepts any characters after colon; whitespace handling done via trim() below
-    const match = scopeKey.match(/^(loc|player|global):(.+)$/)
+    // Accept empty value so we can emit a specific "value cannot be empty" error for cases like "loc:".
+    // Whitespace handling done via trim() below.
+    const match = scopeKey.match(/^(loc|player|global):(.*)$/)
     if (!match) {
         throw new WorldEventValidationError(
             `Invalid scopeKey format: "${scopeKey}". Must follow pattern: "loc:<id>", "player:<id>", or "global:<category>"`,

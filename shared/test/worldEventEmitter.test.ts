@@ -13,8 +13,8 @@
  * - Enqueue wrapper correlationId injection
  * - Batch enqueue correlation strategies
  */
-import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
+import { describe, it } from 'node:test'
 import {
     ActorKindSchema,
     emitWorldEvent,
@@ -390,7 +390,7 @@ describe('World Event Emitter', () => {
         it('should generate idempotencyKey when not provided', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test-location',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -407,7 +407,7 @@ describe('World Event Emitter', () => {
             const customTimestamp = '2025-01-15T10:30:00.000Z'
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:12345678-1234-1234-1234-123456789abc',
+                scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111',
@@ -691,7 +691,7 @@ describe('World Event Emitter', () => {
         it('should include eventType and scopeKey in applicationProperties', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'World.Exit.Create',
-                scopeKey: 'loc:test-location-id',
+                scopeKey: 'loc:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
                 payload: {},
                 actor: { kind: 'system' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -701,13 +701,13 @@ describe('World Event Emitter', () => {
             const enqueueResult = prepareEnqueueMessage(emitResult)
 
             assert.strictEqual(enqueueResult.message.applicationProperties.eventType, 'World.Exit.Create')
-            assert.strictEqual(enqueueResult.message.applicationProperties.scopeKey, 'loc:test-location-id')
+            assert.strictEqual(enqueueResult.message.applicationProperties.scopeKey, 'loc:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
         })
 
         it('should include operationId when present', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test',
+                scopeKey: 'loc:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111',
@@ -723,7 +723,7 @@ describe('World Event Emitter', () => {
         it('should include envelope in message body', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test',
+                scopeKey: 'loc:cccccccc-cccc-4ccc-8ccc-cccccccccccc',
                 payload: { key: 'value' },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -740,7 +740,7 @@ describe('World Event Emitter', () => {
         it('should prepare multiple messages with individual correlationIds', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:loc1',
+                scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -748,7 +748,7 @@ describe('World Event Emitter', () => {
 
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
-                scopeKey: 'loc:loc2',
+                scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
@@ -765,7 +765,7 @@ describe('World Event Emitter', () => {
         it('should use shared correlationId when mode is shared', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:loc1',
+                scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -773,7 +773,7 @@ describe('World Event Emitter', () => {
 
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
-                scopeKey: 'loc:loc2',
+                scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
@@ -793,7 +793,7 @@ describe('World Event Emitter', () => {
         it('should generate shared correlationId when not provided in shared mode', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:loc1',
+                scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -801,7 +801,7 @@ describe('World Event Emitter', () => {
 
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
-                scopeKey: 'loc:loc2',
+                scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
@@ -820,7 +820,7 @@ describe('World Event Emitter', () => {
         it('should default to individual mode', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
-                scopeKey: 'loc:loc1',
+                scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
@@ -828,7 +828,7 @@ describe('World Event Emitter', () => {
 
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
-                scopeKey: 'loc:loc2',
+                scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
