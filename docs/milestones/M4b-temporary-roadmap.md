@@ -2,7 +2,7 @@
 
 > **Temporary**: This is a working checklist meant for day-to-day progress. When M4b closes, either delete this file or replace it with a proper closure summary.
 >
-> Last updated: 2026-01-05
+> Last updated: 2026-01-07
 
 ## How to use
 
@@ -21,8 +21,8 @@ These should be done _first_ because they harden the Cosmos SQL contract and pre
        Blocks: #624, #627, #698  
        Outcome: a repeatable check that prevents PK drift (players `/id`, inventory `/playerId`, layers `/locationId`, events `/scopeKey`).
 
-- [ ] #624 — Cosmos SQL env/schema alignment (layers + events env vars + layer PK correctness)
-- [ ] #627 — worldEvents scopeKey contract & PK correctness
+- [x] #624 — Cosmos SQL env/schema alignment (layers + events env vars + layer PK correctness)
+- [x] #627 — worldEvents scopeKey contract & PK correctness
 
 > Notes:
 >
