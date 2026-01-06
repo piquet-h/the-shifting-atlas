@@ -141,6 +141,66 @@ describe('World Event Processing Integration', () => {
             }
         })
 
+        test('should enforce canonical scopeKey patterns', () => {
+            // Valid patterns should succeed
+            const validPatterns = [
+                `loc:${uuidv4()}`,
+                `player:${uuidv4()}`,
+                'global:maintenance',
+                'global:tick',
+                'global:worldclock'
+            ]
+
+            for (const scopeKey of validPatterns) {
+                const result = emitWorldEvent({
+                    eventType: 'Player.Move',
+                    scopeKey,
+                    payload: {},
+                    actor: { kind: 'system' },
+                    correlationId: uuidv4()
+                })
+
+                assert.strictEqual(result.messageProperties.scopeKey, scopeKey, `Should accept valid pattern: ${scopeKey}`)
+            }
+
+            // Invalid patterns should throw
+            const invalidPatterns = [
+                '',
+                'invalid-scope',
+                'loc:',
+                'player:',
+                'loc:not-a-uuid',
+                'player:not-a-uuid',
+                'wrong:prefix',
+                'location:12345678-1234-4234-8234-123456789abc'
+            ]
+
+            for (const scopeKey of invalidPatterns) {
+                assert.throws(
+                    () => {
+                        emitWorldEvent({
+                            eventType: 'Player.Move',
+                            scopeKey,
+                            payload: {},
+                            actor: { kind: 'system' },
+                            correlationId: uuidv4()
+                        })
+                    },
+                    (error: unknown) => {
+                        assert.ok(isValidationError(error), `Should throw validation error for invalid pattern: ${scopeKey}`)
+                        if (isValidationError(error)) {
+                            assert.ok(
+                                error.message.includes('scopeKey') || error.message.includes('Invalid scopeKey'),
+                                `Error message should mention scopeKey. Got: ${error.message}`
+                            )
+                        }
+                        return true
+                    },
+                    `Should reject invalid pattern: ${scopeKey}`
+                )
+            }
+        })
+
         test('should reject invalid event types', () => {
             assert.throws(
                 () => {
