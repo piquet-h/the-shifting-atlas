@@ -12,7 +12,7 @@
 
 ---
 
-## 1) Prompt Template Registry (primary M4a deliverable)
+## 1 Prompt Template Registry (primary M4a deliverable)
 
 Epic: **#388 — Prompt Template Registry**
 
@@ -23,8 +23,8 @@ The core dependency chain is: **define schema + storage + hashing/integrity → 
 These guardrails prevent drift between infra ↔ code and prevent accidental cross-partition access.
 
 - [x] #699 — Test: Verify Cosmos SQL container partition keys match expected schema
-- [ ] #624 — Prompt Template Schema & Versioning Model (env var + layers/events container wiring; includes `/locationId` PK requirements)
-- [ ] #627 — Prompt Template Hashing & Integrity Validation _(note: body is actually about `worldEvents` scopeKey + PK correctness)_
+- [x] #624 — Prompt Template Schema & Versioning Model (env var + layers/events container wiring; includes `/locationId` PK requirements)
+- [ ] #627 — worldEvents scopeKey contract & PK correctness _(enforce `loc:`/`player:` patterns + `/scopeKey` PK correctness + tests)_
 
 ### 1.2 Implement registry storage + loader (source of truth)
 
@@ -83,7 +83,7 @@ The core dependency chain is:
 - [ ] #577 — enhancement(observability): Stage M3 MCP telemetry event constants _(observability-owned; used by dashboards/workbooks)_
 - [ ] #570 — infra(observability): AI usage workbook stub _(blocked by #577)_
 
-> Note: There are overlapping prompt/schema utilities between MCP and the prompt registry track (e.g., #575 vs #624/#627). Prefer merging or closing duplicates rather than implementing parallel paths.
+> Note: There are overlapping prompt/schema utilities between MCP and the prompt registry track (e.g., #575 vs #624). Prefer merging or closing duplicates rather than implementing parallel paths.
 
 > Heads-up: Several of these are labeled “M3 AI Read” in their bodies, but are currently assigned to M4a. This file keeps them here as long as the milestone does.
 

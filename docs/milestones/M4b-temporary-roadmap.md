@@ -22,7 +22,7 @@ These should be done _first_ because they harden the Cosmos SQL contract and pre
        Outcome: a repeatable check that prevents PK drift (players `/id`, inventory `/playerId`, layers `/locationId`, events `/scopeKey`).
 
 - [ ] #624 — Cosmos SQL env/schema alignment (layers + events env vars + layer PK correctness)
-- [ ] #627 — Events container correctness (scopeKey patterns + PK correctness)
+- [ ] #627 — worldEvents scopeKey contract & PK correctness
 
 > Notes:
 >
