@@ -127,7 +127,17 @@ test('loader: getLatest from bundle', async () => {
     const template = await loader.getLatest('location-gen')
 
     assert.ok(template)
-    assert.equal(template.metadata.version, '2.0.0') // Should get v2 (latest)
+    // Should get v10.0.0, not v2.0.0 (proper semver comparison)
+    assert.equal(template.metadata.version, '10.0.0')
+})
+
+test('loader: getLatest from files throws error', async () => {
+    const loader = new PromptLoader({
+        source: 'files',
+        basePath: fixturesPath
+    })
+
+    await assert.rejects(async () => await loader.getLatest('location-gen'), /getLatest is not supported in file-based mode/)
 })
 
 test('loader: preloadBundle', async () => {

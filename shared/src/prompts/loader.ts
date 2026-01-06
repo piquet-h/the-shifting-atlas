@@ -298,21 +298,40 @@ export class PromptLoader {
             return null
         }
 
-        // Sort by semver (simple string sort works for x.y.z format)
+        // Sort by semver (proper version comparison)
         matching.sort((a, b) => {
             const aVersion = this.bundle!.templates[a].metadata.version
             const bVersion = this.bundle!.templates[b].metadata.version
-            return bVersion.localeCompare(aVersion) // Descending
+            return this.compareSemver(bVersion, aVersion) // Descending
         })
 
         return this.getById(matching[0])
     }
 
+    /**
+     * Compare two semver strings
+     * Returns: >0 if a > b, <0 if a < b, 0 if equal
+     */
+    private compareSemver(a: string, b: string): number {
+        const aParts = a.split('.').map(Number)
+        const bParts = b.split('.').map(Number)
+
+        for (let i = 0; i < 3; i++) {
+            const diff = (aParts[i] || 0) - (bParts[i] || 0)
+            if (diff !== 0) {
+                return diff
+            }
+        }
+
+        return 0
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private async getLatestFromFiles(_idPrefix: string): Promise<PromptTemplate | null> {
-        // TODO: Implement file scanning and version comparison
-        // For now, just return null
-        return null
+    private async getLatestFromFiles(idPrefix: string): Promise<PromptTemplate | null> {
+        // File-based getLatest is not currently supported
+        // This would require scanning the filesystem for matching files and comparing versions
+        // For production use, prefer bundle mode which supports this feature
+        throw new Error('getLatest is not supported in file-based mode. Use bundle mode or getById instead.')
     }
 }
 

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-01-06T12:46:26.517Z",
+  "generatedAt": "2026-01-06T12:56:52.590Z",
   "templates": {
     "location-gen-v1": {
       "metadata": {
@@ -26,6 +26,19 @@
           "required": true
         }
       ]
+    },
+    "location-gen-v10": {
+      "metadata": {
+        "id": "location-gen-v10",
+        "version": "10.0.0",
+        "name": "Location Generator v10",
+        "description": "Version 10 for semver testing",
+        "tags": [
+          "location",
+          "world"
+        ]
+      },
+      "template": "Generate a [terrain_type] location (v10)."
     },
     "location-gen-v2": {
       "metadata": {
@@ -72,8 +85,9 @@
     }
   },
   "hashes": {
-    "location-gen-v1": "a83922c85ffd28baefaa3d7316ca88623ee19ea7476dae18780cd1c4d37a76cf",
-    "location-gen-v2": "623dfdc64f23a7fab5b009023c11f5a511af001f2df556367311541c489a8e18",
-    "npc-dialogue": "52d2f5e3ad6840b5e2e1e5e018845ce3aa00c2f24066fa6e502e36e0467d7db9"
+    "location-gen-v1": "eedfb9cb089cd169ac3420e1e490e3ba9f021b74a32f4725a5aba8bfbc931c06",
+    "location-gen-v10": "959079a5beedbaac8c908f8869fdcecf7897338f232817fe392ce16ca00e5959",
+    "location-gen-v2": "9c8b96c8ddf7b723e6894d49778ad5214e28b0fc5ca9d3ada731715897d2e33e",
+    "npc-dialogue": "52d0f02521062484a08d10cc7786213199d58ff2f6fd0d1249a3a1d7fc899fbb"
   }
 }
