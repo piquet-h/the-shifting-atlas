@@ -13,7 +13,7 @@
  *
  * NO memory mode fallbacks - production deploys with full infrastructure or fails.
  */
-import { SystemClock, type IClock } from '@piquet-h/shared'
+import { PromptTemplateRepository, SystemClock, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
@@ -21,6 +21,7 @@ import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/in
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from './handlers/containerHealth.js'
 import { GetExitsHandler } from './handlers/getExits.js'
+import { GetPromptTemplateHandler } from './handlers/getPromptTemplate.js'
 import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
@@ -140,6 +141,7 @@ export const setupContainer = async (container: Container) => {
     container.bind(SimplePingHandler).toSelf()
     container.bind(LocationLookHandler).toSelf()
     container.bind(GetExitsHandler).toSelf()
+    container.bind(GetPromptTemplateHandler).toSelf()
     container.bind(LinkRoomsHandler).toSelf()
     container.bind(PlayerCreateHandler).toSelf()
     container.bind(PlayerGetHandler).toSelf()
@@ -246,6 +248,11 @@ export const setupContainer = async (container: Container) => {
 
     // === Clock (Time Abstraction) ===
     container.bind<IClock>('IClock').toConstantValue(new SystemClock())
+
+    // === Prompt Template Repository (file-based, no Cosmos dependency) ===
+    container
+        .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
+        .toConstantValue(new PromptTemplateRepository({ ttlMs: 5 * 60 * 1000 })) // 5 minute cache
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()

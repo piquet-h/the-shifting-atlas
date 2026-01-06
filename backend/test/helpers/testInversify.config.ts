@@ -11,7 +11,7 @@
  * - Supports 'cosmos' mode for E2E tests (but still mocks telemetry)
  */
 
-import { FakeClock, type IClock } from '@piquet-h/shared'
+import { PromptTemplateRepository, FakeClock, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
@@ -20,6 +20,7 @@ import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gr
 import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from '../../src/handlers/containerHealth.js'
 import { GetExitsHandler } from '../../src/handlers/getExits.js'
+import { GetPromptTemplateHandler } from '../../src/handlers/getPromptTemplate.js'
 import { GremlinHealthHandler } from '../../src/handlers/gremlinHealth.js'
 import { HealthHandler } from '../../src/handlers/health.js'
 import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
@@ -143,6 +144,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(SimplePingHandler).toSelf().inSingletonScope()
     container.bind(LocationLookHandler).toSelf().inSingletonScope()
     container.bind(GetExitsHandler).toSelf().inSingletonScope()
+    container.bind(GetPromptTemplateHandler).toSelf().inSingletonScope()
     container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
@@ -315,6 +317,11 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     // === Clock (Time Abstraction) ===
     // Always use FakeClock in tests for deterministic time control
     container.bind<IClock>('IClock').toConstantValue(new FakeClock())
+
+    // === Prompt Template Repository (file-based, no Cosmos dependency) ===
+    container
+        .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
+        .toConstantValue(new PromptTemplateRepository({ ttlMs: 5 * 60 * 1000 })) // 5 minute cache
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()

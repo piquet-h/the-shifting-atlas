@@ -87,6 +87,8 @@ export const GAME_EVENT_NAMES = [
     'Prompt.Genesis.Crystallized',
     'Prompt.Layer.Generated',
     'Prompt.Cost.BudgetThreshold',
+    // Prompt template registry (M4a AI Infrastructure - Issue #626)
+    'PromptTemplate.Get', // Prompt template retrieved by id/version/hash - properties: { templateId, version, hash, status, cached? }
     'Extension.Hook.Invoked',
     'Extension.Hook.Veto',
     'Extension.Hook.Mutation',

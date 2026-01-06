@@ -2,7 +2,7 @@
 
 > **Temporary**: This is a working checklist meant for day-to-day progress. When M4a closes, either delete this file or replace it with a proper closure summary.
 >
-> Last updated: 2026-01-06
+> Last updated: 2026-01-07
 
 ## How to use
 
@@ -28,7 +28,7 @@ These guardrails prevent drift between infra ↔ code and prevent accidental cro
 
 ### 1.2 Implement registry storage + loader (source of truth)
 
-- [ ] #625 — Prompt Template Storage (FILE-BASED under `shared/src/prompts/` + validation + bundle + loader)
+- [x] #625 — Prompt Template Storage (FILE-BASED under `shared/src/prompts/` + validation + bundle + loader)
 
 > Note: #625 also references a migration CLI; #630 expands that into a dedicated migration script.
 
