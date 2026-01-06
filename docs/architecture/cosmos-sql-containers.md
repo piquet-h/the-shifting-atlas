@@ -106,4 +106,4 @@ Description Layers PK change (`/locationId` → `/scopeId`) requires data migrat
 - Realm Hierarchy: `./realm-hierarchy.md`
 - Temporal Framework: `../modules/world-time-temporal-reconciliation.md`
 
-Last updated: 2025-12-13
+Last updated: 2025-01-06
