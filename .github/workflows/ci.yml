@@ -245,9 +245,49 @@ jobs:
           path: frontend/axe-report
           if-no-files-found: ignore
 
+  validate-prompts:
+    name: Validate Prompt Templates
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.shared_changed == 'true' }}
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: shared/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
+
+      - name: Install shared dependencies
+        run: cd shared && npm ci
+
+      - name: Build shared
+        run: cd shared && npm run build
+
+      - name: Validate prompt templates
+        run: node scripts/validate-prompts.mjs
+
+      - name: Bundle prompt templates
+        run: node scripts/bundle-prompts.mjs
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prompt-bundle
+          path: shared/dist/prompts/prompts.bundle.json
+          if-no-files-found: warn
+
   summary:
     name: CI Summary
-    needs: [lint-typecheck, tests, accessibility]
+    needs: [lint-typecheck, tests, accessibility, validate-prompts]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -257,3 +297,4 @@ jobs:
           echo '* Lint & Typecheck: ${{ needs.lint-typecheck.result }}' >> $GITHUB_STEP_SUMMARY
           echo '* Tests: ${{ needs.tests.result }}' >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          if [ "${{ needs.validate-prompts.result }}" != "" ]; then echo '* Prompt Validation: ${{ needs.validate-prompts.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Prompt Validation: (skipped)' >> $GITHUB_STEP_SUMMARY; fi

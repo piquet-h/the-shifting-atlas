@@ -1,0 +1,52 @@
+{
+    "metadata": {
+        "id": "location-generator",
+        "version": "1.0.0",
+        "name": "Location Generator",
+        "description": "Generates descriptions for new locations in the world",
+        "tags": ["location", "world", "generation"],
+        "author": "system"
+    },
+    "template": "Generate a [terrain_type] location connected to [existing_location].\n\nConsider:\n- faction_control=[faction]\n- climate=[season]\n- political_tension=[current_events]\n\nInclude:\n- 2-3 exits with semantic descriptions\n- Ambient details appropriate to terrain and climate\n- Potential encounters or points of interest\n\nMaintain:\n- Established lore consistency\n- D&D mechanics integration\n- Immersive narrative voice",
+    "variables": [
+        {
+            "name": "terrain_type",
+            "description": "Type of terrain (e.g., forest, mountain, urban)",
+            "required": true
+        },
+        {
+            "name": "existing_location",
+            "description": "Name or description of the connected location",
+            "required": true
+        },
+        {
+            "name": "faction",
+            "description": "Controlling faction or neutral",
+            "required": false,
+            "defaultValue": "neutral"
+        },
+        {
+            "name": "season",
+            "description": "Current season or climate condition",
+            "required": false,
+            "defaultValue": "temperate"
+        },
+        {
+            "name": "current_events",
+            "description": "Relevant world events or political situation",
+            "required": false,
+            "defaultValue": "stable"
+        }
+    ],
+    "examples": [
+        {
+            "input": {
+                "terrain_type": "forest",
+                "existing_location": "Millhaven village",
+                "faction": "neutral",
+                "season": "autumn"
+            },
+            "description": "Generate a forest location near a village in autumn"
+        }
+    ]
+}
