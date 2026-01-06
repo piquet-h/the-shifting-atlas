@@ -383,7 +383,7 @@ export function emitWorldEvent(options: EmitWorldEventOptions): EmitWorldEventRe
     // 9. Final schema validation
     const validationResult = WorldEventEnvelopeSchema.safeParse(envelope)
     if (!validationResult.success) {
-        const issues = validationResult.error.issues.map((issue: { path: (string | number)[]; message: string; code: string }) => ({
+        const issues = validationResult.error.issues.map((issue) => ({
             path: issue.path.join('.'),
             message: issue.message,
             code: String(issue.code)

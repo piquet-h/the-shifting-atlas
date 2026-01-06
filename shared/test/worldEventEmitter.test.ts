@@ -287,18 +287,6 @@ describe('World Event Emitter', () => {
             assert.strictEqual(result.messageProperties.scopeKey, 'global:tick')
         })
 
-            assert.throws(
-                () => emitWorldEvent(options),
-                (error: any) => {
-                    assert.ok(error instanceof WorldEventValidationError)
-                    assert.ok(error.message.includes('Invalid event type'))
-                    assert.ok(error.issues.length > 0)
-                    assert.strictEqual(error.issues[0].path, 'eventType')
-                    return true
-                }
-            )
-        })
-
         it('should throw WorldEventValidationError for invalid actor kind', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
