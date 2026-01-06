@@ -4,19 +4,21 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 
 ## Milestone Overview
 
-| Milestone                     | Objective (Why)                                          | Core Increments                                                                                                                                           | Status                 | Exit Criteria                                                                                                                                     |
-| ----------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0 Foundation** ✅          | Prove deploy + minimal loop viability                    | Ping, guest GUID bootstrap, telemetry scaffold                                                                                                            | **CLOSED** 2025-10-19  | Player gets GUID & receives ping consistently                                                                                                     |
-| **M1 Traversal** ✅           | Persistent movement across locations                     | Location persistence, exit model, move/look commands, direction normalization                                                                             | **CLOSED** 2025-10-30  | Player can move across ≥3 persisted locations; telemetry for move success/failure                                                                 |
-| **M2 Data Foundations** ✅    | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation                                                                               | **CLOSED** 2025-11-23  | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
-| **M3 Core Loop (Umbrella)**   | Event processing + player UI + time                      | Split into M3a/M3b/M3c slices (see below)                                                                                                                 | **Split** (see slices) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
-| **M3a Event Backbone**        | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                                                                                      | **CLOSED** 2025-11-30  | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
-| **M3b Player UI & Telemetry** | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs                                                                                 | **CLOSED** 2025-12-11  | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                    |
-| **M3c Temporal PI-0**         | World time fundamentals                                  | WorldClock, PlayerClock, LocationClock, durations, reconcile policies, ledger, tests                                                                      | See GitHub milestone   | Temporal clocks advance; reconcile policies applied; ledger + telemetry; integration tests                                                        |
-| **M4 AI Read**                | Safe advisory AI context only                            | `world-query` (MCP read-only). Prompt templates, prompt registry, and telemetry live in `shared/` and backend helper endpoints; intent parser foundations | See GitHub milestone   | AI can query world state via MCP; prompts versioned & hashed in `shared`; intent parser handles basic commands                                    |
-| **M5 Quality & Depth**        | Content enrichment + observability                       | Description layering engine, layer validation, dashboards, alerts, integrity monitoring                                                                   | See GitHub milestone   | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                                                 |
-| **M6 Systems**                | Advanced features + episodic content                     | Dungeons, humor layer, entity promotion, Learn More page                                                                                                  | See GitHub milestone   | At least one dungeon traversable; humor feedback captured; emergent entities promoted                                                             |
-| **M7 Post-MVP**               | Extensibility + scale                                    | Multiplayer, quests, economy, AI write path, region sharding                                                                                              | See GitHub milestone   | Extensibility hooks functional; multiplayer party coordination prototype                                                                          |
+| Milestone                                   | Objective (Why)                                          | Core Increments                                                                                                                                           | Status                 | Exit Criteria                                                                                                                                     |
+| ------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0 Foundation** ✅                        | Prove deploy + minimal loop viability                    | Ping, guest GUID bootstrap, telemetry scaffold                                                                                                            | **CLOSED** 2025-10-19  | Player gets GUID & receives ping consistently                                                                                                     |
+| **M1 Traversal** ✅                         | Persistent movement across locations                     | Location persistence, exit model, move/look commands, direction normalization                                                                             | **CLOSED** 2025-10-30  | Player can move across ≥3 persisted locations; telemetry for move success/failure                                                                 |
+| **M2 Data Foundations** ✅                  | Data persistence consolidation + telemetry modernization | SQL API containers, player store cutover (ADR-004), telemetry consolidation                                                                               | **CLOSED** 2025-11-23  | Player state authoritative in SQL API (cutover complete); immutable world graph retained; telemetry events enriched & migration artifacts removed |
+| **M3 Core Loop (Umbrella)**                 | Event processing + player UI + time                      | Split into M3a/M3b/M3c slices (see below)                                                                                                                 | **Split** (see slices) | Events process via queue; player can navigate via web UI; telemetry shows end-to-end traces; temporal mechanics operational                       |
+| **M3a Event Backbone**                      | Queue + contracts + reliability                          | Event schema, processor, idempotency, DLQ, telemetry                                                                                                      | **CLOSED** 2025-11-30  | Queue processor, idempotency, DLQ/replay, correlated telemetry                                                                                    |
+| **M3b Player UI & Telemetry**               | SWA auth, game view, navigation, telemetry               | Auth, game view, command input, nav UI, routing, telemetry, UI tests/docs                                                                                 | **CLOSED** 2025-12-11  | Player can log in, see location/exits/status, navigate; frontend↔backend telemetry correlated                                                     |
+| **M3c Temporal PI-0**                       | World time fundamentals                                  | WorldClock, PlayerClock, LocationClock, durations, reconcile policies, ledger, tests                                                                      | See GitHub milestone   | Temporal clocks advance; reconcile policies applied; ledger + telemetry; integration tests                                                        |
+| **M4a: AI Infrastructure (Sense + Decide)** | Safe advisory AI context + shadow decisions              | `world-query` (MCP read-only). Prompt templates, prompt registry, and telemetry live in `shared/` and backend helper endpoints; intent parser foundations | See GitHub milestone   | AI can query world state via MCP; prompts versioned & hashed; intent parser emits _shadow_ event-classification/proposals telemetry               |
+| **M4b: World Generation**                   | World enrichment that persists safely                    | Batch generation events, narrative generation server, persistence of generated description layers (bounded + validated)                                   | See GitHub milestone   | At least one world generation loop persists validated layers and is observable/replayable                                                         |
+| **M4c: Agent Sandbox (Write-lite)**         | First agentic loops with strict gates                    | Constrained agent runtime (queue-only). Proposal → validate → apply pattern. Allow-listed world effects + promotion pipeline hooks                        | See GitHub milestone   | At least one autonomous agent can act safely (bounded write scope), with replayability and observability                                          |
+| **M5 Quality & Depth**                      | Content enrichment + observability                       | Description layering engine, layer validation, dashboards, alerts, integrity monitoring                                                                   | See GitHub milestone   | Layers applied & audited; dashboards show success rates; alerts fire on anomalies                                                                 |
+| **M6 Systems**                              | Advanced features + episodic content                     | Dungeons, humor layer, entity promotion, Learn More page                                                                                                  | See GitHub milestone   | At least one dungeon traversable; humor feedback captured; emergent entities promoted                                                             |
+| **M7 Post-MVP**                             | Extensibility + scale                                    | Multiplayer, quests, economy, AI write path, region sharding                                                                                              | See GitHub milestone   | Extensibility hooks functional; multiplayer party coordination prototype                                                                          |
 
 > Milestone assignments are the source of truth. Do not hard-code issue counts or statuses in documentation — query GitHub Milestones or the repository milestone view for current values. `M3 Core Loop` is an **umbrella**; use **M3a/M3b/M3c** for slices. Milestone `M7 Dungeon Runs` has been deprecated; use `M6 Systems` for dungeon work and `M7 Post-MVP Extensibility` for post-MVP items.
 
@@ -32,7 +34,9 @@ graph TD
     M3a[M3a Event Backbone]
     M3b[M3b Player UI & Telemetry]
     M3c[M3c Temporal PI-0]
-    M4[M4 AI Read]
+    M4a[M4a: AI Infrastructure]
+    M4b[M4b: World Generation]
+    M4c[M4c: Agent Sandbox (Write-lite)]
     M5[M5 Quality & Depth]
     M6[M6 Systems]
     M7[M7 Post-MVP<br/>TBD]
@@ -41,9 +45,11 @@ graph TD
     M1 --> M2
     M2 --> M3
     M2 --> M5A[M5: Dashboards<br/>parallel track]
-    M3 --> M4
-    M4 --> M5B[M5: Layering<br/>depends on prompts]
-    M4 --> M6
+    M3 --> M4a
+    M4a --> M4b
+    M4a --> M4c
+    M4b --> M5B[M5: Layering<br/>depends on prompts]
+    M4c --> M6
     M5A --> M7
     M5B --> M7
     M6 --> M7
@@ -53,12 +59,12 @@ graph TD
     classDef future fill:#6e7781,stroke:#57606a,color:#fff
 
     class M0,M1,M2,M3a,M3b closed
-    class M3c,M4,M5,M6,M7,M5A,M5B future
+    class M3c,M4a,M4b,M4c,M5,M6,M7,M5A,M5B future
 
-    subgraph MVP["MVP = M2 + M3 + M4"]
+    subgraph MVP["MVP = M2 + M3 + M4a"]
         M2
         M3
-        M4
+        M4a
     end
 
     subgraph POST["Post-MVP Enhancement"]
@@ -66,6 +72,11 @@ graph TD
         M5B
         M6
         M7
+    end
+
+    subgraph AGENTS["Immersive MCP + Agents"]
+        M4a
+        M4c
     end
 ```
 
@@ -83,6 +94,8 @@ graph TD
 - M6 Systems planning/design can start during M4 (no code dependencies)
 
 **MVP Completion Path**: M3a ✅ → M3b ✅ → M3c (2 weeks) → M4 (3 weeks) = **~5 weeks to MVP** (as of 2025-12-11)
+
+**Agentic Validation Path (recommended)**: M4a → M4c provides the earliest point where you can observe _closed-loop_ agent behavior (sense → decide → act → observe) with strict safety gates.
 
 ## M2 Data Foundations (Closed)
 
@@ -313,10 +326,10 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 ---
 
-## M4 AI Read
+## M4a: AI Infrastructure (Sense + Decide)
 
 **Status**: See GitHub milestone
-**Goal**: Enable AI to query world state and use versioned prompts (read-only)  
+**Goal**: Enable AI to query world state and use versioned prompts (read-only), and emit **shadow-mode decisions** that can later drive safe world effects  
 **Dependencies**: M2 Data Foundations (#434 needs SQL), M3 Core Loop (UI for testing)  
 **Blocks**: M5 Layering (AI generation), M6 Systems (AI-driven content)
 
@@ -391,6 +404,47 @@ M2:#517-519 (Player) ──> #514 (MCP Foundation) ──> #515 (Location/Player
 - ✅ Prompt templates retrievable via shared prompt registry (`shared/src/prompts/`) and backend helper API
 - ✅ AI invocations tracked with cost telemetry (model, tokens, latency)
 - ✅ Authentication propagates identity through MCP calls
+- ✅ Intent parsing and event classification decisions can be produced in **shadow mode** (recorded + replayable, not mutating shared state)
+
+---
+
+## M4c: Agent Sandbox (Write-lite)
+
+**Status**: See GitHub milestone
+
+**Goal**: Introduce the first **autonomous agent loops** that can safely create emergent behavior by acting on the world through strict, observable gates.
+
+**Design constraint**: This milestone does **not** introduce a full “AI write path” for arbitrary mutations. It introduces a **bounded write scope** with allow-listed actions, validators, and replay.
+
+**Core idea**: **Proposal → Validate → Apply**
+
+- **Proposal**: Agents generate _proposed_ world effects (events, layers, NPC steps) using MCP for context.
+- **Validate**: Deterministic code validates proposals against invariants (schema, safety rules, scope rules).
+- **Apply**: Only validated proposals are applied (typically via queue processing). Invalid proposals are stored for analysis, not executed.
+
+### Candidate Clusters (high-level)
+
+**Cluster S1: Agent Runtime (Queue-only)**
+
+- A minimal queue-driven “agent step” event type (NPC/world steward) that can run repeatedly without blocking any HTTP handler.
+- Agents use MCP tools to fetch context (world/query, prompts, telemetry summaries) and emit proposed actions.
+
+**Cluster S2: Proposal Governance & Replay**
+
+- Proposal envelope + validators (allow-list actions, bounded parameters, idempotency keys)
+- Replay tooling to reproduce an emergent incident from stored proposals + event logs
+
+**Cluster S3: First Emergent Loop (MVP)**
+
+- At least one autonomous agent that performs a safe behavior loop (e.g., roaming NPC, caretaker agent that adjusts ambience layers, simple rumor propagation).
+
+### Exit Criteria
+
+- ✅ At least one autonomous agent loop runs end-to-end: **sense → decide → act → observe**
+- ✅ Agent actions are limited to an allow-listed, validated mutation scope (no arbitrary writes)
+- ✅ Every agent decision and action is observable (correlationId/causationId, cost, latency)
+- ✅ Replay can reproduce an agent run from stored proposals and event logs
+- ✅ Failure modes are safe: invalid proposals are rejected + stored; processing is idempotent; DLQ path exists
 
 ### MECE Validation
 
@@ -550,4 +604,4 @@ Use GitHub REST API to manage milestone assignments and issue dependencies (MCP 
 
 ---
 
-**Last updated**: 2025-11-24
+**Last updated**: 2026-01-05
