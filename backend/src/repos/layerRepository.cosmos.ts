@@ -41,10 +41,11 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
+        @inject('CosmosContainer:Layers') containerName: string,
         @inject(TelemetryService) telemetryService: TelemetryService,
         @inject('IRealmRepository') @optional() realmRepository?: IRealmRepository
     ) {
-        super(sqlClient, 'descriptionLayers', telemetryService)
+        super(sqlClient, containerName, telemetryService)
         this._telemetry = telemetryService
         this._realmRepository = realmRepository
     }

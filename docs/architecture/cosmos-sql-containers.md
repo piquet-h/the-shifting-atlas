@@ -24,15 +24,17 @@ Authoritative reference for SQL API containers used by The Shifting Atlas.
 
 - PK: `/id`
 - Purpose: Authoritative player state (clockTick, lastAction, lastDrift, profile)
+- **Environment variable**: `COSMOS_SQL_CONTAINER_PLAYERS` (default: `players`)
 
 ### inventory
 
 - PK: `/playerId`
 - Purpose: Items owned by a player colocated by partition key
+- **Environment variable**: `COSMOS_SQL_CONTAINER_INVENTORY` (default: `inventory`)
 
 ### descriptionLayers
 
-- PK: `/scopeId` ← updated
+- PK: `/scopeId` (target state) — **Current deployed state: `/locationId`** (migration in progress)
 - Scope patterns:
     - `loc:<locationId>` for location-specific overlays
     - `realm:<realmId>` for realm-scoped overlays (e.g., weather zones)
@@ -44,11 +46,14 @@ Authoritative reference for SQL API containers used by The Shifting Atlas.
     - `metadata?: object`
 - Notes:
     - When resolving layers for a location at tick T, search location scope then containing realms (see `realm-hierarchy.md`).
+    - **Migration status**: Application code supports `/scopeId` with backward compatibility for `/locationId`
+    - **Environment variable**: `COSMOS_SQL_CONTAINER_LAYERS` (default: `descriptionLayers`)
 
 ### worldEvents
 
 - PK: `/scopeKey` (e.g., `loc:<id>`, `player:<id>`, `wc`)
 - Purpose: Durable event stream for world and player timelines
+- **Environment variable**: `COSMOS_SQL_CONTAINER_EVENTS` (default: `worldEvents`)
 
 ### temporalLedger
 

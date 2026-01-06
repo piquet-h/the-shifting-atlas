@@ -190,7 +190,23 @@ export const setupContainer = async (container: Container) => {
     container.bind<IRealmRepository>('IRealmRepository').to(CosmosRealmRepository).inSingletonScope()
     container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
     container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
+
+    // === Cosmos SQL Containers (Layers & Events) ===
+    // These containers are required in production (no defaults) - validation happens in persistenceConfig
+    const layersContainer = config.cosmosSql?.containers.layers
+    const eventsContainer = config.cosmosSql?.containers.events
+
+    if (!layersContainer) {
+        throw new Error('Description layers container configuration missing. Required: COSMOS_SQL_CONTAINER_LAYERS')
+    }
+    if (!eventsContainer) {
+        throw new Error('World events container configuration missing. Required: COSMOS_SQL_CONTAINER_EVENTS')
+    }
+
+    container.bind<string>('CosmosContainer:Layers').toConstantValue(layersContainer)
     container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
+
+    container.bind<string>('CosmosContainer:Events').toConstantValue(eventsContainer)
     container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
 
     // === Cosmos SQL Containers (Dead Letter & Processed Events) ===
