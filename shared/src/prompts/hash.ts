@@ -11,7 +11,7 @@ import { createHash } from 'crypto'
  * @param content - Template content string
  * @returns Hex-encoded SHA256 hash
  */
-export function computeTemplateHash(content: string): string {
+export function computeContentHash(content: string): string {
     return createHash('sha256').update(content, 'utf8').digest('hex')
 }
 
@@ -21,7 +21,7 @@ export function computeTemplateHash(content: string): string {
  * @param expectedHash - Expected hash value
  * @returns True if hash matches
  */
-export function verifyTemplateHash(content: string, expectedHash: string): boolean {
-    const actualHash = computeTemplateHash(content)
+export function verifyContentHash(content: string, expectedHash: string): boolean {
+    const actualHash = computeContentHash(content)
     return actualHash === expectedHash
 }

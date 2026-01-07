@@ -15,7 +15,7 @@ import { z } from 'zod'
 /**
  * Prompt template metadata schema
  */
-export const PromptTemplateMetadataSchema = z.object({
+export const PromptTemplateFileMetadataSchema = z.object({
     id: z
         .string()
         .min(1)
@@ -29,7 +29,7 @@ export const PromptTemplateMetadataSchema = z.object({
     createdAt: z.string().datetime().optional(),
     updatedAt: z.string().datetime().optional()
 })
-export type PromptTemplateMetadata = z.infer<typeof PromptTemplateMetadataSchema>
+export type PromptTemplateFileMetadata = z.infer<typeof PromptTemplateFileMetadataSchema>
 
 /**
  * Variable definition schema for template interpolation
@@ -48,8 +48,8 @@ export type VariableDefinition = z.infer<typeof VariableDefinitionSchema>
 /**
  * Complete prompt template schema
  */
-export const PromptTemplateSchema = z.object({
-    metadata: PromptTemplateMetadataSchema,
+export const PromptTemplateFileSchema = z.object({
+    metadata: PromptTemplateFileMetadataSchema,
     template: z.string().min(1).max(50000),
     variables: z.array(VariableDefinitionSchema).optional(),
     examples: z
@@ -62,7 +62,7 @@ export const PromptTemplateSchema = z.object({
         )
         .optional()
 })
-export type PromptTemplate = z.infer<typeof PromptTemplateSchema>
+export type PromptTemplateFile = z.infer<typeof PromptTemplateFileSchema>
 
 /**
  * Bundled prompt templates artifact schema
@@ -70,7 +70,7 @@ export type PromptTemplate = z.infer<typeof PromptTemplateSchema>
 export const PromptBundleSchema = z.object({
     version: z.string(),
     generatedAt: z.string().datetime(),
-    templates: z.record(z.string(), PromptTemplateSchema),
+    templates: z.record(z.string(), PromptTemplateFileSchema),
     hashes: z.record(z.string(), z.string()) // id -> SHA256 hash
 })
 export type PromptBundle = z.infer<typeof PromptBundleSchema>
@@ -78,17 +78,17 @@ export type PromptBundle = z.infer<typeof PromptBundleSchema>
 /**
  * Validation result
  */
-export interface ValidationResult {
+export interface PromptTemplateValidationResult {
     valid: boolean
     errors?: z.ZodError
-    template?: PromptTemplate
+    template?: PromptTemplateFile
 }
 
 /**
  * Validate a prompt template object
  */
-export function validatePromptTemplate(data: unknown): ValidationResult {
-    const result = PromptTemplateSchema.safeParse(data)
+export function validatePromptTemplate(data: unknown): PromptTemplateValidationResult {
+    const result = PromptTemplateFileSchema.safeParse(data)
     if (result.success) {
         return { valid: true, template: result.data }
     }
