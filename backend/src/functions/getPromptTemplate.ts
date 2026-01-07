@@ -4,6 +4,6 @@ import { getPromptTemplateHandler } from '../handlers/getPromptTemplate.js'
 app.http('GetPromptTemplate', {
     route: 'prompts/{id}',
     methods: ['GET'],
-    authLevel: 'anonymous',
+    authLevel: 'function',
     handler: getPromptTemplateHandler
 })

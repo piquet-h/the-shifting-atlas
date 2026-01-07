@@ -17,6 +17,7 @@ import { PromptTemplateRepository, SystemClock, type IClock, type IPromptTemplat
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
+import { getPromptTemplateCacheConfig } from './config/promptTemplateCacheConfig.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/index.js'
 import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from './handlers/containerHealth.js'
@@ -250,9 +251,10 @@ export const setupContainer = async (container: Container) => {
     container.bind<IClock>('IClock').toConstantValue(new SystemClock())
 
     // === Prompt Template Repository (file-based, no Cosmos dependency) ===
+    const promptCache = getPromptTemplateCacheConfig()
     container
         .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
-        .toConstantValue(new PromptTemplateRepository({ ttlMs: 5 * 60 * 1000 })) // 5 minute cache
+        .toConstantValue(new PromptTemplateRepository({ ttlMs: promptCache.ttlMs }))
 
     // === Services ===
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
