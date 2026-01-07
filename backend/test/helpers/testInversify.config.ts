@@ -11,7 +11,7 @@
  * - Supports 'cosmos' mode for E2E tests (but still mocks telemetry)
  */
 
-import { PromptTemplateRepository, FakeClock, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import { FakeClock, PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
@@ -80,9 +80,9 @@ import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
 import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
-import { RealmService } from '../../src/services/RealmService.js'
 import { LocationClockManager } from '../../src/services/LocationClockManager.js'
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
+import { RealmService } from '../../src/services/RealmService.js'
 import { ReconcileEngine } from '../../src/services/ReconcileEngine.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
@@ -92,6 +92,7 @@ import { ExitCreateHandler } from '../../src/worldEvents/handlers/ExitCreateHand
 import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
 import { QueueProcessWorldEventHandler } from '../../src/worldEvents/queueProcessWorldEvent.js'
 // Import mocks from test folder
+import { getPromptTemplateCacheConfig } from '../../src/config/promptTemplateCacheConfig.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
 import { MockExitRepository } from '../mocks/repositories/exitRepository.mock.js'
@@ -319,9 +320,10 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind<IClock>('IClock').toConstantValue(new FakeClock())
 
     // === Prompt Template Repository (file-based, no Cosmos dependency) ===
+    const promptCache = getPromptTemplateCacheConfig()
     container
         .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
-        .toConstantValue(new PromptTemplateRepository({ ttlMs: 5 * 60 * 1000 })) // 5 minute cache
+        .toConstantValue(new PromptTemplateRepository({ ttlMs: promptCache.ttlMs }))
 
     // Register services (available in all modes)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()

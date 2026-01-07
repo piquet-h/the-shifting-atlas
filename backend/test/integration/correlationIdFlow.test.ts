@@ -21,6 +21,10 @@ import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('CorrelationId Flow Integration', () => {
     let fixture: UnitTestFixture
+    const TEST_LOCATION_ID = '550e8400-e29b-41d4-a716-446655440000'
+    const TEST_LOCATION_FROM_ID = '550e8400-e29b-41d4-a716-446655440001'
+    const TEST_LOCATION_TO_ID = '550e8400-e29b-41d4-a716-446655440002'
+    const TEST_NPC_ID = '550e8400-e29b-41d4-a716-446655440003'
 
     beforeEach(async () => {
         fixture = new UnitTestFixture()
@@ -39,11 +43,11 @@ describe('CorrelationId Flow Integration', () => {
             // Step 1: Prepare event envelope (as HTTP handler would)
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test-location',
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
                 payload: {
-                    playerId: 'player-1',
-                    fromLocationId: 'loc-from',
-                    toLocationId: 'loc-to',
+                    playerId: '550e8400-e29b-41d4-a716-446655440010',
+                    fromLocationId: TEST_LOCATION_FROM_ID,
+                    toLocationId: TEST_LOCATION_TO_ID,
                     direction: 'north'
                 },
                 actor: {
@@ -89,8 +93,8 @@ describe('CorrelationId Flow Integration', () => {
             // Emit event without correlationId (auto-generated)
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Look',
-                scopeKey: 'loc:test-location',
-                payload: { locationId: 'loc-1' },
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
+                payload: { locationId: TEST_LOCATION_ID },
                 actor: { kind: 'player' }
                 // correlationId intentionally omitted
             })
@@ -126,7 +130,7 @@ describe('CorrelationId Flow Integration', () => {
             // Emit event with specific correlationId
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test-location',
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
                 payload: { direction: 'north' },
                 actor: { kind: 'player' },
                 correlationId: envelopeCorrelationId
@@ -168,7 +172,7 @@ describe('CorrelationId Flow Integration', () => {
 
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Move',
-                scopeKey: 'loc:test-location',
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
                 payload: {},
                 actor: { kind: 'player' },
                 correlationId,
@@ -205,8 +209,8 @@ describe('CorrelationId Flow Integration', () => {
 
             const emitResult = emitWorldEvent({
                 eventType: 'NPC.Tick',
-                scopeKey: 'loc:npc-location',
-                payload: { npcId: 'npc-1' },
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
+                payload: { npcId: TEST_NPC_ID },
                 actor: { kind: 'system' },
                 correlationId,
                 idempotencyKey: `test-registry-correlation-${Date.now()}`
@@ -231,10 +235,10 @@ describe('CorrelationId Flow Integration', () => {
         test('should include all required applicationProperties for Service Bus', async () => {
             const emitResult = emitWorldEvent({
                 eventType: 'World.Exit.Create',
-                scopeKey: 'loc:source-location',
+                scopeKey: `loc:${TEST_LOCATION_ID}`,
                 payload: {
-                    fromLocationId: 'loc-source',
-                    toLocationId: 'loc-target',
+                    fromLocationId: TEST_LOCATION_FROM_ID,
+                    toLocationId: TEST_LOCATION_TO_ID,
                     direction: 'east'
                 },
                 actor: { kind: 'system' },
@@ -248,7 +252,7 @@ describe('CorrelationId Flow Integration', () => {
             const props = enqueueResult.message.applicationProperties
             assert.strictEqual(props.correlationId, '55555555-5555-4555-8555-555555555555')
             assert.strictEqual(props.eventType, 'World.Exit.Create')
-            assert.strictEqual(props.scopeKey, 'loc:source-location')
+            assert.strictEqual(props.scopeKey, `loc:${TEST_LOCATION_ID}`)
             assert.strictEqual(props.operationId, 'op-12345')
 
             // Verify message-level correlationId

@@ -9,6 +9,7 @@ import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import type { IPromptTemplateRepository } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
+import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
@@ -87,11 +88,13 @@ export class GetPromptTemplateHandler extends BaseHandler {
             status: 200
         })
 
+        const cacheConfig = getPromptTemplateCacheConfig()
+
         return okResponse(template, {
             correlationId: this.correlationId,
             additionalHeaders: {
                 ETag: template.hash,
-                'Cache-Control': 'public, max-age=300' // 5 minutes
+                'Cache-Control': cacheConfig.enabled ? `public, max-age=${cacheConfig.maxAgeSeconds}` : 'no-store'
             }
         })
     }

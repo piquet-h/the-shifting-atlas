@@ -2,10 +2,10 @@
  * Unit tests for GetPromptTemplate handler
  */
 
-import assert from 'node:assert'
-import { describe, test } from 'node:test'
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import type { IPromptTemplateRepository, PromptTemplate } from '@piquet-h/shared'
+import assert from 'node:assert'
+import { describe, test } from 'node:test'
 import { GetPromptTemplateHandler } from '../../src/handlers/getPromptTemplate.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
@@ -43,9 +43,10 @@ describe('GetPromptTemplateHandler', () => {
             const response = await handler.handle(mockReq, mockContext)
 
             assert.strictEqual(response.status, 400)
-            const body = JSON.parse(JSON.stringify(response.jsonBody))
-            assert.ok(body.err)
-            assert.strictEqual(body.err.code, 'MissingTemplateId')
+            const body = JSON.parse(JSON.stringify(response.jsonBody)) as { success: boolean; error?: { code: string } }
+            assert.strictEqual(body.success, false)
+            assert.ok(body.error)
+            assert.strictEqual(body.error.code, 'MissingTemplateId')
         })
 
         test('returns 404 if template not found', async () => {
@@ -69,9 +70,10 @@ describe('GetPromptTemplateHandler', () => {
             const response = await handler.handle(mockReq, mockContext)
 
             assert.strictEqual(response.status, 404)
-            const body = JSON.parse(JSON.stringify(response.jsonBody))
-            assert.ok(body.err)
-            assert.strictEqual(body.err.code, 'NotFound')
+            const body = JSON.parse(JSON.stringify(response.jsonBody)) as { success: boolean; error?: { code: string } }
+            assert.strictEqual(body.success, false)
+            assert.ok(body.error)
+            assert.strictEqual(body.error.code, 'NotFound')
 
             // Restore
             mockRepo.get = originalGet
@@ -94,9 +96,10 @@ describe('GetPromptTemplateHandler', () => {
             const response = await handler.handle(mockReq, mockContext)
 
             assert.strictEqual(response.status, 400)
-            const body = JSON.parse(JSON.stringify(response.jsonBody))
-            assert.ok(body.err)
-            assert.strictEqual(body.err.code, 'ConflictingParameters')
+            const body = JSON.parse(JSON.stringify(response.jsonBody)) as { success: boolean; error?: { code: string } }
+            assert.strictEqual(body.success, false)
+            assert.ok(body.error)
+            assert.strictEqual(body.error.code, 'ConflictingParameters')
         })
 
         test('returns 200 with template data when found', async () => {
@@ -126,10 +129,11 @@ describe('GetPromptTemplateHandler', () => {
             assert.strictEqual(response.headers['ETag'], 'abc123')
             assert.ok(response.headers['Cache-Control']?.includes('max-age=300'))
 
-            const body = JSON.parse(JSON.stringify(response.jsonBody))
-            assert.ok(body.ok)
-            assert.strictEqual(body.ok.id, 'location')
-            assert.strictEqual(body.ok.hash, 'abc123')
+            const body = JSON.parse(JSON.stringify(response.jsonBody)) as { success: boolean; data?: { id: string; hash: string } }
+            assert.strictEqual(body.success, true)
+            assert.ok(body.data)
+            assert.strictEqual(body.data.id, 'location')
+            assert.strictEqual(body.data.hash, 'abc123')
         })
 
         test('returns 304 Not Modified when ETag matches', async () => {
