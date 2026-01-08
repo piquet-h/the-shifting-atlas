@@ -57,7 +57,7 @@ test('bucketing: anonymous user fallback', () => {
     assert.equal(bucket, bucket2)
 })
 
-test('variant selector: single variant 100% rollout', async () => {
+test('variant selector: single variant 100% rollout', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -81,7 +81,7 @@ test('variant selector: single variant 100% rollout', async () => {
     assert.equal(variant2.id, 'control')
 })
 
-test('variant selector: 50/50 split', async () => {
+test('variant selector: 50/50 split', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -114,7 +114,7 @@ test('variant selector: 50/50 split', async () => {
     assert.ok(counts.experiment >= 450 && counts.experiment <= 550, `Experiment: ${counts.experiment}`)
 })
 
-test('variant selector: gradual rollout', async () => {
+test('variant selector: gradual rollout', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -147,7 +147,7 @@ test('variant selector: gradual rollout', async () => {
     assert.ok(counts.experiment >= 50 && counts.experiment <= 150, `Experiment: ${counts.experiment}`)
 })
 
-test('variant selector: channel-specific variants (stable vs canary)', async () => {
+test('variant selector: channel-specific variants (stable vs canary)', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -181,7 +181,7 @@ test('variant selector: channel-specific variants (stable vs canary)', async () 
     assert.equal(canaryVariant.id, 'canary')
 })
 
-test('variant selector: default variant fallback', async () => {
+test('variant selector: default variant fallback', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -202,7 +202,7 @@ test('variant selector: default variant fallback', async () => {
     assert.ok(variant) // Should return some fallback variant
 })
 
-test('variant selector: consistent selection for same user', async () => {
+test('variant selector: consistent selection for same user', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -234,7 +234,7 @@ test('variant selector: consistent selection for same user', async () => {
     assert.equal(variant2.id, variant3.id)
 })
 
-test('variant selector: rollout percent validation', async () => {
+test('variant selector: rollout percent validation', () => {
     const selector = new VariantSelector()
 
     // Invalid: rollout percentages don't sum to 100
@@ -250,7 +250,7 @@ test('variant selector: rollout percent validation', async () => {
     }, /sum to 100/)
 })
 
-test('variant selector: anonymous user handling', async () => {
+test('variant selector: anonymous user handling', () => {
     const config: VariantConfig = {
         templateId: 'location-gen',
         variants: [
@@ -273,7 +273,7 @@ test('variant selector: anonymous user handling', async () => {
     assert.equal(variant1.id, variant2.id)
 })
 
-test('variant selector: config update handling', async () => {
+test('variant selector: config update handling', () => {
     const selector = new VariantSelector()
 
     // Initial config

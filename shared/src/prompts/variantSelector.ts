@@ -157,18 +157,17 @@ export class VariantSelector {
      */
     selectVariant(templateId: string, userId: string, channel: VariantChannel = 'stable'): VariantSelection {
         const config = this.configs.get(templateId)
+        const bucket = VariantBucketing.getBucket(userId, templateId)
 
         if (!config) {
             // No config found - return a fallback selection
             return {
                 id: 'default',
                 templateId: templateId,
-                bucket: 0,
+                bucket,
                 channel
             }
         }
-
-        const bucket = VariantBucketing.getBucket(userId, templateId)
 
         // Filter variants by channel
         const channelVariants = config.variants.filter((v) => !v.channels || v.channels.includes(channel))
