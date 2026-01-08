@@ -5,7 +5,7 @@
  * for A/B testing prompt templates.
  */
 
-import { VariantSelector, type VariantConfig } from '@piquet-h/shared'
+import { VariantSelector, type VariantConfig } from './variantSelector.js'
 
 // Example 1: Simple 50/50 A/B test
 const simpleABTest: VariantConfig = {
