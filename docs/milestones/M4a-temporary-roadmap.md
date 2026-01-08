@@ -2,7 +2,7 @@
 
 > **Temporary**: This is a working checklist meant for day-to-day progress. When M4a closes, either delete this file or replace it with a proper closure summary.
 >
-> Last updated: 2026-01-07
+> Last updated: 2026-01-08
 
 ## How to use
 
@@ -34,7 +34,7 @@ These guardrails prevent drift between infra ↔ code and prevent accidental cro
 
 ### 1.3 Retrieval API for runtime consumers
 
-- [ ] #626 — Prompt Template Retrieval API (Backend Function)
+- [x] #626 — Prompt Template Retrieval API (Backend Function)
 
 ### 1.4 Experiments and observability hooks
 
