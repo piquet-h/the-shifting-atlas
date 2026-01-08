@@ -30,6 +30,20 @@
  *     promptTokens: 150,
  *     completionTokens: 450
  * })
+ *
+ * // Option 3: Pass TokenMetadata from OpenAI response (production)
+ * const metadata: TokenMetadata = {
+ *     modelId: 'gpt-4o-mini',
+ *     promptTokens: 150,
+ *     completionTokens: 450,
+ *     totalTokens: 600,
+ *     estimatorName: 'production',
+ *     cachedTokens: 100
+ * }
+ * const payload3 = prepareAICostTelemetry({
+ *     modelId: 'gpt-4o-mini',
+ *     tokenMetadata: metadata
+ * })
  * ```
  *
  * ## Telemetry Payload Fields
@@ -46,6 +60,7 @@
  * - hadNegativeTokens: true if negative tokens were clamped
  * - originalPromptTokens: Original value (if negative)
  * - originalCompletionTokens: Original value (if negative)
+ * - cachedTokens: Number of cached tokens (if provided via TokenMetadata)
  *
  * ## Privacy
  *
@@ -63,6 +78,7 @@
 
 import { getPricing, getRegisteredModelIds } from './aiPricing.js'
 import { createCharDiv4Estimator } from './tokenEstimator.js'
+import type { TokenMetadata } from './types/tokenMetadata.js'
 
 /**
  * Token count buckets for telemetry aggregation.
@@ -144,19 +160,21 @@ export function calculateCost(modelId: string, promptTokens: number, completionT
 
 /**
  * Options for preparing AI cost telemetry payload.
- * Supports both text-based estimation and explicit token counts.
+ * Supports text-based estimation, explicit token counts, and real token metadata from LLM responses.
  */
 export interface PrepareAICostTelemetryOptions {
     /** AI model identifier */
     modelId: string
-    /** Prompt text (will be estimated if promptTokens not provided) */
+    /** Prompt text (will be estimated if promptTokens/tokenMetadata not provided) */
     promptText?: string
-    /** Completion text (will be estimated if completionText not provided) */
+    /** Completion text (will be estimated if completionText/tokenMetadata not provided) */
     completionText?: string
     /** Explicit prompt token count (overrides promptText estimation) */
     promptTokens?: number
     /** Explicit completion token count (overrides completionText estimation) */
     completionTokens?: number
+    /** Token metadata from LLM response (overrides all other token sources) */
+    tokenMetadata?: TokenMetadata
 }
 
 /**
@@ -188,11 +206,13 @@ export interface AICostTelemetryPayload {
     originalPromptTokens?: number
     /** Original completion tokens before clamping (only if hadNegativeTokens is true) */
     originalCompletionTokens?: number
+    /** Number of cached tokens (from TokenMetadata when available) */
+    cachedTokens?: number
 }
 
 /**
  * Prepare AI cost telemetry payload for emission.
- * Accepts text (for estimation) or explicit token counts.
+ * Accepts text (for estimation), explicit token counts, or real token metadata from LLM responses.
  * Clamps negative tokens and marks payload for AI.Cost.InputAdjusted emission.
  *
  * This function performs all calculation and data preparation but does NOT emit telemetry.
@@ -202,8 +222,28 @@ export interface AICostTelemetryPayload {
  * @returns Complete telemetry payload ready for emission (privacy-safe, no raw text)
  */
 export function prepareAICostTelemetry(options: PrepareAICostTelemetryOptions): AICostTelemetryPayload {
-    const { modelId, promptText, completionText } = options
+    const { modelId, promptText, completionText, tokenMetadata } = options
 
+    // If tokenMetadata is provided, use it (takes precedence over all other sources)
+    if (tokenMetadata) {
+        const result = calculateCost(modelId, tokenMetadata.promptTokens, tokenMetadata.completionTokens)
+
+        return {
+            modelId,
+            promptTokens: tokenMetadata.promptTokens,
+            completionTokens: tokenMetadata.completionTokens,
+            estimatedCostMicros: result.estimatedCostMicros,
+            promptBucket: result.promptBucket,
+            completionBucket: result.completionBucket,
+            pricingSource: result.pricingSource,
+            estimator: tokenMetadata.estimatorName,
+            simulation: tokenMetadata.estimatorName !== 'production',
+            hadNegativeTokens: false, // Metadata from LLM should never have negative tokens
+            cachedTokens: tokenMetadata.cachedTokens
+        }
+    }
+
+    // Fall back to estimation or explicit token counts
     // Create estimator for text-based inputs
     const estimator = createCharDiv4Estimator()
 

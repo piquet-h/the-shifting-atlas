@@ -334,3 +334,146 @@ test('Privacy test: grep-style check for raw text fields', () => {
     assert.ok(!payloadJson.includes('"text"'), 'Generic text field in payload!')
     assert.ok(!payloadJson.includes('"content"'), 'Generic content field in payload!')
 })
+
+// ========================================
+// Token Metadata Integration Tests (Issue #629)
+// ========================================
+
+test('prepareAICostTelemetry: should accept optional tokenMetadata parameter', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 150,
+        completionTokens: 50,
+        totalTokens: 200,
+        estimatorName: 'production'
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        promptTokens: 100, // Should be overridden by metadata
+        completionTokens: 25,
+        tokenMetadata: metadata
+    })
+
+    // When tokenMetadata is provided, it should override token counts
+    assert.strictEqual(payload.promptTokens, 150)
+    assert.strictEqual(payload.completionTokens, 50)
+    assert.strictEqual(payload.estimator, 'production')
+    assert.strictEqual(payload.simulation, false)
+})
+
+test('prepareAICostTelemetry: should include cachedTokens when provided in metadata', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 150,
+        completionTokens: 50,
+        totalTokens: 200,
+        estimatorName: 'production',
+        cachedTokens: 100
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        tokenMetadata: metadata
+    })
+
+    assert.strictEqual(payload.cachedTokens, 100)
+})
+
+test('prepareAICostTelemetry: should not include cachedTokens when not in metadata', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 150,
+        completionTokens: 50,
+        totalTokens: 200,
+        estimatorName: 'production'
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        tokenMetadata: metadata
+    })
+
+    assert.strictEqual(payload.cachedTokens, undefined)
+})
+
+test('prepareAICostTelemetry: should use production estimator when tokenMetadata provided', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 150,
+        completionTokens: 50,
+        totalTokens: 200,
+        estimatorName: 'production'
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        tokenMetadata: metadata
+    })
+
+    assert.strictEqual(payload.estimator, 'production')
+    assert.strictEqual(payload.simulation, false)
+})
+
+test('prepareAICostTelemetry: should use heuristic estimator when no tokenMetadata', () => {
+    _resetPricingForTests()
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        promptText: 'Hello world'
+    })
+
+    assert.strictEqual(payload.estimator, 'charDiv4')
+    assert.strictEqual(payload.simulation, true)
+})
+
+test('prepareAICostTelemetry: should calculate cost based on metadata tokens', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 1000,
+        completionTokens: 2000,
+        totalTokens: 3000,
+        estimatorName: 'production'
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        tokenMetadata: metadata
+    })
+
+    // gpt-4o-mini: promptPer1k=0.00015, completionPer1k=0.0006
+    // 1000 prompt: (1000/1000) * 0.00015 = 0.00015 USD = 150 microdollars
+    // 2000 completion: (2000/1000) * 0.0006 = 0.0012 USD = 1200 microdollars
+    // Total: 1350 microdollars
+    assert.strictEqual(payload.estimatedCostMicros, 1350)
+})
+
+test('Edge case: tokenMetadata with zero cachedTokens should include field', () => {
+    _resetPricingForTests()
+
+    const metadata = {
+        modelId: 'gpt-4o-mini',
+        promptTokens: 150,
+        completionTokens: 50,
+        totalTokens: 200,
+        estimatorName: 'production',
+        cachedTokens: 0
+    }
+
+    const payload = prepareAICostTelemetry({
+        modelId: 'gpt-4o-mini',
+        tokenMetadata: metadata
+    })
+
+    assert.strictEqual(payload.cachedTokens, 0)
+})
