@@ -7,6 +7,7 @@ Location: `shared/src/prompts/`
 - Store canonical, versioned prompt templates used by backend agents.
 - Provide deterministic hashing (`computeTemplateHash`) to enable replay and validation.
 - Enable CI validation and bundling for production deployment.
+- Support A/B testing and variant selection for prompt experimentation.
 
 ## File-Based Storage
 
@@ -40,6 +41,99 @@ Each template file follows the schema defined in `schema.ts`:
     ]
 }
 ```
+
+## A/B Testing and Variant Selection
+
+The variant selector enables deterministic A/B testing of prompt templates with gradual rollouts and channel-based selection.
+
+### Basic Usage
+
+```typescript
+import { VariantSelector } from '@piquet-h/shared/prompts'
+
+const selector = new VariantSelector()
+
+// Configure variants for a template
+selector.setConfig('location-gen', {
+    templateId: 'location-gen',
+    variants: [
+        {
+            id: 'control',
+            templateId: 'location-gen-v1',
+            rolloutPercent: 90
+        },
+        {
+            id: 'experiment',
+            templateId: 'location-gen-v2',
+            rolloutPercent: 10
+        }
+    ],
+    defaultVariant: 'control'
+})
+
+// Select a variant for a user
+const selection = selector.selectVariant('location-gen', userId, 'stable')
+console.log(selection.templateId) // 'location-gen-v1' or 'location-gen-v2'
+console.log(selection.bucket) // Deterministic bucket number [0, 100)
+```
+
+### Channel-Based Selection
+
+Use channels to separate stable and canary (experimental) variants:
+
+```typescript
+selector.setConfig('location-gen', {
+    templateId: 'location-gen',
+    variants: [
+        {
+            id: 'stable',
+            templateId: 'location-gen-v1',
+            rolloutPercent: 100,
+            channels: ['stable']
+        },
+        {
+            id: 'canary',
+            templateId: 'location-gen-v2',
+            rolloutPercent: 100,
+            channels: ['canary']
+        }
+    ],
+    defaultVariant: 'stable'
+})
+
+// Stable channel users get v1
+const stableSelection = selector.selectVariant('location-gen', userId, 'stable')
+
+// Canary channel users get v2
+const canarySelection = selector.selectVariant('location-gen', userId, 'canary')
+```
+
+### Deterministic Bucketing
+
+User assignment is deterministic based on SHA-256 hash of `userId + templateId`:
+
+```typescript
+import { VariantBucketing } from '@piquet-h/shared/prompts'
+
+const bucket = VariantBucketing.getBucket(userId, templateId)
+// Returns integer [0, 100) - same user always gets same bucket
+```
+
+### Key Features
+
+- **Deterministic**: Same user always gets same variant (based on hash of userId + templateId)
+- **Gradual rollouts**: Control percentage of users receiving each variant
+- **Channel support**: Separate variants for stable/canary environments
+- **Anonymous users**: Supports 'anonymous' userId with deterministic fallback
+- **No stale cache**: Config updates apply immediately
+
+### Edge Cases
+
+- **Anonymous users**: Use `'anonymous'` as userId - gets deterministic bucket
+- **Rapid rollout changes**: New config applies immediately (no cached selection)
+- **Missing config**: Returns fallback variant with template ID as-is
+
+
 
 ## Runtime Usage
 
