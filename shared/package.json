@@ -1,10 +1,6 @@
 {
     "name": "@piquet-h/shared",
-<<<<<<< Updated upstream
-    "version": "0.3.109",
-=======
     "version": "0.3.112",
->>>>>>> Stashed changes
     "private": false,
     "description": "Shared domain models, persistence helpers, telemetry, and utilities for The Shifting Atlas backend & tooling.",
     "license": "MIT",
