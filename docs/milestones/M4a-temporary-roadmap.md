@@ -38,7 +38,7 @@ These guardrails prevent drift between infra ↔ code and prevent accidental cro
 
 ### 1.4 Experiments and observability hooks
 
-- [ ] #628 — Prompt Template A/B Testing Scaffold (Variant Selection)
+- [x] #628 — Prompt Template A/B Testing Scaffold (Variant Selection)
 - [ ] #629 — Prompt Template Cost Telemetry Integration
 
 ### 1.5 Migration and documentation
