@@ -1,8 +1,13 @@
 # M4a: AI Infrastructure — Temporary Roadmap / Checklist
 
-> **Temporary**: This is a working checklist meant for day-to-day progress. When M4a closes, either delete this file or replace it with a proper closure summary.
+> **Purpose**: Day-to-day execution checklist paired with strategic view in `docs/roadmap.md#m4a-ai-infrastructure-sense--decide`.
 >
-> Last updated: 2026-01-08
+> - **Main roadmap** = strategic overview, dependency graph, exit criteria
+> - **This file** = tactical checklist, execution order, progress tracking
+>
+> Update both when M4a scope changes; update only this file for progress.
+>
+> Last updated: 2026-01-09
 
 ## How to use
 
@@ -18,33 +23,33 @@ Epic: **#388 — Prompt Template Registry**
 
 The core dependency chain is: **define schema + storage + hashing/integrity → retrieval API → rollout/experiments + telemetry → migration + docs**.
 
-### 1.1 Establish schema/env alignment and PK correctness (fail fast)
+### 1.1 Establish schema/env alignment and PK correctness (fail fast) ✅
 
 These guardrails prevent drift between infra ↔ code and prevent accidental cross-partition access.
 
-- [x] #699 — Test: Verify Cosmos SQL container partition keys match expected schema
-- [x] #624 — Prompt Template Schema & Versioning Model (env var + layers/events container wiring; includes `/locationId` PK requirements)
-- [x] #627 — worldEvents scopeKey contract & PK correctness _(enforce `loc:`/`player:` patterns + `/scopeKey` PK correctness + tests)_
+- [x] #699 — Test: Verify Cosmos SQL container partition keys match expected schema ✅ CLOSED
+- [x] #624 — Prompt Template Schema & Versioning Model (env var + layers/events container wiring; includes `/locationId` PK requirements) ✅ CLOSED
+- [x] #627 — worldEvents scopeKey contract & PK correctness _(enforce `loc:`/`player:` patterns + `/scopeKey` PK correctness + tests)_ ✅ CLOSED
 
-### 1.2 Implement registry storage + loader (source of truth)
+### 1.2 Implement registry storage + loader (source of truth) ✅
 
-- [x] #625 — Prompt Template Storage (FILE-BASED under `shared/src/prompts/` + validation + bundle + loader)
+- [x] #625 — Prompt Template Storage (FILE-BASED under `shared/src/prompts/` + validation + bundle + loader) ✅ CLOSED
 
-> Note: #625 also references a migration CLI; #630 expands that into a dedicated migration script.
+> Migration CLI: #630 expands storage work into dedicated migration script.
 
-### 1.3 Retrieval API for runtime consumers
+### 1.3 Retrieval API for runtime consumers ✅
 
-- [x] #626 — Prompt Template Retrieval API (Backend Function)
+- [x] #626 — Prompt Template Retrieval API (Backend Function) ✅ CLOSED
 
-### 1.4 Experiments and observability hooks
+### 1.4 Experiments and observability hooks ✅
 
-- [x] #628 — Prompt Template A/B Testing Scaffold (Variant Selection)
-- [ ] #629 — Prompt Template Cost Telemetry Integration
+- [x] #628 — Prompt Template A/B Testing Scaffold (Variant Selection) ✅ CLOSED
+- [x] #629 — Prompt Template Cost Telemetry Integration ✅ CLOSED
 
-### 1.5 Migration and documentation
+### 1.5 Migration and documentation (finalization tasks)
 
-- [ ] #630 — Prompt Template Migration Script (Existing → Registry)
-- [ ] #631 — Prompt Template Documentation & Usage Examples
+- [ ] #630 — Prompt Template Migration Script (Existing → Registry) — _finalization task, not blocking M4a exit_
+- [ ] #631 — Prompt Template Documentation & Usage Examples — _finalization task, not blocking M4a exit_
 
 ---
 
@@ -107,27 +112,49 @@ These are “boring but powerful”: they keep taxonomy stable and stop drift ac
 
 ---
 
-## 5) Items de-scoped from M4a (removed from the milestone)
+## 5) Items moved from M4a (see main roadmap for current homes)
 
-These were previously assigned to M4a in GitHub, but they are not dependencies of AI infrastructure. They have been removed from the M4a milestone so this checklist remains a dependency-ordered execution plan.
+These were previously assigned to M4a in GitHub but are not critical-path dependencies of AI infrastructure. They have been moved to other milestones. See `docs/roadmap.md` for their new locations.
 
-- #472 — Epic: D&D 5e Agent Framework Foundation _(now in M4c Agent Sandbox; depends on MCP context)_
-- #322 — Epic: Playable MVP Experience Loop _(cross-cutting coordination epic)_
-- #68 — Epic: Layer Validator & Similarity Guardrails _(likely aligns with M5 Quality & Depth)_
-- #67 — Epic: Ambient Context Registry _(likely aligns with M5 or a later AI milestone depending on usage)_
-- #52 — Epic: Learn More Page & Automated Content _(scope:devx/docs)_
-- #53 — Rooms discovered should be dynamic and renamed _(frontend UX enhancement)_
+**Moved to M6 Systems:**
+
+- #452-455 — Learn More Page & Automated Content (Epic #52)
+
+**Moved to M4c Agent Sandbox:**
+
+- #472 — Epic: D&D 5e Agent Framework Foundation
+
+**Deferred to M5 or later:**
+
+- #67 — Epic: Ambient Context Registry
+- #68 — Epic: Layer Validator & Similarity Guardrails
+
+**Archived/Deprecated:**
+
 - #46 — DEPRECATED: Telemetry MCP Server (Read-Only)
 - #77 — [SPLIT] Player SQL Projection (tracking issue)
-- #138/#139/#140/#141 — DevX anomaly/suppression tooling
 
 ---
 
-## Milestone exit checks (manual)
+## Milestone exit checks
 
-When you think M4a is “done”, sanity-check:
+### Prompt Registry (Core M4a Deliverable) ✅ SUBSTANTIALLY COMPLETE
 
-- [ ] Prompt templates can be authored in-repo, validated in CI, hashed deterministically, and loaded at runtime.
-- [ ] A consumer can retrieve prompts by id + version (and optionally by hash), with ETag/304 behavior.
-- [ ] Drift guards are in place (container PK checks + env-var validation) to prevent runtime surprises.
-- [ ] At least one AI call path can attribute telemetry to a prompt template version (even if partial coverage initially).
+- [x] Prompt templates authored in-repo (`shared/src/prompts/`), validated in CI, hashed deterministically ✅
+- [x] Runtime loader retrieves prompts by id + version + hash ✅
+- [x] Container PK checks + env-var validation prevent drift ✅
+- [x] Telemetry attributes cost to prompt template version ✅
+- [ ] Migration script (#630) + docs (#631) — finalization only, not blocking exit
+
+### MCP Read-Only Infrastructure (Foundation for downstream)
+
+- [ ] World context MCP foundation operational (#514-516)
+- [ ] MCP tool surface exposed (#425-427, #430)
+- [ ] Authentication + rate limiting configured (#428-429, #580)
+- [ ] Telemetry events defined (#432, #577)
+- [ ] Documentation complete (#431)
+
+### Validation & Safety Rails
+
+- [ ] AI response validator prevents schema violations (#39)
+- [ ] Moderation pipeline blocks unsafe content (#47)

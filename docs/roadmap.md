@@ -337,13 +337,14 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 ### Critical Path Issues
 
-**Cluster E1: Prompt Registry**
+**Cluster E1: Prompt Registry** ✅ Core Complete
 
-- #433 Prompt Template Schema → Define versioned template structure
-- #434 Prompt Storage (SQL API) → Store templates with version + hash
-- #435 Prompt Retrieval API → HTTP endpoint for template access
-- #436 Prompt Hashing & Integrity → Ensure reproducibility
-- #438 Prompt Cost Telemetry → Track AI model invocation costs
+- #625 ✅ Prompt Template Storage (File-Based) → `shared/src/prompts/` with CI validation
+- #626 ✅ Prompt Retrieval API → Backend function for template access
+- #628 ✅ Prompt A/B Testing Scaffold → Deterministic variant selection
+- #629 ✅ Prompt Cost Telemetry Integration → AI operation cost attribution
+- #630 ⚠️ Prompt Migration Script → Import existing inline prompts to registry
+- #631 ⚠️ Prompt Documentation & Usage Examples → Authoring guide + integration examples
 
 **Cluster E2: MCP Servers**
 
@@ -356,28 +357,22 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 - #428 MCP Authentication → Identity propagation for auditing
 - #430 MCP Integration Tests → Validate tool contracts
 
-**Cluster E3: Intent Parser**
+**Cluster E3: Intent Parser** → **Moved to M7 Post-MVP**
 
-- #462 Intent Parser PI-0: Heuristic Baseline Parser → Zero-cost regex/keyword parsing
-- #463 Intent Parser PI-1: Local LLM Enhancement → Client-side WebLLM with entity promotion
-- #464 Intent Parser PI-2: Server-Side LLM Escalation → GPT-4o for ambiguous commands
+_Intent Parser issues (#462-464) and epic #471 deferred to M7 to focus M4a on infrastructure. See M7 section for details._
 
-**Cluster E4: DevX & Learn More**
+**Cluster E4: DevX & Learn More** → **Moved to M6 Systems**
 
-- #452 Learn More Page Implementation → Frontend page with dynamic content
-- #453 Weekly Learn More Content Regeneration → Automated content sync
-- #454 Roadmap Embedding Component → Interactive milestone visualization
-- #455 Learn More SEO & Analytics Instrumentation → Indexing + tracking
+_Learn More issues (#452-455) and epic #52 moved to M6 Systems (DevX cluster). See M6 section for details._
 
-**Cluster E5: Ambient Context**
+**Cluster E5: Ambient Context** → **Deferred to M5 Quality & Depth**
 
-- #449 Ambient Context Registry Fallback Resolution Chain
-- #450 Ambient Registry Benchmark & Coverage Framework
+_Ambient Context Registry (#67 epic, #162-166 child issues) deferred to M5. Issues #449-450 remain in M4a for resolution chain work._
 
-**Epic Coordination** (2 epics)
+**Epic Coordination**
 
-- #471 Epic: Intent Parser Phased Implementation → PI-0/PI-1/PI-2 coordination
-- #472 Epic: D&D 5e Agent Framework Foundation → Mechanics Oracle + Entity State Query
+- #471 Epic: Intent Parser → **Moved to M7**
+- #472 Epic: D&D 5e Agent Framework Foundation → **Moved to M4c Agent Sandbox**
 
 ### Dependency Chains
 
@@ -399,12 +394,13 @@ M2:#517-519 (Player) ──> #514 (MCP Foundation) ──> #515 (Location/Player
 
 ### Exit Criteria
 
-- ✅ Prompts stored in SQL with versioning + content hash
+- ✅ Prompt templates stored in `shared/src/prompts/` with file-based registry (CI validation + bundling)
+- ✅ Backend retrieval API serves prompts by id/version/hash with caching
 - ✅ MCP world-query tool can retrieve location + exit data
-- ⏳ Prompt templates stored under `shared/src/prompts/` (seed templates). Versioned registry + backend retrieval API tracked separately.
-- ✅ AI invocations tracked with cost telemetry (model, tokens, latency)
+- ✅ AI invocations tracked with cost telemetry (model, tokens, latency, prompt template metadata)
 - ✅ Authentication propagates identity through MCP calls
-- ✅ Intent parsing and event classification decisions can be produced in **shadow mode** (recorded + replayable, not mutating shared state)
+- ⏳ Prompt migration script (#630) and documentation (#631) finalized
+- ⏳ Intent parsing **deferred to M7** (AI infrastructure focuses on context + prompts only)
 
 ---
 
@@ -550,10 +546,12 @@ _Depends on M4 Prompt Registry_
 
 **Cluster J: DevX & Documentation**
 
-- #171 Learn More Page Implementation
-- #172 Weekly Learn More Content Regeneration
-- #173 Roadmap Embedding Component
-- #174 Learn More SEO & Analytics
+- #452 Learn More Page Implementation (moved from M4a)
+- #453 Weekly Learn More Content Regeneration (moved from M4a)
+- #454 Roadmap Embedding Component (moved from M4a)
+- #455 Learn More SEO & Analytics Instrumentation (moved from M4a)
+
+_Epic #52 (Learn More Page & Automated Content) coordinates these issues._
 
 ### Exit Criteria
 
@@ -566,17 +564,32 @@ _Depends on M4 Prompt Registry_
 
 ## M7 Post-MVP Extensibility
 
-**Status**: 0 issues (planning)  
-**Goal**: Multiplayer, quests, economy, AI write path  
+**Status**: See GitHub milestone  
+**Goal**: Multiplayer, quests, economy, AI write path, advanced player interaction  
 **Dependencies**: M5 + M6 complete
 
 ### Planned Tracks
 
+**Intent Parser (Progressive Enhancement)**
+
+- #462 Intent Parser PI-0: Heuristic Baseline Parser → Zero-cost regex/keyword parsing
+- #463 Intent Parser PI-1: Local LLM Enhancement → Client-side WebLLM with entity promotion
+- #464 Intent Parser PI-2: Server-Side LLM Escalation → GPT-4o for ambiguous commands
+- #471 Epic: Intent Parser Phased Implementation → PI-0/PI-1/PI-2 coordination
+
+**Multiplayer & Social**
+
 - Multiplayer synchronization & party state
 - Quest & dialogue branching engine
+
+**Economy & Systems**
+
 - Economy pricing dynamics + trade routes
-- AI proposal validation & mutation gates (write path)
 - Region sharding (partition evolution) per ADR-002 signals
+
+**AI Write Path**
+
+- AI proposal validation & mutation gates (full write path beyond M4c sandbox)
 
 ## Prioritization Principles
 
