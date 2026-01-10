@@ -1,3 +1,4 @@
+// DEPRECATED: Use PromptLoader from loader.ts instead
 // World prompt templates externalized from .github/instructions/world/.instructions.md
 // Keep templates concise; reference lore docs by filename instead of embedding large blocks.
 
@@ -20,6 +21,7 @@ Include: multiple_solutions, skill_check_variety, lore_references`
 
 export type WorldPromptKey = 'location' | 'npc_dialogue' | 'quest'
 
+/** @deprecated Use PromptLoader.getById() instead */
 export function getWorldTemplate(key: WorldPromptKey): string {
     switch (key) {
         case 'location':
