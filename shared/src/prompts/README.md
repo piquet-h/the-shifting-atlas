@@ -182,14 +182,231 @@ Any template containing patterns like `api_key`, `secret`, or OpenAI-style keys 
 - `getByHash(hash)` → content-addressed lookup
 - `computeTemplateHash(template)` → returns SHA-256 hex digest for versioning
 
-## Migration from Inline Prompts
+## Local Development Steps
 
-Existing inline prompts in `worldTemplates.ts` can be migrated:
+### 1. Creating or Editing Templates
+
+Edit template JSON files in `shared/src/prompts/templates/`. See `schema.md` for complete authoring guide.
+
+### 2. Validation
+
+**Always validate templates before committing:**
 
 ```bash
-node scripts/migrate-prompts.mjs --dry-run  # Preview
-node scripts/migrate-prompts.mjs            # Apply
+node scripts/validate-prompts.mjs
 ```
+
+**What it checks:**
+- ✅ Valid JSON schema (required fields, types, patterns)
+- ✅ No protected tokens (API keys, secrets, passwords)
+- ✅ Proper file naming conventions
+- ✅ Hash computation for integrity
+
+**Exit codes:**
+- `0` = All templates valid
+- `1` = Validation errors found
+
+**Example output:**
+```
+Validating prompt templates in: shared/src/prompts/templates
+
+✅ location-generator.json: Valid (v1.0.0, hash: 02f80b43...)
+✅ npc-dialogue-generator.json: Valid (v1.0.0, hash: 89768071...)
+❌ my-template.json: FAILED
+   Error: metadata.id: Invalid characters
+
+Validation complete:
+  ✅ Validated: 2
+  ❌ Failed: 1
+```
+
+### 3. Bundling for Production
+
+**Create production bundle:**
+
+```bash
+node scripts/bundle-prompts.mjs
+```
+
+This generates `shared/src/prompts/templates/prompts.bundle.json` containing all validated templates with computed hashes.
+
+**Bundle artifact is used in:**
+- CI/CD pipelines
+- Production deployments
+- Performance-optimized template loading
+
+### 4. Testing Templates
+
+**Unit tests:**
+```bash
+cd shared
+npm test -- --grep "prompt"
+```
+
+**Integration with backend:**
+See "Backend Integration" section and `schema.md` for usage examples.
+
+## Validation Script Usage
+
+### Basic Validation
+
+```bash
+node scripts/validate-prompts.mjs
+```
+
+Validates all templates in `shared/src/prompts/templates/`.
+
+### CI Integration
+
+The validation script is run automatically in CI:
+- On all PRs touching `shared/src/prompts/templates/`
+- Before building production bundles
+- As part of shared package tests
+
+**CI fails if:**
+- Any template has schema errors
+- Protected tokens are detected
+- File naming doesn't match template ID
+
+### Protected Token Detection
+
+Templates are automatically scanned for:
+- API keys: `/api[_-]?key/i`
+- Secrets: `/secret/i`, `/password/i`, `/credential/i`
+- Private keys: `/-----BEGIN.*PRIVATE KEY-----/`
+- OpenAI keys: `/sk-[a-zA-Z0-9]{48}/`
+
+**If detected, validation fails immediately.**
+
+## Migration from Inline Prompts
+
+### Quick Start
+
+```bash
+# Preview migration (no files written)
+node scripts/migrate-prompts.mjs --dry-run
+
+# Apply migration
+node scripts/migrate-prompts.mjs
+
+# Validate migrated templates
+node scripts/validate-prompts.mjs
+```
+
+### Step-by-Step Migration Guide
+
+See **schema.md** "Migration from Inline Prompts" section for complete workflow:
+1. Preview migration with `--dry-run`
+2. Review and customize generated templates
+3. Apply migration
+4. Validate templates
+5. Update code references
+6. Test updated code
+7. Remove inline constants
+
+### Adding Custom Prompts to Migration
+
+Edit `scripts/migrate-prompts.mjs` and add to `inlinePrompts` object:
+
+```javascript
+const inlinePrompts = {
+    'my-prompt': {
+        template: `Your prompt text with [variables]`,
+        variables: ['variable1', 'variable2']
+    }
+}
+```
+
+## Backend Integration Examples
+
+### Dependency Injection Setup
+
+```typescript
+// backend/src/inversify.config.ts
+import { PromptTemplateRepository, type IPromptTemplateRepository } from '@piquet-h/shared'
+
+container
+    .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
+    .toConstantValue(new PromptTemplateRepository({ ttlMs: 5 * 60 * 1000 }))
+```
+
+### Using in Handler
+
+```typescript
+@injectable()
+export class MyHandler extends BaseHandler {
+    constructor(
+        @inject('IPromptTemplateRepository') private promptRepo: IPromptTemplateRepository
+    ) {
+        super(telemetry)
+    }
+
+    protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
+        // Get template by ID
+        const template = await this.promptRepo.getLatest('location-generator')
+        
+        if (!template) {
+            return errorResponse(404, 'TemplateNotFound', 'Template not found')
+        }
+
+        // Use template content
+        const prompt = template.content
+            .replace('[terrain_type]', 'forest')
+            .replace('[existing_location]', 'Millhaven')
+        
+        // Track usage
+        this.track('Prompt.Used', {
+            templateId: template.id,
+            version: template.version,
+            hash: template.hash
+        })
+    }
+}
+```
+
+See **schema.md** "Backend Integration" section for:
+- Complete handler examples
+- Query patterns (by ID, version, hash)
+- Variable interpolation helpers
+- Error handling patterns
+
+## Environment Differences
+
+### Development (file-based)
+- Loads from individual JSON files
+- No caching (changes apply immediately)
+- Slower (file system reads)
+- Use for iterative template development
+
+### Production (bundle)
+- Loads from `prompts.bundle.json` artifact
+- In-memory caching (5-minute TTL)
+- Faster (single JSON parse)
+- Use for deployed environments
+
+**Configuration:**
+```typescript
+// Development
+const loader = new PromptLoader({
+    source: 'files',
+    cacheTtlMs: 0
+})
+
+// Production
+const loader = new PromptLoader({
+    source: 'bundle',
+    cacheTtlMs: 5 * 60 * 1000
+})
+```
+
+See **schema.md** "Environment Differences" for detailed comparison.
+
+## Documentation
+
+- **schema.md**: Complete authoring guide, field reference, best practices
+- **schema.ts**: Zod validation schema definitions
+- **types.ts**: TypeScript interfaces for repository and caching
+- **README.md** (this file): Quick reference and workflow overview
 
 ## Notes
 
