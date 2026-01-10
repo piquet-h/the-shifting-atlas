@@ -421,3 +421,5 @@ Migrate partition key strategy if:
 ---
 
 _Last Updated: 2025-11-13 (Issue #387 implementation completed)_
+
+**Note**: Added `loreFacts` for lore-memory MCP server (M4 AI Read). Read-only access; partition by fact type for efficient category queries. Expected RU: 2-3/read (getFact), 0/search (stub).

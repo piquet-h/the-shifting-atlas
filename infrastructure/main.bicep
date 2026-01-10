@@ -156,6 +156,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER: 'temporalLedger'
       COSMOS_SQL_CONTAINER_WORLD_CLOCK: 'worldClock'
       COSMOS_SQL_CONTAINER_LOCATION_CLOCKS: 'locationClocks'
+      COSMOS_SQL_CONTAINER_LORE_FACTS: 'loreFacts'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
     }
   }
@@ -419,6 +420,45 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
           }
         }
         options: {}
+      }
+    }
+
+    // Lore Facts container (canonical world lore facts for MCP)
+    resource sqlLoreFacts 'containers' = {
+      name: 'loreFacts'
+      properties: {
+        resource: {
+          id: 'loreFacts'
+          partitionKey: {
+            paths: ['/type']
+            kind: 'Hash'
+            version: 2
+          }
+          indexingPolicy: {
+            indexingMode: 'consistent'
+            includedPaths: [
+              {
+                path: '/factId/?'
+              }
+              {
+                path: '/type/?'
+              }
+              {
+                path: '/createdUtc/?'
+              }
+            ]
+            excludedPaths: [
+              {
+                path: '/fields/*'
+              }
+            ]
+          }
+        }
+        options: {
+          autoscaleSettings: {
+            maxThroughput: 4000
+          }
+        }
       }
     }
   }

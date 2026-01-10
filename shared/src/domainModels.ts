@@ -392,6 +392,66 @@ export interface RouteEdge {
     routeName: string
 }
 
+// --- Lore / Memory / Canonical Facts ----------------------------------------
+
+/**
+ * Canonical fact types for structured world lore storage.
+ * Extensible enum for different categories of curated world knowledge.
+ */
+export type FactType = 'faction' | 'artifact' | 'historical_event' | 'character' | 'location_lore' | 'creature'
+
+/**
+ * Canonical world fact for lore-memory MCP server.
+ * Immutable world knowledge curated for AI context assembly.
+ *
+ * Persistence: Cosmos SQL API `loreFacts` container (PK: /type)
+ * Access: Read-only via MCP tools (getFact, searchFacts)
+ *
+ * Version management (ADR-003): Facts support emergent mutations via LLM generation.
+ *
+ * Versioning Strategy:
+ * - Each Cosmos document represents a single version with immutable content per Cosmos ID
+ * - `factId` is a stable semantic key that persists across versions (e.g., 'faction_shadow_council')
+ * - Edits create new documents with same `factId` but incremented `version` and new Cosmos `id`
+ * - Previous versions remain addressable via (factId, version) composite for audit/rollback
+ * - `archivedUtc` marks versions that should be excluded from current queries (soft delete for audit)
+ * - Deterministic replay uses (factId, version) pairs; lossy rollup uses latest non-archived version
+ *
+ * Example mutation flow:
+ * - V1: id='doc-uuid-1', factId='faction_shadow_council', version=1, fields={...}
+ * - V2: id='doc-uuid-2', factId='faction_shadow_council', version=2, fields={...updated by LLM...}
+ * - Query getFact('faction_shadow_council') returns V2 (latest non-archived)
+ * - Query getFact('faction_shadow_council', version=1) returns V1 for audit
+ */
+export interface CanonicalFact {
+    /** Cosmos SQL document ID (GUID). Unique per version; changes on fact mutation. */
+    id: string
+
+    /** Fact type (partition key value: 'faction', 'artifact', 'location_lore', etc.). */
+    type: FactType
+
+    /** Unique business identifier for stable references across versions (e.g., 'faction_shadow_council'). */
+    factId: string
+
+    /** Structured fact data (flexible schema per type). Immutable per version. */
+    fields: Record<string, unknown>
+
+    /** Version number for change tracking. Incremented on mutations. */
+    version: number
+
+    /** Optional: Vector embeddings for semantic search (embeddings generated on version creation). */
+    embeddings?: number[]
+
+    /** Creation timestamp (ISO 8601 UTC). */
+    createdUtc: string
+
+    /** Last update timestamp (ISO 8601 UTC). Set when a new version is created from this one. */
+    updatedUtc?: string
+
+    /** Optional: Archival timestamp (ISO 8601 UTC). When set, version is excluded from default queries. */
+    archivedUtc?: string
+}
+
 // Future extension placeholders:
 // - NPC entity model
 // - Faction / Governance structures

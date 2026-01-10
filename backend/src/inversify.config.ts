@@ -54,6 +54,8 @@ import { LocationClockRepositoryCosmos } from './repos/locationClockRepository.c
 import type { ILocationClockRepository } from './repos/locationClockRepository.js'
 import { CosmosLocationRepository } from './repos/locationRepository.cosmos.js'
 import { ILocationRepository } from './repos/locationRepository.js'
+import { CosmosLoreRepository } from './repos/loreRepository.cosmos.js'
+import { ILoreRepository } from './repos/loreRepository.js'
 import { IPlayerDocRepository, PlayerDocRepository } from './repos/PlayerDocRepository.js'
 import { CosmosPlayerRepositorySql } from './repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from './repos/playerRepository.js'
@@ -246,6 +248,12 @@ export const setupContainer = async (container: Container) => {
     // === Location Clock Container ===
     // Note: Container name is read directly in LocationClockRepositoryCosmos constructor from env var
     container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+    // === Lore Facts Container ===
+    if (!config.cosmosSql?.containers.loreFacts) {
+        throw new Error('Lore facts container configuration missing. Required: COSMOS_SQL_CONTAINER_LORE_FACTS')
+    }
+    container.bind<string>('CosmosContainer:LoreFacts').toConstantValue(config.cosmosSql.containers.loreFacts)
+    container.bind<ILoreRepository>('ILoreRepository').to(CosmosLoreRepository).inSingletonScope()
 
     // === Clock (Time Abstraction) ===
     container.bind<IClock>('IClock').toConstantValue(new SystemClock())
