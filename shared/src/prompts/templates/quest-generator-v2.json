@@ -1,0 +1,39 @@
+{
+    "metadata": {
+        "id": "quest-generator-v2",
+        "version": "1.0.0",
+        "name": "Quest Generator",
+        "description": "Migrated from inline: worldTemplates.ts",
+        "tags": [
+            "migrated",
+            "needs-review",
+            "world",
+            "auto-versioned"
+        ],
+        "author": "migration-script",
+        "createdAt": "2026-01-10T08:53:54.729Z"
+    },
+    "template": "Create a [quest_type] for [location/faction].\nDifficulty: [player_level_range]\nIntegration: [current_storylines], [faction_conflicts]\nInclude: multiple_solutions, skill_check_variety, lore_references",
+    "variables": [
+        {
+            "name": "quest_type",
+            "description": "Variable: quest type",
+            "required": true
+        },
+        {
+            "name": "player_level_range",
+            "description": "Variable: player level range",
+            "required": true
+        },
+        {
+            "name": "current_storylines",
+            "description": "Variable: current storylines",
+            "required": true
+        },
+        {
+            "name": "faction_conflicts",
+            "description": "Variable: faction conflicts",
+            "required": true
+        }
+    ]
+}

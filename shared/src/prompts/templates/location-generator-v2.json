@@ -1,0 +1,44 @@
+{
+    "metadata": {
+        "id": "location-generator-v2",
+        "version": "1.0.0",
+        "name": "Location Generator",
+        "description": "Migrated from inline: worldTemplates.ts",
+        "tags": [
+            "migrated",
+            "needs-review",
+            "world",
+            "auto-versioned"
+        ],
+        "author": "migration-script",
+        "createdAt": "2026-01-10T08:53:36.959Z"
+    },
+    "template": "Generate a [terrain_type] location connected to [existing_location].\nConsider: faction_control=[faction], climate=[season], political_tension=[current_events]\nInclude: 2-3 exits (semantic descriptions), ambient details, potential encounters\nMaintain: established lore, D&D mechanics integration",
+    "variables": [
+        {
+            "name": "terrain_type",
+            "description": "Variable: terrain type",
+            "required": true
+        },
+        {
+            "name": "existing_location",
+            "description": "Variable: existing location",
+            "required": true
+        },
+        {
+            "name": "faction",
+            "description": "Variable: faction",
+            "required": true
+        },
+        {
+            "name": "season",
+            "description": "Variable: season",
+            "required": true
+        },
+        {
+            "name": "current_events",
+            "description": "Variable: current events",
+            "required": true
+        }
+    ]
+}
