@@ -1,13 +1,12 @@
 ---
 status: Superseded
 date: 2025-01-15
-superseded-by: ../architecture/player-location-edge-migration.md
 relates: [ADR-002, Issue #117, Issue #131]
 ---
 
 # Player-Location Edge Migration Groundwork
 
-**⚠️ SUPERSEDED**: This ADR has been superseded by the comprehensive [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md) document (created for Issue #131). Refer to that document for the authoritative migration strategy.
+**⚠️ SUPERSEDED**: The original player-location edge migration design (Issue #131) assumed Gremlin player vertices and was removed post ADR-004. Player state is now SQL-only authoritative; any future graph-based player positioning will require a new ADR + design doc.
 
 ## Historical Context
 
@@ -16,13 +15,8 @@ This ADR originally outlined preliminary thoughts on migrating player position f
 **What happened since:**
 
 - Epic #117 (Location Edge Management) was completed, delivering exit edge management patterns
-- Issue #131 produced a complete, detailed migration design document that supersedes this ADR
-- The migration design in `player-location-edge-migration.md` provides:
-    - Four-phase migration strategy with explicit gates
-    - Risk analysis and rollback plans per phase
-    - Success metrics and exit criteria
-    - Implementation code samples
-    - Open questions with recommendations
+- ADR-004 removed Gremlin player vertices; player state is SQL-only authoritative
+- Future player-location edges (if reintroduced for multiplayer/proximity) will be designed under a new ADR
 
 ## Key Decisions (Historical Record)
 
@@ -33,17 +27,17 @@ This ADR established:
 3. Gradual rollout with staged percentage-based feature flags
 4. Telemetry-driven go/no-go decisions at each phase
 
-These decisions are fully elaborated in the superseding migration design document.
+These decisions remain useful as patterns, but any future implementation must account for ADR-004 (no Gremlin player vertices).
 
 ## Why This Document Remains
 
 This ADR is retained for historical reference to show the evolution from early groundwork thinking to the complete migration design. The patterns established here (dual-write, telemetry-driven validation) were fully realized in the superseding document.
 
-**For implementation, always refer to:** [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md)
+**For current player persistence, refer to:** ADR-004 and the repository docs.
 
 ## Related Documentation
 
-- **[Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md)** – AUTHORITATIVE migration strategy (supersedes this ADR)
+- ADR-004: Player Store Cutover Completion – SQL-only authoritative model
 - [ADR-001: Mosswell Persistence & Layering](./ADR-001-mosswell-persistence-layering.md) – Base persistence model
 - [ADR-002: Graph Partition Strategy](./ADR-002-graph-partition-strategy.md) – Partition key design and dual persistence
 - [Edge Management Guide](../developer-workflow/edge-management.md) – Exit edge patterns (template for player edges)

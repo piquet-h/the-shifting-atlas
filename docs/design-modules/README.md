@@ -43,7 +43,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Normalized direction vocabulary (north, south, east, west, up, down, in, out)
 - Exit reciprocity rules (enforced or optional depending on context)
 - Movement validation (player-location-exit triad)
-- Telemetry events: `Location.Move` (success/failure), `Location.Look`
+- Telemetry events: `Navigation.Move.Success`, `Navigation.Move.Blocked`, `Navigation.Look.Issued`
 
 **Document**: `../modules/navigation-and-traversal.md`
 

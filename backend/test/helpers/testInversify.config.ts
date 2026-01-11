@@ -64,7 +64,6 @@ import { ILoreRepository } from '../../src/repos/loreRepository.js'
 import { MemoryLoreRepository } from '../../src/repos/loreRepository.memory.js'
 import { IPlayerDocRepository, PlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
 import { MemoryPlayerDocRepository } from '../../src/repos/PlayerDocRepository.memory.js'
-import { CosmosPlayerRepository } from '../../src/repos/playerRepository.cosmos.js'
 import { CosmosPlayerRepositorySql } from '../../src/repos/playerRepository.cosmosSql.js'
 import { IPlayerRepository } from '../../src/repos/playerRepository.js'
 import { InMemoryPlayerRepository } from '../../src/repos/playerRepository.memory.js'
@@ -216,7 +215,6 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
 
             // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)
-            container.bind('IPlayerRepository:GremlinReadOnly').to(CosmosPlayerRepository).inSingletonScope()
             container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
 
             // Bind PlayerDocRepository (SQL API player projection)

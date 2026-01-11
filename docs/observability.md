@@ -4,9 +4,9 @@ Lean specification for game/domain telemetry. Focus: consistent event grammar + 
 
 **Related Documentation:**
 
--   [Telemetry Event Catalog](./observability/telemetry-catalog.md) — Complete event definitions and dimensions
--   [Alerts Catalog](./observability/alerts-catalog.md) — Azure Monitor alert configurations and response guidance
--   [Infrastructure README](../infrastructure/README.md) — Bicep deployment and parameters
+- [Telemetry Event Catalog](./observability/telemetry-catalog.md) — Complete event definitions and dimensions
+- [Alerts Catalog](./observability/alerts-catalog.md) — Azure Monitor alert configurations and response guidance
+- [Infrastructure README](../infrastructure/README.md) — Bicep deployment and parameters
 
 ## Goals
 
@@ -43,32 +43,32 @@ Approved Domains (initial):
 
 Examples (canonical):
 
--   `Onboarding.GuestGuid.Created`
--   `Onboarding.GuestGuid.Started`
--   `Auth.Player.Upgraded`
--   `Location.Get` (idempotent fetch)
--   `Location.Move` (attempted traversal; success/failure in `status`)
--   `Ping.Invoked`
+- `Onboarding.GuestGuid.Created`
+- `Onboarding.GuestGuid.Started`
+- `Auth.Player.Upgraded`
+- `Location.Get` (idempotent fetch)
+- `Navigation.Move.Success` / `Navigation.Move.Blocked` (movement outcome)
+- `Ping.Invoked`
 
 Reserved Suffixes:
 
--   `Started`, `Completed` for lifecycle flows.
--   `Get`, `List` for read-only operations.
--   `Created`, `Deleted`, `Updated` for CRUD writes.
--   `Move` (domain-specific action – movement attempt).
+- `Started`, `Completed` for lifecycle flows.
+- `Get`, `List` for read-only operations.
+- `Created`, `Deleted`, `Updated` for CRUD writes.
+- `Move` (domain-specific action) – prefer explicit outcome events (`Navigation.Move.Success`, `Navigation.Move.Blocked`).
 
 Anti-Patterns (DO NOT):
 
--   `room.get` (wrong casing)
--   `Room.Get.200` (status baked into name)
--   `OnboardingGuestGuidCreated` (no dots)
--   `AuthUpgradeSuccess` (no segmentation, inconsistent verb form)
+- `room.get` (wrong casing)
+- `Room.Get.200` (status baked into name)
+- `OnboardingGuestGuidCreated` (no dots)
+- `AuthUpgradeSuccess` (no segmentation, inconsistent verb form)
 
 Decision Matrix:
 
--   If action mutates: Past tense (`Created`, `Upgraded`).
--   If action queries: Base verb (`Get`, `List`).
--   If action may fail but we always want a single series: Keep one name; differentiate with `status` and optional `reason` dimension.
+- If action mutates: Past tense (`Created`, `Upgraded`).
+- If action queries: Base verb (`Get`, `List`).
+- If action may fail but we always want a single series: Keep one name; differentiate with `status` and optional `reason` dimension.
 
 Event Name Grammar Quick Sheet:
 
@@ -101,18 +101,18 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 ### Approved Attribute Keys
 
-| Attribute Key               | Purpose                                 | Example Value                    | Events                                |
-| --------------------------- | --------------------------------------- | -------------------------------- | ------------------------------------- |
-| `game.player.id`            | Player GUID for identity correlation    | `9d2f...`                        | Navigation, Player, Auth events       |
-| `game.location.id`          | Location GUID (current or target)       | `a4d1c3f1-...`                   | Location, Navigation events           |
-| `game.location.from`        | Origin location ID for movement         | `a4d1c3f1-...`                   | Navigation.Move.Success/Blocked       |
-| `game.location.to`          | Destination location ID (when resolved) | `b5e2d4g2-...`                   | Navigation.Move.Success               |
-| `game.world.exit.direction` | Movement direction (canonical)          | `north`, `south`, `east`, `west` | Navigation.Move.Success/Blocked       |
-| `game.event.type`           | World event type for event processing   | `player.move`, `npc.action`      | World.Event.Processed/Duplicate       |
-| `game.event.actor.kind`     | Actor type (player, npc, system)        | `player`, `npc`, `system`        | World.Event.Processed                 |
-| `game.error.code`           | Domain error classification code        | `ValidationError`, `NotFound`    | All error responses (4xx/5xx)         |
-| `game.error.message`        | Truncated error message (max 256 chars) | `Invalid input...`               | All error responses (4xx/5xx)         |
-| `game.error.kind`           | Error classification kind               | `validation`, `not-found`        | All error responses (4xx/5xx)         |
+| Attribute Key               | Purpose                                 | Example Value                    | Events                          |
+| --------------------------- | --------------------------------------- | -------------------------------- | ------------------------------- |
+| `game.player.id`            | Player GUID for identity correlation    | `9d2f...`                        | Navigation, Player, Auth events |
+| `game.location.id`          | Location GUID (current or target)       | `a4d1c3f1-...`                   | Location, Navigation events     |
+| `game.location.from`        | Origin location ID for movement         | `a4d1c3f1-...`                   | Navigation.Move.Success/Blocked |
+| `game.location.to`          | Destination location ID (when resolved) | `b5e2d4g2-...`                   | Navigation.Move.Success         |
+| `game.world.exit.direction` | Movement direction (canonical)          | `north`, `south`, `east`, `west` | Navigation.Move.Success/Blocked |
+| `game.event.type`           | World event type for event processing   | `player.move`, `npc.action`      | World.Event.Processed/Duplicate |
+| `game.event.actor.kind`     | Actor type (player, npc, system)        | `player`, `npc`, `system`        | World.Event.Processed           |
+| `game.error.code`           | Domain error classification code        | `ValidationError`, `NotFound`    | All error responses (4xx/5xx)   |
+| `game.error.message`        | Truncated error message (max 256 chars) | `Invalid input...`               | All error responses (4xx/5xx)   |
+| `game.error.kind`           | Error classification kind               | `validation`, `not-found`        | All error responses (4xx/5xx)   |
 
 ### Attribute Naming Rules
 
@@ -124,10 +124,10 @@ To improve queryability and correlation, domain-specific attributes follow a str
 
 ### Usage Guidelines
 
--   **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
--   **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
--   **Error Events**: Include `game.error.code`, `game.error.message`, and `game.error.kind` for normalized error tracking; use `status` dimension for HTTP codes. Use the `recordError` helper to ensure consistent attributes and duplicate prevention.
--   **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.\* attributes during transition.
+- **Movement Events**: Always include `game.player.id` (if known), `game.location.from`, `game.world.exit.direction`. Add `game.location.to` on success.
+- **World Events**: Always include `game.event.type`, `game.event.actor.kind`. Add target entity IDs as `game.location.id` or `game.player.id` depending on scope.
+- **Error Events**: Include `game.error.code`, `game.error.message`, and `game.error.kind` for normalized error tracking; use `status` dimension for HTTP codes. Use the `recordError` helper to ensure consistent attributes and duplicate prevention.
+- **Backward Compatibility**: Standard dimension names (`playerGuid`, `fromLocation`, `toLocation`, `direction`) remain present alongside game.\* attributes during transition.
 
 ### Implementation
 
@@ -139,22 +139,22 @@ Standardizes mapping of domain and HTTP errors to normalized event properties an
 
 ### Error Classification Table
 
-| Error Kind     | HTTP Status Range | Example Error Codes                                              | Description                          |
-| -------------- | ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
-| `validation`   | 400-403, 429      | `ValidationError`, `MissingField`, `InvalidPlayerId`, `NoExit`   | Client input validation failures     |
-| `not-found`    | 404               | `NotFound`, `PlayerNotFound`, `LocationNotFound`, `from-missing` | Resource does not exist              |
-| `conflict`     | 409               | `ExternalIdConflict`, `ConcurrencyError`, `DuplicateError`       | Concurrent modification or duplicate |
-| `internal`     | 500+              | `InternalError`, `MoveFailed`, `DatabaseError`, `TimeoutError`   | Server-side processing failures      |
+| Error Kind   | HTTP Status Range | Example Error Codes                                              | Description                          |
+| ------------ | ----------------- | ---------------------------------------------------------------- | ------------------------------------ |
+| `validation` | 400-403, 429      | `ValidationError`, `MissingField`, `InvalidPlayerId`, `NoExit`   | Client input validation failures     |
+| `not-found`  | 404               | `NotFound`, `PlayerNotFound`, `LocationNotFound`, `from-missing` | Resource does not exist              |
+| `conflict`   | 409               | `ExternalIdConflict`, `ConcurrencyError`, `DuplicateError`       | Concurrent modification or duplicate |
+| `internal`   | 500+              | `InternalError`, `MoveFailed`, `DatabaseError`, `TimeoutError`   | Server-side processing failures      |
 
 ### Error Telemetry Attributes
 
 Each error response emits these normalized attributes:
 
-| Attribute             | Description                              | Example                  |
-| --------------------- | ---------------------------------------- | ------------------------ |
-| `game.error.code`     | Domain-specific error code               | `ValidationError`        |
-| `game.error.message`  | Truncated error message (max 256 chars)  | `Invalid input provided` |
-| `game.error.kind`     | Classification kind from table above     | `validation`             |
+| Attribute            | Description                             | Example                  |
+| -------------------- | --------------------------------------- | ------------------------ |
+| `game.error.code`    | Domain-specific error code              | `ValidationError`        |
+| `game.error.message` | Truncated error message (max 256 chars) | `Invalid input provided` |
+| `game.error.kind`    | Classification kind from table above    | `validation`             |
 
 ### recordError Helper
 
@@ -218,7 +218,9 @@ customEvents
 | `Onboarding.GuestGuid.Created`              | New guest GUID allocated                          |
 | `Auth.Player.Upgraded`                      | Guest upgraded / linked identity                  |
 | `Location.Get`                              | Location fetch (status dimension for 200/404)     |
-| `Location.Move`                             | Movement attempt outcome                          |
+| `Navigation.Move.Success`                   | Movement succeeded                                |
+| `Navigation.Move.Blocked`                   | Movement blocked (reason/status dimensions)       |
+| `Navigation.Look.Issued`                    | Location look issued                              |
 | `Command.Executed`                          | Frontend command lifecycle (ad-hoc CLI)           |
 | `World.Location.Generated`                  | AI genesis accepted (future)                      |
 | `World.Location.Rejected`                   | AI genesis rejected (future)                      |
@@ -255,21 +257,21 @@ Application Insights sampling is configured during backend initialization to bal
 
 **Environment Variable:** `APPINSIGHTS_SAMPLING_PERCENTAGE`
 
--   Accepts percentage values (0-100) or ratios (0.0-1.0)
--   Values ≤1 are treated as ratios and converted to percentages (e.g., 0.15 → 15%)
--   Out-of-range values are clamped to [0, 100] with a `Telemetry.Sampling.ConfigAdjusted` warning event
--   Non-numeric values trigger fallback to environment default with warning
+- Accepts percentage values (0-100) or ratios (0.0-1.0)
+- Values ≤1 are treated as ratios and converted to percentages (e.g., 0.15 → 15%)
+- Out-of-range values are clamped to [0, 100] with a `Telemetry.Sampling.ConfigAdjusted` warning event
+- Non-numeric values trigger fallback to environment default with warning
 
 **Defaults:**
 
--   **Development/Test:** 100% sampling (complete visibility for debugging)
--   **Production:** 15% sampling (balances cost with sufficient signal for monitoring)
+- **Development/Test:** 100% sampling (complete visibility for debugging)
+- **Production:** 15% sampling (balances cost with sufficient signal for monitoring)
 
 ### Rationale
 
--   **15% production sampling** provides adequate sample size for monitoring trends, latency percentiles, and error rates while reducing ingestion costs by 85%
--   **100% dev/test sampling** ensures all events are captured during development and testing for comprehensive debugging
--   Environment-based defaults eliminate configuration overhead for standard deployments
+- **15% production sampling** provides adequate sample size for monitoring trends, latency percentiles, and error rates while reducing ingestion costs by 85%
+- **100% dev/test sampling** ensures all events are captured during development and testing for comprehensive debugging
+- Environment-based defaults eliminate configuration overhead for standard deployments
 
 ### Kusto Query Adjustments
 
@@ -327,9 +329,9 @@ customEvents
 
 ### Sampling Rules
 
--   **NEVER** sample security/audit events (auth, rate limiting)—these use separate ingestion paths if needed
--   Sampling applies uniformly to all telemetry types (requests, dependencies, events, traces)
--   Request sampling decisions are correlated—all telemetry for a sampled request is included
+- **NEVER** sample security/audit events (auth, rate limiting)—these use separate ingestion paths if needed
+- Sampling applies uniformly to all telemetry types (requests, dependencies, events, traces)
+- Request sampling decisions are correlated—all telemetry for a sampled request is included
 
 ## Partition Signals (Reference)
 
@@ -341,10 +343,10 @@ Starting in M2, SQL API operations emit partition key values in telemetry to ena
 
 **Instrumented Containers:**
 
--   `players` - Partition key: `/id` (player GUID)
--   `inventory` - Partition key: `/playerId` (player GUID)
--   `descriptionLayers` - Partition key: `/locationId` (location GUID)
--   `worldEvents` - Partition key: `/scopeKey` (scope pattern: `loc:<id>` or `player:<id>`)
+- `players` - Partition key: `/id` (player GUID)
+- `inventory` - Partition key: `/playerId` (player GUID)
+- `descriptionLayers` - Partition key: `/locationId` (location GUID)
+- `worldEvents` - Partition key: `/scopeKey` (scope pattern: `loc:<id>` or `player:<id>`)
 
 **Event Schema:**
 
@@ -403,9 +405,9 @@ customEvents
 
 **Alert Thresholds:**
 
--   Single partition >80% of total RU in 5-minute window (hot partition)
--   Container with <10 unique partition keys and >1000 operations
--   Partition key cardinality decreasing over time (consolidation indicator)
+- Single partition >80% of total RU in 5-minute window (hot partition)
+- Container with <10 unique partition keys and >1000 operations
+- Partition key cardinality decreasing over time (consolidation indicator)
 
 **Validation Script:**
 
@@ -428,9 +430,9 @@ Starting in M2, critical Gremlin operations emit `Graph.Query.Executed` and `Gra
 
 **Instrumented Operations:**
 
--   `location.upsert.check` / `location.upsert.write` - Location vertex upserts
--   `exit.ensureExit.check` / `exit.ensureExit.create` - Exit edge creation
--   `player.create` - Player vertex creation
+- `location.upsert.check` / `location.upsert.write` - Location vertex upserts
+- `exit.ensureExit.check` / `exit.ensureExit.create` - Exit edge creation
+- `player.create` - Player vertex creation
 
 **Event Schema:**
 
@@ -474,20 +476,20 @@ customEvents
 
 **Alert Thresholds (ADR-002):**
 
--   RU consumption sustained >70% of provisioned throughput for 3 consecutive days
--   Repeated 429 (throttled) responses at <50 RPS
--   P95 latency >500ms for critical operations
+- RU consumption sustained >70% of provisioned throughput for 3 consecutive days
+- Repeated 429 (throttled) responses at <50 RPS
+- P95 latency >500ms for critical operations
 
 ## Current Event Mapping (Old → New)
 
-| Old                           | New                            | Notes                                  |
-| ----------------------------- | ------------------------------ | -------------------------------------- |
-| `Onboarding.GuestGuidCreated` | `Onboarding.GuestGuid.Created` | Adds Subject segment for clarity       |
-| `Onboarding.Start`            | `Onboarding.GuestGuid.Started` | Clarifies what started                 |
-| `Auth.UpgradeSuccess`         | `Auth.Player.Upgraded`         | Standard Past-tense verb; adds Subject |
-| `ping.invoked`                | `Ping.Invoked`                 | Casing + Domain normalization          |
-| `room.get`                    | `Location.Get`                 | Terminology + casing normalized        |
-| `room.move`                   | `Location.Move`                | Terminology + casing normalized        |
+| Old                           | New                                                   | Notes                                      |
+| ----------------------------- | ----------------------------------------------------- | ------------------------------------------ |
+| `Onboarding.GuestGuidCreated` | `Onboarding.GuestGuid.Created`                        | Adds Subject segment for clarity           |
+| `Onboarding.Start`            | `Onboarding.GuestGuid.Started`                        | Clarifies what started                     |
+| `Auth.UpgradeSuccess`         | `Auth.Player.Upgraded`                                | Standard Past-tense verb; adds Subject     |
+| `ping.invoked`                | `Ping.Invoked`                                        | Casing + Domain normalization              |
+| `room.get`                    | `Location.Get`                                        | Terminology + casing normalized            |
+| `room.move`                   | `Navigation.Move.Success` / `Navigation.Move.Blocked` | Split into outcome events post deprecation |
 
 All old names are to be replaced in a single refactor (no dual emission mandated).
 
@@ -505,7 +507,7 @@ Static source of truth: `shared/src/telemetryEvents.ts`. Any addition requires:
 
 ## Dashboards (Starter Ideas)
 
-1. Movement success ratio (`Location.Move` grouped by `status`).
+1. Movement success ratio (`Navigation.Move.Success` vs `Navigation.Move.Blocked`).
 2. Guest onboarding funnel (`Onboarding.GuestGuid.Started` → `Onboarding.GuestGuid.Created`).
 3. Command latency percentile (custom metric or derived from traces) – add only if latency becomes an issue.
 
@@ -527,47 +529,47 @@ To avoid proliferation of narrowly scoped workbooks, operational analytics adopt
 
 Replaces prior separate movement success rate (#281) and blocked reasons (#282) workbook files with a unified artifact:
 
--   File: `infrastructure/workbooks/movement-navigation-dashboard.workbook.json`
--   Infra: `infrastructure/workbook-movement-navigation-dashboard.bicep`
--   Panels included: success rate tiles & summary, blocked reasons table, blocked rate trend (7d), summary statistics, interpretation guide.
--   Future additions (latency distribution, percentile overlays) should modify this file (see issue #283) rather than produce a new workbook.
+- File: `infrastructure/workbooks/movement-navigation-dashboard.workbook.json`
+- Infra: `infrastructure/workbook-movement-navigation-dashboard.bicep`
+- Panels included: success rate tiles & summary, blocked reasons table, blocked rate trend (7d), summary statistics, interpretation guide.
+- Future additions (latency distribution, percentile overlays) should modify this file (see issue #283) rather than produce a new workbook.
 
 ### Performance Operations Dashboard
 
 Consolidated workbook for Gremlin operation RU consumption, latency percentiles, partition pressure, and reliability monitoring:
 
--   File: `infrastructure/workbooks/performance-operations-dashboard.workbook.json`
--   Infra: `infrastructure/workbook-performance-operations-dashboard.bicep`
--   Issues consolidated: #289 (RU & Latency Overview), #290 (RU vs Latency Correlation), #291 (Partition Pressure Trend), #296 (Success/Failure Rate & RU Cost)
--   Panels included:
-    -   **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
-    -   **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
-    -   **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
--   **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
--   References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
+- File: `infrastructure/workbooks/performance-operations-dashboard.workbook.json`
+- Infra: `infrastructure/workbook-performance-operations-dashboard.bicep`
+- Issues consolidated: #289 (RU & Latency Overview), #290 (RU vs Latency Correlation), #291 (Partition Pressure Trend), #296 (Success/Failure Rate & RU Cost)
+- Panels included:
+    - **Gremlin Operation RU & Latency Overview**: Top operations by call volume with RU charge and latency percentiles (P50/P95/P99). Conditional formatting for latency >500ms (amber), >600ms (red); AvgRU thresholds (placeholder values, tune via #297).
+    - **RU vs Latency Correlation**: Scatter plot and Pearson correlation coefficient to detect pressure-induced slowdowns. Displays correlation when sample ≥30 events.
+    - **Partition Pressure Trend**: Time-series RU% with 429 overlay, threshold bands at 70% (amber) and 80% (red). Requires MAX_RU_PER_INTERVAL workbook parameter (calculated as: provisioned RU/s × bucket size in seconds, e.g., 1000 RU/s × 300s = 300000). Includes sustained pressure alert panel that triggers when RU% exceeds 70% for 3+ consecutive 5-minute intervals. Shows configuration banner when MAX_RU parameter not set. Handles zero-RU intervals and sparse 429 occurrences gracefully.
+- **Operation Success/Failure & RU Cost**: Reliability and cost efficiency table showing success vs failure rates, AvgRU(Success), RU/Call ratio, and P95 latency. Columns: OperationName, SuccessCalls, FailedCalls, FailureRate%, AvgRU(Success), RU/Call Ratio, P95 Latency, Category. Failure rate >2% (amber), >5% (red). RU metrics show "n/a" if >30% missing data. Includes RU data quality check banner and optimization priority assessment based on overall failure rate (<1% suggests low priority).
+- References: ADR-002 (partition pressure thresholds), telemetry events `Graph.Query.Executed` and `Graph.Query.Failed`.
 
 ### SQL API Partition Monitoring Dashboard
 
 Dedicated workbook for SQL API partition key distribution monitoring and hot partition troubleshooting (Issue #387):
 
--   File: `infrastructure/workbooks/sql-partition-monitoring-dashboard.workbook.json`
--   Infra: `infrastructure/workbook-sql-partition-monitoring-dashboard.bicep`
--   **Purpose**: Detect partition skew and hot partitions before throttling impacts users. Complements `alert-sql-hot-partition` alert.
--   **Panels included**:
-    -   **Partition Key Cardinality**: Unique partition keys per container with health indicators (green: >10, amber: 5-10, red: <5)
-    -   **Top Hot Partitions**: Partitions consuming >5% of operations, ranked by RU consumption with percentage thresholds
-    -   **Partition Distribution Chart**: Visual RU split across top 10 partitions
-    -   **RU Consumption Trend**: Hourly RU trend for top 5 partitions
-    -   **429 Throttling Analysis**: Throttling errors by partition key
-    -   **Latency Percentiles**: P50/P95/P99 latency for hot partitions
-    -   **Alert Troubleshooting Guide**: Step-by-step response workflow when hot partition alert fires
--   **When to Use**:
-    -   After hot partition alert fires (immediate troubleshooting)
-    -   Weekly partition health reviews
-    -   Before/after partition key migrations
-    -   Capacity planning for high-growth containers
--   **Filters**: Time range (1h-7d), container selection (All or specific)
--   References: docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)
+- File: `infrastructure/workbooks/sql-partition-monitoring-dashboard.workbook.json`
+- Infra: `infrastructure/workbook-sql-partition-monitoring-dashboard.bicep`
+- **Purpose**: Detect partition skew and hot partitions before throttling impacts users. Complements `alert-sql-hot-partition` alert.
+- **Panels included**:
+    - **Partition Key Cardinality**: Unique partition keys per container with health indicators (green: >10, amber: 5-10, red: <5)
+    - **Top Hot Partitions**: Partitions consuming >5% of operations, ranked by RU consumption with percentage thresholds
+    - **Partition Distribution Chart**: Visual RU split across top 10 partitions
+    - **RU Consumption Trend**: Hourly RU trend for top 5 partitions
+    - **429 Throttling Analysis**: Throttling errors by partition key
+    - **Latency Percentiles**: P50/P95/P99 latency for hot partitions
+    - **Alert Troubleshooting Guide**: Step-by-step response workflow when hot partition alert fires
+- **When to Use**:
+    - After hot partition alert fires (immediate troubleshooting)
+    - Weekly partition health reviews
+    - Before/after partition key migrations
+    - Capacity planning for high-growth containers
+- **Filters**: Time range (1h-7d), container selection (All or specific)
+- References: docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)
 
 #### Recent Enhancements (Nov 2025)
 
@@ -591,10 +593,10 @@ Principles Reinforced:
 
 Recommended Future Iterations:
 
--   Outlier filtering toggle for RU vs Latency (median × factor) when noise obscures trend.
--   Optional amber overlay (`RUPercentBase`) mirroring high overlay pattern.
--   Telemetry emission on parameter change (`Dashboard.Parameter.Changed`) for audit.
--   Heuristic auto-suggestion of baseline from observed peak RU when unset.
+- Outlier filtering toggle for RU vs Latency (median × factor) when noise obscures trend.
+- Optional amber overlay (`RUPercentBase`) mirroring high overlay pattern.
+- Telemetry emission on parameter change (`Dashboard.Parameter.Changed`) for audit.
+- Heuristic auto-suggestion of baseline from observed peak RU when unset.
 
 Closed Issues Backreferenced: #289 #290 #291 #296 (all folded improvements reflected here; future tuning notes should extend this subsection rather than duplicating rationale in new issues).
 
@@ -749,16 +751,16 @@ pressureData
 
 **Configuration Notes:**
 
--   `MAX_RU_PER_INTERVAL` = Provisioned RU/s × bucket size in seconds
--   Example: 1000 RU/s × 300 seconds = 300,000
--   For auto-scale accounts, use maximum RU/s
--   Adjust `bucketSize` for different granularities (1m, 5m, 15m)
+- `MAX_RU_PER_INTERVAL` = Provisioned RU/s × bucket size in seconds
+- Example: 1000 RU/s × 300 seconds = 300,000
+- For auto-scale accounts, use maximum RU/s
+- Adjust `bucketSize` for different granularities (1m, 5m, 15m)
 
 **Edge Cases Verified:**
 
--   Zero RU intervals: Display as 0% (no divide-by-zero errors)
--   Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
--   Missing baseline: Chart displays with null RU% and configuration banner shown
+- Zero RU intervals: Display as 0% (no divide-by-zero errors)
+- Sparse 429 occurrences: Rendered correctly with appropriate Y-axis scaling
+- Missing baseline: Chart displays with null RU% and configuration banner shown
 
 ##### Operation Success/Failure Rate & RU Cost Table Export
 
@@ -866,10 +868,10 @@ datatable(Metric:string, Value:string) [
 
 **Edge Cases Verified:**
 
--   All success (0% failure): RU metrics displayed normally
--   Missing RU >30%: "n/a" shown for AvgRU and RU/Call columns; warning banner displayed
--   Single failure in many successes: No amber if <2% threshold
--   Low volume operations (<10 calls): Listed in "Low Volume" category, not excluded
+- All success (0% failure): RU metrics displayed normally
+- Missing RU >30%: "n/a" shown for AvgRU and RU/Call columns; warning banner displayed
+- Single failure in many successes: No amber if <2% threshold
+- Low volume operations (<10 calls): Listed in "Low Volume" category, not excluded
 
 #### Future Enhancements
 
@@ -877,16 +879,16 @@ datatable(Metric:string, Value:string) [
 
 The RU vs Latency Correlation panel currently displays all data points without outlier filtering. A future enhancement could add an optional outlier removal toggle to help identify core patterns:
 
--   **Concept**: Filter out RU values exceeding `median_RU × OUTLIER_FACTOR` (e.g., OUTLIER_FACTOR = 3.0)
--   **Implementation approach**: Add workbook parameter for OUTLIER_FACTOR with default value and checkbox toggle
--   **Query modification**:
+- **Concept**: Filter out RU values exceeding `median_RU × OUTLIER_FACTOR` (e.g., OUTLIER_FACTOR = 3.0)
+- **Implementation approach**: Add workbook parameter for OUTLIER_FACTOR with default value and checkbox toggle
+- **Query modification**:
     ```kusto
     let medianRU = toscalar(events | summarize percentile(ruCharge, 50));
     let outlierThreshold = medianRU * outlierFactor;
     events | where ruCharge <= outlierThreshold
     ```
--   **Use case**: Focus correlation analysis on typical operations when occasional extreme RU spikes obscure patterns
--   **Tradeoff**: May hide legitimate high-cost operations that contribute to partition pressure
+- **Use case**: Focus correlation analysis on typical operations when occasional extreme RU spikes obscure patterns
+- **Tradeoff**: May hide legitimate high-cost operations that contribute to partition pressure
 
 This enhancement is **not required** for initial implementation (issue #290). Document as optional feature for future iteration if scatter plots show significant outlier noise affecting interpretation.
 
@@ -914,7 +916,7 @@ And include brief panel documentation (query purpose, thresholds) in issue comme
 
 ### Movement Event Naming Alignment
 
-The consolidated dashboard panels assume movement outcome events `Navigation.Move.Success` and `Navigation.Move.Blocked` (replacing the coarse `Location.Move`). Update queries accordingly when migrating panels.
+Movement outcome events are `Navigation.Move.Success` and `Navigation.Move.Blocked`. The legacy `Location.Move` series is deprecated and should not be used in new queries.
 
 ## Open Questions
 
@@ -930,7 +932,7 @@ AI / MCP specific event emissions and required dimensions are defined in `archit
 
 Canonical enumeration source of truth:
 
--   `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
+- `shared/src/telemetryEvents.ts` – `GAME_EVENT_NAMES`
 
 Planned lint rule: enforce membership & regex validation for any string literal passed to telemetry helpers.
 
@@ -938,7 +940,7 @@ Planned lint rule: enforce membership & regex validation for any string literal 
 
 AI cost tracking telemetry events, pricing configuration, token buckets, and dashboard queries are documented in:
 
--   `observability/ai-cost-telemetry.md` – Comprehensive guide to AI cost instrumentation
+- `observability/ai-cost-telemetry.md` – Comprehensive guide to AI cost instrumentation
 
 Events include: `AI.Cost.Estimated`, `AI.Cost.WindowSummary`, `AI.Cost.SoftThresholdCrossed`, `AI.Cost.OverrideRejected`, `AI.Cost.InputAdjusted`, `AI.Cost.InputCapped`.
 
@@ -948,14 +950,14 @@ OpenTelemetry span tracing has been removed (issue #311). The system now relies 
 
 ### Correlation Strategy
 
--   `correlationId`: Always emitted (UUID generated if not supplied). Present in every custom event.
--   `operationId`: Emitted when Application Insights request context has been initialized (may be absent in early init or certain async flows). Queries should guard with `isnotempty(customDimensions.operationId)`.
+- `correlationId`: Always emitted (UUID generated if not supplied). Present in every custom event.
+- `operationId`: Emitted when Application Insights request context has been initialized (may be absent in early init or certain async flows). Queries should guard with `isnotempty(customDimensions.operationId)`.
 
 #### Kusto Query Examples for Event Correlation
 
 ##### Join custom events with HTTP requests via operationId
 
-Correlate domain events (Location.Move, Location.Get) with their originating HTTP request to analyze end-to-end latency and status:
+Correlate domain events (Navigation.Move.\*, Location.Get) with their originating HTTP request to analyze end-to-end latency and status:
 
 ```kusto
 let recentRequests = requests
@@ -963,7 +965,7 @@ let recentRequests = requests
   | project operation_Id, requestName = name, requestDuration = duration, resultCode;
 customEvents
 | where timestamp > ago(1h)
-| where name in ('Location.Move', 'Location.Get', 'World.Event.Processed')
+| where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked', 'Location.Get', 'World.Event.Processed')
 | extend operationId = tostring(customDimensions.operationId),
          correlationId = tostring(customDimensions.correlationId),
          eventLatencyMs = todouble(customDimensions.latencyMs)
@@ -1038,7 +1040,7 @@ Measure time between HTTP request start and domain event emission (useful for pe
 ```kusto
 let eventsWithOp = customEvents
   | where timestamp > ago(1h)
-  | where name in ('Location.Move', 'Location.Get')
+  | where name in ('Navigation.Move.Success', 'Navigation.Move.Blocked', 'Location.Get')
   | extend operationId = tostring(customDimensions.operationId)
   | where isnotempty(operationId)
   | project eventTimestamp = timestamp, name, operationId;
@@ -1174,12 +1176,12 @@ customEvents
 
 #### Usage Guidance
 
--   Prefer using existing domain events' `latencyMs` dimension when measuring request/command duration.
--   Use `Timing.Op` for ad-hoc internal instrumentation or detailed operation profiling.
--   Avoid high-cardinality `op` values (do not embed dynamic IDs or user data).
--   Use `category` to group related operations (e.g., 'repository', 'handler', 'external-api').
--   Enable `includeErrorFlag: true` for operations where failure tracking is important.
--   Very fast operations (<1ms) may round to 0 or 1ms due to Date.now() precision.
+- Prefer using existing domain events' `latencyMs` dimension when measuring request/command duration.
+- Use `Timing.Op` for ad-hoc internal instrumentation or detailed operation profiling.
+- Avoid high-cardinality `op` values (do not embed dynamic IDs or user data).
+- Use `category` to group related operations (e.g., 'repository', 'handler', 'external-api').
+- Enable `includeErrorFlag: true` for operations where failure tracking is important.
+- Very fast operations (<1ms) may round to 0 or 1ms due to Date.now() precision.
 
 ### Sampling Configuration
 

@@ -58,8 +58,8 @@ Document the complete sequence for initializing a new player from first HTTP req
 
 **Error Cases:**
 
--   Duplicate ID (extremely rare; retry with new GUID)
--   Cosmos write failure (503)
+- Duplicate ID (extremely rare; retry with new GUID)
+- Cosmos write failure (503)
 
 ### Step 2: Get Player State
 
@@ -91,9 +91,9 @@ Document the complete sequence for initializing a new player from first HTTP req
 
 **Error Cases:**
 
--   Player not found (404)
--   Mosswell entrance missing from graph (500 — critical setup error)
--   Cosmos read failure (503)
+- Player not found (404)
+- Mosswell entrance missing from graph (500 — critical setup error)
+- Cosmos read failure (503)
 
 ### Step 3: Initial LOOK
 
@@ -127,9 +127,9 @@ Document the complete sequence for initializing a new player from first HTTP req
 
 **Error Cases:**
 
--   Player not found (404)
--   Location vertex missing (500 — data consistency error)
--   No exits (returns "No exits available.")
+- Player not found (404)
+- Location vertex missing (500 — data consistency error)
+- No exits (returns "No exits available.")
 
 ## Identity & Persistence
 
@@ -152,9 +152,9 @@ function generatePlayerId(): string {
 
 **Why UUID v4:**
 
--   No central coordination required (stateless generation)
--   Collision probability negligible (<10⁻³⁰ for millions of players)
--   Partition-friendly for Cosmos SQL (`/id` partition key)
+- No central coordination required (stateless generation)
+- Collision probability negligible (<10⁻³⁰ for millions of players)
+- Partition-friendly for Cosmos SQL (`/id` partition key)
 
 ### Cosmos SQL Schema
 
@@ -181,9 +181,9 @@ interface PlayerDocument {
 
 **Why not during bootstrap:**
 
--   Decouples player creation from world state (bootstrap can succeed even if Gremlin unavailable)
--   Allows world reseeding without invalidating player records
--   Simplifies error handling (bootstrap failures don't leave orphaned location assignments)
+- Decouples player creation from world state (bootstrap can succeed even if Gremlin unavailable)
+- Allows world reseeding without invalidating player records
+- Simplifies error handling (bootstrap failures don't leave orphaned location assignments)
 
 **Mosswell Entrance Lookup:**
 
@@ -211,8 +211,8 @@ g.V().has('externalId', 'mosswell_entrance').id()
 
 **Validation:**
 
--   Reject `displayName` >50 chars (XSS prevention)
--   Sanitize special characters in player input fields
+- Reject `displayName` >50 chars (XSS prevention)
+- Sanitize special characters in player input fields
 
 ### Authentication Flow (Future — Issue #171)
 
@@ -225,25 +225,25 @@ Planned: OAuth2 + persistent identity linking (M2)
 
 **Cosmos throttling (429):**
 
--   Retry with exponential backoff (max 3 attempts)
--   Emit telemetry: `Persistence.Throttled`
+- Retry with exponential backoff (max 3 attempts)
+- Emit telemetry: `Persistence.Throttled`
 
 **Network timeout:**
 
--   Return 503 Service Unavailable
--   Log correlation ID for debugging
+- Return 503 Service Unavailable
+- Log correlation ID for debugging
 
 ### Permanent Failures
 
 **Invalid UUID format:**
 
--   Return 400 Bad Request with validation message
--   Do NOT retry
+- Return 400 Bad Request with validation message
+- Do NOT retry
 
 **Missing world data:**
 
--   Return 500 Internal Server Error
--   Alert ops (critical: world not seeded)
+- Return 500 Internal Server Error
+- Alert ops (critical: world not seeded)
 
 ## Integration Testing
 
@@ -292,9 +292,9 @@ expect(getRes.body.error).toContain('Mosswell entrance not found')
 
 **Optimization Notes:**
 
--   Player fetch uses point read (partition key + ID) — fastest Cosmos operation
--   Exit query limited to 50 edges per location (prevent runaway queries)
--   Consider caching Mosswell entrance ID in memory (reduces Gremlin query)
+- Player fetch uses point read (partition key + ID) — fastest Cosmos operation
+- Exit query limited to 50 edges per location (prevent runaway queries)
+- Consider caching Mosswell entrance ID in memory (reduces Gremlin query)
 
 ## Troubleshooting
 
@@ -307,13 +307,13 @@ expect(getRes.body.error).toContain('Mosswell entrance not found')
 
 ## Related Documentation
 
--   [Local Dev Setup](./local-dev-setup.md) — Cosmos connection configuration
--   [Architecture Overview](../architecture/overview.md) — Dual persistence model
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Why `/id` partition key
--   [Player-Location Edge Migration](../architecture/player-location-edge-migration.md) — Future graph-based player positioning
--   Issue #12 — World seed script (provides Mosswell entrance)
--   Issue #42 — Rate limiting implementation
--   Issue #171 — Auth flow integration
+- [Local Dev Setup](./local-dev-setup.md) — Cosmos connection configuration
+- [Architecture Overview](../architecture/overview.md) — Dual persistence model
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Why `/id` partition key
+- [ADR-004: Player Store Cutover Completion](../adr/ADR-004-player-store-cutover-completion.md) — SQL-only authoritative player persistence
+- Issue #12 — World seed script (provides Mosswell entrance)
+- Issue #42 — Rate limiting implementation
+- Issue #171 — Auth flow integration
 
 ---
 

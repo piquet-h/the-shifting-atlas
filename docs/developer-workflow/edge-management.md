@@ -265,14 +265,7 @@ npm test
 
 ## Future Enhancements
 
-### Player-Location Edges
-
-Player position migration from scalar `currentLocationId` to graph edges `(player)-[:in]->(location)` is fully designed. Implementation will follow the four-phase strategy documented in [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md), leveraging the same patterns established for exit edge management.
-
-**Key documents:**
-
-- [Player-Location Edge Migration Design](../architecture/player-location-edge-migration.md) – Complete migration strategy
-- [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) – Historical context (superseded)
+> Note: Player-location edges are not currently implemented. Post ADR-004, player state is SQL-only authoritative (no Gremlin player vertices). Any future graph-based player positioning would require a new ADR/design.
 
 ### Exit Metadata
 
@@ -293,9 +286,9 @@ Future automated checks:
 ## References
 
 - [Exit Edge Invariants](../concept/exits.md) – Concise invariants reference (concept facet)
-- [Player-Location Edge Migration](../architecture/player-location-edge-migration.md) – Future player edge strategy
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
 - [ADR-003: Player-Location Edge Groundwork](../adr/ADR-003-player-location-edge-groundwork.md) (superseded)
+- [ADR-004: Player Store Cutover Completion](../adr/ADR-004-player-store-cutover-completion.md)
 - Issue #117: Epic - Location Edge Management
 - Issue #131: Player-Location Edge Migration Design
 
