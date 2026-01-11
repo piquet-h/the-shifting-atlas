@@ -5,10 +5,6 @@ import { beforeEach, describe, it } from 'node:test'
 import sinon from 'sinon'
 import { WorldHandler } from '../../src/handlers/mcp/world/world.js'
 
-class FakeTelemetryService {
-    trackGameEventStrict() {}
-}
-
 function makeContext(): InvocationContext {
     // Minimal InvocationContext mock for tests
     return {
@@ -30,19 +26,17 @@ function makeContext(): InvocationContext {
 describe('WorldHandler', () => {
     let locationRepo: { get: sinon.SinonStub }
     let exitRepo: { getExits: sinon.SinonStub }
-    let telemetry: FakeTelemetryService
 
     beforeEach(() => {
         locationRepo = { get: sinon.stub() }
         exitRepo = { getExits: sinon.stub() }
-        telemetry = new FakeTelemetryService()
     })
 
     it('getLocation returns location JSON', async () => {
         const sample = { id: 'loc-1', name: 'Test Loc' }
         locationRepo.get.resolves(sample)
 
-        const handler = new WorldHandler(telemetry as unknown as any, locationRepo as unknown as any, exitRepo as unknown as any)
+        const handler = new WorldHandler(locationRepo as unknown as any, exitRepo as unknown as any)
         const ctx = makeContext()
         const result = await handler.getLocation({ arguments: {} }, ctx)
 
@@ -55,7 +49,7 @@ describe('WorldHandler', () => {
         const exits = [{ direction: 'north', to: 'loc-2' }]
         exitRepo.getExits.resolves(exits)
 
-        const handler = new WorldHandler(telemetry as unknown as any, locationRepo as unknown as any, exitRepo as unknown as any)
+        const handler = new WorldHandler(locationRepo as unknown as any, exitRepo as unknown as any)
         const ctx = makeContext()
         const result = await handler.listExits({ arguments: {} }, ctx)
 

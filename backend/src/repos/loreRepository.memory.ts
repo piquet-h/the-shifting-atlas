@@ -1,5 +1,5 @@
+import type { CanonicalFact } from '@piquet-h/shared'
 import { injectable } from 'inversify'
-import type { CanonicalFact } from '../types/lore.js'
 import { ILoreRepository } from './loreRepository.js'
 
 /**

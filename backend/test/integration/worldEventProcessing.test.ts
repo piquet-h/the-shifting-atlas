@@ -143,13 +143,7 @@ describe('World Event Processing Integration', () => {
 
         test('should enforce canonical scopeKey patterns', () => {
             // Valid patterns should succeed
-            const validPatterns = [
-                `loc:${uuidv4()}`,
-                `player:${uuidv4()}`,
-                'global:maintenance',
-                'global:tick',
-                'global:worldclock'
-            ]
+            const validPatterns = [`loc:${uuidv4()}`, `player:${uuidv4()}`, 'global:maintenance', 'global:tick', 'global:worldclock']
 
             for (const scopeKey of validPatterns) {
                 const result = emitWorldEvent({

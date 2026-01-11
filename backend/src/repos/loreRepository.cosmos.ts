@@ -1,6 +1,6 @@
+import type { CanonicalFact } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { CanonicalFact } from '../types/lore.js'
 import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import { ILoreRepository } from './loreRepository.js'

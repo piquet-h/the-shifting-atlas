@@ -25,6 +25,8 @@ import { GremlinHealthHandler } from '../../src/handlers/gremlinHealth.js'
 import { HealthHandler } from '../../src/handlers/health.js'
 import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
+import { LoreMemoryHandler } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
+import { WorldHandler } from '../../src/handlers/mcp/world/world.js'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { PingHandler } from '../../src/handlers/ping.js'
 import { SimplePingHandler } from '../../src/handlers/pingSimple.js'
@@ -58,6 +60,8 @@ import { MemoryLocationClockRepository } from '../../src/repos/locationClockRepo
 import { CosmosLocationRepository } from '../../src/repos/locationRepository.cosmos.js'
 import { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { InMemoryLocationRepository } from '../../src/repos/locationRepository.memory.js'
+import { ILoreRepository } from '../../src/repos/loreRepository.js'
+import { MemoryLoreRepository } from '../../src/repos/loreRepository.memory.js'
 import { IPlayerDocRepository, PlayerDocRepository } from '../../src/repos/PlayerDocRepository.js'
 import { MemoryPlayerDocRepository } from '../../src/repos/PlayerDocRepository.memory.js'
 import { CosmosPlayerRepository } from '../../src/repos/playerRepository.cosmos.js'
@@ -147,6 +151,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(GetExitsHandler).toSelf().inSingletonScope()
     container.bind(GetPromptTemplateHandler).toSelf().inSingletonScope()
     container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
+    // MCP handler classes (used by MCP tool wrapper functions)
+    container.bind(WorldHandler).toSelf().inSingletonScope()
+    container.bind(LoreMemoryHandler).toSelf().inSingletonScope()
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
     container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
@@ -290,6 +297,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
         container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+
+        // Lore (MCP)
+        container.bind<ILoreRepository>('ILoreRepository').to(MemoryLoreRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
@@ -313,6 +323,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
         container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
         container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+
+        // Lore (MCP)
+        container.bind<ILoreRepository>('ILoreRepository').to(MemoryLoreRepository).inSingletonScope()
     }
 
     // === Clock (Time Abstraction) ===

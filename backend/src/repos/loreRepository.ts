@@ -1,4 +1,4 @@
-import type { CanonicalFact } from '../types/lore.js'
+import type { CanonicalFact } from '@piquet-h/shared'
 
 /**
  * Repository contract for canonical lore facts.

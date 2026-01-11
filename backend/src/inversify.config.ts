@@ -27,6 +27,7 @@ import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
 import { HealthHandler } from './handlers/health.js'
 import { LinkRoomsHandler } from './handlers/linkRooms.js'
 import { LocationLookHandler } from './handlers/locationLook.js'
+import { LoreMemoryHandler } from './handlers/mcp/lore-memory/lore-memory.js'
 import { WorldHandler } from './handlers/mcp/world/world.js'
 import { MoveHandler } from './handlers/moveCore.js'
 import { PingHandler } from './handlers/ping.js'
@@ -136,6 +137,9 @@ export const setupContainer = async (container: Container) => {
     // WorldHandler provides MCP tooling handlers (getLocation, listExits)
     // Bind it so the MCP wrapper functions can resolve the handler from the container.
     container.bind(WorldHandler).toSelf()
+    // LoreMemoryHandler provides MCP tooling handlers (get-canonical-fact, search-lore)
+    // Bind it so the MCP wrapper functions can resolve the handler from the container.
+    container.bind(LoreMemoryHandler).toSelf()
     container.bind(PlayerLinkHandler).toSelf()
     container.bind(PlayerMoveHandler).toSelf()
     container.bind(PingHandler).toSelf()
