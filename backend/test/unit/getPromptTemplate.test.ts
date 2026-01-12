@@ -4,6 +4,7 @@
 
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import type { IPromptTemplateRepository, PromptTemplate } from '@piquet-h/shared'
+import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { GetPromptTemplateHandler } from '../../src/handlers/getPromptTemplate.js'
@@ -23,7 +24,7 @@ function createMockRequest(params: Record<string, string>, queryParams?: Map<str
 }
 
 // Helper to create a mock InvocationContext
-function createMockContext(container: any): InvocationContext {
+function createMockContext(container: Container): InvocationContext {
     return {
         invocationId: 'test-id',
         extraInputs: new Map([['container', container]])
@@ -126,8 +127,9 @@ describe('GetPromptTemplateHandler', () => {
 
             assert.strictEqual(response.status, 200)
             assert.ok(response.headers)
-            assert.strictEqual(response.headers['ETag'], 'abc123')
-            assert.ok(response.headers['Cache-Control']?.includes('max-age=300'))
+            const headers = response.headers as unknown as Record<string, string>
+            assert.strictEqual(headers['ETag'], 'abc123')
+            assert.ok(headers['Cache-Control']?.includes('max-age=300'))
 
             const body = JSON.parse(JSON.stringify(response.jsonBody)) as { success: boolean; data?: { id: string; hash: string } }
             assert.strictEqual(body.success, true)
@@ -159,7 +161,8 @@ describe('GetPromptTemplateHandler', () => {
 
             assert.strictEqual(response.status, 304)
             assert.ok(response.headers)
-            assert.strictEqual(response.headers['ETag'], 'abc123')
+            const headers = response.headers as unknown as Record<string, string>
+            assert.strictEqual(headers['ETag'], 'abc123')
         })
 
         test('retrieves template by version when specified', async () => {
@@ -174,7 +177,7 @@ describe('GetPromptTemplateHandler', () => {
                 hash: 'abc123'
             }
 
-            let capturedQuery: any = null
+            let capturedQuery: unknown = null
             mockRepo.get = async (query) => {
                 capturedQuery = query
                 return mockTemplate
@@ -188,9 +191,10 @@ describe('GetPromptTemplateHandler', () => {
             const response = await handler.handle(mockReq, mockContext)
 
             assert.strictEqual(response.status, 200)
-            assert.ok(capturedQuery)
-            assert.strictEqual(capturedQuery.id, 'location')
-            assert.strictEqual(capturedQuery.version, '1.0.0')
+            assert.ok(capturedQuery && typeof capturedQuery === 'object')
+            const q = capturedQuery as { id?: unknown; version?: unknown }
+            assert.strictEqual(q.id, 'location')
+            assert.strictEqual(q.version, '1.0.0')
         })
 
         test('retrieves template by hash when specified', async () => {
@@ -205,7 +209,7 @@ describe('GetPromptTemplateHandler', () => {
                 hash: 'abc123'
             }
 
-            let capturedQuery: any = null
+            let capturedQuery: unknown = null
             mockRepo.get = async (query) => {
                 capturedQuery = query
                 return mockTemplate
@@ -219,9 +223,10 @@ describe('GetPromptTemplateHandler', () => {
             const response = await handler.handle(mockReq, mockContext)
 
             assert.strictEqual(response.status, 200)
-            assert.ok(capturedQuery)
-            assert.strictEqual(capturedQuery.id, 'location')
-            assert.strictEqual(capturedQuery.hash, 'abc123')
+            assert.ok(capturedQuery && typeof capturedQuery === 'object')
+            const q = capturedQuery as { id?: unknown; hash?: unknown }
+            assert.strictEqual(q.id, 'location')
+            assert.strictEqual(q.hash, 'abc123')
         })
     })
 })

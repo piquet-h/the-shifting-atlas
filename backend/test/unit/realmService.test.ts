@@ -10,11 +10,15 @@
  * - Edge cases: no realms, type filtering, duplicate tags
  */
 
-import assert from 'node:assert'
-import { describe, it, beforeEach } from 'node:test'
-import type { RealmVertex, Location } from '@piquet-h/shared'
+import type { Location, RealmVertex } from '@piquet-h/shared'
 import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
-import { RealmService } from '../../dist/src/services/RealmService.js'
+import assert from 'node:assert'
+import { beforeEach, describe, it } from 'node:test'
+import type { ILayerRepository } from '../../src/repos/layerRepository.js'
+import type { ILocationRepository } from '../../src/repos/locationRepository.js'
+import type { IRealmRepository } from '../../src/repos/realmRepository.js'
+import { RealmService } from '../../src/services/RealmService.js'
+import type { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 
 // Mock repositories
 class MockRealmRepository {
@@ -158,7 +162,12 @@ describe('RealmService - Unit Tests', () => {
         mockLayerRepo = new MockLayerRepository()
         mockTelemetry = new MockTelemetryService()
 
-        realmService = new RealmService(mockRealmRepo as any, mockLocationRepo as any, mockLayerRepo as any, mockTelemetry as any)
+        realmService = new RealmService(
+            mockRealmRepo as unknown as IRealmRepository,
+            mockLocationRepo as unknown as ILocationRepository,
+            mockLayerRepo as unknown as ILayerRepository,
+            mockTelemetry as unknown as TelemetryService
+        )
     })
 
     describe('getContainingRealms', () => {
