@@ -332,6 +332,173 @@ export class WorldContextHandler {
             ambient
         })
     }
+
+    /**
+     * Get spatial context: N-hop neighbors from the location graph.
+     * Returns neighboring locations up to a configurable depth (default: 2, max: 5).
+     */
+    async getSpatialContext(toolArguments: unknown, context: InvocationContext): Promise<string> {
+        void context // part of the MCP handler signature; intentionally unused
+
+        const toolArgs = toolArguments as ToolArgs<{ locationId?: string; depth?: number | string }>
+        const locationId = toolArgs?.arguments?.locationId || STARTER_LOCATION_ID
+
+        // Parse and validate depth
+        const requestedDepth = parseOptionalNumber(toolArgs?.arguments?.depth) ?? 2 // default: 2 hops
+        const warnings: string[] = []
+
+        // Clamp depth to maximum of 5 hops
+        const MAX_DEPTH = 5
+        let actualDepth = requestedDepth
+        if (requestedDepth > MAX_DEPTH) {
+            warnings.push(`depth clamped to maximum of ${MAX_DEPTH}`)
+            actualDepth = MAX_DEPTH
+        }
+
+        actualDepth = Math.max(1, Math.min(actualDepth, MAX_DEPTH))
+
+        try {
+            // Verify location exists
+            const location = await this.locationRepo.get(locationId)
+            if (!location) {
+                return JSON.stringify(null)
+            }
+
+            // Get N-hop neighbors using Gremlin traversal
+            const neighbors = await this.getSpatialNeighbors(locationId, actualDepth)
+
+            return JSON.stringify({
+                locationId,
+                depth: actualDepth,
+                requestedDepth: requestedDepth !== actualDepth ? requestedDepth : undefined,
+                warnings: warnings.length > 0 ? warnings : undefined,
+                neighbors
+            })
+        } catch (error) {
+            console.error(`[WorldContext.getSpatialContext] Error:`, error)
+            return JSON.stringify(null)
+        }
+    }
+
+    /**
+     * Helper: Get N-hop spatial neighbors using Gremlin graph traversal.
+     * Uses repeat().emit() pattern to collect nodes at each depth level.
+     */
+    private async getSpatialNeighbors(
+        locationId: string,
+        depth: number
+    ): Promise<Array<{ id: string; name: string; depth: number; direction?: string }>> {
+        // Build Gremlin query to traverse N hops and collect neighbors
+        // Using repeat().emit() to get all nodes at each level
+        // The path() step tracks the full traversal path for depth calculation
+        const query = `
+            g.V(locationId)
+                .repeat(
+                    bothE('exit')
+                        .otherV()
+                        .simplePath()
+                )
+                .times(maxDepth)
+                .emit()
+                .dedup()
+                .project('id', 'name', 'depth', 'path')
+                    .by(id())
+                    .by(values('name'))
+                    .by(path().count(local).math('_ - 1'))
+                    .by(path().unfold().hasLabel('exit').values('direction').fold())
+        `
+
+        const bindings = {
+            locationId,
+            maxDepth: depth
+        }
+
+        const startTime = Date.now()
+        try {
+            // Execute query through location repository's Gremlin client
+            // Note: We're using the CosmosGremlinRepository's query method
+            const locationRepo = this.locationRepo as any
+            const results = await locationRepo.query(query, bindings)
+
+            const latencyMs = Date.now() - startTime
+
+            // Log telemetry - skip if not available
+            if (this.worldClock && 'telemetryService' in this.worldClock) {
+                const telemetryService = (this.worldClock as any).telemetryService
+                telemetryService?.trackGameEventStrict?.('World.SpatialContext.Query', {
+                    locationId,
+                    depth,
+                    neighborCount: results?.length || 0,
+                    latencyMs
+                })
+            }
+
+            if (!results || results.length === 0) {
+                return []
+            }
+
+            // Map results to simplified neighbor objects
+            return results.map((r: Record<string, unknown>) => ({
+                id: String(r.id),
+                name: String(r.name),
+                depth: typeof r.depth === 'number' ? r.depth : 1,
+                direction: Array.isArray(r.path) && r.path.length > 0 ? String(r.path[0]) : undefined
+            }))
+        } catch (error) {
+            console.error(`[WorldContext.getSpatialNeighbors] Error querying graph:`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Get recent events at a location within a time window.
+     * Returns timeline sorted chronologically (newest first).
+     */
+    async getRecentEvents(toolArguments: unknown, context: InvocationContext): Promise<string> {
+        void context // part of the MCP handler signature; intentionally unused
+
+        const toolArgs = toolArguments as ToolArgs<{ locationId?: string; timeWindowHours?: number | string }>
+        const locationId = toolArgs?.arguments?.locationId || STARTER_LOCATION_ID
+
+        // Parse time window (default: 24 hours)
+        const timeWindowHours = parseOptionalNumber(toolArgs?.arguments?.timeWindowHours) ?? 24
+
+        try {
+            // Verify location exists
+            const location = await this.locationRepo.get(locationId)
+            if (!location) {
+                return JSON.stringify(null)
+            }
+
+            // Calculate time window
+            const now = new Date()
+            const afterTimestamp = new Date(now.getTime() - timeWindowHours * 60 * 60 * 1000).toISOString()
+
+            // Query events from worldEventRepository
+            const timeline = await this.worldEventRepo.queryByScope(buildLocationScopeKey(locationId), {
+                afterTimestamp,
+                order: 'desc' // newest first
+            })
+
+            // Sort events by occurredUtc descending (newest first)
+            const sortedEvents = timeline.events.sort((a, b) => {
+                return new Date(b.occurredUtc).getTime() - new Date(a.occurredUtc).getTime()
+            })
+
+            return JSON.stringify({
+                locationId,
+                timeWindowHours,
+                events: sortedEvents,
+                performance: {
+                    ruCharge: timeline.ruCharge,
+                    latencyMs: timeline.latencyMs
+                }
+            })
+        } catch (error) {
+            console.error(`[WorldContext.getRecentEvents] Error:`, error)
+            return JSON.stringify(null)
+        }
+    }
 }
 
 export async function health(toolArguments: unknown, context: InvocationContext): Promise<string> {
@@ -356,4 +523,16 @@ export async function getAtmosphere(toolArguments: unknown, context: InvocationC
     const container = context.extraInputs.get('container') as Container
     const handler = container.get(WorldContextHandler)
     return handler.getAtmosphere(toolArguments, context)
+}
+
+export async function getSpatialContext(toolArguments: unknown, context: InvocationContext): Promise<string> {
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(WorldContextHandler)
+    return handler.getSpatialContext(toolArguments, context)
+}
+
+export async function getRecentEvents(toolArguments: unknown, context: InvocationContext): Promise<string> {
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(WorldContextHandler)
+    return handler.getRecentEvents(toolArguments, context)
 }
