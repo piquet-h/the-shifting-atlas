@@ -48,27 +48,34 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
-| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                                                                                             | Exit Criteria                                        |
-| ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| M4 AI Read        | Foundations (Read-Only) | `world-query` (MCP for world state read-only). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
-| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                                                                                        | Safe ambience & NPC one-liners in playtest           |
-| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)                                                                                  | Validator rejects unsafe / incoherent >90% precision |
-| (Future) Planning | Narrative Planning      | +`simulation-planner`                                                                                                   | Multi-step quest seed generation gated & logged      |
-| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools                                                                     | Cost & token budgets within defined thresholds       |
+| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                                                                                                                                              | Exit Criteria                                        |
+| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| M4 AI Read        | Foundations (Read-Only) | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
+| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                                                                                                                                         | Safe ambience & NPC one-liners in playtest           |
+| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)                                                                                                                                   | Validator rejects unsafe / incoherent >90% precision |
+| (Future) Planning | Narrative Planning      | +`simulation-planner`                                                                                                                                                    | Multi-step quest seed generation gated & logged      |
+| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools                                                                                                                      | Cost & token budgets within defined thresholds       |
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
 ## Initial MCP Server Inventory (Detail)
 
-### world-query-mcp (Stage M4 – Read Only)
+### World MCP tools (Stage M4 – Read Only)
 
 Read-only world access.
 
-Tools (draft):
+Implemented today (Azure Functions `app.mcpTool(...)`):
 
-- `getRoom(roomId)` → { id, name, tags, exits[], occupants[], lastUpdatedUtc }
+- `World-getLocation` (`toolName: get-location`)
+- `World-listExits` (`toolName: list-exits`)
+- `Lore-getCanonicalFact` (`toolName: get-canonical-fact`)
+- `Lore-searchLore` (`toolName: search-lore`)
+- `WorldContext-health` (`toolName: health`) (foundation scaffold; expands in #515/#516)
+
+Draft future shape (conceptual):
+
 - `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
-- `listRecentEvents(roomId, limit)` → [{ id, type, ts, summary }]
+- `listRecentEvents(scopeKey, limit)` → [{ id, type, ts, summary }]
 
 ### Prompt templates (NOT an MCP server)
 

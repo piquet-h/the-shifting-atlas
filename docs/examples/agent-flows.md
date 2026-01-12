@@ -5,7 +5,7 @@
 1. Player: "I carefully pry open the rusted chest and look inside."
 2. Client → Backend: free-form text
 3. Intent Parser → ActionFrame: { verb: 'examine', target: 'chest', manner: 'careful' }
-4. Narrative Agent reads `world-query` for room and chest facts; generates brief narration: "You ease the lid..."
+4. Narrative Agent reads MCP tools (e.g. `World-getLocation` / `World-listExits`, and later `WorldContext-*`) for room and chest facts; generates brief narration: "You ease the lid..."
 5. Narrative Agent emits advisory WorldEventEnvelope (proposed: chestOpened, contentsPreview)
 6. Validator Agent: schema pass, invariants pass, classification pass
 7. Proposal enqueued: WorldEventEnvelope → queue processor applies deterministic updates (inventory changes), emits telemetry

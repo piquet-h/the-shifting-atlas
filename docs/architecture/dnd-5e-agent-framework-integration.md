@@ -76,17 +76,32 @@ This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.
 
 ### 3.1 Existing MCP Servers
 
-You currently have **two basic MCP servers** implemented as Azure Functions:
+You currently have MCP **tools** implemented using the Azure Functions programming model (`app.mcpTool(...)`).
 
-#### A. World Query Server (`/mcp/world-query`)
+#### A. World MCP tools (read-only)
 
-```typescript
-// Operations:
-// - op=getStarter (returns STARTER_LOCATION_ID)
-// - op=getLocation&id=<locationId> (fetches specific location)
-```
+Implemented tools (current):
 
-**Purpose**: Provides read-only access to world graph state (locations from Cosmos DB Gremlin).
+- `World-getLocation` (`toolName: get-location`) — location state (defaults to starter location when omitted)
+- `World-listExits` (`toolName: list-exits`) — exits at a location (defaults to starter location when omitted)
+
+Code:
+
+- Tool registration: `backend/src/mcp/world/world.ts`
+- DI-backed handler: `backend/src/handlers/mcp/world/world.ts`
+
+**Purpose**: Provides read-only access to world graph state (locations/exits from Cosmos DB Gremlin).
+
+#### B. World Context MCP tools (foundation scaffold)
+
+Implemented tools (current):
+
+- `WorldContext-health` (`toolName: health`) — verifies the World Context MCP surface is registered and callable
+
+Code:
+
+- Tool registration: `backend/src/mcp/world-context/world-context.ts`
+- DI-backed handler: `backend/src/handlers/mcp/world-context/world-context.ts`
 
 #### B. Prompt Templates (`shared/src/prompts/` + optional backend endpoint)
 
@@ -150,13 +165,13 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 **Purpose**: Provide AI agents with current world state for contextual narrative generation.
 
-**Operations**:
+**Planned tools** (implemented as separate `app.mcpTool(...)` registrations; not an `op=` router):
 
-- `op=getLocationContext&id=<locationId>` → location + exits + nearby players + recent events
-- `op=getPlayerContext&id=<playerId>` → player location + inventory + recent actions
-- `op=getSpatialContext&id=<locationId>&depth=2` → location graph (N-hop neighbors)
-- `op=getRecentEvents&locationId=<id>&count=10` → timeline of world events at location
-- `op=getAtmosphere&locationId=<id>` → current weather, time-of-day, ambient conditions
+- `get-location-context(locationId?)` → location + exits + (later) nearby players + recent events
+- `get-player-context(playerId)` → player location + inventory + recent actions
+- `get-spatial-context(locationId, depth?)` → location graph (N-hop neighbors)
+- `list-recent-events(scopeKey, count?)` → timeline of world events for a scope
+- `get-atmosphere(locationId)` → weather/time-of-day/ambient conditions
 
 **Data Sources**:
 
@@ -171,7 +186,7 @@ MCP servers are prioritized by their dependency relationships and alignment with
 3. Fetches atmospheric layers (stormy weather, dusk)
 4. AI Narrative Generator weaves into: "Rain lashes the courtyard as twilight fades. Fresh boot prints lead north toward the old tower. The eastern gate stands ajar, creaking in the wind."
 
-**Integration Point**: Extends existing `backend/src/mcp/worldQuery.ts`
+**Integration Point**: Builds alongside the existing World tools (`backend/src/mcp/world/world.ts`) and the World Context scaffold (`backend/src/mcp/world-context/world-context.ts`).
 
 ---
 

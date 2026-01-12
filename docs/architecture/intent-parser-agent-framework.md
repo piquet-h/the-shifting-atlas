@@ -246,14 +246,19 @@ the-shifting-atlas/
 ├── backend/ (TypeScript)
 │   ├── src/
 │   │   ├── mcp/
-│   │   │   ├── intentParser.ts          ← Parse commands (heuristic)
-│   │   │   ├── worldContext.ts          ← Entity CRUD, promotion
-│   │   │   ├── descriptionLayering.ts   ← Layer composition
-│   │   │   └── policyValidator.ts       ← Permission/validation
+│   │   │   ├── world/
+│   │   │   │   └── world.ts                    ← MCP tools: get-location, list-exits
+│   │   │   ├── lore-memory/
+│   │   │   │   └── lore-memory.ts              ← MCP tools: get-canonical-fact, search-lore
+│   │   │   └── world-context/
+│   │   │       └── world-context.ts            ← MCP tools: (foundation) health; (planned) context ops
 │   │   ├── handlers/
-│   │   │   ├── playerCommand.ts         ← Entry point, calls Python
-│   │   │   ├── moveCore.ts              ← Existing move logic
-│   │   │   └── combatHandler.ts         ← Combat execution
+│   │   │   ├── playerCommand.ts               ← Entry point, calls Python
+│   │   │   ├── moveCore.ts                    ← Existing move logic
+│   │   │   └── mcp/
+│   │   │       ├── world/
+│   │   │       ├── lore-memory/
+│   │   │       └── world-context/
 │   │   └── repos/
 │   │       ├── entityRepository.ts      ← Cosmos DB entities
 │   │       └── playerRepository.ts      ← Player state
