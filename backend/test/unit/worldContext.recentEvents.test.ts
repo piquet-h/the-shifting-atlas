@@ -204,7 +204,11 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         const eventRepo = await fixture.getWorldEventRepository()
         ;(eventRepo as any).queryByScope = async () => {
-            return { events: mockEvents, ruCharge: 3.0, latencyMs: 50, hasMore: false }
+            // Repository should respect order:'desc' parameter and return sorted events
+            const sortedEvents = [...mockEvents].sort((a, b) => {
+                return new Date(b.occurredUtc).getTime() - new Date(a.occurredUtc).getTime()
+            })
+            return { events: sortedEvents, ruCharge: 3.0, latencyMs: 50, hasMore: false }
         }
 
         const context = await fixture.createInvocationContext()

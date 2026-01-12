@@ -347,15 +347,13 @@ export class WorldContextHandler {
         const requestedDepth = parseOptionalNumber(toolArgs?.arguments?.depth) ?? 2 // default: 2 hops
         const warnings: string[] = []
 
-        // Clamp depth to maximum of 5 hops
+        // Clamp depth to maximum of 5 hops, minimum of 1
         const MAX_DEPTH = 5
-        let actualDepth = requestedDepth
+        const actualDepth = Math.max(1, Math.min(requestedDepth, MAX_DEPTH))
+        
         if (requestedDepth > MAX_DEPTH) {
             warnings.push(`depth clamped to maximum of ${MAX_DEPTH}`)
-            actualDepth = MAX_DEPTH
         }
-
-        actualDepth = Math.max(1, Math.min(actualDepth, MAX_DEPTH))
 
         try {
             // Verify location exists
@@ -545,21 +543,16 @@ export class WorldContextHandler {
             const now = new Date()
             const afterTimestamp = new Date(now.getTime() - timeWindowHours * 60 * 60 * 1000).toISOString()
 
-            // Query events from worldEventRepository
+            // Query events from worldEventRepository (already sorted desc by repository)
             const timeline = await this.worldEventRepo.queryByScope(buildLocationScopeKey(locationId), {
                 afterTimestamp,
                 order: 'desc' // newest first
             })
 
-            // Sort events by occurredUtc descending (newest first)
-            const sortedEvents = timeline.events.sort((a, b) => {
-                return new Date(b.occurredUtc).getTime() - new Date(a.occurredUtc).getTime()
-            })
-
             return JSON.stringify({
                 locationId,
                 timeWindowHours,
-                events: sortedEvents,
+                events: timeline.events,
                 performance: {
                     ruCharge: timeline.ruCharge,
                     latencyMs: timeline.latencyMs
