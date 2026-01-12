@@ -26,6 +26,7 @@ import { HealthHandler } from '../../src/handlers/health.js'
 import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import { LoreMemoryHandler } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
+import { WorldContextHandler } from '../../src/handlers/mcp/world-context/world-context.js'
 import { WorldHandler } from '../../src/handlers/mcp/world/world.js'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import { PingHandler } from '../../src/handlers/ping.js'
@@ -152,6 +153,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
     // MCP handler classes (used by MCP tool wrapper functions)
     container.bind(WorldHandler).toSelf().inSingletonScope()
+    container.bind(WorldContextHandler).toSelf().inSingletonScope()
     container.bind(LoreMemoryHandler).toSelf().inSingletonScope()
     container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
     container.bind(PlayerGetHandler).toSelf().inSingletonScope()
