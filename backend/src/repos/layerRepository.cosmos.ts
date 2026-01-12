@@ -38,6 +38,7 @@ interface LayerDocument {
 export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> implements ILayerRepository {
     private readonly _telemetry: TelemetryService
     private readonly _realmRepository?: IRealmRepository
+    private lastAuthoredAtMs: number = 0
 
     constructor(
         @inject('CosmosDbSqlClient') sqlClient: ICosmosDbSqlClient,
@@ -168,7 +169,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             value,
             effectiveFromTick: fromTick,
             effectiveToTick: toTick,
-            authoredAt: new Date().toISOString(),
+            authoredAt: this.nextAuthoredAtIso(),
             metadata
         }
 
@@ -184,6 +185,17 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         })
 
         return resource
+    }
+
+    /**
+     * Ensure authoredAt is strictly increasing even under rapid writes that occur
+     * within the same millisecond (prevents nondeterministic last-authored ordering).
+     */
+    private nextAuthoredAtIso(): string {
+        const now = Date.now()
+        const next = now > this.lastAuthoredAtMs ? now : this.lastAuthoredAtMs + 1
+        this.lastAuthoredAtMs = next
+        return new Date(next).toISOString()
     }
 
     async queryLayerHistory(scopeId: string, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]> {

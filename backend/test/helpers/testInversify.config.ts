@@ -88,6 +88,7 @@ import { LocationClockManager } from '../../src/services/LocationClockManager.js
 import { PlayerClockService } from '../../src/services/PlayerClockService.js'
 import { RealmService } from '../../src/services/RealmService.js'
 import { ReconcileEngine } from '../../src/services/ReconcileEngine.js'
+import type { IWorldClockService } from '../../src/services/types.js'
 import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
@@ -281,6 +282,9 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         // Mock mode - unit tests with controllable test doubles
         container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
         container.bind<IExitRepository>('IExitRepository').to(MockExitRepository).inSingletonScope()
+        // Realm support is required for RealmService (and WorldContextHandler) even in mock mode.
+        // Use the in-memory implementation to keep unit tests hermetic.
+        container.bind<IRealmRepository>('IRealmRepository').to(InMemoryRealmRepository).inSingletonScope()
         container.bind<IPlayerRepository>('IPlayerRepository').to(MockPlayerRepository).inSingletonScope()
         container.bind<IDescriptionRepository>('IDescriptionRepository').to(MockDescriptionRepository).inSingletonScope()
         container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()

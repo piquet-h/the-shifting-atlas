@@ -5,7 +5,7 @@
  */
 
 import type { DescriptionLayer, LayerType } from '@piquet-h/shared/types/layerRepository'
-import { injectable, inject, optional } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
 import type { ILayerRepository } from './layerRepository.js'
 import type { IRealmRepository } from './realmRepository.js'
 
@@ -16,6 +16,7 @@ import type { IRealmRepository } from './realmRepository.js'
 export class MemoryLayerRepository implements ILayerRepository {
     private layers: Map<string, DescriptionLayer> = new Map()
     private realmRepository?: IRealmRepository
+    private lastAuthoredAtMs: number = 0
 
     constructor(@inject('IRealmRepository') @optional() realmRepository?: IRealmRepository) {
         this.realmRepository = realmRepository
@@ -101,12 +102,23 @@ export class MemoryLayerRepository implements ILayerRepository {
             value,
             effectiveFromTick: fromTick,
             effectiveToTick: toTick,
-            authoredAt: new Date().toISOString(),
+            authoredAt: this.nextAuthoredAtIso(),
             metadata
         }
 
         this.layers.set(layer.id, { ...layer })
         return { ...layer }
+    }
+
+    /**
+     * Ensure authoredAt is strictly increasing even when multiple layers are created
+     * within the same millisecond (prevents nondeterministic ordering in tests).
+     */
+    private nextAuthoredAtIso(): string {
+        const now = Date.now()
+        const next = now > this.lastAuthoredAtMs ? now : this.lastAuthoredAtMs + 1
+        this.lastAuthoredAtMs = next
+        return new Date(next).toISOString()
     }
 
     async queryLayerHistory(scopeId: string, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]> {

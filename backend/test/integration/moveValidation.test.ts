@@ -256,7 +256,7 @@ describe('Move Validation', () => {
             assert.equal(result?.id, locations[0].id, 'Retrieved location should match requested ID')
             assert.ok(attempts > 1, 'Should have required retry after initial 429 error')
 
-            console.log(`✓ Successfully handled 429 with ${attempts} attempts`)
+            // Intentionally no console output in tests (keep runner output deterministic)
         })
 
         test('repository gracefully handles persistent throttling', async () => {
@@ -295,7 +295,7 @@ describe('Move Validation', () => {
             assert.ok(error?.message.includes('429'), 'Error should indicate throttling')
             assert.equal(callCount, maxAttempts, `Should have attempted ${maxAttempts} times`)
 
-            console.log(`✓ Gracefully failed after ${maxAttempts} throttled attempts`)
+            // Intentionally no console output in tests (keep runner output deterministic)
         })
     })
 })

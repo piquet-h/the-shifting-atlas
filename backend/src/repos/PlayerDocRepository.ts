@@ -46,6 +46,13 @@ export interface IPlayerDocRepository {
      * @param maxResults - Optional cap (defaults 1000)
      */
     listPlayerIdsByPrefixes(prefixes: string[], maxResults?: number): Promise<string[]>
+
+    /**
+     * List players currently at a given location.
+     * Note: PlayerDoc container is partitioned by player ID (/id), so this may be a cross-partition query.
+     * Keep maxResults small.
+     */
+    listPlayersAtLocation(locationId: string, maxResults?: number): Promise<PlayerDoc[]>
 }
 
 /**
@@ -141,5 +148,12 @@ export class PlayerDocRepository extends CosmosDbSqlRepository<PlayerDoc> implem
         const parameters = prefixes.map((p, i) => ({ name: `@p${i}`, value: p }))
         const { items } = await this.query(query, parameters, maxResults)
         return items.map((doc: { id: unknown }) => doc.id).filter((id: unknown): id is string => typeof id === 'string')
+    }
+
+    async listPlayersAtLocation(locationId: string, maxResults: number = 20): Promise<PlayerDoc[]> {
+        const queryText = 'SELECT * FROM c WHERE c.currentLocationId = @locationId'
+        const parameters = [{ name: '@locationId', value: locationId }]
+        const { items } = await this.query(queryText, parameters, maxResults)
+        return items
     }
 }

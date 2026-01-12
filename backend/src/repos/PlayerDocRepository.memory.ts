@@ -44,6 +44,17 @@ export class MemoryPlayerDocRepository implements IPlayerDocRepository {
         return results
     }
 
+    async listPlayersAtLocation(locationId: string, maxResults: number = 20): Promise<PlayerDoc[]> {
+        const results: PlayerDoc[] = []
+        for (const player of this.players.values()) {
+            if (player.currentLocationId === locationId) {
+                results.push({ ...player })
+                if (results.length >= maxResults) break
+            }
+        }
+        return results
+    }
+
     /**
      * Clear all players (for test cleanup)
      */
