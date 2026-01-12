@@ -12,7 +12,7 @@ M4a "AI Infrastructure (Sense + Decide)" is **well-documented** with clear depen
 
 1. **Documentation Alignment**: Main roadmap vs temporary checklist show different levels of detail but are generally consistent
 2. **Epic Organization**: Some epics listed in main roadmap not present in temporary checklist (intent parser, ambient context)
-3. **Issue Completion**: Prompt Template Registry track shows ~70% completion (5/7 items); MCP infrastructure track shows ~0% (0/10+ items)
+3. **Issue Completion**: Prompt Template Registry track is effectively complete (core items closed, including #629); MCP infrastructure track shows ~0% (0/10+ items)
 4. **De-scoping**: Several items explicitly moved out of M4a (intent parser, D&D framework, epics #52, #67, #68); need to verify these are properly re-assigned
 5. **Missing Milestone Verification**: Need to confirm all 25+ issue numbers in main roadmap are actually created and assigned to M4a
 
@@ -42,7 +42,7 @@ M4a "AI Infrastructure (Sense + Decide)" is **well-documented** with clear depen
 
 ### 2. Prompt Template Registry Track (Section 1)
 
-**Status**: 🟢 **MOST COMPLETE** (5 of 7 items done)
+**Status**: 🟢 **MOST COMPLETE** (core items done; finalization tasks remain)
 
 | Item | Issue | Title                                     | Status         | Notes                                  |
 | ---- | ----- | ----------------------------------------- | -------------- | -------------------------------------- |
@@ -52,11 +52,11 @@ M4a "AI Infrastructure (Sense + Decide)" is **well-documented** with clear depen
 | 1.2  | #625  | Prompt Template Storage (File-based)      | ✅ Done        | Source of truth in shared/src/prompts/ |
 | 1.3  | #626  | Prompt Template Retrieval API             | ✅ Done        | Backend HTTP function                  |
 | 1.4a | #628  | A/B Testing Scaffold (Variant Selection)  | ✅ Done        | Experiments framework                  |
-| 1.4b | #629  | Prompt Template Cost Telemetry            | ❌ Not started | Observability gap                      |
+| 1.4b | #629  | Prompt Template Cost Telemetry            | ✅ Done        | Completed via PR #724                  |
 | 1.5a | #630  | Prompt Template Migration Script          | ❌ Not started | Data migration tooling                 |
 | 1.5b | #631  | Prompt Template Documentation             | ❌ Not started | User/developer docs                    |
 
-**Recommendation**: Complete 1.4b (#629) and 1.5a/b (#630, #631) to close the registry track. These are lower risk than infrastructure work.
+**Recommendation**: Complete 1.5a/b (#630, #631) to close the registry track. These are lower risk than infrastructure work.
 
 ---
 
@@ -211,8 +211,7 @@ done
     - [ ] Update main roadmap if assignments changed
     - [ ] Add reconciliation notes to temporary roadmap
 
-4. **Complete Prompt Registry track** (#629, #630, #631)
-    - [ ] #629 Cost Telemetry: Add observability for AI costs
+4. **Complete Prompt Registry track** (#630, #631)
     - [ ] #630 Migration Script: Data migration tooling
     - [ ] #631 Documentation: User/developer guides
 
@@ -246,15 +245,15 @@ done
 
 ## Summary Table: Current Status vs Target
 
-| Track                 | Main Roadmap         | Temp Checklist         | Current Done | Target    | Risk      |
-| --------------------- | -------------------- | ---------------------- | ------------ | --------- | --------- |
-| Prompt Registry       | ✅ 5 issues listed   | ✅ Section 1 detailed  | 5/7 items    | 7/7 items | 🟢 LOW    |
-| MCP Infrastructure    | ✅ 10 issues listed  | ✅ Section 2 detailed  | 0/10+ items  | All items | 🟡 MEDIUM |
-| Validation & Safety   | ✅ Mentioned         | ✅ Section 3 listed    | 0/2 items    | 2/2 items | 🟢 LOW    |
-| Supporting Registries | ✅ Mentioned         | ✅ Section 4 listed    | 0/2 items    | 2/2 items | 🟡 MEDIUM |
-| Intent Parser (E3)    | ✅ Listed (3 issues) | ❌ MISSING             | 0/3 items    | ?         | 🔴 HIGH   |
-| Learn More (E4)       | ✅ Listed (4 issues) | ❌ Unclear             | ?            | ?         | 🟡 MEDIUM |
-| Ambient Context (E5)  | ✅ Listed (2 issues) | ❌ De-scoped note only | 0/2 items    | ?         | 🟡 MEDIUM |
+| Track                 | Main Roadmap         | Temp Checklist         | Current Done  | Target             | Risk      |
+| --------------------- | -------------------- | ---------------------- | ------------- | ------------------ | --------- |
+| Prompt Registry       | ✅ issues listed     | ✅ Section 1 detailed  | Core complete | Finalize #630/#631 | 🟢 LOW    |
+| MCP Infrastructure    | ✅ 10 issues listed  | ✅ Section 2 detailed  | 0/10+ items   | All items          | 🟡 MEDIUM |
+| Validation & Safety   | ✅ Mentioned         | ✅ Section 3 listed    | 0/2 items     | 2/2 items          | 🟢 LOW    |
+| Supporting Registries | ✅ Mentioned         | ✅ Section 4 listed    | 0/2 items     | 2/2 items          | 🟡 MEDIUM |
+| Intent Parser (E3)    | ✅ Listed (3 issues) | ❌ MISSING             | 0/3 items     | ?                  | 🔴 HIGH   |
+| Learn More (E4)       | ✅ Listed (4 issues) | ❌ Unclear             | ?             | ?                  | 🟡 MEDIUM |
+| Ambient Context (E5)  | ✅ Listed (2 issues) | ❌ De-scoped note only | 0/2 items     | ?                  | 🟡 MEDIUM |
 
 ---
 

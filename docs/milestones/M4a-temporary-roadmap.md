@@ -7,7 +7,7 @@
 >
 > Update both when M4a scope changes; update only this file for progress.
 >
-> Last updated: 2026-01-09
+> Last updated: 2026-01-12
 
 ## How to use
 
@@ -48,8 +48,8 @@ These guardrails prevent drift between infra ↔ code and prevent accidental cro
 
 ### 1.5 Migration and documentation (finalization tasks)
 
-- [ ] #630 — Prompt Template Migration Script (Existing → Registry) — _finalization task, not blocking M4a exit_
-- [ ] #631 — Prompt Template Documentation & Usage Examples — _finalization task, not blocking M4a exit_
+- [x] #630 — Prompt Template Migration Script (Existing → Registry) ✅ CLOSED
+- [x] #631 — Prompt Template Documentation & Usage Examples ✅ CLOSED
 
 ---
 
@@ -63,10 +63,12 @@ The core dependency chain is:
 
 ### 2.1 Core server + world context operations (read-only)
 
-- [ ] #38 — MCP Read-Only Servers: world-query & lore-memory _(scaffold)_
+- [x] #38 — MCP Read-Only Servers: world-query & lore-memory _(scaffold)_ ✅ CLOSED
 - [ ] #514 — [MCP] World Context Server Foundation
 - [ ] #515 — [MCP] Location, Player & Atmosphere Context Operations _(depends on #514)_
 - [ ] #516 — [MCP] Spatial Graph & Event Timeline Operations _(depends on #514, #515)_
+
+> Note: #38 intentionally closed as “scaffold complete”; remaining hardening is tracked separately (e.g., #731/#732/#730/#727).
 
 ### 2.2 MCP tool surface (consumer-facing operations)
 
@@ -144,7 +146,7 @@ These were previously assigned to M4a in GitHub but are not critical-path depend
 - [x] Runtime loader retrieves prompts by id + version + hash ✅
 - [x] Container PK checks + env-var validation prevent drift ✅
 - [x] Telemetry attributes cost to prompt template version ✅
-- [ ] Migration script (#630) + docs (#631) — finalization only, not blocking exit
+- [x] Migration script (#630) + docs (#631) ✅
 
 ### MCP Read-Only Infrastructure (Foundation for downstream)
 
