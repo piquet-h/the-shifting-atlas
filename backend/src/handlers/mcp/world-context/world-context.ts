@@ -381,10 +381,29 @@ export class WorldContextHandler {
     }
 
     /**
-     * Helper: Get N-hop spatial neighbors using Gremlin graph traversal.
+     * Helper: Get N-hop spatial neighbors using Gremlin graph traversal (Cosmos) or BFS (memory).
      * Uses repeat().emit() pattern to collect nodes at each depth level.
      */
     private async getSpatialNeighbors(
+        locationId: string,
+        depth: number
+    ): Promise<Array<{ id: string; name: string; depth: number; direction?: string }>> {
+        const locationRepo = this.locationRepo as any
+
+        // Check if we have Gremlin (Cosmos) or memory repository
+        if (typeof locationRepo.query === 'function') {
+            // Cosmos/Gremlin implementation
+            return this.getSpatialNeighborsGremlin(locationId, depth)
+        } else {
+            // Memory implementation using BFS
+            return this.getSpatialNeighborsMemory(locationId, depth)
+        }
+    }
+
+    /**
+     * Gremlin-based spatial neighbor traversal for Cosmos DB.
+     */
+    private async getSpatialNeighborsGremlin(
         locationId: string,
         depth: number
     ): Promise<Array<{ id: string; name: string; depth: number; direction?: string }>> {
@@ -416,7 +435,6 @@ export class WorldContextHandler {
         const startTime = Date.now()
         try {
             // Execute query through location repository's Gremlin client
-            // Note: We're using the CosmosGremlinRepository's query method
             const locationRepo = this.locationRepo as any
             const results = await locationRepo.query(query, bindings)
 
@@ -445,9 +463,62 @@ export class WorldContextHandler {
                 direction: Array.isArray(r.path) && r.path.length > 0 ? String(r.path[0]) : undefined
             }))
         } catch (error) {
-            console.error(`[WorldContext.getSpatialNeighbors] Error querying graph:`, error)
+            console.error(`[WorldContext.getSpatialNeighborsGremlin] Error querying graph:`, error)
             throw error
         }
+    }
+
+    /**
+     * Memory-based spatial neighbor traversal using BFS.
+     */
+    private async getSpatialNeighborsMemory(
+        locationId: string,
+        depth: number
+    ): Promise<Array<{ id: string; name: string; depth: number; direction?: string }>> {
+        const neighbors: Array<{ id: string; name: string; depth: number; direction?: string }> = []
+        const visited = new Set<string>()
+        const queue: Array<{ id: string; depth: number; direction?: string }> = [{ id: locationId, depth: 0 }]
+
+        visited.add(locationId)
+
+        while (queue.length > 0) {
+            const current = queue.shift()!
+
+            // Don't add the starting location to results
+            if (current.depth > 0) {
+                const location = await this.locationRepo.get(current.id)
+                if (location) {
+                    neighbors.push({
+                        id: current.id,
+                        name: location.name,
+                        depth: current.depth,
+                        direction: current.direction
+                    })
+                }
+            }
+
+            // Stop if we've reached max depth
+            if (current.depth >= depth) {
+                continue
+            }
+
+            // Get current location and traverse its exits
+            const location = await this.locationRepo.get(current.id)
+            if (location && location.exits) {
+                for (const exit of location.exits) {
+                    if (exit.to && !visited.has(exit.to)) {
+                        visited.add(exit.to)
+                        queue.push({
+                            id: exit.to,
+                            depth: current.depth + 1,
+                            direction: exit.direction
+                        })
+                    }
+                }
+            }
+        }
+
+        return neighbors
     }
 
     /**
