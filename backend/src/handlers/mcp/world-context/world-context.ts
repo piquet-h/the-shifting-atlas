@@ -386,10 +386,9 @@ export class WorldContextHandler {
         locationId: string,
         depth: number
     ): Promise<Array<{ id: string; name: string; depth: number; direction?: string }>> {
-        const locationRepo = this.locationRepo as any
-
         // Check if we have Gremlin (Cosmos) or memory repository
-        if (typeof locationRepo.query === 'function') {
+        // The query method exists only on the Cosmos Gremlin repository implementation
+        if ('query' in this.locationRepo && typeof (this.locationRepo as unknown as { query: unknown }).query === 'function') {
             // Cosmos/Gremlin implementation
             return this.getSpatialNeighborsGremlin(locationId, depth)
         } else {
@@ -433,14 +432,22 @@ export class WorldContextHandler {
         const startTime = Date.now()
         try {
             // Execute query through location repository's Gremlin client
-            const locationRepo = this.locationRepo as any
-            const results = await locationRepo.query(query, bindings)
+            // Type assertion: we know this has a query method from the check in getSpatialNeighbors
+            const results = await (
+                this.locationRepo as unknown as {
+                    query: (q: string, b: Record<string, unknown>) => Promise<Array<Record<string, unknown>>>
+                }
+            ).query(query, bindings)
 
             const latencyMs = Date.now() - startTime
 
             // Log telemetry - skip if not available
             if (this.worldClock && 'telemetryService' in this.worldClock) {
-                const telemetryService = (this.worldClock as any).telemetryService
+                const telemetryService = (
+                    this.worldClock as unknown as {
+                        telemetryService?: { trackGameEventStrict?: (event: string, props: Record<string, unknown>) => void }
+                    }
+                ).telemetryService
                 telemetryService?.trackGameEventStrict?.('World.SpatialContext.Query', {
                     locationId,
                     depth,
