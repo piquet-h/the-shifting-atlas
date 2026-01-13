@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
-import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { buildLocationScopeKey, buildPlayerScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { getRecentEvents } from '../../src/handlers/mcp/world-context/world-context.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
@@ -14,10 +14,9 @@ describe('WorldContext getRecentEvents (unit)', () => {
         await fixture.setup()
     })
 
-    test('returns recent events with default time window (24 hours)', async () => {
+    test('returns event summaries for location scope with default limit (20)', async () => {
         const locationId = randomUUID()
         const now = new Date()
-        const yesterday = new Date(now.getTime() - 23 * 60 * 60 * 1000)
 
         const mockEvents: WorldEventRecord[] = [
             {
@@ -30,17 +29,53 @@ describe('WorldContext getRecentEvents (unit)', () => {
                 actorKind: 'player',
                 correlationId: randomUUID(),
                 idempotencyKey: `move-${Date.now()}`,
-                payload: {},
+                payload: { some: 'data' },
                 version: 1
-            },
+            }
+        ]
+
+        const eventRepo = await fixture.getWorldEventRepository()
+        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+            assert.equal(scopeKey, buildLocationScopeKey(locationId))
+            assert.equal(options.limit, 20, 'Should use default limit of 20')
+            assert.equal(options.order, 'desc')
+            return { events: mockEvents, ruCharge: 2.5, latencyMs: 45, hasMore: false }
+        }
+
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed), 'Should return array')
+        assert.equal(parsed.length, 1)
+        
+        // Verify event summary shape (only specified fields)
+        const summary = parsed[0]
+        assert.equal(summary.id, mockEvents[0].id)
+        assert.equal(summary.eventType, mockEvents[0].eventType)
+        assert.equal(summary.occurredUtc, mockEvents[0].occurredUtc)
+        assert.equal(summary.actorKind, mockEvents[0].actorKind)
+        assert.equal(summary.status, mockEvents[0].status)
+        
+        // Verify no extra fields
+        assert.strictEqual(summary.payload, undefined)
+        assert.strictEqual(summary.correlationId, undefined)
+        assert.strictEqual(summary.ingestedUtc, undefined)
+    })
+
+    test('returns event summaries for player scope', async () => {
+        const playerId = randomUUID()
+
+        const mockEvents: WorldEventRecord[] = [
             {
                 id: randomUUID(),
-                scopeKey: buildLocationScopeKey(locationId),
+                scopeKey: buildPlayerScopeKey(playerId),
                 eventType: 'Player.Look',
                 status: 'processed',
-                occurredUtc: yesterday.toISOString(),
-                ingestedUtc: yesterday.toISOString(),
+                occurredUtc: new Date().toISOString(),
+                ingestedUtc: new Date().toISOString(),
                 actorKind: 'player',
+                actorId: playerId,
                 correlationId: randomUUID(),
                 idempotencyKey: `look-${Date.now()}`,
                 payload: {},
@@ -48,91 +83,52 @@ describe('WorldContext getRecentEvents (unit)', () => {
             }
         ]
 
-        // Mock location repository to return a location
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
-            id: locationId,
-            name: 'Test Location',
-            description: 'A test location',
-            exits: []
-        })
-
         const eventRepo = await fixture.getWorldEventRepository()
         ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
-            assert.equal(scopeKey, buildLocationScopeKey(locationId))
-            assert.ok(options.afterTimestamp)
-            return { events: mockEvents, ruCharge: 2.5, latencyMs: 45, hasMore: false }
-        }
-
-        const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
-        const parsed = JSON.parse(result)
-
-        assert.equal(parsed.locationId, locationId)
-        assert.equal(parsed.timeWindowHours, 24)
-        assert.ok(Array.isArray(parsed.events))
-        assert.equal(parsed.events.length, 2)
-        assert.ok(parsed.events[0].occurredUtc >= parsed.events[1].occurredUtc) // newest first
-    })
-
-    test('returns recent events with custom time window', async () => {
-        const locationId = randomUUID()
-        const timeWindowHours = 6
-
-        const mockEvents: WorldEventRecord[] = [
-            {
-                id: randomUUID(),
-                scopeKey: buildLocationScopeKey(locationId),
-                eventType: 'World.Event',
-                status: 'processed',
-                occurredUtc: new Date().toISOString(),
-                ingestedUtc: new Date().toISOString(),
-                actorKind: 'system',
-                correlationId: randomUUID(),
-                idempotencyKey: `evt-${Date.now()}`,
-                payload: {},
-                version: 1
-            }
-        ]
-
-        // Mock location repository
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
-            id: locationId,
-            name: 'Test Location',
-            description: 'A test location',
-            exits: []
-        })
-
-        const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
-            // Verify time window calculation
-            const afterTime = new Date(options.afterTimestamp)
-            const expectedAfter = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000)
-            const diff = Math.abs(afterTime.getTime() - expectedAfter.getTime())
-            assert.ok(diff < 1000, `Time window should be ${timeWindowHours} hours`)
+            assert.equal(scopeKey, buildPlayerScopeKey(playerId))
+            assert.equal(options.limit, 20)
             return { events: mockEvents, ruCharge: 1.2, latencyMs: 30, hasMore: false }
         }
 
         const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId, timeWindowHours } }, context)
+        const result = await getRecentEvents({ arguments: { scope: 'player', scopeId: playerId } }, context)
         const parsed = JSON.parse(result)
 
-        assert.equal(parsed.timeWindowHours, 6)
-        assert.equal(parsed.events.length, 1)
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 1)
+        assert.equal(parsed[0].id, mockEvents[0].id)
     })
 
-    test('returns empty array when no events in time window', async () => {
+    test('respects custom limit parameter', async () => {
         const locationId = randomUUID()
+        const customLimit = 10
 
-        // Mock location repository
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
-            id: locationId,
-            name: 'Test Location',
-            description: 'A test location',
-            exits: []
-        })
+        const eventRepo = await fixture.getWorldEventRepository()
+        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+            assert.equal(options.limit, customLimit, 'Should use custom limit')
+            return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
+        }
+
+        const context = await fixture.createInvocationContext()
+        await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId, limit: customLimit } }, context)
+    })
+
+    test('clamps limit to maximum of 100', async () => {
+        const locationId = randomUUID()
+        const requestedLimit = 200
+
+        const eventRepo = await fixture.getWorldEventRepository()
+        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+            assert.equal(options.limit, 100, 'Should clamp to max 100')
+            return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
+        }
+
+        const context = await fixture.createInvocationContext()
+        await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId, limit: requestedLimit } }, context)
+    })
+
+    test('returns empty array when no events exist', async () => {
+        const locationId = randomUUID()
 
         const eventRepo = await fixture.getWorldEventRepository()
         ;(eventRepo as any).queryByScope = async () => {
@@ -140,124 +136,87 @@ describe('WorldContext getRecentEvents (unit)', () => {
         }
 
         const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
+        const result = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
         const parsed = JSON.parse(result)
 
-        assert.ok(Array.isArray(parsed.events))
-        assert.equal(parsed.events.length, 0)
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
     })
 
-    test('sorts events chronologically (newest first)', async () => {
+    test('returns empty array when scope parameter is missing', async () => {
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scopeId: randomUUID() } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
+    })
+
+    test('returns empty array when scopeId parameter is missing', async () => {
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scope: 'location' } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
+    })
+
+    test('returns empty array when scope type is invalid', async () => {
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scope: 'invalid', scopeId: randomUUID() } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
+    })
+
+    test('sorts events chronologically (newest first) - repository responsibility', async () => {
         const locationId = randomUUID()
         const now = new Date()
 
         const mockEvents: WorldEventRecord[] = [
             {
-                id: randomUUID(),
-                scopeKey: buildLocationScopeKey(locationId),
-                eventType: 'Event1',
-                status: 'processed',
-                occurredUtc: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-                ingestedUtc: now.toISOString(),
-                actorKind: 'system',
-                correlationId: randomUUID(),
-                idempotencyKey: `evt1-${Date.now()}`,
-                payload: {},
-                version: 1
-            },
-            {
-                id: randomUUID(),
+                id: 'event2',
                 scopeKey: buildLocationScopeKey(locationId),
                 eventType: 'Event2',
                 status: 'processed',
-                occurredUtc: now.toISOString(), // now
+                occurredUtc: now.toISOString(), // newest
                 ingestedUtc: now.toISOString(),
                 actorKind: 'system',
                 correlationId: randomUUID(),
-                idempotencyKey: `evt2-${Date.now()}`,
+                idempotencyKey: 'evt2',
                 payload: {},
                 version: 1
             },
             {
-                id: randomUUID(),
+                id: 'event1',
                 scopeKey: buildLocationScopeKey(locationId),
-                eventType: 'Event3',
+                eventType: 'Event1',
                 status: 'processed',
-                occurredUtc: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+                occurredUtc: new Date(now.getTime() - 60000).toISOString(), // older
                 ingestedUtc: now.toISOString(),
                 actorKind: 'system',
                 correlationId: randomUUID(),
-                idempotencyKey: `evt3-${Date.now()}`,
+                idempotencyKey: 'evt1',
                 payload: {},
                 version: 1
             }
         ]
 
-        // Mock location repository
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
-            id: locationId,
-            name: 'Test Location',
-            description: 'A test location',
-            exits: []
-        })
-
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
-            // Repository should respect order:'desc' parameter and return sorted events
-            const sortedEvents = [...mockEvents].sort((a, b) => {
-                return new Date(b.occurredUtc).getTime() - new Date(a.occurredUtc).getTime()
-            })
-            return { events: sortedEvents, ruCharge: 3.0, latencyMs: 50, hasMore: false }
+        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+            assert.equal(options.order, 'desc', 'Should request descending order')
+            // Repository returns pre-sorted events (newest first)
+            return { events: mockEvents, ruCharge: 3.0, latencyMs: 50, hasMore: false }
         }
 
         const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
+        const result = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
         const parsed = JSON.parse(result)
 
-        assert.equal(parsed.events.length, 3)
-        // Verify newest first
-        assert.equal(parsed.events[0].eventType, 'Event2')
-        assert.equal(parsed.events[1].eventType, 'Event3')
-        assert.equal(parsed.events[2].eventType, 'Event1')
-    })
-
-    test('returns null when location does not exist', async () => {
-        const locationId = randomUUID()
-
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => undefined
-
-        const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
-        const parsed = JSON.parse(result)
-
-        assert.equal(parsed, null)
-    })
-
-    test('includes performance metadata', async () => {
-        const locationId = randomUUID()
-
-        // Mock location repository
-        const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
-            id: locationId,
-            name: 'Test Location',
-            description: 'A test location',
-            exits: []
-        })
-
-        const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
-            return { events: [], ruCharge: 1.5, latencyMs: 35, hasMore: false }
-        }
-
-        const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
-        const parsed = JSON.parse(result)
-
-        assert.ok(parsed.performance)
-        assert.equal(typeof parsed.performance.ruCharge, 'number')
-        assert.equal(typeof parsed.performance.latencyMs, 'number')
+        assert.equal(parsed.length, 2)
+        // Verify order is preserved from repository
+        assert.equal(parsed[0].id, 'event2')
+        assert.equal(parsed[1].id, 'event1')
     })
 })

@@ -527,47 +527,57 @@ export class WorldContextHandler {
     }
 
     /**
-     * Get recent events at a location within a time window.
-     * Returns timeline sorted chronologically (newest first).
+     * Get recent events for a scope (location or player).
+     * Returns event summaries (id, eventType, occurredUtc, actorKind, status) sorted chronologically (newest first).
+     * 
+     * Per issue spec:
+     * - Inputs: scope (location|player), scopeId, limit? (default 20, max 100)
+     * - Output: JSON array of event summaries
      */
     async getRecentEvents(toolArguments: unknown, context: InvocationContext): Promise<string> {
         void context // part of the MCP handler signature; intentionally unused
 
-        const toolArgs = toolArguments as ToolArgs<{ locationId?: string; timeWindowHours?: number | string }>
-        const locationId = toolArgs?.arguments?.locationId || STARTER_LOCATION_ID
+        const toolArgs = toolArguments as ToolArgs<{ scope?: string; scopeId?: string; limit?: number | string }>
+        const scope = toolArgs?.arguments?.scope
+        const scopeId = toolArgs?.arguments?.scopeId
+        
+        // Validate required parameters
+        if (!scope || !scopeId) {
+            return JSON.stringify([])
+        }
 
-        // Parse time window (default: 24 hours)
-        const timeWindowHours = parseOptionalNumber(toolArgs?.arguments?.timeWindowHours) ?? 24
+        // Validate scope type
+        if (scope !== 'location' && scope !== 'player') {
+            return JSON.stringify([])
+        }
+
+        // Parse and clamp limit (default: 20, max: 100)
+        const requestedLimit = parseOptionalNumber(toolArgs?.arguments?.limit) ?? 20
+        const limit = Math.max(1, Math.min(requestedLimit, 100))
 
         try {
-            // Verify location exists
-            const location = await this.locationRepo.get(locationId)
-            if (!location) {
-                return JSON.stringify(null)
-            }
-
-            // Calculate time window
-            const now = new Date()
-            const afterTimestamp = new Date(now.getTime() - timeWindowHours * 60 * 60 * 1000).toISOString()
+            // Build scope key based on scope type
+            const scopeKey = scope === 'location' ? buildLocationScopeKey(scopeId) : buildPlayerScopeKey(scopeId)
 
             // Query events from worldEventRepository (already sorted desc by repository)
-            const timeline = await this.worldEventRepo.queryByScope(buildLocationScopeKey(locationId), {
-                afterTimestamp,
+            const timeline = await this.worldEventRepo.queryByScope(scopeKey, {
+                limit,
                 order: 'desc' // newest first
             })
 
-            return JSON.stringify({
-                locationId,
-                timeWindowHours,
-                events: timeline.events,
-                performance: {
-                    ruCharge: timeline.ruCharge,
-                    latencyMs: timeline.latencyMs
-                }
-            })
+            // Map to event summaries (only required fields per spec)
+            const eventSummaries = timeline.events.map((e) => ({
+                id: e.id,
+                eventType: e.eventType,
+                occurredUtc: e.occurredUtc,
+                actorKind: e.actorKind,
+                status: e.status
+            }))
+
+            return JSON.stringify(eventSummaries)
         } catch (error) {
             console.error(`[WorldContext.getRecentEvents] Error:`, error)
-            return JSON.stringify(null)
+            return JSON.stringify([])
         }
     }
 }
