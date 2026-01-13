@@ -151,6 +151,30 @@ export class UnitTestFixture extends BaseTestFixture {
     }
 
     /**
+     * Get LocationRepository instance from DI container
+     */
+    async getLocationRepository(): Promise<import('../../src/repos/locationRepository.js').ILocationRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/locationRepository.js').ILocationRepository>('ILocationRepository')
+    }
+
+    /**
+     * Get WorldEventRepository instance from DI container
+     */
+    async getWorldEventRepository(): Promise<import('@piquet-h/shared/types/worldEventRepository').IWorldEventRepository> {
+        const container = await this.getContainer()
+        return container.get<import('@piquet-h/shared/types/worldEventRepository').IWorldEventRepository>('IWorldEventRepository')
+    }
+
+    /**
+     * Get InventoryRepository instance from DI container
+     */
+    async getInventoryRepository(): Promise<import('../../src/repos/inventoryRepository.js').IInventoryRepository> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/repos/inventoryRepository.js').IInventoryRepository>('IInventoryRepository')
+    }
+
+    /**
      * Get or create a mock invocation context
      */
     getInvocationContext(overrides?: Partial<InvocationContext>): InvocationContextMockResult {
