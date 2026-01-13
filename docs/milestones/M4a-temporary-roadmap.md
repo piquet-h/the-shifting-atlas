@@ -140,13 +140,14 @@ These were previously assigned to M4a in GitHub but are not critical-path depend
 
 ## Milestone exit checks
 
-### Prompt Registry (Core M4a Deliverable) ✅ SUBSTANTIALLY COMPLETE
+### Prompt Registry (Core M4a Deliverable) ✅ COMPLETE
 
 - [x] Prompt templates authored in-repo (`shared/src/prompts/`), validated in CI, hashed deterministically ✅
 - [x] Runtime loader retrieves prompts by id + version + hash ✅
 - [x] Container PK checks + env-var validation prevent drift ✅
 - [x] Telemetry attributes cost to prompt template version ✅
 - [x] Migration script (#630) + docs (#631) ✅
+- [x] Epic #388 validated and ready for closure (see `docs/milestones/epic-388-closure-summary.md`) ✅
 
 ### MCP Read-Only Infrastructure (Foundation for downstream)
 

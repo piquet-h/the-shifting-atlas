@@ -337,14 +337,15 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 ### Critical Path Issues
 
-**Cluster E1: Prompt Registry** ✅ Core Complete
+**Cluster E1: Prompt Registry** ✅ **COMPLETE** (Epic #388 ready for closure)
 
 - #625 ✅ Prompt Template Storage (File-Based) → `shared/src/prompts/` with CI validation
 - #626 ✅ Prompt Retrieval API → Backend function for template access
 - #628 ✅ Prompt A/B Testing Scaffold → Deterministic variant selection
 - #629 ✅ Prompt Cost Telemetry Integration → AI operation cost attribution
-- #630 ⚠️ Prompt Migration Script → Import existing inline prompts to registry
-- #631 ⚠️ Prompt Documentation & Usage Examples → Authoring guide + integration examples
+- #630 ✅ Prompt Migration Script → Import existing inline prompts to registry
+- #631 ✅ Prompt Documentation & Usage Examples → Authoring guide + integration examples
+- **See**: `docs/milestones/epic-388-closure-summary.md` for complete validation report
 
 **Cluster E2: MCP Servers**
 
