@@ -1,6 +1,6 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
-import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { buildLocationScopeKey, buildPlayerScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { randomUUID } from 'crypto'
 import assert from 'node:assert'
 import { afterEach, beforeEach, test } from 'node:test'
@@ -181,7 +181,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         // Create player-scoped event
         const playerEvent: WorldEventRecord = {
             id: randomUUID(),
-            scopeKey: `player:${playerId}`,
+            scopeKey: buildPlayerScopeKey(playerId),
             eventType: 'Player.Look',
             status: 'processed',
             occurredUtc: new Date().toISOString(),
