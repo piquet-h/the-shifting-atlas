@@ -350,7 +350,7 @@ export class WorldContextHandler {
         // Clamp depth to maximum of 5 hops, minimum of 1
         const MAX_DEPTH = 5
         const actualDepth = Math.max(1, Math.min(requestedDepth, MAX_DEPTH))
-        
+
         if (requestedDepth > MAX_DEPTH) {
             warnings.push(`depth clamped to maximum of ${MAX_DEPTH}`)
         }
