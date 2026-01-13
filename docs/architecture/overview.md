@@ -52,7 +52,7 @@ Stage Roadmap (Milestones):
 2. M1 Traversal – Persistent locations, exits, movement loop.
 3. M2 Data Foundations – SQL persistence, telemetry consolidation (ADR-004).
 4. M3 Core Loop – Event-driven processing, web UI, temporal mechanics.
-5. M4 AI Read – Read‑only MCP servers (`world-query`). Prompt templates and telemetry are implemented in `shared/` and backend helper endpoints (see `shared/src/prompts/` and `shared/src/telemetry.ts`).
+5. M4 AI Read – Read‑only MCP servers (`world-query`). Prompt templates and telemetry are implemented in `shared/` and backend helper endpoints (see `shared/src/prompts/` and `shared/src/telemetry.ts`). See [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) for complete AI integration roadmap and Epic [#387](https://github.com/piquet-h/the-shifting-atlas/issues/387) for MCP server implementation tracking.
 6. M5 Quality & Depth – Description layering, dashboards, alerts.
 7. M6 Systems – Dungeons, humor layer, entity promotion; AI enrich/proposals.
 8. M7 Post-MVP Extensibility – Multiplayer, quests, economy, AI write path.

@@ -2,9 +2,12 @@
 status: Accepted
 date: 2025-11-23
 amends: [ADR-002]
+supersedes: [ADR-002 (player vertex sections)]
 ---
 
 # ADR-004: Player Store Cutover Completion (SQL-Only Authoritative Model)
+
+> **Supersedes**: [ADR-002](./ADR-002-graph-partition-strategy.md) (portions related to player vertices, dual write strategies, and player-centric state in Gremlin). ADR-002 partition strategy for location vertices remains authoritative.
 
 ## Context
 
