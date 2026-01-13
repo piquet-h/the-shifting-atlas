@@ -1,6 +1,6 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> Status (2025-09-25): CONCEPTUAL / PARTIALLY PLANNED. No runtime MCP servers or AI orchestration code exist yet. This document defines the forward architecture so early implementation can land incrementally without refactors.
+> Status (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations for `WorldContext-*` and `Lore-*`). The agent orchestration layer and any write/proposal MCP surfaces remain planned.
 
 ## Purpose
 
@@ -338,5 +338,18 @@ The table below lists the primary MCP servers / backend helpers with their purpo
 | telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                                         | Curated aggregates only; no raw AppInsights surface exposed to agents                                  |
 
 _Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate limits, and correlate requests with operationId/correlationId for traceability.
+
+### External narrative access boundary (gateway-first)
+
+This project supports two consumption modes:
+
+- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend owns narration and (when enabled) calls MCP tools internally as part of the narration pipeline.
+- **External narrators (VS Code / Teams / agent runners):** external tools can call a curated narrative/tooling surface to “tell the story” or fetch context.
+
+For external narrators, authentication and throttling MUST be enforced at the platform boundary:
+
+- Prefer **Microsoft Entra ID (OAuth2)** for service-to-service callers.
+- Use **API Management** in front of Functions when you need per-client quotas/subscriptions and richer gateway policies.
+- Avoid bespoke per-tool API-key validation inside MCP handlers as the primary mechanism. If shared secrets are used at all, treat them as a compatibility mode and keep them behind a gateway.
 
 _Small guidance_: Keep prompt templates and prompt hashes in `shared/src/prompts/` and add new AI-specific telemetry event names in `shared/src/telemetryEvents.ts` before emission.

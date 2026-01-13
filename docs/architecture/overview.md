@@ -33,7 +33,7 @@ Implemented (thin slice – see repo for exact handlers):
 - Canonical telemetry framework (`trackGameEventStrict`, event name governance)
 - Direction normalization (shortcuts, typos, relative directions)
 - **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata (ADR-005)
-- Stage M3 MCP stubs (planned): `world-query` (read-only), `prompt-template` (hashing registry), `telemetry` (read-only AI usage & decision logging)
+- Read-only MCP tools for agent context (implemented): `WorldContext-*` and `Lore-*` via Azure Functions `app.mcpTool(...)`
 
 Still provisioned but not yet fully integrated: Service Bus (queue processor operates without Service Bus binding), Key Vault (secret management planned for M2).
 
@@ -42,7 +42,7 @@ Not yet implemented (planned):
 - Service Bus queue integration (processor currently triggered via HTTP)
 - Managed identity graph access (replace key‑based secret)
 - AI prompt integration & dynamic content (advisory then genesis)
-- Telemetry MCP server + cost dashboards
+- External narrative access gateway (Entra ID/APIM) for VS Code/Teams/agent runners
 
 ## Evolution Path
 
@@ -139,7 +139,7 @@ Early AI integration will adopt a **Model Context Protocol (MCP)** tooling layer
 Stage M3 (planned) introduces **read‑only MCP servers** (all advisory, no mutations):
 
 - `world-query-mcp` – Structured room / player / event fetch (no direct DB exposure to prompts)
-- `prompt-template-mcp` – Versioned prompt template registry (hash + semantic name)
+- Prompt templates live in `shared/src/prompts/` with backend helper endpoints when external tooling needs HTTP access (not an MCP server)
 - Telemetry & observability are implemented via the canonical telemetry helpers (`shared/src/telemetry.ts`) and backend helper endpoints for curated queries — not as an MCP server.
 
 Later phases add controlled proposal endpoints (`world-mutation-mcp`) plus retrieval (`lore-memory-mcp`) and simulation planners. All AI outputs remain **advisory** until validated by deterministic rules (schema, safety, invariants) and only then materialize as domain events.

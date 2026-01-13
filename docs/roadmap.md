@@ -337,25 +337,28 @@ M2:#404 (Player State) ──> #418 (Auth) ──> #413 (Game View) ──> #414
 
 ### Critical Path Issues
 
-**Cluster E1: Prompt Registry** ✅ Core Complete
+**Cluster E1: Prompt Registry** ✅ Complete (6/6)
 
 - #625 ✅ Prompt Template Storage (File-Based) → `shared/src/prompts/` with CI validation
 - #626 ✅ Prompt Retrieval API → Backend function for template access
 - #628 ✅ Prompt A/B Testing Scaffold → Deterministic variant selection
 - #629 ✅ Prompt Cost Telemetry Integration → AI operation cost attribution
-- #630 ⚠️ Prompt Migration Script → Import existing inline prompts to registry
-- #631 ⚠️ Prompt Documentation & Usage Examples → Authoring guide + integration examples
+- #630 ✅ Prompt Migration Script → Import existing inline prompts to registry
+- #631 ✅ Prompt Documentation & Usage Examples → Authoring guide + integration examples
 
-**Cluster E2: MCP Servers**
+**Cluster E2: MCP Servers & Context** (3/11 complete)
 
-- #514 World Context MCP Foundation → Server scaffold + routing
-- #515 Location, Player & Atmosphere Context Operations → Core context queries
-- #516 Spatial Graph & Event Timeline Operations → N-hop traversal + event history
-- #425 MCP World Query Tools → Read-only access to locations, exits, players
-- #426 MCP Prompt Template Access → Template retrieval via MCP
-- #427 MCP Telemetry Query → Recent telemetry for AI context
-- #428 MCP Authentication → Identity propagation for auditing
-- #430 MCP Integration Tests → Validate tool contracts
+- #514 ✅ World Context MCP Foundation → Server scaffold + routing
+- #515 ✅ Location, Player & Atmosphere Context Operations → Core context queries
+- #516 🔴 Spatial Graph & Event Timeline Operations → N-hop traversal + event history (blocked by #515)
+- #699 ✅ PK Correctness Tests → Cosmos container validation
+- #425 🔴 MCP World Query Tools → Read-only access to locations, exits, players
+- #426 🔴 MCP Prompt Template Access Tools → Scoped to backend endpoints (not MCP)
+- #427 🔴 MCP Telemetry Query Tools → Observability endpoints
+- #428 🔴 MCP Authentication (API Key) → Backend middleware implementation
+- #429 🔴 MCP Rate Limiting → Token bucket + middleware
+- #430 🔴 MCP Integration Tests → Validate tool contracts
+- #733 🔴 Deprecate legacy World-\* tools → After WorldContext parity
 
 **Cluster E3: Intent Parser** → **Moved to M7 Post-MVP**
 
@@ -365,9 +368,17 @@ _Intent Parser issues (#462-464) and epic #471 deferred to M7 to focus M4a on in
 
 _Learn More issues (#452-455) and epic #52 moved to M6 Systems (DevX cluster). See M6 section for details._
 
-**Cluster E5: Ambient Context** → **Deferred to M5 Quality & Depth**
+**Cluster E5: Ambient Context** → **Mostly Deferred to M5 Quality & Depth**
 
-_Ambient Context Registry (#67 epic, #162-166 child issues) deferred to M5. Issues #449-450 remain in M4a for resolution chain work._
+_Ambient Context Registry epic #67 and child issues #162-166 deferred to M5. Fallback resolution chain work (#449 resolution logic, #450 benchmark framework) retained in M4a to support unrelated context initialization._
+
+**Cluster E6: Supporting Infrastructure**
+
+- #624 ✅ Schema & Versioning Model → Env var alignment + partition key validation
+- #627 ✅ worldEvents scopeKey contract → Location/player scope pattern enforcement
+- #570 🔴 AI usage workbook stub → Infra template for cost tracking
+- #577 🔴 MCP telemetry constants → Observability-driven event names
+- #579 🔴 ADR crosslinks → Link ADR-002/004 & architecture overview
 
 **Epic Coordination**
 
@@ -396,11 +407,14 @@ M2:#517-519 (Player) ──> #514 (MCP Foundation) ──> #515 (Location/Player
 
 - ✅ Prompt templates stored in `shared/src/prompts/` with file-based registry (CI validation + bundling)
 - ✅ Backend retrieval API serves prompts by id/version/hash with caching
-- ✅ MCP world-query tool can retrieve location + exit data
-- ✅ AI invocations tracked with cost telemetry (model, tokens, latency, prompt template metadata)
-- ✅ Authentication propagates identity through MCP calls
-- ⏳ Prompt migration script (#630) and documentation (#631) finalized
+- ✅ Prompt migration script (#630) and documentation (#631) finalized
+- ⏳ MCP World Context scaffold complete (#514-#515); spatial operations in progress (#516)
+- ⏳ MCP authentication (#428) and rate limiting (#429) foundations in progress
+- ⏳ Legacy `World-*` tools deprecated after WorldContext parity (#733)
+- ✅ Cost telemetry integration complete (models, tokens, latency, prompt template metadata tracked)
 - ⏳ Intent parsing **deferred to M7** (AI infrastructure focuses on context + prompts only)
+
+**Blockage**: #516 (Spatial Graph) awaits #515 completion; MCP tools (#425-#430) depend on foundational MCP work
 
 ---
 
