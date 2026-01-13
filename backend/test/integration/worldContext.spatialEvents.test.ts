@@ -149,7 +149,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         // Verify structure per issue spec
         assert.ok(Array.isArray(parsed))
         assert.ok(parsed.length > 0)
-        
+
         // Verify event summary shape (only required fields per spec)
         const eventSummary = parsed.find((e: any) => e.id === recentEvent.id)
         assert.ok(eventSummary)
@@ -158,7 +158,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         assert.equal(eventSummary.occurredUtc, recentEvent.occurredUtc)
         assert.equal(eventSummary.actorKind, recentEvent.actorKind)
         assert.equal(eventSummary.status, recentEvent.status)
-        
+
         // Verify no extra fields from full event record
         assert.strictEqual(eventSummary.payload, undefined)
         assert.strictEqual(eventSummary.correlationId, undefined)
@@ -275,7 +275,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         })
 
         const context = await fixture.createInvocationContext()
-        
+
         // Request depth > 5, should clamp to 5
         const result = await getSpatialContext({ arguments: { locationId, depth: 10 } }, context)
         const parsed = JSON.parse(result)
@@ -289,7 +289,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
     test('getSpatialContext returns null when location not found', async () => {
         const nonExistentId = randomUUID()
         const context = await fixture.createInvocationContext()
-        
+
         const result = await getSpatialContext({ arguments: { locationId: nonExistentId } }, context)
         const parsed = JSON.parse(result)
 

@@ -48,7 +48,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         assert.ok(Array.isArray(parsed), 'Should return array')
         assert.equal(parsed.length, 1)
-        
+
         // Verify event summary shape (only specified fields)
         const summary = parsed[0]
         assert.equal(summary.id, mockEvents[0].id)
@@ -56,7 +56,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         assert.equal(summary.occurredUtc, mockEvents[0].occurredUtc)
         assert.equal(summary.actorKind, mockEvents[0].actorKind)
         assert.equal(summary.status, mockEvents[0].status)
-        
+
         // Verify no extra fields
         assert.strictEqual(summary.payload, undefined)
         assert.strictEqual(summary.correlationId, undefined)

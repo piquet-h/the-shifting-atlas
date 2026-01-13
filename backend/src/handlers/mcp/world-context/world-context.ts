@@ -529,7 +529,7 @@ export class WorldContextHandler {
     /**
      * Get recent events for a scope (location or player).
      * Returns event summaries (id, eventType, occurredUtc, actorKind, status) sorted chronologically (newest first).
-     * 
+     *
      * Per issue spec:
      * - Inputs: scope (location|player), scopeId, limit? (default 20, max 100)
      * - Output: JSON array of event summaries
@@ -540,7 +540,7 @@ export class WorldContextHandler {
         const toolArgs = toolArguments as ToolArgs<{ scope?: string; scopeId?: string; limit?: number | string }>
         const scope = toolArgs?.arguments?.scope
         const scopeId = toolArgs?.arguments?.scopeId
-        
+
         // Validate required parameters
         if (!scope || !scopeId) {
             return JSON.stringify([])
