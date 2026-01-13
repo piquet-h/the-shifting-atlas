@@ -1,5 +1,12 @@
 import { app } from '@azure/functions'
-import { getAtmosphere, getLocationContext, getPlayerContext, health } from '../../handlers/mcp/world-context/world-context.js'
+import {
+    getAtmosphere,
+    getLocationContext,
+    getPlayerContext,
+    getRecentEvents,
+    getSpatialContext,
+    health
+} from '../../handlers/mcp/world-context/world-context.js'
 
 app.mcpTool('WorldContext-health', {
     toolName: 'health',
@@ -68,4 +75,46 @@ app.mcpTool('WorldContext-getAtmosphere', {
         }
     ],
     handler: getAtmosphere
+})
+
+app.mcpTool('WorldContext-getSpatialContext', {
+    toolName: 'get-spatial-context',
+    description:
+        'Get spatial graph context: N-hop neighbors from the location graph. Returns neighboring locations up to a configurable depth (default: 2 hops, max: 5 hops).',
+    toolProperties: [
+        {
+            propertyName: 'locationId',
+            propertyType: 'string',
+            description: "Optional. Location ID. Defaults to the server's public starter location.",
+            isRequired: false
+        },
+        {
+            propertyName: 'depth',
+            propertyType: 'number',
+            description: 'Optional. Graph traversal depth in hops (1-5). Default: 2. Values >5 will be clamped to 5.',
+            isRequired: false
+        }
+    ],
+    handler: getSpatialContext
+})
+
+app.mcpTool('WorldContext-getRecentEvents', {
+    toolName: 'get-recent-events',
+    description:
+        'Get recent events at a location within a time window. Returns timeline sorted chronologically (newest first). Useful for narrative context about recent activity.',
+    toolProperties: [
+        {
+            propertyName: 'locationId',
+            propertyType: 'string',
+            description: "Optional. Location ID. Defaults to the server's public starter location.",
+            isRequired: false
+        },
+        {
+            propertyName: 'timeWindowHours',
+            propertyType: 'number',
+            description: 'Optional. Time window in hours for event retrieval. Default: 24 hours.',
+            isRequired: false
+        }
+    ],
+    handler: getRecentEvents
 })
