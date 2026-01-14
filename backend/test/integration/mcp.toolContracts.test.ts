@@ -17,7 +17,7 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { PlayerDoc } from '@piquet-h/shared'
 import type { InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
-import { buildLocationScopeKey, buildPlayerScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 // Import MCP tool handlers directly for integration testing
