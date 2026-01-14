@@ -155,7 +155,13 @@ export const GAME_EVENT_NAMES = [
     'Player.Clock.DriftApplied', // Idle drift applied to player clock - properties: { playerId, realTimeElapsedMs, driftMs, newTick }
     'Player.Clock.Reconciled', // Player clock reconciled to location anchor - properties: { playerId, locationId, method, offsetMs, narrativeGenerated }
     // Temporal narrative generation
-    'Temporal.Narrative.Generated' // Temporal narrative generated for wait/compress - properties: { durationMs, bucket, templateUsed }
+    'Temporal.Narrative.Generated', // Temporal narrative generated for wait/compress - properties: { durationMs, bucket, templateUsed }
+    // MCP (Model Context Protocol) telemetry (M4 AI Read - Issue #428)
+    'MCP.Tool.Invoked', // MCP tool invocation (read-only) - properties: { toolName, clientAppId, clientSubscriptionId, latencyMs }
+    'MCP.Auth.Allowed', // MCP auth decision: allowed - properties: { toolName, clientAppId, clientSubscriptionId }
+    'MCP.Auth.Denied', // MCP auth decision: denied - properties: { toolName, clientAppId, clientSubscriptionId, reason }
+    'MCP.Throttled', // MCP request throttled/rate-limited - properties: { toolName, clientAppId, throttleReason, retryAfterMs }
+    'MCP.Failed' // MCP unexpected failure - properties: { toolName, clientAppId, failureReason, errorCode }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:

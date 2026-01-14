@@ -528,6 +528,67 @@ Player migration / Gremlin fallback telemetry (`Player.Migrate.*`, `Player.Write
 
 ---
 
+### MCP (Model Context Protocol) & Narrative Gateway (M4 AI Read - Issue #428)
+
+> **Status:** Events defined; MCP tool handlers partially implemented  
+> **Reference:** `docs/architecture/agentic-ai-and-mcp.md`  
+> **Security Note:** NO tokens, API keys, or secrets in telemetry. Client identity as appId/subscriptionId only.
+
+#### `MCP.Tool.Invoked`
+
+**Trigger:** MCP tool invocation (read-only tools: `get-location`, `list-exits`, `get-canonical-fact`, etc.)  
+**Dimensions:** `toolName`, `clientAppId`, `clientSubscriptionId`, `latencyMs`, `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track MCP tool usage patterns; measure invocation frequency and latency  
+**Alert:** P95 latency >500ms sustained for tool invocations  
+**Retention:** 90 days  
+**Redaction Rules:**
+- NO access tokens, bearer tokens, or API keys
+- NO user-level PII (emails, names)
+- Client identity = Azure AD app ID or subscription ID only
+- Tool arguments sanitized (no sensitive data in logs)
+
+#### `MCP.Auth.Allowed`
+
+**Trigger:** MCP authentication/authorization decision: request allowed  
+**Dimensions:** `toolName`, `clientAppId`, `clientSubscriptionId`, `authMethod` (optional: OAuth2, API key tier), `correlation_id`  
+**Severity:** Informational  
+**Purpose:** Track successful auth patterns; validate least-privilege tool access  
+**Retention:** 90 days  
+**Redaction Rules:** Same as `MCP.Tool.Invoked`
+
+#### `MCP.Auth.Denied`
+
+**Trigger:** MCP authentication/authorization decision: request denied  
+**Dimensions:** `toolName`, `clientAppId`, `clientSubscriptionId`, `reason` (unauthorized|invalid-token|tool-not-allowed), `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Detect unauthorized access attempts; identify misconfigured clients  
+**Alert:** >10 denials/hour from same clientAppId (potential security issue)  
+**Retention:** 180 days  
+**Redaction Rules:** Same as `MCP.Tool.Invoked`; reason codes are safe (no PII)
+
+#### `MCP.Throttled`
+
+**Trigger:** MCP request throttled or rate-limited  
+**Dimensions:** `toolName`, `clientAppId`, `throttleReason` (rate-limit-exceeded|quota-exceeded), `retryAfterMs` (optional), `correlation_id`  
+**Severity:** Warning  
+**Purpose:** Track throttling patterns; identify clients hitting rate limits  
+**Alert:** Sustained throttling >5% of requests for any client over 15 minutes  
+**Retention:** 90 days  
+**Redaction Rules:** Same as `MCP.Tool.Invoked`
+
+#### `MCP.Failed`
+
+**Trigger:** MCP unexpected failure (not auth denial or throttling)  
+**Dimensions:** `toolName`, `clientAppId`, `failureReason` (database-timeout|validation-error|internal-error), `errorCode` (optional), `correlation_id`  
+**Severity:** Error  
+**Purpose:** Track MCP infrastructure failures; identify tool reliability issues  
+**Alert:** >5 failures/hour for any single tool (degraded service)  
+**Retention:** 180 days  
+**Redaction Rules:** Same as `MCP.Tool.Invoked`; error messages sanitized (no stack traces with secrets)
+
+---
+
 ### Internal / Diagnostics
 
 #### `Telemetry.EventName.Invalid`
@@ -635,6 +696,62 @@ customEvents
 | where name in ("Player.Get", "Navigation.Move.Success", "Navigation.Move.Blocked", "Navigation.Look.Issued")
 | extend latency = todouble(customDimensions.latency_ms)
 | summarize P95 = percentile(latency, 95) by name
+```
+
+### Example: MCP Tool Usage and Auth Patterns (Last 7 days)
+
+```kusto
+// MCP Tool Invocation Summary - Last 7 days
+// Tracks tool usage, auth success/failure, throttling, and failures by tool and client
+customEvents
+| where timestamp > ago(7d)
+| where name startswith "MCP."
+| extend toolName = tostring(customDimensions['game.mcp.tool.name'])
+| extend clientAppId = tostring(customDimensions['game.mcp.client.app.id'])
+| extend eventType = case(
+    name == "MCP.Tool.Invoked", "Invoked",
+    name == "MCP.Auth.Allowed", "Auth Allowed",
+    name == "MCP.Auth.Denied", "Auth Denied",
+    name == "MCP.Throttled", "Throttled",
+    name == "MCP.Failed", "Failed",
+    "Other"
+)
+| summarize 
+    Invocations=countif(eventType == "Invoked"),
+    AuthAllowed=countif(eventType == "Auth Allowed"),
+    AuthDenied=countif(eventType == "Auth Denied"),
+    Throttled=countif(eventType == "Throttled"),
+    Failed=countif(eventType == "Failed"),
+    P95Latency_ms=percentileif(todouble(customDimensions['game.latency.ms']), 95, eventType == "Invoked")
+    by toolName, clientAppId
+| extend 
+    AuthSuccessRate = round(100.0 * AuthAllowed / (AuthAllowed + AuthDenied), 2),
+    ThrottleRate = round(100.0 * Throttled / (Invocations == 0 ? 1 : Invocations), 2),
+    FailureRate = round(100.0 * Failed / (Invocations == 0 ? 1 : Invocations), 2)
+| project toolName, clientAppId, Invocations, AuthSuccessRate, ThrottleRate, FailureRate, P95Latency_ms
+| order by Invocations desc
+```
+
+**Interpretation:**
+
+- `AuthSuccessRate` <95% → Investigate client auth configuration
+- `ThrottleRate` >5% → Client exceeding rate limits (consider quota adjustment or backoff)
+- `FailureRate` >2% → Tool reliability issue (check infrastructure)
+- `P95Latency_ms` >500ms → Performance degradation (review tool implementation)
+
+### Example: MCP Auth Denials by Reason
+
+```kusto
+// MCP Auth Denials - Last 24h
+// Breakdown of auth denial reasons to identify configuration issues
+customEvents
+| where timestamp > ago(24h)
+| where name == "MCP.Auth.Denied"
+| extend toolName = tostring(customDimensions['game.mcp.tool.name'])
+| extend clientAppId = tostring(customDimensions['game.mcp.client.app.id'])
+| extend reason = tostring(customDimensions.reason)
+| summarize Count = count() by toolName, reason, clientAppId
+| order by Count desc
 ```
 
 ---
@@ -799,8 +916,8 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 > - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
 > - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
-**Last Updated:** 2025-12-11  
-**Event Count:** 88 canonical events (includes 6 temporal events from Issue #506)
+**Last Updated:** 2026-01-14  
+**Event Count:** 93 canonical events (includes 6 temporal events from Issue #506, 5 MCP events from Issue #428)
 
 ## Deprecated Events
 

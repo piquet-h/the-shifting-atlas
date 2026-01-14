@@ -267,3 +267,39 @@ test('unknown Temporal.Narrative.* variant rejected', () => {
     assert.equal(isGameEventName('Temporal.Narrative.Unknown'), false, 'Unknown Temporal.Narrative.* variant should be rejected')
     assert.equal(isGameEventName('Temporal.Narrative.Failed'), false, 'Unregistered Temporal.Narrative.* variant should be rejected')
 })
+
+// MCP (Model Context Protocol) telemetry events tests
+test('MCP.Tool.Invoked is registered', () => {
+    assert.ok(isGameEventName('MCP.Tool.Invoked'), 'MCP.Tool.Invoked should be recognized')
+})
+
+test('MCP.Auth.Allowed is registered', () => {
+    assert.ok(isGameEventName('MCP.Auth.Allowed'), 'MCP.Auth.Allowed should be recognized')
+})
+
+test('MCP.Auth.Denied is registered', () => {
+    assert.ok(isGameEventName('MCP.Auth.Denied'), 'MCP.Auth.Denied should be recognized')
+})
+
+test('MCP.Throttled is registered', () => {
+    assert.ok(isGameEventName('MCP.Throttled'), 'MCP.Throttled should be recognized')
+})
+
+test('MCP.Failed is registered', () => {
+    assert.ok(isGameEventName('MCP.Failed'), 'MCP.Failed should be recognized')
+})
+
+test('MCP events match telemetry pattern', () => {
+    const mcpEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('MCP.'))
+    assert.ok(mcpEvents.length === 5, `Expected 5 MCP events, found ${mcpEvents.length}`)
+
+    for (const event of mcpEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown MCP.* variant rejected', () => {
+    assert.equal(isGameEventName('MCP.Unknown'), false, 'Unknown MCP.* variant should be rejected')
+    assert.equal(isGameEventName('MCP.Tool.Unknown'), false, 'Unregistered MCP.Tool.* variant should be rejected')
+    assert.equal(isGameEventName('MCP.Started'), false, 'Unregistered MCP.* variant should be rejected')
+})
