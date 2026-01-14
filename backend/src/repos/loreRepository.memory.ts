@@ -1,4 +1,4 @@
-import type { CanonicalFact } from '@piquet-h/shared'
+import type { CanonicalFact, LoreSearchResult } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { ConflictError, ILoreRepository } from './loreRepository.js'
@@ -130,11 +130,21 @@ export class MemoryLoreRepository implements ILoreRepository {
         return archived
     }
 
-    async searchFacts(query: string, k: number = 5): Promise<CanonicalFact[]> {
+    async searchFacts(query: string, k: number = 5): Promise<LoreSearchResult[]> {
         // Stub implementation: returns empty array until embeddings infrastructure exists
-        // Future: Vector similarity search using embeddings field for query: ${query}, top-k: ${k}
-        void query
-        void k
+        // Future: Vector similarity search using embeddings field
+        
+        // Edge case: empty/whitespace query
+        if (!query || query.trim().length === 0) {
+            return []
+        }
+        
+        // Edge case: clamp k to max of 20
+        const clampedK = Math.min(Math.max(1, k), 20)
+        
+        // Placeholder for future implementation with query: ${query}, top-k: ${clampedK}
+        void clampedK
+        
         return []
     }
 }

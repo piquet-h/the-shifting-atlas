@@ -65,6 +65,72 @@ describe('LoreMemoryHandler', () => {
         assert.equal(parsed.length, 0)
     })
 
+    it('searchLore with empty query returns empty array', async () => {
+        loreRepo.searchFacts.resolves([])
+
+        const handler = new LoreMemoryHandler(loreRepo as unknown as any)
+        const ctx = makeContext()
+        const result = await handler.searchLore({ arguments: { query: '', k: 5 } }, ctx)
+
+        const parsed = JSON.parse(result)
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
+    })
+
+    it('searchLore with whitespace query returns empty array', async () => {
+        loreRepo.searchFacts.resolves([])
+
+        const handler = new LoreMemoryHandler(loreRepo as unknown as any)
+        const ctx = makeContext()
+        const result = await handler.searchLore({ arguments: { query: '   ', k: 5 } }, ctx)
+
+        const parsed = JSON.parse(result)
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0)
+    })
+
+    it('searchLore returns LoreSearchResult shape when results exist', async () => {
+        const sampleResults = [
+            {
+                factId: 'faction_shadow_council',
+                type: 'faction',
+                score: 0.95,
+                snippet: 'A secretive organization of mages...',
+                version: 2
+            },
+            {
+                factId: 'artifact_obsidian_amulet',
+                type: 'artifact',
+                score: 0.72,
+                snippet: 'An ancient protective charm...'
+                // version field optional
+            }
+        ]
+        loreRepo.searchFacts.resolves(sampleResults)
+
+        const handler = new LoreMemoryHandler(loreRepo as unknown as any)
+        const ctx = makeContext()
+        const result = await handler.searchLore({ arguments: { query: 'council', k: 5 } }, ctx)
+
+        const parsed = JSON.parse(result)
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 2)
+
+        // Verify first result has required fields
+        assert.equal(parsed[0].factId, 'faction_shadow_council')
+        assert.equal(parsed[0].type, 'faction')
+        assert.equal(parsed[0].score, 0.95)
+        assert.equal(parsed[0].snippet, 'A secretive organization of mages...')
+        assert.equal(parsed[0].version, 2)
+
+        // Verify second result (version optional)
+        assert.equal(parsed[1].factId, 'artifact_obsidian_amulet')
+        assert.equal(parsed[1].type, 'artifact')
+        assert.equal(parsed[1].score, 0.72)
+        assert.equal(parsed[1].snippet, 'An ancient protective charm...')
+        assert.ok(!parsed[1].version) // version is optional
+    })
+
     describe('Versioning & Archival (Emergent Lore Support)', () => {
         it('getCanonicalFact preserves version number from mutable facts', async () => {
             const mutatedFact = {

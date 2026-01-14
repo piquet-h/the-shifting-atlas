@@ -1,4 +1,4 @@
-import type { CanonicalFact } from '@piquet-h/shared'
+import type { CanonicalFact, LoreSearchResult } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -207,18 +207,34 @@ export class CosmosLoreRepository extends CosmosDbSqlRepository<CanonicalFact> i
     /**
      * Search for canonical facts matching a query.
      *
+     * Returns minimal search results (ranked snippets) rather than full CanonicalFact documents.
+     * Stable contract for MCP search-lore tool to prevent token bloat.
+     *
      * Stub implementation: Returns empty array until embeddings infrastructure exists.
      * Future: Vector similarity search using embeddings field with Azure AI Search or in-container vector index.
      *
+     * Edge Cases:
+     * - Empty/whitespace query → returns []
+     * - Very large k → clamped to max of 20
+     * - Facts missing embeddings → future implementation should still return snippet-based results
+     *
      * @param query - Natural language search query
-     * @param k - Maximum number of results (default: 5)
-     * @returns Array of matching facts (empty until semantic search implemented)
+     * @param k - Maximum number of results (default: 5, max: 20)
+     * @returns Array of ranked search results (empty until semantic search implemented)
      */
-    async searchFacts(query: string, k: number = 5): Promise<CanonicalFact[]> {
+    async searchFacts(query: string, k: number = 5): Promise<LoreSearchResult[]> {
+        // Edge case: empty/whitespace query
+        if (!query || query.trim().length === 0) {
+            return []
+        }
+        
+        // Edge case: clamp k to max of 20
+        const clampedK = Math.min(Math.max(1, k), 20)
+        
         // Stub: Return empty array until embeddings infrastructure exists
-        // Future implementation will use vector similarity search
-        void query
-        void k
+        // Future implementation will use vector similarity search with query: ${query}, top-k: ${clampedK}
+        void clampedK
+        
         return []
     }
 }
