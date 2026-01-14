@@ -4,7 +4,7 @@
  * Tests authentication and rate limiting at the external boundary.
  * These tests validate behavior described in issues #428 and #429.
  *
- * NOTE: As of 2026-01-14, auth and rate limiting are NOT YET IMPLEMENTED
+ * NOTE: As of the time this test was written, auth and rate limiting are NOT YET IMPLEMENTED
  * for MCP endpoints. These tests are written to PASS once those features
  * are added, following TDD principles.
  *
@@ -248,13 +248,13 @@ describe('MCP Boundary: Combined Auth + Rate Limit', () => {
             assert.doesNotThrow(() => JSON.parse(result), `Request ${i + 1} should succeed`)
         }
 
-        // Exceed limit - expect rate limit error (not using 'err' variable to avoid lint error)
-        let didThrow = false
-        try {
-            await health({}, context)
-        } catch {
-            didThrow = true
-        }
-        assert.ok(didThrow, 'Should have thrown rate limit error')
+        // Exceed limit - should throw rate limit error
+        await assert.rejects(
+            async () => await health({}, context),
+            {
+                message: /rate limit|429/i
+            },
+            'Should throw rate limit error when limit exceeded'
+        )
     })
 })
