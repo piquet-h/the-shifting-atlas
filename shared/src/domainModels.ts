@@ -471,7 +471,7 @@ export interface LoreSearchResult {
     /** Relevance score from semantic search (0-1 range, higher = more relevant). */
     score: number
 
-    /** Brief text excerpt highlighting match context (max ~200 chars). */
+    /** Brief text excerpt highlighting match context (guideline: ~200 chars max). */
     snippet: string
 
     /** Optional: Version number of the fact for audit trails. */

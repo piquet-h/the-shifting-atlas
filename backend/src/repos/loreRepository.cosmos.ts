@@ -232,7 +232,7 @@ export class CosmosLoreRepository extends CosmosDbSqlRepository<CanonicalFact> i
         const clampedK = Math.min(Math.max(1, k), 20)
         
         // Stub: Return empty array until embeddings infrastructure exists
-        // Future implementation will use vector similarity search with query: ${query}, top-k: ${clampedK}
+        // Future implementation will use vector similarity search
         void clampedK
         
         return []
