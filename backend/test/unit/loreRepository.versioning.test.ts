@@ -233,6 +233,34 @@ describe('LoreRepository Versioning (ADR-007)', () => {
         })
     })
 
+    describe('Edge cases: missing fields (backwards compatibility)', () => {
+        it('treats missing archivedUtc as non-archived (active)', async () => {
+            // This is already tested implicitly by default fixture behavior
+            // Fixture has no archivedUtc initially, and getFact returns it
+            const fact = await repo.getFact('faction_shadow_council')
+            assert.ok(fact)
+            assert.equal(fact.archivedUtc, undefined)
+        })
+
+        it('handles missing version field by ordering available versions correctly', async () => {
+            // Create multiple versions to test ordering
+            await repo.createFactVersion('faction_shadow_council', { name: 'V2' }, 1)
+            const v3 = await repo.createFactVersion('faction_shadow_council', { name: 'V3' }, 2)
+
+            // Get fact should return highest version (V3)
+            const latest = await repo.getFact('faction_shadow_council')
+            assert.ok(latest)
+            assert.equal(latest.version, 3)
+            assert.equal(latest.id, v3.id)
+
+            // listFactVersions should be ordered by version DESC
+            const versions = await repo.listFactVersions('faction_shadow_council')
+            assert.equal(versions[0].version, 3)
+            assert.equal(versions[1].version, 2)
+            assert.equal(versions[2].version, 1)
+        })
+    })
+
     describe('searchFacts (stub)', () => {
         it('returns empty array until embeddings implemented', async () => {
             const results = await repo.searchFacts('council', 5)

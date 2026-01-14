@@ -3,7 +3,10 @@ import { getCanonicalFact, searchLore } from '../../handlers/mcp/lore-memory/lor
 
 app.mcpTool('Lore-getCanonicalFact', {
     toolName: 'get-canonical-fact',
-    description: 'Get a canonical lore fact by its business identifier (factId). Returns null when not found.',
+    description:
+        'Get the latest non-archived version of a canonical lore fact by its business identifier (factId). ' +
+        'Returns the highest version number among active (non-archived) versions. ' +
+        'Returns null when not found or when all versions are archived.',
     toolProperties: [
         {
             propertyName: 'factId',
