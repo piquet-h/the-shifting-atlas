@@ -16,6 +16,18 @@ export interface ILoreRepository {
     /**
      * Retrieve latest non-archived version of a fact by business identifier.
      *
+     * Versioning Behavior (ADR-007):
+     * - Returns the highest version number among non-archived versions
+     * - Archived versions (those with archivedUtc set) are excluded from results
+     * - Missing archivedUtc field is treated as non-archived (active)
+     * - Returns undefined if factId not found or all versions are archived
+     * - For deterministic version retrieval, use getFactVersion(factId, version)
+     *
+     * Edge Cases:
+     * - Missing version field: Implementation should treat as version 1 or handle gracefully via ordering
+     * - Missing archivedUtc: Treated as active (non-archived)
+     * - All versions archived: Returns undefined
+     *
      * @param factId - Unique business key (e.g., 'faction_shadow_council')
      * @returns Latest non-archived fact version if found, undefined otherwise
      */

@@ -39,6 +39,13 @@ export class CosmosLoreRepository extends CosmosDbSqlRepository<CanonicalFact> i
      * Expected RU cost: ~3-5 RU per query (single fact lookup across partitions).
      * Uses composite index (factId ASC, version DESC) for efficiency.
      *
+     * Versioning semantics (ADR-007):
+     * - Filters out archived versions (archivedUtc IS_DEFINED check)
+     * - Orders by version DESC to select latest
+     * - Missing archivedUtc treated as non-archived (active)
+     * - Missing version field: Cosmos DB will use null/undefined for ORDER BY,
+     *   placing such docs at end of DESC sort (effectively version 0)
+     *
      * @param factId - Unique business key (e.g., 'faction_shadow_council')
      * @returns Latest non-archived fact version if found, undefined otherwise
      */
