@@ -101,18 +101,24 @@ app.mcpTool('WorldContext-getSpatialContext', {
 app.mcpTool('WorldContext-getRecentEvents', {
     toolName: 'get-recent-events',
     description:
-        'Get recent events at a location within a time window. Returns timeline sorted chronologically (newest first). Useful for narrative context about recent activity.',
+        'Get recent events for a location or player scope. Returns event summaries sorted chronologically (newest first). Useful for narrative context about recent activity.',
     toolProperties: [
         {
-            propertyName: 'locationId',
+            propertyName: 'scope',
             propertyType: 'string',
-            description: "Optional. Location ID. Defaults to the server's public starter location.",
-            isRequired: false
+            description: 'Required. Scope type: "location" or "player".',
+            isRequired: true
         },
         {
-            propertyName: 'timeWindowHours',
+            propertyName: 'scopeId',
+            propertyType: 'string',
+            description: 'Required. Scope ID (location ID or player ID).',
+            isRequired: true
+        },
+        {
+            propertyName: 'limit',
             propertyType: 'number',
-            description: 'Optional. Time window in hours for event retrieval. Default: 24 hours.',
+            description: 'Optional. Maximum number of events to return. Default: 20, max: 100.',
             isRequired: false
         }
     ],

@@ -1,10 +1,11 @@
 status: Accepted
 date: 2025-10-03
 amends: [ADR-001]
+superseded-by: [ADR-004 (player vertex sections)]
 
 ---
 
-> Supersession Note (2025-11-23): Portions of this ADR referring to player vertices and dual write strategies are superseded by ADR-004 (Player Store Cutover Completion). Player state is now authoritative in Cosmos SQL API; Gremlin retains only immutable world structure (locations, exits, future NPC vertices). Partition strategy guidance for location vertices remains valid.
+> **Supersession Note** (2025-11-23): Portions of this ADR referring to player vertices and dual write strategies are superseded by [ADR-004 (Player Store Cutover Completion)](./ADR-004-player-store-cutover-completion.md). Player state is now authoritative in Cosmos SQL API; Gremlin retains only immutable world structure (locations, exits, future NPC vertices). Partition strategy guidance for location vertices remains valid.
 
 # ADR-002: Graph Partition Strategy (MVP Single Partition Concession)
 
