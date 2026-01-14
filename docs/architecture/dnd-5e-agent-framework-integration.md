@@ -78,12 +78,14 @@ This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.
 
 You currently have MCP **tools** implemented using the Azure Functions programming model (`app.mcpTool(...)`).
 
+Source of truth:
+
+- Tool registrations: `backend/src/mcp/` (Azure Functions `app.mcpTool(...)`)
+- Canonical catalog + boundary guidance: `docs/architecture/agentic-ai-and-mcp.md` (section: _MCP Tool Catalog_)
+
 #### A. World MCP tools (read-only)
 
-Implemented tools (current):
-
-- `World-getLocation` (`toolName: get-location`) — location state (defaults to starter location when omitted)
-- `World-listExits` (`toolName: list-exits`) — exits at a location (defaults to starter location when omitted)
+Implemented tools (current): see `docs/architecture/agentic-ai-and-mcp.md`.
 
 Code:
 
@@ -94,9 +96,7 @@ Code:
 
 #### B. World Context MCP tools (foundation scaffold)
 
-Implemented tools (current):
-
-- `WorldContext-health` (`toolName: health`) — verifies the World Context MCP surface is registered and callable
+Implemented tools (current): see `docs/architecture/agentic-ai-and-mcp.md`.
 
 Code:
 

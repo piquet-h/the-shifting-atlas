@@ -1,6 +1,6 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> Status (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations for `WorldContext-*` and `Lore-*`). The agent orchestration layer and any write/proposal MCP surfaces remain planned.
+> Status (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `World-*`, `WorldContext-*`, and `Lore-*`). The agent orchestration layer and any write/proposal MCP surfaces remain planned.
 
 ## Purpose
 
@@ -58,24 +58,58 @@ The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages alig
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
-## Initial MCP Server Inventory (Detail)
+## MCP Tool Catalog (Implemented Today)
 
-### World MCP tools (Stage M4 – Read Only)
+This section is a client-facing catalog of the MCP tools currently registered in code under [`backend/src/mcp/`](../../backend/src/mcp/).
 
-Read-only world access.
+Source of truth: the Azure Functions registrations (`app.mcpTool(...)`) under `backend/src/mcp/`. If you add/rename a tool, update this catalog in the same PR.
 
-Implemented today (Azure Functions `app.mcpTool(...)`):
+Important implementation note: these Azure Functions MCP handlers currently return **JSON strings** (they call `JSON.stringify(...)`). MCP clients should treat the tool result as JSON.
 
-- `World-getLocation` (`toolName: get-location`)
-- `World-listExits` (`toolName: list-exits`)
-- `Lore-getCanonicalFact` (`toolName: get-canonical-fact`)
-- `Lore-searchLore` (`toolName: search-lore`)
-- `WorldContext-health` (`toolName: health`) (foundation scaffold; expands in #515/#516)
+### World server (read-only)
 
-Draft future shape (conceptual):
+Registered in [`backend/src/mcp/world/world.ts`](../../backend/src/mcp/world/world.ts).
 
-- `getPlayerState(playerId)` → { locationId, inventorySummary[], statusFlags[] }
-- `listRecentEvents(scopeKey, limit)` → [{ id, type, ts, summary }]
+| Tool ID             | toolName       | Arguments (MCP `arguments`) | Result (JSON)               |
+| ------------------- | -------------- | --------------------------- | --------------------------- |
+| `World-getLocation` | `get-location` | `{ "locationId"?: string }` | Location object (or `null`) |
+| `World-listExits`   | `list-exits`   | `{ "locationId"?: string }` | `{ "exits": Exit[] }`       |
+
+Notes:
+
+- If `locationId` is omitted, these tools default to the server's public starter location (`STARTER_LOCATION_ID`).
+
+### WorldContext server (read-only, prompt-oriented context)
+
+Registered in [`backend/src/mcp/world-context/world-context.ts`](../../backend/src/mcp/world-context/world-context.ts).
+
+| Tool ID                           | toolName               | Arguments (MCP `arguments`)                                                          | Result (JSON)                                  |
+| --------------------------------- | ---------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| `WorldContext-health`             | `health`               | `{}`                                                                                 | `{ "ok": true, "service": "world-context" }`   |
+| `WorldContext-getLocationContext` | `get-location-context` | `{ "locationId"?: string, "tick"?: number \| string }`                               | Location-context object (or `null`)            |
+| `WorldContext-getPlayerContext`   | `get-player-context`   | `{ "playerId": string, "tick"?: number \| string }`                                  | Player-context object (or `null`)              |
+| `WorldContext-getAtmosphere`      | `get-atmosphere`       | `{ "locationId"?: string, "tick"?: number \| string }`                               | Atmosphere-context object                      |
+| `WorldContext-getSpatialContext`  | `get-spatial-context`  | `{ "locationId"?: string, "depth"?: number \| string }`                              | Spatial-context object (or `null`)             |
+| `WorldContext-getRecentEvents`    | `get-recent-events`    | `{ "scope": "location" \| "player", "scopeId": string, "limit"?: number \| string }` | Event summary array (or `[]` on invalid input) |
+
+Notes:
+
+- World tick is measured in milliseconds. If `tick` is omitted, tools use the current world tick.
+- `get-spatial-context` clamps `depth` to 1–5 (default: 2).
+- `get-recent-events` clamps `limit` to 1–100 (default: 20).
+
+### Lore server (read-only, canonical facts)
+
+Registered in [`backend/src/mcp/lore-memory/lore-memory.ts`](../../backend/src/mcp/lore-memory/lore-memory.ts).
+
+| Tool ID                 | toolName             | Arguments (MCP `arguments`)         | Result (JSON)                |
+| ----------------------- | -------------------- | ----------------------------------- | ---------------------------- |
+| `Lore-getCanonicalFact` | `get-canonical-fact` | `{ "factId": string }`              | Lore fact object (or `null`) |
+| `Lore-searchLore`       | `search-lore`        | `{ "query": string, "k"?: number }` | Lore fact array              |
+
+Notes:
+
+- `Lore-searchLore` delegates to the configured `ILoreRepository`. In some environments this may return an empty array until semantic search is implemented.
 
 ### Prompt templates (NOT an MCP server)
 
@@ -97,6 +131,8 @@ Telemetry, metric emission, and Application Insights queries MUST be implemented
 - Canonical event names: `shared/src/telemetryEvents.ts` (the single source of truth for event literals).
 - Telemetry helpers: `shared/src/telemetry.ts` (emit helpers and wrappers used by backend code).
 - Backend helper endpoints for curated telemetry queries: `backend/src/functions/telemetry/` (if external tools require aggregated, sanitized query results).
+
+See #427 for the dedicated (non-MCP) telemetry query endpoint work.
 
 Rationale: Centralizing telemetry in backend/observability ensures consistent sanitization, access control, rate-limiting and avoids exposing App Insights or high-cardinality surfaces to MCP clients.
 
@@ -263,13 +299,89 @@ Committee Example (Stage M6+):
 | Prompt drift                          | Versioned template registry + regression fixtures                  |
 | Safety regression                     | Centralize moderation in classification-mcp; monitor flagged ratio |
 
-## Immediate Implementation Checklist (Stage M3 Read)
+## Client Guide (Tool Authors)
 
-1. Define TypeScript interfaces for Stage M3 tools (`world-query`, `prompt-template`, `telemetry`).
-2. Stub Azure Functions exposing these as HTTP endpoints (even if returning static mock data initially).
-3. Add prompt template registry (filesystem + SHA256 hashing) with `getTemplate` and `listTemplates`.
-4. Instrument telemetry events for each (simulated) AI invocation.
-5. Create App Insights dashboard slices (purpose vs cost vs latency).
+This is the minimal, practical guide for tool authors (VS Code extensions, Teams bots, agent runners) to consume the current MCP surface.
+
+### What you call (names)
+
+Each MCP tool has:
+
+- a **Tool ID** (e.g. `WorldContext-getLocationContext`) used in Azure Functions registration, and
+- a **toolName** (e.g. `get-location-context`) used as the canonical MCP-facing name.
+
+When in doubt: treat the **toolName** as the stable client contract, and treat the Tool ID as an implementation detail.
+
+### Example tool calls
+
+The following examples show the MCP `tools/call` request shape (tool name + JSON `arguments`).
+
+#### WorldContext: location context
+
+```json
+{
+    "name": "get-location-context",
+    "arguments": {
+        "locationId": "00000000-0000-0000-0000-000000000000",
+        "tick": 1736791350000
+    }
+}
+```
+
+#### World: starter location (implicit default)
+
+```json
+{
+    "name": "get-location",
+    "arguments": {}
+}
+```
+
+#### Lore: canonical fact
+
+```json
+{
+    "name": "get-canonical-fact",
+    "arguments": {
+        "factId": "faction_shadow_council"
+    }
+}
+```
+
+### Authentication & the external boundary (gateway-first)
+
+There are two different caller types:
+
+- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend owns narration.
+- **External narrators (VS Code / Teams / agent runners):** external tools can call a curated narrative/tooling surface to fetch read-only context (MCP tools) and/or request narrative responses.
+
+For external narrators, authentication and throttling MUST be enforced at the platform boundary:
+
+- Prefer **Microsoft Entra ID (OAuth2)** for service-to-service callers.
+- Prefer **API Management** in front of Functions when you need per-client subscriptions/quotas/policies.
+- Avoid bespoke per-tool API-key validation inside MCP handlers as the primary model (shared secrets are compatibility-only, if ever used, and should live behind a gateway).
+
+This doc describes the boundary model; implementation work is tracked in #428 (auth) and #429 (quotas).
+
+Boundary guardrails (explicit):
+
+- The **website gameplay client must not call MCP tools directly**.
+- MCP tools are for **agent runtimes** (internal backend orchestrators, or external narrators) and must sit behind gateway auth.
+- Do not introduce per-tool API keys as the primary security model; use **Entra ID / APIM**.
+
+### Rate limits (current vs planned)
+
+Current implementation status:
+
+- The MCP tool handlers under `backend/src/mcp/` do not currently apply in-app rate limiting.
+- Some gameplay HTTP handlers do enforce in-app rate limits via `backend/src/middleware/` (e.g. movement/look), but that is a separate surface from MCP.
+
+Planned / default policy for **external narrative clients** (configurable; gateway-first per #429):
+
+- **requests/minute**: 60 per client
+- **burst/second**: 10 per client
+
+Clients must handle HTTP 429 with `Retry-After` and should back off aggressively on repeated throttling.
 
 ## Cross-References
 
