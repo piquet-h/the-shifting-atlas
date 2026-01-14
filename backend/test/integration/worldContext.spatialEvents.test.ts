@@ -1,6 +1,6 @@
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
-import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { buildLocationScopeKey, buildPlayerScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { randomUUID } from 'crypto'
 import assert from 'node:assert'
 import { afterEach, beforeEach, test } from 'node:test'
@@ -111,7 +111,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         assert.ok(parsed.neighbors.every((n: any) => n.depth === 1))
     })
 
-    test('getRecentEvents returns events within time window', async () => {
+    test('getRecentEvents with scope=location returns event summaries', async () => {
         const locationRepo = await fixture.getLocationRepository()
         const eventRepo = await fixture.getWorldEventRepository()
 
@@ -143,19 +143,157 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         await eventRepo.create(recentEvent)
 
         const context = await fixture.createInvocationContext()
-        const result = await getRecentEvents({ arguments: { locationId } }, context)
+        const result = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
         const parsed = JSON.parse(result)
 
-        assert.equal(parsed.locationId, locationId)
-        assert.equal(parsed.timeWindowHours, 24)
-        assert.ok(Array.isArray(parsed.events))
-        assert.ok(parsed.events.length > 0)
-        assert.ok(parsed.events.some((e: any) => e.id === recentEvent.id))
+        // Verify structure per issue spec
+        assert.ok(Array.isArray(parsed))
+        assert.ok(parsed.length > 0)
 
-        // Verify performance metadata
-        assert.ok(parsed.performance)
-        assert.ok(typeof parsed.performance.ruCharge === 'number')
-        assert.ok(typeof parsed.performance.latencyMs === 'number')
+        // Verify event summary shape (only required fields per spec)
+        const eventSummary = parsed.find((e: any) => e.id === recentEvent.id)
+        assert.ok(eventSummary)
+        assert.equal(eventSummary.id, recentEvent.id)
+        assert.equal(eventSummary.eventType, recentEvent.eventType)
+        assert.equal(eventSummary.occurredUtc, recentEvent.occurredUtc)
+        assert.equal(eventSummary.actorKind, recentEvent.actorKind)
+        assert.equal(eventSummary.status, recentEvent.status)
+
+        // Verify no extra fields from full event record
+        assert.strictEqual(eventSummary.payload, undefined)
+        assert.strictEqual(eventSummary.correlationId, undefined)
+    })
+
+    test('getRecentEvents with scope=player returns player events', async () => {
+        const eventRepo = await fixture.getWorldEventRepository()
+        const playerRepo = await fixture.getPlayerDocRepository()
+
+        const playerId = randomUUID()
+
+        await playerRepo.upsertPlayer({
+            id: playerId,
+            createdUtc: new Date().toISOString(),
+            updatedUtc: new Date().toISOString(),
+            currentLocationId: STARTER_LOCATION_ID,
+            clockTick: 0
+        })
+
+        // Create player-scoped event
+        const playerEvent: WorldEventRecord = {
+            id: randomUUID(),
+            scopeKey: buildPlayerScopeKey(playerId),
+            eventType: 'Player.Look',
+            status: 'processed',
+            occurredUtc: new Date().toISOString(),
+            ingestedUtc: new Date().toISOString(),
+            actorKind: 'player',
+            actorId: playerId,
+            correlationId: randomUUID(),
+            idempotencyKey: `look-${Date.now()}`,
+            payload: {},
+            version: 1
+        }
+
+        await eventRepo.create(playerEvent)
+
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scope: 'player', scopeId: playerId } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed))
+        assert.ok(parsed.length > 0)
+        assert.ok(parsed.some((e: any) => e.id === playerEvent.id))
+    })
+
+    test('getRecentEvents respects limit parameter (default 20, max 100)', async () => {
+        const eventRepo = await fixture.getWorldEventRepository()
+        const locationId = STARTER_LOCATION_ID
+
+        // Create 30 events
+        for (let i = 0; i < 30; i++) {
+            await eventRepo.create({
+                id: randomUUID(),
+                scopeKey: buildLocationScopeKey(locationId),
+                eventType: 'Test.Event',
+                status: 'processed',
+                occurredUtc: new Date().toISOString(),
+                ingestedUtc: new Date().toISOString(),
+                actorKind: 'system',
+                correlationId: randomUUID(),
+                idempotencyKey: `test-${Date.now()}-${i}`,
+                payload: {},
+                version: 1
+            })
+        }
+
+        const context = await fixture.createInvocationContext()
+
+        // Test default limit (20)
+        const defaultResult = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
+        const defaultParsed = JSON.parse(defaultResult)
+        assert.ok(defaultParsed.length <= 20, 'Default should return max 20 events')
+
+        // Test explicit limit
+        const limitResult = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId, limit: 10 } }, context)
+        const limitParsed = JSON.parse(limitResult)
+        assert.ok(limitParsed.length <= 10, 'Should respect explicit limit')
+
+        // Test max clamp (request 200, should clamp to 100)
+        const clampResult = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId, limit: 200 } }, context)
+        const clampParsed = JSON.parse(clampResult)
+        assert.ok(clampParsed.length <= 100, 'Should clamp to max 100 events')
+    })
+
+    test('getRecentEvents returns empty array when no events exist', async () => {
+        const locationRepo = await fixture.getLocationRepository()
+        const locationId = randomUUID()
+
+        await locationRepo.upsert({
+            id: locationId,
+            name: 'Empty Location',
+            description: 'No events here',
+            exits: []
+        })
+
+        const context = await fixture.createInvocationContext()
+        const result = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.ok(Array.isArray(parsed))
+        assert.equal(parsed.length, 0, 'Should return empty array when no events')
+    })
+
+    test('getSpatialContext clamps depth to max 5', async () => {
+        const locationRepo = await fixture.getLocationRepository()
+        const locationId = randomUUID()
+
+        await locationRepo.upsert({
+            id: locationId,
+            name: 'Start',
+            description: 'Starting location',
+            exits: []
+        })
+
+        const context = await fixture.createInvocationContext()
+
+        // Request depth > 5, should clamp to 5
+        const result = await getSpatialContext({ arguments: { locationId, depth: 10 } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.equal(parsed.depth, 5, 'Depth should be clamped to 5')
+        assert.equal(parsed.requestedDepth, 10, 'Should track requested depth')
+        assert.ok(parsed.warnings)
+        assert.ok(parsed.warnings.some((w: string) => w.includes('clamped')))
+    })
+
+    test('getSpatialContext returns null when location not found', async () => {
+        const nonExistentId = randomUUID()
+        const context = await fixture.createInvocationContext()
+
+        const result = await getSpatialContext({ arguments: { locationId: nonExistentId } }, context)
+        const parsed = JSON.parse(result)
+
+        assert.strictEqual(parsed, null, 'Should return null for non-existent location')
     })
 
     test('full context query chain: location + spatial + events', async () => {
@@ -208,16 +346,15 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         assert.ok(spatial.neighbors)
         assert.ok(spatial.neighbors.length > 0)
 
-        // Query recent events
-        const eventsResult = await getRecentEvents({ arguments: { locationId, timeWindowHours: 1 } }, context)
+        // Query recent events using new API
+        const eventsResult = await getRecentEvents({ arguments: { scope: 'location', scopeId: locationId, limit: 10 } }, context)
         const events = JSON.parse(eventsResult)
 
-        assert.ok(events.events)
-        assert.ok(events.events.length > 0)
-        assert.equal(events.events[0].id, evt.id)
+        assert.ok(Array.isArray(events))
+        assert.ok(events.length > 0)
+        assert.ok(events.some((e: any) => e.id === evt.id))
 
         // Verify both queries completed successfully
         assert.equal(spatial.locationId, locationId)
-        assert.equal(events.locationId, locationId)
     })
 })
