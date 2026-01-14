@@ -85,16 +85,16 @@ async function validatePreconditions(
     opts: { dryRun: boolean }
 ): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = []
-    
+
     // Check 1: Schema version compatibility
     const currentSchemaVersion = 1 // From shared package or config
     if (migration.schemaVersion > currentSchemaVersion) {
         errors.push(
             `Schema version mismatch: migration requires v${migration.schemaVersion}, ` +
-            `current is v${currentSchemaVersion}. Update shared package first.`
+                `current is v${currentSchemaVersion}. Update shared package first.`
         )
     }
-    
+
     // Check 2: Dependency migrations already applied
     for (const depId of migration.dependencies) {
         // Query for migration record (future: use migration tracking table)
@@ -104,7 +104,7 @@ async function validatePreconditions(
             errors.push(`Dependency migration ${depId} not applied. Run it first.`)
         }
     }
-    
+
     // Check 3: ID conflicts with existing world
     for (const loc of blueprint) {
         const existing = await locationRepo.get(loc.id)
@@ -113,20 +113,17 @@ async function validatePreconditions(
             console.warn(`⚠️  Location ${loc.id} exists (will update if content changed)`)
         }
     }
-    
+
     // Check 4: Exit targets exist
     for (const loc of blueprint) {
         for (const exit of loc.exits || []) {
             const target = await locationRepo.get(exit.to)
-            if (!target && !blueprint.find(l => l.id === exit.to)) {
-                errors.push(
-                    `Exit ${loc.id} -> ${exit.direction} references ` +
-                    `missing location: ${exit.to}`
-                )
+            if (!target && !blueprint.find((l) => l.id === exit.to)) {
+                errors.push(`Exit ${loc.id} -> ${exit.direction} references ` + `missing location: ${exit.to}`)
             }
         }
     }
-    
+
     return { valid: errors.length === 0, errors }
 }
 
@@ -134,18 +131,15 @@ async function validatePreconditions(
 function previewChanges(blueprint: Location[]): void {
     console.log('\n📋 Planned Changes:')
     console.log(`   Locations to process: ${blueprint.length}`)
-    
-    const exitCount = blueprint.reduce(
-        (sum, loc) => sum + (loc.exits?.length || 0),
-        0
-    )
+
+    const exitCount = blueprint.reduce((sum, loc) => sum + (loc.exits?.length || 0), 0)
     console.log(`   Exits to create: ${exitCount}`)
-    
+
     console.log('\n   New Locations:')
     for (const loc of blueprint) {
         console.log(`   - ${loc.id} (${loc.name})`)
         if (loc.exits?.length) {
-            console.log(`     Exits: ${loc.exits.map(e => e.direction).join(', ')}`)
+            console.log(`     Exits: ${loc.exits.map((e) => e.direction).join(', ')}`)
         }
     }
     console.log()
@@ -155,26 +149,27 @@ function previewChanges(blueprint: Location[]): void {
 async function main() {
     const dryRun = process.argv.includes('--dry-run')
     const mode = resolvePersistenceMode()
-    
+
     console.log(`\n🔧 Migration ${migration.id}: ${migration.description}`)
     console.log(`   Mode: ${mode}`)
     console.log(`   Dry Run: ${dryRun ? 'YES (no changes will be made)' : 'NO'}`)
     console.log(`   Additive: ${migration.additive ? 'YES' : 'NO (may modify/remove)'}`)
-    
+
     if (!migration.additive && !dryRun) {
         console.log('\n⚠️  WARNING: This migration includes destructive operations.')
         console.log('   Review changes carefully. Consider backing up data first.')
         // Could add interactive confirmation here
     }
-    
+
     // Initialize repositories
-    const locationRepo = container.get<ILocationRepository>(TYPES.LocationRepository)
-    const playerRepo = container.get<IPlayerRepository>(TYPES.PlayerRepository)
-    
+    // Tokens are centralized in backend/src/di/tokens.ts
+    const locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
+    const playerRepo = container.get<IPlayerRepository>(TOKENS.PlayerRepository)
+
     // Pre-flight validation
     console.log('\n🔍 Running pre-flight checks...')
     const validation = await validatePreconditions(locationRepo, { dryRun })
-    
+
     if (!validation.valid) {
         console.error('\n❌ Pre-flight checks failed:')
         for (const error of validation.errors) {
@@ -183,7 +178,7 @@ async function main() {
         process.exit(1)
     }
     console.log('✅ Pre-flight checks passed')
-    
+
     // Dry-run preview
     if (dryRun) {
         previewChanges(blueprint)
@@ -191,7 +186,7 @@ async function main() {
         console.log('   To apply: npm run migrate:apply -- XXX\n')
         return
     }
-    
+
     // Apply migration
     console.log('\n🚀 Applying migration...')
     const result = await seedWorld({
@@ -200,17 +195,17 @@ async function main() {
         blueprint,
         log: (...args) => console.log('   ', ...args)
     })
-    
+
     console.log('\n✅ Migration complete!')
     console.log(`   Locations processed: ${result.locationsProcessed}`)
     console.log(`   Location vertices created: ${result.locationVerticesCreated}`)
     console.log(`   Exits created: ${result.exitsCreated}`)
-    
+
     // Record migration (future: persist to migration tracking table)
     console.log(`\n📝 Migration ${migration.id} applied successfully\n`)
 }
 
-main().catch(err => {
+main().catch((err) => {
     console.error('\n❌ Migration failed:', err)
     process.exit(1)
 })
@@ -337,10 +332,10 @@ Update `backend/migrations/README.md`:
 ```markdown
 ## Applied Migrations
 
-| ID  | Description                | Date       | Author  |
-| --- | -------------------------- | ---------- | ------- |
-| 001 | Expand Northern Ridge      | 2025-10-15 | piquet  |
-| 005 | Add Lakeside District      | 2025-10-27 | copilot |
+| ID  | Description           | Date       | Author  |
+| --- | --------------------- | ---------- | ------- |
+| 001 | Expand Northern Ridge | 2025-10-15 | piquet  |
+| 005 | Add Lakeside District | 2025-10-27 | copilot |
 ```
 
 ## Pre-Flight Check Details
@@ -576,7 +571,7 @@ export const migration = {
 if (!dryRun) {
     const readline = require('readline')
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    const answer = await new Promise(resolve => {
+    const answer = await new Promise((resolve) => {
         rl.question('⚠️  Destructive migration. Type "CONFIRM" to proceed: ', resolve)
     })
     if (answer !== 'CONFIRM') {

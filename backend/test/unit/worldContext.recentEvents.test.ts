@@ -1,10 +1,35 @@
+import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
+import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { randomUUID } from 'crypto'
 import assert from 'node:assert'
 import { beforeEach, describe, test } from 'node:test'
-import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
-import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
 import { getRecentEvents } from '../../src/handlers/mcp/world-context/world-context.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+
+type LocationRecord = {
+    id: string
+    name: string
+    description: string
+    exits: unknown[]
+}
+
+type LocationRepoOverride = {
+    get: () => Promise<LocationRecord | undefined>
+}
+
+type WorldEventRepoOverride = {
+    queryByScope: (
+        scopeKey: string,
+        options?: {
+            afterTimestamp?: string
+        }
+    ) => Promise<{
+        events: WorldEventRecord[]
+        ruCharge: number
+        latencyMs: number
+        hasMore: boolean
+    }>
+}
 
 describe('WorldContext getRecentEvents (unit)', () => {
     let fixture: UnitTestFixture
@@ -50,7 +75,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         // Mock location repository to return a location
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
@@ -58,9 +83,12 @@ describe('WorldContext getRecentEvents (unit)', () => {
         })
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoOverride).queryByScope = async (
+            scopeKey: string,
+            options?: { afterTimestamp?: string }
+        ) => {
             assert.equal(scopeKey, buildLocationScopeKey(locationId))
-            assert.ok(options.afterTimestamp)
+            assert.ok(options?.afterTimestamp)
             return { events: mockEvents, ruCharge: 2.5, latencyMs: 45, hasMore: false }
         }
 
@@ -97,7 +125,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         // Mock location repository
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
@@ -105,8 +133,12 @@ describe('WorldContext getRecentEvents (unit)', () => {
         })
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoOverride).queryByScope = async (
+            scopeKey: string,
+            options?: { afterTimestamp?: string }
+        ) => {
             // Verify time window calculation
+            assert.ok(options?.afterTimestamp)
             const afterTime = new Date(options.afterTimestamp)
             const expectedAfter = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000)
             const diff = Math.abs(afterTime.getTime() - expectedAfter.getTime())
@@ -127,7 +159,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         // Mock location repository
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
@@ -135,7 +167,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         })
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
+        ;(eventRepo as unknown as WorldEventRepoOverride).queryByScope = async () => {
             return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
         }
 
@@ -195,7 +227,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         // Mock location repository
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
@@ -203,7 +235,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         })
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
+        ;(eventRepo as unknown as WorldEventRepoOverride).queryByScope = async () => {
             // Repository should respect order:'desc' parameter and return sorted events
             const sortedEvents = [...mockEvents].sort((a, b) => {
                 return new Date(b.occurredUtc).getTime() - new Date(a.occurredUtc).getTime()
@@ -226,7 +258,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         const locationId = randomUUID()
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => undefined
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => undefined
 
         const context = await fixture.createInvocationContext()
         const result = await getRecentEvents({ arguments: { locationId } }, context)
@@ -240,7 +272,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
 
         // Mock location repository
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
@@ -248,7 +280,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         })
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
+        ;(eventRepo as unknown as WorldEventRepoOverride).queryByScope = async () => {
             return { events: [], ruCharge: 1.5, latencyMs: 35, hasMore: false }
         }
 

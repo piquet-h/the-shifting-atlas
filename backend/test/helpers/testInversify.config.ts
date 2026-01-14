@@ -11,32 +11,16 @@
  * - Supports 'cosmos' mode for E2E tests (but still mocks telemetry)
  */
 
-import { FakeClock, PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import { FakeClock } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
 import { WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS } from '../../src/config/worldEventProcessorConfig.js'
+import { registerHandlers } from '../../src/di/registerHandlers.js'
+import { registerClock, registerCoreServices, registerPromptTemplateRepository } from '../../src/di/registerServices.js'
+import { registerWorldEventHandlers } from '../../src/di/registerWorldEventHandlers.js'
+import { TOKENS } from '../../src/di/tokens.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
-import { BootstrapPlayerHandler } from '../../src/handlers/bootstrapPlayer.js'
-import { ContainerHealthHandler } from '../../src/handlers/containerHealth.js'
-import { GetExitsHandler } from '../../src/handlers/getExits.js'
-import { GetPromptTemplateHandler } from '../../src/handlers/getPromptTemplate.js'
-import { GremlinHealthHandler } from '../../src/handlers/gremlinHealth.js'
-import { HealthHandler } from '../../src/handlers/health.js'
-import { LinkRoomsHandler } from '../../src/handlers/linkRooms.js'
-import { LocationLookHandler } from '../../src/handlers/locationLook.js'
-import { LoreMemoryHandler } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
-import { WorldContextHandler } from '../../src/handlers/mcp/world-context/world-context.js'
-import { WorldHandler } from '../../src/handlers/mcp/world/world.js'
-import { MoveHandler } from '../../src/handlers/moveCore.js'
-import { PingHandler } from '../../src/handlers/ping.js'
-import { SimplePingHandler } from '../../src/handlers/pingSimple.js'
-import { PlayerCreateHandler } from '../../src/handlers/playerCreate.js'
-import { PlayerGetHandler } from '../../src/handlers/playerGet.js'
-import { PlayerLinkHandler } from '../../src/handlers/playerLink.js'
-import { PlayerMoveHandler } from '../../src/handlers/playerMove.js'
-import { QueueProcessExitGenerationHintHandler } from '../../src/handlers/queueProcessExitGenerationHint.js'
-import { QueueSyncLocationAnchorsHandler } from '../../src/handlers/queueSyncLocationAnchors.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from '../../src/persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from '../../src/repos/base/cosmosDbSqlClient.js'
 import { CosmosDeadLetterRepository } from '../../src/repos/deadLetterRepository.cosmos.js'
@@ -83,21 +67,8 @@ import { WorldClockRepositoryMemory } from '../../src/repos/worldClockRepository
 import { CosmosWorldEventRepository } from '../../src/repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from '../../src/repos/worldEventRepository.js'
 import { MemoryWorldEventRepository } from '../../src/repos/worldEventRepository.memory.js'
-import { DescriptionComposer } from '../../src/services/descriptionComposer.js'
-import { LocationClockManager } from '../../src/services/LocationClockManager.js'
-import { PlayerClockService } from '../../src/services/PlayerClockService.js'
-import { RealmService } from '../../src/services/RealmService.js'
-import { ReconcileEngine } from '../../src/services/ReconcileEngine.js'
-import type { IWorldClockService } from '../../src/services/types.js'
-import { WorldClockService } from '../../src/services/WorldClockService.js'
 import { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
-import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
-import { EnvironmentChangeHandler } from '../../src/worldEvents/handlers/EnvironmentChangeHandler.js'
-import { ExitCreateHandler } from '../../src/worldEvents/handlers/ExitCreateHandler.js'
-import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
-import { QueueProcessWorldEventHandler } from '../../src/worldEvents/queueProcessWorldEvent.js'
 // Import mocks from test folder
-import { getPromptTemplateCacheConfig } from '../../src/config/promptTemplateCacheConfig.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { MockDescriptionRepository } from '../mocks/repositories/descriptionRepository.mock.js'
 import { MockExitRepository } from '../mocks/repositories/exitRepository.mock.js'
@@ -117,15 +88,15 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
         if (mode === 'mock' && process.env.PERSISTENCE_MODE === 'cosmos') {
             // For mock mode, create a mock config object instead of loading real config
             const mockConfig: IPersistenceConfig = { mode: 'memory' }
-            container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(mockConfig)
+            container.bind<IPersistenceConfig>(TOKENS.PersistenceConfig).toConstantValue(mockConfig)
         } else {
             // Always bind PersistenceConfig even in explicit mode
             const config = await loadPersistenceConfigAsync()
-            container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
+            container.bind<IPersistenceConfig>(TOKENS.PersistenceConfig).toConstantValue(config)
         }
     } else {
         const config = await loadPersistenceConfigAsync()
-        container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
+        container.bind<IPersistenceConfig>(TOKENS.PersistenceConfig).toConstantValue(config)
         resolvedMode = config.mode === 'cosmos' ? 'cosmos' : 'memory'
     }
 
@@ -133,38 +104,13 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
     // This applies to ALL test modes (mock, memory, cosmos) to prevent:
     // - Test telemetry pollution in production App Insights
     // - Hanging tests due to Application Insights background processes
-    container.bind<ITelemetryClient>('ITelemetryClient').to(MockTelemetryClient).inSingletonScope()
+    container.bind<ITelemetryClient>(TOKENS.TelemetryClient).to(MockTelemetryClient).inSingletonScope()
 
-    // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
-    // Class-based injection only per consistency policy (no string token binding required).
-    container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
-
-    // Register handlers - these extend BaseHandler which has @injectable and constructor injection
-    container.bind(MoveHandler).toSelf().inSingletonScope()
-    container.bind(BootstrapPlayerHandler).toSelf().inSingletonScope()
-    container.bind(PlayerLinkHandler).toSelf().inSingletonScope()
-    container.bind(PlayerMoveHandler).toSelf().inSingletonScope()
-    container.bind(PingHandler).toSelf().inSingletonScope()
-    container.bind(HealthHandler).toSelf().inSingletonScope()
-    container.bind(GremlinHealthHandler).toSelf().inSingletonScope()
-    container.bind(SimplePingHandler).toSelf().inSingletonScope()
-    container.bind(LocationLookHandler).toSelf().inSingletonScope()
-    container.bind(GetExitsHandler).toSelf().inSingletonScope()
-    container.bind(GetPromptTemplateHandler).toSelf().inSingletonScope()
-    container.bind(LinkRoomsHandler).toSelf().inSingletonScope()
-    // MCP handler classes (used by MCP tool wrapper functions)
-    container.bind(WorldHandler).toSelf().inSingletonScope()
-    container.bind(WorldContextHandler).toSelf().inSingletonScope()
-    container.bind(LoreMemoryHandler).toSelf().inSingletonScope()
-    container.bind(PlayerCreateHandler).toSelf().inSingletonScope()
-    container.bind(PlayerGetHandler).toSelf().inSingletonScope()
-    container.bind(ContainerHealthHandler).toSelf().inSingletonScope()
-    container.bind(QueueProcessWorldEventHandler).toSelf().inSingletonScope()
-    container.bind(QueueProcessExitGenerationHintHandler).toSelf().inSingletonScope()
-    container.bind(QueueSyncLocationAnchorsHandler).toSelf().inSingletonScope()
-    container.bind(ExitCreateHandler).toSelf().inSingletonScope()
-    container.bind(NPCTickHandler).toSelf().inSingletonScope()
-    container.bind(EnvironmentChangeHandler).toSelf().inSingletonScope()
+    // Shared registrations (used by both prod and test containers)
+    registerCoreServices(container)
+    // Handlers should be transient (default scope) to mirror production behavior.
+    registerHandlers(container)
+    registerWorldEventHandlers(container)
 
     if (resolvedMode === 'cosmos') {
         // Cosmos mode - E2E tests use *_TEST env vars when NODE_ENV=test
@@ -184,18 +130,18 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
             graph: (isTestEnv && process.env.GREMLIN_GRAPH_TEST) || process.env.COSMOS_GREMLIN_GRAPH || process.env.GREMLIN_GRAPH || ''
         }
 
-        container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue(gremlinConfig)
-        container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
+        container.bind<GremlinClientConfig>(TOKENS.GremlinConfig).toConstantValue(gremlinConfig)
+        container.bind<IGremlinClient>(TOKENS.GremlinClient).to(GremlinClient).inSingletonScope()
 
-        container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
-        container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
-        container.bind<IRealmRepository>('IRealmRepository').to(CosmosRealmRepository).inSingletonScope()
-        container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
-        container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
-        container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
-        container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
+        container.bind<IExitRepository>(TOKENS.ExitRepository).to(CosmosExitRepository).inSingletonScope()
+        container.bind<ILocationRepository>(TOKENS.LocationRepository).to(CosmosLocationRepository).inSingletonScope()
+        container.bind<IRealmRepository>(TOKENS.RealmRepository).to(CosmosRealmRepository).inSingletonScope()
+        container.bind<IDescriptionRepository>(TOKENS.DescriptionRepository).to(CosmosDescriptionRepository).inSingletonScope()
+        container.bind<IInventoryRepository>(TOKENS.InventoryRepository).to(CosmosInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>(TOKENS.LayerRepository).to(CosmosLayerRepository).inSingletonScope()
+        container.bind<IWorldEventRepository>(TOKENS.WorldEventRepository).to(CosmosWorldEventRepository).inSingletonScope()
 
-        const sqlConfig = container.get<IPersistenceConfig>('PersistenceConfig').cosmosSql
+        const sqlConfig = container.get<IPersistenceConfig>(TOKENS.PersistenceConfig).cosmosSql
         if (sqlConfig?.endpoint && sqlConfig?.database) {
             // If running tests, use *_TEST env vars if available
             const testEndpoint = isTestEnv && process.env.COSMOS_SQL_ENDPOINT_TEST
@@ -211,145 +157,148 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
                 console.warn('[testInversify.config] COSMOS_SQL_DATABASE_TEST not set. Using production database!')
             }
 
-            container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({
+            container.bind<CosmosDbSqlClientConfig>(TOKENS.CosmosDbSqlConfig).toConstantValue({
                 endpoint: effectiveEndpoint,
                 database: effectiveDatabase
             })
-            container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+            container.bind<ICosmosDbSqlClient>(TOKENS.CosmosDbSqlClient).to(CosmosDbSqlClient).inSingletonScope()
 
             // Use SQL-first player repository for Cosmos mode (Gremlin write cutover complete)
-            container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
+            container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(CosmosPlayerRepositorySql).inSingletonScope()
 
             // Bind PlayerDocRepository (SQL API player projection)
-            container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
+            container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(PlayerDocRepository).inSingletonScope()
         } else {
             // Fallback to memory implementation if SQL config missing
-            container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
+            container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(MemoryPlayerDocRepository).inSingletonScope()
         }
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.deadLetters) {
-            container.bind<string>('CosmosContainer:DeadLetters').toConstantValue(sqlConfig.containers.deadLetters)
-            container.bind<IDeadLetterRepository>('IDeadLetterRepository').to(CosmosDeadLetterRepository).inSingletonScope()
+            container.bind<string>(TOKENS.CosmosContainerDeadLetters).toConstantValue(sqlConfig.containers.deadLetters)
+            container.bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository).to(CosmosDeadLetterRepository).inSingletonScope()
         } else {
-            container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
+            container
+                .bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository)
+                .toDynamicValue(() => new MemoryDeadLetterRepository())
+                .inSingletonScope()
         }
 
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.processedEvents) {
-            container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(sqlConfig.containers.processedEvents)
-            container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()
+            container.bind<string>(TOKENS.CosmosContainerProcessedEvents).toConstantValue(sqlConfig.containers.processedEvents)
+            container.bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository).to(CosmosProcessedEventRepository).inSingletonScope()
         } else {
             container
-                .bind<IProcessedEventRepository>('IProcessedEventRepository')
-                .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+                .bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository)
+                .toDynamicValue(() => new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+                .inSingletonScope()
         }
 
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.exitHintDebounce) {
-            container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(sqlConfig.containers.exitHintDebounce)
-            container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
+            container.bind<string>(TOKENS.CosmosContainerExitHintDebounce).toConstantValue(sqlConfig.containers.exitHintDebounce)
+            container.bind<number>(TOKENS.ExitHintDebounceWindowMs).toConstantValue(EXIT_HINT_DEBOUNCE_MS)
             container
-                .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
+                .bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository)
                 .to(CosmosExitHintDebounceRepository)
                 .inSingletonScope()
         } else {
             container
-                .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
-                .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+                .bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository)
+                .toDynamicValue(() => new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+                .inSingletonScope()
         }
 
         // Temporal Ledger Repository (SQL API)
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.temporalLedger) {
-            container.bind<string>('CosmosContainer:TemporalLedger').toConstantValue(sqlConfig.containers.temporalLedger)
-            container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryCosmos).inSingletonScope()
+            container.bind<string>(TOKENS.CosmosContainerTemporalLedger).toConstantValue(sqlConfig.containers.temporalLedger)
+            container.bind<ITemporalLedgerRepository>(TOKENS.TemporalLedgerRepository).to(TemporalLedgerRepositoryCosmos).inSingletonScope()
         } else {
-            container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
+            container.bind<ITemporalLedgerRepository>(TOKENS.TemporalLedgerRepository).to(TemporalLedgerRepositoryMemory).inSingletonScope()
         }
 
         // World Clock Repository (SQL API)
         if (sqlConfig?.endpoint && sqlConfig?.database && sqlConfig.containers.worldClock) {
-            container.bind<string>('CosmosContainer:WorldClock').toConstantValue(sqlConfig.containers.worldClock)
-            container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
+            container.bind<string>(TOKENS.CosmosContainerWorldClock).toConstantValue(sqlConfig.containers.worldClock)
+            container.bind<IWorldClockRepository>(TOKENS.WorldClockRepository).to(WorldClockRepositoryCosmos).inSingletonScope()
         } else {
-            container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
+            container.bind<IWorldClockRepository>(TOKENS.WorldClockRepository).to(WorldClockRepositoryMemory).inSingletonScope()
         }
 
         // Location Clock Repository (SQL API)
         // Note: Uses same SQL client and database as world clock
         if (sqlConfig?.endpoint && sqlConfig?.database) {
-            container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+            container.bind<ILocationClockRepository>(TOKENS.LocationClockRepository).to(LocationClockRepositoryCosmos).inSingletonScope()
         } else {
-            container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+            container.bind<ILocationClockRepository>(TOKENS.LocationClockRepository).to(MemoryLocationClockRepository).inSingletonScope()
         }
     } else if (resolvedMode === 'mock') {
         // Mock mode - unit tests with controllable test doubles
-        container.bind<ILocationRepository>('ILocationRepository').to(MockLocationRepository).inSingletonScope()
-        container.bind<IExitRepository>('IExitRepository').to(MockExitRepository).inSingletonScope()
+        container.bind<ILocationRepository>(TOKENS.LocationRepository).to(MockLocationRepository).inSingletonScope()
+        container.bind<IExitRepository>(TOKENS.ExitRepository).to(MockExitRepository).inSingletonScope()
         // Realm support is required for RealmService (and WorldContextHandler) even in mock mode.
         // Use the in-memory implementation to keep unit tests hermetic.
-        container.bind<IRealmRepository>('IRealmRepository').to(InMemoryRealmRepository).inSingletonScope()
-        container.bind<IPlayerRepository>('IPlayerRepository').to(MockPlayerRepository).inSingletonScope()
-        container.bind<IDescriptionRepository>('IDescriptionRepository').to(MockDescriptionRepository).inSingletonScope()
-        container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
-        container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
-        container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
-        container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
-        container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
+        container.bind<IRealmRepository>(TOKENS.RealmRepository).to(InMemoryRealmRepository).inSingletonScope()
+        container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(MockPlayerRepository).inSingletonScope()
+        container.bind<IDescriptionRepository>(TOKENS.DescriptionRepository).to(MockDescriptionRepository).inSingletonScope()
+        container.bind<IInventoryRepository>(TOKENS.InventoryRepository).to(MemoryInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>(TOKENS.LayerRepository).to(MemoryLayerRepository).inSingletonScope()
+        container.bind<IWorldEventRepository>(TOKENS.WorldEventRepository).to(MemoryWorldEventRepository).inSingletonScope()
         container
-            .bind<IProcessedEventRepository>('IProcessedEventRepository')
-            .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+            .bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository)
+            .toDynamicValue(() => new MemoryDeadLetterRepository())
+            .inSingletonScope()
+        container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(MemoryPlayerDocRepository).inSingletonScope()
         container
-            .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
-            .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
-        container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
-        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
-        container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+            .bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository)
+            .toDynamicValue(() => new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+            .inSingletonScope()
+        container
+            .bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository)
+            .toDynamicValue(() => new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+            .inSingletonScope()
+        container.bind<ITemporalLedgerRepository>(TOKENS.TemporalLedgerRepository).to(TemporalLedgerRepositoryMemory).inSingletonScope()
+        container.bind<IWorldClockRepository>(TOKENS.WorldClockRepository).to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>(TOKENS.LocationClockRepository).to(MemoryLocationClockRepository).inSingletonScope()
 
         // Lore (MCP)
-        container.bind<ILoreRepository>('ILoreRepository').to(MemoryLoreRepository).inSingletonScope()
+        container.bind<ILoreRepository>(TOKENS.LoreRepository).to(MemoryLoreRepository).inSingletonScope()
     } else {
         // Memory mode - integration tests and local development
         // InMemoryLocationRepository implements both ILocationRepository and IExitRepository
         // since exits are stored as nested properties of locations in memory
-        container.bind<ILocationRepository>('ILocationRepository').to(InMemoryLocationRepository).inSingletonScope()
-        container.bind<IExitRepository>('IExitRepository').toService('ILocationRepository')
-        container.bind<IRealmRepository>('IRealmRepository').to(InMemoryRealmRepository).inSingletonScope()
-        container.bind<IPlayerRepository>('IPlayerRepository').to(InMemoryPlayerRepository).inSingletonScope()
-        container.bind<IDescriptionRepository>('IDescriptionRepository').to(InMemoryDescriptionRepository).inSingletonScope()
-        container.bind<IInventoryRepository>('IInventoryRepository').to(MemoryInventoryRepository).inSingletonScope()
-        container.bind<ILayerRepository>('ILayerRepository').to(MemoryLayerRepository).inSingletonScope()
-        container.bind<IWorldEventRepository>('IWorldEventRepository').to(MemoryWorldEventRepository).inSingletonScope()
-        container.bind<IDeadLetterRepository>('IDeadLetterRepository').toConstantValue(new MemoryDeadLetterRepository())
-        container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(MemoryPlayerDocRepository).inSingletonScope()
+        container.bind<ILocationRepository>(TOKENS.LocationRepository).to(InMemoryLocationRepository).inSingletonScope()
+        container.bind<IExitRepository>(TOKENS.ExitRepository).toService(TOKENS.LocationRepository)
+        container.bind<IRealmRepository>(TOKENS.RealmRepository).to(InMemoryRealmRepository).inSingletonScope()
+        container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(InMemoryPlayerRepository).inSingletonScope()
+        container.bind<IDescriptionRepository>(TOKENS.DescriptionRepository).to(InMemoryDescriptionRepository).inSingletonScope()
+        container.bind<IInventoryRepository>(TOKENS.InventoryRepository).to(MemoryInventoryRepository).inSingletonScope()
+        container.bind<ILayerRepository>(TOKENS.LayerRepository).to(MemoryLayerRepository).inSingletonScope()
+        container.bind<IWorldEventRepository>(TOKENS.WorldEventRepository).to(MemoryWorldEventRepository).inSingletonScope()
         container
-            .bind<IProcessedEventRepository>('IProcessedEventRepository')
-            .toConstantValue(new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+            .bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository)
+            .toDynamicValue(() => new MemoryDeadLetterRepository())
+            .inSingletonScope()
+        container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(MemoryPlayerDocRepository).inSingletonScope()
         container
-            .bind<IExitHintDebounceRepository>('IExitHintDebounceRepository')
-            .toConstantValue(new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
-        container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryMemory).inSingletonScope()
-        container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryMemory).inSingletonScope()
-        container.bind<ILocationClockRepository>('ILocationClockRepository').to(MemoryLocationClockRepository).inSingletonScope()
+            .bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository)
+            .toDynamicValue(() => new MemoryProcessedEventRepository(WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS))
+            .inSingletonScope()
+        container
+            .bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository)
+            .toDynamicValue(() => new MemoryExitHintDebounceRepository(EXIT_HINT_DEBOUNCE_MS))
+            .inSingletonScope()
+        container.bind<ITemporalLedgerRepository>(TOKENS.TemporalLedgerRepository).to(TemporalLedgerRepositoryMemory).inSingletonScope()
+        container.bind<IWorldClockRepository>(TOKENS.WorldClockRepository).to(WorldClockRepositoryMemory).inSingletonScope()
+        container.bind<ILocationClockRepository>(TOKENS.LocationClockRepository).to(MemoryLocationClockRepository).inSingletonScope()
 
         // Lore (MCP)
-        container.bind<ILoreRepository>('ILoreRepository').to(MemoryLoreRepository).inSingletonScope()
+        container.bind<ILoreRepository>(TOKENS.LoreRepository).to(MemoryLoreRepository).inSingletonScope()
     }
 
     // === Clock (Time Abstraction) ===
     // Always use FakeClock in tests for deterministic time control
-    container.bind<IClock>('IClock').toConstantValue(new FakeClock())
+    registerClock(container, () => new FakeClock())
 
     // === Prompt Template Repository (file-based, no Cosmos dependency) ===
-    const promptCache = getPromptTemplateCacheConfig()
-    container
-        .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
-        .toConstantValue(new PromptTemplateRepository({ ttlMs: promptCache.ttlMs }))
-
-    // Register services (available in all modes)
-    container.bind(DescriptionComposer).toSelf().inSingletonScope()
-    container.bind(RealmService).toSelf().inSingletonScope()
-    container.bind<IWorldClockService>('IWorldClockService').to(WorldClockService).inSingletonScope()
-    container.bind(WorldClockService).toSelf().inSingletonScope()
-    container.bind(PlayerClockService).toSelf().inSingletonScope()
-    container.bind(LocationClockManager).toSelf().inSingletonScope()
-    container.bind(ReconcileEngine).toSelf().inSingletonScope()
+    registerPromptTemplateRepository(container)
 
     return container
 }

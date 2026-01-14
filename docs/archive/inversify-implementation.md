@@ -18,12 +18,16 @@ InversifyJS dependency injection has been successfully implemented in the backen
 - `backend/src/inversify.config.ts` - Container setup
 - `backend/src/gremlin/gremlinClient.ts` - Example @injectable service
 - `backend/src/index.ts` - Container initialization
-- `.github/instructions/inversify-di-patterns.md` - Ongoing patterns guide
+- `backend/src/di/tokens.ts` - Centralized string tokens (`TOKENS`)
+- `backend/src/di/registerServices.ts` - Shared service registrations
+- `backend/src/di/registerHandlers.ts` - Shared handler registrations
+- `backend/src/di/registerWorldEventHandlers.ts` - Shared world-event handler registrations
+- `docs/architecture/dependency-injection.md` - Current DI architecture reference
 
 ## For Future DI Work
 
-Refer to `.github/instructions/inversify-di-patterns.md` for the current patterns and best practices, not this archived implementation guide.
+Refer to `docs/architecture/dependency-injection.md` for current patterns and best practices, not this archived implementation guide.
 
 ---
 
-*Original step-by-step guide preserved in git history if needed for reference.*
+_Original step-by-step guide preserved in git history if needed for reference._

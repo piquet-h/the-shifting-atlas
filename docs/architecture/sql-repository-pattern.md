@@ -78,7 +78,7 @@ export interface IPlayerSqlRepository {
 // backend/src/repos/playerSqlRepository.cosmos.ts
 @injectable()
 export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecord> implements IPlayerSqlRepository {
-    constructor(@inject('CosmosDbSqlClient') client: ICosmosDbSqlClient) {
+    constructor(@inject(TOKENS.CosmosDbSqlClient) client: ICosmosDbSqlClient) {
         super(client, 'players') // Container name
     }
 
@@ -103,23 +103,21 @@ export class CosmosPlayerSqlRepository extends CosmosDbSqlRepository<PlayerRecor
 
 ```typescript
 // backend/src/inversify.config.ts
-if (resolvedMode === 'cosmos') {
-    const persistenceConfig = container.get<IPersistenceConfig>('PersistenceConfig')
+import { TOKENS } from '../di/tokens.js'
 
-    // Register SQL client configuration
-    container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({
-        endpoint: persistenceConfig.cosmos.sqlEndpoint,
-        database: 'game'
-    })
+const persistenceConfig = container.get<IPersistenceConfig>(TOKENS.PersistenceConfig)
 
-    // Register SQL client (singleton)
-    container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+// Register SQL client configuration
+container.bind<CosmosDbSqlClientConfig>(TOKENS.CosmosDbSqlConfig).toConstantValue({
+    endpoint: persistenceConfig.cosmosSql?.endpoint ?? '',
+    database: persistenceConfig.cosmosSql?.database ?? ''
+})
 
-    // Register repository (singleton)
-    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository').to(CosmosPlayerSqlRepository).inSingletonScope()
-} else {
-    container.bind<IPlayerSqlRepository>('IPlayerSqlRepository').to(InMemoryPlayerSqlRepository).inSingletonScope()
-}
+// Register SQL client (singleton)
+container.bind<ICosmosDbSqlClient>(TOKENS.CosmosDbSqlClient).to(CosmosDbSqlClient).inSingletonScope()
+
+// For new repositories/tokens, prefer centralizing identifiers in TOKENS.
+container.bind<IPlayerSqlRepository>('IPlayerSqlRepository').to(CosmosPlayerSqlRepository).inSingletonScope()
 ```
 
 ### Step 4: Use in Handlers
@@ -127,6 +125,8 @@ if (resolvedMode === 'cosmos') {
 ```typescript
 // backend/src/handlers/playerGet.ts
 export class PlayerGetHandler {
+    // NOTE: If this repository exists in this repo, prefer centralizing its identifier in TOKENS
+    // (backend/src/di/tokens.ts) instead of scattering raw string tokens.
     constructor(@inject('IPlayerSqlRepository') private playerRepo: IPlayerSqlRepository) {}
 
     async handle(playerId: string): Promise<PlayerRecord | null> {

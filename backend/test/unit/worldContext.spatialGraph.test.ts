@@ -4,6 +4,24 @@ import { beforeEach, describe, test } from 'node:test'
 import { getSpatialContext } from '../../src/handlers/mcp/world-context/world-context.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
+type LocationRecord = {
+    id: string
+    name: string
+    description: string
+    exits: unknown[]
+}
+
+type LocationRepoOverride = {
+    get: () => Promise<LocationRecord | undefined>
+    query: (
+        query: string,
+        bindings: {
+            locationId: string
+            maxDepth: number
+        }
+    ) => Promise<Array<{ id: string; name: string; depth: number; path: string[] }>>
+}
+
 describe('WorldContext getSpatialContext (unit)', () => {
     let fixture: UnitTestFixture
 
@@ -28,13 +46,13 @@ describe('WorldContext getSpatialContext (unit)', () => {
 
         // Mock location repository to return location and spatial neighbors
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
             exits: []
         })
-        ;(locationRepo as any).query = async (query: string, bindings: any) => {
+        ;(locationRepo as unknown as LocationRepoOverride).query = async (query: string, bindings) => {
             assert.equal(bindings.locationId, locationId)
             assert.equal(bindings.maxDepth, 1)
             return mockNeighbors.map((n) => ({
@@ -66,13 +84,13 @@ describe('WorldContext getSpatialContext (unit)', () => {
         ]
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
             exits: []
         })
-        ;(locationRepo as any).query = async (query: string, bindings: any) => {
+        ;(locationRepo as unknown as LocationRepoOverride).query = async (query: string, bindings) => {
             assert.equal(bindings.maxDepth, 2) // default depth
             return mockNeighbors
         }
@@ -91,13 +109,13 @@ describe('WorldContext getSpatialContext (unit)', () => {
         const mockNeighbors = [{ id: randomUUID(), name: 'Neighbor', depth: 5, path: ['north'] }]
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
             exits: []
         })
-        ;(locationRepo as any).query = async (query: string, bindings: any) => {
+        ;(locationRepo as unknown as LocationRepoOverride).query = async (query: string, bindings) => {
             assert.equal(bindings.maxDepth, 5) // clamped from 10
             return mockNeighbors
         }
@@ -116,13 +134,13 @@ describe('WorldContext getSpatialContext (unit)', () => {
         const locationId = randomUUID()
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
             exits: []
         })
-        ;(locationRepo as any).query = async () => []
+        ;(locationRepo as unknown as LocationRepoOverride).query = async () => []
 
         const context = await fixture.createInvocationContext()
         const result = await getSpatialContext({ arguments: { locationId, depth: 2 } }, context)
@@ -135,7 +153,7 @@ describe('WorldContext getSpatialContext (unit)', () => {
         const locationId = randomUUID()
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => undefined
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => undefined
 
         const context = await fixture.createInvocationContext()
         const result = await getSpatialContext({ arguments: { locationId } }, context)
@@ -148,16 +166,16 @@ describe('WorldContext getSpatialContext (unit)', () => {
         const locationId = randomUUID()
 
         // Isolated location with no connections
-        const mockNeighbors: any[] = []
+        const mockNeighbors: Array<{ id: string; name: string; depth: number; path: string[] }> = []
 
         const locationRepo = await fixture.getLocationRepository()
-        ;(locationRepo as any).get = async () => ({
+        ;(locationRepo as unknown as LocationRepoOverride).get = async () => ({
             id: locationId,
             name: 'Test Location',
             description: 'A test location',
             exits: []
         })
-        ;(locationRepo as any).query = async () => mockNeighbors
+        ;(locationRepo as unknown as LocationRepoOverride).query = async () => mockNeighbors
 
         const context = await fixture.createInvocationContext()
         const result = await getSpatialContext({ arguments: { locationId, depth: 3 } }, context)

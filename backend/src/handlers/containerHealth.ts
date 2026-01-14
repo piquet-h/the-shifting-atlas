@@ -1,6 +1,7 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { okResponse, serviceUnavailableResponse } from './utils/responseBuilder.js'
@@ -19,19 +20,19 @@ interface ContainerHealthResponse {
 
 // Tokens and classes we consider critical for normal operation. If any are missing, health is degraded.
 const REQUIRED_TOKENS: string[] = [
-    'ITelemetryClient',
-    'IPlayerRepository',
-    'ILocationRepository',
-    'IExitRepository',
-    'IDescriptionRepository',
-    'PersistenceConfig'
+    TOKENS.TelemetryClient,
+    TOKENS.PlayerRepository,
+    TOKENS.LocationRepository,
+    TOKENS.ExitRepository,
+    TOKENS.DescriptionRepository,
+    TOKENS.PersistenceConfig
 ]
 
 // (Handler classes intentionally omitted to avoid cross-package coupling; token presence is sufficient.)
 
 @injectable()
 export class ContainerHealthHandler extends BaseHandler {
-    constructor(@inject('ITelemetryClient') telemetry: ITelemetryClient) {
+    constructor(@inject(TOKENS.TelemetryClient) telemetry: ITelemetryClient) {
         super(telemetry)
     }
 

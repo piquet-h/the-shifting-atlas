@@ -12,8 +12,8 @@ This document provides a comprehensive overview of the repository interfaces use
 
 Mosswell uses a **dual persistence pattern** (ADR-002):
 
--   **Cosmos DB Gremlin**: Immutable world structure (locations, exits, spatial relationships)
--   **Cosmos DB SQL API**: Mutable player data and documents (players, inventory, description layers, world events)
+- **Cosmos DB Gremlin**: Immutable world structure (locations, exits, spatial relationships)
+- **Cosmos DB SQL API**: Mutable player data and documents (players, inventory, description layers, world events)
 
 Repository interfaces enforce this separation and provide a consistent contract for handlers and business logic.
 
@@ -81,8 +81,8 @@ interface ILocationRepository {
 
 **Implementations**:
 
--   **InMemoryLocationRepository**: JSON-backed, for tests and local dev
--   **CosmosLocationRepository**: Gremlin-backed, for production
+- **InMemoryLocationRepository**: JSON-backed, for tests and local dev
+- **CosmosLocationRepository**: Gremlin-backed, for production
 
 **Usage Pattern**:
 
@@ -101,10 +101,10 @@ const { created: exitCreated } = await locationRepo.ensureExit('loc-mosswell-ent
 
 **Idempotency Guarantees**:
 
--   `upsert()`: Creates vertex if missing, updates if exists (by content hash)
--   `ensureExit()`: Creates edge only if not present (no duplicates)
--   `ensureExitBidirectional()`: Creates both directions atomically if requested
--   `applyExits()`: Batch operation with individual idempotency per edge
+- `upsert()`: Creates vertex if missing, updates if exists (by content hash)
+- `ensureExit()`: Creates edge only if not present (no duplicates)
+- `ensureExitBidirectional()`: Creates both directions atomically if requested
+- `applyExits()`: Batch operation with individual idempotency per edge
 
 ### IPlayerRepository
 
@@ -144,8 +144,8 @@ interface PlayerRecord {
 
 **Implementations**:
 
--   **InMemoryPlayerRepository**: Map-backed, for tests
--   **CosmosPlayerRepository**: SQL API-backed, for production
+- **InMemoryPlayerRepository**: Map-backed, for tests
+- **CosmosPlayerRepository**: SQL API-backed, for production
 
 **Usage Pattern**:
 
@@ -161,8 +161,8 @@ await playerRepo.update(record)
 
 **Idempotency Guarantees**:
 
--   `getOrCreate()`: Returns existing player if ID provided and found
--   `linkExternalId()`: Safe to call multiple times for same provider+externalId pair
+- `getOrCreate()`: Returns existing player if ID provided and found
+- `linkExternalId()`: Safe to call multiple times for same provider+externalId pair
 
 ### IDescriptionRepository
 
@@ -172,11 +172,11 @@ await playerRepo.update(record)
 
 **Layer Types**:
 
--   `structural_event`: Structural changes (damage, construction)
--   `ambient`: Weather, lighting, sensory details
--   `weather`: Explicit weather overlays
--   `enhancement`: Lore enrichment, historical notes
--   `personalization`: Player-specific observations
+- `structural_event`: Structural changes (damage, construction)
+- `ambient`: Weather, lighting, sensory details
+- `weather`: Explicit weather overlays
+- `enhancement`: Lore enrichment, historical notes
+- `personalization`: Player-specific observations
 
 **Key Operations**:
 
@@ -213,8 +213,8 @@ interface DescriptionLayer {
 
 **Implementations**:
 
--   **InMemoryDescriptionRepository**: Map-backed, for tests
--   **CosmosDescriptionRepository**: SQL API `descriptionLayers` container
+- **InMemoryDescriptionRepository**: Map-backed, for tests
+- **CosmosDescriptionRepository**: SQL API `descriptionLayers` container
 
 **Usage Pattern**:
 
@@ -237,8 +237,8 @@ const layers = await descriptionRepo.getLayersForLocation('loc-mosswell-entrance
 
 **Idempotency Guarantees**:
 
--   `addLayer()`: Returns `created: false` if layer with same ID exists
--   `archiveLayer()`: Safe to call multiple times (idempotent soft delete)
+- `addLayer()`: Returns `created: false` if layer with same ID exists
+- `archiveLayer()`: Safe to call multiple times (idempotent soft delete)
 
 ### IExitRepository
 
@@ -306,10 +306,10 @@ The repository system supports two modes via `PERSISTENCE_MODE` environment vari
 
 **Characteristics**:
 
--   Data loaded from `villageLocations.json`
--   In-process state (lost on restart)
--   No external dependencies
--   Fast execution
+- Data loaded from `villageLocations.json`
+- In-process state (lost on restart)
+- No external dependencies
+- Fast execution
 
 ### Cosmos Mode
 
@@ -333,31 +333,39 @@ The repository system supports two modes via `PERSISTENCE_MODE` environment vari
 
 **Characteristics**:
 
--   Durable persistence
--   Graph traversal via Gremlin
--   SQL API for mutable documents
--   Requires Azure authentication
+- Durable persistence
+- Graph traversal via Gremlin
+- SQL API for mutable documents
+- Requires Azure authentication
 
 ## Dependency Injection
 
-Repositories use **Inversify** for DI, configured in `backend/src/container.ts`:
+Repositories use **Inversify** for DI.
+
+- Production container wiring: `backend/src/inversify.config.ts`
+- Test container wiring: `backend/test/helpers/testInversify.config.ts`
+- Token identifiers: `backend/src/di/tokens.ts` (`TOKENS`)
 
 ```typescript
 // Bind repositories based on persistence mode
 if (mode === 'cosmos') {
-    container.bind<ILocationRepository>(TYPES.LocationRepository).to(CosmosLocationRepository).inSingletonScope()
+    container.bind<ILocationRepository>(TOKENS.LocationRepository).to(CosmosLocationRepository).inSingletonScope()
 } else {
-    container.bind<ILocationRepository>(TYPES.LocationRepository).to(InMemoryLocationRepository).inSingletonScope()
+    container.bind<ILocationRepository>(TOKENS.LocationRepository).to(InMemoryLocationRepository).inSingletonScope()
 }
 ```
 
 **Function Usage**:
 
 ```typescript
-import { container } from '../container.js'
-import { TYPES } from '../types.js'
+import { Container } from 'inversify'
+import { TOKENS } from '../../backend/src/di/tokens.js'
+import { setupTestContainer } from '../../backend/test/helpers/testInversify.config.js'
 
-const locationRepo = container.get<ILocationRepository>(TYPES.LocationRepository)
+const container = new Container()
+await setupTestContainer(container, 'memory')
+
+const locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
 ```
 
 ## Testing Contracts
@@ -385,16 +393,16 @@ test('ILocationRepository - upsert returns expected shape', async () => {
 
 For initial world setup, see:
 
--   **Script**: `backend/scripts/seed-production.ts` ([usage guide](./mosswell-bootstrap-script.md))
--   **Function**: `backend/src/seeding/seedWorld.ts` (idempotent seeding logic)
--   **Flow**: [Player Bootstrap Flow](./player-bootstrap-flow.md)
+- **Script**: `backend/scripts/seed-production.ts` ([usage guide](./mosswell-bootstrap-script.md))
+- **Function**: `backend/src/seeding/seedWorld.ts` (idempotent seeding logic)
+- **Flow**: [Player Bootstrap Flow](./player-bootstrap-flow.md)
 
 ## Migration Pattern
 
 For evolving world data over time, see:
 
--   **Scaffold**: (Future) Migration script template with dry-run support
--   **Workflow**: [Migration Workflow](./mosswell-migration-workflow.md)
+- **Scaffold**: (Future) Migration script template with dry-run support
+- **Workflow**: [Migration Workflow](./mosswell-migration-workflow.md)
 
 ## Performance Considerations
 
@@ -402,46 +410,46 @@ For evolving world data over time, see:
 
 **Gremlin Graph** (`/partitionKey`):
 
--   MVP: Single partition value `'world'` (see ADR-002)
--   Future: Region-based sharding (`'mosswell'`, `'northern_ridge'`)
--   Revisit threshold: >50k vertices or sustained >70% RU utilization
+- MVP: Single partition value `'world'` (see ADR-002)
+- Future: Region-based sharding (`'mosswell'`, `'northern_ridge'`)
+- Revisit threshold: >50k vertices or sustained >70% RU utilization
 
 **SQL API Containers**:
 
--   **players**: Partitioned by `/id` (player GUID)
--   **inventory**: Partitioned by `/playerId` (colocates player items)
--   **descriptionLayers**: Partitioned by `/locationId` (colocates location layers)
--   **worldEvents**: Partitioned by `/scopeKey` (pattern: `loc:<id>` or `player:<id>`)
+- **players**: Partitioned by `/id` (player GUID)
+- **inventory**: Partitioned by `/playerId` (colocates player items)
+- **descriptionLayers**: Partitioned by `/locationId` (colocates location layers)
+- **worldEvents**: Partitioned by `/scopeKey` (pattern: `loc:<id>` or `player:<id>`)
 
 ### Query Patterns
 
 **Efficient**:
 
--   Point reads (partition key + ID)
--   Single-partition queries (e.g., all exits from location)
--   Batch upserts within same partition
+- Point reads (partition key + ID)
+- Single-partition queries (e.g., all exits from location)
+- Batch upserts within same partition
 
 **Inefficient**:
 
--   Cross-partition scans
--   Unbounded graph traversals
--   High-cardinality filters
+- Cross-partition scans
+- Unbounded graph traversals
+- High-cardinality filters
 
 **Optimization**:
 
--   Cache Mosswell entrance ID in memory
--   Limit exit queries to 50 edges per location
--   Use `updateExitsSummaryCache()` to precompute summaries
+- Cache Mosswell entrance ID in memory
+- Limit exit queries to 50 edges per location
+- Use `updateExitsSummaryCache()` to precompute summaries
 
 ## Related Documentation
 
--   [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Persistence model & description layers
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution path
--   [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
--   [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) – World seeding usage
--   [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold pattern
--   [Edge Management](./edge-management.md) – Exit edge creation workflow
--   [Architecture Overview](../architecture/overview.md) – High-level system architecture
+- [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Persistence model & description layers
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Partition key evolution path
+- [Player Bootstrap Flow](./player-bootstrap-flow.md) – Player creation sequence
+- [Mosswell Bootstrap Script](./mosswell-bootstrap-script.md) – World seeding usage
+- [Migration Workflow](./mosswell-migration-workflow.md) – Migration scaffold pattern
+- [Edge Management](./edge-management.md) – Exit edge creation workflow
+- [Architecture Overview](../architecture/overview.md) – High-level system architecture
 
 ---
 

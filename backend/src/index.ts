@@ -3,6 +3,7 @@ import { app, PreInvocationContext } from '@azure/functions'
 import appInsights from 'applicationinsights'
 import { Container } from 'inversify'
 import 'reflect-metadata'
+import { TOKENS } from './di/tokens.js'
 import type { IGremlinClient } from './gremlin/gremlinClient.js'
 import { setupContainer } from './inversify.config.js'
 import type { ITelemetryClient } from './telemetry/ITelemetryClient.js'
@@ -120,7 +121,7 @@ app.hook.appStart(async () => {
         appInsights.defaultClient.trackMetric({ name: 'ContainerSetupDuration', value: duration })
 
         try {
-            const telemetryClient = container.get<ITelemetryClient>('ITelemetryClient')
+            const telemetryClient = container.get<ITelemetryClient>(TOKENS.TelemetryClient)
             const { getFeatureFlagSnapshot, getValidationWarnings } = await import('./config/featureFlags.js')
             const flagSnapshot = getFeatureFlagSnapshot()
 
@@ -159,13 +160,13 @@ app.hook.appStart(async () => {
     const registerShutdown = () => {
         const performShutdown = async (signal: string) => {
             try {
-                const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
+                const telemetry = container.get<ITelemetryClient>(TOKENS.TelemetryClient)
                 telemetry.flush({ isAppCrashing: signal === 'SIGINT' || signal === 'SIGTERM' })
             } catch {
                 // swallow
             }
             try {
-                const gremlin = container.get<IGremlinClient>('GremlinClient')
+                const gremlin = container.get<IGremlinClient>(TOKENS.GremlinClient)
                 await gremlin.close()
             } catch {
                 // swallow
@@ -178,7 +179,7 @@ app.hook.appStart(async () => {
         }
         process.once('beforeExit', () => {
             try {
-                const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
+                const telemetry = container.get<ITelemetryClient>(TOKENS.TelemetryClient)
                 telemetry.flush()
             } catch {
                 // ignore

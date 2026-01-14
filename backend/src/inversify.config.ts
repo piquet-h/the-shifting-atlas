@@ -13,32 +13,15 @@
  *
  * NO memory mode fallbacks - production deploys with full infrastructure or fails.
  */
-import { PromptTemplateRepository, SystemClock, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import { SystemClock } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
-import { getPromptTemplateCacheConfig } from './config/promptTemplateCacheConfig.js'
+import { registerHandlers } from './di/registerHandlers.js'
+import { registerClock, registerCoreServices, registerPromptTemplateRepository } from './di/registerServices.js'
+import { registerWorldEventHandlers } from './di/registerWorldEventHandlers.js'
+import { TOKENS } from './di/tokens.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/index.js'
-import { BootstrapPlayerHandler } from './handlers/bootstrapPlayer.js'
-import { ContainerHealthHandler } from './handlers/containerHealth.js'
-import { GetExitsHandler } from './handlers/getExits.js'
-import { GetPromptTemplateHandler } from './handlers/getPromptTemplate.js'
-import { GremlinHealthHandler } from './handlers/gremlinHealth.js'
-import { HealthHandler } from './handlers/health.js'
-import { LinkRoomsHandler } from './handlers/linkRooms.js'
-import { LocationLookHandler } from './handlers/locationLook.js'
-import { LoreMemoryHandler } from './handlers/mcp/lore-memory/lore-memory.js'
-import { WorldContextHandler } from './handlers/mcp/world-context/world-context.js'
-import { WorldHandler } from './handlers/mcp/world/world.js'
-import { MoveHandler } from './handlers/moveCore.js'
-import { PingHandler } from './handlers/ping.js'
-import { SimplePingHandler } from './handlers/pingSimple.js'
-import { PlayerCreateHandler } from './handlers/playerCreate.js'
-import { PlayerGetHandler } from './handlers/playerGet.js'
-import { PlayerLinkHandler } from './handlers/playerLink.js'
-import { PlayerMoveHandler } from './handlers/playerMove.js'
-import { QueueProcessExitGenerationHintHandler } from './handlers/queueProcessExitGenerationHint.js'
-import { QueueSyncLocationAnchorsHandler } from './handlers/queueSyncLocationAnchors.js'
 import { IPersistenceConfig, loadPersistenceConfigAsync } from './persistenceConfig.js'
 import { CosmosDbSqlClient, CosmosDbSqlClientConfig, ICosmosDbSqlClient } from './repos/base/cosmosDbSqlClient.js'
 import { CosmosDeadLetterRepository } from './repos/deadLetterRepository.cosmos.js'
@@ -71,20 +54,8 @@ import { WorldClockRepositoryCosmos } from './repos/worldClockRepository.cosmos.
 import type { IWorldClockRepository } from './repos/worldClockRepository.js'
 import { CosmosWorldEventRepository } from './repos/worldEventRepository.cosmos.js'
 import { IWorldEventRepository } from './repos/worldEventRepository.js'
-import { DescriptionComposer } from './services/descriptionComposer.js'
-import { LocationClockManager } from './services/LocationClockManager.js'
-import { PlayerClockService } from './services/PlayerClockService.js'
-import { RealmService } from './services/RealmService.js'
-import { ReconcileEngine } from './services/ReconcileEngine.js'
-import type { ILocationClockManager, IWorldClockService } from './services/types.js'
-import { WorldClockService } from './services/WorldClockService.js'
 import { ITelemetryClient } from './telemetry/ITelemetryClient.js'
 import { NullTelemetryClient } from './telemetry/NullTelemetryClient.js'
-import { TelemetryService } from './telemetry/TelemetryService.js'
-import { EnvironmentChangeHandler } from './worldEvents/handlers/EnvironmentChangeHandler.js'
-import { ExitCreateHandler } from './worldEvents/handlers/ExitCreateHandler.js'
-import { NPCTickHandler } from './worldEvents/handlers/NPCTickHandler.js'
-import { QueueProcessWorldEventHandler } from './worldEvents/queueProcessWorldEvent.js'
 
 /**
  * Setup production container - requires full Cosmos DB configuration
@@ -100,7 +71,7 @@ import { QueueProcessWorldEventHandler } from './worldEvents/queueProcessWorldEv
 export const setupContainer = async (container: Container) => {
     // Load persistence configuration
     const config = await loadPersistenceConfigAsync()
-    container.bind<IPersistenceConfig>('PersistenceConfig').toConstantValue(config)
+    container.bind<IPersistenceConfig>(TOKENS.PersistenceConfig).toConstantValue(config)
 
     // Production requirement: must be in cosmos mode
     if (config.mode !== 'cosmos') {
@@ -117,52 +88,21 @@ export const setupContainer = async (container: Container) => {
     // CRITICAL: Never load real Application Insights in test mode (causes hanging)
     if (isTestMode) {
         // Test mode: always use null client to prevent hanging
-        container.bind<ITelemetryClient>('ITelemetryClient').to(NullTelemetryClient).inSingletonScope()
+        container.bind<ITelemetryClient>(TOKENS.TelemetryClient).to(NullTelemetryClient).inSingletonScope()
     } else if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
         // Production with App Insights: real Application Insights (already initialized in index.ts)
         const appInsightsModule = await import('applicationinsights')
         const appInsights = appInsightsModule.default
-        container.bind<ITelemetryClient>('ITelemetryClient').toConstantValue(appInsights.defaultClient)
+        container.bind<ITelemetryClient>(TOKENS.TelemetryClient).toConstantValue(appInsights.defaultClient)
     } else {
         // Production without App Insights: null telemetry client
-        container.bind<ITelemetryClient>('ITelemetryClient').to(NullTelemetryClient).inSingletonScope()
+        container.bind<ITelemetryClient>(TOKENS.TelemetryClient).to(NullTelemetryClient).inSingletonScope()
     }
 
-    // Register TelemetryService (wraps ITelemetryClient with enrichment logic)
-    // Consistency policy: concrete services use class-based injection only (no string token).
-    container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
-
-    // Register handlers as transient (no shared mutable state across requests)
-    container.bind(MoveHandler).toSelf()
-    container.bind(BootstrapPlayerHandler).toSelf()
-    // WorldHandler provides MCP tooling handlers (getLocation, listExits)
-    // Bind it so the MCP wrapper functions can resolve the handler from the container.
-    container.bind(WorldHandler).toSelf()
-    // WorldContextHandler provides MCP tooling handlers (foundation scaffold in #514)
-    // Bind it so the MCP wrapper functions can resolve the handler from the container.
-    container.bind(WorldContextHandler).toSelf()
-    // LoreMemoryHandler provides MCP tooling handlers (get-canonical-fact, search-lore)
-    // Bind it so the MCP wrapper functions can resolve the handler from the container.
-    container.bind(LoreMemoryHandler).toSelf()
-    container.bind(PlayerLinkHandler).toSelf()
-    container.bind(PlayerMoveHandler).toSelf()
-    container.bind(PingHandler).toSelf()
-    container.bind(HealthHandler).toSelf()
-    container.bind(GremlinHealthHandler).toSelf()
-    container.bind(SimplePingHandler).toSelf()
-    container.bind(LocationLookHandler).toSelf()
-    container.bind(GetExitsHandler).toSelf()
-    container.bind(GetPromptTemplateHandler).toSelf()
-    container.bind(LinkRoomsHandler).toSelf()
-    container.bind(PlayerCreateHandler).toSelf()
-    container.bind(PlayerGetHandler).toSelf()
-    container.bind(ContainerHealthHandler).toSelf()
-    container.bind(QueueProcessWorldEventHandler).toSelf()
-    container.bind(QueueProcessExitGenerationHintHandler).toSelf()
-    container.bind(QueueSyncLocationAnchorsHandler).toSelf()
-    container.bind(ExitCreateHandler).toSelf()
-    container.bind(NPCTickHandler).toSelf()
-    container.bind(EnvironmentChangeHandler).toSelf()
+    // Shared registrations (used by both prod and test containers)
+    registerCoreServices(container)
+    registerHandlers(container)
+    registerWorldEventHandlers(container)
 
     // === Cosmos Gremlin API Configuration ===
     const gremlinEndpoint = config.cosmos?.endpoint?.trim() || ''
@@ -176,9 +116,9 @@ export const setupContainer = async (container: Container) => {
     }
 
     container
-        .bind<GremlinClientConfig>('GremlinConfig')
+        .bind<GremlinClientConfig>(TOKENS.GremlinConfig)
         .toConstantValue({ endpoint: gremlinEndpoint, database: gremlinDatabase, graph: gremlinGraph })
-    container.bind<IGremlinClient>('GremlinClient').to(GremlinClient).inSingletonScope()
+    container.bind<IGremlinClient>(TOKENS.GremlinClient).to(GremlinClient).inSingletonScope()
 
     // === Cosmos SQL API Configuration ===
     const sqlEndpoint = config.cosmosSql?.endpoint?.trim() || ''
@@ -188,21 +128,21 @@ export const setupContainer = async (container: Container) => {
         throw new Error('Cosmos SQL API configuration incomplete. Required: COSMOS_SQL_ENDPOINT, COSMOS_SQL_DATABASE')
     }
 
-    container.bind<CosmosDbSqlClientConfig>('CosmosDbSqlConfig').toConstantValue({ endpoint: sqlEndpoint, database: sqlDatabase })
-    container.bind<ICosmosDbSqlClient>('CosmosDbSqlClient').to(CosmosDbSqlClient).inSingletonScope()
+    container.bind<CosmosDbSqlClientConfig>(TOKENS.CosmosDbSqlConfig).toConstantValue({ endpoint: sqlEndpoint, database: sqlDatabase })
+    container.bind<ICosmosDbSqlClient>(TOKENS.CosmosDbSqlClient).to(CosmosDbSqlClient).inSingletonScope()
 
     // Bind PlayerDocRepository (SQL API player projection)
-    container.bind<IPlayerDocRepository>('IPlayerDocRepository').to(PlayerDocRepository).inSingletonScope()
+    container.bind<IPlayerDocRepository>(TOKENS.PlayerDocRepository).to(PlayerDocRepository).inSingletonScope()
 
     // Bind SQL player repository as primary (Gremlin player vertex deprecated per ADR-004)
-    container.bind<IPlayerRepository>('IPlayerRepository').to(CosmosPlayerRepositorySql).inSingletonScope()
+    container.bind<IPlayerRepository>(TOKENS.PlayerRepository).to(CosmosPlayerRepositorySql).inSingletonScope()
 
     // === Cosmos Repositories ===
-    container.bind<IExitRepository>('IExitRepository').to(CosmosExitRepository).inSingletonScope()
-    container.bind<ILocationRepository>('ILocationRepository').to(CosmosLocationRepository).inSingletonScope()
-    container.bind<IRealmRepository>('IRealmRepository').to(CosmosRealmRepository).inSingletonScope()
-    container.bind<IDescriptionRepository>('IDescriptionRepository').to(CosmosDescriptionRepository).inSingletonScope()
-    container.bind<IInventoryRepository>('IInventoryRepository').to(CosmosInventoryRepository).inSingletonScope()
+    container.bind<IExitRepository>(TOKENS.ExitRepository).to(CosmosExitRepository).inSingletonScope()
+    container.bind<ILocationRepository>(TOKENS.LocationRepository).to(CosmosLocationRepository).inSingletonScope()
+    container.bind<IRealmRepository>(TOKENS.RealmRepository).to(CosmosRealmRepository).inSingletonScope()
+    container.bind<IDescriptionRepository>(TOKENS.DescriptionRepository).to(CosmosDescriptionRepository).inSingletonScope()
+    container.bind<IInventoryRepository>(TOKENS.InventoryRepository).to(CosmosInventoryRepository).inSingletonScope()
 
     // === Cosmos SQL Containers (Layers & Events) ===
     // These containers are required in production (no defaults) - validation happens in persistenceConfig
@@ -216,70 +156,58 @@ export const setupContainer = async (container: Container) => {
         throw new Error('World events container configuration missing. Required: COSMOS_SQL_CONTAINER_EVENTS')
     }
 
-    container.bind<string>('CosmosContainer:Layers').toConstantValue(layersContainer)
-    container.bind<ILayerRepository>('ILayerRepository').to(CosmosLayerRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerLayers).toConstantValue(layersContainer)
+    container.bind<ILayerRepository>(TOKENS.LayerRepository).to(CosmosLayerRepository).inSingletonScope()
 
-    container.bind<string>('CosmosContainer:Events').toConstantValue(eventsContainer)
-    container.bind<IWorldEventRepository>('IWorldEventRepository').to(CosmosWorldEventRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerEvents).toConstantValue(eventsContainer)
+    container.bind<IWorldEventRepository>(TOKENS.WorldEventRepository).to(CosmosWorldEventRepository).inSingletonScope()
 
     // === Cosmos SQL Containers (Dead Letter & Processed Events) ===
     if (!config.cosmosSql?.containers.deadLetters) {
         throw new Error('Dead letter container configuration missing. Required: COSMOS_SQL_CONTAINER_DEADLETTERS')
     }
-    container.bind<string>('CosmosContainer:DeadLetters').toConstantValue(config.cosmosSql.containers.deadLetters)
-    container.bind<IDeadLetterRepository>('IDeadLetterRepository').to(CosmosDeadLetterRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerDeadLetters).toConstantValue(config.cosmosSql.containers.deadLetters)
+    container.bind<IDeadLetterRepository>(TOKENS.DeadLetterRepository).to(CosmosDeadLetterRepository).inSingletonScope()
 
     if (!config.cosmosSql?.containers.processedEvents) {
         throw new Error('Processed events container configuration missing. Required: COSMOS_SQL_CONTAINER_PROCESSED_EVENTS')
     }
-    container.bind<string>('CosmosContainer:ProcessedEvents').toConstantValue(config.cosmosSql.containers.processedEvents)
-    container.bind<IProcessedEventRepository>('IProcessedEventRepository').to(CosmosProcessedEventRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerProcessedEvents).toConstantValue(config.cosmosSql.containers.processedEvents)
+    container.bind<IProcessedEventRepository>(TOKENS.ProcessedEventRepository).to(CosmosProcessedEventRepository).inSingletonScope()
 
     // === Exit Hint Debounce Container ===
     if (!config.cosmosSql?.containers.exitHintDebounce) {
         throw new Error('Exit hint debounce container configuration missing. Required: COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE')
     }
-    container.bind<string>('CosmosContainer:ExitHintDebounce').toConstantValue(config.cosmosSql.containers.exitHintDebounce)
-    container.bind<number>('ExitHintDebounceWindowMs').toConstantValue(EXIT_HINT_DEBOUNCE_MS)
-    container.bind<IExitHintDebounceRepository>('IExitHintDebounceRepository').to(CosmosExitHintDebounceRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerExitHintDebounce).toConstantValue(config.cosmosSql.containers.exitHintDebounce)
+    container.bind<number>(TOKENS.ExitHintDebounceWindowMs).toConstantValue(EXIT_HINT_DEBOUNCE_MS)
+    container.bind<IExitHintDebounceRepository>(TOKENS.ExitHintDebounceRepository).to(CosmosExitHintDebounceRepository).inSingletonScope()
 
     // === Temporal Ledger Container ===
     if (!config.cosmosSql?.containers.temporalLedger) {
         throw new Error('Temporal ledger container configuration missing. Required: COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER')
     }
-    container.bind<string>('CosmosContainer:TemporalLedger').toConstantValue(config.cosmosSql.containers.temporalLedger)
-    container.bind<ITemporalLedgerRepository>('ITemporalLedgerRepository').to(TemporalLedgerRepositoryCosmos).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerTemporalLedger).toConstantValue(config.cosmosSql.containers.temporalLedger)
+    container.bind<ITemporalLedgerRepository>(TOKENS.TemporalLedgerRepository).to(TemporalLedgerRepositoryCosmos).inSingletonScope()
 
-    container.bind<string>('CosmosContainer:WorldClock').toConstantValue(config.cosmosSql.containers.worldClock)
-    container.bind<IWorldClockRepository>('IWorldClockRepository').to(WorldClockRepositoryCosmos).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerWorldClock).toConstantValue(config.cosmosSql.containers.worldClock)
+    container.bind<IWorldClockRepository>(TOKENS.WorldClockRepository).to(WorldClockRepositoryCosmos).inSingletonScope()
 
     // === Location Clock Container ===
     // Note: Container name is read directly in LocationClockRepositoryCosmos constructor from env var
-    container.bind<ILocationClockRepository>('ILocationClockRepository').to(LocationClockRepositoryCosmos).inSingletonScope()
+    container.bind<ILocationClockRepository>(TOKENS.LocationClockRepository).to(LocationClockRepositoryCosmos).inSingletonScope()
     // === Lore Facts Container ===
     if (!config.cosmosSql?.containers.loreFacts) {
         throw new Error('Lore facts container configuration missing. Required: COSMOS_SQL_CONTAINER_LORE_FACTS')
     }
-    container.bind<string>('CosmosContainer:LoreFacts').toConstantValue(config.cosmosSql.containers.loreFacts)
-    container.bind<ILoreRepository>('ILoreRepository').to(CosmosLoreRepository).inSingletonScope()
+    container.bind<string>(TOKENS.CosmosContainerLoreFacts).toConstantValue(config.cosmosSql.containers.loreFacts)
+    container.bind<ILoreRepository>(TOKENS.LoreRepository).to(CosmosLoreRepository).inSingletonScope()
 
     // === Clock (Time Abstraction) ===
-    container.bind<IClock>('IClock').toConstantValue(new SystemClock())
+    registerClock(container, () => new SystemClock())
 
     // === Prompt Template Repository (file-based, no Cosmos dependency) ===
-    const promptCache = getPromptTemplateCacheConfig()
-    container
-        .bind<IPromptTemplateRepository>('IPromptTemplateRepository')
-        .toConstantValue(new PromptTemplateRepository({ ttlMs: promptCache.ttlMs }))
-
-    // === Services ===
-    container.bind(DescriptionComposer).toSelf().inSingletonScope()
-    container.bind(RealmService).toSelf().inSingletonScope()
-    container.bind<ILocationClockManager>('ILocationClockManager').to(LocationClockManager).inSingletonScope()
-    container.bind(PlayerClockService).toSelf().inSingletonScope()
-    container.bind<IWorldClockService>('IWorldClockService').to(WorldClockService).inSingletonScope()
-    container.bind(WorldClockService).toSelf().inSingletonScope()
-    container.bind(ReconcileEngine).toSelf().inSingletonScope()
+    registerPromptTemplateRepository(container)
 
     return container
 }

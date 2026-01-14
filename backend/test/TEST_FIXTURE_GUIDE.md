@@ -255,7 +255,7 @@ When moving tests from unit to integration (or identifying misplaced tests):
 ### Step 5: Update Related Files (if needed)
 
 - [ ] If adding new `fixture.getXxxRepository()` method, add to `IntegrationTestFixture.ts`
-- [ ] Ensure repository binding exists in `testInversify.config.ts`
+- [ ] Ensure repository binding exists in `test/helpers/testInversify.config.ts`
 
 ### Migration Example
 

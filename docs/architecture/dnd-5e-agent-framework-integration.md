@@ -1057,6 +1057,8 @@ export interface DnDApiClient {
 
 export async function dndApiHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const container = context.extraInputs.get('container') as Container
+    // NOTE: Example token. If/when this client is implemented in this repo,
+    // centralize its identifier in backend/src/di/tokens.ts (TOKENS).
     const dndClient = container.get<DnDApiClient>('DnDApiClient')
 
     const op = req.query.get('op')

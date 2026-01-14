@@ -624,6 +624,8 @@ async def resolve_entities(parsed_command):
 
 ```typescript
 // backend/src/mcp/worldContext.ts (TypeScript)
+import { TOKENS } from '../di/tokens.js'
+
 async function promoteEntityHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const container = context.extraInputs.get('container') as Container
 
@@ -647,11 +649,14 @@ async function promoteEntityHandler(req: HttpRequest, context: InvocationContext
     }
 
     // Persist to Cosmos SQL API (TypeScript repositories)
+    // NOTE: This is an example token. If/when IEntityRepository exists in this codebase,
+    // centralize its identifier in backend/src/di/tokens.ts.
     const entityRepo = container.get<IEntityRepository>('IEntityRepository')
     await entityRepo.create(entity)
 
     // Emit telemetry (TypeScript)
-    const telemetry = container.get<ITelemetryClient>('ITelemetryClient')
+    // Token is centralized in backend/src/di/tokens.ts
+    const telemetry = container.get<ITelemetryClient>(TOKENS.TelemetryClient)
     telemetry.track('Entity.Promotion.Created', { entityType: type })
 
     return {
@@ -667,6 +672,8 @@ async function promoteEntityHandler(req: HttpRequest, context: InvocationContext
 
 ```typescript
 // backend/src/mcp/policyValidator.ts (TypeScript)
+import { TOKENS } from '../di/tokens.js'
+
 export async function validateIntentsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     const container = context.extraInputs.get('container') as Container
     const body = (await req.json()) as { intents: Intent[]; playerId: string }
@@ -677,7 +684,7 @@ export async function validateIntentsHandler(req: HttpRequest, context: Invocati
     for (const intent of body.intents) {
         // Validate throw action
         if (intent.verb === 'throw') {
-            const playerRepo = container.get<IPlayerRepository>('IPlayerRepository')
+            const playerRepo = container.get<IPlayerRepository>(TOKENS.PlayerRepository)
             const player = await playerRepo.getById(body.playerId)
 
             // Check if player has throwable item
@@ -685,6 +692,7 @@ export async function validateIntentsHandler(req: HttpRequest, context: Invocati
 
             if (!hasThrowable && !intent.objectItemId) {
                 // Create improvised weapon (TypeScript logic)
+                // NOTE: Example token. Centralize in TOKENS when implemented.
                 const itemRepo = container.get<IItemRepository>('IItemRepository')
                 const rock = await itemRepo.createImprovised({
                     name: 'rock',
@@ -700,6 +708,7 @@ export async function validateIntentsHandler(req: HttpRequest, context: Invocati
 
         // Validate target exists (after promotion)
         if (intent.targetEntityId) {
+            // NOTE: Example token. Centralize in TOKENS when implemented.
             const entityRepo = container.get<IEntityRepository>('IEntityRepository')
             const target = await entityRepo.getById(intent.targetEntityId)
 

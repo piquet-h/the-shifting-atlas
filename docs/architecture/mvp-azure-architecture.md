@@ -246,12 +246,13 @@ Typical pattern for displaying player state requires reading from **both** store
 import { inject, injectable } from 'inversify'
 import { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { ILocationRepository } from '../repos/locationRepository.js'
+import { TOKENS } from '../di/tokens.js'
 
 @injectable()
 export class GetPlayerStateHandler {
     constructor(
-        @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
-        @inject('ILocationRepository') private locationRepo: ILocationRepository
+        @inject(TOKENS.PlayerRepository) private playerRepo: IPlayerRepository,
+        @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository
     ) {}
 
     async handle(playerId: string) {
@@ -295,12 +296,13 @@ export class GetPlayerStateHandler {
 import { inject, injectable } from 'inversify'
 import { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { ILocationRepository } from '../repos/locationRepository.js'
+import { TOKENS } from '../di/tokens.js'
 
 @injectable()
 export class MoveHandler {
     constructor(
-        @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
-        @inject('ILocationRepository') private locationRepo: ILocationRepository
+        @inject(TOKENS.PlayerRepository) private playerRepo: IPlayerRepository,
+        @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository
     ) {}
 
     async movePlayer(playerId: string, direction: string) {
@@ -339,10 +341,11 @@ export class MoveHandler {
 // backend/src/handlers/addInventoryItem.ts
 import { inject, injectable } from 'inversify'
 import { IInventoryRepository } from '../repos/inventoryRepository.js'
+import { TOKENS } from '../di/tokens.js'
 
 @injectable()
 export class AddInventoryItemHandler {
-    constructor(@inject('IInventoryRepository') private inventoryRepo: IInventoryRepository) {}
+    constructor(@inject(TOKENS.InventoryRepository) private inventoryRepo: IInventoryRepository) {}
 
     async handle(playerId: string, itemId: string, itemName: string) {
         // Read current inventory from SQL API
@@ -374,10 +377,11 @@ export class AddInventoryItemHandler {
 // backend/src/handlers/getLocationHistory.ts
 import { inject, injectable } from 'inversify'
 import { IWorldEventRepository } from '../repos/worldEventRepository.js'
+import { TOKENS } from '../di/tokens.js'
 
 @injectable()
 export class GetLocationHistoryHandler {
-    constructor(@inject('IWorldEventRepository') private eventRepo: IWorldEventRepository) {}
+    constructor(@inject(TOKENS.WorldEventRepository) private eventRepo: IWorldEventRepository) {}
 
     async handle(locationId: string, limit: number = 50) {
         // Query events by scope key (efficient due to partition key)
@@ -452,7 +456,7 @@ Follow this checklist when extending dual persistence to a new entity type:
     - Add telemetry events
 - [ ] **Mock:** Create in-memory implementation for tests
     - Extend `Map<string, MyEntity>` for simple storage
-- [ ] **DI Registration:** Wire in `backend/src/inversify.config.ts`
+- [ ] **DI Registration:** Wire in `backend/src/inversify.config.ts` (via `backend/src/di/registerServices.ts`, `registerHandlers.ts`, `registerWorldEventHandlers.ts`)
     ```typescript
     container.bind<IMyEntityRepository>('IMyEntityRepository').to(CosmosMyEntityRepository).inSingletonScope()
     ```

@@ -25,21 +25,24 @@ This architecture enables organic world growth through:
 **Trigger**: `World.Location.BatchGenerate` event  
 **Responsibilities**:
 
--   Determine neighbor directions based on terrain guidance
--   Create stub location entities
--   Orchestrate batched AI description generation
--   Enqueue exit creation events
--   Apply exit inference to neighbor descriptions
+- Determine neighbor directions based on terrain guidance
+- Create stub location entities
+- Orchestrate batched AI description generation
+- Enqueue exit creation events
+- Apply exit inference to neighbor descriptions
 
 **Implementation**: `backend/src/worldEvents/handlers/BatchGenerateHandler.ts`
 
 ```typescript
+import { TOKENS } from '../../di/tokens.js'
+
 @injectable()
 export class BatchGenerateHandler implements IWorldEventHandler {
     public readonly type = 'World.Location.BatchGenerate'
 
     constructor(
-        @inject('ILocationRepository') private locationRepo: ILocationRepository,
+        @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository,
+        // Planned services: when implemented, centralize their token identifiers in TOKENS.
         @inject('IAIDescriptionService') private aiService: IAIDescriptionService,
         @inject('IExitInferenceService') private exitInference: IExitInferenceService,
         @inject('IWorldEventPublisher') private eventPublisher: IWorldEventPublisher,
@@ -78,10 +81,10 @@ export class BatchGenerateHandler implements IWorldEventHandler {
 **Interface**: `IAIDescriptionService`  
 **Responsibilities**:
 
--   Accept batch location requests
--   Generate contextual descriptions via AI API
--   Track per-request cost and latency
--   Handle rate limiting and retries
+- Accept batch location requests
+- Generate contextual descriptions via AI API
+- Track per-request cost and latency
+- Handle rate limiting and retries
 
 **Implementation**: `backend/src/services/AIDescriptionService.ts`
 
@@ -157,10 +160,10 @@ Example: "Windswept moorland stretches endlessly beneath vast sky. To the south,
 **Interface**: `IExitInferenceService`  
 **Responsibilities**:
 
--   Parse location description text
--   Identify directional references (explicit, implied, blocked)
--   Return confidence-scored exit candidates
--   Provide reasoning for curator review
+- Parse location description text
+- Identify directional references (explicit, implied, blocked)
+- Return confidence-scored exit candidates
+- Provide reasoning for curator review
 
 **Implementation**: `backend/src/services/ExitInferenceService.ts`
 
@@ -222,9 +225,9 @@ export class ExitInferenceService implements IExitInferenceService {
 **Interface**: `IWorldEventPublisher`  
 **Responsibilities**:
 
--   Enqueue world events to Azure Service Bus
--   Handle correlation IDs for cascading events
--   Batch enqueue for efficiency
+- Enqueue world events to Azure Service Bus
+- Handle correlation IDs for cascading events
+- Batch enqueue for efficiency
 
 **Implementation**: Uses existing `ServiceBusClient` infrastructure
 
@@ -279,14 +282,14 @@ async enqueueExitCreationEvents(
 
 **Without batching** (sequential):
 
--   5 locations × 1 API call each = 5 calls × $0.002 = **$0.01**
--   Total latency: ~5 seconds (sequential)
+- 5 locations × 1 API call each = 5 calls × $0.002 = **$0.01**
+- Total latency: ~5 seconds (sequential)
 
 **With batching**:
 
--   1 API call with 5 prompts = $0.001/location × 5 = **$0.005**
--   Total latency: ~1 second (parallel)
--   **50% cost reduction, 80% latency reduction**
+- 1 API call with 5 prompts = $0.001/location × 5 = **$0.005**
+- Total latency: ~1 second (parallel)
+- **50% cost reduction, 80% latency reduction**
 
 ---
 
@@ -426,30 +429,30 @@ export const TERRAIN_GUIDANCE: Record<TerrainType, TerrainGuidanceConfig> = {
 
 **Transient errors** (rate limit, timeout):
 
--   Retry with exponential backoff (3 attempts)
--   If all fail: log error, dead-letter the BatchGenerate event
--   Player sees: "Generating wilderness description..." (async completion notification later)
+- Retry with exponential backoff (3 attempts)
+- If all fail: log error, dead-letter the BatchGenerate event
+- Player sees: "Generating wilderness description..." (async completion notification later)
 
 **Persistent errors** (invalid response, safety filter):
 
--   Fall back to template-based descriptions
--   Emit telemetry: `AI.Description.Fallback`
--   Curator review queue flagged
+- Fall back to template-based descriptions
+- Emit telemetry: `AI.Description.Fallback`
+- Curator review queue flagged
 
 ### Exit Inference Ambiguity
 
 If AI inference returns 0 exits or contradictory results:
 
--   Fall back to terrain guidance defaults
--   Emit warning telemetry: `World.Exit.InferenceAmbiguous`
--   Create exits with low confidence markers for curator review
+- Fall back to terrain guidance defaults
+- Emit warning telemetry: `World.Exit.InferenceAmbiguous`
+- Create exits with low confidence markers for curator review
 
 ### Stub Location Orphans
 
 If BatchGenerate fails after creating stubs but before generating descriptions:
 
--   Background cleanup job identifies stubs with empty descriptions >1 hour old
--   Delete orphaned stubs or trigger retry of BatchGenerate event
+- Background cleanup job identifies stubs with empty descriptions >1 hour old
+- Delete orphaned stubs or trigger retry of BatchGenerate event
 
 ---
 
@@ -468,14 +471,14 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 
 **Writes** (per batch generation):
 
--   5 location upserts × 10 RU = 50 RU
--   8 exit edge creates × 15 RU = 120 RU
--   **Total: ~170 RU** per batch (within p95 target of 200 RU)
+- 5 location upserts × 10 RU = 50 RU
+- 8 exit edge creates × 15 RU = 120 RU
+- **Total: ~170 RU** per batch (within p95 target of 200 RU)
 
 **Reads** (during inference):
 
--   Pattern matching: 0 RU (in-memory regex)
--   AI analysis: External API (no Cosmos reads)
+- Pattern matching: 0 RU (in-memory regex)
+- AI analysis: External API (no Cosmos reads)
 
 ### Latency Budget
 
@@ -492,22 +495,22 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 
 ### Unit Tests
 
--   `BatchGenerateHandler`: Mock AI service, verify correct neighbor count calculation
--   `ExitInferenceService`: Test pattern matching with known descriptions
--   `AIDescriptionService`: Mock AI API, verify prompt construction
+- `BatchGenerateHandler`: Mock AI service, verify correct neighbor count calculation
+- `ExitInferenceService`: Test pattern matching with known descriptions
+- `AIDescriptionService`: Mock AI API, verify prompt construction
 
 ### Integration Tests
 
--   End-to-end batch generation with memory-based repositories
--   Verify cascading exit creation events
--   Cost tracking and telemetry emission
+- End-to-end batch generation with memory-based repositories
+- Verify cascading exit creation events
+- Cost tracking and telemetry emission
 
 ### E2E Tests (Manual / Smoke)
 
--   Trigger expansion from North Gate
--   Verify all locations navigable within 5 seconds
--   Inspect AI-generated descriptions for quality
--   Check Cosmos graph structure (bidirectional exits)
+- Trigger expansion from North Gate
+- Verify all locations navigable within 5 seconds
+- Inspect AI-generated descriptions for quality
+- Check Cosmos graph structure (bidirectional exits)
 
 ---
 
@@ -515,31 +518,31 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 
 ### API Key Management
 
--   Store Azure OpenAI key in Key Vault
--   Rotate quarterly (automated via Bicep)
--   Use Managed Identity where possible (Azure Functions → Key Vault)
+- Store Azure OpenAI key in Key Vault
+- Rotate quarterly (automated via Bicep)
+- Use Managed Identity where possible (Azure Functions → Key Vault)
 
 ### Cost Monitoring
 
--   Daily cost alert threshold: $10 USD
--   Per-request cost tracking in telemetry
--   Anomaly detection: >$1 per batch triggers alert
+- Daily cost alert threshold: $10 USD
+- Per-request cost tracking in telemetry
+- Anomaly detection: >$1 per batch triggers alert
 
 ### Rate Limiting
 
--   Max 10 batch generations per minute per player (anti-abuse)
--   System-wide: Max 100 concurrent AI requests
--   Exponential backoff on 429 responses
+- Max 10 batch generations per minute per player (anti-abuse)
+- System-wide: Max 100 concurrent AI requests
+- Exponential backoff on 429 responses
 
 ---
 
 ## Related Documentation
 
--   **Design Module**: [World Spatial Generation](../modules/world-spatial-generation.md)
--   **ADR**: (TBD: ADR for AI API selection and batching strategy)
--   **Tenet #7**: Narrative Consistency (AI-driven spatial logic)
--   **Concept**: [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)
--   **Issue #258**: World Event Type-Specific Payload Handlers (ExitCreateHandler foundation)
+- **Design Module**: [World Spatial Generation](../modules/world-spatial-generation.md)
+- **ADR**: (TBD: ADR for AI API selection and batching strategy)
+- **Tenet #7**: Narrative Consistency (AI-driven spatial logic)
+- **Concept**: [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)
+- **Issue #258**: World Event Type-Specific Payload Handlers (ExitCreateHandler foundation)
 
 ---
 

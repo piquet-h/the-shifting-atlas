@@ -108,7 +108,8 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
 
         assert.equal(parsed.depth, 1)
         // With depth 1, should only find B, not C
-        assert.ok(parsed.neighbors.every((n: any) => n.depth === 1))
+        const neighbors = parsed.neighbors as Array<{ depth: number }>
+        assert.ok(neighbors.every((n) => n.depth === 1))
     })
 
     test('getRecentEvents returns events within time window', async () => {
@@ -150,7 +151,8 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         assert.equal(parsed.timeWindowHours, 24)
         assert.ok(Array.isArray(parsed.events))
         assert.ok(parsed.events.length > 0)
-        assert.ok(parsed.events.some((e: any) => e.id === recentEvent.id))
+        const events = parsed.events as Array<{ id: string }>
+        assert.ok(events.some((e) => e.id === recentEvent.id))
 
         // Verify performance metadata
         assert.ok(parsed.performance)
