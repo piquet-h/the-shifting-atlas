@@ -3,6 +3,7 @@ import { describe, test } from 'node:test'
 import {
     enrichErrorAttributes,
     enrichHumorAttributes,
+    enrichMCPAttributes,
     enrichMovementAttributes,
     enrichPlayerAttributes,
     enrichWorldEventAttributes,
@@ -32,6 +33,13 @@ describe('Telemetry Attributes', () => {
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.HUMOR_ACTION_TYPE, 'game.humor.action.type')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.HUMOR_PROBABILITY_USED, 'game.humor.probability.used')
             assert.equal(TELEMETRY_ATTRIBUTE_KEYS.HUMOR_SUPPRESSION_REASON, 'game.humor.suppression.reason')
+            // MCP attribute keys
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_TOOL_NAME, 'game.mcp.tool.name')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_CLIENT_APP_ID, 'game.mcp.client.app.id')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_CLIENT_SUBSCRIPTION_ID, 'game.mcp.client.subscription.id')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_AUTH_RESULT, 'game.mcp.auth.result')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_THROTTLE_REASON, 'game.mcp.throttle.reason')
+            assert.equal(TELEMETRY_ATTRIBUTE_KEYS.MCP_FAILURE_REASON, 'game.mcp.failure.reason')
         })
 
         test('uses lowercase dot-separated naming', () => {
@@ -441,6 +449,114 @@ describe('Telemetry Attributes', () => {
                 })
                 assert.equal(props['game.event.scope.key'], testCase.scopeKey, testCase.description)
             }
+        })
+    })
+
+    describe('enrichMCPAttributes', () => {
+        test('adds all MCP attributes when provided', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'get-location',
+                clientAppId: 'app-123',
+                clientSubscriptionId: 'sub-456',
+                authResult: 'allowed',
+                throttleReason: null,
+                failureReason: null,
+                latencyMs: 150
+            })
+            assert.equal(props['game.mcp.tool.name'], 'get-location')
+            assert.equal(props['game.mcp.client.app.id'], 'app-123')
+            assert.equal(props['game.mcp.client.subscription.id'], 'sub-456')
+            assert.equal(props['game.mcp.auth.result'], 'allowed')
+            assert.equal(props['game.latency.ms'], 150)
+            assert.equal(props['game.mcp.throttle.reason'], undefined)
+            assert.equal(props['game.mcp.failure.reason'], undefined)
+        })
+
+        test('adds auth denied result', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'list-exits',
+                authResult: 'denied'
+            })
+            assert.equal(props['game.mcp.auth.result'], 'denied')
+        })
+
+        test('adds throttle reason when throttled', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'get-location',
+                throttleReason: 'rate-limit-exceeded'
+            })
+            assert.equal(props['game.mcp.throttle.reason'], 'rate-limit-exceeded')
+        })
+
+        test('adds failure reason when failed', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'search-lore',
+                failureReason: 'database-timeout'
+            })
+            assert.equal(props['game.mcp.failure.reason'], 'database-timeout')
+        })
+
+        test('handles latency value of 0', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'health',
+                latencyMs: 0
+            })
+            assert.equal(props['game.latency.ms'], 0)
+        })
+
+        test('omits client identity when not provided (anonymous call)', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'get-location'
+            })
+            assert.equal(props['game.mcp.tool.name'], 'get-location')
+            assert.equal(props['game.mcp.client.app.id'], undefined)
+            assert.equal(props['game.mcp.client.subscription.id'], undefined)
+        })
+
+        test('omits attributes when null', () => {
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'get-location',
+                clientAppId: null,
+                clientSubscriptionId: null,
+                authResult: null,
+                throttleReason: null,
+                failureReason: null
+            })
+            assert.equal(props['game.mcp.tool.name'], 'get-location')
+            assert.equal(props['game.mcp.client.app.id'], undefined)
+            assert.equal(props['game.mcp.client.subscription.id'], undefined)
+        })
+
+        test('returns properties object for chaining', () => {
+            const props = { eventName: 'MCP.Tool.Invoked' }
+            const result = enrichMCPAttributes(props, {
+                toolName: 'get-canonical-fact',
+                clientAppId: 'app-789'
+            })
+            assert.strictEqual(result, props)
+            assert.equal(result['eventName'], 'MCP.Tool.Invoked')
+            assert.equal(result['game.mcp.tool.name'], 'get-canonical-fact')
+        })
+
+        test('redacts sensitive data (no token/key values)', () => {
+            // This test ensures we never add token/key attributes
+            const props = {}
+            enrichMCPAttributes(props, {
+                toolName: 'get-location',
+                clientAppId: 'app-123'
+            })
+            // Verify no sensitive keys exist
+            const keys = Object.keys(props)
+            assert.ok(!keys.some((k) => k.includes('token')), 'Should not include token attributes')
+            assert.ok(!keys.some((k) => k.includes('key')), 'Should not include key attributes')
+            assert.ok(!keys.some((k) => k.includes('secret')), 'Should not include secret attributes')
         })
     })
 })

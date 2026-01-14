@@ -59,7 +59,20 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     /** Action type for player interaction classification */
     ACTION_TYPE: 'game.action.type',
     /** Latency in milliseconds for API calls or user actions */
-    LATENCY_MS: 'game.latency.ms'
+    LATENCY_MS: 'game.latency.ms',
+    // MCP (Model Context Protocol) attributes (M4 AI Read - Issue #428)
+    /** MCP tool name being invoked */
+    MCP_TOOL_NAME: 'game.mcp.tool.name',
+    /** Client application ID (Azure AD app ID or subscription-level identifier) */
+    MCP_CLIENT_APP_ID: 'game.mcp.client.app.id',
+    /** Client subscription ID (Azure subscription ID) */
+    MCP_CLIENT_SUBSCRIPTION_ID: 'game.mcp.client.subscription.id',
+    /** MCP auth result (allowed|denied) */
+    MCP_AUTH_RESULT: 'game.mcp.auth.result',
+    /** Throttle/rate-limit reason */
+    MCP_THROTTLE_REASON: 'game.mcp.throttle.reason',
+    /** MCP failure reason (unexpected errors) */
+    MCP_FAILURE_REASON: 'game.mcp.failure.reason'
 } as const
 
 export type TelemetryAttributeKey = (typeof TELEMETRY_ATTRIBUTE_KEYS)[keyof typeof TELEMETRY_ATTRIBUTE_KEYS]
@@ -378,6 +391,60 @@ export function enrichFrontendErrorAttributes(
     }
     if (attrs.errorCode) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    return properties
+}
+
+/**
+ * Options for enriching MCP (Model Context Protocol) events
+ * Used for MCP.Tool.Invoked, MCP.Auth.Allowed, MCP.Auth.Denied, MCP.Throttled, MCP.Failed
+ */
+export interface MCPEventAttributes {
+    toolName?: string | null
+    clientAppId?: string | null
+    clientSubscriptionId?: string | null
+    authResult?: string | null
+    throttleReason?: string | null
+    failureReason?: string | null
+    latencyMs?: number | null
+}
+
+/**
+ * Enrich telemetry properties with MCP (Model Context Protocol) attributes.
+ * Used for tool invocations, auth decisions, throttling, and failures.
+ * Includes tool name, client identity (appId/subscriptionId only - NO tokens/keys), results, and latency.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * Redaction rules (Issue #428):
+ * - NEVER include access tokens, API keys, or secrets
+ * - Client identity as appId/subscriptionId only (Azure AD app ID or subscription ID)
+ * - No user-level PII beyond what's in standard Azure audit logs
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - MCP attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichMCPAttributes(properties: Record<string, unknown>, attrs: MCPEventAttributes): Record<string, unknown> {
+    if (attrs.toolName) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_TOOL_NAME] = attrs.toolName
+    }
+    if (attrs.clientAppId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_CLIENT_APP_ID] = attrs.clientAppId
+    }
+    if (attrs.clientSubscriptionId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_CLIENT_SUBSCRIPTION_ID] = attrs.clientSubscriptionId
+    }
+    if (attrs.authResult) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_AUTH_RESULT] = attrs.authResult
+    }
+    if (attrs.throttleReason) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_THROTTLE_REASON] = attrs.throttleReason
+    }
+    if (attrs.failureReason) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.MCP_FAILURE_REASON] = attrs.failureReason
+    }
+    if (attrs.latencyMs !== null && attrs.latencyMs !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = attrs.latencyMs
     }
     return properties
 }
