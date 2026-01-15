@@ -17,6 +17,7 @@ applyTo: '**'
     - `instructions/backend/.instructions.md` (Azure Functions specifics NOT already in core)
     - `instructions/frontend/.instructions.md` (frontend architecture deltas: SWA, React state, API access)
     - `instructions/world/.instructions.md` (world & lore generation constraints)
+    - `instructions/docs.instructions.md` (docs folder authoring constraints; delegates to `docs/AGENTS.md`)
 3. Auxiliary / Patterns
     - `copilot-commit-message-instructions.md` (commit hygiene)
     - `instructions/inversify-di-patterns.md` (DI pattern – candidate for deprecation / merge)
@@ -24,19 +25,23 @@ applyTo: '**'
     - `instructions/README.md` (brief pointer)
     - `instructions/INVENTORY.md` (this file – periodically updated)
 
+## Non-.github Instruction Artifacts
+
+- `docs/AGENTS.md` — documentation-specific agent guidance for anything under `docs/` (MECE layering + anti-duplication rules).
+
 ## Retention Criteria
 
 Keep an instruction file ONLY if:
 
--   ≥60% of its content is NOT already expressed in a higher layer.
--   It defines executable constraints (naming, architecture, safety, anti‑patterns) that guide generation.
--   It is referenced by other docs OR enforced by lint/test.
+- ≥60% of its content is NOT already expressed in a higher layer.
+- It defines executable constraints (naming, architecture, safety, anti‑patterns) that guide generation.
+- It is referenced by other docs OR enforced by lint/test.
 
 Deprecate / merge if:
 
--   > 30% of lines duplicate another file verbatim conceptually (not necessarily exact text).
--   Content is historical / explanatory rather than directive (move to `docs/` instead).
--   Audience overlap causes cognitive load (e.g. backend architecture restated in multiple places).
+- > 30% of lines duplicate another file verbatim conceptually (not necessarily exact text).
+- Content is historical / explanatory rather than directive (move to `docs/` instead).
+- Audience overlap causes cognitive load (e.g. backend architecture restated in multiple places).
 
 ## File-by-File Assessment
 
@@ -63,17 +68,17 @@ Deprecate / merge if:
 
 Backend instructions file:
 
--   Remove repeated Cosmos partition key table (already in core) OR replace with link.
--   Keep only trigger registration examples, message envelope contract, performance cold start tactics not elsewhere.
+- Remove repeated Cosmos partition key table (already in core) OR replace with link.
+- Keep only trigger registration examples, message envelope contract, performance cold start tactics not elsewhere.
 
 World instructions file:
 
--   Move prompt templates to code location and reference relative path.
--   Tag major sections with succinct headers (<5 words) for quicker relevance scanning.
+- Move prompt templates to code location and reference relative path.
+- Tag major sections with succinct headers (<5 words) for quicker relevance scanning.
 
 Quickref:
 
--   Audit for drift against operating guide each time operating guide changes (script idea below).
+- Audit for drift against operating guide each time operating guide changes (script idea below).
 
 ## Governance & Automation Ideas
 
@@ -90,21 +95,21 @@ milestone-target: M5 Systems
 
 Script (`scripts/verify-instructions.mjs`) can:
 
--   Parse files for front matter.
--   Warn if `last-reviewed` > 90 days.
--   Detect duplicate key phrases (e.g., "Partition keys:" appearing in >2 core/module files).
--   Fail CI if deprecated file not removed after milestone cutoff.
--   Warn if any world prompt templates appear inline (should live in `shared/src/prompts/`).
--   Check each file has a `Last reviewed:` marker.
+- Parse files for front matter.
+- Warn if `last-reviewed` > 90 days.
+- Detect duplicate key phrases (e.g., "Partition keys:" appearing in >2 core/module files).
+- Fail CI if deprecated file not removed after milestone cutoff.
+- Warn if any world prompt templates appear inline (should live in `shared/src/prompts/`).
+- Check each file has a `Last reviewed:` marker.
 
 ## Maintenance Checklist
 
--   [ ] Front matter added to all kept instruction files
--   [ ] Inversify patterns moved & deprecated banner applied
--   [ ] Backend file slimmed (remove duplicated cosmos/service bus reiterations)
--   [ ] World prompts externalized to `shared/src/prompts/`
--   [ ] README updated to point to inventory & classification
--   [ ] Quickref diff check script considered / added
+- [ ] Front matter added to all kept instruction files
+- [ ] Inversify patterns moved & deprecated banner applied
+- [ ] Backend file slimmed (remove duplicated cosmos/service bus reiterations)
+- [ ] World prompts externalized to `shared/src/prompts/`
+- [ ] README updated to point to inventory & classification
+- [ ] Quickref diff check script considered / added
 
 ## Risks & Mitigations
 
@@ -116,15 +121,15 @@ Script (`scripts/verify-instructions.mjs`) can:
 
 ## Recommendation Summary
 
--   Proceed with deprecating DI patterns file (merge → banner → remove next milestone).
--   Add front matter & slimming in a single docs-focused PR (no runtime risk – LOW).
--   Avoid merging commit message instructions prematurely; optional only.
+- Proceed with deprecating DI patterns file (merge → banner → remove next milestone).
+- Add front matter & slimming in a single docs-focused PR (no runtime risk – LOW).
+- Avoid merging commit message instructions prematurely; optional only.
 
 ## Next Potential Improvements
 
--   Lint rule to enforce absence of large prompt blocks inside instruction files (encourage referencing prompt modules).
--   Automatic link validator across instruction docs.
--   Stats script: line count & duplication ratio report to track drift.
+- Lint rule to enforce absence of large prompt blocks inside instruction files (encourage referencing prompt modules).
+- Automatic link validator across instruction docs.
+- Stats script: line count & duplication ratio report to track drift.
 
 ---
 
