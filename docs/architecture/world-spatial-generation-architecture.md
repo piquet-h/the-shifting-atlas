@@ -3,7 +3,7 @@
 Technical implementation of AI-driven world expansion with batched description generation and deterministic exit inference.
 
 **Parent Design Module**: [World Spatial Generation](../modules/world-spatial-generation.md)  
-**Status**: Planned (M4 Layering & Enrichment)
+**Status**: Planned (M4b World Generation)
 
 ---
 
