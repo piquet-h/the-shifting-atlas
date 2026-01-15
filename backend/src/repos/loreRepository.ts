@@ -1,4 +1,4 @@
-import type { CanonicalFact } from '@piquet-h/shared'
+import type { CanonicalFact, LoreSearchResult } from '@piquet-h/shared'
 
 /**
  * Repository contract for canonical lore facts.
@@ -79,14 +79,22 @@ export interface ILoreRepository {
     /**
      * Search for canonical facts matching a query.
      *
+     * Returns minimal search results (ranked snippets) rather than full CanonicalFact documents.
+     * Stable contract for MCP search-lore tool to prevent token bloat and future-breaking changes.
+     *
      * Initial implementation: Returns empty array (semantic search not yet implemented).
      * Future: Vector similarity search using embeddings field.
      *
+     * Edge Cases:
+     * - Empty/whitespace query → returns []
+     * - Very large k → implementation should clamp to reasonable max (e.g., 20)
+     * - Facts missing embeddings → future implementation should still return snippet-based results
+     *
      * @param query - Natural language search query
-     * @param k - Maximum number of results (default: 5)
-     * @returns Array of matching facts (empty until embeddings infrastructure exists)
+     * @param k - Maximum number of results (default: 5, max: 20)
+     * @returns Array of ranked search results (empty until embeddings infrastructure exists)
      */
-    searchFacts(query: string, k?: number): Promise<CanonicalFact[]>
+    searchFacts(query: string, k?: number): Promise<LoreSearchResult[]>
 }
 
 /**
