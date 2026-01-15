@@ -177,7 +177,7 @@ MCP servers are prioritized by their dependency relationships and alignment with
 
 - Cosmos DB Gremlin (location graph, exits, spatial relationships)
 - Cosmos DB SQL API (players, inventory, world events)
-- Existing World Query MCP (extend current `/mcp/world-query`)
+- Existing World Context MCP tools (`backend/src/mcp/world-context/`)
 
 **Example Use Case**: Player types "look around". World Context Server:
 
@@ -186,7 +186,7 @@ MCP servers are prioritized by their dependency relationships and alignment with
 3. Fetches atmospheric layers (stormy weather, dusk)
 4. AI Narrative Generator weaves into: "Rain lashes the courtyard as twilight fades. Fresh boot prints lead north toward the old tower. The eastern gate stands ajar, creaking in the wind."
 
-**Integration Point**: Builds alongside the existing World tools (`backend/src/mcp/world/world.ts`) and the World Context scaffold (`backend/src/mcp/world-context/world-context.ts`).
+**Integration Point**: Builds on the World Context scaffold (`backend/src/mcp/world-context/world-context.ts`).
 
 ---
 

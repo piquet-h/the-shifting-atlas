@@ -66,19 +66,6 @@ Source of truth: the Azure Functions registrations (`app.mcpTool(...)`) under `b
 
 Important implementation note: these Azure Functions MCP handlers currently return **JSON strings** (they call `JSON.stringify(...)`). MCP clients should treat the tool result as JSON.
 
-### World server (read-only)
-
-Registered in [`backend/src/mcp/world/world.ts`](../../backend/src/mcp/world/world.ts).
-
-| Tool ID             | toolName       | Arguments (MCP `arguments`) | Result (JSON)               |
-| ------------------- | -------------- | --------------------------- | --------------------------- |
-| `World-getLocation` | `get-location` | `{ "locationId"?: string }` | Location object (or `null`) |
-| `World-listExits`   | `list-exits`   | `{ "locationId"?: string }` | `{ "exits": Exit[] }`       |
-
-Notes:
-
-- If `locationId` is omitted, these tools default to the server's public starter location (`STARTER_LOCATION_ID`).
-
 ### WorldContext server (read-only, prompt-oriented context)
 
 Registered in [`backend/src/mcp/world-context/world-context.ts`](../../backend/src/mcp/world-context/world-context.ts).
@@ -94,7 +81,9 @@ Registered in [`backend/src/mcp/world-context/world-context.ts`](../../backend/s
 
 Notes:
 
+- If `locationId` is omitted, tools default to the server's public starter location (`STARTER_LOCATION_ID`).
 - World tick is measured in milliseconds. If `tick` is omitted, tools use the current world tick.
+- `get-location-context` returns location data, exits, realms, ambient layers, nearby players, and recent events (supersedes legacy `World-*` tools).
 - `get-spatial-context` clamps `depth` to 1–5 (default: 2).
 - `get-recent-events` clamps `limit` to 1–100 (default: 20).
 
@@ -273,8 +262,8 @@ This section complements (does not duplicate) broader telemetry guidance in `obs
 
 Committee Example (Stage M6+):
 
-1. PlannerAgent (tools: world-query, lore-memory) drafts quest arc.
-2. CanonicalityAgent (tools: world-query) verifies entity & exit references.
+1. PlannerAgent (tools: WorldContext-*, Lore-*) drafts quest arc.
+2. CanonicalityAgent (tools: WorldContext-*) verifies entity & exit references.
 3. SafetyAgent (tools: classification) final moderation.
 4. Aggregator applies tie-break rules (e.g., shortest valid arc) then emits proposal.
 
@@ -401,32 +390,32 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 
 - Narrative Agent (DM persona)
     - Role: Produce player-facing narration, evaluate plausibility, and emit advisory proposals for world changes.
-    - Inputs: ActionFrame, world-query, lore-memory, character metadata.
+    - Inputs: ActionFrame, WorldContext-* tools, Lore-* tools, character metadata.
     - Outputs: narration text, advisory WorldEventEnvelope proposals.
 
 - Intent Parser Agent
     - Role: Convert free-form player text → structured ActionFrame(s) (verbs, targets, modifiers, order).
-    - Tools: local heuristics, optional fast model, `world-query` for disambiguation.
+    - Tools: local heuristics, optional fast model, WorldContext-* for disambiguation.
 
 - World Agent
     - Role: Apply deterministic mechanics (movement, inventory, time costs) and produce deterministic proposals when required.
-    - Tools: `world-query`, ActionRegistry, repository adapters.
+    - Tools: WorldContext-*, ActionRegistry, repository adapters.
 
 - Encounter / Resolution Agent
     - Role: Resolve interactive multi-actor scenarios (turns, resource consumption) and emit domain events or validated proposals.
-    - Tools: `world-query`, rule tables, ActionRegistry.
+    - Tools: WorldContext-*, rule tables, ActionRegistry.
 
 - Planner / Quest Agent
     - Role: Generate multi-step arcs (quest seeds, adventure scaffolds) for later validation and enactment.
-    - Tools: `lore-memory`, `simulation-planner`, `world-query`.
+    - Tools: Lore-*, simulation-planner (future), WorldContext-*.
 
 - Safety / Classification Agent
     - Role: Moderate and classify content; block or flag proposals violating safety policy.
-    - Tools: `classification-mcp`.
+    - Tools: classification-mcp (future).
 
 - Canonicality / Validator Agent
     - Role: Verify referential integrity and domain invariants before persistence (exits exist, entity resolution).
-    - Tools: `world-query`, shared validation functions.
+    - Tools: WorldContext-*, shared validation functions.
 
 - Aggregator / Orchestrator
     - Role: Combine multiple agent outputs, tie-break, attach correlation ids, and forward accepted work to the Validation & Policy pipeline.
@@ -440,13 +429,13 @@ The table below lists the primary MCP servers / backend helpers with their purpo
 
 | Server / Helper                      |            Stage | Representative methods                                                                                            | Auth / Notes                                                                                           |
 | ------------------------------------ | ---------------: | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| world-query                          |   M4 (read-only) | getRoom(roomId), getPlayerState(playerId), getNeighbors(roomId,depth), listRecentEvents(roomId,limit)             | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
-| lore-memory                          |               M4 | semanticSearchLore(query,k), getCanonicalFact(entityId)                                                           | Vector store access; sanitized snippets; auth via backend helper                                       |
-| classification-mcp                   |               M4 | classifyIntent(utterance), moderateContent(text)                                                                  | Requires model usage telemetry; used in Validation & Policy                                            |
-| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                  | Prefer server-side implementation; minimal world-query calls for resolution                            |
+| WorldContext-*                       |   M4 (read-only) | getLocationContext(locationId,tick), getPlayerContext(playerId,tick), getSpatialContext(locationId,depth), getRecentEvents(scope,scopeId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
+| Lore-*                               |               M4 | searchLore(query,k), getCanonicalFact(factId)                                                                     | Vector store access; sanitized snippets; auth via backend helper                                       |
+| classification-mcp                   |       M4 (future) | classifyIntent(utterance), moderateContent(text)                                                                  | Requires model usage telemetry; used in Validation & Policy                                            |
+| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                  | Prefer server-side implementation; minimal WorldContext calls for resolution                           |
 | prompt templates (shared)            | shared (not MCP) | getWorldTemplate(key) (seed); planned: getTemplate(name,version), listTemplates(tag), computePromptHash(template) | Templates live in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
 | world-mutation / proposal API        |       M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                                           | Protected; proposals must pass Validation & Policy gates before persistence                            |
-| simulation-planner                   |               M6 | simulateScenario(seed,steps), generateArc(seed,constraints)                                                       | Heavy compute; used offline or in gated background tasks                                               |
+| simulation-planner                   |       M6 (future) | simulateScenario(seed,steps), generateArc(seed,constraints)                                                       | Heavy compute; used offline or in gated background tasks                                               |
 | telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                                         | Curated aggregates only; no raw AppInsights surface exposed to agents                                  |
 
 _Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate limits, and correlate requests with operationId/correlationId for traceability.
