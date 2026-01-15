@@ -562,7 +562,7 @@ describe('Description Composer', () => {
             const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
             // Should use the newer hero-prose layer
-            assert.ok(result.text.includes('ancient oak gate'))
+            assert.ok(result.text.includes('ancient oak gate'), `Expected 'ancient oak gate', got: ${result.text}`)
             assert.ok(!result.text.includes('old gate stands here'))
             assert.ok(!result.text.includes('plain wooden gate'))
         })
@@ -614,7 +614,7 @@ describe('Description Composer', () => {
             const result = await composer.compileForLocation(locationId, context, { baseDescription })
 
             // Should use 'aaa-layer' (lexicographically first)
-            assert.ok(result.text.includes('A gate description'))
+            assert.ok(result.text.includes('A gate description'), `Expected 'A gate description', got: ${result.text}`)
             assert.ok(!result.text.includes('Z gate description'))
         })
 
