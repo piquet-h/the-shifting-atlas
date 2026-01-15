@@ -135,6 +135,26 @@ Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1
 - Fast Path (Trivial): direct patch → run tests → summarize
 - Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
 
+### 0.15 CI / Lint / Typecheck gate (Non‑negotiable)
+
+When working as a coding agent (including on GitHub.com), you MUST NOT stop after “opening a PR” if required checks are failing.
+
+Rules:
+
+1. Before finishing any change that touches runtime code, ensure **lint** and **typecheck** pass for the affected package(s).
+2. If a CI check fails (lint/typecheck/tests), you MUST:
+    - read the failure output,
+    - apply the smallest fix,
+    - push a follow-up commit,
+    - repeat until required checks are green.
+3. If you cannot run commands locally, treat CI as the source of truth and iterate until green.
+
+Default commands (from repo root):
+
+- `npm run lint` (or `npm run lint:<package>`)
+- `npm run typecheck` (or `npm run typecheck:<package>`)
+- `npm test` (only when runtime behavior changes; prefer package-scoped tests)
+
 ### 0.11 New Azure Function High‑Level Flow
 
 Use Appendix A checklist before committing: trigger chosen, validation, telemetry constant, idempotency note, tests (happy + invalid), risk tag.
