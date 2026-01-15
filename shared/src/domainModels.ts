@@ -452,6 +452,32 @@ export interface CanonicalFact {
     archivedUtc?: string
 }
 
+/**
+ * Minimal search result for lore-memory MCP search-lore tool.
+ * Returns ranked snippets rather than full CanonicalFact documents to prevent token bloat.
+ *
+ * Stable contract: Only this shape is returned by search-lore MCP tool.
+ * For full structured fact JSON, use get-canonical-fact tool.
+ *
+ * Future: Populated by semantic search with embeddings infrastructure.
+ */
+export interface LoreSearchResult {
+    /** Business identifier referencing the canonical fact (e.g., 'faction_shadow_council'). */
+    factId: string
+
+    /** Fact type classification ('faction', 'artifact', 'location_lore', etc.). */
+    type: FactType
+
+    /** Relevance score from semantic search (0-1 range, higher = more relevant). */
+    score: number
+
+    /** Brief text excerpt highlighting match context (guideline: ~200 chars max). */
+    snippet: string
+
+    /** Optional: Version number of the fact for audit trails. */
+    version?: number
+}
+
 // Future extension placeholders:
 // - NPC entity model
 // - Faction / Governance structures

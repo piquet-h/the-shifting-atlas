@@ -35,7 +35,11 @@ app.mcpTool('Lore-getCanonicalFact', {
 
 app.mcpTool('Lore-searchLore', {
     toolName: 'search-lore',
-    description: 'Search canonical lore facts. Currently returns empty array until semantic search is implemented.',
+    description:
+        'Search canonical lore facts and return ranked snippets. ' +
+        'Returns LoreSearchResult[] with {factId, type, score, snippet, version?} shape. ' +
+        'Currently returns empty array until semantic search is implemented. ' +
+        'For full structured fact JSON, use get-canonical-fact tool.',
     toolProperties: [
         {
             propertyName: 'query',
@@ -46,7 +50,7 @@ app.mcpTool('Lore-searchLore', {
         {
             propertyName: 'k',
             propertyType: 'number',
-            description: 'Optional. Max number of results (default: 5)',
+            description: 'Optional. Max number of results (default: 5, max: 20)',
             isRequired: false
         }
     ],

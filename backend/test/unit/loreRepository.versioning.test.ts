@@ -261,9 +261,46 @@ describe('LoreRepository Versioning (ADR-007)', () => {
         })
     })
 
-    describe('searchFacts (stub)', () => {
+    describe('searchFacts (stub with edge cases)', () => {
         it('returns empty array until embeddings implemented', async () => {
             const results = await repo.searchFacts('council', 5)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('returns empty array for empty query', async () => {
+            const results = await repo.searchFacts('', 5)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('returns empty array for whitespace query', async () => {
+            const results = await repo.searchFacts('   ', 5)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('clamps k to max of 20', async () => {
+            // With large k value, should not throw
+            const results = await repo.searchFacts('test', 1000)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('handles k=1 as valid minimum', async () => {
+            const results = await repo.searchFacts('test', 1)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('handles k=0 gracefully', async () => {
+            const results = await repo.searchFacts('test', 0)
+            assert.ok(Array.isArray(results))
+            assert.equal(results.length, 0)
+        })
+
+        it('handles negative k gracefully', async () => {
+            const results = await repo.searchFacts('test', -5)
             assert.ok(Array.isArray(results))
             assert.equal(results.length, 0)
         })
