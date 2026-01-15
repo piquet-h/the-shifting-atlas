@@ -412,5 +412,40 @@ describe('Description Composer', () => {
             assert.strictEqual(result.provenance.layers[0].id, layerId)
             assert.strictEqual(result.provenance.layers[0].layerType, 'dynamic')
         })
+
+        test('should use hero-prose layer instead of base description', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+            const heroProse = 'The ancient oak gate stands weathered but resolute.'
+
+            // Add hero-prose layer
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: heroProse,
+                priority: 100,
+                authoredAt: new Date().toISOString(),
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should use hero-prose instead of base
+            assert.ok(result.text.includes('ancient oak gate'))
+            assert.ok(!result.text.includes('plain wooden gate'))
+        })
     })
 })

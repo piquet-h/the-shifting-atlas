@@ -354,7 +354,7 @@ async function listFactVersions(
 - Seed script: `backend/scripts/seed-lore-facts.ts`
 - ADR-001: Mosswell Persistence & Layering (immutability patterns)
 - ADR-004: Player Store Cutover (SQL API document patterns)
-- Issue #38: Scaffold MCP servers (world-query + lore-memory)
+- Issue #38: Scaffold MCP servers (WorldContext + Lore)
 - Issue #729: Design versioning strategy for canonical lore facts
 - Architecture: `docs/architecture/agentic-ai-and-mcp.md` (lore-memory MCP)
 

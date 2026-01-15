@@ -18,8 +18,7 @@
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import { health } from '../../src/handlers/mcp/world-context/world-context.js'
-import { getLocation } from '../../src/handlers/mcp/world/world.js'
+import { health, getLocationContext } from '../../src/handlers/mcp/world-context/world-context.js'
 
 describe('MCP Boundary: Authentication (#428)', () => {
     let fixture: IntegrationTestFixture
@@ -62,7 +61,7 @@ describe('MCP Boundary: Authentication (#428)', () => {
         // Expect auth check to reject the request
 
         try {
-            await getLocation({ arguments: {} }, context)
+            await getLocationContext({ arguments: {} }, context)
             assert.fail('Should have thrown authentication error')
         } catch (err) {
             assert.ok(err instanceof Error, 'Should throw error')

@@ -10,7 +10,6 @@ import { LinkRoomsHandler } from '../handlers/linkRooms.js'
 import { LocationLookHandler } from '../handlers/locationLook.js'
 import { LoreMemoryHandler } from '../handlers/mcp/lore-memory/lore-memory.js'
 import { WorldContextHandler } from '../handlers/mcp/world-context/world-context.js'
-import { WorldHandler } from '../handlers/mcp/world/world.js'
 import { MoveHandler } from '../handlers/moveCore.js'
 import { PingHandler } from '../handlers/ping.js'
 import { SimplePingHandler } from '../handlers/pingSimple.js'
@@ -27,7 +26,6 @@ export const HANDLER_CLASSES = [
     BootstrapPlayerHandler,
 
     // MCP handlers (resolved by wrapper functions)
-    WorldHandler,
     WorldContextHandler,
     LoreMemoryHandler,
 

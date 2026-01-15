@@ -28,7 +28,7 @@ Milestone: M0 Foundation
 ```
 
 ```text
-Title: MCP Read-Only Servers (world-query, lore-memory, classification)
+Title: MCP Read-Only Servers (WorldContext, Lore, classification)
 Labels: scope:mcp, feature
 Priority Basis: Milestone (M4) + enables AI read capabilities
 Milestone: M4 AI Read
