@@ -150,10 +150,10 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
         // Verify structure per issue spec
         assert.ok(Array.isArray(parsed))
         assert.ok(parsed.length > 0)
-        assert.ok(parsed.some((e: any) => e.id === recentEvent.id))
+        assert.ok(parsed.some((e: { id?: string }) => e.id === recentEvent.id))
 
         // Verify event summary shape (only required fields per spec)
-        const eventSummary = parsed.find((e: any) => e.id === recentEvent.id)
+        const eventSummary = parsed.find((e: { id?: string }) => e.id === recentEvent.id)
         assert.ok(eventSummary)
         assert.equal(eventSummary.id, recentEvent.id)
         assert.equal(eventSummary.eventType, recentEvent.eventType)
@@ -204,7 +204,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
 
         assert.ok(Array.isArray(parsed))
         assert.ok(parsed.length > 0)
-        assert.ok(parsed.some((e: any) => e.id === playerEvent.id))
+        assert.ok(parsed.some((e: { id?: string }) => e.id === playerEvent.id))
     })
 
     test('getRecentEvents respects limit parameter (default 20, max 100)', async () => {
@@ -354,7 +354,7 @@ describeForBothModes('WorldContext spatial & events (integration)', (mode) => {
 
         assert.ok(Array.isArray(events))
         assert.ok(events.length > 0)
-        assert.ok(events.some((e: any) => e.id === evt.id))
+        assert.ok(events.some((e: { id?: string }) => e.id === evt.id))
 
         // Verify both queries completed successfully
         assert.equal(spatial.locationId, locationId)

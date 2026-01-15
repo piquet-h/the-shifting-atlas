@@ -7,12 +7,27 @@ import {
     getSpatialContext,
     health
 } from '../../handlers/mcp/world-context/world-context.js'
+import { wrapMcpToolHandler } from '../auth/mcpAuth.js'
+
+function parseCsvEnv(name: string): string[] | undefined {
+    const raw = process.env[name]
+    if (!raw) return undefined
+    const parts = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    return parts.length > 0 ? parts : undefined
+}
 
 app.mcpTool('WorldContext-health', {
     toolName: 'health',
     description: 'Health check tool for the World Context MCP surface.',
     toolProperties: [],
-    handler: health
+    handler: wrapMcpToolHandler({
+        toolName: 'health',
+        handler: health,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('WorldContext-getLocationContext', {
@@ -33,7 +48,11 @@ app.mcpTool('WorldContext-getLocationContext', {
             isRequired: false
         }
     ],
-    handler: getLocationContext
+    handler: wrapMcpToolHandler({
+        toolName: 'get-location-context',
+        handler: getLocationContext,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('WorldContext-getPlayerContext', {
@@ -54,7 +73,11 @@ app.mcpTool('WorldContext-getPlayerContext', {
             isRequired: false
         }
     ],
-    handler: getPlayerContext
+    handler: wrapMcpToolHandler({
+        toolName: 'get-player-context',
+        handler: getPlayerContext,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('WorldContext-getAtmosphere', {
@@ -74,7 +97,11 @@ app.mcpTool('WorldContext-getAtmosphere', {
             isRequired: false
         }
     ],
-    handler: getAtmosphere
+    handler: wrapMcpToolHandler({
+        toolName: 'get-atmosphere',
+        handler: getAtmosphere,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('WorldContext-getSpatialContext', {
@@ -95,7 +122,11 @@ app.mcpTool('WorldContext-getSpatialContext', {
             isRequired: false
         }
     ],
-    handler: getSpatialContext
+    handler: wrapMcpToolHandler({
+        toolName: 'get-spatial-context',
+        handler: getSpatialContext,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('WorldContext-getRecentEvents', {
@@ -122,5 +153,9 @@ app.mcpTool('WorldContext-getRecentEvents', {
             isRequired: false
         }
     ],
-    handler: getRecentEvents
+    handler: wrapMcpToolHandler({
+        toolName: 'get-recent-events',
+        handler: getRecentEvents,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })

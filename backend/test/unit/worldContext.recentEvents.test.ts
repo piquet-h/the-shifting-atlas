@@ -9,6 +9,12 @@ import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 describe('WorldContext getRecentEvents (unit)', () => {
     let fixture: UnitTestFixture
 
+    type QueryByScopeOptions = { limit?: number; order?: string }
+    type QueryByScopeResult = { events: WorldEventRecord[]; ruCharge: number; latencyMs: number; hasMore: boolean }
+    type WorldEventRepoWithOverride = {
+        queryByScope: (scopeKey: string, options: QueryByScopeOptions) => Promise<QueryByScopeResult>
+    }
+
     beforeEach(async () => {
         fixture = new UnitTestFixture()
         await fixture.setup()
@@ -35,7 +41,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         ]
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async (scopeKey: string, options: QueryByScopeOptions) => {
             assert.equal(scopeKey, buildLocationScopeKey(locationId))
             assert.equal(options.limit, 20, 'Should use default limit of 20')
             assert.equal(options.order, 'desc')
@@ -84,7 +90,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         ]
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async (scopeKey: string, options: QueryByScopeOptions) => {
             assert.equal(scopeKey, buildPlayerScopeKey(playerId))
             assert.equal(options.limit, 20)
             return { events: mockEvents, ruCharge: 1.2, latencyMs: 30, hasMore: false }
@@ -104,7 +110,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         const customLimit = 10
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async (_scopeKey: string, options: QueryByScopeOptions) => {
             assert.equal(options.limit, customLimit, 'Should use custom limit')
             return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
         }
@@ -118,7 +124,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         const requestedLimit = 200
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async (_scopeKey: string, options: QueryByScopeOptions) => {
             assert.equal(options.limit, 100, 'Should clamp to max 100')
             return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
         }
@@ -131,7 +137,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         const locationId = randomUUID()
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async () => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async () => {
             return { events: [], ruCharge: 0.5, latencyMs: 10, hasMore: false }
         }
 
@@ -204,7 +210,7 @@ describe('WorldContext getRecentEvents (unit)', () => {
         ]
 
         const eventRepo = await fixture.getWorldEventRepository()
-        ;(eventRepo as any).queryByScope = async (scopeKey: string, options: any) => {
+        ;(eventRepo as unknown as WorldEventRepoWithOverride).queryByScope = async (_scopeKey: string, options: QueryByScopeOptions) => {
             assert.equal(options.order, 'desc', 'Should request descending order')
             // Repository returns pre-sorted events (newest first)
             return { events: mockEvents, ruCharge: 3.0, latencyMs: 50, hasMore: false }

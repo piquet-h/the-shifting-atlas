@@ -1,5 +1,16 @@
 import { app } from '@azure/functions'
 import { getLocation, listExits } from '../../handlers/mcp/world/world.js'
+import { wrapMcpToolHandler } from '../auth/mcpAuth.js'
+
+function parseCsvEnv(name: string): string[] | undefined {
+    const raw = process.env[name]
+    if (!raw) return undefined
+    const parts = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    return parts.length > 0 ? parts : undefined
+}
 
 app.mcpTool('World-getLocation', {
     toolName: 'get-location',
@@ -13,7 +24,11 @@ app.mcpTool('World-getLocation', {
             isRequired: false
         }
     ],
-    handler: getLocation
+    handler: wrapMcpToolHandler({
+        toolName: 'get-location',
+        handler: getLocation,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
 
 app.mcpTool('World-listExits', {
@@ -28,5 +43,9 @@ app.mcpTool('World-listExits', {
             isRequired: false
         }
     ],
-    handler: listExits
+    handler: wrapMcpToolHandler({
+        toolName: 'list-exits',
+        handler: listExits,
+        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
+    })
 })
