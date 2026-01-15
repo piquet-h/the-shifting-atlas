@@ -88,12 +88,14 @@ export class DescriptionComposer {
         const heroProse = selectHeroProse(allLayers)
         let effectiveBase = originalBaseDescription
         let heroProseFallback = false
+        let heroProseUsed: DescriptionLayer | null = null
 
         if (heroProse) {
             const heroContent = heroProse.value ?? heroProse.content ?? ''
             if (isValidHeroProseContent(heroContent)) {
                 // Use hero-prose as effective base
                 effectiveBase = heroContent
+                heroProseUsed = heroProse
             } else {
                 // Hero-prose invalid, fall back to original base
                 heroProseFallback = true
@@ -114,7 +116,7 @@ export class DescriptionComposer {
         const maskedBase = this.applySupersedeMaskToBase(effectiveBase, activeLayers)
 
         // 5. Assemble layers in deterministic order
-        const { text, provenance } = this.assembleLayers(maskedBase, activeLayers, locationId, context)
+        const { text, provenance } = this.assembleLayers(maskedBase, activeLayers, locationId, context, heroProseUsed)
 
         // 6. Convert to HTML
         const html = this.markdownToHtml(text)
@@ -271,16 +273,29 @@ export class DescriptionComposer {
      * @param activeLayers - Active non-base layers
      * @param locationId - Location ID for provenance
      * @param context - View context for provenance
+     * @param heroProseUsed - Hero-prose layer that replaced the base (if any)
      * @returns Assembled text and provenance metadata
      */
     private assembleLayers(
         maskedBase: string,
         activeLayers: DescriptionLayer[],
         locationId: string,
-        context: ViewContext
+        context: ViewContext,
+        heroProseUsed: DescriptionLayer | null = null
     ): { text: string; provenance: CompiledProvenance } {
         const sections: string[] = []
         const provenanceLayers: LayerProvenance[] = []
+
+        // If hero-prose was used, add it to provenance first with replacedBase flag
+        if (heroProseUsed) {
+            provenanceLayers.push({
+                id: heroProseUsed.id,
+                layerType: heroProseUsed.layerType,
+                priority: heroProseUsed.priority ?? 0,
+                authoredAt: heroProseUsed.authoredAt,
+                replacedBase: true
+            })
+        }
 
         // Add base (if not fully superseded)
         if (maskedBase.trim().length > 0) {

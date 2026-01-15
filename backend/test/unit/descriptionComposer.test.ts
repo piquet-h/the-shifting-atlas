@@ -447,5 +447,259 @@ describe('Description Composer', () => {
             assert.ok(result.text.includes('ancient oak gate'))
             assert.ok(!result.text.includes('plain wooden gate'))
         })
+
+        test('should fall back to base description when hero layer content is invalid (empty)', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+
+            // Add hero-prose layer with empty content (invalid)
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: '   ', // whitespace-only is invalid
+                priority: 100,
+                authoredAt: new Date().toISOString(),
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should fall back to base description
+            assert.ok(result.text.includes('plain wooden gate'))
+        })
+
+        test('should fall back to base description when hero layer content exceeds length limit', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+
+            // Add hero-prose layer with content exceeding 1200 char limit (invalid)
+            const tooLongContent = 'A'.repeat(1201)
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: tooLongContent,
+                priority: 100,
+                authoredAt: new Date().toISOString(),
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should fall back to base description
+            assert.ok(result.text.includes('plain wooden gate'))
+            assert.ok(!result.text.includes(tooLongContent))
+        })
+
+        test('should select most recent hero layer when multiple exist (different promptHash)', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+
+            // Add older hero-prose layer
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: 'An old gate stands here.', // older prose
+                priority: 100,
+                authoredAt: '2026-01-10T10:00:00Z',
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            // Add newer hero-prose layer with different prompt
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: 'The ancient oak gate stands weathered but resolute.', // newer prose
+                priority: 100,
+                authoredAt: '2026-01-15T14:00:00Z',
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v2'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should use the newer hero-prose layer
+            assert.ok(result.text.includes('ancient oak gate'))
+            assert.ok(!result.text.includes('old gate stands here'))
+            assert.ok(!result.text.includes('plain wooden gate'))
+        })
+
+        test('should use lexicographic ID tie-breaker when hero layers have same authoredAt', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+            const sameTimestamp = '2026-01-15T10:00:00Z'
+
+            // Add hero-prose layer with ID 'zzz-layer'
+            await layerRepo.addLayer({
+                id: 'zzz-layer',
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: 'Z gate description.',
+                priority: 100,
+                authoredAt: sameTimestamp,
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            // Add hero-prose layer with ID 'aaa-layer' (should win tie-break)
+            await layerRepo.addLayer({
+                id: 'aaa-layer',
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: 'A gate description.',
+                priority: 100,
+                authoredAt: sameTimestamp,
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v2'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should use 'aaa-layer' (lexicographically first)
+            assert.ok(result.text.includes('A gate description'))
+            assert.ok(!result.text.includes('Z gate description'))
+        })
+
+        test('should include hero layer in provenance with replacedBase indicator', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+            const heroProse = 'The ancient oak gate stands weathered but resolute.'
+            const heroLayerId = crypto.randomUUID()
+
+            // Add hero-prose layer
+            await layerRepo.addLayer({
+                id: heroLayerId,
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: heroProse,
+                priority: 100,
+                authoredAt: new Date().toISOString(),
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should include hero layer in provenance
+            assert.ok(result.provenance.layers.length > 0)
+            const heroProvenanceLayer = result.provenance.layers.find((l) => l.id === heroLayerId)
+            assert.ok(heroProvenanceLayer, 'Hero layer should be in provenance')
+            assert.strictEqual(heroProvenanceLayer?.replacedBase, true, 'Should indicate it replaced base')
+        })
+
+        test('should apply other layers on top of hero prose', async () => {
+            const composer = await fixture.getDescriptionComposer()
+            const layerRepo = await fixture.getLayerRepository()
+            const locationId = crypto.randomUUID()
+
+            const baseDescription = 'A plain wooden gate.'
+            const heroProse = 'The ancient oak gate stands weathered but resolute.'
+
+            // Add hero-prose layer
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                scopeId: `loc:${locationId}`,
+                layerType: 'dynamic',
+                value: heroProse,
+                priority: 100,
+                authoredAt: new Date().toISOString(),
+                metadata: {
+                    replacesBase: true,
+                    role: 'hero',
+                    promptHash: 'test-prompt-v1'
+                }
+            })
+
+            // Add ambient layer (should appear after hero prose)
+            await layerRepo.addLayer({
+                id: crypto.randomUUID(),
+                locationId,
+                layerType: 'ambient',
+                content: 'Rain drips from the hinges.',
+                priority: 50,
+                authoredAt: new Date().toISOString()
+            })
+
+            const context: ViewContext = {
+                timestamp: new Date().toISOString()
+            }
+
+            const result = await composer.compileForLocation(locationId, context, { baseDescription })
+
+            // Should have hero prose + ambient layer
+            assert.ok(result.text.includes('ancient oak gate'))
+            assert.ok(result.text.includes('Rain drips'))
+            assert.ok(!result.text.includes('plain wooden gate'))
+        })
     })
 })
