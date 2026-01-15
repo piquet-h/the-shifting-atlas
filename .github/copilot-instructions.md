@@ -34,7 +34,13 @@ Keep the always-on layers (1–3) concise and directive. Put deep, task-specific
 4. **Refactor if needed** — tests stay GREEN
 
 **This applies to:** Features, bug fixes, API changes, refactors.
-**Exceptions only:** Pure docs, config without runtime logic, exploratory spikes (which never merge without tests).
+**Exceptions only:** Pure docs, config without runtime logic, exploratory spikes (which never merge without tests), and repository scripts.
+
+Script exception scope:
+
+- Files under `scripts/**` and `.github/skills/**/scripts/**` may be written without TDD.
+- These scripts MUST still be validated by running them (and documenting how to run them in the relevant Skill).
+- If a script impacts CI/build/deploy behavior, treat it as `BUILD-SCRIPT` risk and add extra verification.
 
 See Section 10.1 for full TDD workflow details.
 
@@ -155,13 +161,7 @@ When investigating **runtime behavior issues** (hanging, performance, memory lea
 
 #### Hanging Process
 
-```bash
-# Get PID, wait for symptom, then immediately:
-lsof -p $PID | head -50              # Open file descriptors
-lsof -p $PID | grep -v "REG|DIR|CHR" # Active connections/sockets
-kill -SIGUSR1 $PID                   # Trigger diagnostic dump (if supported)
-npx why-is-node-running              # Node-specific event loop analysis
-```
+Use the `test-triage` skill for the full “what’s keeping Node alive?” workflow, including recommended commands and interpretation.
 
 #### Memory Leak
 

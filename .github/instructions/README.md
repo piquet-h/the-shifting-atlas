@@ -30,6 +30,11 @@ are automatically applied as path-scoped custom instructions.
 4. **Agent Skills (on-demand; progressive disclosure)**
 
 - `../skills/world-content-generation/`
+- `../skills/exit-consistency-audit/`
+- `../skills/prompts-quality-gate/`
+- `../skills/test-triage/`
+- `../skills/functions-local-dev/`
+- `../skills/shared-release-workflow/`
 
 For governance/notes, see `INVENTORY.md`.
 

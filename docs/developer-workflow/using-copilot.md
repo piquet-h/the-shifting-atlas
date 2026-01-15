@@ -16,6 +16,29 @@ This repository includes custom Copilot agents (located in `.github/agents/`) th
 
 **Agent File Format**: Agents are stored under `.github/agents/` and use the `.agent.md` suffix. Prefer YAML frontmatter for metadata (`name`, `description`, `tools`, `handoffs`, etc.), followed by clear instructions.
 
+## Agent Skills (recommended for repeatable workflows)
+
+Agent Skills are **on-demand** bundles of instructions + optional scripts/resources that Copilot can load when relevant.
+Store project skills under:
+
+- `.github/skills/<skill-name>/SKILL.md`
+- optional: `.github/skills/<skill-name>/scripts/**`
+
+This repository currently maintains these project skills:
+
+- `world-content-generation` — lore/world/prompt authoring rules
+- `exit-consistency-audit` — run & interpret exit graph consistency scans
+- `prompts-quality-gate` — validate + bundle prompt templates
+- `test-triage` — failing tests + “Node won’t exit” workflows
+- `functions-local-dev` — backend Azure Functions local dev loop
+- `shared-release-workflow` — shared→backend two-stage workflow + cross-package detection
+
+### TDD scope note
+
+Runtime code changes follow TDD.
+
+Scripts under `scripts/**` and `.github/skills/**/scripts/**` may be written without TDD, but must still be validated by running them (and keeping usage instructions in the relevant Skill).
+
 ## Core Principles
 
 1. Always anchor a change in a design doc (architecture module, gameplay system, or world rule) – reference the file path in your PR description.
@@ -65,6 +88,8 @@ Discard suggestions that:
 
 If you change cross-cutting workflow rules, update `.github/copilot-instructions.md`.
 If you change module-specific conventions, update the relevant path-specific instruction file under `.github/instructions/**` and/or the module’s `AGENTS.md`.
+
+If you add or change a repeatable workflow (tests, debugging, prompt pipelines, exit audits), prefer adding/updating an Agent Skill under `.github/skills/**`.
 
 ## Security & Secrets
 

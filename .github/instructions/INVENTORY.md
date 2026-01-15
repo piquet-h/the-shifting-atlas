@@ -33,6 +33,11 @@
 ## Skills (Progressive disclosure)
 
 - `../skills/world-content-generation/` — detailed world/lore/prompt authoring procedures, loaded on-demand.
+- `../skills/exit-consistency-audit/` — run & interpret exit graph consistency scans.
+- `../skills/prompts-quality-gate/` — validate + bundle prompt templates (shared prompts pipeline).
+- `../skills/test-triage/` — repeatable workflow for test failures and Node “won’t exit” hangs.
+- `../skills/functions-local-dev/` — canonical local dev loop for Azure Functions backend.
+- `../skills/shared-release-workflow/` — two-stage shared→backend workflow + cross-package detection.
 
 ## Retention Criteria
 
