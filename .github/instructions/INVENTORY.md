@@ -28,6 +28,8 @@ applyTo: '**'
 ## Non-.github Instruction Artifacts
 
 - `docs/AGENTS.md` — documentation-specific agent guidance for anything under `docs/` (MECE layering + anti-duplication rules).
+- `backend/AGENTS.md` — backend-specific agent guidance for anything under `backend/` (delegates to `.github/instructions/backend/.instructions.md`).
+- `frontend/AGENTS.md` — frontend-specific agent guidance for anything under `frontend/` (delegates to `.github/instructions/frontend/.instructions.md`).
 
 ## Retention Criteria
 

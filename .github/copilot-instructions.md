@@ -232,35 +232,13 @@ Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness 
 
 ## 5. Cosmos DB SQL API Containers (Post Dual Persistence Cutover)
 
-Environment variables (wired in Bicep, available in Functions):
+Backend-specific container/env-var mapping now lives closer to the code:
 
-- `COSMOS_SQL_ENDPOINT` – SQL API account endpoint
-- `COSMOS_SQL_DATABASE` – Database name (`game`)
-- `COSMOS_SQL_CONTAINER_PLAYERS` – `players` (PK: `/id`)
-- `COSMOS_SQL_CONTAINER_INVENTORY` – `inventory` (PK: `/playerId`)
-- `COSMOS_SQL_CONTAINER_LAYERS` – `descriptionLayers` (PK: `/locationId` today; `/scopeId` migration in progress)
-- `COSMOS_SQL_CONTAINER_EVENTS` – `worldEvents` (PK: `/scopeKey`)
-- `COSMOS_SQL_CONTAINER_PROCESSED_EVENTS` – `processedEvents` (PK: `/idempotencyKey`)
-- `COSMOS_SQL_CONTAINER_DEADLETTERS` – `deadLetters` (PK: `/partitionKey`)
-- `COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE` – `exitHintDebounce` (PK: `/scopeKey`)
-- `COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER` – `temporalLedger` (PK: `/scopeKey`)
-- `COSMOS_SQL_CONTAINER_WORLD_CLOCK` – `worldClock` (PK: `/id`)
-- `COSMOS_SQL_CONTAINER_LOCATION_CLOCKS` – `locationClocks` (PK: `/id`)
+- `backend/AGENTS.md` (quick reference)
+- `backend/src/persistenceConfig.ts` (authoritative source)
+- `backend/local.settings*.json` (local examples)
 
-Access pattern: Use `@azure/cosmos` SDK with Azure AD (Managed Identity) for production; avoid account keys.
-Partition key patterns (unchanged – reaffirmed post ADR-004):
-
-- Players: Player GUID as PK value (authoritative store only; no Gremlin vertex).
-- Inventory: Player GUID to colocate all items for a player.
-- Layers: Location GUID to colocate all layers for a location.
-- Events: Scope pattern `loc:<id>` or `player:<id>` for efficient timeline queries.
-
-Cutover Notes (ADR-004):
-
-- Removed feature flag `DISABLE_GREMLIN_PLAYER_VERTEX`.
-- Eliminated telemetry events `Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`.
-- Player bootstrap now directly creates SQL PlayerDoc projection; Gremlin used only for spatial world entities.
-- Rollback (unlikely): Reintroduce archived player Gremlin vertex module + dual write-through events; document in ADR-004 rollback section.
+Access pattern: use `@azure/cosmos` with Azure AD (Managed Identity in prod; DefaultAzureCredential locally).
 
 ---
 
