@@ -31,6 +31,7 @@ applyTo: '**'
 - `backend/AGENTS.md` — backend-specific agent guidance for anything under `backend/` (delegates to `.github/instructions/backend/.instructions.md`).
 - `frontend/AGENTS.md` — frontend-specific agent guidance for anything under `frontend/` (delegates to `.github/instructions/frontend/.instructions.md`).
 - `infrastructure/AGENTS.md` — infrastructure-specific agent guidance for anything under `infrastructure/` (Bicep guardrails; points to `infrastructure/README.md`).
+- `shared/AGENTS.md` — shared package agent guidance for anything under `shared/` (package boundaries + publishing workflow; points to `shared/README.md`).
 
 ## Retention Criteria
 
