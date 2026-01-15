@@ -28,7 +28,7 @@ Excluded: progress stage tables, atomic issue lists, deployment scripts, persist
 3. Do not add delivery step checklists—create execution issues instead.
 4. Automation will propose atomic issues for invariant / scope changes; review before merging.
 
-Reference: Full facet segregation policy lives in `.github/copilot-instructions.md` Section 18 (authoritative boundaries & review heuristics).
+Reference: Full documentation layering and boundaries live in `../AGENTS.md`.
 
 ## Automation Governance
 
@@ -59,12 +59,12 @@ Add string `<!-- concept-automation:ignore -->` to a changed line to suppress de
 
 ## Related Documentation
 
-| Layer           | Document                        | Purpose                                    |
-| --------------- | ------------------------------- | ------------------------------------------ |
-| Vision          | Root `README.md`                | High-level vision and narrative            |
-| Tenets          | `../tenets.md`                  | Non-negotiable decision principles         |
-| Architecture    | `../architecture/`              | Technical persistence, integration         |
-| Roadmap         | `../roadmap.md`                 | Milestone planning and progress tracking   |
+| Layer        | Document           | Purpose                                  |
+| ------------ | ------------------ | ---------------------------------------- |
+| Vision       | Root `README.md`   | High-level vision and narrative          |
+| Tenets       | `../tenets.md`     | Non-negotiable decision principles       |
+| Architecture | `../architecture/` | Technical persistence, integration       |
+| Roadmap      | `../roadmap.md`    | Milestone planning and progress tracking |
 
 ---
 

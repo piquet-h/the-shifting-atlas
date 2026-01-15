@@ -5,7 +5,7 @@ applyTo: '**'
 
 # Copilot Quickref
 
-Arch: SWA (React+Vite+Tailwind) + Azure Functions + API Mgmt + Service Bus + Cosmos (Gremlin + SQL dual persistence) + App Insights.
+Arch: SWA (React+Vite+Tailwind) + Azure Functions + Azure ServiceBus + Cosmos (Gremlin + SQL) + App Insights.
 
 Graph (Gremlin): Locations | NPCs (spatial edges). Documents (SQL): Players | Inventory | Description Layers | Events. Edges = semantic (exits: north,south,east,west,up,down,in,out). IDs = GUID.
 
@@ -25,7 +25,8 @@ Labels:
 - Epic: one `scope:*` + `epic` (no type label).
   No legacy `area:*`, `phase-*`, `priority:*`.
 
-Milestones: M0 (ID 1) | M1 (ID 2) | M2 (ID 3) | M3 (ID 4) | M4 (ID 5) | M5 (ID 7) | M6 (ID 8). Names: "M4 Layering & Enrichment", "M6 Dungeon Runs". **Search by full name (`milestone:"M1 Traversal"`) not shorthand ("M1").**
+Milestones change over time. Prefer `docs/roadmap.md` as the human source-of-truth.
+When searching, use the milestone title (for example: `milestone:"M1 Traversal"`) rather than shorthand strings.
 
 Project implementation-order & scheduling automation has been removed (legacy docs referencing it are deprecated).
 
@@ -40,6 +41,6 @@ Do Not: Poll loops | duplicate labels | hardcode telemetry strings | lore walls 
 Additions: New scope/milestone → update labels + roadmap + compact guide + reference ADR.
 
 Detail: `./copilot-instructions.md` | Language/style: `./copilot-language-style.md`
-Last reviewed: 2025-12-06
+Last reviewed: 2026-01-15
 
 Commit Policy: PROPOSE ONLY (no auto stage/commit) unless user says: `stage now` / `commit now` / `open PR`.

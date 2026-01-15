@@ -7,6 +7,21 @@ applyTo: '**'
 
 Source of truth for daily generation. Quick mnemonic: `./copilot-quickref.md`. Language/style specifics: `./copilot-language-style.md`.
 
+## Where Copilot gets instructions (MECE)
+
+Copilot behavior is shaped by multiple instruction sources:
+
+1. **Repository-wide instructions** (always-on)
+    - `.github/copilot-instructions.md` (this file)
+2. **Path-specific instructions** (always-on when files match the glob; used by coding agent + code review)
+    - `.github/instructions/**/*.instructions.md`
+3. **Agent instructions** (nearest `AGENTS.md`; used by agents, not guaranteed for code review)
+    - `backend/AGENTS.md`, `frontend/AGENTS.md`, `shared/AGENTS.md`, `infrastructure/AGENTS.md`, `docs/AGENTS.md`
+4. **Agent Skills** (on-demand; progressive disclosure)
+    - `.github/skills/**`
+
+Keep the always-on layers (1–3) concise and directive. Put deep, task-specific procedures into Skills.
+
 ---
 
 ## ⚠️ CRITICAL: TDD-First Development (Non-Negotiable)
@@ -259,7 +274,7 @@ Avoid noisy high‑cardinality ad‑hoc logs.
 
 Store prompts under `shared/src/prompts/`.
 Reference doc filenames instead of pasting lore blocks.
-World content generation: see `.github/instructions/world/.instructions.md`.
+World content generation: use `.github/skills/world-content-generation/` (on-demand).
 
 ---
 
@@ -274,9 +289,10 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 
 ### 8.1 Milestone ID vs Name Reference (IMPORTANT)
 
-**When searching/filtering issues by milestone, use the milestone ID number, not the name.**
+**Milestones have both a numeric ID ("number") and a display title.**
 
-GitHub milestones have both a numeric ID and a display name. The GitHub MCP search tools require the ID.
+- **Searching/filtering (GitHub search syntax):** use the milestone _title_ (for example: `milestone:"M1 Traversal"`).
+- **Assigning/updating milestones via API:** use the milestone _number_.
 
 | Milestone Name            | Milestone ID | Status   | Focus                                                                 | Search Example                                             |
 | ------------------------- | ------------ | -------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -903,7 +919,7 @@ Each child then receives its atomic template.
 
 ---
 
-Last reviewed: 2025-10-29
+Last reviewed: 2026-01-15
 
 ---
 

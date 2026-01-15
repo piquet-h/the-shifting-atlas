@@ -11,3 +11,7 @@ Key rules (docs-only):
 - Avoid planning leakage in `docs/design-modules/` and `docs/concept/`.
 - Prefer relative links; do not duplicate large blocks across layers.
 - Do not change runtime code when asked to update docs unless explicitly requested.
+
+---
+
+Last reviewed: 2026-01-15

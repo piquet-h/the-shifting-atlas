@@ -100,7 +100,7 @@ The dual persistence pattern (ADR-002) uses Cosmos DB SQL API for mutable player
 - **`descriptionLayers`** (PK: `/locationId`) – Description variation layers partitioned by location GUID. Weather, structural, and faction-specific overlays colocated with their location context.
 - **`worldEvents`** (PK: `/scopeKey`) – **PLANNED**: World event audit log using scope pattern (`loc:<id>` or `player:<id>`) for persistent event history with status tracking. Uses WorldEvent interface from domainModels.ts. Implementation deferred; container provisioned for future use. See [world-event-contract.md](world-event-contract.md) for active queue-based WorldEventEnvelope specification.
 
-**Access pattern:** Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret. Environment variables configured in Bicep (see `.github/copilot-instructions.md` Section 5 for complete configuration details).
+**Access pattern:** Use `@azure/cosmos` SDK with Managed Identity (preferred) or Key Vault secret. For the authoritative environment variable mapping, see `backend/src/persistenceConfig.ts` (code) and `infrastructure/main.bicep` (wiring).
 
 ## Security & Identity Roadmap
 

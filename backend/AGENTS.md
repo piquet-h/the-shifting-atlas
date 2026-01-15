@@ -7,14 +7,14 @@ It is intended to apply when editing anything under `backend/`.
 ## Scope
 
 - This package is the Azure Functions backend (HTTP player actions + queue-triggered world processing).
-- Follow the detailed backend delta rules in `.github/instructions/backend/.instructions.md` (authoritative).
+- Follow the detailed backend delta rules in `../.github/instructions/backend/.instructions.md` (authoritative).
 - Prefer minimal, test-driven changes.
 
 ## Fast orientation
 
 - Backend overview and local workflow: `backend/README.md`
-- Detailed backend implementation conventions: `.github/instructions/backend/.instructions.md`
-- Cross-cutting rules (telemetry, shared package policy, etc.): `.github/copilot-instructions.md`
+- Detailed backend implementation conventions: `../.github/instructions/backend/.instructions.md`
+- Cross-cutting rules (telemetry, shared package policy, etc.): `../.github/copilot-instructions.md`
 
 ## Local dev (preferred)
 
@@ -78,7 +78,7 @@ Configure Service Bus via:
 ## Testing expectations
 
 - Backend changes should have tests (TDD for runtime logic changes).
-- Respect the test layering guidance (unit vs integration) described in `.github/copilot-instructions.md` and backend test fixtures.
+- Respect the test layering guidance (unit vs integration) described in `../.github/copilot-instructions.md` and backend test fixtures.
 
 ## High-signal guardrails
 

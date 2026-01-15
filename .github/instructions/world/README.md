@@ -1,12 +1,14 @@
 # World Module Instructions Index
 
-This directory contains Copilot instructions specific to world design, lore generation, and content creation for The Shifting Atlas.
+This directory contains the minimal, always-on Copilot instructions for world prompt authoring.
 
 ## Files
 
--   `.instructions.md` - Comprehensive world design and content generation guidelines
--   `README.md` - This index file
+- `.instructions.md` - **Prompt-authoring delta only** (scoped to `shared/src/prompts/**`)
+- `README.md` - This index file
 
-These instructions help ensure all generated world content maintains narrative consistency, integrates properly with D&D mechanics, and supports the game's core vision of emergent storytelling in a persistent, AI-driven fantasy world.
+For detailed, on-demand guidance (lore, locations, NPCs, factions, quests), use the Agent Skill:
 
-_Last reviewed: 2025-10-29_
+- `.github/skills/world-content-generation/SKILL.md`
+
+Last reviewed: 2026-01-15

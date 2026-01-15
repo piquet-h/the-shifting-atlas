@@ -39,14 +39,14 @@ flowchart TD
 
 **Note**: These are **common patterns** observed in typical gameplay. AI agents may classify edge cases differently based on narrative context.
 
-| Event Category              | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget               | Typical Examples                                         |
-| --------------------------- | -------------- | ----------------------------- | ------------------------ | ---------------------------- | -------------------------------------------------------- |
-| **Personal State Change**   | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                       | Move north, Pick up item, Look around, Check inventory   |
-| **Shared World Effect**     | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s | Set fire to forest, Trigger avalanche, Plant seed        |
-| **NPC Awareness (Basic)**   | Player HTTP    | ✅ Synchronous                | ❌ None                  | <500ms                       | NPC notices player, Guard greeting, Shopkeeper welcome   |
-| **NPC Behavior (Complex)**  | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                          | NPC alerts others, Enemy aggro spreads, NPC flees/moves  |
-| **System Evolution**        | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                         | Weather change, Day/night cycle, Resource respawn        |
-| **AI Generation**           | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                         | Description enrichment, Dynamic lore, Quest generation   |
+| Event Category             | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget               | Typical Examples                                        |
+| -------------------------- | -------------- | ----------------------------- | ------------------------ | ---------------------------- | ------------------------------------------------------- |
+| **Personal State Change**  | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                       | Move north, Pick up item, Look around, Check inventory  |
+| **Shared World Effect**    | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s | Set fire to forest, Trigger avalanche, Plant seed       |
+| **NPC Awareness (Basic)**  | Player HTTP    | ✅ Synchronous                | ❌ None                  | <500ms                       | NPC notices player, Guard greeting, Shopkeeper welcome  |
+| **NPC Behavior (Complex)** | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                          | NPC alerts others, Enemy aggro spreads, NPC flees/moves |
+| **System Evolution**       | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                         | Weather change, Day/night cycle, Resource respawn       |
+| **AI Generation**          | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                         | Description enrichment, Dynamic lore, Quest generation  |
 
 ## Detailed Rules
 
@@ -98,13 +98,11 @@ export async function handlePlayerAction(req: HttpRequest): Promise<HttpResponse
 **AI Decision Points**:
 
 1. **Intent Parser** (M4 AI Read): Analyzes player command text to determine:
-
     - Primary intent (move, interact, attack, etc.)
     - Target entities (NPCs, objects, locations)
     - Potential world impact (personal vs shared)
 
 2. **Narrative Agent** (M4+): Evaluates world context to decide:
-
     - Does this action affect other players? → Enqueue shared event
     - Is this action significant enough to persist? → Update world state
     - Should NPCs react? → Enqueue reaction events
@@ -138,25 +136,25 @@ return immediate200Response()
 
 **Key Insight**: The same player command ("ask barman for beer") might produce different shared effects based on:
 
--   World state (barman's mood, stock levels, time of day)
--   Player history (first-time customer vs regular)
--   Narrative context (tavern is on fire vs peaceful evening)
+- World state (barman's mood, stock levels, time of day)
+- Player history (first-time customer vs regular)
+- Narrative context (tavern is on fire vs peaceful evening)
 
 ### Rule 3: Personal vs Shared State Updates
 
 **Personal State Changes** (synchronous in HTTP handler):
 
--   Player location (`currentLocationId` in SQL)
--   Player inventory (add/remove items)
--   Player quest flags or attributes
--   Personal relationship with NPCs (reputation)
+- Player location (`currentLocationId` in SQL)
+- Player inventory (add/remove items)
+- Player quest flags or attributes
+- Personal relationship with NPCs (reputation)
 
 **Shared World Effects** (asynchronous via queue):
 
--   Location description changes visible to all players
--   NPC spawns or behavior changes affecting future visitors
--   Environmental changes (fire, flooding, structural collapse)
--   World clock advancement or calendar events
+- Location description changes visible to all players
+- NPC spawns or behavior changes affecting future visitors
+- Environmental changes (fire, flooding, structural collapse)
+- World clock advancement or calendar events
 
 **Example - "Ask barman for beer"**:
 
@@ -214,24 +212,24 @@ return {
 
 **Player never waits for queue processing.** The HTTP response includes:
 
--   Immediate game state (player location, inventory)
--   Optimistic narrative ("You light the tinder...")
--   Optional future state hint ("The forest will burn...")
+- Immediate game state (player location, inventory)
+- Optimistic narrative ("You light the tinder...")
+- Optional future state hint ("The forest will burn...")
 
 Later, when the queue processor runs:
 
--   Forest location description layers updated
--   NPCs react to fire
--   Adjacent locations may be affected
--   Player sees changes on next `LOOK` command
+- Forest location description layers updated
+- NPCs react to fire
+- Adjacent locations may be affected
+- Player sees changes on next `LOOK` command
 
 ### Rule 5: World Events Have Bounded Scope
 
 Queue events SHOULD complete within their latency budget (see table above). If processing exceeds budget:
 
--   Emit telemetry warning
--   Consider splitting into smaller events
--   Review RU consumption and indexing
+- Emit telemetry warning
+- Consider splitting into smaller events
+- Review RU consumption and indexing
 
 ### Rule 6: Idempotency Key Includes Action Scope
 
@@ -372,9 +370,9 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 
 **Player Experience**:
 
--   **Immediate**: Sees optimistic message + inventory update (tinderbox charges reduced)
--   **5-30s later**: Next player who does `LOOK` at forest sees updated description with fire layer
--   **Other players**: Also see burning forest on their next `LOOK`
+- **Immediate**: Sees optimistic message + inventory update (tinderbox charges reduced)
+- **5-30s later**: Next player who does `LOOK` at forest sees updated description with fire layer
+- **Other players**: Also see burning forest on their next `LOOK`
 
 ### Example 4: NPC Reaction to Player Arrival
 
@@ -384,9 +382,9 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 
 **Why Synchronous?**
 
--   Player immersion: "The guard eyes you suspiciously" should appear immediately, not on next `LOOK`
--   Narrative flow: Delayed reactions break the real-time feel of the game
--   AI context: The same HTTP handler that processes the move already has location + NPC context
+- Player immersion: "The guard eyes you suspiciously" should appear immediately, not on next `LOOK`
+- Narrative flow: Delayed reactions break the real-time feel of the game
+- AI context: The same HTTP handler that processes the move already has location + NPC context
 
 **Flow**:
 
@@ -398,14 +396,14 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 
 **When to Use Queue Instead**:
 
--   **Cascading NPC effects**: NPC alerts other NPCs, triggering behavior changes
--   **Persistent NPC memory**: NPC "remembers" player for future interactions
--   **World state mutations**: NPC actions that affect shared world (e.g., NPC runs away, changing location state)
+- **Cascading NPC effects**: NPC alerts other NPCs, triggering behavior changes
+- **Persistent NPC memory**: NPC "remembers" player for future interactions
+- **World state mutations**: NPC actions that affect shared world (e.g., NPC runs away, changing location state)
 
 **Player Experience**:
 
--   Immediate: Sees location description + exits + NPC reaction ("The guard eyes you suspiciously")
--   Real-time feel: NPCs acknowledge player presence instantly
+- Immediate: Sees location description + exits + NPC reaction ("The guard eyes you suspiciously")
+- Real-time feel: NPCs acknowledge player presence instantly
 
 **Key Distinction**: Basic NPC awareness (greeting, noticing player) is synchronous for immersion. Complex NPC behaviors that affect shared world state use async queue events.
 
@@ -423,8 +421,8 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 
 **Player Experience**:
 
--   First visit: Base description only
--   Subsequent visits: Enriched description with AI layer
+- First visit: Base description only
+- Subsequent visits: Enriched description with AI layer
 
 ## Anti-Patterns
 
@@ -470,16 +468,16 @@ async function movePlayer() {
 
 When refactoring a handler that currently blocks on world changes:
 
--   [ ] Extract world-modifying logic into separate function
--   [ ] Create world event envelope for that logic
--   [ ] Add idempotency key composition rules
--   [ ] Add event type to `WorldEventTypeSchema` enum
--   [ ] Implement queue processor handler for event type
--   [ ] Update HTTP handler to enqueue + return immediately
--   [ ] Add telemetry for both HTTP and queue paths
--   [ ] Update tests (HTTP tests verify enqueue, queue tests verify processing)
--   [ ] Document latency budget in this matrix
--   [ ] Add integration test for end-to-end flow (HTTP → queue → state change)
+- [ ] Extract world-modifying logic into separate function
+- [ ] Create world event envelope for that logic
+- [ ] Add idempotency key composition rules
+- [ ] Add event type to `WorldEventTypeSchema` enum
+- [ ] Implement queue processor handler for event type
+- [ ] Update HTTP handler to enqueue + return immediately
+- [ ] Add telemetry for both HTTP and queue paths
+- [ ] Update tests (HTTP tests verify enqueue, queue tests verify processing)
+- [ ] Document latency budget in this matrix
+- [ ] Add integration test for end-to-end flow (HTTP → queue → state change)
 
 ## Observability
 
@@ -487,15 +485,15 @@ When refactoring a handler that currently blocks on world changes:
 
 **HTTP Path**:
 
--   `Player.Action.Issued` (includes action type, correlationId)
--   `Player.Action.Completed` (includes latency, enqueued flag)
+- `Player.Action.Issued` (includes action type, correlationId)
+- `Player.Action.Completed` (includes latency, enqueued flag)
 
 **Queue Path**:
 
--   `World.Event.Enqueued` (includes eventType, correlationId)
--   `World.Event.Processed` (includes latency, causationId)
--   `World.Event.Duplicate` (idempotency skip)
--   `World.Event.DeadLettered` (failure)
+- `World.Event.Enqueued` (includes eventType, correlationId)
+- `World.Event.Processed` (includes latency, causationId)
+- `World.Event.Duplicate` (idempotency skip)
+- `World.Event.DeadLettered` (failure)
 
 **Correlation**: All events include `correlationId` from original HTTP request.
 
@@ -525,13 +523,13 @@ customEvents
 
 ## References
 
--   [World Event Contract](./world-event-contract.md) - Event envelope schema and queue processing
--   [MVP Azure Architecture](./mvp-azure-architecture.md) - Infrastructure overview
--   [Copilot Instructions Section 3](../../.github/copilot-instructions.md) - Modeling rules
--   [Intent Parser Design](../modules/player-interaction-and-intents.md) - AI command parsing (M4)
--   ADR-002: Graph Partition Strategy - Dual persistence rationale
--   Issue #385: World Event Processing Infrastructure - Queue implementation epic
--   Issue #471: Intent Parser Phased Implementation - AI decision logic
+- [World Event Contract](./world-event-contract.md) - Event envelope schema and queue processing
+- [MVP Azure Architecture](./mvp-azure-architecture.md) - Infrastructure overview
+- [Copilot operating guide](../../.github/copilot-instructions.md) - Workflow and cross-cutting constraints
+- [Intent Parser Design](../modules/player-interaction-and-intents.md) - AI command parsing (M4)
+- ADR-002: Graph Partition Strategy - Dual persistence rationale
+- Issue #385: World Event Processing Infrastructure - Queue implementation epic
+- Issue #471: Intent Parser Phased Implementation - AI decision logic
 
 ## AI Flexibility & Edge Cases
 
@@ -551,32 +549,32 @@ This matrix provides **implementation patterns**, not business rules. When imple
 
 **"Move north" - Usually Personal, Sometimes Shared**:
 
--   **Typical**: Personal state change only (update location, return immediately)
--   **Edge Case**: Moving triggers trap → AI enqueues `Trap.Triggered` event
--   **Edge Case**: Moving into villain's lair → AI enqueues `NPC.Alerted` event
--   **Decision**: Intent parser + world context determines at runtime
+- **Typical**: Personal state change only (update location, return immediately)
+- **Edge Case**: Moving triggers trap → AI enqueues `Trap.Triggered` event
+- **Edge Case**: Moving into villain's lair → AI enqueues `NPC.Alerted` event
+- **Decision**: Intent parser + world context determines at runtime
 
 **"Ask barman for beer" - Context-Dependent**:
 
--   **Simple tavern**: Personal transaction only (inventory + gold sync)
--   **Plot-critical barman**: AI enqueues `NPC.Interaction` to update barman memory
--   **Crowded tavern**: AI enqueues `NPC.QueueBuilds` to affect other customers
--   **Decision**: Narrative agent evaluates barman's role in story
+- **Simple tavern**: Personal transaction only (inventory + gold sync)
+- **Plot-critical barman**: AI enqueues `NPC.Interaction` to update barman memory
+- **Crowded tavern**: AI enqueues `NPC.QueueBuilds` to affect other customers
+- **Decision**: Narrative agent evaluates barman's role in story
 
 **"Light torch" - Contextual Impact**:
 
--   **Normal dungeon**: Personal state (inventory update only)
--   **Gas-filled room**: AI enqueues `Location.Explosion` event
--   **Near sleeping dragon**: AI enqueues `NPC.Awakens` event
--   **Decision**: Policy validator checks world state constraints
+- **Normal dungeon**: Personal state (inventory update only)
+- **Gas-filled room**: AI enqueues `Location.Explosion` event
+- **Near sleeping dragon**: AI enqueues `NPC.Awakens` event
+- **Decision**: Policy validator checks world state constraints
 
 ### Implementation Guardrails
 
 **Latency Budget Still Applies**:
 
--   AI decision-making (intent parse + narrative eval) MUST complete <500ms
--   If AI response too slow → fallback to personal-only classification
--   Enqueue "deferred evaluation" event for post-hoc analysis
+- AI decision-making (intent parse + narrative eval) MUST complete <500ms
+- If AI response too slow → fallback to personal-only classification
+- Enqueue "deferred evaluation" event for post-hoc analysis
 
 **Telemetry Tracking**:
 
@@ -592,9 +590,9 @@ track('AI.EventClassification', {
 
 **Progressive Enhancement**:
 
--   M1-M3: Hard-coded patterns (move=personal, fire=shared)
--   M4: AI intent parser classifies based on verb heuristics
--   M5+: Full narrative context evaluation with learned patterns
+- M1-M3: Hard-coded patterns (move=personal, fire=shared)
+- M4: AI intent parser classifies based on verb heuristics
+- M5+: Full narrative context evaluation with learned patterns
 
 ### Avoiding Over-Engineering
 

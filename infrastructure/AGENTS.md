@@ -33,7 +33,7 @@ It is intended to apply when editing anything under `infrastructure/`.
     - Provide deploy-time defaults for thresholds.
     - Never fabricate metrics (prefer null + info banner when baseline missing).
 
-(These rules are also captured in `.github/copilot-instructions.md` under the workbook parameter guidance.)
+(These rules are also captured in `../.github/copilot-instructions.md` under the workbook parameter guidance.)
 
 ## Validation expectations
 

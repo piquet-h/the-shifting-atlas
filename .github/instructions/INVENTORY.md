@@ -1,8 +1,3 @@
----
-description: Inventory & rationalization of instruction files
-applyTo: '**'
----
-
 # Instruction Set Inventory & Rationalization
 
 > Purpose: Single overview of all Copilot / generation instruction artifacts under `.github/` to reduce duplication, keep context lean, and guide future maintenance.
@@ -10,17 +5,19 @@ applyTo: '**'
 ## Summary Hierarchy (Proposed)
 
 1. Core Operating Layer
-    - `copilot-quickref.md` (fast mnemonic, <150 lines target)
-    - `copilot-instructions.md` (compact operating guide; authoritative process + taxonomy)
-    - `copilot-language-style.md` (language & formatting rules)
-2. Module Delta Layer (ONLY rules unique to that module)
-    - `instructions/backend/.instructions.md` (Azure Functions specifics NOT already in core)
-    - `instructions/frontend/.instructions.md` (frontend architecture deltas: SWA, React state, API access)
-    - `instructions/world/.instructions.md` (world & lore generation constraints)
-    - `instructions/docs.instructions.md` (docs folder authoring constraints; delegates to `docs/AGENTS.md`)
+    - `../copilot-quickref.md` (fast mnemonic, <150 lines target)
+    - `../copilot-instructions.md` (compact operating guide; authoritative process + taxonomy)
+    - `../copilot-language-style.md` (language & formatting rules)
+2. Path-Specific Delta Layer (ONLY rules unique to that path; used by coding agent + code review)
+    - `backend/.instructions.md`
+    - `frontend/.instructions.md`
+    - `shared/.instructions.md`
+    - `infrastructure/.instructions.md`
+    - `docs.instructions.md`
+    - `world/.instructions.md` (prompt-authoring delta only; scoped to `shared/src/prompts/**`)
 3. Auxiliary / Patterns
-    - `copilot-commit-message-instructions.md` (commit hygiene)
-    - `instructions/inversify-di-patterns.md` (DI pattern – candidate for deprecation / merge)
+    - `../copilot-commit-message-instructions.md` (commit hygiene)
+    - `inversify-di-patterns.md` (DEPRECATED redirect; authoritative DI doc is in `docs/architecture/`)
 4. Index & Metadata
     - `instructions/README.md` (brief pointer)
     - `instructions/INVENTORY.md` (this file – periodically updated)
@@ -32,6 +29,10 @@ applyTo: '**'
 - `frontend/AGENTS.md` — frontend-specific agent guidance for anything under `frontend/` (delegates to `.github/instructions/frontend/.instructions.md`).
 - `infrastructure/AGENTS.md` — infrastructure-specific agent guidance for anything under `infrastructure/` (Bicep guardrails; points to `infrastructure/README.md`).
 - `shared/AGENTS.md` — shared package agent guidance for anything under `shared/` (package boundaries + publishing workflow; points to `shared/README.md`).
+
+## Skills (Progressive disclosure)
+
+- `../skills/world-content-generation/` — detailed world/lore/prompt authoring procedures, loaded on-demand.
 
 ## Retention Criteria
 
@@ -49,24 +50,24 @@ Deprecate / merge if:
 
 ## File-by-File Assessment
 
-| File                                     | Role                                | Status                | Recommended Action                                                                                                       | Notes                                                                                     |
-| ---------------------------------------- | ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `copilot-instructions.md`                | Master operating guide              | KEEP                  | Trim any deeply backend-specific sections once backend delta strengthened                                                | High value; single source of truth for workflow & taxonomy                                |
-| `copilot-quickref.md`                    | Fast lookup cheat sheet             | KEEP                  | Keep <150 lines; link out, no expansion                                                                                  | Prevents loading large file for trivial reminders                                         |
-| `copilot-language-style.md`              | Formatting & language rules         | KEEP                  | Add reference to any new languages if introduced                                                                         | Distinct purpose; low duplication                                                         |
-| `copilot-commit-message-instructions.md` | Commit hygiene                      | KEEP (Optional merge) | Optionally move under appendix section of operating guide; mark here if merged                                           | Self-contained; small; merging is low priority                                            |
-| `instructions/backend/.instructions.md`  | Backend Azure Functions specifics   | KEEP (SLIM)           | Remove architecture redundancies already in core; focus on code-first patterns, idempotency, envelope design             | Duplicates some cosmos/service bus notes from core                                        |
-| `instructions/frontend/.instructions.md` | Frontend UI rules                   | KEEP (EXPAND MINOR)   | Add explicit ties to language style (Prettier/ESLint) and error boundary policy                                          | Currently sparse; low duplication risk                                                    |
-| `instructions/world/.instructions.md`    | World generation & lore constraints | KEEP (MODULARIZE)     | Extract prompt templates to `shared/src/prompts/` and link; add version header; avoid restating generic design each time | Large but domain-unique                                                                   |
-| `instructions/inversify-di-patterns.md`  | DI usage patterns                   | DEPRECATE             | Merge into `docs/architecture/` (tag as DEPRECATED here, keep for 1 milestone)                                           | Patterns belong to architecture docs; instructions should focus on generation constraints |
-| `instructions/README.md`                 | Index placeholder                   | KEEP (UPDATE)         | Replace with brief explanation + link to INVENTORY.md                                                                    | Provide orientation                                                                       |
-| `instructions/INVENTORY.md`              | Inventory & rationalization         | NEW                   | Maintain quarterly or on structural changes                                                                              | Meta governance                                                                           |
+| File                                     | Role                              | Status                | Recommended Action                                                                                           | Notes                                                                                     |
+| ---------------------------------------- | --------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `copilot-instructions.md`                | Master operating guide            | KEEP                  | Trim any deeply backend-specific sections once backend delta strengthened                                    | High value; single source of truth for workflow & taxonomy                                |
+| `copilot-quickref.md`                    | Fast lookup cheat sheet           | KEEP                  | Keep <150 lines; link out, no expansion                                                                      | Prevents loading large file for trivial reminders                                         |
+| `copilot-language-style.md`              | Formatting & language rules       | KEEP                  | Add reference to any new languages if introduced                                                             | Distinct purpose; low duplication                                                         |
+| `copilot-commit-message-instructions.md` | Commit hygiene                    | KEEP (Optional merge) | Optionally move under appendix section of operating guide; mark here if merged                               | Self-contained; small; merging is low priority                                            |
+| `instructions/backend/.instructions.md`  | Backend Azure Functions specifics | KEEP (SLIM)           | Remove architecture redundancies already in core; focus on code-first patterns, idempotency, envelope design | Duplicates some cosmos/service bus notes from core                                        |
+| `instructions/frontend/.instructions.md` | Frontend UI rules                 | KEEP (EXPAND MINOR)   | Add explicit ties to language style (Prettier/ESLint) and error boundary policy                              | Currently sparse; low duplication risk                                                    |
+| `instructions/world/.instructions.md`    | World prompt delta                | KEEP (SLIM)           | Keep scoped to prompt sources; move detailed world guidance to skill                                         | Avoid always-on lore context                                                              |
+| `instructions/inversify-di-patterns.md`  | DI usage patterns                 | DEPRECATE             | Merge into `docs/architecture/` (tag as DEPRECATED here, keep for 1 milestone)                               | Patterns belong to architecture docs; instructions should focus on generation constraints |
+| `instructions/README.md`                 | Index placeholder                 | KEEP (UPDATE)         | Replace with brief explanation + link to INVENTORY.md                                                        | Provide orientation                                                                       |
+| `instructions/INVENTORY.md`              | Inventory & rationalization       | NEW                   | Maintain quarterly or on structural changes                                                                  | Meta governance                                                                           |
 
 ## Deprecation Plan
 
-1. Add a `> DEPRECATED – See docs/architecture/dependency-injection.md` banner at top of `instructions/inversify-di-patterns.md` once merged.
-2. Create `docs/architecture/dependency-injection.md` consolidating DI content (if not already sufficient in archive). Preserve test fake patterns.
-3. After one milestone (e.g. M4 → M5 transition), remove the deprecated file.
+1. Keep `instructions/inversify-di-patterns.md` as a short redirect only.
+2. Maintain authoritative DI guidance in `docs/architecture/dependency-injection.md`.
+3. Remove the deprecated file once nothing links to it.
 
 ## Slimming Actions (Next Pass)
 
@@ -137,4 +138,4 @@ Script (`scripts/verify-instructions.mjs`) can:
 
 ---
 
-_Last reviewed: 2025-10-29_
+Last reviewed: 2026-01-15

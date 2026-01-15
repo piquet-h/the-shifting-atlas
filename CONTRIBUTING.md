@@ -60,7 +60,7 @@ If you're a Copilot agent (VS Code, GitHub cloud, or Copilot Workspace):
 
 ## Documentation
 
-Follow the MECE documentation hierarchy (see `.github/copilot-instructions.md` Section 18):
+Follow the MECE documentation hierarchy (authoritative: `docs/AGENTS.md`):
 
 | Layer        | Location                     | Purpose               |
 | ------------ | ---------------------------- | --------------------- |

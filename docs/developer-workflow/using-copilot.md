@@ -6,16 +6,15 @@ Copilot should accelerate tactical coding (scaffolds, small functions, tests) wh
 
 This repository includes custom Copilot agents (located in `.github/agents/`) that provide domain-specific expertise:
 
-| Agent                                    | File                                             | Purpose                                                                                |
-| ---------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| **Atlas Documentation Agent**            | `documentation.agent.md`                         | Maintains concise, accurate documentation; resolves conflicts; enforces MECE hierarchy |
-| **Atlas Game Logic Agent**               | `gamelogic.agent.md`                             | Expert in game mechanics, narrative design, D&D systems, faction/economy design        |
-| **Azure Static Web App**                 | `Azure_Static_Web_App.agent.md`                  | Specialized in SWA development, deployment, and configuration                          |
-| **Azure Functions Codegen & Deployment** | `Azure_function_codegen_and_deployment.agent.md` | Enterprise-grade Azure Functions workflow with IaC                                     |
+| Agent                                    | File                                             | Purpose                                                     |
+| ---------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------- |
+| **Docs Editor**                          | `Docs_Editor.agent.md`                           | Docs-only agent for editing markdown (stays within `docs/`) |
+| **Azure Static Web App**                 | `Azure_Static_Web_App.agent.md`                  | SWA development, configuration, and troubleshooting         |
+| **Azure Functions Codegen & Deployment** | `Azure_function_codegen_and_deployment.agent.md` | Azure Functions planning/codegen/test/deploy workflows      |
 
-**To use a specialized agent**: Mention it by name in your prompt (e.g., "@documentation" or "@gamelogic") or select it from the agent picker in VS Code.
+**To use a specialized agent**: select it from the agent picker in VS Code (or mention the agent name in chat if your setup supports @-mentioning agents).
 
-**Agent File Format** (v1.106): Agents use the `.agent.md` or `.agents.md` suffix with `````chatagent` code fence format. VS Code v1.106 (October 2025) renamed "chat modes" to "custom agents" and added new properties like `target`, `argument-hint`, and `handoffs` for enhanced workflows.
+**Agent File Format**: Agents are stored under `.github/agents/` and use the `.agent.md` suffix. Prefer YAML frontmatter for metadata (`name`, `description`, `tools`, `handoffs`, etc.), followed by clear instructions.
 
 ## Core Principles
 
@@ -50,26 +49,27 @@ Run frontend & backend separately (in separate terminals: `cd frontend && npm ru
 
 ## Style & Conventions
 
--   ES Modules only.
--   Async/await I/O, no nested promise chains.
--   Short, intention‑revealing function names: `enqueueWorldEvent`, `validateExitDirection`.
+- ES Modules only.
+- Async/await I/O, no nested promise chains.
+- Short, intention‑revealing function names: `enqueueWorldEvent`, `validateExitDirection`.
 
 ## Rejecting Low-Quality Suggestions
 
 Discard suggestions that:
 
--   Introduce stateful singletons without clear need.
--   Add libraries outside project scope (heavy ORMs, large utility libs).
--   Duplicate domain logic already defined elsewhere.
+- Introduce stateful singletons without clear need.
+- Add libraries outside project scope (heavy ORMs, large utility libs).
+- Duplicate domain logic already defined elsewhere.
 
-## Updating Copilot Instructions
+## Updating Copilot guidance
 
-If you add major architecture components (e.g., Cosmos graph schema utilities), update `.github/copilot-instructions.md` in the same PR.
+If you change cross-cutting workflow rules, update `.github/copilot-instructions.md`.
+If you change module-specific conventions, update the relevant path-specific instruction file under `.github/instructions/**` and/or the module’s `AGENTS.md`.
 
 ## Security & Secrets
 
--   Never hardcode secrets. Use environment variables / future Key Vault integration.
--   Do not accept suggestions injecting analytics / network calls without design approval.
+- Never hardcode secrets. Use environment variables / future Key Vault integration.
+- Do not accept suggestions injecting analytics / network calls without design approval.
 
 ## Helpful Aliases
 
@@ -82,7 +82,7 @@ If you add major architecture components (e.g., Cosmos graph schema utilities), 
 
 ## Next Improvements
 
--   Add prompt templates for queue/event patterns.
--   Provide a shared util for Gremlin queries (once introduced) with documented patterns to steer Copilot.
+- Add prompt templates for queue/event patterns.
+- Provide a shared util for Gremlin queries (once introduced) with documented patterns to steer Copilot.
 
 Use Copilot as a speed boost, not an architectural decision maker.

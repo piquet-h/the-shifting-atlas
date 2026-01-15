@@ -7,14 +7,14 @@ It is intended to apply when editing anything under `frontend/`.
 ## Scope
 
 - This package is the player-facing SPA (Vite + React + Tailwind).
-- Follow the detailed frontend delta rules in `.github/instructions/frontend/.instructions.md` (authoritative).
+- Follow the detailed frontend delta rules in `../.github/instructions/frontend/.instructions.md` (authoritative).
 - Prefer minimal, test-driven changes.
 
 ## Fast orientation
 
 - Frontend architecture + component catalog: `frontend/README.md`
-- Frontend delta instructions: `.github/instructions/frontend/.instructions.md`
-- Cross-cutting rules (telemetry, shared package policy, etc.): `.github/copilot-instructions.md`
+- Frontend delta instructions: `../.github/instructions/frontend/.instructions.md`
+- Cross-cutting rules (telemetry, shared package policy, etc.): `../.github/copilot-instructions.md`
 
 ## Local dev (preferred)
 
