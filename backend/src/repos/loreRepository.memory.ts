@@ -133,18 +133,18 @@ export class MemoryLoreRepository implements ILoreRepository {
     async searchFacts(query: string, k: number = 5): Promise<LoreSearchResult[]> {
         // Stub implementation: returns empty array until embeddings infrastructure exists
         // Future: Vector similarity search using embeddings field
-        
+
         // Edge case: empty/whitespace query
         if (!query || query.trim().length === 0) {
             return []
         }
-        
+
         // Edge case: clamp k to max of 20
         const clampedK = Math.min(Math.max(1, k), 20)
-        
+
         // Placeholder for future implementation with semantic search
         void clampedK
-        
+
         return []
     }
 }

@@ -227,14 +227,14 @@ export class CosmosLoreRepository extends CosmosDbSqlRepository<CanonicalFact> i
         if (!query || query.trim().length === 0) {
             return []
         }
-        
+
         // Edge case: clamp k to max of 20
         const clampedK = Math.min(Math.max(1, k), 20)
-        
+
         // Stub: Return empty array until embeddings infrastructure exists
         // Future implementation will use vector similarity search
         void clampedK
-        
+
         return []
     }
 }
