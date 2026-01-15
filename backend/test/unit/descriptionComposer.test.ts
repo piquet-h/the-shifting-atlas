@@ -12,6 +12,9 @@ import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { ViewContext } from '../../src/services/types.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
+// Hero-prose content length limit (from docs/architecture/hero-prose-layer-convention.md)
+const HERO_PROSE_MAX_LENGTH = 1200
+
 describe('Description Composer', () => {
     let fixture: UnitTestFixture
 
@@ -488,8 +491,8 @@ describe('Description Composer', () => {
 
             const baseDescription = 'A plain wooden gate.'
 
-            // Add hero-prose layer with content exceeding 1200 char limit (invalid)
-            const tooLongContent = 'A'.repeat(1201)
+            // Add hero-prose layer with content exceeding character limit (invalid)
+            const tooLongContent = 'A'.repeat(HERO_PROSE_MAX_LENGTH + 1)
             await layerRepo.addLayer({
                 id: crypto.randomUUID(),
                 locationId,
