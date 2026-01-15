@@ -20,6 +20,11 @@ POST /api/player/{playerId}/move  # Body: { direction } → returns new location
 
 Backend always compiles descriptions through `DescriptionComposer`. See ADR-005.
 
+Some responses may also include an optional **scene** field, which is an immersive post-composition narrative derived from the same deterministic inputs.
+
+**Latency contract note:** the backend may treat requests as **snappy** (action-forward) or **cinematic** (narrative-forward) based on user intent/flags. The contract affects whether `description.scene` is returned immediately (cache hit), returned after a bounded wait, or omitted with deterministic fallback.
+See `../modules/scene-synthesiser.md`.
+
 ```typescript
 interface LocationResponse {
     id: string
@@ -27,6 +32,13 @@ interface LocationResponse {
     description: {
         text: string // Compiled markdown (layers merged)
         html: string // Sanitized HTML for rendering
+        scene?: {
+            text: string // Optional immersive narrative (may be absent when snappy or on fallback)
+            provenance: {
+                source: 'cache' | 'fresh' | 'fallback'
+                fallback?: boolean
+            }
+        }
         provenance: {
             compiledAt: string // ISO timestamp
             layersApplied: string[] // Layer types applied (e.g., ['dynamic', 'ambient'])
