@@ -325,7 +325,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         onMutate: async ({ direction }) => {
             // Cancel outbound refetches to avoid race conditions
             await queryClient.cancelQueries({ queryKey: ['player', playerGuid] })
-            await queryClient.cancelQueries({ queryKey: ['location'] })
+            await queryClient.cancelQueries({ queryKey: ['location', currentLocationId || 'starter'] })
 
             // Set navigating flag for optimistic "Moving..." display
             setIsNavigating(true)
@@ -361,6 +361,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
             // Normal success: update location
             const newLocation = result as LocationResponse
+            // Seed the location cache for the destination. The move response is authoritative
+            // (compiled description + exits), so hooks should not immediately refetch.
+            queryClient.setQueryData(['location', newLocation.id], newLocation)
             // Update context's currentLocationId immediately
             // This ensures all components using PlayerContext see the new location
             updateCurrentLocationId(newLocation.id)
@@ -373,9 +376,6 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 response: formatMoveResponse(direction, newLocation),
                 latencyMs
             })
-
-            // Invalidate location query to refetch with new location data
-            queryClient.invalidateQueries({ queryKey: ['location'] })
         },
         onError: (err, { direction, correlationId }, context) => {
             // Clear navigating flag on error
