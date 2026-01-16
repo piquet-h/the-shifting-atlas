@@ -18,6 +18,7 @@ import { rateLimiters } from '../middleware/rateLimiter.js'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../repos/exitRepository.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
+import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import type { ViewContext } from '../services/types.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
@@ -29,7 +30,8 @@ export class LocationLookHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
         @inject('ILocationRepository') private locationRepo: ILocationRepository,
-        @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer
+        @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer,
+        @inject(HeroProseGenerator) private heroProseGenerator: HeroProseGenerator
     ) {
         super(telemetry)
     }
@@ -91,6 +93,33 @@ export class LocationLookHandler extends BaseHandler {
             time: req.query.get('time') || undefined,
             season: req.query.get('season') || undefined,
             timestamp: new Date().toISOString()
+        }
+
+        // Attempt hero prose generation on cache miss (bounded blocking, always falls back to base)
+        // Timeout budget defaults to 1200ms and is configurable via HERO_PROSE_TIMEOUT_MS.
+        // This is best-effort: failures never block the response.
+        try {
+            const generationStartTime = Date.now()
+            const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '1200', 10)
+            const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 1200
+            await this.heroProseGenerator.generateHeroProse({
+                locationId: id,
+                locationName: loc.name,
+                baseDescription: loc.description,
+                timeoutMs
+            })
+            const generationLatency = Date.now() - generationStartTime
+            if (generationLatency > 500) {
+                this.track('Timing.Op', {
+                    op: 'hero-prose-generation',
+                    ms: generationLatency,
+                    locationId: id,
+                    category: 'hero-generation-slow'
+                })
+            }
+        } catch {
+            // Generation errors don't block the response - fall back to base description
+            // Telemetry already emitted by HeroProseGenerator
         }
 
         try {

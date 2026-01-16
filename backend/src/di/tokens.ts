@@ -41,6 +41,8 @@ export const TOKENS = {
     // Services
     WorldClockService: 'IWorldClockService',
     LocationClockManager: 'ILocationClockManager',
+    AzureOpenAIClient: 'IAzureOpenAIClient',
+    AzureOpenAIConfig: 'AzureOpenAIConfig',
 
     // Cosmos container names / config bits
     CosmosContainerLayers: 'CosmosContainer:Layers',

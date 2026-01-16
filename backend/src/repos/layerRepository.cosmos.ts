@@ -317,40 +317,6 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         return resource
     }
 
-    async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
-        const startTime = Date.now()
-
-        const scopeId = `loc:${locationId}`
-
-        // Query both old and new partition keys for backward compatibility
-        const queryText = 'SELECT * FROM c WHERE c.scopeId = @scopeId OR c.locationId = @locationId'
-        const parameters = [
-            { name: '@scopeId', value: scopeId },
-            { name: '@locationId', value: locationId }
-        ]
-
-        const { items } = await this.query(queryText, parameters)
-
-        // Sort in-memory: priority DESC (higher first), then by id ASC (deterministic ties)
-        items.sort((a, b) => {
-            const aPriority = a.priority ?? 0
-            const bPriority = b.priority ?? 0
-            if (aPriority !== bPriority) {
-                return bPriority - aPriority // Higher priority first
-            }
-            return a.id.localeCompare(b.id) // Deterministic tie-break
-        })
-
-        this._telemetry.trackGameEvent('Layer.GetForLocation', {
-            locationId,
-            layerCount: items.length,
-            latencyMs: Date.now() - startTime
-        })
-
-        // Edge case: location has 0 layers -> empty result (base layer is world seed concern)
-        return items
-    }
-
     async updateLayer(
         layerId: string,
         scopeId: string,

@@ -182,23 +182,6 @@ export class MemoryLayerRepository implements ILayerRepository {
         return { ...layer }
     }
 
-    async getLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
-        const scopeId = `loc:${locationId}`
-        const locationLayers = Array.from(this.layers.values()).filter(
-            (layer) => layer.scopeId === scopeId || layer.locationId === locationId
-        )
-
-        // Sort by priority (descending), then by layerId (alphanumeric) for deterministic ties
-        return locationLayers.sort((a, b) => {
-            const aPriority = a.priority ?? 0
-            const bPriority = b.priority ?? 0
-            if (aPriority !== bPriority) {
-                return bPriority - aPriority // Higher priority first
-            }
-            return a.id.localeCompare(b.id) // Deterministic tie resolution
-        })
-    }
-
     async updateLayer(
         layerId: string,
         scopeId: string,

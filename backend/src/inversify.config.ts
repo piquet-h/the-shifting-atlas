@@ -18,7 +18,7 @@ import { Container } from 'inversify'
 import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from './config/exitHintDebounceConfig.js'
 import { registerHandlers } from './di/registerHandlers.js'
-import { registerClock, registerCoreServices, registerPromptTemplateRepository } from './di/registerServices.js'
+import { registerAzureOpenAI, registerClock, registerCoreServices, registerPromptTemplateRepository } from './di/registerServices.js'
 import { registerWorldEventHandlers } from './di/registerWorldEventHandlers.js'
 import { TOKENS } from './di/tokens.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from './gremlin/index.js'
@@ -101,6 +101,7 @@ export const setupContainer = async (container: Container) => {
 
     // Shared registrations (used by both prod and test containers)
     registerCoreServices(container)
+    registerAzureOpenAI(container)
     registerHandlers(container)
     registerWorldEventHandlers(container)
 

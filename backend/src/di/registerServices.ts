@@ -2,7 +2,14 @@ import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository }
 import type { Container } from 'inversify'
 
 import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
+import {
+    AzureOpenAIClient,
+    NullAzureOpenAIClient,
+    type AzureOpenAIClientConfig,
+    type IAzureOpenAIClient
+} from '../services/azureOpenAIClient.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
+import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import { LocationClockManager } from '../services/LocationClockManager.js'
 import { PlayerClockService } from '../services/PlayerClockService.js'
 import { RealmService } from '../services/RealmService.js'
@@ -20,6 +27,7 @@ export function registerCoreServices(container: Container): void {
     // Domain services (singleton - stateless orchestrators / shared caches)
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
     container.bind(RealmService).toSelf().inSingletonScope()
+    container.bind(HeroProseGenerator).toSelf().inSingletonScope()
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token
@@ -46,5 +54,33 @@ export function registerPromptTemplateRepository(container: Container): void {
     container
         .bind<IPromptTemplateRepository>(TOKENS.PromptTemplateRepository)
         .toDynamicValue(() => new PromptTemplateRepository({ ttlMs: promptCache.ttlMs }))
+        .inSingletonScope()
+}
+
+export function registerAzureOpenAI(container: Container): void {
+    // Configure Azure OpenAI client from environment variables
+    // Uses Managed Identity (DefaultAzureCredential) for authentication
+    const endpoint = process.env.AZURE_OPENAI_ENDPOINT || ''
+    const model = process.env.AZURE_OPENAI_MODEL || 'gpt-4'
+    const apiVersion = process.env.AZURE_OPENAI_API_VERSION || undefined
+
+    const config: AzureOpenAIClientConfig = {
+        endpoint,
+        model,
+        apiVersion
+    }
+
+    container.bind<AzureOpenAIClientConfig>(TOKENS.AzureOpenAIConfig).toConstantValue(config)
+
+    // In tests/local dev we often don't have an Azure OpenAI endpoint configured.
+    // Bind a no-op client so DI remains stable and the feature gracefully no-ops.
+    if (!endpoint) {
+        container.bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient).to(NullAzureOpenAIClient).inSingletonScope()
+        return
+    }
+
+    container
+        .bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient)
+        .toDynamicValue(() => new AzureOpenAIClient(config))
         .inSingletonScope()
 }

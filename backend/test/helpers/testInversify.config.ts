@@ -17,7 +17,12 @@ import 'reflect-metadata'
 import { EXIT_HINT_DEBOUNCE_MS } from '../../src/config/exitHintDebounceConfig.js'
 import { WORLD_EVENT_PROCESSED_EVENTS_TTL_SECONDS } from '../../src/config/worldEventProcessorConfig.js'
 import { registerHandlers } from '../../src/di/registerHandlers.js'
-import { registerClock, registerCoreServices, registerPromptTemplateRepository } from '../../src/di/registerServices.js'
+import {
+    registerAzureOpenAI,
+    registerClock,
+    registerCoreServices,
+    registerPromptTemplateRepository
+} from '../../src/di/registerServices.js'
 import { registerWorldEventHandlers } from '../../src/di/registerWorldEventHandlers.js'
 import { TOKENS } from '../../src/di/tokens.js'
 import { GremlinClient, GremlinClientConfig, IGremlinClient } from '../../src/gremlin/index.js'
@@ -108,6 +113,7 @@ export const setupTestContainer = async (container: Container, mode?: ContainerM
 
     // Shared registrations (used by both prod and test containers)
     registerCoreServices(container)
+    registerAzureOpenAI(container)
     // Handlers should be transient (default scope) to mirror production behavior.
     registerHandlers(container)
     registerWorldEventHandlers(container)

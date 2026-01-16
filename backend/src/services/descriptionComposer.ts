@@ -19,7 +19,7 @@ import { inject, injectable } from 'inversify'
 import { marked } from 'marked'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import { isValidHeroProseContent, selectHeroProse } from './heroProse.js'
+import { isHeroProse, isValidHeroProseContent, selectHeroProse } from './heroProse.js'
 import type { CompiledDescription, CompiledProvenance, CompileOptions, LayerProvenance, ViewContext } from './types.js'
 
 /**
@@ -82,7 +82,8 @@ export class DescriptionComposer {
         const originalBaseDescription = options?.baseDescription || ''
 
         // 1. Fetch all layers for location (these are overlays, not the base)
-        const allLayers = await this.layerRepository.getLayersForLocation(locationId)
+        // NOTE: getLayersForLocation is deprecated; query per-type histories for the location scope.
+        const allLayers = await this.getAllLayersForLocation(locationId)
 
         // 2. Check for hero-prose layer that can replace base description
         const heroProse = selectHeroProse(allLayers)
@@ -102,12 +103,12 @@ export class DescriptionComposer {
             }
         }
 
-        // 3. Filter active layers based on context (excludes 'base' type and the selected hero-prose)
+        // 3. Filter active layers based on context (excludes 'base' type and ALL hero-prose layers)
         const overlayLayers = allLayers.filter((l) => {
             // Exclude 'base' type layers
             if (l.layerType === 'base') return false
-            // Exclude the hero-prose layer we used as effective base (it's not an overlay)
-            if (heroProse && l.id === heroProse.id) return false
+            // Hero-prose layers replace the base description and are never treated as overlays.
+            if (isHeroProse(l)) return false
             return true
         })
         const activeLayers = this.filterActiveLayers(overlayLayers, context)
@@ -140,6 +141,20 @@ export class DescriptionComposer {
                 compiledAt: new Date().toISOString()
             }
         }
+    }
+
+    /**
+     * Fetch all layers for a location by querying per-layer-type history.
+     *
+     * This avoids the deprecated getLayersForLocation API and keeps the query
+     * model aligned with scopeId ('loc:<locationId>') storage.
+     */
+    private async getAllLayersForLocation(locationId: string): Promise<DescriptionLayer[]> {
+        const scopeId = `loc:${locationId}`
+        const layerTypes: Array<BaseDescriptionLayer['layerType']> = ['dynamic', 'ambient', 'weather', 'lighting', 'base']
+
+        const results = await Promise.all(layerTypes.map((t) => this.layerRepository.queryLayerHistory(scopeId, t)))
+        return results.flat() as DescriptionLayer[]
     }
 
     /**

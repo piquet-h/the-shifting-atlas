@@ -98,6 +98,21 @@ The `local.settings.json` file is created by:
 
 Key-based Cosmos SQL authentication is intentionally not supported to keep local dev aligned with production.
 
+### Azure OpenAI (hero prose)
+
+The backend can optionally generate a **hero prose** layer for locations (best-effort, bounded timeout). If Azure OpenAI is not configured, the feature is a safe no-op.
+
+Configuration (via Azure Functions settings / `local.settings.json`):
+
+- `AZURE_OPENAI_ENDPOINT`: your Azure OpenAI resource endpoint (e.g. `https://<resource>.openai.azure.com/`)
+- `AZURE_OPENAI_MODEL`: your deployment name (e.g. `gpt-4o-mini`)
+- `AZURE_OPENAI_API_VERSION`: optional (defaults to `2024-10-21`)
+- `HERO_PROSE_TIMEOUT_MS`: optional (defaults to `1200`)
+
+Auth:
+
+- Uses Azure AD via `DefaultAzureCredential` (Managed Identity in prod; `az login` locally)
+
 ## Deployment
 
 Deployment details live exclusively in the workflow YAML under `.github/workflows/backend-functions-deploy.yml`. Read that file for triggers, required permissions, and steps. Required Azure resources are provisioned via Bicep in `infrastructure/`. No duplicated narrative here to avoid drift.
