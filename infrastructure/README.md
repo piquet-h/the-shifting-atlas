@@ -10,6 +10,7 @@ Provisioned resources:
 | Azure Storage Account          | Function App backend storage (required for consumption plan). | Standard LRS tier.                                                                                                                                   |
 | Azure Cosmos DB (Gremlin API)  | World graph: rooms, exits, NPCs, items.                       | Session consistency; Gremlin capability enabled. Partition key: `/partitionKey` (required property on all vertices). Player state removed (ADR-004). |
 | Azure Cosmos DB (SQL/Core API) | Authoritative player, inventory, layers, events store.        | Serverless capacity mode. Single authoritative player store since ADR-004 (dual-persistence retired). Database: `game`. Containers detailed below.   |
+| Azure OpenAI (Optional)        | AI text generation for hero prose and narrative features.     | Managed Identity auth only (no keys). Disabled by default; enable via `enableAzureOpenAI=true` parameter. Requires available quota/region.            |
 | Azure Key Vault                | Stores Cosmos primary key secrets.                            | Access policy grants SWA and Function App system identities get/list for secrets. Stores both `cosmos-primary-key` and `cosmos-sql-primary-key`.     |
 | Azure Application Insights     | Telemetry and observability.                                  | Connection string wired to SWA Functions and Function App for automatic instrumentation.                                                             |
 | Azure Workbooks                | Pre-configured dashboards for observability (M2).             | Movement Blocked Reasons Breakdown panel linked to Application Insights. See `docs/observability/workbooks/`.                                        |
@@ -17,7 +18,8 @@ Provisioned resources:
 
 Files:
 
--   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks + Alerts
+-   `main.bicep` – SWA + Function App + Service Bus + Cosmos + Key Vault + secret injection + Workbooks + Alerts + Azure OpenAI
+-   `azure-openai.bicep` – Azure OpenAI resource with model deployment and Managed Identity RBAC (optional)
 -   `workbook-player-operations-dashboard.bicep` – Consolidated Player Operations dashboard (movement + performance)
 -   `alert-gremlin-429-spike.bicep` – Gremlin 429 throttling spike detection alert module
 -   `parameters.json` – example / placeholder (not required; inline params acceptable)
@@ -85,6 +87,12 @@ g.addV('Location').property('id', '<uuid>').property('partitionKey', 'world').pr
 | `appServicePlanName`               | string | derived unique string   | No       | App Service Plan name. Auto‑generated if not overridden.                              |
 | `gremlinBaselineRps`               | int    | 50                      | No       | Expected baseline RPS for Gremlin queries. Set to 0 to disable 429 spike alert (M2).  |
 | `additionalCosmosDataContributors` | array  | []                      | No       | Additional AAD principal IDs for Cosmos DB data contributor role (local dev/tooling). |
+| `enableAzureOpenAI`                | bool   | false                   | No       | Enable Azure OpenAI resource deployment for AI-powered features.                      |
+| `openAIModelDeploymentName`        | string | gpt-4                   | No       | Name of the OpenAI model deployment (used in API calls).                              |
+| `openAIModelName`                  | string | gpt-4                   | No       | OpenAI model name (e.g., gpt-4, gpt-4o).                                              |
+| `openAIModelVersion`               | string | 0613                    | No       | Model version (e.g., 0613, 2024-05-13).                                               |
+| `openAIModelCapacity`              | int    | 10                      | No       | Model deployment capacity in thousands of tokens per minute (TPM).                    |
+| `azureOpenAIApiVersion`            | string | 2024-10-21              | No       | Azure OpenAI API version to use in backend app settings.                              |
 
 Secrets/keys are injected via Key Vault; no repository URL parameter is currently required because CI handles deployment.
 
@@ -115,6 +123,9 @@ Example parameter usage inline or via a parameter file you maintain separately.
 | `functionAppName`                 | Function App name.                      |
 | `storageAccountName`              | Storage account name.                   |
 | `appServicePlanName`              | App Service Plan name.                  |
+| `azureOpenAIEnabled`              | Whether Azure OpenAI is enabled.        |
+| `azureOpenAIEndpoint`             | Azure OpenAI endpoint URL (if enabled). |
+| `azureOpenAIModelDeploymentName`  | Model deployment name (if enabled).     |
 
 ## Deployment Examples
 
@@ -236,6 +247,52 @@ az deployment group create \
 
 Idempotent: existing workbook updated in-place when JSON changes.
 
+## Azure OpenAI (Optional AI Features)
+
+Azure OpenAI is **disabled by default** to keep infrastructure costs low during development. Enable it when you need AI-powered features like hero prose generation.
+
+### Enabling Azure OpenAI
+
+Set `enableAzureOpenAI=true` during deployment:
+
+```bash
+az deployment group create \
+    --resource-group rg-atlas-game \
+    --template-file main.bicep \
+    --parameters name=atlas enableAzureOpenAI=true
+```
+
+### Configuration
+
+When enabled, the deployment:
+- Creates an Azure OpenAI resource with key-based auth disabled (Managed Identity only)
+- Deploys the specified model (default: `gpt-4` version `0613` with 10K TPM capacity)
+- Grants the Function App `Cognitive Services OpenAI User` role
+- Wires app settings: `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_MODEL`, `AZURE_OPENAI_API_VERSION`
+
+### Region and Quota Requirements
+
+**Important:** Azure OpenAI requires:
+- Available quota in your subscription (request via Azure Portal if needed)
+- A supported region (e.g., `eastus`, `westeurope`, `southcentralus`)
+- Model availability varies by region (check [Azure OpenAI model availability](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models))
+
+If deployment fails with quota errors, either:
+1. Request quota increase via Azure Portal → Quotas
+2. Choose a different region with available capacity
+3. Keep `enableAzureOpenAI=false` (backend gracefully handles missing OpenAI config)
+
+### Cost Considerations
+
+Azure OpenAI charges based on:
+- **Model deployment capacity:** ~$0.36/hour for 10K TPM (pay-as-you-go pricing)
+- **Token usage:** Input/output tokens consumed (pricing varies by model)
+
+Recommended for low-cost environments:
+- Keep `enableAzureOpenAI=false` until AI features are actively being tested
+- Use minimal capacity (10K TPM) for development
+- Backend code handles missing OpenAI gracefully (features degrade but don't fail)
+
 ## Alignment With Architecture
 
 -   Matches architecture doc: Static Web App + Function App + Service Bus + Gremlin Cosmos DB.
@@ -247,9 +304,9 @@ Idempotent: existing workbook updated in-place when JSON changes.
 
 -   ✅ Service Bus namespace + queue (world events / async NPC processing)
 -   ✅ Function App (consumption plan) for queue processors
+-   ✅ Azure OpenAI with Managed Identity (optional deployment for AI features)
 -   Application Insights advanced configuration (sampling, custom metrics)
 -   Managed identity RBAC assignments for Cosmos data plane roles
--   Optional Azure OpenAI / AI service (low usage prototype)
 -   Tagging strategy (`env`, `project`, `costCenter`)
 -   Dead-letter queue monitoring and alerting
 
@@ -257,6 +314,7 @@ Idempotent: existing workbook updated in-place when JSON changes.
 
 | Date       | Change                                                                                                                                                                                                |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-01-16 | Added Azure OpenAI optional deployment (`azure-openai.bicep`) with Managed Identity auth, model deployment, and app settings wiring. Disabled by default via `enableAzureOpenAI` parameter.          |
 | 2025-11-04 | Added Movement Blocked Reasons Breakdown workbook module (M2 Observability) with automatic deployment via main.bicep.                                                                                 |
 | 2025-10-05 | Added Service Bus (Basic tier), Function App (consumption Y1), Storage Account, and RBAC role assignments for world event queue processing.                                                           |
 | 2025-10-04 | Added Cosmos DB SQL API account and containers (players, inventory, layers, events) per ADR-002.                                                                                                      |

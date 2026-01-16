@@ -2,6 +2,25 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
+// Azure OpenAI parameters (optional deployment)
+@description('Enable Azure OpenAI deployment')
+param enableAzureOpenAI bool = false
+
+@description('OpenAI model deployment name')
+param openAIModelDeploymentName string = 'gpt-4'
+
+@description('OpenAI model name')
+param openAIModelName string = 'gpt-4'
+
+@description('OpenAI model version')
+param openAIModelVersion string = '0613'
+
+@description('OpenAI model capacity (tokens per minute in thousands)')
+param openAIModelCapacity int = 10
+
+@description('Azure OpenAI API version to use in app settings')
+param azureOpenAIApiVersion string = '2024-10-21'
+
 var storageName = toLower('st${name}${unique}')
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -158,6 +177,11 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_LOCATION_CLOCKS: 'locationClocks'
       COSMOS_SQL_CONTAINER_LORE_FACTS: 'loreFacts'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
+
+      // Azure OpenAI Configuration (conditional - only when enableAzureOpenAI is true)
+      AZURE_OPENAI_ENDPOINT: enableAzureOpenAI ? azureOpenAI!.outputs.openAIEndpoint : ''
+      AZURE_OPENAI_MODEL: enableAzureOpenAI ? azureOpenAI!.outputs.modelDeploymentName : ''
+      AZURE_OPENAI_API_VERSION: enableAzureOpenAI ? azureOpenAIApiVersion : ''
     }
   }
 }
@@ -791,6 +815,22 @@ resource storageQueueDataMessageProcessor 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Azure OpenAI (optional deployment for AI-powered features like hero prose generation)
+// Configured with Managed Identity auth (no keys); provides endpoint and deployment for backend
+module azureOpenAI 'azure-openai.bicep' = if (enableAzureOpenAI) {
+  name: 'azure-openai'
+  params: {
+    name: name
+    location: location
+    modelDeploymentName: openAIModelDeploymentName
+    modelName: openAIModelName
+    modelVersion: openAIModelVersion
+    modelCapacity: openAIModelCapacity
+    functionAppPrincipalId: backendFunctionApp.identity.principalId
+    disableLocalAuth: true
+  }
+}
+
 // Workbook: Player Operations Dashboard (consolidated movement + performance metrics)
 module workbookPlayerOperations 'workbook-player-operations-dashboard.bicep' = {
   name: 'workbook-player-operations-dashboard'
@@ -869,3 +909,9 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
 
 // NOTE: Dual-persistence (player migration & fallback) infrastructure removed per ADR-004.
 // Player storage is now exclusively SQL API; Gremlin retained only for world graph structure.
+
+// Outputs for Azure OpenAI (conditional)
+output azureOpenAIEnabled bool = enableAzureOpenAI
+output azureOpenAIEndpoint string = enableAzureOpenAI ? azureOpenAI!.outputs.openAIEndpoint : ''
+output azureOpenAIModelDeploymentName string = enableAzureOpenAI ? azureOpenAI!.outputs.modelDeploymentName : ''
+
