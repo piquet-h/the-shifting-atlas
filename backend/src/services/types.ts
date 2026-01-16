@@ -34,6 +34,8 @@ export interface LayerProvenance {
     priority: number
     /** Whether this layer was superseded by another */
     superseded?: boolean
+    /** Whether this layer replaced the base description (hero-prose) */
+    replacedBase?: boolean
     /** ISO timestamp when layer was authored */
     authoredAt: string
 }
