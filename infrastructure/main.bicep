@@ -628,8 +628,6 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
   }
 }
 
-output cosmosSqlTestDatabaseName string = 'game-test'
-
 resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2024-01-01' = {
   name: 'sb-atlas-${unique}'
   location: location
@@ -867,5 +865,4 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
   }
 }
 
-// NOTE: Dual-persistence (player migration & fallback) infrastructure removed per ADR-004.
-// Player storage is now exclusively SQL API; Gremlin retained only for world graph structure.
+output cosmosSqlTestDatabaseName string = 'game-test'
