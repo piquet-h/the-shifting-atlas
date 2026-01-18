@@ -12,9 +12,21 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 2. Tool-First – Agents access the world only via MCP tool contracts (never ad‑hoc DB queries in prompts).
 3. Principle of Least Privilege – Each agent role gets a curated allow‑list of tools.
 4. Deterministic Core – Canonical world state mutations always flow through validated domain events.
-5. Observability & Versioning – Every AI decision is traceable (model + tool schema versions + prompt hash).
-6. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
-7. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
+5. Narration-first (Non-simulation) – We do not attempt a complete world simulator. The system persists only the canonical facts needed to prevent drift, and uses narration to bridge ambiguity.
+6. Persistence Ratchet – Ephemeral narration may speculate; persisted facts do not. Once a proposal is accepted into storage it becomes canon for future turns (unless explicitly superseded by a validated retcon event).
+7. Observability & Versioning – Every AI decision is traceable (model + tool schema versions + prompt hash).
+8. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
+9. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
+
+### Launch posture (recommended)
+
+For early launch, prefer **Azure AI Foundry hosted agents** as the agent runtime when you want persistence, governance/monitoring, and a secure endpoint without building a bespoke agent-hosting service. Regardless of runtime, the backend remains the **sole authority** for:
+
+- world-state persistence (Cosmos DB)
+- invariants and validation gates
+- canonical event emission
+
+Agents (hosted or self-hosted) should be treated as **proposal generators**: they can suggest narration, layers, or structured changes, but they do not directly write authoritative state.
 
 ### Mutation Admission Gates (Preview)
 
@@ -32,15 +44,15 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 ## Layered Model
 
-| Layer               | Responsibility                             | Implementation Substrate                                       |
-| ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
-| Presentation        | Player command UI, streaming output        | Static Web App (React)                                         |
-| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                         |
-| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                     |
-| AI Orchestration    | Run agents, call MCP tools, emit proposals | Dedicated Functions (queue-trigger) or future durable workflow |
-| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                       |
-| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                      |
-| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                           |
+| Layer               | Responsibility                             | Implementation Substrate                                                             |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Presentation        | Player command UI, streaming output        | Static Web App (React)                                                               |
+| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                                               |
+| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                                           |
+| AI Orchestration    | Run agents, call MCP tools, emit proposals | Hosted agent runtime (recommended for launch) or dedicated Functions (queue-trigger) |
+| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                                             |
+| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                                            |
+| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                                                 |
 
 ## AI & MCP Stages (High-Level)
 
@@ -48,13 +60,13 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
-| Stage (Milestone) | Focus                   | Key MCP Servers / Additions                                                                                                                                              | Exit Criteria                                        |
-| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| M4 AI Read        | Foundations (Read-Only) | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
-| M6 AI Enrich\*    | Flavor & Dialogue Seed  | +`classification`, `lore-memory`                                                                                                                                         | Safe ambience & NPC one-liners in playtest           |
-| M7 Systems\*      | Structured Proposals    | +`world-mutation` (proposal endpoints)                                                                                                                                   | Validator rejects unsafe / incoherent >90% precision |
-| (Future) Planning | Narrative Planning      | +`simulation-planner`                                                                                                                                                    | Multi-step quest seed generation gated & logged      |
-| (Future) Advisory | Systemic / Economy Lens | +`economy-analytics`, further domain-specific tools                                                                                                                      | Cost & token budgets within defined thresholds       |
+| Stage (Milestone)   | Focus                        | Key MCP Servers / Additions                                                                                                                                              | Exit Criteria                                        |
+| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| M4 AI Read          | Foundations (Read-Only)      | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
+| M6 AI Enrich\*      | Flavor & Dialogue Seed       | +`classification`, `lore-memory`                                                                                                                                         | Safe ambience & NPC one-liners in playtest           |
+| M7 Systems\*        | Structured Proposals         | +`world-mutation` (proposal endpoints)                                                                                                                                   | Validator rejects unsafe / incoherent >90% precision |
+| (Optional) Planning | Narrative Planning (offline) | +`simulation-planner` (optional; offline tooling, not live gameplay)                                                                                                     | Quest seed generation gated & logged                 |
+| (Future) Advisory   | Systemic / Economy Lens      | +`economy-analytics`, further domain-specific tools                                                                                                                      | Cost & token budgets within defined thresholds       |
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
@@ -153,9 +165,9 @@ Proposal endpoints (never direct writes):
 - `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
     - Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
 
-### simulation-planner-mcp (Stage M6 – Planning)
+### simulation-planner-mcp (Optional – offline tooling)
 
-Higher-order narrative & faction simulation.
+If introduced, this is an **offline** tool for generating multi-step narrative arcs (quest scaffolds, faction beats) with strict gating and audit. It is **not required** for launch and is not intended to drive a live “simulation.”
 
 - `simulateFactionTick(factionId, horizonSteps)`
 - `generateEventArc(seed, constraints)`
@@ -176,6 +188,8 @@ Advisory economic insights.
 5. If accepted: emits deterministic domain event (e.g., `AmbienceGenerated`).
 6. Event processor persists layer / record; telemetry recorded.
 7. If rejected: optionally reprompt (bounded attempts) or fallback to static content.
+
+Note: in a narration-first game, a rejection should typically produce a **story-consistent fallback** (“you thought you saw…”) rather than blocking the player.
 
 ## Validation & Safety Gates
 
@@ -262,8 +276,8 @@ This section complements (does not duplicate) broader telemetry guidance in `obs
 
 Committee Example (Stage M6+):
 
-1. PlannerAgent (tools: WorldContext-*, Lore-*) drafts quest arc.
-2. CanonicalityAgent (tools: WorldContext-*) verifies entity & exit references.
+1. PlannerAgent (tools: WorldContext-_, Lore-_) drafts a quest arc.
+2. CanonicalityAgent (tools: WorldContext-\*) verifies entity & exit references.
 3. SafetyAgent (tools: classification) final moderation.
 4. Aggregator applies tie-break rules (e.g., shortest valid arc) then emits proposal.
 
@@ -341,7 +355,7 @@ The following examples show the MCP `tools/call` request shape (tool name + JSON
 
 There are two different caller types:
 
-- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend owns narration.
+- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend is the canonical gameplay API surface and the authority for persistence/invariants; narration may be produced internally or via a hosted agent runtime.
 - **External narrators (VS Code / Teams / agent runners):** external tools can call a curated narrative/tooling surface to fetch read-only context (MCP tools) and/or request narrative responses.
 
 For external narrators, authentication and throttling MUST be enforced at the platform boundary:
@@ -390,24 +404,24 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 
 - Narrative Agent (DM persona)
     - Role: Produce player-facing narration, evaluate plausibility, and emit advisory proposals for world changes.
-    - Inputs: ActionFrame, WorldContext-* tools, Lore-* tools, character metadata.
+    - Inputs: ActionFrame, WorldContext-_ tools, Lore-_ tools, character metadata.
     - Outputs: narration text, advisory WorldEventEnvelope proposals.
 
 - Intent Parser Agent
     - Role: Convert free-form player text → structured ActionFrame(s) (verbs, targets, modifiers, order).
-    - Tools: local heuristics, optional fast model, WorldContext-* for disambiguation.
+    - Tools: local heuristics, optional fast model, WorldContext-\* for disambiguation.
 
 - World Agent
     - Role: Apply deterministic mechanics (movement, inventory, time costs) and produce deterministic proposals when required.
-    - Tools: WorldContext-*, ActionRegistry, repository adapters.
+    - Tools: WorldContext-\*, ActionRegistry, repository adapters.
 
 - Encounter / Resolution Agent
     - Role: Resolve interactive multi-actor scenarios (turns, resource consumption) and emit domain events or validated proposals.
-    - Tools: WorldContext-*, rule tables, ActionRegistry.
+    - Tools: WorldContext-\*, rule tables, ActionRegistry.
 
 - Planner / Quest Agent
     - Role: Generate multi-step arcs (quest seeds, adventure scaffolds) for later validation and enactment.
-    - Tools: Lore-*, simulation-planner (future), WorldContext-*.
+    - Tools: Lore-_ and WorldContext-_; optional offline planner tooling if introduced.
 
 - Safety / Classification Agent
     - Role: Moderate and classify content; block or flag proposals violating safety policy.
@@ -415,7 +429,7 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 
 - Canonicality / Validator Agent
     - Role: Verify referential integrity and domain invariants before persistence (exits exist, entity resolution).
-    - Tools: WorldContext-*, shared validation functions.
+    - Tools: WorldContext-\*, shared validation functions.
 
 - Aggregator / Orchestrator
     - Role: Combine multiple agent outputs, tie-break, attach correlation ids, and forward accepted work to the Validation & Policy pipeline.
@@ -427,16 +441,16 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 
 The table below lists the primary MCP servers / backend helpers with their purpose, representative methods, and short auth notes.
 
-| Server / Helper                      |            Stage | Representative methods                                                                                            | Auth / Notes                                                                                           |
-| ------------------------------------ | ---------------: | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| WorldContext-*                       |   M4 (read-only) | getLocationContext(locationId,tick), getPlayerContext(playerId,tick), getSpatialContext(locationId,depth), getRecentEvents(scope,scopeId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
-| Lore-*                               |               M4 | searchLore(query,k), getCanonicalFact(factId)                                                                     | Vector store access; sanitized snippets; auth via backend helper                                       |
-| classification-mcp                   |       M4 (future) | classifyIntent(utterance), moderateContent(text)                                                                  | Requires model usage telemetry; used in Validation & Policy                                            |
-| intent-parser (backend helper)       |            M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                  | Prefer server-side implementation; minimal WorldContext calls for resolution                           |
-| prompt templates (shared)            | shared (not MCP) | getWorldTemplate(key) (seed); planned: getTemplate(name,version), listTemplates(tag), computePromptHash(template) | Templates live in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
-| world-mutation / proposal API        |       M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                                           | Protected; proposals must pass Validation & Policy gates before persistence                            |
-| simulation-planner                   |       M6 (future) | simulateScenario(seed,steps), generateArc(seed,constraints)                                                       | Heavy compute; used offline or in gated background tasks                                               |
-| telemetry query API (backend helper) |          backend | GET /api/telemetry/ai-usage?since&purpose                                                                         | Curated aggregates only; no raw AppInsights surface exposed to agents                                  |
+| Server / Helper                      |              Stage | Representative methods                                                                                                                          | Auth / Notes                                                                                           |
+| ------------------------------------ | -----------------: | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| WorldContext-\*                      |     M4 (read-only) | getLocationContext(locationId,tick), getPlayerContext(playerId,tick), getSpatialContext(locationId,depth), getRecentEvents(scope,scopeId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
+| Lore-\*                              |                 M4 | searchLore(query,k), getCanonicalFact(factId)                                                                                                   | Vector store access; sanitized snippets; auth via backend helper                                       |
+| classification-mcp                   |        M4 (future) | classifyIntent(utterance), moderateContent(text)                                                                                                | Requires model usage telemetry; used in Validation & Policy                                            |
+| intent-parser (backend helper)       |              M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                                                | Prefer server-side implementation; minimal WorldContext calls for resolution                           |
+| prompt templates (shared)            |   shared (not MCP) | getWorldTemplate(key) (seed); planned: getTemplate(name,version), listTemplates(tag), computePromptHash(template)                               | Templates live in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
+| world-mutation / proposal API        |         M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                                                                         | Protected; proposals must pass Validation & Policy gates before persistence                            |
+| simulation-planner                   | optional (offline) | generateArc(seed,constraints)                                                                                                                   | Offline tooling only; not live gameplay                                                                |
+| telemetry query API (backend helper) |            backend | GET /api/telemetry/ai-usage?since&purpose                                                                                                       | Curated aggregates only; no raw AppInsights surface exposed to agents                                  |
 
 _Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate limits, and correlate requests with operationId/correlationId for traceability.
 
@@ -444,7 +458,7 @@ _Auth notes_: All MCP tool endpoints must enforce least-privilege access, rate l
 
 This project supports two consumption modes:
 
-- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend owns narration and (when enabled) calls MCP tools internally as part of the narration pipeline.
+- **Gameplay (website → backend):** the website calls normal backend HTTP endpoints. The backend is the canonical gameplay API surface and authority for persistence/invariants; narration may be produced internally or via a hosted agent runtime, and the backend may call MCP tools as part of that pipeline.
 - **External narrators (VS Code / Teams / agent runners):** external tools can call a curated narrative/tooling surface to “tell the story” or fetch context.
 
 For external narrators, authentication and throttling MUST be enforced at the platform boundary:

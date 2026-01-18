@@ -1,10 +1,12 @@
 # D&D 5e API + Microsoft Agent Framework Integration Strategy
 
+> Status note (2026-01-17): This project is **narration-first** (no attempt at a full world simulator). The backend remains the sole authority for world state and invariants. For a faster path to launch, prefer **Azure AI Foundry hosted agents** as the agent runtime; treat any agent (hosted or self-hosted via Microsoft Agent Framework) as a proposal generator that calls tools and returns narration, while the backend validates and persists canon.
+
 ## Executive Summary
 
-This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.io/docs/api) with [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview) to scale The Shifting Atlas as a Gen AI-driven MMORPG text adventure.
+This document outlines how to integrate the [D&D 5e API](https://5e-bits.github.io/docs/api) with agentic narration patterns (including [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview) and/or Azure AI Foundry hosted agents) to scale The Shifting Atlas as a Gen AI-driven MMORPG text adventure.
 
-**Key Opportunity**: Combine structured D&D 5e game rules with AI-driven narrative generation, world-building, and dynamic storytelling through MCP (Model Context Protocol) servers.
+**Key Opportunity**: Combine structured D&D 5e game rules with AI-driven narration through MCP (Model Context Protocol) tools, while keeping canonical world state deterministic and persistence-controlled.
 
 **Core Game Pillars**:
 

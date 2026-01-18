@@ -52,7 +52,7 @@ Stage Roadmap (Milestones):
 2. M1 Traversal – Persistent locations, exits, movement loop.
 3. M2 Data Foundations – SQL persistence, telemetry consolidation (ADR-004).
 4. M3 Core Loop – Event-driven processing, web UI, temporal mechanics.
-5. M4 AI Read – Read‑only MCP servers (WorldContext-*, Lore-*). Prompt templates and telemetry are implemented in `shared/` and backend helper endpoints (see `shared/src/prompts/` and `shared/src/telemetry.ts`). See [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) for complete AI integration roadmap and Epic [#387](https://github.com/piquet-h/the-shifting-atlas/issues/387) for MCP server implementation tracking.
+5. M4 AI Read – Read‑only MCP servers (WorldContext-_, Lore-_). Prompt templates and telemetry are implemented in `shared/` and backend helper endpoints (see `shared/src/prompts/` and `shared/src/telemetry.ts`). See [Agentic AI & MCP Architecture](./agentic-ai-and-mcp.md) for complete AI integration roadmap and Epic [#387](https://github.com/piquet-h/the-shifting-atlas/issues/387) for MCP server implementation tracking.
 6. M5 Quality & Depth – Description layering, dashboards, alerts.
 7. M6 Systems – Dungeons, humor layer, entity promotion; AI enrich/proposals.
 8. M7 Post-MVP Extensibility – Multiplayer, quests, economy, AI write path.
@@ -60,7 +60,7 @@ Stage Roadmap (Milestones):
 ## Separation of Concerns (Future State)
 
 - `frontend/` – Presentation + minimal command dispatch
-- `backend/` – All HTTP endpoints + asynchronous world simulation (queue-triggered world event processors + NPC ticks), heavier domain logic
+- `backend/` – All HTTP endpoints + asynchronous world evolution (queue-triggered world event processors and queued background work). The system is narration-first: it does not attempt a full world simulator; canonical facts are persisted and narration closes gaps.
 - `shared/` (expanding) – Currently exports telemetry events + dual entry points; will accrete graph helpers, validation schemas, and MCP tool type definitions
 
 ### Shared Package Entry Points (Browser vs Backend)
@@ -134,15 +134,17 @@ Full flow diagram will be added here once an Entra app registration is provision
 
 ## Agentic AI & MCP Layer (Preview)
 
-Early AI integration will adopt a **Model Context Protocol (MCP)** tooling layer instead of embedding raw model prompts inside gameplay Functions. Rationale: prevent prompt sprawl, enable least‑privilege access, and keep the deterministic world model authoritative.
+Early AI integration adopts a **Model Context Protocol (MCP)** tooling layer instead of embedding raw model prompts inside gameplay Functions. Rationale: prevent prompt sprawl, enable least‑privilege access, and keep the deterministic world model authoritative.
 
 Stage M3 (planned) introduces **read‑only MCP servers** (all advisory, no mutations):
 
-- WorldContext-* and Lore-* – Structured location/player/event context fetch (no direct DB exposure to prompts)
+- WorldContext-_ and Lore-_ – Structured location/player/event context fetch (no direct DB exposure to prompts)
 - Prompt templates live in `shared/src/prompts/` with backend helper endpoints when external tooling needs HTTP access (not an MCP server)
 - Telemetry & observability are implemented via the canonical telemetry helpers (`shared/src/telemetry.ts`) and backend helper endpoints for curated queries — not as an MCP server.
 
-Later phases add controlled proposal endpoints (`world-mutation-mcp`) plus simulation planners. All AI outputs remain **advisory** until validated by deterministic rules (schema, safety, invariants) and only then materialize as domain events.
+Later phases add controlled proposal endpoints (`world-mutation-mcp`). This project is narration-first (non-simulation): agents may propose new facts or layers, but only deterministic validation/policy gates can ratchet those proposals into persistence.
+
+Runtime note (launch posture): hosted agent runtimes (e.g., Azure AI Foundry hosted agents) are a valid execution target for narration and tool use, provided the backend remains the sole authority for persistence and invariants.
 
 See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
 

@@ -120,6 +120,8 @@ The Well-Architected Framework provides five pillars (Reliability, Security, Cos
 
 - **State Capture Layer (Deterministic)**: Code persists world state (player location, inventory, NPC positions) in SQL/Graph for exact replay and recovery
 - **Immersion Layer (AI-Driven)**: AI evaluates player commands in context to determine narrative outcomes, shared world effects, and NPC reactions
+- **Narration-first (Non-simulation)**: We are not trying to build a fully accurate world simulator. We persist only the minimum canonical facts needed for consistency, and use narration to close gaps. When an AI idea becomes “real,” it crosses a validation boundary and is recorded as state.
+- **Persistence Ratchet**: Ephemeral narration may speculate. Persisted facts do not. Once a fact is accepted into storage, future narration must treat it as canon (unless explicitly superseded by a validated retcon event).
 - **Event Classification**: AI decides which player actions trigger async world events based on narrative context (not hard-coded rules)
 - **Bounded Creativity**: AI-generated narration is ephemeral by default (non-canonical); only validated layers persist
 - **Prompt Versioning**: Templates are versioned and hashed for deterministic AI behavior within creative bounds
