@@ -55,7 +55,6 @@
                 "cwd": "${workspaceFolder}/backend"
             }
         },
-        // Frontend & composite dev tasks
         {
             "type": "npm",
             "label": "npm:dev:frontend",
@@ -68,6 +67,19 @@
             "label": "npm:dev:backend",
             "script": "dev:backend",
             "path": "${workspaceFolder}",
+            "problemMatcher": []
+        },
+        {
+            "type": "shell",
+            "label": "bicep: build (infra/main)",
+            "command": "az bicep build --file infrastructure/main.bicep",
+            "problemMatcher": []
+        },
+        {
+            "label": "bicep: build (infra/main)",
+            "type": "shell",
+            "command": "az bicep build --file infrastructure/main.bicep",
+            "isBackground": false,
             "problemMatcher": []
         }
     ]

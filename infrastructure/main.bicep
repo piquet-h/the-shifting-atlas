@@ -2,7 +2,63 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
+@description('Name of the Azure AI Foundry (Cognitive Services AIServices) account. Must be globally unique.')
+param foundryAccountName string = toLower('aifoundry-${name}-${unique}')
+
+@description('Name of the Azure AI Foundry project created under the Foundry account.')
+param foundryProjectName string = name
+
+@description('Name of the Azure AI Foundry project connection that points to the MCP server.')
+param foundryMcpConnectionName string = toLower('mcp-${unique}')
+
 var storageName = toLower('st${name}${unique}')
+var foundryMcpTarget = 'https://${backendFunctionApp.properties.defaultHostName}/mcp'
+
+// Azure AI Foundry (Cognitive Services AIServices) account.
+// Use AVM for new resource types when available.
+module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1' = {
+  name: 'foundry-account-${unique}'
+  params: {
+    name: foundryAccountName
+    kind: 'AIServices'
+    sku: 'S0'
+    location: location
+    allowProjectManagement: true
+    publicNetworkAccess: 'Enabled'
+    managedIdentities: {
+      systemAssigned: true
+    }
+    enableTelemetry: false
+  }
+}
+
+// Azure AI Foundry project.
+resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
+  name: '${foundryAccountName}/${foundryProjectName}'
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    displayName: 'The Shifting Atlas'
+    description: 'Foundry project for The Shifting Atlas (MCP-enabled)'
+  }
+  dependsOn: [
+    foundryAccountModule
+  ]
+}
+
+// Project connection to the existing MCP server hosted in the Function App.
+resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = {
+  name: foundryMcpConnectionName
+  parent: foundryProject
+  properties: {
+    authType: 'ManagedIdentity'
+    category: 'GenericHttp'
+    target: foundryMcpTarget
+    useWorkspaceManagedIdentity: true
+  }
+}
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   #disable-next-line BCP334
@@ -866,3 +922,8 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
 }
 
 output cosmosSqlTestDatabaseName string = 'game-test'
+
+output foundryAccountName string = foundryAccountName
+output foundryProjectName string = foundryProjectName
+output foundryMcpConnectionName string = foundryMcpConnectionName
+output foundryMcpTarget string = foundryMcpTarget
