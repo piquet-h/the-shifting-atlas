@@ -27,15 +27,16 @@
 
 ## Parameters
 
-| Name                       | Type   | Default                       | Required | Description                                                                                                                           |
-| -------------------------- | ------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`                     | string | `atlas`                       | No       | Prefix used in resource names.                                                                                                        |
-| `location`                 | string | resource group location       | No       | Azure region for all resources.                                                                                                       |
-| `unique`                   | string | derived from RG               | No       | Short suffix used for globally-unique resource names.                                                                                 |
-| `foundryAccountName`       | string | `aifoundry-${name}-${unique}` | No       | Azure AI Foundry (AIServices) account name (must be globally unique).                                                                 |
-| `foundryProjectName`       | string | `name`                        | No       | Foundry project name under the Foundry account.                                                                                       |
-| `foundryMcpConnectionName` | string | `mcp-${unique}`               | No       | Foundry project connection name (3–33 chars; alnum/underscore/dash).                                                                  |
-| `foundryMcpTargetOverride` | string | empty                         | No       | If set, overrides the MCP server URL for the Foundry connection. If empty, defaults to `https://<functionapp>.azurewebsites.net/mcp`. |
+| Name                         | Type   | Default                       | Required | Description                                                                                                                           |
+| ---------------------------- | ------ | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                       | string | `atlas`                       | No       | Prefix used in resource names.                                                                                                        |
+| `location`                   | string | resource group location       | No       | Azure region for all resources.                                                                                                       |
+| `unique`                     | string | derived from RG               | No       | Short suffix used for globally-unique resource names.                                                                                 |
+| `foundryAccountName`         | string | `aifoundry-${name}-${unique}` | No       | Azure AI Foundry (AIServices) account name (must be globally unique).                                                                 |
+| `foundryCustomSubDomainName` | string | `foundryAccountName`          | No       | Required by Foundry: custom subdomain for the account. Must be set before creating Foundry projects.                                  |
+| `foundryProjectName`         | string | `name`                        | No       | Foundry project name under the Foundry account.                                                                                       |
+| `foundryMcpConnectionName`   | string | `mcp-${unique}`               | No       | Foundry project connection name (3–33 chars; alnum/underscore/dash).                                                                  |
+| `foundryMcpTargetOverride`   | string | empty                         | No       | If set, overrides the MCP server URL for the Foundry connection. If empty, defaults to `https://<functionapp>.azurewebsites.net/mcp`. |
 
 ## Outputs
 

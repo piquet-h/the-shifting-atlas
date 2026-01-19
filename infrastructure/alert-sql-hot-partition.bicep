@@ -125,11 +125,6 @@ partitionMetrics
           ]
         }
       : {}
-    tags: {
-      'M2-Observability': 'true'
-      Issue: '387'
-      AlertType: 'SQLHotPartition'
-    }
   }
 }
 

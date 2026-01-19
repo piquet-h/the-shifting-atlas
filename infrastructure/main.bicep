@@ -5,14 +5,22 @@ param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 @description('Name of the Azure AI Foundry (Cognitive Services AIServices) account. Must be globally unique.')
 param foundryAccountName string = toLower('aifoundry-${name}-${unique}')
 
+@description('Custom subdomain name for the Foundry account. Required before creating Foundry projects.')
+param foundryCustomSubDomainName string = foundryAccountName
+
 @description('Name of the Azure AI Foundry project created under the Foundry account.')
 param foundryProjectName string = name
 
 @description('Name of the Azure AI Foundry project connection that points to the MCP server.')
 param foundryMcpConnectionName string = toLower('mcp-${unique}')
 
+@description('Optional override for the MCP server URL used by the Foundry project connection. If empty, defaults to the deployed Function App hostname + /mcp.')
+param foundryMcpTargetOverride string = ''
+
 var storageName = toLower('st${name}${unique}')
-var foundryMcpTarget = 'https://${backendFunctionApp.properties.defaultHostName}/mcp'
+var foundryMcpTarget = !empty(foundryMcpTargetOverride)
+  ? foundryMcpTargetOverride
+  : 'https://${backendFunctionApp.properties.defaultHostName}/mcp'
 
 // Azure AI Foundry (Cognitive Services AIServices) account.
 // Use AVM for new resource types when available.
@@ -24,6 +32,7 @@ module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1
     sku: 'S0'
     location: location
     allowProjectManagement: true
+    customSubDomainName: foundryCustomSubDomainName
     publicNetworkAccess: 'Enabled'
     managedIdentities: {
       systemAssigned: true
@@ -510,11 +519,7 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
             ]
           }
         }
-        options: {
-          autoscaleSettings: {
-            maxThroughput: 4000
-          }
-        }
+        options: {}
       }
     }
   }
