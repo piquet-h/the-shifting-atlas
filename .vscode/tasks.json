@@ -133,6 +133,19 @@
 			],
 			"isBackground": false,
 			"problemMatcher": []
+		},
+		{
+			"label": "bicep: build (infra/main)",
+			"type": "shell",
+			"command": "az",
+			"args": [
+				"bicep",
+				"build",
+				"--file",
+				"infrastructure/main.bicep"
+			],
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

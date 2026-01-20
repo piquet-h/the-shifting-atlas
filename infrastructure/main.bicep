@@ -17,6 +17,12 @@ param foundryMcpConnectionName string = toLower('mcp-${unique}')
 @description('Optional override for the MCP server URL used by the Foundry project connection. If empty, defaults to the deployed Function App hostname + /mcp.')
 param foundryMcpTargetOverride string = ''
 
+@description('Entra App Registration (clientId) used by Function App EasyAuth (Azure Active Directory provider) to validate AAD tokens for narrator/Foundry calls.')
+param functionAppAadClientId string = '3b67761b-d23a-423b-a8c4-c2b003c31db1'
+
+@description('Identifier URI (audience) for the Function App AAD protected surface. Must match an identifier URI configured on the Entra App Registration.')
+param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-atlas-api'
+
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
   ? foundryMcpTargetOverride
@@ -266,8 +272,17 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
           login: {
             disableWWWAuthenticate: false
           }
-          registration: {}
+          registration: {
+            // AAD issuer in the current tenant (v2)
+            openIdIssuer: '${environment().authentication.loginEndpoint}${tenant().tenantId}/v2.0'
+            clientId: functionAppAadClientId
+          }
           validation: {
+            // Accept tokens minted for either the app's identifier URI or the appId itself.
+            allowedAudiences: [
+              functionAppAadIdentifierUri
+              functionAppAadClientId
+            ]
             defaultAuthorizationPolicy: {
               allowedPrincipals: {}
             }
