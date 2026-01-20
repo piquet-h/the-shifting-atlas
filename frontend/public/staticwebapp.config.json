@@ -4,16 +4,64 @@
     },
     "navigationFallback": {
         "rewrite": "/index.html",
-        "exclude": ["/api/*"]
+        "exclude": [
+            "/api/*"
+        ]
     },
     "routes": [
         {
+            "route": "/api/ping",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/api/health",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/api/player",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/api/location",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/api/location/*",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
+            "route": "/api/player/*/move",
+            "allowedRoles": [
+                "anonymous",
+                "authenticated"
+            ]
+        },
+        {
             "route": "/api/*",
-            "allowedRoles": ["anonymous", "authenticated"]
+            "allowedRoles": [
+                "authenticated"
+            ]
         },
         {
             "route": "/player/*",
-            "allowedRoles": ["authenticated"]
+            "allowedRoles": [
+                "authenticated"
+            ]
         }
     ],
     "auth": {
@@ -31,7 +79,11 @@
                     },
                     "login": {
                         "nameClaimType": "name",
-                        "scopes": ["openid", "profile", "email"]
+                        "scopes": [
+                            "openid",
+                            "profile",
+                            "email"
+                        ]
                     }
                 }
             }

@@ -16,7 +16,7 @@
 | Azure Workbooks                                  | Pre-configured dashboards.                                            | See `infrastructure/workbooks/` and `docs/observability/`.                                                              |
 | Azure Monitor Alerts                             | Scheduled query alerts.                                               | See `infrastructure/alert-*.bicep` modules.                                                                             |
 | Azure AI Foundry (Cognitive Services AIServices) | Foundry account + project for agent/tool orchestration.               | Account deployed via AVM with project management enabled.                                                               |
-| Foundry project connection (MCP)                 | Connects Foundry → existing MCP server (Function App).                | Uses **Managed Identity** (`useWorkspaceManagedIdentity: true`).                                                        |
+| Foundry project connection (MCP)                 | Connects Foundry → existing MCP server (Function App).                | Uses **Entra ID (AAD)** with the Foundry project/workspace Managed Identity (`useWorkspaceManagedIdentity: true`).      |
 
 ## Files
 

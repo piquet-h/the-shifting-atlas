@@ -62,7 +62,9 @@ resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/con
   name: foundryMcpConnectionName
   parent: foundryProject
   properties: {
-    authType: 'ManagedIdentity'
+    // Use Entra ID auth with the project/workspace managed identity.
+    // (This avoids categories/authTypes that require an explicit credentials payload.)
+    authType: 'AAD'
     category: 'GenericHttp'
     target: foundryMcpTarget
     useWorkspaceManagedIdentity: true
@@ -223,6 +225,108 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_LOCATION_CLOCKS: 'locationClocks'
       COSMOS_SQL_CONTAINER_LORE_FACTS: 'loreFacts'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
+    }
+  }
+
+  // App Service Authentication (EasyAuth) configuration.
+  // Notes:
+  // - We keep requireAuthentication=false because some endpoints are intentionally anonymous (guest bootstrap, move, look).
+  // - We set unauthenticatedClientAction=Return401 to avoid browser-login redirects for API calls.
+  // - Keep providers lean: AzureStaticWebApps for frontend traffic + AzureAD for Foundry / narrators.
+  resource authSettingsV2 'config@2023-12-01' = {
+    name: 'authsettingsV2'
+    properties: {
+      platform: {
+        enabled: true
+        runtimeVersion: 'v2'
+      }
+      globalValidation: {
+        requireAuthentication: false
+        unauthenticatedClientAction: 'Return401'
+      }
+      httpSettings: {
+        forwardProxy: {
+          convention: 'NoProxy'
+        }
+        requireHttps: true
+        routes: {
+          apiPrefix: '/.auth'
+        }
+      }
+      identityProviders: {
+        azureStaticWebApps: {
+          enabled: true
+          registration: {
+            // Match the SWA client id shown in authsettingsV2 today.
+            clientId: staticSite.properties.defaultHostname
+          }
+        }
+        azureActiveDirectory: {
+          enabled: true
+          login: {
+            disableWWWAuthenticate: false
+          }
+          registration: {}
+          validation: {
+            defaultAuthorizationPolicy: {
+              allowedPrincipals: {}
+            }
+            jwtClaimChecks: {}
+          }
+        }
+
+        // Disable unused providers (reduce surprise auth flows / misconfig).
+        apple: {
+          enabled: false
+          login: {}
+          registration: {}
+        }
+        facebook: {
+          enabled: false
+          login: {}
+          registration: {}
+        }
+        gitHub: {
+          enabled: false
+          login: {}
+          registration: {}
+        }
+        google: {
+          enabled: false
+          login: {}
+          registration: {}
+          validation: {}
+        }
+        legacyMicrosoftAccount: {
+          enabled: false
+          login: {}
+          registration: {}
+          validation: {}
+        }
+        twitter: {
+          enabled: false
+          registration: {}
+        }
+      }
+      login: {
+        allowedExternalRedirectUrls: []
+        cookieExpiration: {
+          convention: 'FixedTime'
+          timeToExpiration: '08:00:00'
+        }
+        nonce: {
+          nonceExpirationInterval: '00:05:00'
+          validateNonce: true
+        }
+        preserveUrlFragmentsForLogins: false
+        routes: {}
+        tokenStore: {
+          azureBlobStorage: {}
+          enabled: false
+          fileSystem: {}
+          tokenRefreshExtensionHours: 72
+        }
+      }
     }
   }
 }
@@ -502,6 +606,10 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
           indexingPolicy: {
             indexingMode: 'consistent'
             includedPaths: [
+              {
+                // Cosmos DB requires the root path to be explicitly included when overriding includedPaths.
+                path: '/*'
+              }
               {
                 path: '/factId/?'
               }
