@@ -31,6 +31,12 @@
             ]
         },
         {
+            "route": "/api/player/link",
+            "allowedRoles": [
+                "authenticated"
+            ]
+        },
+        {
             "route": "/api/location",
             "allowedRoles": [
                 "anonymous",
@@ -45,7 +51,7 @@
             ]
         },
         {
-            "route": "/api/player/*/move",
+            "route": "/api/player/*",
             "allowedRoles": [
                 "anonymous",
                 "authenticated"
