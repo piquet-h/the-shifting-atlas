@@ -1,5 +1,6 @@
 param name string = 'atlas'
 param location string = resourceGroup().location
+param foundryLocation string = 'eastus2'
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
 
 @description('Name of the Azure AI Foundry (Cognitive Services AIServices) account. Must be globally unique.')
@@ -33,10 +34,10 @@ var foundryMcpTarget = !empty(foundryMcpTargetOverride)
 module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1' = {
   name: 'foundry-account-${unique}'
   params: {
-    name: foundryAccountName
+    name: foundryLocation
     kind: 'AIServices'
     sku: 'S0'
-    location: location
+    location: 'eastus2'
     allowProjectManagement: true
     customSubDomainName: foundryCustomSubDomainName
     publicNetworkAccess: 'Enabled'
@@ -50,7 +51,7 @@ module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1
 // Azure AI Foundry project.
 resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   name: '${foundryAccountName}/${foundryProjectName}'
-  location: location
+  location: foundryLocation
   identity: {
     type: 'SystemAssigned'
   }
