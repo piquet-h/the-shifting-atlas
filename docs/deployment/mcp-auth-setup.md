@@ -30,19 +30,21 @@ Set these parameters during deployment:
 
 ```bash
 az deployment group create \
-  --resource-group <rg> \
+  --resource-group rg-atlas-game \
   --template-file infrastructure/main.bicep \
   --parameters \
-    functionAppAadClientId='<your-app-registration-client-id>' \
-    functionAppAadIdentifierUri='api://<tenant-id>/shifting-atlas-api' \
-    mcpAllowedClientAppIds='<caller-app-id-1>,<caller-app-id-2>'
+    functionAppAadClientId='3b67761b-d23a-423b-a8c4-c2b003c31db1' \
+    functionAppAadIdentifierUri='api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api' \
+    mcpAllowedClientAppIds='3b67761b-d23a-423b-a8c4-c2b003c31db1'
 ```
 
 **Parameter details:**
 
-- `functionAppAadClientId`: The client ID of your Function App's Entra App Registration
-- `functionAppAadIdentifierUri`: The audience/identifier URI configured on that app registration
-- `mcpAllowedClientAppIds`: Comma-separated list of client app IDs permitted to call MCP endpoints
+- `functionAppAadClientId`: The client ID of your Function App's Entra App Registration (default: `3b67761b-d23a-423b-a8c4-c2b003c31db1`)
+- `functionAppAadIdentifierUri`: The audience/identifier URI configured on that app registration (default: `api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api`)
+- `mcpAllowedClientAppIds`: Comma-separated list of client app IDs permitted to call MCP endpoints (default: same as `functionAppAadClientId`)
+
+**Note**: The default values shown above are already configured for The Shifting Atlas production environment. You only need to override these for different environments or additional callers.
 
 ### 3. What the Bicep Configures
 
@@ -57,22 +59,34 @@ The `infrastructure/main.bicep` template:
 
 ### Entra App or Service Principal
 
-Create a client app registration or service principal that will call the MCP server:
+For calling the MCP server, you have two options:
+
+**Option A: Use Azure CLI (recommended for development)**
+
+The Azure CLI is already pre-authorized to access the MCP API, so you can get tokens without additional consent:
+
+1. Log in with Azure CLI: `az login --tenant fecae6e9-696f-46e4-b1c8-5b471b499a24`
+2. Get token (see "Obtaining an Access Token" below)
+3. No additional app registration needed!
+
+**Option B: Create a dedicated service principal**
+
+For production or automated scenarios:
 
 1. Register a new app in Azure AD (or use an existing one)
 2. Note its **Application (client) ID**
-3. Assign it the **Narrator** app role on your Function App's app registration
-4. Add its client ID to the `mcpAllowedClientAppIds` Bicep parameter
+3. Assign it the **Narrator** app role on your Function App's app registration (`3b67761b-d23a-423b-a8c4-c2b003c31db1`)
+4. Add its client ID to the `mcpAllowedClientAppIds` Bicep parameter (or Function App setting `MCP_ALLOWED_CLIENT_APP_IDS`)
 
 ### Obtaining an Access Token
 
 Use Azure CLI (v2) to get a bearer token using scope syntax:
 
 ```bash
-az account get-access-token --scope api://<FunctionApp_ClientID>/.default
+az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default
 ```
 
-Replace `<FunctionApp_ClientID>` with the Function App's Entra App Registration client ID. Note: this requires admin consent for your API in Entra ID.
+Note: this uses the configured Application ID URI from the Function App's Entra App Registration. This requires admin consent for your API in Entra ID.
 
 For service principals (non-interactive):
 
@@ -80,9 +94,9 @@ For service principals (non-interactive):
 az login --service-principal \
   --username <client-id> \
   --password <client-secret> \
-  --tenant <tenant-id>
+  --tenant fecae6e9-696f-46e4-b1c8-5b471b499a24
 
-az account get-access-token --scope api://<FunctionApp_ClientID>/.default
+az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default
 ```
 
 ### VS Code MCP Client Configuration
@@ -136,7 +150,7 @@ When VS Code prompts for the token, paste the access token obtained above.
 
 ```bash
 # Get token (scope syntax)
-TOKEN=$(az account get-access-token --scope api://<FunctionApp_ClientID>/.default --query accessToken -o tsv)
+TOKEN=$(az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default --query accessToken -o tsv)
 
 # Call MCP health endpoint
 curl -H "Authorization: Bearer $TOKEN" \
