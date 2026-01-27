@@ -98,30 +98,12 @@ function isAppServiceClientPrincipalClaim(value: unknown): value is AppServiceCl
     return typeof rec.typ === 'string' && typeof rec.val === 'string'
 }
 
-function parseAppServiceClientPrincipal(headers: HeaderBag): McpCallerClaims | null {
-    // App Service Authentication / EasyAuth provides x-ms-client-principal
-    // Base64-encoded JSON object containing claims.
-    const raw = headers['x-ms-client-principal']
-    if (!raw) return null
-
-    let decoded: string
-    try {
-        decoded = Buffer.from(raw, 'base64').toString('utf8')
-    } catch {
-        return null
-    }
-
-    let parsed: unknown
-    try {
-        parsed = JSON.parse(decoded)
-    } catch {
-        return null
-    }
-
-    const claims = (parsed as { claims?: unknown } | undefined)?.claims
+function parseClientPrincipalObject(value: unknown): McpCallerClaims | null {
+    const claims = (value as { claims?: unknown } | undefined)?.claims
     if (!Array.isArray(claims)) return null
 
     const typedClaims = claims.filter(isAppServiceClientPrincipalClaim)
+    if (typedClaims.length === 0) return null
 
     const values = new Map<string, string[]>()
     for (const c of typedClaims) {
@@ -156,6 +138,86 @@ function parseAppServiceClientPrincipal(headers: HeaderBag): McpCallerClaims | n
     return { tenantId, clientAppId, roles, scopes }
 }
 
+function parseClientPrincipalRaw(raw: unknown): McpCallerClaims | null {
+    // EasyAuth typically provides a base64-encoded JSON object, but some hosts may
+    // surface a parsed object directly.
+    if (!raw) return null
+
+    if (typeof raw === 'object') {
+        return parseClientPrincipalObject(raw)
+    }
+
+    if (typeof raw !== 'string') return null
+
+    let decoded: string
+    try {
+        decoded = Buffer.from(raw, 'base64').toString('utf8')
+    } catch {
+        return null
+    }
+
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(decoded)
+    } catch {
+        return null
+    }
+
+    return parseClientPrincipalObject(parsed)
+}
+
+function parseAppServiceClientPrincipal(headers: HeaderBag): McpCallerClaims | null {
+    // App Service Authentication / EasyAuth provides x-ms-client-principal
+    // Base64-encoded JSON object containing claims.
+    return parseClientPrincipalRaw(headers['x-ms-client-principal'])
+}
+
+function findClientPrincipalCandidate(value: unknown, maxDepth = 4, maxNodes = 250): unknown | null {
+    const seen = new Set<object>()
+    const stack: Array<{ v: unknown; depth: number }> = [{ v: value, depth: 0 }]
+    let visited = 0
+
+    while (stack.length > 0) {
+        const item = stack.pop()
+        if (!item) break
+
+        visited += 1
+        if (visited > maxNodes) break
+
+        const { v, depth } = item
+        if (depth > maxDepth) continue
+
+        if (!v) continue
+
+        // Fast-path: if the value itself looks like a client principal, stop.
+        if (parseClientPrincipalRaw(v)) return v
+
+        if (Array.isArray(v)) {
+            for (const child of v) stack.push({ v: child, depth: depth + 1 })
+            continue
+        }
+
+        if (typeof v === 'object') {
+            if (seen.has(v)) continue
+            seen.add(v)
+
+            const rec = v as Record<string, unknown>
+
+            // Prioritize likely keys.
+            for (const key of ['x-ms-client-principal', 'clientPrincipal', 'client_principal', 'principal']) {
+                const candidate = rec[key]
+                if (candidate && parseClientPrincipalRaw(candidate)) return candidate
+            }
+
+            for (const child of Object.values(rec)) {
+                stack.push({ v: child, depth: depth + 1 })
+            }
+        }
+    }
+
+    return null
+}
+
 function hasNarratorAccess(claims: McpCallerClaims): boolean {
     // Preferred: explicit app role assignment
     if ((claims.roles ?? []).includes('Narrator')) return true
@@ -186,6 +248,18 @@ export function wrapMcpToolHandler(opts: WrapMcpToolHandlerOptions) {
         } else {
             // Default: require x-ms-client-principal (EasyAuth)
             claims = parseAppServiceClientPrincipal(headers)
+
+            // Azure Functions MCP triggers may not surface headers directly to the tool handler.
+            // As a fallback, attempt to find the client principal object/string within the MCP
+            // message payload or trigger metadata.
+            if (!claims) {
+                const candidate = findClientPrincipalCandidate((messages as Record<string, unknown> | undefined) ?? null)
+                claims = parseClientPrincipalRaw(candidate)
+            }
+            if (!claims) {
+                const candidate = findClientPrincipalCandidate(context.triggerMetadata)
+                claims = parseClientPrincipalRaw(candidate)
+            }
         }
 
         if (!claims) {

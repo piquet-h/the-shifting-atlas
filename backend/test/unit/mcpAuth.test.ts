@@ -183,4 +183,39 @@ describe('MCP auth boundary (#428)', () => {
         assert.ok(denied, 'expected MCP.Auth.Denied telemetry')
         assert.equal(denied?.properties?.reason, 'missing_role')
     })
+
+    test('client principal can be extracted from triggerMetadata when not passed via headers bag', async () => {
+        const { wrapMcpToolHandler } = await import('../../src/mcp/auth/mcpAuth.js')
+        const telemetry = await fixture.getTelemetryClient()
+
+        const principal = buildClientPrincipalHeader([
+            { typ: 'appid', val: 'known-client' },
+            { typ: 'scp', val: 'user_impersonation' },
+            { typ: 'tid', val: 'tenant-1' }
+        ])
+
+        const context = await fixture.createInvocationContext({
+            invocationId: 'corr-7',
+            triggerMetadata: {
+                // Deliberately not in triggerMetadata.headers
+                connection: {
+                    clientPrincipal: principal
+                }
+            }
+        } as Partial<InvocationContext>)
+
+        const wrapped = wrapMcpToolHandler({
+            toolName: 'get-location-context',
+            handler: async () => JSON.stringify({ ok: true }),
+            allowedClientAppIds: ['known-client']
+        })
+
+        const result = await wrapped({ arguments: {} }, context)
+
+        assert.equal(typeof result, 'string')
+        assert.equal(JSON.parse(result as string).ok, true)
+
+        const allowed = telemetry.events.find((e) => e.name === 'MCP.Auth.Allowed')
+        assert.ok(allowed, 'expected MCP.Auth.Allowed telemetry')
+    })
 })

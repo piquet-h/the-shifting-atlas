@@ -2,7 +2,7 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "atlas-mcp-access-token",
+            "id": "atlas-mcp-access-token-v2",
             "description": "Azure AD access token for Atlas MCP. IMPORTANT: paste ONLY the raw token. Obtain via: az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default --query accessToken -o tsv",
             "password": true
         }
@@ -16,7 +16,7 @@
             "type": "sse",
             "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
             "headers": {
-                "Authorization": "Bearer ${input:atlas-mcp-access-token}"
+                "Authorization": "Bearer ${input:atlas-mcp-access-token-v2}"
             }
         },
         "playwright": {
