@@ -2,8 +2,8 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "atlas-mcp-bearer-token",
-            "description": "Azure AD Bearer Token for Atlas MCP (obtain via: az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default)",
+            "id": "atlas-mcp-access-token",
+            "description": "Azure AD access token for Atlas MCP. IMPORTANT: paste ONLY the raw token. Obtain via: az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default --query accessToken -o tsv",
             "password": true
         }
     ],
@@ -13,10 +13,10 @@
             "type": "http"
         },
         "live-the-shifting-atlas": {
-            "type": "http",
+            "type": "sse",
             "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
             "headers": {
-                "Authorization": "Bearer ${input:atlas-mcp-bearer-token}"
+                "Authorization": "Bearer ${input:atlas-mcp-access-token}"
             }
         },
         "playwright": {

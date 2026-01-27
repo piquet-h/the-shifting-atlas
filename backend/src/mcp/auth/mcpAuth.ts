@@ -6,6 +6,7 @@ export type McpCallerClaims = {
     tenantId?: string
     clientAppId?: string
     roles: string[]
+    scopes?: string[]
 }
 
 export type McpTokenValidator = (messages: unknown, context: InvocationContext) => Promise<McpCallerClaims>
@@ -139,14 +140,29 @@ function parseAppServiceClientPrincipal(headers: HeaderBag): McpCallerClaims | n
     // Roles may appear in different claim namespaces
     const roles = [...(values.get('roles') ?? []), ...(values.get('http://schemas.microsoft.com/ws/2008/06/identity/claims/role') ?? [])]
 
+    // Delegated scopes may appear as "scp" or as the standard scope claim URI.
+    // scp is a space-delimited list.
+    const scopeRaw = values.get('scp')?.[0] ?? values.get('http://schemas.microsoft.com/identity/claims/scope')?.[0]
+    const scopes = scopeRaw
+        ? scopeRaw
+              .split(' ')
+              .map((s) => s.trim())
+              .filter(Boolean)
+        : []
+
     // Tenant ID may be present as tid
     const tenantId = values.get('tid')?.[0]
 
-    return { tenantId, clientAppId, roles }
+    return { tenantId, clientAppId, roles, scopes }
 }
 
-function hasNarratorRole(claims: McpCallerClaims): boolean {
-    return (claims.roles ?? []).includes('Narrator')
+function hasNarratorAccess(claims: McpCallerClaims): boolean {
+    // Preferred: explicit app role assignment
+    if ((claims.roles ?? []).includes('Narrator')) return true
+
+    // Fallback for delegated flows (e.g., Azure CLI tokens) where EasyAuth may not surface app roles.
+    // Require the standard delegated scope.
+    return (claims.scopes ?? []).includes('user_impersonation')
 }
 
 export function wrapMcpToolHandler(opts: WrapMcpToolHandlerOptions) {
@@ -211,7 +227,7 @@ export function wrapMcpToolHandler(opts: WrapMcpToolHandlerOptions) {
         }
 
         // AuthZ: least-privilege allow-list
-        if (!hasNarratorRole(claims)) {
+        if (!hasNarratorAccess(claims)) {
             telemetry.trackGameEvent(
                 'MCP.Auth.Denied',
                 {

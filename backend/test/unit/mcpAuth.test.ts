@@ -130,4 +130,57 @@ describe('MCP auth boundary (#428)', () => {
         assert.ok(denied, 'expected MCP.Auth.Denied telemetry')
         assert.equal(denied?.properties?.reason, 'tool_not_allowed')
     })
+
+    test('user_impersonation scope can call allow-listed read-only tool (no Narrator role claim)', async () => {
+        const { wrapMcpToolHandler } = await import('../../src/mcp/auth/mcpAuth.js')
+        const telemetry = await fixture.getTelemetryClient()
+        const context = await fixture.createInvocationContext({ invocationId: 'corr-5' } as Partial<InvocationContext>)
+
+        const wrapped = wrapMcpToolHandler({
+            toolName: 'get-location-context',
+            handler: async () => JSON.stringify({ ok: true }),
+            allowedClientAppIds: ['known-client']
+        })
+
+        const principal = buildClientPrincipalHeader([
+            { typ: 'appid', val: 'known-client' },
+            { typ: 'scp', val: 'user_impersonation' },
+            { typ: 'tid', val: 'tenant-1' }
+        ])
+
+        const result = await wrapped({ headers: { 'x-ms-client-principal': principal }, arguments: {} }, context)
+
+        assert.equal(typeof result, 'string')
+        assert.equal(JSON.parse(result as string).ok, true)
+
+        const allowed = telemetry.events.find((e) => e.name === 'MCP.Auth.Allowed')
+        assert.ok(allowed, 'expected MCP.Auth.Allowed telemetry')
+    })
+
+    test('missing Narrator role and missing user_impersonation scope denied', async () => {
+        const { wrapMcpToolHandler } = await import('../../src/mcp/auth/mcpAuth.js')
+        const telemetry = await fixture.getTelemetryClient()
+        const context = await fixture.createInvocationContext({ invocationId: 'corr-6' } as Partial<InvocationContext>)
+
+        const wrapped = wrapMcpToolHandler({
+            toolName: 'get-location-context',
+            handler: async () => JSON.stringify({ ok: true }),
+            allowedClientAppIds: ['known-client']
+        })
+
+        const principal = buildClientPrincipalHeader([
+            { typ: 'appid', val: 'known-client' },
+            { typ: 'scp', val: 'something_else' },
+            { typ: 'tid', val: 'tenant-1' }
+        ])
+
+        const result = await wrapped({ headers: { 'x-ms-client-principal': principal }, arguments: {} }, context)
+
+        assert.equal(typeof result, 'object')
+        assert.equal((result as { status?: number }).status, 403)
+
+        const denied = telemetry.events.find((e) => e.name === 'MCP.Auth.Denied')
+        assert.ok(denied, 'expected MCP.Auth.Denied telemetry')
+        assert.equal(denied?.properties?.reason, 'missing_role')
+    })
 })
