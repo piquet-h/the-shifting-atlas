@@ -1078,3 +1078,5 @@ output foundryAccountName string = foundryAccountName
 output foundryProjectName string = foundryProjectName
 output foundryMcpConnectionName string = foundryMcpConnectionName
 output foundryMcpTarget string = foundryMcpTarget
+output functionAppAadClientId_out string = functionAppAadClientId
+output functionAppAadIdentifierUri_out string = functionAppAadIdentifierUri

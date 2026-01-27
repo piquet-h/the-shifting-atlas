@@ -66,13 +66,13 @@ Create a client app registration or service principal that will call the MCP ser
 
 ### Obtaining an Access Token
 
-Use Azure CLI to get a bearer token:
+Use Azure CLI (v2) to get a bearer token using scope syntax:
 
 ```bash
-az account get-access-token --resource api://<FunctionApp_ClientID>
+az account get-access-token --scope api://<FunctionApp_ClientID>/.default
 ```
 
-Replace `<FunctionApp_ClientID>` with the Function App's Entra App Registration client ID. Copy the `accessToken` from the JSON output.
+Replace `<FunctionApp_ClientID>` with the Function App's Entra App Registration client ID. Note: this requires admin consent for your API in Entra ID.
 
 For service principals (non-interactive):
 
@@ -82,7 +82,7 @@ az login --service-principal \
   --password <client-secret> \
   --tenant <tenant-id>
 
-az account get-access-token --resource api://<FunctionApp_ClientID>
+az account get-access-token --scope api://<FunctionApp_ClientID>/.default
 ```
 
 ### VS Code MCP Client Configuration
@@ -135,8 +135,8 @@ When VS Code prompts for the token, paste the access token obtained above.
 ### Test the Endpoint
 
 ```bash
-# Get token
-TOKEN=$(az account get-access-token --resource api://<FunctionApp_ClientID> --query accessToken -o tsv)
+# Get token (scope syntax)
+TOKEN=$(az account get-access-token --scope api://<FunctionApp_ClientID>/.default --query accessToken -o tsv)
 
 # Call MCP health endpoint
 curl -H "Authorization: Bearer $TOKEN" \

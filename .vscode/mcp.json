@@ -3,7 +3,7 @@
         {
             "type": "promptString",
             "id": "atlas-mcp-bearer-token",
-            "description": "Azure AD Bearer Token for Atlas MCP (obtain via: az account get-access-token --resource api://3b67761b-d23a-423b-a8c4-c2b003c31db1)",
+            "description": "Azure AD Bearer Token for Atlas MCP (obtain via: az account get-access-token --scope api://3b67761b-d23a-423b-a8c4-c2b003c31db1/.default)",
             "password": true
         }
     ],
