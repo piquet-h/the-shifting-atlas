@@ -2,8 +2,8 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "functions-mcp-extension-system-key",
-            "description": "Azure Functions MCP Extension System Key",
+            "id": "atlas-mcp-bearer-token",
+            "description": "Azure AD Bearer Token for Atlas MCP (obtain via: az account get-access-token --resource api://<FunctionApp_ClientID>)",
             "password": true
         }
     ],
@@ -16,7 +16,7 @@
             "type": "http",
             "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
             "headers": {
-                "x-functions-key": "${input:functions-mcp-extension-system-key}"
+                "Authorization": "Bearer ${input:atlas-mcp-bearer-token}"
             }
         },
         "playwright": {

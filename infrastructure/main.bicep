@@ -26,6 +26,9 @@ param functionAppAadClientId string = '3b67761b-d23a-423b-a8c4-c2b003c31db1'
 @description('Identifier URI (audience) for the Function App AAD protected surface. Must match an identifier URI configured on the Entra App Registration.')
 param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-atlas-api'
 
+@description('Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role assigned.')
+param mcpAllowedClientAppIds string = functionAppAadClientId
+
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
   ? foundryMcpTargetOverride
@@ -234,6 +237,9 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_CONTAINER_LOCATION_CLOCKS: 'locationClocks'
       COSMOS_SQL_CONTAINER_LORE_FACTS: 'loreFacts'
       COSMOS_SQL_DATABASE_TEST: 'game-test'
+
+      // MCP authentication allow-list
+      MCP_ALLOWED_CLIENT_APP_IDS: mcpAllowedClientAppIds
     }
   }
 
