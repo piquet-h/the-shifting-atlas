@@ -29,6 +29,27 @@ param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-
 @description('Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role assigned.')
 param mcpAllowedClientAppIds string = functionAppAadClientId
 
+@description('Enable Azure OpenAI provisioning. Set to false to skip OpenAI deployment (cost savings).')
+param enableOpenAI bool = true
+
+@description('Azure region for OpenAI resources. Recommend: eastus, eastus2, westus, or swedencentral.')
+param openAiLocation string = 'eastus2'
+
+@description('Primary OpenAI model deployment name (e.g., hero-prose).')
+param openAiPrimaryDeploymentName string = 'hero-prose'
+
+@description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
+param openAiPrimaryModelName string = 'gpt-4o'
+
+@description('Primary OpenAI model version.')
+param openAiPrimaryModelVersion string = '2024-08-06'
+
+@description('Primary OpenAI model capacity (TPM in thousands).')
+param openAiPrimaryModelCapacity int = 10
+
+@description('Azure OpenAI API version to use for SDK calls.')
+param openAiApiVersion string = '2024-08-01-preview'
+
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
   ? foundryMcpTargetOverride
@@ -80,6 +101,22 @@ resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/con
     category: 'GenericHttp'
     target: foundryMcpTarget
     useWorkspaceManagedIdentity: true
+  }
+}
+
+// Azure OpenAI (optional, disabled by default in low-cost environments)
+module openAiModule 'azure-openai.bicep' = if (enableOpenAI) {
+  name: 'azure-openai-${unique}'
+  params: {
+    name: name
+    location: openAiLocation
+    unique: unique
+    primaryDeploymentName: openAiPrimaryDeploymentName
+    primaryModelName: openAiPrimaryModelName
+    primaryModelVersion: openAiPrimaryModelVersion
+    primaryModelCapacity: openAiPrimaryModelCapacity
+    sku: 'S0'
+    functionAppPrincipalId: backendFunctionApp.identity.principalId
   }
 }
 
@@ -254,6 +291,11 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
       // MCP authentication allow-list
       MCP_ALLOWED_CLIENT_APP_IDS: mcpAllowedClientAppIds
+
+      // Azure OpenAI Configuration (conditional on enableOpenAI parameter)
+      AZURE_OPENAI_ENDPOINT: enableOpenAI ? openAiModule!.outputs.endpoint : ''
+      AZURE_OPENAI_DEPLOYMENT_HERO_PROSE: enableOpenAI ? openAiModule!.outputs.primaryDeploymentName : ''
+      AZURE_OPENAI_API_VERSION: openAiApiVersion
     }
   }
 
@@ -1080,3 +1122,9 @@ output foundryMcpConnectionName string = foundryMcpConnectionName
 output foundryMcpTarget string = foundryMcpTarget
 output functionAppAadClientId_out string = functionAppAadClientId
 output functionAppAadIdentifierUri_out string = functionAppAadIdentifierUri
+
+// Azure OpenAI outputs (conditional)
+output openAiEnabled bool = enableOpenAI
+output openAiEndpoint string = enableOpenAI ? openAiModule!.outputs.endpoint : ''
+output openAiAccountName string = enableOpenAI ? openAiModule!.outputs.accountName : ''
+output openAiPrimaryDeploymentName string = enableOpenAI ? openAiModule!.outputs.primaryDeploymentName : ''
