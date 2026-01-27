@@ -2,9 +2,11 @@ param name string = 'atlas'
 param location string = resourceGroup().location
 param foundryLocation string = 'eastus2'
 param unique string = substring(uniqueString(resourceGroup().id), 0, 4)
+@description('Optional suffix used only for the Foundry account/subdomain to avoid name collisions (defaults to the resource-group-based unique).')
+param foundryUniqueSuffix string = substring(uniqueString(resourceGroup().id), 0, 4)
 
 @description('Name of the Azure AI Foundry (Cognitive Services AIServices) account. Must be globally unique.')
-param foundryAccountName string = toLower('aif-${name}-${unique}')
+param foundryAccountName string = toLower('aif-${name}-${foundryUniqueSuffix}')
 
 @description('Custom subdomain name for the Foundry account. Required before creating Foundry projects.')
 param foundryCustomSubDomainName string = foundryAccountName
