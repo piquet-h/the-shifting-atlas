@@ -34,10 +34,10 @@ var foundryMcpTarget = !empty(foundryMcpTargetOverride)
 module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1' = {
   name: 'foundry-account-${unique}'
   params: {
-    name: foundryLocation
+    name: foundryAccountName
     kind: 'AIServices'
     sku: 'S0'
-    location: 'eastus2'
+    location: foundryLocation
     allowProjectManagement: true
     customSubDomainName: foundryCustomSubDomainName
     publicNetworkAccess: 'Enabled'
