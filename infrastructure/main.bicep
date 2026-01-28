@@ -71,56 +71,52 @@ module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1
   }
 }
 
-// Azure AI Foundry project.
-resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  name: foundryProjectName
-  parent: foundryAccount
-  location: foundryLocation
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    displayName: 'The Shifting Atlas'
-    description: 'Foundry project for The Shifting Atlas (MCP-enabled)'
-  }
-  dependsOn: [
-    foundryAccountModule
-  ]
-}
+// Reference to the Foundry account for child resources and RBAC (created by the module)
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+  name: foundryAccountName
 
-// Project connection to the existing MCP server hosted in the Function App.
-resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = {
-  name: foundryMcpConnectionName
-  parent: foundryProject
-  properties: {
-    // Use Entra ID auth with the project/workspace managed identity.
-    // (This avoids categories/authTypes that require an explicit credentials payload.)
-    authType: 'AAD'
-    category: 'GenericHttp'
-    target: foundryMcpTarget
-    useWorkspaceManagedIdentity: true
-  }
-}
+  // Azure AI Foundry project (nested)
+  resource project 'projects@2025-06-01' = {
+    name: foundryProjectName
+    location: foundryLocation
+    identity: {
+      type: 'SystemAssigned'
+    }
+    properties: {
+      displayName: 'The Shifting Atlas'
+      description: 'Foundry project for The Shifting Atlas (MCP-enabled)'
+    }
 
-// GPT-4o model deployment within Azure AI Foundry (optional)
-// Deploys directly to the Foundry account for unified management
-resource foundryGpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (enableOpenAI) {
-  name: openAiPrimaryDeploymentName
-  parent: foundryAccount
-  sku: {
-    name: 'Standard'
-    capacity: openAiPrimaryModelCapacity
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: openAiPrimaryModelName
-      version: openAiPrimaryModelVersion
+    // Project connection to the existing MCP server hosted in the Function App (nested)
+    resource mcpConnection 'connections@2025-06-01' = {
+      name: foundryMcpConnectionName
+      properties: {
+        // Use Entra ID auth with the project/workspace managed identity.
+        // (This avoids categories/authTypes that require an explicit credentials payload.)
+        authType: 'AAD'
+        category: 'GenericHttp'
+        target: foundryMcpTarget
+        useWorkspaceManagedIdentity: true
+      }
     }
   }
-  dependsOn: [
-    foundryAccountModule
-  ]
+
+  // GPT-4o model deployment within Azure AI Foundry (optional, nested)
+  // Deploys directly to the Foundry account for unified management
+  resource gpt4oDeployment 'deployments@2024-10-01' = if (enableOpenAI) {
+    name: openAiPrimaryDeploymentName
+    sku: {
+      name: 'Standard'
+      capacity: openAiPrimaryModelCapacity
+    }
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: openAiPrimaryModelName
+        version: openAiPrimaryModelVersion
+      }
+    }
+  }
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -1039,11 +1035,6 @@ resource storageQueueDataMessageProcessor 'Microsoft.Authorization/roleAssignmen
     principalId: backendFunctionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
-}
-
-// Reference to the Foundry account for RBAC assignment (created by the module)
-resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
-  name: foundryAccountName
 }
 
 // Role assignment: Grant Function App access to Foundry for OpenAI (Cognitive Services OpenAI User)
