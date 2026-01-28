@@ -29,6 +29,24 @@ param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-
 @description('Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role assigned.')
 param mcpAllowedClientAppIds string = functionAppAadClientId
 
+@description('Enable GPT-4o model deployment in Foundry. Set to false to skip model deployment (cost savings).')
+param enableOpenAI bool = true
+
+@description('Primary GPT-4o model deployment name (e.g., hero-prose).')
+param openAiPrimaryDeploymentName string = 'hero-prose'
+
+@description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
+param openAiPrimaryModelName string = 'gpt-4o'
+
+@description('Primary OpenAI model version.')
+param openAiPrimaryModelVersion string = '2024-08-06'
+
+@description('Primary OpenAI model capacity (TPM in thousands).')
+param openAiPrimaryModelCapacity int = 10
+
+@description('Azure OpenAI API version to use for SDK calls.')
+param openAiApiVersion string = '2024-10-21'
+
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
   ? foundryMcpTargetOverride
@@ -53,33 +71,51 @@ module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1
   }
 }
 
-// Azure AI Foundry project.
-resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  name: '${foundryAccountName}/${foundryProjectName}'
-  location: foundryLocation
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    displayName: 'The Shifting Atlas'
-    description: 'Foundry project for The Shifting Atlas (MCP-enabled)'
-  }
-  dependsOn: [
-    foundryAccountModule
-  ]
-}
+// Reference to the Foundry account for child resources and RBAC (created by the module)
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+  name: foundryAccountName
 
-// Project connection to the existing MCP server hosted in the Function App.
-resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = {
-  name: foundryMcpConnectionName
-  parent: foundryProject
-  properties: {
-    // Use Entra ID auth with the project/workspace managed identity.
-    // (This avoids categories/authTypes that require an explicit credentials payload.)
-    authType: 'AAD'
-    category: 'GenericHttp'
-    target: foundryMcpTarget
-    useWorkspaceManagedIdentity: true
+  // Azure AI Foundry project (nested)
+  resource project 'projects@2025-06-01' = {
+    name: foundryProjectName
+    location: foundryLocation
+    identity: {
+      type: 'SystemAssigned'
+    }
+    properties: {
+      displayName: 'The Shifting Atlas'
+      description: 'Foundry project for The Shifting Atlas (MCP-enabled)'
+    }
+
+    // Project connection to the existing MCP server hosted in the Function App (nested)
+    resource mcpConnection 'connections@2025-06-01' = {
+      name: foundryMcpConnectionName
+      properties: {
+        // Use Entra ID auth with the project/workspace managed identity.
+        // (This avoids categories/authTypes that require an explicit credentials payload.)
+        authType: 'AAD'
+        category: 'GenericHttp'
+        target: foundryMcpTarget
+        useWorkspaceManagedIdentity: true
+      }
+    }
+  }
+
+  // GPT-4o model deployment within Azure AI Foundry (optional, nested)
+  // Deploys directly to the Foundry account for unified management
+  resource gpt4oDeployment 'deployments@2024-10-01' = if (enableOpenAI) {
+    name: openAiPrimaryDeploymentName
+    sku: {
+      name: 'Standard'
+      capacity: openAiPrimaryModelCapacity
+    }
+    properties: {
+      model: {
+        format: 'OpenAI'
+        name: openAiPrimaryModelName
+        version: openAiPrimaryModelVersion
+      }
+    }
   }
 }
 
@@ -254,6 +290,11 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
 
       // MCP authentication allow-list
       MCP_ALLOWED_CLIENT_APP_IDS: mcpAllowedClientAppIds
+
+      // Azure OpenAI Configuration (uses Foundry account for unified management)
+      AZURE_OPENAI_ENDPOINT: enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
+      AZURE_OPENAI_DEPLOYMENT_HERO_PROSE: enableOpenAI ? openAiPrimaryDeploymentName : ''
+      AZURE_OPENAI_API_VERSION: openAiApiVersion
     }
   }
 
@@ -996,6 +1037,24 @@ resource storageQueueDataMessageProcessor 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Role assignment: Grant Function App access to Foundry for OpenAI (Cognitive Services OpenAI User)
+// Only created when enableOpenAI is true
+resource foundryOpenAiUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableOpenAI) {
+  name: guid(foundryAccount.id, backendFunctionApp.id, 'foundry-openai-user')
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    ) // Cognitive Services OpenAI User
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+  dependsOn: [
+    foundryAccountModule
+  ]
+}
+
 // Workbook: Player Operations Dashboard (consolidated movement + performance metrics)
 module workbookPlayerOperations 'workbook-player-operations-dashboard.bicep' = {
   name: 'workbook-player-operations-dashboard'
@@ -1080,3 +1139,9 @@ output foundryMcpConnectionName string = foundryMcpConnectionName
 output foundryMcpTarget string = foundryMcpTarget
 output functionAppAadClientId_out string = functionAppAadClientId
 output functionAppAadIdentifierUri_out string = functionAppAadIdentifierUri
+
+// Azure OpenAI outputs (consolidated in Foundry)
+output openAiEnabled bool = enableOpenAI
+output openAiEndpoint string = enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
+output openAiAccountName string = enableOpenAI ? foundryAccountName : ''
+output openAiPrimaryDeploymentName string = enableOpenAI ? openAiPrimaryDeploymentName : ''
