@@ -48,7 +48,7 @@ param openAiPrimaryModelVersion string = '2024-08-06'
 param openAiPrimaryModelCapacity int = 10
 
 @description('Azure OpenAI API version to use for SDK calls.')
-param openAiApiVersion string = '2024-08-01-preview'
+param openAiApiVersion string = '2024-10-21'
 
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)

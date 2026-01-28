@@ -48,7 +48,7 @@
 | `openAiPrimaryModelName`      | string | `gpt-4o`                      | No       | Azure OpenAI model name (e.g., `gpt-4o`, `gpt-35-turbo`).                                                                             |
 | `openAiPrimaryModelVersion`   | string | `2024-08-06`                  | No       | Model version for the primary deployment.                                                                                             |
 | `openAiPrimaryModelCapacity`  | int    | `10`                          | No       | Model capacity in thousands of tokens per minute (TPM). Default: 10K TPM.                                                             |
-| `openAiApiVersion`            | string | `2024-08-01-preview`          | No       | Azure OpenAI API version for SDK calls (wired to app settings).                                                                       |
+| `openAiApiVersion`            | string | `2024-10-21`                  | No       | Azure OpenAI API version for SDK calls (latest stable GA version).                                                                    |
 
 ## Outputs
 
@@ -116,12 +116,21 @@ Azure OpenAI is not available in all regions. If deployment fails with capacity 
 - `swedencentral`
 - `uksouth`
 
+**Model Information:**
+- **Model**: GPT-4o (gpt-4o-2024-08-06) - Latest snapshot with structured outputs support
+- **API Version**: 2024-10-21 (latest stable GA) - For production stability
+- **Context Window**: 128,000 tokens
+- **Cost**: $2.50/1M input tokens, $10/1M output tokens
+
 Check the latest regional availability: https://learn.microsoft.com/azure/ai-services/openai/concepts/models
+
+For API version updates and lifecycle information: https://learn.microsoft.com/azure/ai-foundry/openai/api-version-lifecycle
 
 ## Changelog
 
-| Date       | Change                                                                                                                                                                                                                                                    |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-01-27 | Added Azure OpenAI resource with model deployment (optional via `enableOpenAI` parameter). Configured Managed Identity RBAC (Cognitive Services OpenAI User). Wired endpoint/deployment to Function App settings. Supports narration-first architecture. |
-| 2026-01-19 | Added Azure AI Foundry account + project and a Managed Identity-backed project connection to the existing MCP server hosted in the Function App.                                                                                                         |
+| Date       | Change                                                                                                                                                                                                                                                                                    |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-01-28 | Updated Azure OpenAI API version to 2024-10-21 (latest stable GA). Added model specifications and API version lifecycle documentation reference.                                                                                                                                         |
+| 2026-01-27 | Added Azure OpenAI resource with model deployment (optional via `enableOpenAI` parameter). Configured Managed Identity RBAC (Cognitive Services OpenAI User). Wired endpoint/deployment to Function App settings. Supports narration-first architecture. Uses GPT-4o-2024-08-06 model. |
+| 2026-01-19 | Added Azure AI Foundry account + project and a Managed Identity-backed project connection to the existing MCP server hosted in the Function App.                                                                                                                                         |
 
