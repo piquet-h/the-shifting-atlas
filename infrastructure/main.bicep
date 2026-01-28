@@ -29,13 +29,10 @@ param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-
 @description('Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role assigned.')
 param mcpAllowedClientAppIds string = functionAppAadClientId
 
-@description('Enable Azure OpenAI provisioning. Set to false to skip OpenAI deployment (cost savings).')
+@description('Enable GPT-4o model deployment in Foundry. Set to false to skip model deployment (cost savings).')
 param enableOpenAI bool = true
 
-@description('Azure region for OpenAI resources. Recommend: eastus, eastus2, westus, or swedencentral.')
-param openAiLocation string = 'eastus2'
-
-@description('Primary OpenAI model deployment name (e.g., hero-prose).')
+@description('Primary GPT-4o model deployment name (e.g., hero-prose).')
 param openAiPrimaryDeploymentName string = 'hero-prose'
 
 @description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
@@ -76,7 +73,8 @@ module foundryAccountModule 'br/public:avm/res/cognitive-services/account:0.14.1
 
 // Azure AI Foundry project.
 resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
-  name: '${foundryAccountName}/${foundryProjectName}'
+  name: foundryProjectName
+  parent: foundryAccount
   location: foundryLocation
   identity: {
     type: 'SystemAssigned'
@@ -104,20 +102,25 @@ resource foundryMcpConnection 'Microsoft.CognitiveServices/accounts/projects/con
   }
 }
 
-// Azure OpenAI (optional, disabled by default in low-cost environments)
-module openAiModule 'azure-openai.bicep' = if (enableOpenAI) {
-  name: 'azure-openai-${unique}'
-  params: {
-    name: name
-    location: openAiLocation
-    unique: unique
-    primaryDeploymentName: openAiPrimaryDeploymentName
-    primaryModelName: openAiPrimaryModelName
-    primaryModelVersion: openAiPrimaryModelVersion
-    primaryModelCapacity: openAiPrimaryModelCapacity
-    sku: 'S0'
-    functionAppPrincipalId: backendFunctionApp.identity.principalId
+// GPT-4o model deployment within Azure AI Foundry (optional)
+// Deploys directly to the Foundry account for unified management
+resource foundryGpt4oDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = if (enableOpenAI) {
+  name: openAiPrimaryDeploymentName
+  parent: foundryAccount
+  sku: {
+    name: 'Standard'
+    capacity: openAiPrimaryModelCapacity
   }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: openAiPrimaryModelName
+      version: openAiPrimaryModelVersion
+    }
+  }
+  dependsOn: [
+    foundryAccountModule
+  ]
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -292,9 +295,9 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       // MCP authentication allow-list
       MCP_ALLOWED_CLIENT_APP_IDS: mcpAllowedClientAppIds
 
-      // Azure OpenAI Configuration (conditional on enableOpenAI parameter)
-      AZURE_OPENAI_ENDPOINT: enableOpenAI ? openAiModule!.outputs.endpoint : ''
-      AZURE_OPENAI_DEPLOYMENT_HERO_PROSE: enableOpenAI ? openAiModule!.outputs.primaryDeploymentName : ''
+      // Azure OpenAI Configuration (uses Foundry account for unified management)
+      AZURE_OPENAI_ENDPOINT: enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
+      AZURE_OPENAI_DEPLOYMENT_HERO_PROSE: enableOpenAI ? openAiPrimaryDeploymentName : ''
       AZURE_OPENAI_API_VERSION: openAiApiVersion
     }
   }
@@ -1038,6 +1041,29 @@ resource storageQueueDataMessageProcessor 'Microsoft.Authorization/roleAssignmen
   }
 }
 
+// Reference to the Foundry account for RBAC assignment (created by the module)
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+  name: foundryAccountName
+}
+
+// Role assignment: Grant Function App access to Foundry for OpenAI (Cognitive Services OpenAI User)
+// Only created when enableOpenAI is true
+resource foundryOpenAiUserRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableOpenAI) {
+  name: guid(foundryAccount.id, backendFunctionApp.id, 'foundry-openai-user')
+  scope: foundryAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+    ) // Cognitive Services OpenAI User
+    principalId: backendFunctionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+  dependsOn: [
+    foundryAccountModule
+  ]
+}
+
 // Workbook: Player Operations Dashboard (consolidated movement + performance metrics)
 module workbookPlayerOperations 'workbook-player-operations-dashboard.bicep' = {
   name: 'workbook-player-operations-dashboard'
@@ -1123,8 +1149,8 @@ output foundryMcpTarget string = foundryMcpTarget
 output functionAppAadClientId_out string = functionAppAadClientId
 output functionAppAadIdentifierUri_out string = functionAppAadIdentifierUri
 
-// Azure OpenAI outputs (conditional)
+// Azure OpenAI outputs (consolidated in Foundry)
 output openAiEnabled bool = enableOpenAI
-output openAiEndpoint string = enableOpenAI ? openAiModule!.outputs.endpoint : ''
-output openAiAccountName string = enableOpenAI ? openAiModule!.outputs.accountName : ''
-output openAiPrimaryDeploymentName string = enableOpenAI ? openAiModule!.outputs.primaryDeploymentName : ''
+output openAiEndpoint string = enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
+output openAiAccountName string = enableOpenAI ? foundryAccountName : ''
+output openAiPrimaryDeploymentName string = enableOpenAI ? openAiPrimaryDeploymentName : ''

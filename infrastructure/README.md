@@ -15,14 +15,12 @@
 | Azure Application Insights                       | Telemetry and observability.                                          | Connection string wired into Function App settings.                                                                     |
 | Azure Workbooks                                  | Pre-configured dashboards.                                            | See `infrastructure/workbooks/` and `docs/observability/`.                                                              |
 | Azure Monitor Alerts                             | Scheduled query alerts.                                               | See `infrastructure/alert-*.bicep` modules.                                                                             |
-| Azure AI Foundry (Cognitive Services AIServices) | Foundry account + project for agent/tool orchestration.               | Account deployed via AVM with project management enabled.                                                               |
+| Azure AI Foundry (Cognitive Services AIServices) | Foundry account + project + GPT-4o deployment (optional).             | Account deployed via AVM. Hosts MCP connections + model deployments for unified management.                             |
 | Foundry project connection (MCP)                 | Connects Foundry → existing MCP server (Function App).                | Uses **Entra ID (AAD)** with the Foundry project/workspace Managed Identity (`useWorkspaceManagedIdentity: true`).      |
-| Azure OpenAI                                     | LLM service for narrative generation (optional).                      | Disabled by default. Provisioned with Managed Identity auth (no keys). See `enableOpenAI` parameter.                     |
 
 ## Files
 
-- `main.bicep` – SWA + Function App + Service Bus + Cosmos + App Insights + Workbooks/Alerts + Foundry + OpenAI
-- `azure-openai.bicep` – Azure OpenAI account + model deployments + RBAC
+- `main.bicep` – SWA + Function App + Service Bus + Cosmos + App Insights + Workbooks/Alerts + Foundry (with GPT-4o deployment)
 - `workbook-player-operations-dashboard.bicep` – Player Operations dashboard
 - `workbook-sql-partition-monitoring-dashboard.bicep` – SQL partition monitoring dashboard
 - `alerts-*.bicep` – query alerts
@@ -41,10 +39,9 @@
 | `foundryMcpTargetOverride`    | string | empty                         | No       | If set, overrides the MCP server URL for the Foundry connection. If empty, defaults to `https://<functionapp>.azurewebsites.net/mcp`. |
 | `functionAppAadClientId`      | string | `3b67761b...`                 | No       | Entra App Registration (client ID) for Function App EasyAuth AAD provider.                                                            |
 | `functionAppAadIdentifierUri` | string | `api://<tenantId>/...`        | No       | Identifier URI (audience) for the Function App. Must match the app registration.                                                      |
-| `mcpAllowedClientAppIds`      | string | empty                         | No       | Comma-separated list of allowed client app IDs for MCP access. Each caller must have the Narrator app role.                           |
-| `enableOpenAI`                | bool   | `true`                        | No       | Enable Azure OpenAI provisioning. Set to `false` to skip OpenAI deployment for cost savings.                                          |
-| `openAiLocation`              | string | `eastus2`                     | No       | Azure region for OpenAI resources. Recommended: eastus, eastus2, westus, swedencentral for availability.                              |
-| `openAiPrimaryDeploymentName` | string | `hero-prose`                  | No       | Primary OpenAI model deployment name (used in app settings).                                                                          |
+| `mcpAllowedClientAppIds`      | string | empty                         | No       | Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role.                      |
+| `enableOpenAI`                | bool   | `true`                        | No       | Enable GPT-4o model deployment in Foundry. Set to `false` to skip model deployment for cost savings.                                  |
+| `openAiPrimaryDeploymentName` | string | `hero-prose`                  | No       | Primary GPT-4o model deployment name (used in app settings).                                                                          |
 | `openAiPrimaryModelName`      | string | `gpt-4o`                      | No       | Azure OpenAI model name (e.g., `gpt-4o`, `gpt-35-turbo`).                                                                             |
 | `openAiPrimaryModelVersion`   | string | `2024-08-06`                  | No       | Model version for the primary deployment.                                                                                             |
 | `openAiPrimaryModelCapacity`  | int    | `10`                          | No       | Model capacity in thousands of tokens per minute (TPM). Default: 10K TPM.                                                             |
@@ -59,9 +56,9 @@
 | `foundryProjectName`          | Name of the Foundry project.                                      |
 | `foundryMcpConnectionName`    | Name of the Foundry MCP connection.                               |
 | `foundryMcpTarget`            | MCP server URL used by the Foundry connection.                    |
-| `openAiEnabled`               | Boolean indicating whether Azure OpenAI is enabled.               |
-| `openAiEndpoint`              | Azure OpenAI endpoint URL (empty if not enabled).                 |
-| `openAiAccountName`           | Azure OpenAI account name (empty if not enabled).                 |
+| `openAiEnabled`               | Boolean indicating whether GPT-4o model deployment is enabled.    |
+| `openAiEndpoint`              | Foundry account endpoint URL (for OpenAI API calls).              |
+| `openAiAccountName`           | Foundry account name (hosting the GPT-4o deployment).             |
 | `openAiPrimaryDeploymentName` | Primary model deployment name (empty if not enabled).             |
 
 ## Deployment examples
@@ -128,9 +125,10 @@ For API version updates and lifecycle information: https://learn.microsoft.com/a
 
 ## Changelog
 
-| Date       | Change                                                                                                                                                                                                                                                                                    |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-01-28 | Updated Azure OpenAI API version to 2024-10-21 (latest stable GA). Added model specifications and API version lifecycle documentation reference.                                                                                                                                         |
-| 2026-01-27 | Added Azure OpenAI resource with model deployment (optional via `enableOpenAI` parameter). Configured Managed Identity RBAC (Cognitive Services OpenAI User). Wired endpoint/deployment to Function App settings. Supports narration-first architecture. Uses GPT-4o-2024-08-06 model. |
-| 2026-01-19 | Added Azure AI Foundry account + project and a Managed Identity-backed project connection to the existing MCP server hosted in the Function App.                                                                                                                                         |
+| Date       | Change                                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-01-28 | **Consolidated architecture**: GPT-4o deployment now provisioned directly within Azure AI Foundry account (removed separate OpenAI resource). Single `kind: AIServices` account hosts MCP, agent orchestration, and model deployments.    |
+| 2026-01-28 | Updated Azure OpenAI API version to 2024-10-21 (latest stable GA). Added model specifications and API version lifecycle documentation reference.                                                                                          |
+| 2026-01-27 | Added Azure OpenAI resource with model deployment (optional via `enableOpenAI` parameter). Configured Managed Identity RBAC (Cognitive Services OpenAI User). Wired endpoint/deployment to Function App settings. Uses GPT-4o-2024-08-06. |
+| 2026-01-19 | Added Azure AI Foundry account + project and a Managed Identity-backed project connection to the existing MCP server hosted in the Function App.                                                                                          |
 
