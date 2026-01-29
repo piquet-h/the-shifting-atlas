@@ -101,9 +101,7 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existi
     }
   }
 
-  // GPT-4o model deployment within Azure AI Foundry (optional, nested)
-  // Deploys directly to the Foundry account for unified management
-  resource gpt4oDeployment 'deployments@2024-10-01' = if (enableOpenAI) {
+  resource modelDeployment 'deployments@2024-10-01' = if (enableOpenAI) {
     name: openAiPrimaryDeploymentName
     sku: {
       name: 'Standard'
