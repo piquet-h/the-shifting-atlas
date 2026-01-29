@@ -312,7 +312,13 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       }
       globalValidation: {
         requireAuthentication: false
-        unauthenticatedClientAction: 'Return401'
+        unauthenticatedClientAction: 'RedirectToLoginPage'
+        // Exclude MCP endpoints from Easy Auth to allow anonymous MCP tool access.
+        // See issue #774 for planned authentication hardening.
+        excludedPaths: [
+          '/runtime/webhooks/mcp'
+          '/runtime/webhooks/mcp/*'
+        ]
       }
       httpSettings: {
         forwardProxy: {

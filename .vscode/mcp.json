@@ -2,8 +2,8 @@
     "inputs": [
         {
             "type": "promptString",
-            "id": "atlas-mcp-access-token-v2",
-            "description": "Azure AD access token for Atlas MCP. IMPORTANT: paste ONLY the raw token. Obtain via: az account get-access-token --scope api://fecae6e9-696f-46e4-b1c8-5b471b499a24/shifting-atlas-api/.default --query accessToken -o tsv",
+            "id": "atlas-mcp-system-key",
+            "description": "Azure Functions MCP Extension System Key (mcp_extension). Obtain via: az functionapp keys list --resource-group rg-atlas-game --name func-atlas --query systemKeys.mcp_extension -o tsv",
             "password": true
         }
     ],
@@ -13,11 +13,8 @@
             "type": "http"
         },
         "live-the-shifting-atlas": {
-            "type": "sse",
-            "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp",
-            "headers": {
-                "Authorization": "Bearer ${input:atlas-mcp-access-token-v2}"
-            }
+            "type": "http",
+            "url": "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp"
         },
         "playwright": {
             "command": "npx",
