@@ -15,10 +15,17 @@ import { WorldClockService } from '../../../services/WorldClockService.js'
 type ToolArgs<T> = { arguments?: T }
 
 function parseOptionalNumber(value: unknown): number | undefined {
+    // Reject invalid numeric values explicitly (NaN, Infinity, -Infinity)
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+        throw new Error(`Invalid tick value: ${value}. Expected a finite number.`)
+    }
     if (typeof value === 'number' && Number.isFinite(value)) return value
     if (typeof value === 'string' && value.trim() !== '') {
         const n = Number(value)
-        if (Number.isFinite(n)) return n
+        if (!Number.isFinite(n)) {
+            throw new Error(`Invalid tick value: ${value}. Expected a finite number.`)
+        }
+        return n
     }
     return undefined
 }

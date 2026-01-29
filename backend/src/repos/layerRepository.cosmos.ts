@@ -241,6 +241,11 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
      * Helper: Find active layer for a scope at a specific tick
      */
     private async findActiveLayer(scopeId: string, layerType: LayerType, tick: number): Promise<DescriptionLayer | null> {
+        // Validate tick parameter to prevent Cosmos DB "invalid input" errors
+        if (!Number.isFinite(tick)) {
+            throw new Error(`Invalid tick parameter: ${tick}. Expected a finite number.`)
+        }
+
         const queryText = `
             SELECT * FROM c 
             WHERE c.scopeId = @scopeId 

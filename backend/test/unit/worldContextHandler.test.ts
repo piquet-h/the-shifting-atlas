@@ -178,4 +178,75 @@ describe('WorldContextHandler', () => {
         assert.equal(parsed.weather.value, 'clear')
         assert.equal(parsed.ambient.value, 'calm')
     })
+
+    describe('tick validation (prevents Cosmos DB invalid input errors)', () => {
+        const createHandler = () => {
+            const locationRepo = { get: sinon.stub().resolves({ id: STARTER_LOCATION_ID, name: 'Starter' }) }
+            const exitRepo = { getExits: sinon.stub().resolves([]) }
+            const realmService = { getContainingRealms: sinon.stub().resolves([]) }
+            const layerRepo = { getActiveLayerForLocation: sinon.stub().resolves(null) }
+            const worldClock = { getCurrentTick: sinon.stub().resolves(100) }
+            const playerDocRepo = {
+                getPlayer: sinon.stub().resolves({ id: 'p1', currentLocationId: STARTER_LOCATION_ID }),
+                listPlayersAtLocation: sinon.stub().resolves([])
+            }
+            const inventoryRepo = { listItems: sinon.stub().resolves([]) }
+            const worldEventRepo = { queryByScope: sinon.stub().resolves({ events: [], ruCharge: 0, latencyMs: 0, hasMore: false }) }
+
+            return new WorldContextHandler(
+                locationRepo as unknown as any,
+                exitRepo as unknown as any,
+                realmService as unknown as any,
+                layerRepo as unknown as any,
+                worldClock as unknown as any,
+                playerDocRepo as unknown as any,
+                inventoryRepo as unknown as any,
+                worldEventRepo as unknown as any
+            )
+        }
+
+        it('getLocationContext rejects NaN tick', async () => {
+            const handler = createHandler()
+            const ctx = makeContext()
+            await assert.rejects(
+                async () => handler.getLocationContext({ arguments: { tick: NaN } }, ctx),
+                /Invalid tick value.*Expected a finite number/
+            )
+        })
+
+        it('getLocationContext rejects Infinity tick', async () => {
+            const handler = createHandler()
+            const ctx = makeContext()
+            await assert.rejects(
+                async () => handler.getLocationContext({ arguments: { tick: Infinity } }, ctx),
+                /Invalid tick value.*Expected a finite number/
+            )
+        })
+
+        it('getPlayerContext rejects NaN tick', async () => {
+            const handler = createHandler()
+            const ctx = makeContext()
+            await assert.rejects(
+                async () => handler.getPlayerContext({ arguments: { playerId: 'p1', tick: NaN } }, ctx),
+                /Invalid tick value.*Expected a finite number/
+            )
+        })
+
+        it('getAtmosphere rejects Infinity tick', async () => {
+            const handler = createHandler()
+            const ctx = makeContext()
+            await assert.rejects(
+                async () => handler.getAtmosphere({ arguments: { tick: Infinity } }, ctx),
+                /Invalid tick value.*Expected a finite number/
+            )
+        })
+
+        it('getLocationContext accepts valid tick values', async () => {
+            const handler = createHandler()
+            const ctx = makeContext()
+            const result = await handler.getLocationContext({ arguments: { tick: 42 } }, ctx)
+            const parsed = JSON.parse(result)
+            assert.equal(parsed.tick, 42)
+        })
+    })
 })
