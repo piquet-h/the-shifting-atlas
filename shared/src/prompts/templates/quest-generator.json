@@ -1,16 +1,32 @@
 {
     "metadata": {
         "id": "quest-generator",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "name": "Quest Generator",
-        "description": "Migrated from inline: worldTemplates.ts",
+        "description": "Task-specific prompt for generating quest content. Can be used as: (1) System instructions for a specialized Quest Design Agent, or (2) Offline world-building tool for creating quest hooks and storylines.",
         "tags": [
-            "migrated",
-            "needs-review",
-            "world"
+            "quest",
+            "storyline",
+            "world",
+            "task-prompt"
         ],
-        "author": "migration-script",
-        "createdAt": "2026-01-10T08:53:36.960Z"
+        "author": "The Shifting Atlas Team",
+        "createdAt": "2026-01-10T08:53:36.960Z",
+        "updatedAt": "2026-01-30T00:00:00.000Z",
+        "usage": {
+            "platform": "Azure AI Foundry",
+            "usagePatterns": [
+                "Specialized agent system instructions (QuestDesignAgent)",
+                "Offline content creation workflow (not real-time gameplay)",
+                "Direct LLM call via backend handler for quest seeds"
+            ],
+            "mcpToolsNeeded": [
+                "Lore-searchLore (for faction_conflicts and lore_references)",
+                "WorldContext-getSpatialContext (for location-based quests)"
+            ],
+            "interpolation": "Variables replaced before sending to LLM or injected as conversation context",
+            "notes": "Quest generation is typically an offline/planning activity, not real-time player interaction"
+        }
     },
     "template": "Create a [quest_type] for [location/faction].\nDifficulty: [player_level_range]\nIntegration: [current_storylines], [faction_conflicts]\nInclude: multiple_solutions, skill_check_variety, lore_references",
     "variables": [
