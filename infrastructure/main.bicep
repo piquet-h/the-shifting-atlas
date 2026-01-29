@@ -36,7 +36,7 @@ param enableOpenAI bool = true
 param openAiPrimaryDeploymentName string = 'prod'
 
 @description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
-param openAiPrimaryModelName string = 'gpt-35-turbo'
+param openAiPrimaryModelName string = 'model-router'
 
 @description('Primary OpenAI model version.')
 param openAiPrimaryModelVersion string = '2024-08-06'
