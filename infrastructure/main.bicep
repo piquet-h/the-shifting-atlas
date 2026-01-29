@@ -29,20 +29,8 @@ param functionAppAadIdentifierUri string = 'api://${tenant().tenantId}/shifting-
 @description('Comma-separated list of allowed client app IDs for MCP tool access. Each caller must have the Narrator app role assigned.')
 param mcpAllowedClientAppIds string = functionAppAadClientId
 
-@description('Enable GPT-4o model deployment in Foundry. Set to false to skip model deployment (cost savings).')
+@description('Enable Azure OpenAI integration (Foundry account). Model deployments managed manually via model-router.')
 param enableOpenAI bool = true
-
-@description('Primary model deployment name (e.g., prod).')
-param openAiPrimaryDeploymentName string = 'prod'
-
-@description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
-param openAiPrimaryModelName string = 'model-router'
-
-@description('Primary OpenAI model version.')
-param openAiPrimaryModelVersion string = '2024-08-06'
-
-@description('Primary OpenAI model capacity (TPM in thousands).')
-param openAiPrimaryModelCapacity int = 10
 
 @description('Azure OpenAI API version to use for SDK calls.')
 param openAiApiVersion string = '2024-10-21'
@@ -97,21 +85,6 @@ resource foundryAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' existi
         category: 'GenericHttp'
         target: foundryMcpTarget
         useWorkspaceManagedIdentity: true
-      }
-    }
-  }
-
-  resource modelDeployment 'deployments@2024-10-01' = if (enableOpenAI) {
-    name: openAiPrimaryDeploymentName
-    sku: {
-      name: 'Standard'
-      capacity: openAiPrimaryModelCapacity
-    }
-    properties: {
-      model: {
-        format: 'OpenAI'
-        name: openAiPrimaryModelName
-        version: openAiPrimaryModelVersion
       }
     }
   }
@@ -289,9 +262,8 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       // MCP authentication allow-list
       MCP_ALLOWED_CLIENT_APP_IDS: mcpAllowedClientAppIds
 
-      // Azure OpenAI Configuration (uses Foundry account for unified management)
+      // Azure OpenAI Configuration (uses Foundry account; deployment managed manually via model-router)
       AZURE_OPENAI_ENDPOINT: enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
-      AZURE_OPENAI_DEPLOYMENT_HERO_PROSE: enableOpenAI ? openAiPrimaryDeploymentName : ''
       AZURE_OPENAI_API_VERSION: openAiApiVersion
     }
   }
@@ -1145,8 +1117,7 @@ output foundryMcpTarget string = foundryMcpTarget
 output functionAppAadClientId_out string = functionAppAadClientId
 output functionAppAadIdentifierUri_out string = functionAppAadIdentifierUri
 
-// Azure OpenAI outputs (consolidated in Foundry)
+// Azure OpenAI outputs (Foundry account; deployments managed manually)
 output openAiEnabled bool = enableOpenAI
 output openAiEndpoint string = enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
 output openAiAccountName string = enableOpenAI ? foundryAccountName : ''
-output openAiPrimaryDeploymentName string = enableOpenAI ? openAiPrimaryDeploymentName : ''
