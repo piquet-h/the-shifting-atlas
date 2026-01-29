@@ -213,9 +213,16 @@ export class WorldContextHandler {
         const ambientLayer = await this.layerRepo.getActiveLayerForLocation(locationId, 'ambient', tick)
         const ambient = buildLayerSummary('ambient', ambientLayer)
 
-        // Nearby players: PlayerDoc container is partitioned by player ID, so this may be
-        // a cross-partition query depending on repository implementation.
-        const nearbyPlayers = (await this.playerDocRepo.listPlayersAtLocation(locationId, 20)).map((p) => ({ id: p.id }))
+        // Nearby players: PlayerDoc container is partitioned by player ID, so this is
+        // a cross-partition query. Handle gracefully if it fails (e.g., throttling, timeout).
+        let nearbyPlayers: Array<{ id: string }> = []
+        try {
+            const players = await this.playerDocRepo.listPlayersAtLocation(locationId, 20)
+            nearbyPlayers = players.map((p) => ({ id: p.id }))
+        } catch (error) {
+            // Log warning but continue - nearbyPlayers is not critical for location context
+            console.warn(`Failed to fetch nearby players for location ${locationId}:`, error)
+        }
 
         // Recent events: single-partition timeline query via scopeKey = loc:<locationId>
         const timeline = await this.worldEventRepo.queryByScope(buildLocationScopeKey(locationId), { limit: 20 })

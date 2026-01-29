@@ -32,11 +32,11 @@ param mcpAllowedClientAppIds string = functionAppAadClientId
 @description('Enable GPT-4o model deployment in Foundry. Set to false to skip model deployment (cost savings).')
 param enableOpenAI bool = true
 
-@description('Primary GPT-4o model deployment name (e.g., hero-prose).')
-param openAiPrimaryDeploymentName string = 'hero-prose'
+@description('Primary model deployment name (e.g., prod).')
+param openAiPrimaryDeploymentName string = 'prod'
 
 @description('Primary OpenAI model name (e.g., gpt-4o, gpt-35-turbo).')
-param openAiPrimaryModelName string = 'gpt-4o'
+param openAiPrimaryModelName string = 'gpt-35-turbo'
 
 @description('Primary OpenAI model version.')
 param openAiPrimaryModelVersion string = '2024-08-06'
