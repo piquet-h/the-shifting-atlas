@@ -313,8 +313,9 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       globalValidation: {
         requireAuthentication: false
         unauthenticatedClientAction: 'RedirectToLoginPage'
-        // Exclude MCP endpoints from Easy Auth to allow anonymous MCP tool access.
-        // See issue #774 for planned authentication hardening.
+        // Exclude MCP endpoints from Easy Auth - fully anonymous access.
+        // MCP extension also configured with webhookAuthorizationLevel: Anonymous in host.json.
+        // TODO: Implement proper authentication (issue #774).
         excludedPaths: [
           '/runtime/webhooks/mcp'
           '/runtime/webhooks/mcp/*'

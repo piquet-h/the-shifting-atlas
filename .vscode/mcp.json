@@ -1,12 +1,4 @@
 {
-    "inputs": [
-        {
-            "type": "promptString",
-            "id": "atlas-mcp-system-key",
-            "description": "Azure Functions MCP Extension System Key (mcp_extension). Obtain via: az functionapp keys list --resource-group rg-atlas-game --name func-atlas --query systemKeys.mcp_extension -o tsv",
-            "password": true
-        }
-    ],
     "servers": {
         "github-remote-mcp-server": {
             "url": "https://api.githubcopilot.com/mcp/",

@@ -1,16 +1,5 @@
 import { app } from '@azure/functions'
 import { getCanonicalFact, searchLore } from '../../handlers/mcp/lore-memory/lore-memory.js'
-import { wrapMcpToolHandler } from '../auth/mcpAuth.js'
-
-function parseCsvEnv(name: string): string[] | undefined {
-    const raw = process.env[name]
-    if (!raw) return undefined
-    const parts = raw
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-    return parts.length > 0 ? parts : undefined
-}
 
 app.mcpTool('Lore-getCanonicalFact', {
     toolName: 'get-canonical-fact',
@@ -26,11 +15,7 @@ app.mcpTool('Lore-getCanonicalFact', {
             isRequired: true
         }
     ],
-    handler: wrapMcpToolHandler({
-        toolName: 'get-canonical-fact',
-        handler: getCanonicalFact,
-        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
-    })
+    handler: getCanonicalFact
 })
 
 app.mcpTool('Lore-searchLore', {
@@ -54,9 +39,5 @@ app.mcpTool('Lore-searchLore', {
             isRequired: false
         }
     ],
-    handler: wrapMcpToolHandler({
-        toolName: 'search-lore',
-        handler: searchLore,
-        allowedClientAppIds: parseCsvEnv('MCP_ALLOWED_CLIENT_APP_IDS')
-    })
+    handler: searchLore
 })
