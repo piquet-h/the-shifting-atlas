@@ -12,6 +12,16 @@ import { buildLocationScopeKey, buildPlayerScopeKey, type IWorldEventRepository 
 import { RealmService } from '../../../services/RealmService.js'
 import { WorldClockService } from '../../../services/WorldClockService.js'
 
+/**
+ * Default world tick to use when timing system is not yet fully integrated.
+ * Until proper temporal mechanics are wired into MCP handlers, all queries use tick 0.
+ *
+ * TODO: Remove this constant once WorldClock/PlayerClock/LocationClock are integrated into gameplay flows.
+ * See Epic #696 (Temporal PI-1 Integration) - M6 Systems milestone
+ * Context: PI-0 scaffolding complete (Epic #497, M3c), but wiring into handlers deferred.
+ */
+const DEFAULT_WORLD_TICK = 0
+
 type ToolArgs<T> = { arguments?: T }
 
 function parseOptionalNumber(value: unknown): number | undefined {
@@ -205,7 +215,17 @@ export class WorldContextHandler {
         const locationId = toolArgs?.arguments?.locationId || STARTER_LOCATION_ID
 
         const explicitTick = parseOptionalNumber(toolArgs?.arguments?.tick)
-        const tick = explicitTick ?? (await this.worldClock.getCurrentTick())
+        let tick: number
+        if (explicitTick !== undefined) {
+            tick = explicitTick
+        } else {
+            try {
+                tick = await this.worldClock.getCurrentTick()
+            } catch {
+                // Fallback to default when timing system unavailable
+                tick = DEFAULT_WORLD_TICK
+            }
+        }
 
         const location = await this.locationRepo.get(locationId)
         if (!location) {
@@ -272,7 +292,16 @@ export class WorldContextHandler {
         }
 
         const explicitTick = parseOptionalNumber(toolArgs?.arguments?.tick)
-        const tick = explicitTick ?? (await this.worldClock.getCurrentTick())
+        let tick: number
+        if (explicitTick !== undefined) {
+            tick = explicitTick
+        } else {
+            try {
+                tick = await this.worldClock.getCurrentTick()
+            } catch {
+                tick = DEFAULT_WORLD_TICK
+            }
+        }
 
         const player = await this.playerDocRepo.getPlayer(playerId)
         if (!player) {
@@ -323,7 +352,16 @@ export class WorldContextHandler {
         const locationId = toolArgs?.arguments?.locationId || STARTER_LOCATION_ID
 
         const explicitTick = parseOptionalNumber(toolArgs?.arguments?.tick)
-        const tick = explicitTick ?? (await this.worldClock.getCurrentTick())
+        let tick: number
+        if (explicitTick !== undefined) {
+            tick = explicitTick
+        } else {
+            try {
+                tick = await this.worldClock.getCurrentTick()
+            } catch {
+                tick = DEFAULT_WORLD_TICK
+            }
+        }
 
         // Defaults per #515 acceptance criteria
         const weatherLayer = await this.layerRepo.getActiveLayerForLocation(locationId, 'weather', tick)

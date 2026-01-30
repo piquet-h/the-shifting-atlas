@@ -248,5 +248,32 @@ describe('WorldContextHandler', () => {
             const parsed = JSON.parse(result)
             assert.equal(parsed.tick, 42)
         })
+
+        it('uses default tick (0) when getCurrentTick fails', async () => {
+            const locationRepo = { get: sinon.stub().resolves({ id: STARTER_LOCATION_ID, name: 'Starter' }) }
+            const exitRepo = { getExits: sinon.stub().resolves([]) }
+            const realmService = { getContainingRealms: sinon.stub().resolves([]) }
+            const layerRepo = { getActiveLayerForLocation: sinon.stub().resolves(null) }
+            const worldClock = { getCurrentTick: sinon.stub().rejects(new Error('Database unavailable')) }
+            const playerDocRepo = { listPlayersAtLocation: sinon.stub().resolves([]) }
+            const inventoryRepo = { listItems: sinon.stub().resolves([]) }
+            const worldEventRepo = { queryByScope: sinon.stub().resolves({ events: [], ruCharge: 0, latencyMs: 0, hasMore: false }) }
+
+            const handler = new WorldContextHandler(
+                locationRepo as unknown as any,
+                exitRepo as unknown as any,
+                realmService as unknown as any,
+                layerRepo as unknown as any,
+                worldClock as unknown as any,
+                playerDocRepo as unknown as any,
+                inventoryRepo as unknown as any,
+                worldEventRepo as unknown as any
+            )
+
+            const ctx = makeContext()
+            const result = await handler.getLocationContext({ arguments: {} }, ctx)
+            const parsed = JSON.parse(result)
+            assert.equal(parsed.tick, 0) // Should use DEFAULT_WORLD_TICK = 0
+        })
     })
 })
