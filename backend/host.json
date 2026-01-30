@@ -41,7 +41,9 @@
             "Azure.Storage.Queues": "Warning",
             "Azure.Storage.Blobs": "Warning",
             "Azure.Core": "Warning",
-            "Microsoft.Azure.WebJobs": "Warning"
+            "Azure.Core.Pipeline": "Warning",
+            "Microsoft.Azure.WebJobs": "Warning",
+            "Host.Triggers.MCP": "Warning"
         }
     }
 }
