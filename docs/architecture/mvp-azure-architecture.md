@@ -631,7 +631,7 @@ interface QuestDocument {
 2. **Session consistency:** Use session tokens for read-after-write guarantees (advanced, usually not needed)
 3. **Verify update success:** Check telemetry for `Player.Update` event confirming write
 
-> Note: Dual-persistence migration troubleshooting (Gremlin fallback, migration scripts, cutover feature flags) was removed post ADR-004. For historical context, see `docs/adr/ADR-004-player-store-cutover-completion.md` and `docs/archive/migrations/`.
+> Note: Dual-persistence migration troubleshooting (Gremlin fallback, migration scripts, cutover feature flags) was removed post ADR-004. For historical context, see `docs/adr/ADR-004-player-store-cutover-completion.md`. If you ever need the removed one-time scripts, refer to git history.
 
 ## Pointers
 
@@ -639,7 +639,7 @@ interface QuestDocument {
 - Event naming: `../observability.md`
 - **Event classification (sync/async)**: `event-classification-matrix.md`
 - Partition evolution: `../adr/ADR-002-graph-partition-strategy.md`
-- Layering model: `../modules/description-layering-and-variation.md`
+- Layering model: `../design-modules/description-layering-and-variation.md`
 - SQL repository pattern: `sql-repository-pattern.md`
 
 ## Deferments

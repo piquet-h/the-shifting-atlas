@@ -31,6 +31,7 @@ g.V('location-guid')
 ```
 
 **Explanation**:
+
 1. `g.V('location-guid')` - Start at source location vertex
 2. `.outE(...)` - Traverse outgoing edges (exits) with direction labels
 3. `.project(...)` - Shape results into structured objects
@@ -44,16 +45,16 @@ g.V('location-guid')
 
 ```json
 [
-  {
-    "direction": "exit_north",
-    "targetId": "target-location-guid-1",
-    "targetName": "Village Square"
-  },
-  {
-    "direction": "exit_east",
-    "targetId": "target-location-guid-2",
-    "targetName": "Market District"
-  }
+    {
+        "direction": "exit_north",
+        "targetId": "target-location-guid-1",
+        "targetName": "Village Square"
+    },
+    {
+        "direction": "exit_east",
+        "targetId": "target-location-guid-2",
+        "targetName": "Market District"
+    }
 ]
 ```
 
@@ -74,7 +75,7 @@ async function getExitsFromLocation(locationId: string) {
             .by(inV().id())
             .by(inV().values('name'))
     `
-    
+
     const result = await gremlinClient.submit(query)
     return result.toArray()
 }
@@ -108,12 +109,15 @@ const result = await gremlinClient.submit(query, bindings)
 ## Common Gremlin Patterns
 
 ### 1. Check if Vertex Exists
+
 ```gremlin
 g.V('location-guid').count()
 ```
+
 Returns: `1` if exists, `0` if not
 
 ### 2. Add a New Location Vertex
+
 ```gremlin
 g.addV('Location')
   .property('id', 'new-location-guid')
@@ -123,12 +127,14 @@ g.addV('Location')
 ```
 
 ### 3. Add an Exit Edge (Reciprocal)
+
 ```gremlin
 g.V('location-a').addE('exit_north').to(V('location-b'))
 g.V('location-b').addE('exit_south').to(V('location-a'))
 ```
 
 ### 4. Find Player's Current Location
+
 ```gremlin
 g.V('player-guid').out('located_at').values('name')
 ```
@@ -138,11 +144,14 @@ g.V('player-guid').out('located_at').values('name')
 ## Performance Considerations
 
 ### Partition Key Strategy
+
 Per ADR-002, the initial implementation uses a single logical partition (`partitionKey: 'default'`). As RU/latency telemetry grows:
+
 - Monitor with `RU.Gremlin.Query` telemetry events
 - Consider sharding by region/continent when thresholds exceeded
 
 ### Query Optimization
+
 - **Use indexed properties**: `id`, `name`, `partitionKey`
 - **Limit traversal depth**: Avoid unbounded `.repeat()` steps
 - **Project only needed fields**: Use `.project()` to reduce payload size
@@ -179,12 +188,12 @@ curl http://localhost:7071/api/location/{locationId}/exits
 
 ## Related Documentation
 
-| Topic                     | Document                                      |
-| ------------------------- | --------------------------------------------- |
-| Graph Partition Strategy  | `../adr/ADR-002-graph-partition-strategy.md`  |
-| Exit Invariants           | `../concept/exits.md`                         |
-| Navigation Module         | `../modules/navigation-and-traversal.md`      |
-| Direction Normalization   | `../concept/direction-resolution-rules.md`    |
+| Topic                    | Document                                        |
+| ------------------------ | ----------------------------------------------- |
+| Graph Partition Strategy | `../adr/ADR-002-graph-partition-strategy.md`    |
+| Exit Invariants          | `../concept/exits.md`                           |
+| Navigation Module        | `../design-modules/navigation-and-traversal.md` |
+| Direction Normalization  | `../concept/direction-resolution-rules.md`      |
 
 ---
 

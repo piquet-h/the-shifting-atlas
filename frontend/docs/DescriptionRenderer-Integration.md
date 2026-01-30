@@ -62,21 +62,14 @@ const handleXSSDetected = (original: string, sanitized: string) => {
     console.error('XSS attempt detected', { original, sanitized })
 }
 
-<DescriptionRenderer 
-    content={compiledDescription} 
-    format="markdown"
-    onXSSDetected={handleXSSDetected}
-/>
+;<DescriptionRenderer content={compiledDescription} format="markdown" onXSSDetected={handleXSSDetected} />
 ```
 
 ### HTML Format
 
 ```tsx
 // If backend returns pre-sanitized HTML
-<DescriptionRenderer 
-    content={compiledDescriptionHtml} 
-    format="html"
-/>
+<DescriptionRenderer content={compiledDescriptionHtml} format="html" />
 ```
 
 ## Integration with GameView
@@ -104,7 +97,7 @@ import DescriptionRenderer from './DescriptionRenderer'
 
 interface LocationPanelProps {
     name: string
-    compiledDescription: string  // Changed from description: string
+    compiledDescription: string // Changed from description: string
     format?: 'markdown' | 'html'
     loading: boolean
     error: string | null
@@ -129,17 +122,17 @@ function LocationPanel({ name, compiledDescription, format, loading, error, onRe
 
 ```json
 {
-  "locationId": "loc-123",
-  "name": "Burnt Forest Clearing",
-  "compiledDescription": "An ancient stone chamber with weathered walls.\n\nCharred stakes mark where the northern palisade once stood.",
-  "compiledDescriptionFormat": "markdown",
-  "exits": [{ "direction": "north" }, { "direction": "south" }],
-  "provenance": {
-    "compiledAt": "2025-12-02T10:30:00Z",
-    "layersApplied": ["base", "structural-fire"],
-    "supersededSentences": 1,
-    "composerVersion": "1.0.0"
-  }
+    "locationId": "loc-123",
+    "name": "Burnt Forest Clearing",
+    "compiledDescription": "An ancient stone chamber with weathered walls.\n\nCharred stakes mark where the northern palisade once stood.",
+    "compiledDescriptionFormat": "markdown",
+    "exits": [{ "direction": "north" }, { "direction": "south" }],
+    "provenance": {
+        "compiledAt": "2025-12-02T10:30:00Z",
+        "layersApplied": ["base", "structural-fire"],
+        "supersededSentences": 1,
+        "composerVersion": "1.0.0"
+    }
 }
 ```
 
@@ -177,6 +170,7 @@ The component automatically:
 5. **Logs XSS attempts** for monitoring
 
 Allowed HTML tags:
+
 - Text formatting: `<strong>`, `<em>`, `<b>`, `<i>`
 - Structure: `<p>`, `<br>`, `<h1>`-`<h6>`
 - Lists: `<ul>`, `<ol>`, `<li>`
@@ -193,10 +187,7 @@ The component uses Tailwind CSS classes consistent with the game's narrative ton
 Custom styling can be applied via the `className` prop:
 
 ```tsx
-<DescriptionRenderer 
-    content={compiledDescription} 
-    className="max-w-prose mx-auto"
-/>
+<DescriptionRenderer content={compiledDescription} className="max-w-prose mx-auto" />
 ```
 
 ## Performance Considerations
@@ -216,6 +207,7 @@ Test coverage includes:
 - CSS styling and accessibility
 
 Run tests:
+
 ```bash
 npm test -- descriptionRenderer.test.tsx
 ```
@@ -223,7 +215,7 @@ npm test -- descriptionRenderer.test.tsx
 ## Design References
 
 - **Tenet #7 (Narrative Consistency)**: `docs/tenets.md`
-- **Description Layering Design**: `docs/modules/description-layering-and-variation.md`
+- **Description Layering Design**: `docs/design-modules/description-layering-and-variation.md`
 - **Event Classification**: `docs/architecture/event-classification-matrix.md`
 
 ## Migration Notes
@@ -231,6 +223,7 @@ npm test -- descriptionRenderer.test.tsx
 **Current State**: Backend returns simple `description` string field.
 
 **Future State**: Backend will implement `DescriptionComposer` service with:
+
 - Layer fetching and filtering
 - Supersede masking logic
 - Validator pipeline

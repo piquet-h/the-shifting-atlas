@@ -90,7 +90,9 @@ Central registry documenting all game domain telemetry events, including when th
 
 ### (Removed) Dual Persistence Migration Telemetry
 
-Player migration / Gremlin fallback telemetry (`Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`) was removed after ADR-004 completed the cutover to **SQL-only** player persistence. Historical migration artifacts live under `docs/archive/migrations/`.
+Player migration / Gremlin fallback telemetry (`Player.Migrate.*`, `Player.WriteThrough.*`, `Player.Get.Source*`) was removed after ADR-004 completed the cutover to **SQL-only** player persistence.
+
+Historical notes and rationale are captured in `docs/adr/ADR-004-player-store-cutover-completion.md`. Any removed one-time scripts are intentionally not retained in current docs; refer to git history if you ever need the original implementation.
 
 ---
 
@@ -543,6 +545,7 @@ Player migration / Gremlin fallback telemetry (`Player.Migrate.*`, `Player.Write
 **Alert:** P95 latency >500ms sustained for tool invocations  
 **Retention:** 90 days  
 **Redaction Rules:**
+
 - NO access tokens, bearer tokens, or API keys
 - NO user-level PII (emails, names)
 - Client identity = Azure AD app ID or subscription ID only
@@ -716,7 +719,7 @@ customEvents
     name == "MCP.Failed", "Failed",
     "Other"
 )
-| summarize 
+| summarize
     Invocations=countif(eventType == "Invoked"),
     AuthAllowed=countif(eventType == "Auth Allowed"),
     AuthDenied=countif(eventType == "Auth Denied"),
@@ -724,7 +727,7 @@ customEvents
     Failed=countif(eventType == "Failed"),
     P95Latency_ms=percentileif(todouble(customDimensions['game.latency.ms']), 95, eventType == "Invoked")
     by toolName, clientAppId
-| extend 
+| extend
     AuthSuccessRate = round(100.0 * AuthAllowed / (AuthAllowed + AuthDenied), 2),
     ThrottleRate = round(100.0 * Throttled / (Invocations == 0 ? 1 : Invocations), 2),
     FailureRate = round(100.0 * Failed / (Invocations == 0 ? 1 : Invocations), 2)

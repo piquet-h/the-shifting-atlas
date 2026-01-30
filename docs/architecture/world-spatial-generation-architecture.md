@@ -2,7 +2,7 @@
 
 Technical implementation of AI-driven world expansion with batched description generation and deterministic exit inference.
 
-**Parent Design Module**: [World Spatial Generation](../modules/world-spatial-generation.md)  
+**Parent Design Module**: [World Spatial Generation](../design-modules/world-spatial-generation.md)  
 **Status**: Planned (M4b World Generation)
 
 ---
@@ -538,7 +538,7 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 
 ## Related Documentation
 
-- **Design Module**: [World Spatial Generation](../modules/world-spatial-generation.md)
+- **Design Module**: [World Spatial Generation](../design-modules/world-spatial-generation.md)
 - **ADR**: (TBD: ADR for AI API selection and batching strategy)
 - **Tenet #7**: Narrative Consistency (AI-driven spatial logic)
 - **Concept**: [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)

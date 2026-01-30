@@ -737,8 +737,8 @@ if (Math.abs(offsetMs) <= config.epsilonMs) {
 | Player State (SQL API)          | `../architecture/cosmos-sql-containers.md`        |
 | Realm Hierarchy (zones)         | `../architecture/realm-hierarchy.md`              |
 | Telemetry Standards             | `../observability.md`                             |
-| Multiplayer Mechanics (future)  | `../modules/multiplayer-mechanics.md`             |
-| Dungeon Temporal Zones (future) | `../modules/dungeons.md`                          |
+| Multiplayer Mechanics (future)  | `multiplayer-mechanics.md`                        |
+| Dungeon Temporal Zones (future) | `../concept/dungeons.md`                          |
 
 ---
 

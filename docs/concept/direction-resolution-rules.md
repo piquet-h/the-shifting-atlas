@@ -76,7 +76,7 @@ Semantic exits, landmark resolution, 16‑way compass, natural language prefix s
 - [Exit Edge Invariants](./exits.md)
 - [Dungeons](./dungeons.md)
 - [Architecture Overview](../architecture/overview.md)
-- [Navigation & Traversal Module](../modules/navigation-and-traversal.md)
+- [Navigation & Traversal Module](../design-modules/navigation-and-traversal.md)
 
 ---
 

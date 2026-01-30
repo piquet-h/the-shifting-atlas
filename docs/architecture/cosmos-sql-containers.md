@@ -60,16 +60,16 @@ Authoritative reference for SQL API containers used by The Shifting Atlas.
 All world events **MUST** use one of these canonical `scopeKey` patterns:
 
 1. **Location-scoped events**: `loc:<locationId>` (UUID required)
-   - Example: `loc:550e8400-e29b-41d4-a716-446655440000`
-   - Use for: Events tied to a specific location (exits, NPC spawns, ambient changes)
+    - Example: `loc:550e8400-e29b-41d4-a716-446655440000`
+    - Use for: Events tied to a specific location (exits, NPC spawns, ambient changes)
 
 2. **Player-scoped events**: `player:<playerId>` (UUID required)
-   - Example: `player:6ba7b810-9dad-11d1-80b4-00c04fd430c8`
-   - Use for: Events specific to a player (move, look, inventory changes)
+    - Example: `player:6ba7b810-9dad-11d1-80b4-00c04fd430c8`
+    - Use for: Events specific to a player (move, look, inventory changes)
 
 3. **Global system events**: `global:<category>` (any category string)
-   - Examples: `global:maintenance`, `global:tick`, `global:worldclock`
-   - Use for: System-wide events not tied to a specific entity
+    - Examples: `global:maintenance`, `global:tick`, `global:worldclock`
+    - Use for: System-wide events not tied to a specific entity
 
 #### Validation Rules
 
@@ -104,6 +104,6 @@ Description Layers PK change (`/locationId` → `/scopeId`) requires data migrat
 ## Related
 
 - Realm Hierarchy: `./realm-hierarchy.md`
-- Temporal Framework: `../modules/world-time-temporal-reconciliation.md`
+- Temporal Framework: `../design-modules/world-time-temporal-reconciliation.md`
 
 Last updated: 2025-01-06

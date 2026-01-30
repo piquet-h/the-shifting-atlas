@@ -86,8 +86,8 @@ If a utility requires conditional behavior (different in backend vs browser), pr
 - Events optionally stored as vertices or external log for replay/analytics
 - Prefer idempotent mutations: processors verify current state before applying changes
 - **Dual persistence pattern (ADR-002)**: Immutable world structure in Cosmos DB Gremlin (locations, exits, spatial relationships); mutable player data and events in Cosmos DB SQL API (players, inventory, description layers, world events).
-- Planned multi‑scale spatial layer (see `../modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
-- Tokenless description layering (see `../modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
+- Planned multi‑scale spatial layer (see `../design-modules/geospatial-and-hydrology.md`) introducing Region, WaterBody, and RiverSegment vertices; early traversal code should avoid assumptions that all traversable context fits only in `Location` properties.
+- Tokenless description layering (see `../design-modules/description-layering-and-variation.md`) keeps base prose immutable; variation (weather, faction displays, structural damage) is additive via validated layers.
 - Partition key strategy: single logical partition during Mosswell bootstrap (MVP concession) with documented region sharding migration path (see `../adr/ADR-002-graph-partition-strategy.md` and Appendix in `../adr/ADR-001-mosswell-persistence-layering.md`).
 
 ## Cosmos DB SQL API Containers
@@ -171,7 +171,7 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 | `backend/src/functions/ping.ts`                   | [M0 Closure Summary](../milestones/M0-closure-summary.md#ping-service-liveness)                                                                                                                                         | Service liveness health check    |
 | `backend/src/functions/bootstrapPlayer.ts`        | [M0 Closure Summary](../milestones/M0-closure-summary.md#guest-guid-bootstrap)                                                                                                                                          | Idempotent player creation       |
 | `backend/src/functions/queueProcessWorldEvent.ts` | [World Event Contract](./world-event-contract.md)                                                                                                                                                                       | Queue-triggered event processor  |
-| `backend/src/functions/playerMove.ts`             | [Navigation & Traversal](../modules/navigation-and-traversal.md)                                                                                                                                                        | Movement command handler         |
+| `backend/src/functions/playerMove.ts`             | [Navigation & Traversal](../design-modules/navigation-and-traversal.md)                                                                                                                                                 | Movement command handler         |
 | `backend/src/functions/locationLook.ts`           | [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)                                                                                                                          | Location inspection command      |
 | `backend/src/functions/linkRooms.ts`              | [Exit Edge Management](../developer-workflow/edge-management.md)                                                                                                                                                        | Room connection utility          |
 | `backend/src/functions/getExits.ts`               | [Exits](../concept/exits.md)                                                                                                                                                                                            | Exit retrieval endpoint          |
@@ -204,9 +204,9 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ### Modules &amp; Narrative
 
-- `../modules/world-rules-and-lore.md` – Narrative & systemic framing
-- `../modules/navigation-and-traversal.md` – Movement & graph traversal semantics
-- `../modules/quest-and-dialogue-trees.md` – Narrative branching concepts
+- `../design-modules/world-rules-and-lore.md` – Narrative & systemic framing
+- `../design-modules/navigation-and-traversal.md` – Movement & graph traversal semantics
+- `../design-modules/quest-and-dialogue-trees.md` – Narrative branching concepts
 
 ### ADRs &amp; Milestones
 

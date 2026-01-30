@@ -53,7 +53,7 @@ These are **illustrative flows** used to communicate system intent. Some compone
     - "Your blade flashes—steel bites into his guard. He staggers back, bleeding."
 10. Player receives narration + updated state summary (HP/conditions visible to the player, plus next prompt).
 
-These example flows are intentionally short; expand as needed in `docs/modules/narration-governance.md` and `docs/modules/player-interaction-and-intents.md`.
+These example flows are intentionally short; expand as needed in `docs/design-modules/narration-governance.md` and `docs/design-modules/player-interaction-and-intents.md`.
 
 ## Notes & References (the meta behind the examples)
 
@@ -64,6 +64,6 @@ Implemented today:
 
 Specifications / planned components referenced by these examples:
 
-- Intent parsing → structured actions (ActionFrame / Intent IR): `docs/modules/player-interaction-and-intents.md` and `docs/architecture/intent-parser-agent-framework.md`
-- Validator pipeline for narration/layer outputs (classification → invariants → acceptance/rejection telemetry): `docs/modules/narration-governance.md`
+- Intent parsing → structured actions (ActionFrame / Intent IR): `docs/design-modules/player-interaction-and-intents.md` and `docs/architecture/intent-parser-agent-framework.md`
+- Validator pipeline for narration/layer outputs (classification → invariants → acceptance/rejection telemetry): `docs/design-modules/narration-governance.md`
 - Combat agent orchestration patterns (agent routing, policy validation concepts): `docs/architecture/intent-parser-agent-framework.md` and `docs/architecture/dnd-5e-agent-framework-integration.md`

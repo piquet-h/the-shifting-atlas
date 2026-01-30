@@ -34,6 +34,8 @@ Navigate the documentation by altitude—each layer serves a distinct purpose wi
 
 **For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
 
+For a curated, index-first entrypoint into the doc set (including an LLM-friendly reading order), see: [`docs/README.md`](docs/README.md).
+
 ---
 
 ## Table of Contents
@@ -71,7 +73,7 @@ scripts/          Automation (seed data, validation, deployment helpers)
 - `shared/src/` – Domain models, telemetry constants, direction normalizer
 - `frontend/src/components/*` – React components (GameView, CommandInput, NavigationUI)
 - `frontend/src/contexts/*` – React contexts (PlayerContext for state management)
-- `docs/design-modules/` – Gameplay mechanics (world rules, navigation, quests, economy)
+- `docs/design-modules/` – Design Modules (gameplay contracts and invariants)
 - `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
 - `docs/frontend/` – Frontend component architecture, style guide, accessibility patterns
 - `docs/ux/` – UX documentation, wireframes, accessibility guidelines
@@ -302,7 +304,7 @@ Project planning uses a deliberately **minimal label + milestone scheme** (see `
 
 - `scope:` one of `core|world|traversal|ai|mcp|systems|observability|devx|security`
 - Type (no prefix) one of `feature|enhancement|refactor|infra|docs|spike|test`
-- Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Observability`, `M3 AI Read`, `M4 AI Enrich`, `M5 Systems`
+- Milestone (no label): `M0 Foundation`, `M1 Traversal`, `M2 Data Foundations`, `M3a Event Backbone`, `M3b Player UI & Telemetry`, `M3c Temporal PI-0`, `M4 AI Read`, `M5 Quality & Depth`, `M6 Systems`, `M7 Post-MVP Extensibility`
 
 Rules:
 
@@ -310,7 +312,7 @@ Rules:
 - No `area:*`, `phase-*`, `status:*`, or `priority:*` labels—remove if encountered.
 - Internal module sub‑phases (e.g. traversal normalization N1..N5) stay in docs, not labels.
 
-Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M3 AI Read`, `M4 AI Enrich`, `M5 Systems` respectively. Remove deprecated labels during triage.
+Migration (2025-09-27): Old Phase 0/1/2 terminology maps to Milestones `M4 AI Read`, `M5 Quality & Depth`, `M6 Systems` respectively. Remove deprecated labels during triage.
 Migration (2025-09-27 later): Removed the `kind:` prefix; existing `kind:feature|…` labels replaced with bare type labels.
 Migration (2025-09-27 final): Removed `priority:` axis (ordering automation since deprecated). Subsequent cleanup (2025-10-09): removed legacy predictive scheduling / numeric ordering artifacts.
 
@@ -329,11 +331,11 @@ Migration (2025-09-27 final): Removed `priority:` axis (ordering automation sinc
 
 Current gaps:
 
-- No Service Bus or queue processors
-- No runtime Cosmos DB integration code (graph client, schema bootstrap)
-- Limited test coverage (backend + shared scaffolding present; expansion planned)
-- No managed identity consumption in Functions (uses key secret placeholder only)
-- Auth currently client-only: backend Functions do not yet enforce role/claim authorization beyond SWA default
+- Temporal mechanics are still in progress (see `docs/roadmap.md` → M3c).
+- AI orchestration remains runtime-agnostic by design; hosted runtime wiring may vary by tenant/product surface (see `docs/architecture/agentic-ai-and-mcp.md`).
+- World generation + layering depth is intentionally staged (prompt registry/MCP read precede any write/proposal surfaces; see `docs/roadmap.md` → M4/M5).
+- More integration/E2E coverage is still desirable (see `docs/testing/` and `frontend/e2e/`).
+- Backend authorization posture beyond SWA Easy Auth should be validated/expanded as new mutation surfaces are introduced.
 
 **Read more**: [Roadmap](docs/roadmap.md) (milestones M2–M6 address these gaps)
 

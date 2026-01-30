@@ -50,6 +50,7 @@ Hero-prose layers use composite idempotency based on:
 **Uniqueness constraint:** At most one hero-prose layer per `(scopeId, promptHash)` combination should exist at any given time.
 
 **Write semantics:**
+
 - When generating new hero prose with a specific prompt, check for existing layer with same `(scopeId, promptHash)`
 - If exists and valid, reuse it (idempotent)
 - If exists but invalid/outdated, replace it with new layer
@@ -60,30 +61,35 @@ Hero-prose layers use composite idempotency based on:
 Hero-prose layers must adhere to strict content policies:
 
 **Length:**
+
 - Target: 1–2 paragraphs
 - Hard limit: ≤1200 characters
 - Rationale: Provides enough room for vivid description without overwhelming players
 
 **Semantic constraints:**
+
 - **No new structural facts:** Hero prose elaborates on existing location attributes but introduces no permanent new entities
 - **Atmospheric only:** Focus on mood, sensory details, and contextual flourishes
 - **Canon-safe:** Must not contradict location attributes or established lore
 
 **Example (valid):**
+
 ```
-The marketplace square sprawls before you, its cobblestones worn smooth by 
+The marketplace square sprawls before you, its cobblestones worn smooth by
 countless footfalls. Morning light slants through the gaps between timber-
-framed buildings, casting long shadows across vendor stalls already bustling 
-with activity. The mingled scents of fresh bread, spiced wine, and tanned 
+framed buildings, casting long shadows across vendor stalls already bustling
+with activity. The mingled scents of fresh bread, spiced wine, and tanned
 leather drift on the breeze.
 ```
 
 **Example (invalid - introduces new fact):**
+
 ```
-The marketplace square sprawls before you, dominated by a massive bronze 
-fountain depicting the city's founder. 
+The marketplace square sprawls before you, dominated by a massive bronze
+fountain depicting the city's founder.
 ```
-*(Invalid: introduces "bronze fountain" not in location attributes)*
+
+_(Invalid: introduces "bronze fountain" not in location attributes)_
 
 ## Assembly Behavior
 
@@ -97,11 +103,13 @@ When a hero-prose layer is active:
 4. Supersede masking still applies (structural events can mask hero-prose sentences)
 
 **Assembly order with hero-prose:**
+
 ```
 Hero Prose (if active) → Structural Events → Ambient → Enhancement
 ```
 
 **Assembly order without hero-prose (fallback):**
+
 ```
 Base Description → Structural Events → Ambient → Enhancement
 ```
@@ -112,9 +120,9 @@ Hero-prose layers are **optional**. Fallback occurs when:
 
 1. **No hero layer exists:** Use base description from `Location.description`
 2. **Hero layer invalid:** Treat as if no hero layer exists
-   - Empty string or whitespace-only content
-   - Content exceeds 1200 character limit
-   - Missing required metadata fields
+    - Empty string or whitespace-only content
+    - Content exceeds 1200 character limit
+    - Missing required metadata fields
 3. **Multiple hero layers:** Use deterministic selection rule (see below)
 
 ### Multiple Hero Layers (Edge Case)
@@ -124,13 +132,14 @@ If multiple hero-prose layers are active for the same location:
 **Selection priority (deterministic):**
 
 1. **Most recent `authoredAt` timestamp** wins
-   - Rationale: Newer prompt templates produce better prose as AI models improve
-   - Allows gradual rollout of improved hero prose without breaking existing content
+    - Rationale: Newer prompt templates produce better prose as AI models improve
+    - Allows gradual rollout of improved hero prose without breaking existing content
 
 2. **Tie-breaker:** Lexicographic sort by `id` (GUID)
-   - Ensures deterministic selection even if timestamps are identical
+    - Ensures deterministic selection even if timestamps are identical
 
 **Example:**
+
 ```typescript
 // Two hero-prose layers exist
 layer1: { authoredAt: '2026-01-10T10:00:00Z', id: 'aaa-111' }
@@ -147,8 +156,8 @@ The `DescriptionComposer` service must be updated to:
 
 1. Detect hero-prose layers among fetched layers
 2. When hero-prose layer is present and valid:
-   - Use hero-prose content as the "effective base"
-   - Skip using `options.baseDescription`
+    - Use hero-prose content as the "effective base"
+    - Skip using `options.baseDescription`
 3. Apply existing supersede masking and layer assembly logic unchanged
 
 ### Telemetry
@@ -157,10 +166,10 @@ Track hero-prose usage with event metadata:
 
 ```typescript
 telemetryService.trackGameEvent('Description.Compile', {
-  locationId,
-  hasHeroProse: true,  // New field
-  heroProseFallback: false,  // New field - true if hero layer was invalid
-  // ... existing fields
+    locationId,
+    hasHeroProse: true, // New field
+    heroProseFallback: false // New field - true if hero layer was invalid
+    // ... existing fields
 })
 ```
 
@@ -173,6 +182,7 @@ This convention is designed to be forward-compatible with a future **Prompt Regi
 - Hero-prose layers generated from deprecated prompts can be batch-regenerated
 
 **Out of scope for this convention:**
+
 - Automatic prompt versioning
 - Agent sandbox validate/apply patterns
 - Batch regeneration tooling
@@ -229,7 +239,7 @@ The `(scopeId, promptHash)` idempotency key prevents:
 
 ## Related Documents
 
-- [Description Layering & Variation](../modules/description-layering-and-variation.md) — Overall layering model
+- [Description Layering & Variation](../design-modules/description-layering-and-variation.md) — Overall layering model
 - [Layer Overlap Policy](./layer-overlap-policy.md) — Temporal layer management
 - Epic: #735 (Prompt Registry & Versioning)
 

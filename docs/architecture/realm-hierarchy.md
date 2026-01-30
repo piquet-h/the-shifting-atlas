@@ -53,9 +53,11 @@ Realm edges define relationships between realms and between locations/realms. Al
 #### Edge Properties
 
 **RouteEdge** (for `on_route` edges):
+
 - `routeName: string` - Human-readable route name (e.g., "The King's Road")
 
 Future edge properties may include:
+
 - `BorderEdge`: crossingDifficulty, checkpoint details
 - `PoliticalEdge`: treaty details, since/until timestamps
 
@@ -66,11 +68,13 @@ Future edge properties may include:
 Purpose: Define hierarchical containment (e.g., location within district, district within city).
 
 Constraints:
+
 - **DAG enforcement**: Forms a Directed Acyclic Graph (no cycles). Cycle detection validates that adding a `within` edge would not create a loop.
 - **Multi-parent allowed**: A location or realm MAY have multiple parents via `within` edges. Example: A border location belongs to multiple districts.
 - **Self-loops prohibited**: Cannot create `within` edge where childId === parentId.
 
 Validation:
+
 ```typescript
 // Before adding: realm1.within(realm2)
 // Check: Is realm2 already within realm1's containment chain?
@@ -85,6 +89,7 @@ if (realm2Chain.includes(realm1.id)) {
 Purpose: Allow entities to belong to multiple conceptual groupings without hierarchical constraints.
 
 Constraints:
+
 - **No cycle detection**: Memberships can be circular (e.g., trade network members can contain other networks).
 - **Multi-membership encouraged**: Locations/realms should belong to multiple overlapping realms (e.g., a city is part of both a trade network and a cultural region).
 
@@ -93,6 +98,7 @@ Constraints:
 Purpose: Define symmetric adjacency between realms (e.g., Kingdom A borders Kingdom B).
 
 Constraints:
+
 - **Bidirectional**: Creating `borders` edge from realm1 to realm2 automatically creates reciprocal edge from realm2 to realm1.
 - **Self-loops prohibited**: Cannot create `borders` edge where realm1Id === realm2Id.
 - **Idempotent**: Creating duplicate border edges is safe (no-op).
@@ -102,6 +108,7 @@ Constraints:
 Purpose: Connect locations via named routes/roads (e.g., "The King's Road" connects cities).
 
 Constraints:
+
 - **Required property**: `routeName` must be non-empty string.
 - **Directional**: Routes may be one-way; create reciprocal edge if bidirectional.
 
@@ -110,11 +117,12 @@ Constraints:
 Purpose: Define directional political relationships between realms.
 
 Constraints:
+
 - **Directional**: Source realm has relationship TO target realm (not symmetric).
 - **Type-specific semantics**:
-  - `vassal_of`: Source realm is subordinate to target realm.
-  - `allied_with`: Source realm has alliance with target realm.
-  - `at_war_with`: Source realm is in conflict with target realm.
+    - `vassal_of`: Source realm is subordinate to target realm.
+    - `allied_with`: Source realm has alliance with target realm.
+    - `at_war_with`: Source realm is in conflict with target realm.
 - Future: May add time-varying properties (since/until) in M7.
 
 Constraints:
@@ -130,11 +138,13 @@ Constraints:
 ### Basic Realm Queries
 
 **Get realm by ID:**
+
 ```typescript
 const realm = await realmRepository.get(realmId)
 ```
 
 **Create/update realm:**
+
 ```typescript
 const result = await realmRepository.upsert({
     id: 'realm-001',
@@ -149,17 +159,20 @@ const result = await realmRepository.upsert({
 ### Containment Hierarchy (within)
 
 **Ancestors for a location (Gremlin):**
+
 ```gremlin
 g.V(<locationId>).repeat(out('within').simplePath()).emit()
 ```
 
 **Ancestors for a location (Repository):**
+
 ```typescript
 const ancestors = await realmRepository.getContainmentChain(locationId)
 // Returns: [immediateParent, grandparent, ..., root]
 ```
 
 **Find weather zone for a location:**
+
 ```gremlin
 g.V(<locationId>)
  .repeat(out('within').simplePath()).emit()
@@ -167,11 +180,13 @@ g.V(<locationId>)
 ```
 
 **Locations in a realm (recursive):**
+
 ```gremlin
 g.V(<realmId>).repeat(in('within')).emit(hasLabel('location')).dedup()
 ```
 
 **Add containment edge:**
+
 ```typescript
 // Add location within realm (with DAG cycle detection)
 await realmRepository.addWithinEdge(locationId, realmId)
@@ -183,12 +198,14 @@ await realmRepository.addWithinEdge(childRealmId, parentRealmId)
 ### Membership (member_of)
 
 **Get all memberships for an entity:**
+
 ```typescript
 const memberships = await realmRepository.getMemberships(entityId)
 // Returns: Array of realms the entity is a member of
 ```
 
 **Add membership:**
+
 ```typescript
 // Location joins trade network
 await realmRepository.addMembershipEdge(locationId, tradeNetworkId)
@@ -200,12 +217,14 @@ await realmRepository.addMembershipEdge(realmId, allianceId)
 ### Adjacency (borders)
 
 **Get bordering realms:**
+
 ```typescript
 const neighbors = await realmRepository.getBorderingRealms(realmId)
 // Returns: Array of realms that border this realm
 ```
 
 **Add border (bidirectional):**
+
 ```typescript
 // Creates edges in both directions
 await realmRepository.addBorderEdge(kingdom1Id, kingdom2Id)
@@ -214,12 +233,14 @@ await realmRepository.addBorderEdge(kingdom1Id, kingdom2Id)
 ### Infrastructure (on_route)
 
 **Add named route:**
+
 ```typescript
 // Connect locations via "The King's Road"
 await realmRepository.addRouteEdge(city1Id, city2Id, "The King's Road")
 ```
 
 **Query routes (Gremlin):**
+
 ```gremlin
 // Find all routes from a location
 g.V(<locationId>).outE('on_route').project('to','routeName')
@@ -230,6 +251,7 @@ g.V(<locationId>).outE('on_route').project('to','routeName')
 ### Political Relationships
 
 **Add political edges:**
+
 ```typescript
 // Vassal relationship
 await realmRepository.addPoliticalEdge(vassalRealmId, empireId, 'vassal_of')
@@ -242,6 +264,7 @@ await realmRepository.addPoliticalEdge(kingdom1Id, kingdom2Id, 'at_war_with')
 ```
 
 **Query political relationships (Gremlin):**
+
 ```gremlin
 // Find all vassals of an empire
 g.V(<empireId>).in('vassal_of').values('name')
@@ -307,7 +330,7 @@ Deferred (M6+): Conceptual realms (trade networks, alliances, cultural regions)
 ## Related Documents
 
 - Design Module overview: `../design-modules/README.md` (World Structure module)
-- Temporal framework: `../modules/world-time-temporal-reconciliation.md`
+- Temporal framework: `../design-modules/world-time-temporal-reconciliation.md`
 - SQL containers: `./cosmos-sql-containers.md`
 - Implementation: `backend/src/repos/realmRepository.ts`, `backend/src/repos/realmRepository.cosmos.ts`
 - Tests: `backend/test/integration/realmRepository.test.ts`, `shared/test/realmEdges.test.ts`
@@ -319,11 +342,13 @@ Deferred (M6+): Conceptual realms (trade networks, alliances, cultural regions)
 The `IRealmRepository` interface (defined in `backend/src/repos/realmRepository.ts`) provides all realm and edge operations:
 
 **Realm CRUD:**
+
 - `get(id)` - Retrieve realm by ID
 - `upsert(realm)` - Create or update realm
 - `deleteRealm(id)` - Delete realm and all connected edges
 
 **Edge Management:**
+
 - `addWithinEdge(childId, parentId)` - Containment with cycle detection
 - `addMembershipEdge(entityId, realmId)` - Overlapping classification
 - `addBorderEdge(realm1, realm2)` - Bidirectional adjacency
@@ -331,6 +356,7 @@ The `IRealmRepository` interface (defined in `backend/src/repos/realmRepository.
 - `addPoliticalEdge(sourceId, targetId, type)` - Political relationships
 
 **Query Helpers:**
+
 - `getContainmentChain(entityId)` - Traverse `within` edges upward
 - `getMemberships(entityId)` - Traverse `member_of` edges
 - `getBorderingRealms(realmId)` - Traverse `borders` edges
@@ -338,10 +364,12 @@ The `IRealmRepository` interface (defined in `backend/src/repos/realmRepository.
 ### Testing
 
 **Unit Tests** (`shared/test/realmEdges.test.ts`):
+
 - Edge label validation (7 labels)
 - RouteEdge interface validation
 
 **Integration Tests** (`backend/test/integration/realmRepository.test.ts`):
+
 - Tests run in both `memory` and `cosmos` modes via `describeForBothModes`
 - 24 test cases covering all edge types and validation rules
 - Tests include: CRUD, cycle detection, self-loop validation, bidirectionality
@@ -362,11 +390,13 @@ This ensures the `within` edges always form a Directed Acyclic Graph (DAG).
 **Decision: Multi-parent `within` edges are ALLOWED.**
 
 Rationale:
+
 - Border locations can conceptually belong to multiple administrative districts
 - Weather zones may overlap
 - Trade routes may traverse multiple jurisdictions
 
 Example:
+
 ```
 Location "Border Outpost"
   → within District A (northern jurisdiction)

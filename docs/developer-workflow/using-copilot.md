@@ -47,11 +47,11 @@ Scripts under `scripts/**` and `.github/skills/**/scripts/**` may be written wit
 
 ## Prompting Patterns
 
-| Goal                  | Example Prompt                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Add new HTTP Function | "Create an Azure Function http handler in backend that enqueues a world event (see docs/modules/navigation-and-traversal.md)." |
-| Extend API handler    | "Refactor HttpPlayerActions to validate direction against allowed exits list (see world rules doc)."                           |
-| Generate test         | "Write Node --test tests for graph utility parseRoomId covering invalid GUID cases."                                           |
+| Goal                  | Example Prompt                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Add new HTTP Function | "Create an Azure Function http handler in backend that enqueues a world event (see docs/design-modules/navigation-and-traversal.md)." |
+| Extend API handler    | "Refactor HttpPlayerActions to validate direction against allowed exits list (see world rules doc)."                                  |
+| Generate test         | "Write Node --test tests for graph utility parseRoomId covering invalid GUID cases."                                                  |
 
 ## Referencing Design Docs
 

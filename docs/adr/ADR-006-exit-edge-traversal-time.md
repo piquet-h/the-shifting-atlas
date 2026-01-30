@@ -12,7 +12,7 @@ Movement and temporal reconciliation need a consistent, inspectable source for �
 Today:
 
 - Temporal PI-0 established clocks, reconciliation policies, and action durations (Epic #497).
-- The traversal model already reserves an `EXIT.travelMs` edge property (see `docs/modules/navigation-and-traversal.md`).
+- The traversal model already reserves an `EXIT.travelMs` edge property (see `docs/design-modules/navigation-and-traversal.md`).
 - The temporal system currently expresses durations in milliseconds in multiple places, but the design intent is closer to a _generic tick_ concept (D&D-style “ticks” / discrete time units).
 
 We need a durable contract for:
@@ -75,6 +75,6 @@ Revisit this ADR when any of the following becomes true:
 - Epic #497 (closed): World Time & Temporal Reconciliation Framework (PI-0 scaffolding)
 - Epic #696: Temporal PI-1 Integration (Clocks, Ledger, Narrative)
 - Epic #697: Temporal Presence & Occupancy (Extensibility)
-- `docs/modules/navigation-and-traversal.md` (EXIT edge schema includes `travelMs`)
-- `docs/modules/world-time-temporal-reconciliation.md` (temporal framework overview; partly aspirational)
+- `docs/design-modules/navigation-and-traversal.md` (EXIT edge schema includes `travelMs`)
+- `docs/design-modules/world-time-temporal-reconciliation.md` (temporal framework overview; partly aspirational)
 - `docs/architecture/location-clock-storage-decision.md` (temporal storage separation rationale)

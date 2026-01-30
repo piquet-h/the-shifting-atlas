@@ -17,6 +17,7 @@ When multiple description layers are temporally active at the same tick for a gi
 **Decision**: When multiple layers overlap temporally (i.e., multiple layers have `effectiveFromTick <= currentTick <= effectiveToTick`), the layer with the most recent `authoredAt` timestamp wins.
 
 **Rationale**:
+
 1. **Temporal Consistency**: Later authoring represents more recent intent
 2. **Simplicity**: Single SQL `ORDER BY authoredAt DESC LIMIT 1` clause
 3. **Predictability**: No complex priority scoring or manual ranking
@@ -29,8 +30,8 @@ When multiple description layers are temporally active at the same tick for a gi
 ### Query Pattern (Cosmos SQL)
 
 ```sql
-SELECT * FROM c 
-WHERE c.scopeId = @scopeId 
+SELECT * FROM c
+WHERE c.scopeId = @scopeId
 AND c.layerType = @layerType
 AND c.effectiveFromTick <= @tick
 AND (c.effectiveToTick IS NULL OR c.effectiveToTick >= @tick)
@@ -39,6 +40,7 @@ LIMIT 1
 ```
 
 **Key Points**:
+
 - `ORDER BY c.authoredAt DESC` ensures most recently authored layer wins
 - `LIMIT 1` returns only the active layer
 - Single-partition query (p95 latency <50ms)
@@ -46,14 +48,17 @@ LIMIT 1
 ### Repository Methods
 
 **Direct Scope Query**:
+
 ```typescript
 getActiveLayer(scopeId: string, layerType: LayerType, tick: number): Promise<DescriptionLayer | null>
 ```
 
 **Location with Realm Inheritance**:
+
 ```typescript
 getActiveLayerForLocation(locationId: string, layerType: LayerType, tick: number): Promise<DescriptionLayer | null>
 ```
+
 - Searches location scope first (`loc:<locationId>`)
 - Falls back to realm hierarchy (weather zone → broader realms)
 - Each scope independently applies last-authored-wins
@@ -113,6 +118,7 @@ getActiveLayerForLocation(locationId: string, layerType: LayerType, tick: number
 ### Preventing Data Corruption
 
 **NO validation** is performed to prevent overlapping intervals at write time. This design choice supports:
+
 - **Flexibility**: Weather systems can transition smoothly without coordinated timing
 - **Eventual Consistency**: AI-generated layers may not know about each other
 - **Simplicity**: No distributed locking or transaction coordination required
@@ -120,11 +126,13 @@ getActiveLayerForLocation(locationId: string, layerType: LayerType, tick: number
 ### Recommended Patterns
 
 For controlled transitions, applications should:
+
 1. Query existing layers via `queryLayerHistory()`
 2. Set `toTick` of old layer to match `fromTick` of new layer
 3. Create new layer with adjacent temporal range
 
 **Example**:
+
 ```typescript
 // Replace weather layer at tick 2000
 const existing = await layerRepo.getActiveLayer('realm:zone1', 'weather', 1999)
@@ -167,7 +175,7 @@ const history = await layerRepo.queryLayerHistory('realm:zone1', 'weather', star
 for (let i = 0; i < history.length - 1; i++) {
     const current = history[i]
     const next = history[i + 1]
-    
+
     if (current.effectiveToTick === null || current.effectiveToTick >= next.effectiveFromTick) {
         console.log('Overlap detected:', current.id, next.id)
     }
@@ -181,6 +189,7 @@ for (let i = 0; i < history.length - 1; i++) {
 ### AI-Generated Layer Transitions
 
 When AI generates weather/ambient transitions:
+
 - Set `toTick` of previous layer to match transition tick
 - Create new layer with adjacent `fromTick`
 - Ensures clean, non-overlapping progression
@@ -188,6 +197,7 @@ When AI generates weather/ambient transitions:
 ### Multi-Layer Blending
 
 For richer descriptions ("rainy" + "foggy" → "rainy fog"):
+
 - Extend query to return multiple active layers
 - Implement composition logic in description composer
 - Maintain last-authored-wins as tiebreaker within same priority tier
@@ -198,7 +208,7 @@ For richer descriptions ("rainy" + "foggy" → "rainy fog"):
 
 - `docs/architecture/cosmos-sql-containers.md` - Container schema
 - `docs/architecture/realm-hierarchy.md` - Scope inheritance model
-- `docs/modules/world-time-temporal-reconciliation.md` - Temporal framework
+- `docs/design-modules/world-time-temporal-reconciliation.md` - Temporal framework
 - `backend/src/repos/layerRepository.ts` - Implementation
 - `backend/test/unit/layerRepository.temporal.test.ts` - Test coverage
 

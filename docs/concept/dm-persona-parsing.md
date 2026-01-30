@@ -94,7 +94,7 @@ Define `ActionFrame` type in shared package; baseline lexicon list; seed humor l
 ## Related
 
 - `./dungeon-master-style-guide.md` – tone & persona
-- `../modules/player-interaction-and-intents.md` – verbs & intents module
+- `../design-modules/player-interaction-and-intents.md` – verbs & intents module
 - `../architecture/overview.md` – integration context
 
 ---

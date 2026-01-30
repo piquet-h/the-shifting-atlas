@@ -1,6 +1,6 @@
 # Intent Parser + Agent Framework Integration
 
-**Related**: `dnd-5e-agent-framework-integration.md` | `docs/modules/player-interaction-and-intents.md` | `docs/modules/entity-promotion.md`
+**Related**: `dnd-5e-agent-framework-integration.md` | `docs/design-modules/player-interaction-and-intents.md` | `docs/design-modules/entity-promotion.md`
 
 ## Executive Summary
 
@@ -8,7 +8,7 @@ This document details how to build an **Intent Parser MCP Server** and **Intent 
 
 **Status**: DESIGN SPECIFICATION - Intent parsing spec exists but not implemented  
 **Priority**: **P0 - Critical Foundation** (M3 - Required before AI narrative generation)  
-**Related Specs**: `docs/modules/player-interaction-and-intents.md`, `docs/modules/entity-promotion.md`
+**Related Specs**: `docs/design-modules/player-interaction-and-intents.md`, `docs/design-modules/entity-promotion.md`
 
 ---
 
@@ -348,7 +348,7 @@ Player Response
 
 ### Data Model (TypeScript)
 
-**Intent** (from spec: `docs/modules/player-interaction-and-intents.md`):
+**Intent** (from spec: `docs/design-modules/player-interaction-and-intents.md`):
 
 **Location**: `shared/src/intent.ts` (shared between backend TypeScript and Python via JSON)
 
@@ -1402,7 +1402,7 @@ rateLimiters.intentParsing = new RateLimiter({
 **Layer**: Architecture (30k ft) - Technical design implementing gameplay modules  
 **Related**:
 
-- Design Modules: `docs/modules/player-interaction-and-intents.md`, `docs/modules/entity-promotion.md`
+- Design Modules: `docs/design-modules/player-interaction-and-intents.md`, `docs/design-modules/entity-promotion.md`
 - Architecture: `docs/architecture/dnd-5e-agent-framework-integration.md`
 - Tenets: `docs/tenets.md` (Explicit over implicit, Build for observability)
 

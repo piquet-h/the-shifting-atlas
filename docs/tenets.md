@@ -198,16 +198,16 @@ Metrics that validate adherence to these tenets:
 
 ## Related Documentation
 
-| Topic                          | Document                                        |
-| ------------------------------ | ----------------------------------------------- |
-| Vision Statement               | Root `README.md` (Vision section)               |
-| Architecture Implementation    | `architecture/mvp-azure-architecture.md`        |
-| Event Classification & AI Role | `architecture/event-classification-matrix.md`   |
-| Partition Strategy (Cost)      | `adr/ADR-002-graph-partition-strategy.md`       |
-| Accessibility Requirements     | `ux/accessibility-guidelines.md`                |
-| Telemetry Standards            | `observability.md`                              |
-| AI Integration Strategy        | `modules/ai-prompt-engineering.md`              |
-| Narrative Layering (Immutable) | `modules/description-layering-and-variation.md` |
+| Topic                          | Document                                               |
+| ------------------------------ | ------------------------------------------------------ |
+| Vision Statement               | Root `README.md` (Vision section)                      |
+| Architecture Implementation    | `architecture/mvp-azure-architecture.md`               |
+| Event Classification & AI Role | `architecture/event-classification-matrix.md`          |
+| Partition Strategy (Cost)      | `adr/ADR-002-graph-partition-strategy.md`              |
+| Accessibility Requirements     | `ux/accessibility-guidelines.md`                       |
+| Telemetry Standards            | `observability.md`                                     |
+| AI Integration Strategy        | `design-modules/ai-prompt-engineering.md`              |
+| Narrative Layering (Immutable) | `design-modules/description-layering-and-variation.md` |
 
 ---
 

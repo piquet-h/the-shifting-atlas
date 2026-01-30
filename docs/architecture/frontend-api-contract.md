@@ -23,7 +23,7 @@ Backend always compiles descriptions through `DescriptionComposer`. See ADR-005.
 Some responses may also include an optional **scene** field, which is an immersive post-composition narrative derived from the same deterministic inputs.
 
 **Latency contract note:** the backend may treat requests as **snappy** (action-forward) or **cinematic** (narrative-forward) based on user intent/flags. The contract affects whether `description.scene` is returned immediately (cache hit), returned after a bounded wait, or omitted with deterministic fallback.
-See `../modules/scene-synthesiser.md`.
+See `../design-modules/scene-synthesiser.md`.
 
 ```typescript
 interface LocationResponse {

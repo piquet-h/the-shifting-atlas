@@ -12,14 +12,14 @@ Provide a stable envelope + minimal semantic fields for all asynchronous world e
 
 The World Event Contract is now implemented with full queue processing capabilities:
 
--   **Schema Validation**: [`shared/src/events/worldEventSchema.ts`](../../shared/src/events/worldEventSchema.ts) — Zod schemas for envelope validation, actor types, and event type namespace
--   **Queue Processor**: [`backend/src/functions/queueProcessWorldEvent.ts`](../../backend/src/functions/queueProcessWorldEvent.ts) — Async world event processor with idempotency enforcement and telemetry
--   **Test Coverage**: [`backend/test/unit/worldEventProcessor.test.ts`](../../backend/test/unit/worldEventProcessor.test.ts) — Comprehensive tests covering valid events, schema validation, idempotency, and edge cases
+- **Schema Validation**: [`shared/src/events/worldEventSchema.ts`](../../shared/src/events/worldEventSchema.ts) — Zod schemas for envelope validation, actor types, and event type namespace
+- **Queue Processor**: [`backend/src/functions/queueProcessWorldEvent.ts`](../../backend/src/functions/queueProcessWorldEvent.ts) — Async world event processor with idempotency enforcement and telemetry
+- **Test Coverage**: [`backend/test/unit/worldEventProcessor.test.ts`](../../backend/test/unit/worldEventProcessor.test.ts) — Comprehensive tests covering valid events, schema validation, idempotency, and edge cases
 
 **Telemetry Events Emitted:**
 
--   `World.Event.Processed` — Emitted when event is successfully processed (includes latency, correlation/causation IDs)
--   `World.Event.Duplicate` — Emitted when duplicate event is detected via idempotency key (skip processing)
+- `World.Event.Processed` — Emitted when event is successfully processed (includes latency, correlation/causation IDs)
+- `World.Event.Duplicate` — Emitted when duplicate event is detected via idempotency key (skip processing)
 
 See [`shared/src/telemetryEvents.ts`](../../shared/src/telemetryEvents.ts) for canonical event name definitions.
 
@@ -225,8 +225,8 @@ For non-temporal events (e.g., `Player.Look`, `World.Ambience.Generated`), the `
 
 **References**:
 
--   World Time Architecture: `docs/modules/world-time-temporal-reconciliation.md`
--   Epic #497: World Time & Temporal Reconciliation Framework
+- World Time Architecture: `docs/design-modules/world-time-temporal-reconciliation.md`
+- Epic #497: World Time & Temporal Reconciliation Framework
 
 ---
 
@@ -277,15 +277,15 @@ Idempotency keys must be **deterministic** and **unique per logical action**. Co
 
 **Temporal Bucketing**:
 
--   **Minute bucket**: `Math.floor(Date.now() / 60000)` — Use for high-frequency player actions
--   **5-minute window**: `Math.floor(Date.now() / 300000)` — Use for periodic system events
--   **Omit bucket**: For one-time structural changes (exit creation, layer generation)
+- **Minute bucket**: `Math.floor(Date.now() / 60000)` — Use for high-frequency player actions
+- **5-minute window**: `Math.floor(Date.now() / 300000)` — Use for periodic system events
+- **Omit bucket**: For one-time structural changes (exit creation, layer generation)
 
 **Do NOT include**:
 
--   Event metadata (`eventId`, `correlationId`) — these differ per attempt
--   Timestamps with millisecond precision — defeats deduplication
--   Mutable state (player health, location version) — breaks determinism
+- Event metadata (`eventId`, `correlationId`) — these differ per attempt
+- Timestamps with millisecond precision — defeats deduplication
+- Mutable state (player health, location version) — breaks determinism
 
 ### TTL Policy
 
@@ -303,15 +303,15 @@ WORLD_EVENT_DUPE_TTL_MS = 600000 // 10 min in milliseconds
 
 **Cache Eviction**:
 
--   **TTL expiration**: Entries older than TTL are removed on next access (lazy cleanup)
--   **FIFO overflow**: When cache exceeds `WORLD_EVENT_CACHE_MAX_SIZE` (default: 10,000), oldest entry evicted
--   **Per-instance scope**: Cache is not shared across processor instances (intentional — stateless design)
+- **TTL expiration**: Entries older than TTL are removed on next access (lazy cleanup)
+- **FIFO overflow**: When cache exceeds `WORLD_EVENT_CACHE_MAX_SIZE` (default: 10,000), oldest entry evicted
+- **Per-instance scope**: Cache is not shared across processor instances (intentional — stateless design)
 
 **Memory footprint** (typical):
 
--   Entry size: ~150 bytes (idempotency key + eventId + timestamp)
--   10,000 entries ≈ 1.5 MB
--   Eviction prevents runaway growth in high-throughput scenarios
+- Entry size: ~150 bytes (idempotency key + eventId + timestamp)
+- 10,000 entries ≈ 1.5 MB
+- Eviction prevents runaway growth in high-throughput scenarios
 
 ### Implementation Details
 
@@ -401,9 +401,9 @@ npm run query:deadletters -- --start "2025-10-31T12:00:00Z" --end "2025-10-31T13
 
 **Recommended alerts** (configure in Application Insights):
 
--   Dead-letter rate > 10 per minute (sustained 5 min) → Indicates schema drift or client bug
--   Failure category shift → New error type appeared (e.g., sudden `json-parse` spike)
--   Storage write failures → DLQ infrastructure issue (check Cosmos DB health)
+- Dead-letter rate > 10 per minute (sustained 5 min) → Indicates schema drift or client bug
+- Failure category shift → New error type appeared (e.g., sudden `json-parse` spike)
+- Storage write failures → DLQ infrastructure issue (check Cosmos DB health)
 
 ### Failure Categories
 
@@ -415,15 +415,15 @@ npm run query:deadletters -- --start "2025-10-31T12:00:00Z" --end "2025-10-31T13
 
 See [`docs/dead-letter-storage.md`](../dead-letter-storage.md) for:
 
--   Redaction strategy (player ID masking, payload summarization)
--   Query interface (programmatic + CLI)
--   Manual cleanup procedures
--   Security considerations
+- Redaction strategy (player ID masking, payload summarization)
+- Query interface (programmatic + CLI)
+- Manual cleanup procedures
+- Security considerations
 
 ## Correlation & Tracing
 
--   `correlationId` links back to originating HTTP request or player session command.
--   Append `eventId` to telemetry dimensions of downstream AI or mutation proposals referencing the event.
+- `correlationId` links back to originating HTTP request or player session command.
+- Append `eventId` to telemetry dimensions of downstream AI or mutation proposals referencing the event.
 
 ### Queue Message CorrelationId Injection
 
@@ -458,10 +458,10 @@ trackGameEventStrict('World.Event.QueuePublish', {
 
 **Behavior:**
 
-| Scenario                              | Result                                                       |
-| ------------------------------------- | ------------------------------------------------------------ |
-| correlationId in envelope             | Used for message + applicationProperties                     |
-| No correlationId provided             | UUID generated; warning added to `warnings`                  |
+| Scenario                                          | Result                                                                                |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| correlationId in envelope                         | Used for message + applicationProperties                                              |
+| No correlationId provided                         | UUID generated; warning added to `warnings`                                           |
 | applicationProperties has different correlationId | Envelope's correlationId wins; original preserved in `publish.correlationId.original` |
 
 **Batch Enqueue:**
@@ -483,10 +483,10 @@ const results = prepareBatchEnqueueMessages(emitResults, {
 
 **Telemetry Events:**
 
-| Event                      | When Emitted            | Required Dimensions                   |
-| -------------------------- | ----------------------- | ------------------------------------- |
-| `World.Event.QueuePublish` | After message enqueued  | `correlationId`, `messageType`        |
-| `World.Event.Processed`    | After queue processing  | `correlationId`, `eventType`, `latencyMs` |
+| Event                      | When Emitted           | Required Dimensions                       |
+| -------------------------- | ---------------------- | ----------------------------------------- |
+| `World.Event.QueuePublish` | After message enqueued | `correlationId`, `messageType`            |
+| `World.Event.Processed`    | After queue processing | `correlationId`, `eventType`, `latencyMs` |
 
 **Observability Query:**
 
@@ -500,31 +500,31 @@ customEvents
     | where name == "World.Event.Processed"
     | extend processCorrelationId = tostring(customDimensions.correlationId)
 ) on $left.publishCorrelationId == $right.processCorrelationId
-| project PublishTime = timestamp, ProcessTime = timestamp1, correlationId = publishCorrelationId, 
+| project PublishTime = timestamp, ProcessTime = timestamp1, correlationId = publishCorrelationId,
           messageType = tostring(customDimensions.messageType), latencyMs = todouble(customDimensions1.latencyMs)
 ```
 
 ## Versioning
 
--   Bump `version` only when envelope structure changes in a breaking way (field removal or semantic shift).
--   Additive payload fields within a `type` use separate **type schema versions** (maintained outside the envelope; optional `payloadVersion` can be added if needed later).
+- Bump `version` only when envelope structure changes in a breaking way (field removal or semantic shift).
+- Additive payload fields within a `type` use separate **type schema versions** (maintained outside the envelope; optional `payloadVersion` can be added if needed later).
 
 ## Security Considerations
 
--   All externally influenced fields (notably `payload`) must be revalidated server-side; never trust client-provided `idempotencyKey` if reconstructable.
--   Reject events where `occurredUtc` drifts excessively (> configurable threshold) from `ingestedUtc` to mitigate replay.
+- All externally influenced fields (notably `payload`) must be revalidated server-side; never trust client-provided `idempotencyKey` if reconstructable.
+- Reject events where `occurredUtc` drifts excessively (> configurable threshold) from `ingestedUtc` to mitigate replay.
 
 ## Open Questions
 
--   Should we encode shard / partition hints in the envelope for future horizontal scaling?
--   Need a policy for redaction of sensitive player data before dead-letter storage.
+- Should we encode shard / partition hints in the envelope for future horizontal scaling?
+- Need a policy for redaction of sensitive player data before dead-letter storage.
 
 **Resolved (implemented in current code):**
 
--   ✅ Envelope structure — Now defined in Zod schema (`worldEventSchema.ts`)
--   ✅ Idempotency strategy — In-memory cache with TTL and FIFO eviction implemented
--   ✅ Error handling — Validation failures logged; placeholder for future dead-letter mode
--   ✅ Telemetry correlation — `correlationId` and `causationId` propagated through processing
+- ✅ Envelope structure — Now defined in Zod schema (`worldEventSchema.ts`)
+- ✅ Idempotency strategy — In-memory cache with TTL and FIFO eviction implemented
+- ✅ Error handling — Validation failures logged; placeholder for future dead-letter mode
+- ✅ Telemetry correlation — `correlationId` and `causationId` propagated through processing
 
 ## Queue Cutover Checklist (Direct Writes → Event Processing)
 
@@ -551,10 +551,10 @@ Success Criteria: Zero drift events (no mismatched mutations), latency impact ac
 
 **Root Causes**:
 
--   Client sending invalid envelope structure (missing required fields)
--   Type mismatch (e.g., string instead of UUID for `eventId`)
--   Invalid `actor.kind` value (must be `player|npc|system|ai`)
--   Malformed timestamp (not ISO 8601)
+- Client sending invalid envelope structure (missing required fields)
+- Type mismatch (e.g., string instead of UUID for `eventId`)
+- Invalid `actor.kind` value (must be `player|npc|system|ai`)
+- Malformed timestamp (not ISO 8601)
 
 **Diagnosis**:
 
@@ -578,9 +578,9 @@ npm run query:deadletters -- --start "2025-10-31T00:00:00Z" --end "2025-10-31T23
 
 **Root Causes**:
 
--   Service Bus message encoding issue
--   Truncated message body
--   Non-JSON payload (binary data, plain text)
+- Service Bus message encoding issue
+- Truncated message body
+- Non-JSON payload (binary data, plain text)
 
 **Diagnosis**:
 
@@ -607,9 +607,9 @@ customEvents
 
 **Root Causes**:
 
--   TTL too short for actual retry delays
--   Cache size limit exceeded (FIFO eviction removing recent entries)
--   Idempotency key not deterministic (includes millisecond timestamps or random values)
+- TTL too short for actual retry delays
+- Cache size limit exceeded (FIFO eviction removing recent entries)
+- Idempotency key not deterministic (includes millisecond timestamps or random values)
 
 **Diagnosis**:
 
@@ -637,9 +637,9 @@ customEvents
 
 **Root Causes**:
 
--   Service Bus queue depth buildup (backpressure)
--   Cosmos DB throttling (429 errors) during processing
--   Processor hanging on external calls (graph mutations, AI APIs)
+- Service Bus queue depth buildup (backpressure)
+- Cosmos DB throttling (429 errors) during processing
+- Processor hanging on external calls (graph mutations, AI APIs)
 
 **Diagnosis**:
 
@@ -667,9 +667,9 @@ customEvents
 
 **Root Causes**:
 
--   Client retry logic bug (exponential backoff not working)
--   Service Bus duplicate detection disabled or misconfigured
--   Multiple clients with same `idempotencyKey` generation logic
+- Client retry logic bug (exponential backoff not working)
+- Service Bus duplicate detection disabled or misconfigured
+- Multiple clients with same `idempotencyKey` generation logic
 
 **Diagnosis**:
 
@@ -698,9 +698,9 @@ customEvents
 
 **Root Causes**:
 
--   Application Insights sampling too aggressive (>85%)
--   Telemetry initialization failure (connection string invalid)
--   Function app cold start with telemetry buffer not flushed
+- Application Insights sampling too aggressive (>85%)
+- Telemetry initialization failure (connection string invalid)
+- Function app cold start with telemetry buffer not flushed
 
 **Diagnosis**:
 
@@ -734,10 +734,10 @@ When event processing slows down:
 
 **Escalation Criteria**:
 
--   P95 latency >10 seconds
--   Error rate >5% sustained for 10 minutes
--   Queue depth >1,000 messages growing
--   RU throttling (429 errors) >10 per minute
+- P95 latency >10 seconds
+- Error rate >5% sustained for 10 minutes
+- Queue depth >1,000 messages growing
+- RU throttling (429 errors) >10 per minute
 
 ## Code Examples
 
@@ -812,10 +812,10 @@ export async function playerItemPickup(request: HttpRequest, context: Invocation
 
 **Key Points**:
 
--   Idempotency key includes time bucket to allow retries within same minute
--   `correlationId` propagates from HTTP request for tracing
--   Event sent to Service Bus immediately; HTTP returns 202 Accepted
--   Processor handles actual inventory update asynchronously
+- Idempotency key includes time bucket to allow retries within same minute
+- `correlationId` propagates from HTTP request for tracing
+- Event sent to Service Bus immediately; HTTP returns 202 Accepted
+- Processor handles actual inventory update asynchronously
 
 ---
 
@@ -938,10 +938,10 @@ export async function handlePlayerItemPickup(event: WorldEventEnvelope, context:
 
 **Key Points**:
 
--   Main processor delegates to type-specific handler
--   Handler has access to full event envelope + context
--   Failures propagate to main processor for Service Bus retry logic
--   Telemetry for handler-specific failures
+- Main processor delegates to type-specific handler
+- Handler has access to full event envelope + context
+- Failures propagate to main processor for Service Bus retry logic
+- Telemetry for handler-specific failures
 
 ---
 
@@ -1018,20 +1018,20 @@ customEvents
 
 **Key Points**:
 
--   `causationId` links derived event to parent's `eventId`
--   `correlationId` preserved across all events in causal chain
--   Enables causality analysis and debugging event cascades
+- `causationId` links derived event to parent's `eventId`
+- `correlationId` preserved across all events in causal chain
+- Enables causality analysis and debugging event cascades
 
 ## Related Documentation
 
--   [Event Classification Matrix](./event-classification-matrix.md) – **DECISION TREE: Which player actions enqueue async world events vs return immediately**
--   [Architecture Overview](./overview.md) – High-level architecture context and implementation mapping
--   [Agentic AI & Model Context Protocol](./agentic-ai-and-mcp.md) – AI integration using MCP tooling with world events
--   [M0 Closure Summary](../milestones/M0-closure-summary.md) – M0 Foundation milestone completion (world event infrastructure)
--   [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
--   [Observability](../observability.md) – Telemetry framework and event tracking
--   [Dead-Letter Storage](../dead-letter-storage.md) – DLQ operations, redaction, and monitoring
+- [Event Classification Matrix](./event-classification-matrix.md) – **DECISION TREE: Which player actions enqueue async world events vs return immediately**
+- [Architecture Overview](./overview.md) – High-level architecture context and implementation mapping
+- [Agentic AI & Model Context Protocol](./agentic-ai-and-mcp.md) – AI integration using MCP tooling with world events
+- [M0 Closure Summary](../milestones/M0-closure-summary.md) – M0 Foundation milestone completion (world event infrastructure)
+- [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
+- [Observability](../observability.md) – Telemetry framework and event tracking
+- [Dead-Letter Storage](../dead-letter-storage.md) – DLQ operations, redaction, and monitoring
 
 ---
 

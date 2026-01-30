@@ -2,6 +2,8 @@
 
 Consolidated gameplay mechanics and experiential rules that translate Vision + Tenets into concrete, implementable systems. These modules capture the "what" and "why" of game features before technical architecture defines the "how."
 
+> Note on file layout: Design Module documents now live **in this folder** (`docs/design-modules/`). Supporting “immutable semantics” and philosophical summaries live under `../concept/`.
+
 ---
 
 ## Purpose
@@ -28,7 +30,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Stable GUID identifiers for all entities
 - Deterministic world state (no hidden randomness)
 
-**Document**: `../modules/world-rules-and-lore.md`
+**Document**: `world-rules-and-lore.md`
 
 **Depends On**: Exits concept (`../concept/exits.md`), Direction normalization (`../concept/direction-resolution-rules.md`)
 
@@ -45,7 +47,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Movement validation (player-location-exit triad)
 - Telemetry events: `Navigation.Move.Success`, `Navigation.Move.Blocked`, `Navigation.Look.Issued`
 
-**Document**: `../modules/navigation-and-traversal.md`
+**Document**: `navigation-and-traversal.md`
 
 **Depends On**: Exit invariants, Direction normalizer, Player-location edge model
 
@@ -62,7 +64,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Role attributes (future: faction affiliation, reputation)
 - Player-location tracking (edge-based model per ADR)
 
-**Document**: `../modules/player-identity-and-roles.md`
+**Document**: `player-identity-and-roles.md`
 
 **Depends On**: Authentication (Azure AD Easy Auth), Player bootstrap flow
 
@@ -79,9 +81,9 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Ambient layers (AI-generated micro-lore) validated before persistence
 - Provenance tracking (prompt hash + validator decision) for all AI layers
 
-**Document**: `../modules/description-layering-and-variation.md`
+**Document**: `description-layering-and-variation.md`
 
-**Depends On**: Narrative governance (`../concept/narration-governance.md`), AI integration strategy (Tenets #7)
+**Depends On**: Narration governance (`narration-governance.md`), AI integration strategy (Tenets #7)
 
 ---
 
@@ -97,7 +99,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Dialogue options validated against player context (location, inventory, faction)
 - Event-driven quest progression (no polling)
 
-**Document**: `../modules/quest-and-dialogue-trees.md`
+**Document**: `quest-and-dialogue-trees.md`
 
 **Depends On**: Event emission, Player state, Faction module
 
@@ -115,7 +117,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Trade actions validated against inventory and location
 - Anti-exploit heuristics (rate limiting, value sanity checks)
 
-**Document**: `../modules/economy-and-trade-systems.md`
+**Document**: `economy-and-trade-systems.md`
 
 **Depends On**: Inventory model, NPC tick skeleton, Faction reputation
 
@@ -133,7 +135,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Faction-specific description layers (additive, conditional)
 - Group actions (cooperative dungeon scaling, faction quests)
 
-**Document**: `../modules/factions-and-governance.md`
+**Document**: `factions-and-governance.md`
 
 **Depends On**: Player roles, Description layering, Quest system
 
@@ -150,7 +152,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Advisory AI (read-only) before mutation AI (write proposals)
 - Classification taxonomy: ambient, structural, ephemeral, flavor
 
-**Document**: `../modules/ai-prompt-engineering.md`
+**Document**: `ai-prompt-engineering.md`
 
 **Depends On**: Narrative governance, Telemetry (AI cost tracking), MCP read-only servers (M3)
 
@@ -167,7 +169,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Ambiguity resolved playfully (never punitive)
 - Ephemeral narration does not override canonical base prose
 
-**Document**: `../concept/dungeon-master-style-guide.md`, `../modules/narration-governance.md`
+**Document**: `../concept/dungeon-master-style-guide.md`, `../concept/narration-governance.md`
 
 **Depends On**: AI Prompt Engineering, Description Layering
 
@@ -192,7 +194,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 - Seasonal/dynamic variations handled via world state overlays (not description rewrites)
 - Batch size ≤20 locations per AI call (cost optimization)
 
-**Document**: `../modules/world-spatial-generation.md`
+**Document**: `world-spatial-generation.md`
 
 **Depends On**: Navigation & Traversal, Description Layering, AI Prompt Engineering, World Event Handlers (ExitCreateHandler)
 
@@ -225,7 +227,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
-### 11. World Time & Temporal Reconciliation Framework
+### 12. World Time & Temporal Reconciliation Framework
 
 **Focus**: Coherent, persistent time simulation balancing narrative richness with multiplayer playability
 
@@ -262,15 +264,15 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 4. Location query at bridge: WC=64 shows Fred returns, Barney either waiting (PC auto-advanced) or moved on
 5. Narrative output: "Hours pass… Fred rides back" (Barney's view); "After your overnight stay, you return" (Fred's view)
 
-**Status**: Planned (M5+)
+**Status**: Partially implemented (see `docs/roadmap.md` → M3c)
 
-**Document**: `../modules/world-time-temporal-reconciliation.md` (to be created)
+**Document**: `world-time-temporal-reconciliation.md`
 
 **Depends On**: World Events, Player State, Location Model, Narrative Voice Guidelines
 
 ---
 
-### 12. World Structure (Realms & Zones)
+### 13. World Structure (Realms & Zones)
 
 **Focus**: Coherent spatial and conceptual grouping of locations into realms for narrative context and regional behaviors (e.g., weather).
 
@@ -286,7 +288,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
-### 13. Character-Driven Roleplaying
+### 14. Character-Driven Roleplaying
 
 **Focus**: Narrative capability assessment without universal skill mechanics
 
@@ -369,20 +371,20 @@ Vision & Tenets
 
 ## Milestone Alignment
 
-| Module                               | Primary Milestone | Status                        |
-| ------------------------------------ | ----------------- | ----------------------------- |
-| World Rules & Lore                   | M0–M1             | ✅ Foundation established     |
-| Navigation & Traversal               | M1                | ✅ Core loop implemented      |
-| Player Identity & Roles              | M0–M1             | ✅ Bootstrap complete         |
-| Description Layering                 | M4                | 🚧 Planned                    |
-| AI Prompt Engineering                | M3–M4             | 🚧 Read-only (M3), Write (M4) |
-| Narrative Voice Guidelines           | M3–M4             | 🚧 Concurrent with AI         |
-| World Spatial Generation             | M4                | 📋 Planned                    |
-| Character-Driven Roleplaying         | M5+               | 📋 Philosophy documented      |
-| Quest & Dialogue Trees               | M5+               | 📋 Deferred                   |
-| Economy & Trade                      | M5+               | 📋 Deferred                   |
-| Factions & Governance                | M5+               | 📋 Deferred                   |
-| World Time & Temporal Reconciliation | M5+               | 📋 Deferred                   |
+| Module                               | Primary Milestone | Status                     |
+| ------------------------------------ | ----------------- | -------------------------- |
+| World Rules & Lore                   | M0–M1             | ✅ Foundation established  |
+| Navigation & Traversal               | M1                | ✅ Core loop implemented   |
+| Player Identity & Roles              | M0–M1             | ✅ Bootstrap complete      |
+| Description Layering                 | M5                | 🚧 Planned                 |
+| AI Prompt Engineering                | M4                | 🚧 Implemented foundations |
+| Narrative Voice Guidelines           | M4                | 🚧 In progress             |
+| World Spatial Generation             | M4                | 📋 Planned                 |
+| Character-Driven Roleplaying         | M5+               | 📋 Philosophy documented   |
+| Quest & Dialogue Trees               | M5+               | 📋 Deferred                |
+| Economy & Trade                      | M5+               | 📋 Deferred                |
+| Factions & Governance                | M5+               | 📋 Deferred                |
+| World Time & Temporal Reconciliation | M3c               | 🚧 Partially implemented   |
 
 ---
 
@@ -396,7 +398,7 @@ Vision & Tenets
 
 ### For Designers:
 
-- **Defining a new system?** Create a new module document under `../modules/` following the template below.
+- **Defining a new system?** Create a new module document in this folder (`docs/design-modules/`) following the template below.
 - **Updating an existing system?** Edit the module doc and cross-reference any affected ADRs or architecture docs.
 
 ### For AI Context (Copilot, MCP Agents):
@@ -493,4 +495,4 @@ All design modules must:
 
 ---
 
-_Last updated: 2025-11-07 (initial creation; consolidated gameplay mechanics from modules/ and concept/)_
+_Last updated: 2026-01-30 (modules consolidated under `docs/design-modules/`)_

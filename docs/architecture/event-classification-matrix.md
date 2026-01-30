@@ -526,7 +526,7 @@ customEvents
 - [World Event Contract](./world-event-contract.md) - Event envelope schema and queue processing
 - [MVP Azure Architecture](./mvp-azure-architecture.md) - Infrastructure overview
 - [Copilot operating guide](../../.github/copilot-instructions.md) - Workflow and cross-cutting constraints
-- [Intent Parser Design](../modules/player-interaction-and-intents.md) - AI command parsing (M4)
+- [Intent Parser Design](../design-modules/player-interaction-and-intents.md) - AI command parsing (M4)
 - ADR-002: Graph Partition Strategy - Dual persistence rationale
 - Issue #385: World Event Processing Infrastructure - Queue implementation epic
 - Issue #471: Intent Parser Phased Implementation - AI decision logic

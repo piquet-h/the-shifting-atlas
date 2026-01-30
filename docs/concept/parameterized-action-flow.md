@@ -1,6 +1,6 @@
 # Concept Facet: Parameterized Action Flow
 
-> FACET: CONCEPT · High-level invariant: player free-form commands map to structured state changes before narration. Technical schemas / telemetry live in `../modules/parameterized-action-flow.md`.
+> FACET: CONCEPT · High-level invariant: player free-form commands map to structured state changes before narration. Technical schemas / telemetry live in `../design-modules/parameterized-action-flow.md`.
 
 ## Essence
 
@@ -12,10 +12,10 @@ Turn raw player language into structured, replayable world evolution without rew
 
 ## Why It Matters
 
--   Prevents lore retcons (base description immutable).
--   Enables emergent combination (felled forest + dusk + mist = new mood) without bespoke scripts.
--   Creates audit trail (diffs > freeform text mutation) supporting replay & moderation.
--   Provides stable substrate for AI to suggest additive variation rather than overwrite canon.
+- Prevents lore retcons (base description immutable).
+- Enables emergent combination (felled forest + dusk + mist = new mood) without bespoke scripts.
+- Creates audit trail (diffs > freeform text mutation) supporting replay & moderation.
+- Provides stable substrate for AI to suggest additive variation rather than overwrite canon.
 
 ## Player Experience Patterns
 
@@ -28,16 +28,16 @@ Turn raw player language into structured, replayable world evolution without rew
 
 ## Boundaries
 
--   Never regenerate base description for routine change.
--   Structural edits require validated additive layers.
--   Failure (missing tool) yields narration only; no state mutation.
+- Never regenerate base description for routine change.
+- Structural edits require validated additive layers.
+- Failure (missing tool) yields narration only; no state mutation.
 
 ## Interaction With Other Concepts
 
--   **Layering:** Parameter diffs feed additive layer suggestions.
--   **Perception:** Transient flags widen descriptive lens without mutation.
--   **Entity Promotion:** Targets move from flavor to persistence post-parameter check.
--   **Narration Governance:** Ensures any AI-proposed snippet stays additive and bounded.
+- **Layering:** Parameter diffs feed additive layer suggestions.
+- **Perception:** Transient flags widen descriptive lens without mutation.
+- **Entity Promotion:** Targets move from flavor to persistence post-parameter check.
+- **Narration Governance:** Ensures any AI-proposed snippet stays additive and bounded.
 
 ## Risks (Conceptual)
 
@@ -49,9 +49,9 @@ Turn raw player language into structured, replayable world evolution without rew
 
 ## Success Signals
 
--   Players see consistent aftermath of actions across locations / sessions.
--   Minimal confusion when performing sensory vs mutating commands.
--   Audit reviewers can explain story progression from parameter timeline alone.
+- Players see consistent aftermath of actions across locations / sessions.
+- Minimal confusion when performing sensory vs mutating commands.
+- Audit reviewers can explain story progression from parameter timeline alone.
 
 ## Change Log
 

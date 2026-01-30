@@ -19,6 +19,7 @@ node scripts/seed-anchor-locations.mjs
 ```
 
 **What happens**:
+
 - Loads `backend/src/data/villageLocations.json`
 - Creates location vertices in memory store
 - Creates exit edges between locations
@@ -55,17 +56,18 @@ node scripts/seed-anchor-locations.mjs --data=custom-locations.json
 ```
 
 **Custom data format** (see `backend/src/data/villageLocations.json` for template):
+
 ```json
 [
-  {
-    "id": "location-guid-1",
-    "name": "Enchanted Forest",
-    "description": "A mystical woodland shrouded in mist.",
-    "exits": {
-      "north": "location-guid-2",
-      "east": "location-guid-3"
+    {
+        "id": "location-guid-1",
+        "name": "Enchanted Forest",
+        "description": "A mystical woodland shrouded in mist.",
+        "exits": {
+            "north": "location-guid-2",
+            "east": "location-guid-3"
+        }
     }
-  }
 ]
 ```
 
@@ -79,12 +81,12 @@ node scripts/seed-anchor-locations.mjs --help
 
 ## Command-Line Options
 
-| Option               | Description                                          | Default                                   |
-| -------------------- | ---------------------------------------------------- | ----------------------------------------- |
-| `--mode=memory`      | Use in-memory persistence (no Cosmos required)       | From `PERSISTENCE_MODE` env or `memory`   |
-| `--mode=cosmos`      | Use Cosmos DB persistence (requires env vars)        | -                                         |
-| `--data=path`        | Path to JSON data file (relative to project root)   | `backend/src/data/villageLocations.json`  |
-| `--help`, `-h`       | Show help message and exit                           | -                                         |
+| Option          | Description                                       | Default                                  |
+| --------------- | ------------------------------------------------- | ---------------------------------------- |
+| `--mode=memory` | Use in-memory persistence (no Cosmos required)    | From `PERSISTENCE_MODE` env or `memory`  |
+| `--mode=cosmos` | Use Cosmos DB persistence (requires env vars)     | -                                        |
+| `--data=path`   | Path to JSON data file (relative to project root) | `backend/src/data/villageLocations.json` |
+| `--help`, `-h`  | Show help message and exit                        | -                                        |
 
 ---
 
@@ -144,16 +146,17 @@ The seed script is safe to re-run:
 
 ```json
 {
-  "id": "unique-guid-or-slug",
-  "name": "Human-readable location name",
-  "description": "Base description (immutable prose)",
-  "exits": {
-    "direction": "target-location-id"
-  }
+    "id": "unique-guid-or-slug",
+    "name": "Human-readable location name",
+    "description": "Base description (immutable prose)",
+    "exits": {
+        "direction": "target-location-id"
+    }
 }
 ```
 
 **Valid directions**:
+
 - Cardinal: `north`, `south`, `east`, `west`
 - Vertical: `up`, `down`
 - Semantic: `in`, `out`
@@ -162,24 +165,24 @@ The seed script is safe to re-run:
 
 ```json
 [
-  {
-    "id": "village-square",
-    "name": "Village Square",
-    "description": "The heart of the village, bustling with activity.",
-    "exits": {
-      "north": "market-district",
-      "west": "town-hall"
+    {
+        "id": "village-square",
+        "name": "Village Square",
+        "description": "The heart of the village, bustling with activity.",
+        "exits": {
+            "north": "market-district",
+            "west": "town-hall"
+        }
+    },
+    {
+        "id": "market-district",
+        "name": "Market District",
+        "description": "Colorful stalls line the cobblestone streets.",
+        "exits": {
+            "south": "village-square",
+            "east": "blacksmith-workshop"
+        }
     }
-  },
-  {
-    "id": "market-district",
-    "name": "Market District",
-    "description": "Colorful stalls line the cobblestone streets.",
-    "exits": {
-      "south": "village-square",
-      "east": "blacksmith-workshop"
-    }
-  }
 ]
 ```
 
@@ -218,6 +221,7 @@ The seed script **does NOT automatically create reciprocal exits**. If you want 
 **Cause**: Missing dependencies in `backend/` or `shared/`
 
 **Fix**:
+
 ```bash
 cd shared && npm install
 cd ../backend && npm install
@@ -228,6 +232,7 @@ cd ../backend && npm install
 **Cause**: Invalid `COSMOS_GREMLIN_ENDPOINT` or network firewall
 
 **Fix**:
+
 - Verify endpoint URL (should start with `wss://`)
 - Check Azure Firewall rules (allow your IP or enable public access)
 - Test connectivity: `curl -I https://your-cosmos.documents.azure.com`
@@ -237,6 +242,7 @@ cd ../backend && npm install
 **Cause**: Location ID collision (rare if using GUIDs)
 
 **Fix**:
+
 - Ensure all location IDs are unique in data file
 - Clear Cosmos container and re-run seed
 
@@ -250,11 +256,11 @@ The seed script can be integrated into deployment pipelines:
 # .github/workflows/deploy.yml (example)
 - name: Seed production data
   env:
-    PERSISTENCE_MODE: cosmos
-    COSMOS_GREMLIN_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
-    # ... other secrets ...
+      PERSISTENCE_MODE: cosmos
+      COSMOS_GREMLIN_ENDPOINT: ${{ secrets.COSMOS_ENDPOINT }}
+      # ... other secrets ...
   run: |
-    node scripts/seed-anchor-locations.mjs --mode=cosmos
+      node scripts/seed-anchor-locations.mjs --mode=cosmos
 ```
 
 ---
@@ -268,13 +274,13 @@ The seed script can be integrated into deployment pipelines:
 
 ## Related Documentation
 
-| Topic                       | Document                                           |
-| --------------------------- | -------------------------------------------------- |
-| Seed Script Acceptance      | `../developer-workflow/seed-script-acceptance.md`  |
-| Exit Invariants             | `../concept/exits.md`                              |
-| Navigation Module           | `../modules/navigation-and-traversal.md`           |
-| Partition Strategy          | `../adr/ADR-002-graph-partition-strategy.md`       |
-| Local Dev Setup             | `../developer-workflow/local-dev-setup.md`         |
+| Topic                  | Document                                          |
+| ---------------------- | ------------------------------------------------- |
+| Seed Script Acceptance | `../developer-workflow/seed-script-acceptance.md` |
+| Exit Invariants        | `../concept/exits.md`                             |
+| Navigation Module      | `../design-modules/navigation-and-traversal.md`   |
+| Partition Strategy     | `../adr/ADR-002-graph-partition-strategy.md`      |
+| Local Dev Setup        | `../developer-workflow/local-dev-setup.md`        |
 
 ---
 

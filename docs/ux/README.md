@@ -85,7 +85,7 @@ Keep diagrams small & focused; split large journeys into linked sub‑flows.
 ## Linking Code & Gameplay Modules
 
 Reference source code by relative path with backticks (e.g., `frontend/src/components/Homepage.tsx`).
-Reference gameplay design modules in `docs/modules/` using bracket links: `[Navigation & Traversal](../modules/navigation-and-traversal.md)`.
+Reference gameplay design modules in `docs/design-modules/` using bracket links: `[Navigation & Traversal](../design-modules/navigation-and-traversal.md)`.
 
 ## Workflow for Adding a New Artifact
 
