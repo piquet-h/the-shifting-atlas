@@ -11,25 +11,36 @@
 > - **The Tool Surface (MCP)**: stable, owned by this repo
 > - **The Agent Runtime**: swappable (prototype: local website + backend runner; hosted options later)
 
-## Purpose
+## A. Agentic AI + MCP (domain-agnostic)
+
+This section defines the agent/tool boundary and the repository’s MCP surface area. It is intentionally domain-agnostic (not tied to D&D, Foundry, or any one runtime).
+
+### Terms (short, shared vocabulary)
+
+- **Agent**: a non-authoritative decision-maker that can query context (via tools) and propose outputs (narration and/or structured proposals).
+- **MCP server**: a tool host that exposes a versioned, callable tool catalog (contract surface) to an agent runtime.
+- **Trust boundary**: canonical state may be _read_ via tools, but canon may only be _mutated_ by deterministic code after validation.
+- **Read-only**: tools that return authoritative facts (world state, context, canonical lore) without mutation.
+- **Write-lite (propose-only)**: tools or endpoints that accept _proposals_; deterministic validators decide whether anything becomes canonical.
+
+### Purpose
 
 Establish a disciplined, tool-centric approach for integrating Large Language Models (LLMs) and agentic workflows into the existing Azure MMO stack (Static Web Apps, Azure Functions, Service Bus, Cosmos DB Gremlin, Application Insights) using the **Model Context Protocol (MCP)**. This avoids ad‑hoc prompt sprawl, enables safety & governance, and preserves deterministic world state.
 
-## Guiding Principles
+### Guiding Principles
 
 1. Advisory Before Authoritative – AI suggests; deterministic validators commit.
 2. Tool-First – Agents access the world only via MCP tool contracts (never ad‑hoc DB queries in prompts).
 3. Principle of Least Privilege – Each agent role gets a curated allow‑list of tools.
 4. Deterministic Core – Canonical world state mutations always flow through validated domain events.
-5. Narration-first (Non-simulation) – We do not attempt a complete world simulator. The system persists only the canonical facts needed to prevent drift, and uses narration to bridge ambiguity.
-6. Persistence Ratchet – Ephemeral narration may speculate; persisted facts do not. Once a proposal is accepted into storage it becomes canon for future turns (unless explicitly superseded by a validated retcon event).
-7. Observability & Versioning – Every AI decision is traceable (model + tool schema versions + prompt hash).
-8. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
-9. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
+5. Authority Boundary (Canonical vs Narration) – See **Section B** for the bounded-plausibility rules.
+6. Observability & Versioning – Every AI decision is traceable (model + tool schema versions + prompt hash).
+7. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
+8. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
 
 These principles are intended to implement `docs/tenets.md` (especially Security, Reliability, Performance Efficiency, and Narrative Consistency).
 
-### Launch posture (Prototype-first, runtime-agnostic)
+#### Launch posture (Prototype-first, runtime-agnostic)
 
 For rapid prototyping, do **not** start by committing to any hosted agent portal UI.
 
@@ -49,7 +60,7 @@ The backend remains the **sole authority** for:
 
 Agents (whatever runtime you use) are **proposal generators**: they suggest narration, layers, or structured changes; they never directly write authoritative state.
 
-#### Local runner = local website execution (recommended)
+##### Local runner = local website execution (recommended)
 
 For this repo, the most practical “local runner” is:
 
@@ -60,13 +71,13 @@ This keeps secrets out of the browser (Security tenet) while giving you a fast f
 
 See: `../developer-workflow/local-dev-setup.md`.
 
-#### Why this is the right “un-messy” foundation
+##### Why this is the right “un-messy” foundation
 
 - MCP is your owned contract surface.
 - Agent products (and their UI surface area) change quickly.
 - A local runner lets you keep gameplay iteration fast while you wait for a hosted option to stabilize.
 
-#### Optional future: hosted runtimes
+##### Optional future: hosted runtimes
 
 If/when Microsoft Foundry Agent Service tooling matches your needs in your tenant, you can swap the runner:
 
@@ -77,18 +88,11 @@ If/when Microsoft Foundry Agent Service tooling matches your needs in your tenan
 
 But this is optional and should not gate prototyping.
 
-### D&D 5e Integration: Tool-adapter architecture (runtime-agnostic)
+##### D&D 5e integration note
 
-Treat the D&D 5e SRD API as **an external data source**. The stable contract remains your tool surface:
+D&D 5e integration is a **domain specialization** of this architecture. To avoid re-explaining MCP fundamentals here, see **Section C** (and the design module `../design-modules/dnd5e-foundry-agent-architecture.md`).
 
-- **Option A (recommended for consistency)**: expose D&D reads as MCP tools (backend MCP server wraps `https://www.dnd5eapi.co/api/2014`).
-- **Option B (acceptable for prototypes)**: let the local website + backend runner call D&D directly as a “tool” (still keep the tool schema stable so you can migrate it behind MCP later).
-
-Either way: game-state reads/writes stay behind your backend boundaries.
-
-See [D&D 5e Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md) for the role topology and [MCP Tool Catalog](#mcp-tool-catalog-implemented-today) for what’s already implemented.
-
-### Mutation Admission Gates (Preview)
+#### Mutation Admission Gates (Preview)
 
 No mutating MCP server (e.g., `world-mutation-mcp`) is enabled until ALL gates below are implementable and enforced:
 
@@ -102,7 +106,7 @@ No mutating MCP server (e.g., `world-mutation-mcp`) is enabled until ALL gates b
 
 Failure Handling: First failing gate stops evaluation; proposal returns a structured rejection (no partial passes). Retrying identical input without environmental change is discouraged unless failure reason was transient (rate or infrastructure).
 
-## Layered Model
+### Layered Model
 
 | Layer               | Responsibility                             | Implementation Substrate                                                                    |
 | ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
@@ -114,7 +118,7 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 | Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                                                   |
 | Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                                                        |
 
-## AI & MCP Stages (High-Level)
+### AI & MCP Stages (High-Level)
 
 > **Naming alignment:** Unified roadmap (2025-11-23) uses **M3 Core Loop**, **M4 AI Read**, **M5 Quality & Depth**, **M6 Systems**. Legacy references to “M3 AI Read” in this doc map to **M4 AI Read**.
 
@@ -130,7 +134,7 @@ The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages alig
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
-## MCP Tool Catalog (Implemented Today)
+### MCP Tool Catalog (Implemented Today)
 
 This section is a client-facing catalog of the MCP tools currently registered in code under [`backend/src/mcp/`](../../backend/src/mcp/).
 
@@ -138,7 +142,7 @@ Source of truth: the Azure Functions registrations (`app.mcpTool(...)`) under `b
 
 Important implementation note: these Azure Functions MCP handlers currently return **JSON strings** (they call `JSON.stringify(...)`). MCP clients should treat the tool result as JSON.
 
-### WorldContext server (read-only, prompt-oriented context)
+#### WorldContext server (read-only, prompt-oriented context)
 
 Registered in [`backend/src/mcp/world-context/world-context.ts`](../../backend/src/mcp/world-context/world-context.ts).
 
@@ -159,7 +163,7 @@ Notes:
 - `get-spatial-context` clamps `depth` to 1–5 (default: 2).
 - `get-recent-events` clamps `limit` to 1–100 (default: 20).
 
-### Lore server (read-only, canonical facts)
+#### Lore server (read-only, canonical facts)
 
 Registered in [`backend/src/mcp/lore-memory/lore-memory.ts`](../../backend/src/mcp/lore-memory/lore-memory.ts).
 
@@ -172,7 +176,7 @@ Notes:
 
 - `Lore-searchLore` delegates to the configured `ILoreRepository`. In some environments this may return an empty array until semantic search is implemented.
 
-### Prompt templates (NOT an MCP server)
+#### Prompt templates (NOT an MCP server)
 
 Prompt templates and the canonical registry are implementation concerns and MUST NOT be exposed as MCP servers. Instead:
 
@@ -185,7 +189,7 @@ Suggested helpers / functions:
 - Current (seed): `shared/src/prompts/worldTemplates.ts` → `getWorldTemplate(key)`
 - Planned (registry): `getTemplate(name, version?)`, `listTemplates(tag?)`, `computePromptHash(template)`
 
-### Telemetry & Observability (NOT an MCP server)
+#### Telemetry & Observability (NOT an MCP server)
 
 Telemetry, metric emission, and Application Insights queries MUST be implemented in the backend / observability area rather than as MCP servers. Recommended placement:
 
@@ -202,7 +206,7 @@ Telemetry examples (implemented in shared/backend code, not MCP):
 - `trackAICall(purpose, model, tokens, latency, dims)` — helper used by backend functions
 - `GET /api/telemetry/ai-usage?since=...&eventType=...` — curated aggregate endpoint implemented by backend functions
 
-### Planned MCP servers (not implemented here)
+#### Planned MCP servers (not implemented here)
 
 This document intentionally avoids enumerating speculative tool catalogs that will drift.
 
@@ -216,7 +220,7 @@ High-level planned surfaces include:
 
 Track concrete scope and naming in `../roadmap.md` and the GitHub issues for the relevant milestone.
 
-## Advisory vs Authoritative Flow
+### Advisory vs Authoritative Flow
 
 1. Player or system event triggers AI task (e.g., "GenerateAmbience").
 2. **Agent** collects context solely via read-only tools.
@@ -224,11 +228,11 @@ Track concrete scope and naming in `../roadmap.md` and the GitHub issues for the
 4. **Validation Layer** executes (schema → safety → invariants → duplication check).
 5. If accepted: emits deterministic domain event (e.g., `AmbienceGenerated`).
 6. Event processor persists layer / record; telemetry recorded.
-7. If rejected: optionally reprompt (bounded attempts) or fallback to static content.
+7. If rejected: return a structured rejection (no partial writes).
 
-Note: in a narration-first game, a rejection should typically produce a **story-consistent fallback** (“you thought you saw…”) rather than blocking the player.
+Presentation guidance for “how to narrate rejections” is part of the **authority boundary** (see **Section B**), not the tool boundary.
 
-## Validation & Safety Gates
+### Validation & Safety Gates
 
 | Gate         | Source                 | Example Rule                                     |
 | ------------ | ---------------------- | ------------------------------------------------ |
@@ -238,7 +242,7 @@ Note: in a narration-first game, a rejection should typically produce a **story-
 | Duplicate    | similarity index       | Reuse hash → short-circuit, reuse prior text     |
 | Invariants   | domain validators      | No exit dir duplicates; faction reference exists |
 
-## Memory & Retrieval Strategy
+### Memory & Retrieval Strategy
 
 Memory Tiers:
 
@@ -249,7 +253,7 @@ Memory Tiers:
 
 Retrieval Pattern: Tools return _structured_ fact objects; agent composes minimal natural language only at the final step.
 
-## Token & Cost Controls
+### Token & Cost Controls
 
 Mechanisms:
 
@@ -258,7 +262,7 @@ Mechanisms:
 - Tool Call Budget: Hard cap (e.g., 6) per task to prevent runaway loops
 - Proposal De-Duplication: Content hash stored; identical resubmissions skipped
 
-## Observability & Telemetry
+### Observability & Telemetry
 
 Minimum metrics per AI invocation:
 
@@ -309,7 +313,7 @@ customEvents
 
 This section complements (does not duplicate) broader telemetry guidance in `observability.md`.
 
-## Multi-Agent (Future Pattern)
+### Multi-Agent (Future Pattern)
 
 Committee Example (Stage M6+):
 
@@ -318,7 +322,7 @@ Committee Example (Stage M6+):
 3. SafetyAgent (tools: classification) final moderation.
 4. Aggregator applies tie-break rules (e.g., shortest valid arc) then emits proposal.
 
-## Directory & Code Placement (Planned)
+### Directory & Code Placement (Planned)
 
 | Concern                     | Location                               |
 | --------------------------- | -------------------------------------- |
@@ -329,7 +333,7 @@ Committee Example (Stage M6+):
 | Prompt templates            | `shared/src/prompts/` (hash persisted) |
 | Telemetry utils             | `shared/src/telemetry.ts` (extended)   |
 
-## Risks & Mitigations (Condensed)
+### Risks & Mitigations (Condensed)
 
 | Risk                                  | Mitigation                                                         |
 | ------------------------------------- | ------------------------------------------------------------------ |
@@ -339,11 +343,11 @@ Committee Example (Stage M6+):
 | Prompt drift                          | Versioned template registry + regression fixtures                  |
 | Safety regression                     | Centralize moderation in classification-mcp; monitor flagged ratio |
 
-## Client Guide (Tool Authors)
+### Client Guide (Tool Authors)
 
 This is the minimal, practical guide for tool authors (VS Code extensions, Teams bots, agent runners) to consume the current MCP surface.
 
-### What you call (names)
+#### What you call (names)
 
 Each MCP tool has:
 
@@ -352,11 +356,11 @@ Each MCP tool has:
 
 When in doubt: treat the **toolName** as the stable client contract, and treat the Tool ID as an implementation detail.
 
-### Example tool calls
+#### Example tool calls
 
 The following examples show the MCP `tools/call` request shape (tool name + JSON `arguments`).
 
-#### WorldContext: location context
+##### WorldContext: location context
 
 ```json
 {
@@ -368,7 +372,7 @@ The following examples show the MCP `tools/call` request shape (tool name + JSON
 }
 ```
 
-#### World: starter location (implicit default)
+##### World: starter location (implicit default)
 
 ```json
 {
@@ -377,7 +381,7 @@ The following examples show the MCP `tools/call` request shape (tool name + JSON
 }
 ```
 
-#### Lore: canonical fact
+##### Lore: canonical fact
 
 ```json
 {
@@ -388,7 +392,7 @@ The following examples show the MCP `tools/call` request shape (tool name + JSON
 }
 ```
 
-### Authentication & the external boundary (gateway-first)
+#### Authentication & the external boundary (gateway-first)
 
 There are two different caller types:
 
@@ -409,7 +413,7 @@ Boundary guardrails (explicit):
 - MCP tools are for **agent runtimes** (internal backend orchestrators, or external narrators) and must sit behind gateway auth.
 - Do not introduce per-tool API keys as the primary security model; use **Entra ID / APIM**.
 
-### Rate limits (current vs planned)
+#### Rate limits (current vs planned)
 
 Current implementation status:
 
@@ -423,7 +427,7 @@ Planned / default policy for **external narrative clients** (configurable; gatew
 
 Clients must handle HTTP 429 with `Retry-After` and should back off aggressively on repeated throttling.
 
-## Cross-References
+### Cross-References
 
 - `overview.md` – High-level architecture; this doc elaborates the AI layer.
 - `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
@@ -435,7 +439,7 @@ Clients must handle HTTP 429 with `Retry-After` and should back off aggressively
 
 _Initial version authored 2025-09-25 to establish AI/MCP integration contract._
 
-## Agent Roles Summary
+### Agent Roles Summary
 
 This project distinguishes concise, single-responsibility agents. Each agent is advisory by default; authoritative state changes require Validation & Policy gates.
 
@@ -474,7 +478,7 @@ This project distinguishes concise, single-responsibility agents. Each agent is 
 - Telemetry / Audit Agent
     - Role: Emit standardized telemetry for AI invocations and decision outcomes using `shared/src/telemetry.ts`.
 
-## MCP Contract Table (compact)
+### MCP Contract Table (compact)
 
 The table below lists the primary MCP servers / backend helpers with their purpose, representative methods, and short auth notes.
 
@@ -505,3 +509,96 @@ For external narrators, authentication and throttling MUST be enforced at the pl
 - Avoid bespoke per-tool API-key validation inside MCP handlers as the primary mechanism. If shared secrets are used at all, treat them as a compatibility mode and keep them behind a gateway.
 
 _Small guidance_: Keep prompt templates and prompt hashes in `shared/src/prompts/` and add new AI-specific telemetry event names in `shared/src/telemetryEvents.ts` before emission.
+
+## B. Authority Boundary: Canonical State vs Narrative Plausibility
+
+This section captures the nuance behind Tenet #7 (“Narrative Consistency”) without requiring perfect simulation.
+
+**Canonical state (authoritative)** is the set of persisted facts and invariants the system enforces (spatial topology, temporal rules, world rules, identities, inventory, positions). Canonical state is what must be consistent across players and replayable over time.
+
+**Narrative plausibility (bounded plausibility)** is downstream framing: narration may smooth ambiguity and compress complexity, but must not contradict canonical state or the rules that validate it.
+
+Bounded plausibility does not require perfect simulation; it requires that narration never claims an outcome that the canonical model (space, time, world rules) would reject.
+
+### Structural plausibility vs narrative ambiguity
+
+- **Structural plausibility**: the outcome must be compatible with enforced constraints (e.g., valid exits, reachable locations, time costs, physics-as-defined-by-world-rules).
+- **Narrative ambiguity**: how that outcome is described can vary (tone, sensory detail, implied causes), as long as it does not introduce new contradictory facts.
+
+In short: the system enforces constraints; narration “heals seams” around constraint-respecting outcomes.
+
+### What narration may and may not do
+
+- ✅ **May** explain _how_ a constraint-respecting outcome happened (“the wind forces you to crawl; progress is slow”).
+- ✅ **May** compress complexity (“after an hour of careful footing…”) when time costs and movement rules remain respected.
+- ✅ **May** resolve ambiguity (“you can’t tell if the roar is a dragon or the cliff’s echo”) when the underlying state is uncertain.
+- ❌ **May not** override constraints (“you fly to the cliff top”) when the canonical state/rules say you can’t.
+- ❌ **May not** introduce contradictory facts (“the bridge exists”) when canonical state says it does not.
+
+### Illustrative example (dragon + cliffs + wind)
+
+**Canonical constraints**:
+
+- The cliff has no valid exit “up”; it is not climbable by default.
+- A violent windstorm is active (a structural condition).
+- The dragon is present at the base of the cliff.
+
+**Allowed (constraint-respecting narration)**:
+
+> The wind screams along the cliff face, turning every handhold into a gamble. You retreat into a narrow fissure and edge sideways, inch by inch, until the dragon’s shadow passes below. You haven’t climbed the cliff—but you have found shelter and bought time.
+
+This narration compresses complexity and resolves ambiguity (“how do you avoid the dragon?”) without changing location or inventing an impossible path.
+
+**Not allowed (constraint-violating narration)**:
+
+> You leap and catch the wind, soaring to the cliff top as the dragon snaps futilely below.
+
+That would create a new fact (“you are now at the cliff top”) that contradicts the enforced topology (“no exit up”).
+
+### Proposal → Validate → Apply (safety gate)
+
+Agents may propose effects (“hide in fissure”, “wait for the dragon to pass”, “the storm knocks loose stones”), but deterministic validators decide what becomes canonical. Narration can be rich, but canon only changes when proposals pass validation and are applied/persisted.
+
+## C. D&D 5e integration (domain specialization)
+
+This section specializes the agent/tool boundary for D&D-flavored mechanics while keeping MCP fundamentals in **Section A**.
+
+### Separation of concerns: Mechanics Oracle vs Entity State Query
+
+- **Mechanics Oracle (read-only)**: provides rules lookup and structured mechanics reference (e.g., SRD spell/monster/equipment details). It does not know the current world.
+- **Entity State Query (authoritative, read-only)**: retrieves current canonical state (where entities are, what exits exist, what conditions are active, what time it is).
+
+They are separate because they answer different questions:
+
+- “What does _Fireball_ do in general?” → Mechanics Oracle.
+- “Can the player cast it here, now, and what does it affect?” → Entity State Query + deterministic validators.
+
+### Composition: DM narration consumes facts, not authority
+
+The DM narrator (agent) composes player-facing text from:
+
+1. **Authoritative facts** (Entity State Query)
+2. **Mechanics reference** (Mechanics Oracle)
+3. **Validated outcomes** (Proposal → Validate → Apply)
+
+The narrator may _explain_ results, but does not _decide_ canon.
+
+### Read-only vs write-lite patterns for D&D
+
+- **Read-only**: SRD lookups (monsters/spells/items) and world state queries.
+- **Write-lite**: proposed combat outcomes, condition applications, or entity spawns must be validated (schema/safety/invariants) before persistence.
+
+See also:
+
+- Design module: `../design-modules/dnd5e-foundry-agent-architecture.md`
+- Tenet #7 boundary: `../tenets.md#7-narrative-consistency`
+
+### Escalation and cost governance (brief)
+
+D&D-heavy turns can multiply tool calls (state + mechanics + narration). Keep governance simple:
+
+- Prefer structured retrieval over long prompt context.
+- Cap tool calls per turn/work item.
+- Cache mechanics reference (SRD) separately from world state (which is time-sensitive).
+
+For general cost controls and telemetry, link back to **Section A** (Token & Cost Controls, Observability & Telemetry).

@@ -215,6 +215,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 - SRD 5.1 content only (no homebrew without explicit design approval)
 - All canonical writes go through backend validation (agents propose, backend commits)
+- Narration must remain within bounded plausibility (Tenet #7): [Narrative Consistency](../tenets.md#7-narrative-consistency)
 - D&D mechanics inform narrative; deterministic state overrides simulation speculation
 - Combat/spell effects must emit telemetry with correlation IDs
 

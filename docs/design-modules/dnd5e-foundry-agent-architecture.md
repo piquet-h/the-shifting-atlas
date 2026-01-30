@@ -148,7 +148,7 @@ Player: "I use my sailor background to read these nautical charts"
 
 ## Design rules & boundaries
 
-This module follows `docs/tenets.md` (Narrative Consistency + Reliability + Security):
+This module follows `docs/tenets.md` (especially [Tenet #7: Narrative Consistency](../tenets.md#7-narrative-consistency) and its bounded plausibility boundary).
 
 - **SRD reference is advisory**: D&D SRD data informs adjudication, but canonical world state is still Shifting Atlas state.
 - **Read-only vs stateful split**:
@@ -157,6 +157,8 @@ This module follows `docs/tenets.md` (Narrative Consistency + Reliability + Secu
 - **No browser secrets**: local website UX must not embed model credentials in client-side code.
 
 Technical details (tool names, schemas, and the live MCP catalog) are maintained in `../architecture/agentic-ai-and-mcp.md`.
+
+For the D&D-specific specialization layer, see: [Agentic AI & MCP (Section C)](../architecture/agentic-ai-and-mcp.md#c-dd-5e-integration-domain-specialization).
 
 ## See also
 

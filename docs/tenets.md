@@ -114,9 +114,7 @@ The Well-Architected Framework provides five pillars (Reliability, Security, Cos
 
 **Extended Tenet**: Domain-specific principle for AI-orchestrated storytelling.
 
-**Principle**: AI acts as the Dungeon Master voice. Deterministic code captures authoritative world state for repeatable play. AI narration creates immersion and contextual framing, but must not violate established spatial, temporal, or world‑rule constraints.
-
-Narration may resolve ambiguity and compress complexity, but may not cause something to be true if it contradicts canonical state.
+**Principle**: Deterministic code captures authoritative world state for repeatable play. AI creates immersion and contextual framing within bounded plausibility: it must not violate spatial, temporal, or world-rule constraints. Narration may resolve ambiguity and compress complexity, but may not introduce facts that contradict canonical state.
 
 **Application**:
 
