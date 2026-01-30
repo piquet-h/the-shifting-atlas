@@ -39,6 +39,10 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 - `layer-overlap-policy.md` — rules for combining layers without contradiction.
 - `hero-prose-layer-convention.md` — conventions for “hero prose” and narrative layers.
 - `integrity-hash-system.md` — integrity hash computation and anomaly handling.
+- `narration-governance.md` — validator pipeline mechanics and bounded creativity enforcement.
+- `parameterized-action-flow.md` — execution spec for intent → parameter diff → narration composition.
+- `perception-actions.md` — execution spec for non-mutating sensory actions and transient flags.
+- `scene-synthesiser.md` — post-composition optional scene enrichment (latency/caching contract).
 
 ## Workbooks, dashboards, and operational analytics
 

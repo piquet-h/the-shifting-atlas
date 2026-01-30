@@ -1,6 +1,6 @@
 # Concept Facet: Parameterized Action Flow
 
-> FACET: CONCEPT · High-level invariant: player free-form commands map to structured state changes before narration. Technical schemas / telemetry live in `../design-modules/parameterized-action-flow.md`.
+> FACET: CONCEPT · High-level invariant: player free-form commands map to structured state changes before narration. Technical schemas / telemetry live in `../architecture/parameterized-action-flow.md`.
 
 ## Essence
 

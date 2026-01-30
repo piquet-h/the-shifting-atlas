@@ -1,6 +1,6 @@
 # Concept Facet: Perception & Sensory Actions
 
-> FACET: CONCEPT · Runtime detail (transient flags, telemetry) lives in `../design-modules/perception-actions.md`.
+> FACET: CONCEPT · Runtime detail (transient flags, telemetry) lives in `../architecture/perception-actions.md`.
 
 ## Essence
 

@@ -3,9 +3,9 @@
 > FACET: ARCHITECTURE / EXECUTION
 > Concept summary: `../concept/parameterized-action-flow.md`. This specification focuses on pipeline mechanics, data surfaces, validation, and telemetry. Narrative tone & high-level philosophy intentionally excluded here to avoid facet leakage.
 
-> STATUS: INTRODUCTORY SPEC (2025-10-31). Establishes the core three‑step loop converting free‑form player commands into consistent world state updates and layered narration. Implementation sequencing aligns with Intent Parsing → Promotion MVP → Layering Validators.
+> STATUS: INTRODUCTORY SPEC (2025-10-31). Establishes the core three‑step loop converting free‑form player commands into consistent world state updates and layered narration.
 >
-> Related: `player-interaction-and-intents.md` · `description-layering-and-variation.md` · `entity-promotion.md` · `perception-actions.md` · `narration-governance.md`
+> Related: `../design-modules/player-interaction-and-intents.md` · `../design-modules/description-layering-and-variation.md` · `../design-modules/entity-promotion.md` · `perception-actions.md` · `narration-governance.md`
 
 ## Summary (Scope Clarification)
 
@@ -49,7 +49,7 @@ interface PlayerParameters {
 }
 ```
 
-Parameters may reside in Cosmos (document API) alongside layering metadata (see `description-layering-and-variation.md`). Transient flags (`listening`, `scanningWildlife`) clear automatically after one or more descriptive cycles.
+Parameters may reside in Cosmos (document API) alongside layering metadata (see `../design-modules/description-layering-and-variation.md`). Transient flags (`listening`, `scanningWildlife`) clear automatically after one or more descriptive cycles.
 
 ## Action Classification (Implementation-Oriented)
 
@@ -68,19 +68,19 @@ Command: "Chop down all the trees"
 
 Interpret Intent:
 
--   verb = `chop`
--   target = `trees`
--   scope = `all`
+- verb = `chop`
+- target = `trees`
+- scope = `all`
 
 Prerequisite Check:
 
--   tool required: `axe` present? If absent → failure narrative; **no parameter mutation**.
+- tool required: `axe` present? If absent → failure narrative; **no parameter mutation**.
 
 Parameter Update (success):
 
--   `forestDensity = 0`
--   `wildlifePresence` trimmed (push fleeing transient sensory: `rustling_departure`)
--   Add structural layer snippet candidate: "Stumps dot the clearing." (validator gates persistence).
+- `forestDensity = 0`
+- `wildlifePresence` trimmed (push fleeing transient sensory: `rustling_departure`)
+- Add structural layer snippet candidate: "Stumps dot the clearing." (validator gates persistence).
 
 Generated Description (abbreviated):
 
@@ -90,38 +90,38 @@ Generated Description (abbreviated):
 
 Command: "Chop down all the trees" (no axe)
 
--   Failure narrative: "You claw at bark with bare hands; the trees remain unmoved. Without an axe this task is impossible."
--   Parameters unchanged.
+- Failure narrative: "You claw at bark with bare hands; the trees remain unmoved. Without an axe this task is impossible."
+- Parameters unchanged.
 
 ## Perception Example
 
 Command: "Stay very quiet and listen"
 
--   Set `player.listening = true` (transient)
--   Renderer adds layered auditory cues (dripping mist, distant creak) without mutating location parameters.
--   Clear listening flag after render.
+- Set `player.listening = true` (transient)
+- Renderer adds layered auditory cues (dripping mist, distant creak) without mutating location parameters.
+- Clear listening flag after render.
 
 ## Wildlife Scan Example
 
 Command: "Look for wildlife"
 
--   Set `player.scanningWildlife = true`
--   Gather candidate entities: existing promoted + latent pattern matches (e.g. `owl`, `deer` inferred from biome tags).
--   Promote only on direct targeting later (e.g. "Shoot the owl").
+- Set `player.scanningWildlife = true`
+- Gather candidate entities: existing promoted + latent pattern matches (e.g. `owl`, `deer` inferred from biome tags).
+- Promote only on direct targeting later (e.g. "Shoot the owl").
 
 ## Promotion Integration
 
-Promotion occurs **after** intent interpretation but before parameter mutation for the resolving verb. If a target entity does not exist yet and matches latent description nouns, see `entity-promotion.md` for creation logic.
+Promotion occurs **after** intent interpretation but before parameter mutation for the resolving verb. If a target entity does not exist yet and matches latent description nouns, see `../design-modules/entity-promotion.md` for creation logic.
 
 ## Deterministic Rendering Contract
 
 Renderer consumes:
 
--   Base description (immutable).
--   Ordered layer list (validated snippets).
--   LocationParameters snapshot.
--   Player transient flags.
--   Promoted entity states.
+- Base description (immutable).
+- Ordered layer list (validated snippets).
+- LocationParameters snapshot.
+- Player transient flags.
+- Promoted entity states.
 
 No direct randomization; variability is driven by parameter changes and time progression. Controlled stochastic variation (e.g. choosing 1 of 3 owl reaction phrasings) allowed if seeded by deterministic hash (`locationId + tick + entityId`).
 
@@ -140,10 +140,10 @@ See `narration-governance.md` for controlled hallucination classification and va
 
 ## Telemetry (Illustrative)
 
--   `Action.Intent.Parsed` – verb, targets, scope, token count
--   `Action.Parameters.Updated` – diff set (forestDensity:1→0)
--   `Action.Parameters.Rejected` – reason (missing_tool)
--   `Action.Render.Cycle` – included layers count + transient flags
+- `Action.Intent.Parsed` – verb, targets, scope, token count
+- `Action.Parameters.Updated` – diff set (forestDensity:1→0)
+- `Action.Parameters.Rejected` – reason (missing_tool)
+- `Action.Render.Cycle` – included layers count + transient flags
 
 Events must use centralized enumeration (no inline strings).
 

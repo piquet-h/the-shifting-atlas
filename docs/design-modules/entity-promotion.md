@@ -10,22 +10,22 @@ Players frequently reference details that originate solely in descriptive text (
 
 Core goals:
 
--   Freedom: Act on any described detail without prior authoring.
--   Continuity: Once promoted, the entity persists with an ID and mutable state.
--   Auditability: Promotion decision and source description recorded for replay/analysis.
--   Restraint: Minimal initial model (avoid premature deep stats / faction linkage).
+- Freedom: Act on any described detail without prior authoring.
+- Continuity: Once promoted, the entity persists with an ID and mutable state.
+- Auditability: Promotion decision and source description recorded for replay/analysis.
+- Restraint: Minimal initial model (avoid premature deep stats / faction linkage).
 
 ### DM Persona Alignment (2025-10-31)
 
 The humorous DM parser narrows initial promotion scope:
 
--   **Trigger verbs (Phase MVP):** `take | grab | pick | attack | throw | examine` only.
--   **Promotion attempt timing:** After ActionFrame assembly if the frame's direct target fails resolution against existing entities.
--   **Ambiguity handling:** If multiple noun candidates found, 50% humorous misfire (narrative joke), 50% clarification prompt (future EP-3). No AI alias expansion in MVP.
--   **Traits (deferred):** Omit trait inference until EP-2; store empty `traits: []`.
--   **Confidence logic:** Deterministic heuristic only (exact noun match). If absent → no promotion (humorous narration allowed: "You gesture at something that isn't quite there.").
--   **Telemetry (minimal):** `Entity.Promotion.Created` and `Entity.Promotion.Rejected` (reason) with correlation ID from parser; other events deferred.
--   **Out of scope now:** Semantic alias derivation, AI-assisted trait enrichment, inferred secondary entities.
+- **Trigger verbs (Phase MVP):** `take | grab | pick | attack | throw | examine` only.
+- **Promotion attempt timing:** After ActionFrame assembly if the frame's direct target fails resolution against existing entities.
+- **Ambiguity handling:** If multiple noun candidates found, 50% humorous misfire (narrative joke), 50% clarification prompt (future EP-3). No AI alias expansion in MVP.
+- **Traits (deferred):** Omit trait inference until EP-2; store empty `traits: []`.
+- **Confidence logic:** Deterministic heuristic only (exact noun match). If absent → no promotion (humorous narration allowed: "You gesture at something that isn't quite there.").
+- **Telemetry (minimal):** `Entity.Promotion.Created` and `Entity.Promotion.Rejected` (reason) with correlation ID from parser; other events deferred.
+- **Out of scope now:** Semantic alias derivation, AI-assisted trait enrichment, inferred secondary entities.
 
 This alignment prevents overbuilding before core playful parsing is validated and keeps failure states entertaining rather than blocking.
 
@@ -154,7 +154,7 @@ interface NpcEntity extends Entity {
 | `Entity.Promotion.NpcCreated` | NPC promoted; inventory latent count logged |
 | `Entity.Promotion.ItemLinked` | Item promoted from NPC latent inventory     |
 
-Cross‑Link: See `parameterized-action-flow.md` for how promotion integrates after intent interpretation, and `narration-governance.md` for rules ensuring humorous fallback when promotion is rejected.
+Cross‑Link: See `../architecture/parameterized-action-flow.md` for how promotion integrates after intent interpretation, and `../architecture/narration-governance.md` for rules ensuring humorous fallback when promotion is rejected.
 
 ## Narrative & Action Resolution
 
@@ -186,10 +186,10 @@ Player: Shoot the owl with my bow and arrow
 
 Additions (names illustrative; actual constants added via shared telemetry enumeration before use):
 
--   `Entity.Promotion.Requested` (targetSurface, hasExisting, sceneHash)
--   `Entity.Promotion.Created` (entityType, traitsCount)
--   `Entity.Promotion.Rejected` (reason)
--   `Entity.Action.Resolved` (verb, outcome)
+- `Entity.Promotion.Requested` (targetSurface, hasExisting, sceneHash)
+- `Entity.Promotion.Created` (entityType, traitsCount)
+- `Entity.Promotion.Rejected` (reason)
+- `Entity.Action.Resolved` (verb, outcome)
 
 Emission MUST use `trackGameEventStrict`; no inline ad‑hoc strings. Correlate promotion and subsequent action using the same trace / intent correlation ID.
 
@@ -247,10 +247,10 @@ Emission MUST use `trackGameEventStrict`; no inline ad‑hoc strings. Correlate 
 
 ## See Also
 
--   `player-interaction-and-intents.md` – intent parsing phases feeding promotion.
--   `description-layering-and-variation.md` – immutable vs additive layers used for provenance.
--   `ai-prompt-engineering.md` – future enrichment pipeline.
--   `navigation-and-traversal.md` – spatial context for entity location.
+- `player-interaction-and-intents.md` – intent parsing phases feeding promotion.
+- `description-layering-and-variation.md` – immutable vs additive layers used for provenance.
+- `ai-prompt-engineering.md` – future enrichment pipeline.
+- `navigation-and-traversal.md` – spatial context for entity location.
 
 ## Change Log
 

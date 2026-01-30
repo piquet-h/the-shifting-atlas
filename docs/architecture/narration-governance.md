@@ -5,16 +5,16 @@
 
 > STATUS: INTRODUCTORY SPEC (2025-10-31). Defines guardrails for AI‑driven Dungeon Master narration, layer validation, and bounded creative hallucination. Aligns with vision tenets (AI‑driven narration + immutable base prose) and success metrics (drift audit, rejection band).
 >
-> Related: `description-layering-and-variation.md` · `parameterized-action-flow.md` · `entity-promotion.md` · `dungeon-master-style-guide.md` · `perception-actions.md`
+> Related: `../design-modules/description-layering-and-variation.md` · `parameterized-action-flow.md` · `../design-modules/entity-promotion.md` · `../concept/dungeon-master-style-guide.md` · `perception-actions.md`
 
 ## Summary (Governance Mechanics Scope)
 
 AI acts as the primary narrator, but its creative output is **ephemeral** until validated. Governance ensures:
 
--   Canon stability (no base mutation)
--   Bounded creativity (ambient, flavor, hints only)
--   Deterministic replay (provenance hashes)
--   Low drift & controlled rejection rates
+- Canon stability (no base mutation)
+- Bounded creativity (ambient, flavor, hints only)
+- Deterministic replay (provenance hashes)
+- Low drift & controlled rejection rates
 
 ## Output Classifications
 
@@ -43,9 +43,9 @@ Only validated additive classes enter the layering repository. Ephemeral hints e
 
 Periodic process (batch or streaming):
 
--   Re-scan persisted layers vs canonical base
--   Verify no contradictory structural claims (e.g. "tower collapsed" without collapse event)
--   Mark anomalies (`drift=true`) and schedule review or auto-quarantine (hide layer until moderation)
+- Re-scan persisted layers vs canonical base
+- Verify no contradictory structural claims (e.g. "tower collapsed" without collapse event)
+- Mark anomalies (`drift=true`) and schedule review or auto-quarantine (hide layer until moderation)
 
 Success Metric: ≥95% layers pass audit; anomaly ratio ≤5% per sprint.
 

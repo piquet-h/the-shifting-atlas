@@ -5,7 +5,7 @@
 
 > STATUS: INTRODUCTORY SPEC (2025-10-31). Defines non‑mutating player actions that surface hidden or ambient context without altering canonical world parameters. Supports immersion and entity targeting preparation.
 >
-> Related: `parameterized-action-flow.md` · `description-layering-and-variation.md` · `entity-promotion.md` · `narration-governance.md` · `player-interaction-and-intents.md`
+> Related: `parameterized-action-flow.md` · `../design-modules/description-layering-and-variation.md` · `../design-modules/entity-promotion.md` · `narration-governance.md` · `../design-modules/player-interaction-and-intents.md`
 
 ## Summary (Architecture Scope)
 
@@ -58,7 +58,7 @@ Wildlife scan outputs descriptive mentions **without promotion**:
 
 > "A pair of deer move cautiously between stumps; an owl glides overhead."
 
-If player follows with targeting verb ("Shoot the owl"), promotion logic (see `entity-promotion.md`) runs.
+If player follows with targeting verb ("Shoot the owl"), promotion logic (see `../design-modules/entity-promotion.md`) runs.
 
 ## Validation Rules
 
@@ -72,9 +72,9 @@ If player follows with targeting verb ("Shoot the owl"), promotion logic (see `e
 
 ## Telemetry (Illustrative)
 
--   `Perception.Action.Invoked` – type (listen, scan), flags
--   `Perception.Fragments.Generated` – counts by category
--   `Perception.LatentMentioned` – list of surfaced latent nouns
+- `Perception.Action.Invoked` – type (listen, scan), flags
+- `Perception.Fragments.Generated` – counts by category
+- `Perception.LatentMentioned` – list of surfaced latent nouns
 
 Telemetry correlates with original intent ID for audit.
 

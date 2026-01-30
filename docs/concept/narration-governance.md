@@ -1,6 +1,6 @@
 # Concept Facet: Narration Governance & Bounded Creativity
 
-> FACET: CONCEPT · Detailed validator pipeline and telemetry live in `../design-modules/narration-governance.md`.
+> FACET: CONCEPT · Detailed validator pipeline and telemetry live in `../architecture/narration-governance.md`.
 
 ## Essence
 

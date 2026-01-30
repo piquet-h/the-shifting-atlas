@@ -83,7 +83,7 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 **Document**: `description-layering-and-variation.md`
 
-**Depends On**: Narration governance (`narration-governance.md`), AI integration strategy (Tenets #7)
+**Depends On**: Narration governance (`../concept/narration-governance.md`), AI integration strategy (Tenets #7)
 
 ---
 
