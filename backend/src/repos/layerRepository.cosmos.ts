@@ -15,6 +15,7 @@ import { CosmosDbSqlRepository } from './base/CosmosDbSqlRepository.js'
 import type { ICosmosDbSqlClient } from './base/cosmosDbSqlClient.js'
 import type { ILayerRepository } from './layerRepository.js'
 import type { IRealmRepository } from './realmRepository.js'
+import { buildFindActiveLayerQuerySpec, buildLayerHistoryQuerySpec } from './sqlQueries/layerQueries.js'
 
 /**
  * SQL API document schema for description layers
@@ -201,29 +202,8 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
     async queryLayerHistory(scopeId: string, layerType: LayerType, startTick?: number, endTick?: number): Promise<DescriptionLayer[]> {
         const startTime = Date.now()
 
-        let queryText = `
-            SELECT * FROM c 
-            WHERE c.scopeId = @scopeId 
-            AND c.layerType = @layerType
-        `
-        const parameters: Array<{ name: string; value: string | number }> = [
-            { name: '@scopeId', value: scopeId },
-            { name: '@layerType', value: layerType }
-        ]
-
-        if (startTick !== undefined) {
-            queryText += ' AND c.effectiveFromTick >= @startTick'
-            parameters.push({ name: '@startTick', value: startTick })
-        }
-
-        if (endTick !== undefined) {
-            queryText += ' AND (c.effectiveToTick IS NULL OR c.effectiveToTick <= @endTick)'
-            parameters.push({ name: '@endTick', value: endTick })
-        }
-
-        queryText += ' ORDER BY c.effectiveFromTick ASC'
-
-        const { items } = await this.query(queryText, parameters)
+        const { query, parameters } = buildLayerHistoryQuerySpec({ scopeId, layerType, startTick, endTick })
+        const { items } = await this.query(query, parameters)
 
         this._telemetry.trackGameEvent('Layer.QueryHistory', {
             scopeId,
@@ -252,26 +232,8 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             throw new Error(`Tick coercion failed: ${tick} -> ${numericTick}`)
         }
 
-        // Debug logging for production troubleshooting
-        console.log(`[findActiveLayer] scopeId=${scopeId}, layerType=${layerType}, tick=${tick} (type=${typeof tick}), numericTick=${numericTick} (type=${typeof numericTick})`)
-
-        const queryText = `
-            SELECT * FROM c 
-            WHERE c.scopeId = @scopeId 
-            AND c.layerType = @layerType
-            AND c.effectiveFromTick <= @tick
-            AND (c.effectiveToTick IS NULL OR c.effectiveToTick >= @tick)
-            ORDER BY c.authoredAt DESC
-        `
-        const parameters = [
-            { name: '@scopeId', value: scopeId },
-            { name: '@layerType', value: layerType },
-            { name: '@tick', value: numericTick }
-        ]
-
-        console.log(`[findActiveLayer] parameters=${JSON.stringify(parameters)}`)
-
-        const { items } = await this.query(queryText, parameters)
+        const { query, parameters } = buildFindActiveLayerQuerySpec({ scopeId, layerType, tick: numericTick })
+        const { items } = await this.query(query, parameters)
 
         // Return most recently authored active layer
         return items.length > 0 ? items[0] : null
