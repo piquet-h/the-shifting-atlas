@@ -246,6 +246,12 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             throw new Error(`Invalid tick parameter: ${tick}. Expected a finite number.`)
         }
 
+        // Ensure tick is explicitly a number (defensive against type coercion issues)
+        const numericTick = Number(tick)
+        if (!Number.isFinite(numericTick)) {
+            throw new Error(`Tick coercion failed: ${tick} -> ${numericTick}`)
+        }
+
         const queryText = `
             SELECT * FROM c 
             WHERE c.scopeId = @scopeId 
@@ -257,7 +263,7 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
         const parameters = [
             { name: '@scopeId', value: scopeId },
             { name: '@layerType', value: layerType },
-            { name: '@tick', value: tick }
+            { name: '@tick', value: numericTick }
         ]
 
         const { items } = await this.query(queryText, parameters)
