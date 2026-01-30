@@ -40,6 +40,7 @@
             "Azure.Storage": "Warning",
             "Azure.Storage.Queues": "Warning",
             "Azure.Storage.Blobs": "Warning",
+            "Azure.Core": "Warning",
             "Microsoft.Azure.WebJobs": "Warning"
         }
     }
