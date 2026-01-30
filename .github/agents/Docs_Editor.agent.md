@@ -22,7 +22,8 @@ Scope rules:
 - Do not modify runtime code (`backend/`, `frontend/`, `shared/`, `infrastructure/`) unless explicitly requested.
 
 Documentation rules:
-- Follow `docs/AGENTS.md` for the MECE doc hierarchy and allowed/prohibited content per layer.
+- Follow `.github/instructions/docs.instructions.md` for the MECE doc hierarchy and allowed/prohibited content per layer.
+- Use `docs/README.md` as the portal/index for cross-layer navigation.
 - Prefer relative links to files in this repo.
 - Keep diffs minimal and scannable (headings/tables/bullets).
 - Avoid duplicating implementation details; link to code or architecture docs instead.

@@ -11,6 +11,7 @@ This overview provides a concise narrative bridge between the high‑level visio
 - Summarize the architectural intent before deep‑diving into MVP specifics.
 - Clarify phased evolution: unified Backend Function App for HTTP + async processing (embedded API removed).
 - Provide a stable link target for docs referencing an "architecture overview" page.
+- Provide a stable link target for runtime sequencing docs (see `../workflows/README.md`).
 
 ## Core Tenets
 

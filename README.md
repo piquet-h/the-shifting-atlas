@@ -18,23 +18,23 @@ The platform balances imaginative emergence with architectural discipline: a **d
 
 ---
 
-## Documentation Hierarchy (MECE: Mutually Exclusive, Collectively Exhaustive)
+## Documentation (portal-first)
 
-Navigate the documentation by altitude—each layer serves a distinct purpose with no overlap:
+The canonical documentation portal (including the full MECE “altitude” table and LLM-friendly reading order) is:
 
-| Layer                 | Altitude     | Purpose                                                     | Key Documents                                                                                                               |
-| --------------------- | ------------ | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **1. Vision**         | 60,000 ft    | Inspire and set direction                                   | This README (Vision section above)                                                                                          |
-| **2. Tenets**         | 50,000 ft    | Non-negotiable decision-making rules                        | [Tenets](docs/tenets.md) (adapted from Microsoft Well-Architected Framework)                                                |
-| **3. Design Modules** | 40,000 ft    | Translate Vision + Tenets into concrete gameplay systems    | [Design Modules](docs/design-modules/README.md) (world rules, navigation, AI, quests)                                       |
-| **4. Architecture**   | 30,000 ft    | Technical design implementing modules and respecting tenets | [MVP Azure Architecture](docs/architecture/mvp-azure-architecture.md), [ADRs](docs/adr/)                                    |
-| **5. Roadmap**        | 20,000 ft    | Staged progression from Vision to Code (milestones M0–M6)   | [Roadmap](docs/roadmap.md)                                                                                                  |
-| **6. Examples**       | 10,000 ft    | Practical code walkthroughs and onboarding aids             | [Examples](docs/examples/README.md), [Frontend Components](docs/frontend/components.md), [UX Guidelines](docs/ux/README.md) |
-| **7. Code**           | Ground Level | Runnable implementation                                     | [`backend/`](backend/), [`frontend/`](frontend/), [`shared/`](shared/), [`infrastructure/`](infrastructure/)                |
+- [`docs/README.md`](docs/README.md)
 
-**For New Contributors**: Start at Layer 6 (Examples), then read Layer 2 (Tenets) and Layer 3 (Design Modules) before contributing code.
+Common entrypoints:
 
-For a curated, index-first entrypoint into the doc set (including an LLM-friendly reading order), see: [`docs/README.md`](docs/README.md).
+- Tenets (non-negotiables): [`docs/tenets.md`](docs/tenets.md)
+- Concepts (immutable semantics & vocabulary): [`docs/concept/`](docs/concept/)
+- Design Modules (gameplay systems & invariants): [`docs/design-modules/README.md`](docs/design-modules/README.md)
+- Architecture (technical contracts/boundaries): [`docs/architecture/overview.md`](docs/architecture/overview.md)
+- Workflows (runtime orchestration & validation gates): [`docs/workflows/README.md`](docs/workflows/README.md)
+- Roadmap (milestones/sequencing): [`docs/roadmap.md`](docs/roadmap.md)
+- Examples (walkthroughs/templates): [`docs/examples/README.md`](docs/examples/README.md)
+
+**For new contributors**: start with Examples, then Tenets and the relevant Design Modules before changing runtime code.
 
 ---
 
@@ -62,7 +62,7 @@ frontend/         React SPA (Vite + Tailwind CSS)
 backend/          Azure Functions App (HTTP + queue endpoints)
 shared/           Shared domain models, telemetry, utilities (published to GitHub Packages)
 infrastructure/   Bicep templates (Azure resources: SWA, Functions, Cosmos DB, Key Vault, App Insights)
-docs/             Documentation (MECE hierarchy: vision → tenets → modules → architecture → roadmap → examples)
+docs/             Documentation (portal: `docs/README.md`; MECE: vision → tenets → concepts → design-modules → architecture → workflows → roadmap → examples)
 scripts/          Automation (seed data, validation, deployment helpers)
 ```
 

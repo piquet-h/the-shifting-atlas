@@ -491,6 +491,7 @@ All design modules must:
 | Vision (60k ft)       | Root `README.md` (Vision section)           |
 | Tenets (50k ft)       | `../tenets.md`                              |
 | Architecture (30k ft) | `../architecture/mvp-azure-architecture.md` |
+| Workflows (25k ft)    | `../workflows/README.md`                    |
 | Roadmap (20k ft)      | `../roadmap.md`                             |
 | Examples (10k ft)     | `../examples/`                              |
 

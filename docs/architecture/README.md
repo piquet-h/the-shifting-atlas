@@ -34,6 +34,8 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 - `dnd-5e-agent-framework-integration.md` — D&D 5e integration wiring and boundaries.
 - `ab-testing-implementation.md` — deterministic prompt/behavior A/B testing patterns.
 
+For **runtime sequencing** (workflows, multi-agent orchestration, validation gates), see `../workflows/README.md`.
+
 ## Description layering & integrity
 
 - `layer-overlap-policy.md` — rules for combining layers without contradiction.

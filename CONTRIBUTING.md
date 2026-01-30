@@ -60,14 +60,16 @@ If you're a Copilot agent (VS Code, GitHub cloud, or Copilot Workspace):
 
 ## Documentation
 
-Follow the MECE documentation hierarchy (authoritative: `docs/AGENTS.md`):
+Follow the MECE documentation hierarchy (authoritative portal: `docs/README.md`):
 
 | Layer        | Location                     | Purpose               |
 | ------------ | ---------------------------- | --------------------- |
 | Vision       | README.md                    | Strategic direction   |
 | Tenets       | docs/tenets.md               | Decision rules        |
+| Concepts     | docs/concept/                | Immutable semantics   |
 | Design       | docs/design-modules/         | Gameplay systems      |
 | Architecture | docs/architecture/           | Technical design      |
+| Workflows    | docs/workflows/              | Runtime orchestration |
 | Roadmap      | docs/roadmap.md              | Milestone progression |
 | Examples     | docs/examples/               | Code walkthroughs     |
 | Code         | backend/, frontend/, shared/ | Implementation        |

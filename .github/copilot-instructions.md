@@ -16,7 +16,7 @@ Copilot behavior is shaped by multiple instruction sources:
 2. **Path-specific instructions** (always-on when files match the glob; used by coding agent + code review)
     - `.github/instructions/**/*.instructions.md`
 3. **Agent instructions** (nearest `AGENTS.md`; used by agents, not guaranteed for code review)
-    - `backend/AGENTS.md`, `frontend/AGENTS.md`, `shared/AGENTS.md`, `infrastructure/AGENTS.md`, `docs/AGENTS.md`
+    - `backend/AGENTS.md`, `frontend/AGENTS.md`, `shared/AGENTS.md`, `infrastructure/AGENTS.md`
 4. **Agent Skills** (on-demand; progressive disclosure)
     - `.github/skills/**`
 
@@ -320,7 +320,7 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 | M1 Traversal              | 2            | CLOSED   | Location persistence, exits, move/look                                | `milestone:"M1 Traversal"` or filter by ID 2               |
 | M2 Data Foundations       | 3            | CLOSED   | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3        |
 | M3a Event Backbone        | 11           | CLOSED   | Queue processing, idempotency, DLQ, correlation                       | `milestone:"M3a Event Backbone"` or filter by ID 11        |
-| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation         | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
+| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation        | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
 | M3c Temporal PI-0         | 13           | Active   | WorldClock, PlayerClock, durations, reconcile policies                | `milestone:"M3c Temporal PI-0"` or filter by ID 13         |
 | M4 AI Read                | 4            | Active   | MCP read-only, prompt templates, intent parser                        | `milestone:"M4 AI Read"` or filter by ID 4                 |
 | M5 Quality & Depth        | 7            | Active   | Layering engine, dashboards, alerts, integrity monitoring             | `milestone:"M5 Quality & Depth"` or filter by ID 7         |
@@ -947,7 +947,8 @@ Last reviewed: 2026-01-15
 
 Docs-specific authoring rules (MECE hierarchy, cross-layer linking, and planning-leakage guardrails) live in:
 
-- `docs/AGENTS.md` (authoritative for `docs/` edits)
-- `.github/instructions/docs.instructions.md` (applies automatically to `docs/**` files)
+- `.github/instructions/docs.instructions.md` (authoritative for `docs/` edits)
+
+This file applies automatically to `docs/**` paths.
 
 Keep this file focused on cross-cutting engineering workflow and runtime constraints.

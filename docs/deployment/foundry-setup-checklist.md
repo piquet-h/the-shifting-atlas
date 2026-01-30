@@ -568,29 +568,10 @@ In Foundry portal → **Agents** → `dm-narrator` → **Playground**:
 
 ## Part 5: Agent Orchestration (Future)
 
-Once all agents are created, configure **multi-agent workflows**:
+This checklist focuses on **setup** (portal/SDK wiring). Runtime sequencing and enforcement belong in the Workflows layer:
 
-### Scenario: Combat Encounter
-
-1. **Player**: "I attack the goblin with my sword"
-2. **DM Narrator**: Recognizes combat → Calls **combat-resolver** agent
-3. **Combat Resolver**:
-    - Calls `get-monster` (goblin stats)
-    - Calls `get-player-context` (player attack bonus)
-    - Rolls attack + damage
-    - Returns result to DM Narrator
-4. **DM Narrator**: Wraps combat result in narrative and returns to player
-
-### Scenario: Spell Casting
-
-1. **Player**: "I cast Fireball at the goblins"
-2. **DM Narrator**: Calls **spell-authority** agent
-3. **Spell Authority**:
-    - Calls `get-spell` (fireball details)
-    - Calls `get-player-context` (spell slots)
-    - Validates cast → Returns DC, damage, targets
-4. **Combat Resolver**: Applies damage to affected targets
-5. **DM Narrator**: Narrates the fiery explosion
+- Canonical single-turn flow: `../workflows/foundry/resolve-player-command.md`
+- Multi-agent coordination patterns (combat/spells scenarios): `../workflows/foundry/agent-orchestration.md`
 
 ---
 

@@ -20,6 +20,7 @@ This repository is intentionally documentation-heavy. The goal is high fidelity 
 
 - Architecture overview (high-level, stable): `architecture/overview.md`
 - Architecture index (curated): `architecture/README.md`
+- Runtime workflows / orchestration (sequencing + enforcement): `workflows/README.md`
 - Developer workflow (local dev, CI/CD, conventions): `developer-workflow/`
 - Examples (walkthroughs and templates): `examples/README.md`
 
@@ -28,6 +29,7 @@ This repository is intentionally documentation-heavy. The goal is high fidelity 
 - Canonical AI + MCP architecture: `architecture/agentic-ai-and-mcp.md`
 - MCP deployment + auth setup: `deployment/mcp-auth-setup.md`
 - Prompt authoring + hygiene: `developer-workflow/lore-authoring.md` and `design-modules/ai-prompt-engineering.md`
+- Foundry workflow sequencing (optional runtime): `workflows/foundry/README.md`
 
 ### I’m working on observability / dashboards / alerts
 
@@ -60,6 +62,7 @@ Then branch based on the question:
 | Concepts       | 45,000 ft (↯) | `concept/`                                            | Immutable semantics & vocabulary            |
 | Design Modules | 40,000 ft     | `design-modules/`                                     | Gameplay systems and invariants             |
 | Architecture   | 30,000 ft     | `architecture/`                                       | Technical design and contracts              |
+| Workflows      | 25,000 ft     | `workflows/`                                          | Runtime orchestration & validation gates    |
 | Roadmap        | 20,000 ft     | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
 | Examples       | 10,000 ft     | `examples/`                                           | Walkthroughs and templates                  |
 | Code           | Ground        | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                     |

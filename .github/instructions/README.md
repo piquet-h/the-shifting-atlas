@@ -25,7 +25,12 @@ are automatically applied as path-scoped custom instructions.
 
 3. **Agent instructions (nearest `AGENTS.md`; used by agents, not guaranteed for code review)**
 
-- `backend/AGENTS.md`, `frontend/AGENTS.md`, `shared/AGENTS.md`, `infrastructure/AGENTS.md`, `docs/AGENTS.md`
+- `backend/AGENTS.md`, `frontend/AGENTS.md`, `shared/AGENTS.md`, `infrastructure/AGENTS.md`
+
+Docs-specific guidance is provided via:
+
+- `.github/instructions/docs.instructions.md` (path-scoped rules)
+- `docs/README.md` (portal/index)
 
 4. **Agent Skills (on-demand; progressive disclosure)**
 

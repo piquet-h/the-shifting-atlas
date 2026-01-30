@@ -24,7 +24,7 @@
 
 ## Non-.github Instruction Artifacts
 
-- `docs/AGENTS.md` — documentation-specific agent guidance for anything under `docs/` (MECE layering + anti-duplication rules).
+- Docs guidance lives in `.github/instructions/docs.instructions.md` (path-scoped rules) and `docs/README.md` (portal/index).
 - `backend/AGENTS.md` — backend-specific agent guidance for anything under `backend/` (delegates to `.github/instructions/backend/.instructions.md`).
 - `frontend/AGENTS.md` — frontend-specific agent guidance for anything under `frontend/` (delegates to `.github/instructions/frontend/.instructions.md`).
 - `infrastructure/AGENTS.md` — infrastructure-specific agent guidance for anything under `infrastructure/` (Bicep guardrails; points to `infrastructure/README.md`).

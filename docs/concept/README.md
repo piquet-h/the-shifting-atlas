@@ -28,7 +28,7 @@ Excluded: progress stage tables, atomic issue lists, deployment scripts, persist
 3. Do not add delivery step checklists—create execution issues instead.
 4. Automation will propose atomic issues for invariant / scope changes; review before merging.
 
-Reference: Full documentation layering and boundaries live in `../AGENTS.md`.
+Reference: Full documentation layering and boundaries live in `../README.md`.
 
 ## Automation Governance
 

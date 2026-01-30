@@ -409,5 +409,5 @@ Return JSON:
 
 - [Foundry Setup Checklist](./foundry-setup-checklist.md) — Step-by-step agent creation
 - [Foundry Agent Quickstart](./foundry-agent-quickstart.md) — Bestiary agent walkthrough
-- [Agent Orchestration Guide](./foundry-agent-orchestration.md) — Multi-agent coordination
+- [Agent Orchestration Guide](../workflows/foundry/agent-orchestration.md) — Multi-agent coordination
 - [D&D 5e API Integration](../design-modules/dnd5e-foundry-agent-architecture.md) — Design module
