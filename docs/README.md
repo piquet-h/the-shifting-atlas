@@ -14,6 +14,7 @@ This repository is intentionally documentation-heavy. The goal is high fidelity 
 
 - Design Modules index: `design-modules/README.md`
 - Design Module docs (system semantics): `design-modules/`
+- Concept docs (immutable semantics & vocabulary): `concept/`
 
 ### I’m implementing runtime code
 
@@ -52,15 +53,18 @@ Then branch based on the question:
 
 ## Documentation hierarchy (MECE by altitude)
 
-| Layer          | Altitude  | Location                                              | Purpose                                     |
-| -------------- | --------- | ----------------------------------------------------- | ------------------------------------------- |
-| Vision         | 60,000 ft | `../README.md`                                        | Why this exists                             |
-| Tenets         | 50,000 ft | `tenets.md`                                           | Non-negotiable constraints                  |
-| Design Modules | 40,000 ft | `design-modules/`                                     | Gameplay systems and invariants             |
-| Architecture   | 30,000 ft | `architecture/`                                       | Technical design and contracts              |
-| Roadmap        | 20,000 ft | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
-| Examples       | 10,000 ft | `examples/`                                           | Walkthroughs and templates                  |
-| Code           | Ground    | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                     |
+| Layer          | Altitude      | Location                                              | Purpose                                     |
+| -------------- | ------------- | ----------------------------------------------------- | ------------------------------------------- |
+| Vision         | 60,000 ft     | `../README.md`                                        | Why this exists                             |
+| Tenets         | 50,000 ft     | `tenets.md`                                           | Non-negotiable constraints                  |
+| Concepts       | 45,000 ft (↯) | `concept/`                                            | Immutable semantics & vocabulary            |
+| Design Modules | 40,000 ft     | `design-modules/`                                     | Gameplay systems and invariants             |
+| Architecture   | 30,000 ft     | `architecture/`                                       | Technical design and contracts              |
+| Roadmap        | 20,000 ft     | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
+| Examples       | 10,000 ft     | `examples/`                                           | Walkthroughs and templates                  |
+| Code           | Ground        | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                     |
+
+(↯) `concept/` is a **facet** of Design Modules: use it for stable definitions/invariants that multiple gameplay systems depend on.
 
 ## What not to do (to keep fidelity)
 

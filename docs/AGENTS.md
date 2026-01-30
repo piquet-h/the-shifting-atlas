@@ -14,17 +14,20 @@ It is intended to apply when editing anything under `docs/`.
 
 This repository uses altitude-based documentation layers to prevent duplication and planning leakage.
 
-| Layer             | Altitude  | Location                                              | Purpose                                            | Mutation frequency |
-| ----------------- | --------- | ----------------------------------------------------- | -------------------------------------------------- | ------------------ |
-| 1. Vision         | 60,000 ft | `README.md` (Vision section)                          | Inspire and set strategic direction                | Very low           |
-| 2. Tenets         | 50,000 ft | `docs/tenets.md`                                      | Non-negotiable decision-making rules (WAF-aligned) | Very low           |
-| 3. Design Modules | 40,000 ft | `docs/design-modules/`                                | Gameplay systems translating Vision + Tenets       | Low                |
-| 4. Architecture   | 30,000 ft | `docs/architecture/`                                  | Technical design implementing modules              | Medium             |
-| 5. Roadmap        | 20,000 ft | `docs/roadmap.md`                                     | Milestone progression                              | High               |
-| 6. Examples       | 10,000 ft | `docs/examples/`                                      | Practical walkthroughs (no logic duplication)      | Medium             |
-| 7. Code           | Ground    | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                            | High               |
+| Layer               | Altitude  | Location                                              | Purpose                                            | Mutation frequency |
+| ------------------- | --------- | ----------------------------------------------------- | -------------------------------------------------- | ------------------ |
+| 1. Vision           | 60,000 ft | `README.md` (Vision section)                          | Inspire and set strategic direction                | Very low           |
+| 2. Tenets           | 50,000 ft | `docs/tenets.md`                                      | Non-negotiable decision-making rules (WAF-aligned) | Very low           |
+| 3. Concepts (facet) | 45,000 ft | `docs/concept/`                                       | Immutable semantics & vocabulary                   | Very low           |
+| 4. Design Modules   | 40,000 ft | `docs/design-modules/`                                | Gameplay systems translating Vision + Tenets       | Low                |
+| 5. Architecture     | 30,000 ft | `docs/architecture/`                                  | Technical design implementing modules              | Medium             |
+| 6. Roadmap          | 20,000 ft | `docs/roadmap.md`                                     | Milestone progression                              | High               |
+| 7. Examples         | 10,000 ft | `docs/examples/`                                      | Practical walkthroughs (no logic duplication)      | Medium             |
+| 8. Code             | Ground    | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                            | High               |
 
 ### Allowed vs prohibited (Design Modules / Concept)
+
+`docs/concept/` is a **facet**: use it for stable definitions/invariants that multiple Design Modules depend on. If the content is about runtime mechanics (pipelines, caching, telemetry payload shapes), it belongs in `docs/architecture/`.
 
 **Allowed** in `docs/design-modules/` and `docs/concept/`:
 
