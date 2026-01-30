@@ -43,7 +43,7 @@ Not yet implemented (planned):
 - Managed identity graph access (replace key‑based secret)
 - AI prompt integration & dynamic content (advisory then genesis)
 - External narrative access gateway (Entra ID/APIM) for VS Code/Teams/agent runners
-- D&D 5e agent integration: Azure AI Foundry agents with hybrid HTTP (read-only) + MCP (stateful) tool architecture for combat, spells, and NPC behaviors (see [D&D 5e Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md))
+- D&D 5e agent integration: Azure AI Foundry agents with hybrid HTTP (read-only) + MCP (stateful) tool architecture for combat, spells, and NPC behaviors (see [D&D 5e API Integration](../design-modules/dnd5e-foundry-agent-architecture.md))
 
 ## Evolution Path
 
@@ -61,7 +61,7 @@ Stage Roadmap (Milestones):
 ## Separation of Concerns (Future State)
 
 - `frontend/` – Presentation + minimal command dispatch
-- `backend/` – All HTTP endpoints + asynchronous world evolution (queue-triggered world event processors and queued background work). The system is narration-first: it does not attempt a full world simulator; canonical facts are persisted and narration closes gaps.
+- `backend/` – All HTTP endpoints + asynchronous world evolution (queue-triggered world event processors and queued background work). The system is narration-first (non-simulation): canonical facts are persisted, and narration closes gaps without contradicting canon. See Tenet #7 and the authority boundary in `agentic-ai-and-mcp.md`.
 - `shared/` (expanding) – Currently exports telemetry events + dual entry points; will accrete graph helpers, validation schemas, and MCP tool type definitions
 
 ### Shared Package Entry Points (Browser vs Backend)

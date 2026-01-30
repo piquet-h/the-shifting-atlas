@@ -11,6 +11,8 @@
 
 AI acts as the primary narrator, but its creative output is **ephemeral** until validated. Governance ensures:
 
+- The authority boundary is enforced (Tenet #7): narration explains outcomes; it does not create canonical facts. See `./agentic-ai-and-mcp.md#b-authority-boundary-canonical-state-vs-narrative-plausibility`.
+
 - Canon stability (no base mutation)
 - Bounded creativity (ambient, flavor, hints only)
 - Deterministic replay (provenance hashes)

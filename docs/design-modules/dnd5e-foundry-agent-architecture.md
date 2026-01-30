@@ -8,6 +8,11 @@
 
 > Technical wiring details belong in `docs/architecture/` (see `../architecture/agentic-ai-and-mcp.md`).
 
+This file is a **design-module-level contract** for how the D&D 5e ruleset plugs into The Shifting Atlas. It intentionally avoids re-stating generic MCP/agent architecture and avoids defining narration style.
+
+- Agent/tool wiring and trust boundaries: `../architecture/agentic-ai-and-mcp.md`
+- AI behavior inside constraints (grounding, refusal/deferral, uncertainty): `./ai-prompt-engineering.md`
+
 ---
 
 ## Executive Summary
@@ -15,11 +20,11 @@
 Integrate D&D 5e System Reference Document (SRD) API into The Shifting Atlas via **AI roles** to enable:
 
 - Rules-accurate combat resolution
-- Spell validation and narrative generation
+- Spell validation and mechanical effect computation
 - Monster/NPC behavior templates
 - Equipment and magic item discovery
 
-**Core Principle**: D&D API provides mechanics; Shifting Atlas AI roles transform mechanics into narrative via the existing DM narrator persona.
+**Core Principle**: SRD data provides **mechanics reference**. Canonical world state remains Shifting Atlas state; player-facing narration is downstream framing of validated outcomes.
 
 **Architecture Decision (2026-01-30)**: **Adapter-first approach** — All D&D access is expressed as tool calls with stable schemas.
 
@@ -32,7 +37,7 @@ Integrate D&D 5e System Reference Document (SRD) API into The Shifting Atlas via
 
 ### 1. **Combat Resolver Agent** (`combat-resolver`)
 
-**What it does**: adjudicates combat mechanics (rolls, hit/miss, damage, conditions) and produces a structured combat outcome that the DM narrator can render.
+**What it does**: adjudicates combat mechanics (rolls, hit/miss, damage, conditions) and produces a structured combat outcome for deterministic persistence and downstream rendering.
 
 **Responsibilities**:
 
@@ -50,20 +55,20 @@ Integrate D&D 5e System Reference Document (SRD) API into The Shifting Atlas via
 **Outputs (conceptual)**:
 
 - a structured combat result (rolls, effects, completion)
-- a short narrative stub (2–3 sentences) for the DM narrator to incorporate
+- optional presentational hints (non-authoritative) that a narrator layer may use
 
 ---
 
 ### 2. **Magic & Spells Agent** (`spell-authority`)
 
-**What it does**: validates whether a spell can be cast in the current context and computes the mechanical effects (DCs, targeting, damage/healing) for the combat resolver + DM narrator.
+**What it does**: validates whether a spell can be cast in the current context and computes the mechanical effects (DCs, targeting, damage/healing) for the combat resolver + narrator layer.
 
 **Responsibilities**:
 
 - Validate if player/NPC can cast requested spell
 - Calculate save DCs and area-of-effect
 - Determine material component requirements
-- Generate narrative description of spell effects
+- Produce a structured spell effect summary suitable for validation + resolution
 
 **Example Flow**:
 
@@ -74,14 +79,14 @@ Player: "I cast Fireball at the goblins"
   ✓ 3rd-level spell slot available
   ✓ Targets within 150 ft range
 → Returns: { dc: 15, damage: "8d6", saveType: "DEX", affectedTargets: ["goblin-1", "goblin-2"] }
-→ DM Narrator: "You unleash arcane fury. The goblins scatter—one dives left..."
+→ Narrator layer renders: player-facing description consistent with the validated result
 ```
 
 ---
 
 ### 3. **Monster & NPC Catalog Agent** (`bestiary`)
 
-**What it does**: provides SRD monster reference, encounter suggestions, and lightweight behavior hooks that can be contextualized by the DM narrator.
+**What it does**: provides SRD monster reference, encounter suggestions, and lightweight behavior hooks that can be contextualized by the narrator layer.
 
 **Responsibilities**:
 
@@ -93,13 +98,13 @@ Player: "I cast Fireball at the goblins"
 **Wandering NPC example (conceptual)**:
 
 - Use SRD stats (speed, senses, alignment cues) to shape a simple movement/engagement tendency.
-- Hand the resulting intent (e.g., “patrol”, “ambush”, “flee when bloodied”) to the DM narrator for rendering.
+- Hand the resulting intent (e.g., “patrol”, “ambush”, “flee when bloodied”) to the narrator layer for rendering.
 
 ---
 
 ### 4. **Character Rules Agent** (`character-authority`)
 
-**What it does**: validates whether a player action is plausible given class/background capabilities and suggests appropriate skill/proficiency framing.
+**What it does**: validates whether a player action is plausible given class/background capabilities and returns structured adjudication support (e.g., relevant proficiencies, features, and constraints).
 
 **Responsibilities**:
 
@@ -113,21 +118,21 @@ Player: "I cast Fireball at the goblins"
 ```
 Player: "I use my sailor background to read these nautical charts"
 → Character Authority: { background: "sailor", proficiencies: ["navigator's tools", "water vehicles"], plausible: true }
-→ DM Narrator: "Your sea-weathered eyes trace the lines... [success narrative]"
+→ Narrator layer renders: a player-facing outcome consistent with the adjudication
 ```
 
 ---
 
 ### 5. **Equipment & Treasure Agent** (`quartermaster`)
 
-**What it does**: generates loot outcomes appropriate to encounter context and describes them in a way that supports Narrative Consistency.
+**What it does**: generates loot outcomes appropriate to encounter context and returns structured results that a narrator layer can describe.
 
 **Responsibilities**:
 
 - Procedurally generate treasure appropriate to location/encounter CR
 - Validate item usage (attunement requirements, class restrictions)
 - Calculate encumbrance (if tracked)
-- Describe magic item discovery narratively
+- Provide optional presentational hints (non-authoritative)
 
 **Treasure Generation Example**:
 
@@ -149,6 +154,26 @@ Player: "I use my sailor background to read these nautical charts"
 ## Design rules & boundaries
 
 This module follows `docs/tenets.md` (especially [Tenet #7: Narrative Consistency](../tenets.md#7-narrative-consistency) and its bounded plausibility boundary).
+
+### Authority Boundary: Mechanics, State, and Narration
+
+This is the D&D-specific restatement of the broader boundary in `../architecture/agentic-ai-and-mcp.md#b-authority-boundary-canonical-state-vs-narrative-plausibility`.
+
+**Deterministic systems are authoritative** (mechanics resolution, spatial validation, temporal reconciliation, entity state).
+
+AI agents may:
+
+- query authoritative systems (via tools),
+- propose interpretations (e.g., which rule applies),
+- and generate narrative explanations of outcomes.
+
+AI agents may not:
+
+- introduce facts that contradict canonical state,
+- bypass mechanics or traversal constraints,
+- or cause world state to change through narration alone.
+
+Narration exists to explain how a valid outcome occurs, not to make an invalid outcome acceptable.
 
 - **SRD reference is advisory**: D&D SRD data informs adjudication, but canonical world state is still Shifting Atlas state.
 - **Read-only vs stateful split**:
