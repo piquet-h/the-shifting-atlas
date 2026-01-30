@@ -252,6 +252,9 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             throw new Error(`Tick coercion failed: ${tick} -> ${numericTick}`)
         }
 
+        // Debug logging for production troubleshooting
+        console.log(`[findActiveLayer] scopeId=${scopeId}, layerType=${layerType}, tick=${tick} (type=${typeof tick}), numericTick=${numericTick} (type=${typeof numericTick})`)
+
         const queryText = `
             SELECT * FROM c 
             WHERE c.scopeId = @scopeId 
@@ -265,6 +268,8 @@ export class CosmosLayerRepository extends CosmosDbSqlRepository<LayerDocument> 
             { name: '@layerType', value: layerType },
             { name: '@tick', value: numericTick }
         ]
+
+        console.log(`[findActiveLayer] parameters=${JSON.stringify(parameters)}`)
 
         const { items } = await this.query(queryText, parameters)
 
