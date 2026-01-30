@@ -198,6 +198,33 @@ Design modules bridge strategic intent (Vision, Tenets) and technical implementa
 
 ---
 
+### 11. D&D 5e Agent Integration
+
+**Focus**: Azure AI Foundry agents with D&D 5e SRD mechanics for combat, spells, monsters, and NPCs
+
+**Key Contracts**:
+
+- **Hybrid tool architecture**: Direct HTTP for read-only D&D API lookups; MCP tools for stateful operations
+- **Read-only via HTTP**: Monster stats, spell details, equipment properties (Foundry → D&D 5e API)
+- **Stateful via MCP**: Spawn NPC entities, resolve combat rounds, cast spells with slot consumption (Foundry → Backend → Cosmos)
+- **Specialized agents**: Combat resolver (GPT-4), spell authority (GPT-4o), bestiary (GPT-4o-mini)
+
+**Key Invariants**:
+
+- SRD 5.1 content only (no homebrew without explicit design approval)
+- All canonical writes go through backend validation (agents propose, backend commits)
+- D&D mechanics inform narrative; deterministic state overrides simulation speculation
+- Combat/spell effects must emit telemetry with correlation IDs
+
+**Documents**:
+
+- Architecture: `dnd5e-foundry-agent-architecture.md`
+- Quickstart: `../deployment/foundry-agent-quickstart.md`
+
+**Depends On**: AI Prompt Engineering, Agentic AI & MCP, World Event Handlers, Player Identity
+
+---
+
 ### 11. World Time & Temporal Reconciliation Framework
 
 **Focus**: Coherent, persistent time simulation balancing narrative richness with multiplayer playability

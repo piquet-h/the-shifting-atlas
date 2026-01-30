@@ -116,5 +116,6 @@
         "the-shifting-atlas/.vscode/mcp.json: mcp-the-shifting-atlas": {
             "allowedModels": ["copilot/auto"]
         }
-    }
+    },
+    "@azure.argTenant": "fecae6e9-696f-46e4-b1c8-5b471b499a24"
 }

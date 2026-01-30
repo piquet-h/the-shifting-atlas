@@ -28,6 +28,17 @@ For early launch, prefer **Azure AI Foundry hosted agents** as the agent runtime
 
 Agents (hosted or self-hosted) should be treated as **proposal generators**: they can suggest narration, layers, or structured changes, but they do not directly write authoritative state.
 
+### D&D 5e Integration: Hybrid HTTP + MCP Architecture
+
+The D&D 5e agent integration uses a **hybrid approach** for optimal performance and maintainability:
+
+- **Direct HTTP connections** (Foundry → D&D 5e API): Read-only lookups of monster stats, spell details, equipment properties. Benefits: lower latency, zero backend code, auto-schema generation.
+- **MCP tools** (Foundry → Backend → D&D API + Cosmos): Stateful operations like spawning NPCs, resolving combat, casting spells with slot consumption. Benefits: caching, telemetry, composite operations, game-specific validation.
+
+**Decision matrix**: Pure reads → HTTP; Cosmos writes or multi-step operations → MCP.
+
+See [D&D 5e Foundry Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md) for detailed tool topology and [Foundry Agent Quickstart](../deployment/foundry-agent-quickstart.md) for setup instructions.
+
 ### Mutation Admission Gates (Preview)
 
 No mutating MCP server (e.g., `world-mutation-mcp`) is enabled until ALL gates below are implementable and enforced:

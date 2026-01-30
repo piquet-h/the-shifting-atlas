@@ -10,6 +10,8 @@
 
 Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
 
+**D&D 5e Integration**: Azure AI Foundry agents leverage the D&D 5e System Reference Document for rules-accurate combat, spell mechanics, and creature behaviors. A hybrid architecture uses direct HTTP for read-only lookups (monster stats, spell details) and MCP tools for stateful operations (combat resolution, NPC spawning). See [D&D 5e Agent Architecture](docs/design-modules/dnd5e-foundry-agent-architecture.md) and [Foundry Agent Quickstart](docs/deployment/foundry-agent-quickstart.md).
+
 The platform balances imaginative emergence with architectural discipline: a **dual persistence model** separates immutable world structure (Cosmos Gremlin: locations, exits, spatial relationships) from mutable player/inventory/event state (Cosmos SQL API: authoritative as of ADR-004). Strict telemetry governance and event-driven progression enable replay, observability, and safe extension.
 
 > **Core Tenet**: Accessibility from day one. All features must satisfy baseline WCAG 2.2 AA intent (see [`docs/ux/accessibility-guidelines.md`](docs/ux/accessibility-guidelines.md)) before merge.

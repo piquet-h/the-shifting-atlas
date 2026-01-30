@@ -43,6 +43,7 @@ Not yet implemented (planned):
 - Managed identity graph access (replace key‑based secret)
 - AI prompt integration & dynamic content (advisory then genesis)
 - External narrative access gateway (Entra ID/APIM) for VS Code/Teams/agent runners
+- D&D 5e agent integration: Azure AI Foundry agents with hybrid HTTP (read-only) + MCP (stateful) tool architecture for combat, spells, and NPC behaviors (see [D&D 5e Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md))
 
 ## Evolution Path
 
