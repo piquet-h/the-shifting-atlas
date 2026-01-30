@@ -1,6 +1,15 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> Status (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `World-*`, `WorldContext-*`, and `Lore-*`). The agent orchestration layer and any write/proposal MCP surfaces remain planned.
+> **Status** (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `World-*`, `WorldContext-*`, and `Lore-*`). The orchestration layer (agent runner) and any write/proposal MCP surfaces remain planned.
+
+> **Important**: This architecture is intentionally **agent-runtime-agnostic**.
+>
+> The MCP server in this repo is real and already works (it’s callable via JSON-RPC over HTTP, as validated by manual calls). What’s been unstable is _which_ hosted “agent product UI” can wire to it in your tenant at any given time.
+>
+> This doc therefore separates:
+>
+> - **The Tool Surface (MCP)**: stable, owned by this repo
+> - **The Agent Runtime**: swappable (prototype: local website + backend runner; hosted options later)
 
 ## Purpose
 
@@ -18,26 +27,66 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 8. Cost-Aware Design – Retrieval + structured facts over giant context stuffing; caching whenever context unchanged.
 9. Progressive Disclosure – Start with read‑only context tools; add mutation proposals once validation layer is ready.
 
-### Launch posture (recommended)
+These principles are intended to implement `docs/tenets.md` (especially Security, Reliability, Performance Efficiency, and Narrative Consistency).
 
-For early launch, prefer **Azure AI Foundry hosted agents** as the agent runtime when you want persistence, governance/monitoring, and a secure endpoint without building a bespoke agent-hosting service. Regardless of runtime, the backend remains the **sole authority** for:
+### Launch posture (Prototype-first, runtime-agnostic)
+
+For rapid prototyping, do **not** start by committing to any hosted agent portal UI.
+
+Instead, treat this repo’s backend MCP server as the stable “tool layer”, and run a **thin local agent runner** (local website + backend runner) that:
+
+1. Calls the model (chat completions) with tool/function calling enabled
+2. Executes tool calls by invoking MCP JSON-RPC (`tools/call`) against the backend MCP endpoint
+3. Feeds tool results back into the model
+
+This unlocks prototyping immediately (minutes, not days) while keeping the long-term architecture clean.
+
+The backend remains the **sole authority** for:
 
 - world-state persistence (Cosmos DB)
 - invariants and validation gates
 - canonical event emission
 
-Agents (hosted or self-hosted) should be treated as **proposal generators**: they can suggest narration, layers, or structured changes, but they do not directly write authoritative state.
+Agents (whatever runtime you use) are **proposal generators**: they suggest narration, layers, or structured changes; they never directly write authoritative state.
 
-### D&D 5e Integration: Hybrid HTTP + MCP Architecture
+#### Local runner = local website execution (recommended)
 
-The D&D 5e agent integration uses a **hybrid approach** for optimal performance and maintainability:
+For this repo, the most practical “local runner” is:
 
-- **Direct HTTP connections** (Foundry → D&D 5e API): Read-only lookups of monster stats, spell details, equipment properties. Benefits: lower latency, zero backend code, auto-schema generation.
-- **MCP tools** (Foundry → Backend → D&D API + Cosmos): Stateful operations like spawning NPCs, resolving combat, casting spells with slot consumption. Benefits: caching, telemetry, composite operations, game-specific validation.
+- **Frontend (local website)**: Vite dev server for the game UI (player input + streaming output)
+- **Backend (local Functions host)**: server-side orchestrator that calls the model + MCP tools
 
-**Decision matrix**: Pure reads → HTTP; Cosmos writes or multi-step operations → MCP.
+This keeps secrets out of the browser (Security tenet) while giving you a fast feedback loop.
 
-See [D&D 5e Foundry Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md) for detailed tool topology and [Foundry Agent Quickstart](../deployment/foundry-agent-quickstart.md) for setup instructions.
+See: `../developer-workflow/local-dev-setup.md`.
+
+#### Why this is the right “un-messy” foundation
+
+- MCP is your owned contract surface.
+- Agent products (and their UI surface area) change quickly.
+- A local runner lets you keep gameplay iteration fast while you wait for a hosted option to stabilize.
+
+#### Optional future: hosted runtimes
+
+If/when Microsoft Foundry Agent Service tooling matches your needs in your tenant, you can swap the runner:
+
+- **Foundry Agent Service tools catalog** (documentation indicates an MCP tool exists in the agents API tool catalog for classic agents API):
+    - https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools-classic/overview?view=foundry-classic
+- **Connected agents / workflows** (for multi-agent patterns) may be available depending on API version/tenant rollout:
+    - https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/connected-agents?view=foundry&preserve-view=true
+
+But this is optional and should not gate prototyping.
+
+### D&D 5e Integration: Tool-adapter architecture (runtime-agnostic)
+
+Treat the D&D 5e SRD API as **an external data source**. The stable contract remains your tool surface:
+
+- **Option A (recommended for consistency)**: expose D&D reads as MCP tools (backend MCP server wraps `https://www.dnd5eapi.co/api/2014`).
+- **Option B (acceptable for prototypes)**: let the local website + backend runner call D&D directly as a “tool” (still keep the tool schema stable so you can migrate it behind MCP later).
+
+Either way: game-state reads/writes stay behind your backend boundaries.
+
+See [D&D 5e Agent Architecture](../design-modules/dnd5e-foundry-agent-architecture.md) for the role topology and [MCP Tool Catalog](#mcp-tool-catalog-implemented-today) for what’s already implemented.
 
 ### Mutation Admission Gates (Preview)
 
@@ -55,15 +104,15 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 ## Layered Model
 
-| Layer               | Responsibility                             | Implementation Substrate                                                             |
-| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Presentation        | Player command UI, streaming output        | Static Web App (React)                                                               |
-| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                                               |
-| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                                           |
-| AI Orchestration    | Run agents, call MCP tools, emit proposals | Hosted agent runtime (recommended for launch) or dedicated Functions (queue-trigger) |
-| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                                             |
-| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                                            |
-| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                                                 |
+| Layer               | Responsibility                             | Implementation Substrate                                                                    |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Presentation        | Player command UI, streaming output        | Static Web App (React)                                                                      |
+| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                                                      |
+| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                                                  |
+| AI Orchestration    | Run models, call MCP tools, emit proposals | Local Functions host (prototype) → Azure Functions (production) → hosted runtime (optional) |
+| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                                                    |
+| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                                                   |
+| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                                                        |
 
 ## AI & MCP Stages (High-Level)
 
@@ -153,42 +202,19 @@ Telemetry examples (implemented in shared/backend code, not MCP):
 - `trackAICall(purpose, model, tokens, latency, dims)` — helper used by backend functions
 - `GET /api/telemetry/ai-usage?since=...&eventType=...` — curated aggregate endpoint implemented by backend functions
 
-### classification-mcp (Stage M4 – Enrichment)
+### Planned MCP servers (not implemented here)
 
-Safety & routing support.
+This document intentionally avoids enumerating speculative tool catalogs that will drift.
 
-- `classifyIntent(utterance)` → { intent, confidence }
-- `moderateContent(text)` → { flagged, categories[] }
+High-level planned surfaces include:
 
-### lore-memory-mcp (Stage M4 – Enrichment)
+- intent classification and moderation support
+- lore semantic retrieval
+- proposal (never-direct-write) mutation endpoints
+- offline planning tools
+- advisory analytics
 
-Vector / semantic retrieval over curated lore, quests, factions.
-
-- `semanticSearchLore(query, k)` → [{ id, score, snippet }]
-- `getCanonicalFact(entityId)` → { id, type, fields }
-
-### world-mutation-mcp (Stage M5 – Proposals)
-
-Proposal endpoints (never direct writes):
-
-- `proposeNPCDialogue(npcId, playerId, draftText)` → { status, sanitizedText?, reason? }
-- `proposeQuest(seedSpec)` → { status, questDraft?, issues[] }
-- `enqueueWorldEvent(type, payload)` → { accepted, eventId? }
-    - Note: This enqueues WorldEventEnvelope format (see world-event-contract.md) for queue processing
-
-### simulation-planner-mcp (Optional – offline tooling)
-
-If introduced, this is an **offline** tool for generating multi-step narrative arcs (quest scaffolds, faction beats) with strict gating and audit. It is **not required** for launch and is not intended to drive a live “simulation.”
-
-- `simulateFactionTick(factionId, horizonSteps)`
-- `generateEventArc(seed, constraints)`
-
-### economy-analytics-mcp (Stage M7 – Advisory)
-
-Advisory economic insights.
-
-- `detectAnomalies(range)`
-- `suggestPriceAdjustments(commodityId)`
+Track concrete scope and naming in `../roadmap.md` and the GitHub issues for the relevant milestone.
 
 ## Advisory vs Authoritative Flow
 

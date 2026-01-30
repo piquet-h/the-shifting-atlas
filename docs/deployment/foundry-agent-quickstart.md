@@ -1,8 +1,11 @@
-# Azure Foundry Agent Setup - Quick Start
+# Azure Foundry Agent Setup - Quick Start (Classic Portal)
 
-**Goal**: Create your first D&D 5e-enabled Foundry agent in the Azure AI Foundry portal.
+**Goal**: Create your first D&D 5e-enabled Foundry agent in the Azure AI Foundry **classic portal**.
 
+**Portal Version**: [Microsoft Foundry (classic)](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry?view=foundry-classic)  
 **Time**: ~15 minutes
+
+> **Note**: This guide uses the **classic portal** at [ai.azure.com](https://ai.azure.com). The new portal has different UI elements. See [classic vs new portal differences](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry?view=foundry-classic#microsoft-foundry-portals).
 
 ---
 
@@ -19,9 +22,11 @@
 1. Navigate to https://ai.azure.com
 2. Sign in with your Azure account
 3. Select **The Shifting Atlas** project (or your `foundryProjectName` from Bicep)
-4. You should see:
-    - **Connections**: MCP server connection already configured
-    - **Model deployments**: GPT-4, GPT-4o-mini (if enabled in Bicep)
+4. What you see depends on tenant rollout and portal/API version. In particular:
+    - You may **not** see a “Connections” experience.
+    - You may or may not see UI affordances to wire custom tools.
+
+If your goal is rapid prototyping, you can skip Foundry entirely and use the **local website + backend runner + MCP** approach described in `../architecture/agentic-ai-and-mcp.md`.
 
 ---
 
@@ -55,7 +60,7 @@ You retrieve D&D 5e monster statistics from the official SRD API and provide cre
 
 ## Available Tools
 
-You have access to HTTP functions that call the D&D 5e API:
+You have access to MCP tools that call the D&D 5e API:
 
 - **Get monster by name/slug** (e.g., "goblin", "ancient-red-dragon")
 - **Search monsters by challenge rating**
@@ -96,14 +101,60 @@ Narrative hook: 'Three pairs of yellow eyes gleam from the underbrush. The large
 
 ```
 
-### 2.3 Add HTTP Functions as Tools
+### 2.3 Configure Tools (Via SDK)
 
-1. In the agent editor, scroll to **Tools** section
-2. Click **Add Function** (not "Add Connection")
-3. If prompted, authorize the agent to call HTTP endpoints
-4. The D&D 5e API endpoints will be available via Azure Functions that wrap the public API
+**Reality check**: Portal UI capability for custom tools can vary. If you can’t wire tools in the portal, don’t block on it.
 
-**Note**: For the initial setup, the agent can work without backend tools by using general knowledge. Backend D&D 5e tools will be added in Phase 1 (see architecture doc).
+For prototyping, prefer **local website + backend runner + MCP** (`../architecture/agentic-ai-and-mcp.md`).
+
+If you still want to try Foundry as a hosted runtime later, the stable integration options are:
+
+- **OpenAPI 3.0 tool** (explicit schema)
+- **Azure Functions tool** (managed)
+- **MCP tool** (if available/usable in your tenant/API version)
+
+#### Option A: Use SDK to add tools (optional)
+
+```python
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
+import os
+
+client = AIProjectClient.from_connection_string(
+    credential=DefaultAzureCredential(),
+    conn_str=os.environ["PROJECT_CONNECTION_STRING"]
+)
+
+# Create or update agent with MCP tools
+agent = client.agents.create(
+    model="gpt-4o-mini",
+    name="bestiary",
+    instructions="""You are the Bestiary Agent for The Shifting Atlas...""",
+    # Tools wiring depends on which tool types are available in your tenant/API version.
+)
+
+print(f"Agent created: {agent.id}")
+```
+
+#### Option B: Use Portal UI (Limited to Built-In Tools)
+
+If creating agents in the portal playground:
+
+1. Navigate to **Agents** in left nav
+2. Click **Create Agent** or select existing agent
+3. In agent configuration, find **Tools** section
+4. Available built-in tools:
+    - ✅ Code Interpreter
+    - ✅ File Search
+    - ✅ Bing Grounding
+    - ✅ Azure AI Search
+5. **Not available**: Generic HTTP, MCP visual configuration
+
+**Note**: For D&D 5e API access, you must either:
+
+- Use SDK to configure MCP tools (recommended)
+- Create Azure Functions that wrap the D&D API
+- Use OpenAPI 3.0 specification
 
 ---
 
@@ -139,154 +190,30 @@ Narrative hook: 'Three pairs of yellow eyes gleam from the underbrush. The large
 
 ---
 
-## Step 4: Create MCP Tools (Backend Implementation)
+## Step 4: Wire tools (optional, tenant-dependent)
 
-Now create the backend MCP tools that the agent will call.
+Tool wiring in the classic portal can vary by tenant/API version.
 
-### 4.1 Create Tool Handler
+- If you can wire tools in your portal/SDK, treat tool contracts as an **implementation detail** and keep them aligned with the MCP tool surface described in `../architecture/agentic-ai-and-mcp.md`.
+- If you can’t wire tools in Foundry yet, do **not** block: prototype with the **local website + backend runner + MCP** approach (also in `../architecture/agentic-ai-and-mcp.md`).
 
-File: `backend/src/functions/mcp/tools/dnd5e/getDnd5eMonster.ts`
-
-```typescript
-import { type MCPTool } from '../../../../types/mcp.js'
-
-export const getDnd5eMonsterTool: MCPTool = {
-    name: 'dnd5e-get-monster',
-    description: 'Fetch D&D 5e monster stat block by slug',
-    inputSchema: {
-        type: 'object',
-        properties: {
-            slug: {
-                type: 'string',
-                description: 'Monster slug (e.g., "goblin", "ancient-red-dragon")'
-            }
-        },
-        required: ['slug']
-    }
-}
-
-export async function handleGetDnd5eMonster(args: { slug: string }) {
-    const DND5E_API_BASE = 'https://www.dnd5eapi.co/api/2014'
-
-    // TODO: Add caching layer (Redis or in-memory)
-    const response = await fetch(`${DND5E_API_BASE}/monsters/${args.slug}`)
-
-    if (!response.ok) {
-        throw new Error(`D&D API error: ${response.status} ${response.statusText}`)
-    }
-
-    const monster = await response.json()
-
-    // Transform to simplified schema
-    return {
-        name: monster.name,
-        slug: args.slug,
-        size: monster.size,
-        type: monster.type,
-        alignment: monster.alignment,
-        ac: monster.armor_class[0]?.value || 10,
-        hp: monster.hit_points,
-        speed: monster.speed,
-        actions:
-            monster.actions?.map((action: any) => ({
-                name: action.name,
-                attackBonus: action.attack_bonus,
-                damage: action.damage?.map((d: any) => d.damage_dice).join(', ')
-            })) || []
-    }
-}
-```
-
-### 4.2 Register Tool
-
-File: `backend/src/functions/mcp/McpServer.ts`
-
-```typescript
-import { getDnd5eMonsterTool, handleGetDnd5eMonster } from './tools/dnd5e/getDnd5eMonster.js'
-
-// In tools array
-const tools = [
-    // ... existing tools
-    getDnd5eMonsterTool
-]
-
-// In tool handler switch
-case 'dnd5e-get-monster':
-    return await handleGetDnd5eMonster(params.arguments)
-```
+This guide intentionally does not include backend implementation code for MCP tools (those details belong with the backend source and the architecture doc).
 
 ---
 
-## Step 5: Deploy & Test End-to-End
+## Step 5: Verify MCP connectivity (recommended)
 
-### 5.1 Deploy Backend
+Before debugging agent behavior, verify the MCP endpoint works directly.
 
-```bash
-cd backend
-npm run build
-func azure functionapp publish func-atlas
-```
-
-### 5.2 Test MCP Tool Directly
-
-```bash
-# Get MCP function key
-key=$(az functionapp keys list -g rg-atlas-game -n func-atlas \
-  --query "systemKeys.mcp_extension" -o tsv)
-
-# Test tool invocation
-curl -X POST "https://func-atlas.azurewebsites.net/runtime/webhooks/mcp?code=$key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "test-1",
-    "method": "tools/call",
-    "params": {
-      "name": "dnd5e-get-monster",
-      "arguments": { "slug": "goblin" }
-    }
-  }'
-```
-
-**Expected Response**:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": "test-1",
-  "result": {
-    "name": "Goblin",
-    "ac": 15,
-    "hp": 7,
-    ...
-  }
-}
-```
-
-### 5.3 Test via Foundry Agent
-
-1. Return to Foundry portal → **Agents** → **bestiary**
-2. **Connections** → Enable **dnd5e-get-monster** tool
-3. **Test**: `What are the stats for a goblin?`
-4. Agent should now successfully fetch and return monster data
+See `docs/deployment/foundry-setup-checklist.md` for a tested MCP curl example and expected shape.
 
 ---
 
-## Step 6: Create Combat Resolver Agent (Advanced)
+## Step 6: Next: add more roles (optional)
 
-Once you've validated the Bestiary agent works, create a second agent:
+When you expand beyond read-only lookups, add additional roles (combat, spells, loot) per `../design-modules/dnd5e-foundry-agent-architecture.md`.
 
-### Agent Configuration
-
-- **Name**: `combat-resolver`
-- **Model**: `gpt-4` (reasoning-heavy for tactical decisions)
-- **System Instructions**: (See design doc for full prompt)
-
-### Key Differences from Bestiary
-
-1. **Writes State**: Calls `world-update-entity-state` to persist HP changes
-2. **Dice Rolling**: Implements d20 rolls and damage calculation
-3. **Multi-Tool**: Calls both `dnd5e-get-monster` AND `world-get-player-state`
+Foundry is optional here: backend orchestration (local/prod) remains the recommended path for stateful workflows.
 
 ---
 
@@ -298,9 +225,9 @@ Once you've validated the Bestiary agent works, create a second agent:
 
 **Fix**:
 
-1. Check `backend/src/functions/mcp/McpServer.ts` tool registration
-2. Verify deployment: `func azure functionapp list-functions func-atlas`
-3. Test MCP endpoint directly (see Step 5.2)
+1. Confirm the MCP endpoint is reachable and responds to a known tool (e.g., `get-location-context`).
+2. Confirm your agent runtime is configured to use that MCP endpoint.
+3. If you’re using Foundry, verify tool wiring via SDK (portal UI may not expose it).
 
 ### Agent Times Out
 
