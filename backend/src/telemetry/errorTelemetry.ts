@@ -211,22 +211,8 @@ export function buildErrorAttributes(error: ErrorDetails, httpStatus?: number): 
  * @param error - Error details to record
  * @param properties - Base telemetry properties object (will be mutated with error attributes)
  * @returns Result indicating whether error was recorded and the attributes applied
- *
- * @example
- * ```typescript
- * const ctx = { correlationId: 'abc-123', httpStatus: 400 }
- * const props = { requestId: 'req-1' }
- * const result = recordError(ctx, { code: 'ValidationError', message: 'Invalid input' }, props)
- * // props now contains game.error.code, game.error.message, game.error.kind
- * // result.recorded === true
- *
- * // Second call with same context is ignored (first-wins)
- * const result2 = recordError(ctx, { code: 'AnotherError', message: 'Another issue' }, props)
- * // result2.recorded === false (first error wins)
- * ```
  */
 export function recordError(context: ErrorRecordingContext, error: ErrorDetails, properties: Record<string, unknown>): RecordErrorResult {
-    // Duplicate prevention: first error wins
     if (context.errorRecorded) {
         return {
             recorded: false,
@@ -234,16 +220,12 @@ export function recordError(context: ErrorRecordingContext, error: ErrorDetails,
         }
     }
 
-    // Build normalized error attributes
     const attrs = buildErrorAttributes(error, context.httpStatus)
 
-    // Enrich properties with error attributes (handles truncation)
     enrichNormalizedErrorAttributes(properties, attrs)
 
-    // Mark context as having recorded an error
     context.errorRecorded = true
 
-    // Merge any additional properties
     if (error.properties) {
         Object.assign(properties, error.properties)
     }
@@ -276,5 +258,4 @@ export function createErrorRecordingContext(correlationId: string, httpStatus?: 
     }
 }
 
-// Re-export telemetry constants for convenience
 export { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'

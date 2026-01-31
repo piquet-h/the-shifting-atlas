@@ -10,44 +10,17 @@ The location edge management system provides structured creation, removal, and a
 
 ### 1. Bidirectional Exit Creation
 
-Create exits between locations with optional automatic reciprocal edges:
+Create exits between locations with optional reciprocal edges.
 
-```typescript
-import { getLocationRepository } from '@atlas/shared'
+Authoritative references:
 
-const repo = await getLocationRepository()
-
-// Simple one-way exit
-await repo.ensureExitBidirectional('location-a', 'north', 'location-b', {
-    reciprocal: false,
-    description: 'A narrow path leads north'
-})
-
-// Bidirectional exit (creates both directions)
-await repo.ensureExitBidirectional('location-a', 'north', 'location-b', {
-    reciprocal: true,
-    description: 'A wide road extends north',
-    reciprocalDescription: 'A wide road extends south'
-})
-```
-
-**Returns:**
-
-```typescript
-{
-    created: boolean,           // true if forward exit was new
-    reciprocalCreated?: boolean // true if reverse exit was new (when reciprocal=true)
-}
-```
+- Interface: `backend/src/repos/locationRepository.ts`
+- Implementations: `backend/src/repos/locationRepository.memory.ts`, `backend/src/repos/locationRepository.cosmos.ts`
+- Contract coverage: `backend/test/integration/edgeManagement.test.ts`
 
 ### 2. Exit Removal
 
-Remove exit edges with automatic telemetry:
-
-```typescript
-const result = await repo.removeExit('location-a', 'north')
-// Returns: { removed: boolean }
-```
+Remove exit edges idempotently (returns `{ removed: false }` when absent).
 
 **Behavior:**
 
@@ -57,22 +30,7 @@ const result = await repo.removeExit('location-a', 'north')
 
 ### 3. Batch Exit Provisioning
 
-Create multiple exits efficiently:
-
-```typescript
-const result = await repo.applyExits([
-    { fromId: 'village-square', direction: 'north', toId: 'inn', reciprocal: true },
-    { fromId: 'village-square', direction: 'east', toId: 'market', reciprocal: true },
-    { fromId: 'inn', direction: 'up', toId: 'inn-room', reciprocal: false }
-])
-
-console.log(result)
-// {
-//   exitsCreated: 5,        // Forward exits created
-//   exitsSkipped: 0,        // Exits that already existed
-//   reciprocalApplied: 4    // Reverse exits created
-// }
-```
+Batch operations are supported for seed/migration flows; see the repository interface and its tests for the current input/metrics shape.
 
 ### 4. Consistency Scanning
 
@@ -96,36 +54,10 @@ npm run scan:graph-consistency -- --output=report.json
 - `1` - Dangling exits or missing reciprocal exits detected
 - `2` - Fatal error during scan
 
-**Output:**
+The output schema is owned by the scanner implementation; prefer inspecting the script and tests when updating consumers:
 
-```json
-{
-    "scannedAt": "2025-01-15T10:30:00.000Z",
-    "summary": {
-        "totalLocations": 42,
-        "totalExits": 87,
-        "danglingExitsCount": 0,
-        "orphanLocationsCount": 1,
-        "missingReciprocalCount": 2
-    },
-    "danglingExits": [],
-    "orphanLocations": [
-        {
-            "id": "abandoned-tower",
-            "name": "Forgotten Tower",
-            "tags": ["ruins", "isolated"]
-        }
-    ],
-    "missingReciprocalExits": [
-        {
-            "fromLocationId": "forest-clearing",
-            "toLocationId": "dark-cave",
-            "direction": "north",
-            "expectedReverseDirection": "south"
-        }
-    ]
-}
-```
+- Script: `scripts/scan-exits-consistency.mjs`
+- Backend helper: `backend/test/helpers/seedTestWorld.ts` (seed patterns)
 
 **Note:** Intentional one-way passages (e.g., trapdoors, waterfalls) will appear as missing reciprocals. The scanner surfaces potential issues for developer review without auto-fixing. A future metadata flag (`reciprocal: false` on exit edge) may be used to suppress warnings for explicitly one-way passages.
 
@@ -133,13 +65,7 @@ npm run scan:graph-consistency -- --output=report.json
 
 ### Opposite Direction Mapping
 
-```typescript
-import { getOppositeDirection } from '@atlas/shared'
-
-const opposite = getOppositeDirection('north') // 'south'
-const opposite = getOppositeDirection('up') // 'down'
-const opposite = getOppositeDirection('in') // 'out'
-```
+See the canonical direction utilities in `shared/` (and their tests) rather than duplicating mappings in docs.
 
 **Full Mapping:**
 
@@ -204,64 +130,17 @@ All edge operations are idempotent:
 
 ## Usage Patterns
 
-### World Generation Script
+Prefer reading the current seed/migration scripts and repository tests for concrete usage patterns:
 
-```typescript
-const exits = [
-    { fromId: 'spawn', direction: 'north', toId: 'forest-path', reciprocal: true },
-    { fromId: 'spawn', direction: 'east', toId: 'village', reciprocal: true },
-    { fromId: 'forest-path', direction: 'north', toId: 'clearing', reciprocal: true }
-]
-
-const metrics = await repo.applyExits(exits)
-console.log(`Created ${metrics.exitsCreated} exits, skipped ${metrics.exitsSkipped}`)
-```
-
-### AI-Generated Exit Proposal
-
-```typescript
-// AI suggests new exit
-const proposal = { from: 'current-location', direction: 'west', to: 'new-ai-location' }
-
-// Create one-way exit initially
-await repo.ensureExitBidirectional(proposal.from, proposal.direction, proposal.to, {
-    reciprocal: false,
-    description: 'A mysterious passage opens to the west'
-})
-
-// Later, if validated, add reciprocal
-await repo.ensureExit(proposal.to, getOppositeDirection(proposal.direction), proposal.from)
-```
-
-### Manual World Editing
-
-```typescript
-// Remove incorrect exit
-await repo.removeExit('broken-location', 'north')
-
-// Replace with correct exit
-await repo.ensureExitBidirectional('broken-location', 'northeast', 'correct-target', {
-    reciprocal: true
-})
-```
+- Seeding scripts: `scripts/seed-anchor-locations.mjs` and related scripts under `scripts/`
+- Repository contract tests: `backend/test/integration/edgeManagement.test.ts`
 
 ## Testing
 
-Comprehensive test coverage in `shared/test/edgeManagement.test.ts`:
+Tests are the authoritative spec for behavior.
 
-- Opposite direction mapping for all 12 directions
-- Exit creation with `created` status detection
-- Idempotent re-creation (no duplicate telemetry)
-- Bidirectional creation with reciprocal tracking
-- Exit removal with proper return values
-- Batch provisioning with accurate metrics
-- Version policy verification (version unchanged on exit changes)
-
-Run tests:
-
-```bash
-npm test
-```
+- Backend integration tests: `backend/test/integration/edgeManagement.test.ts`
+- Shared utilities/tests (directions/auth/etc): `shared/test/**`
 
 ## Future Enhancements
 

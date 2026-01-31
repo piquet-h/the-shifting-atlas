@@ -7,44 +7,28 @@ import type { ITelemetryClient } from './ITelemetryClient.js'
  */
 export class NullTelemetryClient implements ITelemetryClient {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackEvent(telemetry: Contracts.EventTelemetry): void {
-        // no-op
-    }
+    trackEvent(telemetry: Contracts.EventTelemetry): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackException(telemetry: Contracts.ExceptionTelemetry): void {
-        // no-op
-    }
+    trackException(telemetry: Contracts.ExceptionTelemetry): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackMetric(telemetry: Contracts.MetricTelemetry): void {
-        // no-op
-    }
+    trackMetric(telemetry: Contracts.MetricTelemetry): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackTrace(telemetry: Contracts.TraceTelemetry): void {
-        // no-op
-    }
+    trackTrace(telemetry: Contracts.TraceTelemetry): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackDependency(telemetry: Contracts.DependencyTelemetry): void {
-        // no-op
-    }
+    trackDependency(telemetry: Contracts.DependencyTelemetry): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    trackRequest(telemetry: Contracts.RequestTelemetry): void {
-        // no-op
-    }
+    trackRequest(telemetry: Contracts.RequestTelemetry): void {}
 
     addTelemetryProcessor(
         // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
         telemetryProcessor: (envelope: Contracts.Envelope, contextObjects?: { [name: string]: any }) => boolean
-    ): void {
-        // no-op
-    }
+    ): void {}
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    flush(options?: { callback?: (response: string) => void; isAppCrashing?: boolean }): void {
-        // no-op
-    }
+    flush(options?: { callback?: (response: string) => void; isAppCrashing?: boolean }): void {}
 }

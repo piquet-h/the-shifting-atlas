@@ -1,9 +1,8 @@
 import assert from 'node:assert'
+import { execSync } from 'node:child_process'
+import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
-import { execSync } from 'node:child_process'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)

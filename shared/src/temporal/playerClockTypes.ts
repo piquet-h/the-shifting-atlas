@@ -7,26 +7,20 @@
 
 import type { ReconciliationMethod } from '../models/TemporalLedgerEntry.js'
 
-// Re-export ReconciliationMethod for convenience
 export type { ReconciliationMethod }
 
 /**
  * Result of reconciling player clock to a location's world clock anchor
  */
 export interface ReconciliationResult {
-    /** Player clock tick before reconciliation */
     playerTickBefore: number
 
-    /** Player clock tick after reconciliation */
     playerTickAfter: number
 
-    /** World clock tick at location (reconciliation target) */
     worldClockTick: number
 
-    /** Reconciliation method used */
     reconciliationMethod: ReconciliationMethod
 
-    /** Optional narrative text describing time passage (if generated) */
     narrativeText?: string
 }
 

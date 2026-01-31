@@ -17,21 +17,16 @@ Guarantee traversal integrity, idempotent creation/removal, and clear semantics 
 7. Graph Integrity: No dangling exit targets—creation validates destination existence; scanners surface anomalies only (they do not auto-fix).
 8. Independence From Descriptions: Exit addition/removal does not mutate description layers; view composition summarizes current exits separately.
 
-## Minimal Data Shape (Conceptual)
+## Data Model (High-Level)
 
-```
-ExitEdge {
-  from: LocationId
-  to: LocationId
-  direction: CanonicalDirection
-  createdUtc: ISO
-  reciprocal?: boolean // stored as separate edge; this flag purely informational
-  kind?: 'manual' | 'generated' | 'ai'
-  description?: string // optional flavor text (non-canonical navigation logic)
-}
-```
+The exit edge data model is intentionally small and oriented around traversal:
 
-## Creation Flow (Bidirectional Example)
+- from / to location IDs
+- canonical direction
+- timestamps (for auditing)
+- optional provenance (manual/generated) and optional non-authoritative flavor text
+
+## Creation Flow (Bidirectional)
 
 1. Normalize direction.
 2. Check existing forward edge → if present skip forward create.

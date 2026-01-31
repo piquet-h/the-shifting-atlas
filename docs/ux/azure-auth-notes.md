@@ -14,32 +14,12 @@ Useful links
 - Azure AD External Identities overview: https://learn.microsoft.com/azure/active-directory/external-identities/overview
 - Validate JWT tokens and JWKS: https://learn.microsoft.com/azure/active-directory/develop/active-directory-token-and-claims
 
-Static Web App config snippet (staticwebapp.config.json)
+Implementation references
 
-{
-"routes": [
-{
-"route": "/api/\*",
-"allowedRoles": ["authenticated"]
-},
-{
-"route": "/login",
-"redirect": "/.auth/login/aad"
-}
-]
-}
+- Frontend auth hook (reads `/.auth/me`): `frontend/src/hooks/useAuth.tsx`
+- Server-side principal parsing (SWA `x-ms-client-principal`): `shared/src/auth/playerAuth.ts`
 
-Backend tips (Azure Functions)
-
-- Read and decode `x-ms-client-principal` header when present:
-
-    const header = req.headers['x-ms-client-principal'];
-    if (header) {
-    const raw = Buffer.from(header, 'base64').toString('utf8');
-    const principal = JSON.parse(raw);
-    }
-
-- For stricter validation (recommended for high-security ops), validate an Authorization: Bearer <token> JWT against the provider's JWKS endpoint.
+For configuration examples, prefer the official SWA documentation (it stays current as the platform evolves).
 
 Local development
 
@@ -57,27 +37,4 @@ Notes
 
 - This file is intentionally concise — keep it as a reference for developers implementing the flows in `frontend` and `backend`.
 
-Client Hook Example (excerpt from `useAuth`):
-
-```ts
-async function fetchPrincipal(signal?: AbortSignal) {
-    const res = await fetch('/.auth/me', { headers: { 'x-swa-auth': 'true' }, signal })
-    if (!res.ok) return null // anonymous (204/404)
-    const data = await res.json()
-    return data?.clientPrincipal ?? null
-}
-```
-
-Sign-in redirect pattern:
-
-```
-/.auth/login/<provider>?post_login_redirect_uri=/
-```
-
-Sign-out redirect pattern:
-
-```
-/.auth/logout?post_logout_redirect_uri=/
-```
-
-Where `<provider>` can be `aad`, `github`, etc., depending on configured providers.
+Sign-in/sign-out endpoints and provider routing are documented by SWA and implemented in `frontend/src/hooks/useAuth.tsx`.

@@ -23,44 +23,26 @@ const DIRECTION_ORDER: readonly Direction[] = [
 /**
  * Generate a human-readable exits summary from an array of exit edges.
  * Produces deterministic, sorted output suitable for caching.
- *
- * @param exits - Array of ExitEdge objects representing available exits
- * @returns Formatted exits summary string
- *
- * @example
- * generateExitsSummary([
- *   { direction: 'north', fromLocationId: '1', toLocationId: '2', description: 'archway' },
- *   { direction: 'east', fromLocationId: '1', toLocationId: '3' }
- * ])
- * // Returns: "Exits: north (archway), east"
- *
- * @example
- * generateExitsSummary([])
- * // Returns: "No visible exits"
  */
 export function generateExitsSummary(exits: ExitEdge[]): string {
     if (!exits || exits.length === 0) {
         return 'No visible exits'
     }
 
-    // Filter out blocked exits
     const availableExits = exits.filter((exit) => !exit.blocked)
 
     if (availableExits.length === 0) {
         return 'No visible exits'
     }
 
-    // Sort exits by the deterministic direction order
     const sortedExits = [...availableExits].sort((a, b) => {
         const indexA = DIRECTION_ORDER.indexOf(a.direction)
         const indexB = DIRECTION_ORDER.indexOf(b.direction)
-        // If direction not found in order, push to end
         const orderA = indexA === -1 ? DIRECTION_ORDER.length : indexA
         const orderB = indexB === -1 ? DIRECTION_ORDER.length : indexB
         return orderA - orderB
     })
 
-    // Format each exit with optional description (only non-empty descriptions)
     const formattedExits = sortedExits.map((exit) => {
         if (exit.description && exit.description.trim().length > 0) {
             return `${exit.direction} (${exit.description})`
@@ -68,7 +50,6 @@ export function generateExitsSummary(exits: ExitEdge[]): string {
         return exit.direction
     })
 
-    // Construct final summary with proper grammar
     const prefix = availableExits.length === 1 ? 'Exit' : 'Exits'
     return `${prefix}: ${formattedExits.join(', ')}`
 }

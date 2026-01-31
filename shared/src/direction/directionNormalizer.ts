@@ -382,18 +382,6 @@ function buildResolvedResult(
  * - { status: 'ambiguous', clarification: string, ambiguityCount: number } — Multiple semantic matches
  * - { status: 'unknown', clarification: string } — No match found
  *
- * TELEMETRY: Caller should emit Navigation.Input.Parsed event with:
- * - rawInput, status, direction (if ok), ambiguityCount (if ambiguous)
- *
- * EXAMPLES:
- * - normalizeDirection("NORTH") → { status: 'ok', canonical: 'north' }
- * - normalizeDirection("ne") → { status: 'ok', canonical: 'northeast' }
- * - normalizeDirection("wooden_door", undefined, context) → { status: 'ok', canonical: 'north' }
- * - normalizeDirection("door", undefined, context) → { status: 'ambiguous', ambiguityCount: 2 } (if 2 doors)
- * - normalizeDirection("fountain", undefined, context) → { status: 'ok', canonical: 'south' } (landmark)
- * - normalizeDirection("left") → { status: 'ambiguous', clarification: "Requires heading" }
- * - normalizeDirection("left", "north") → { status: 'ok', canonical: 'west' }
- * - normalizeDirection("xyz") → { status: 'unknown', clarification: "Not recognized..." }
  */
 export function normalizeDirection(
     input: string,
@@ -402,7 +390,6 @@ export function normalizeDirection(
 ): DirectionNormalizationResult {
     const trimmed = input.toLowerCase().trim()
 
-    // Empty input
     if (!trimmed) {
         return {
             status: 'unknown',
@@ -410,24 +397,18 @@ export function normalizeDirection(
         }
     }
 
-    // 1. Check if already a canonical direction
     if (isDirection(trimmed)) {
         return buildResolvedResult(trimmed, locationContext)
     }
 
-    // 2. Check shortcuts (n → north, ne → northeast, etc.)
     if (trimmed in DIRECTION_SHORTCUTS) {
         return buildResolvedResult(DIRECTION_SHORTCUTS[trimmed], locationContext)
     }
 
-    // 3. Check semantic exits (N2: names, synonyms, landmark aliases)
-    // Note: Semantic matches are from existing exits, so they always return 'ok'
     const semanticMatches = resolveSemanticExit(trimmed, locationContext)
     if (semanticMatches.length === 1) {
-        // Unambiguous semantic match - exit already exists
         return { status: 'ok', canonical: semanticMatches[0] }
     } else if (semanticMatches.length > 1) {
-        // Ambiguous semantic match
         const directions = semanticMatches.join(', ')
         return {
             status: 'ambiguous',
@@ -436,7 +417,6 @@ export function normalizeDirection(
         }
     }
 
-    // 4. Check relative directions (left/right/forward/back)
     if (isRelativeDirection(trimmed)) {
         if (!lastHeading) {
             return {
@@ -456,7 +436,6 @@ export function normalizeDirection(
         }
     }
 
-    // 5. Try typo tolerance (edit distance ≤1)
     const typoMatch = findTypoMatch(trimmed)
     if (typoMatch) {
         return buildResolvedResult(typoMatch, locationContext, `Interpreted "${input}" as "${typoMatch}".`)

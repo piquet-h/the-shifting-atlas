@@ -5,7 +5,7 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import { PromptTemplateRepository } from '../../src/prompts/PromptTemplateRepository.js'
-import { computeTemplateHash } from '../../src/prompts/hash.js'
+import { computeContentHash } from '../../src/prompts/hash.js'
 
 describe('PromptTemplateRepository', () => {
     describe('getLatest', () => {
@@ -18,7 +18,7 @@ describe('PromptTemplateRepository', () => {
             assert.strictEqual(template.version, '1.0.0')
             assert.ok(template.content.length > 0, 'Content should not be empty')
             assert.ok(template.hash, 'Hash should be present')
-            assert.strictEqual(template.hash, computeTemplateHash(template.content), 'Hash should match content')
+            assert.strictEqual(template.hash, computeContentHash(template.content), 'Hash should match content')
         })
 
         test('returns undefined for unknown template id', async () => {

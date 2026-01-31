@@ -5,18 +5,6 @@
 /**
  * Calculate Levenshtein edit distance between two strings.
  * Used for typo tolerance and fuzzy command matching.
- *
- * ALGORITHM: Dynamic programming matrix approach.
- * TIME COMPLEXITY: O(n*m) where n,m are string lengths.
- * SPACE COMPLEXITY: O(n*m) for matrix storage.
- *
- * @param a First string
- * @param b Second string
- * @returns Edit distance between the strings
- *
- * @example
- * levenshteinDistance("north", "nrth") // 1 (deletion)
- * levenshteinDistance("east", "esst") // 1 (substitution)
  */
 export function levenshteinDistance(a: string, b: string): number {
     if (a.length === 0) return b.length
@@ -53,11 +41,6 @@ export function levenshteinDistance(a: string, b: string): number {
  * @param options List of possible matches
  * @param maxDistance Maximum edit distance to consider (default: 2)
  * @returns Closest matching option or null
- *
- * @example
- * findClosestMatch("ping", ["ping", "look", "move"]) // "ping"
- * findClosestMatch("pong", ["ping", "look", "move"]) // "ping"
- * findClosestMatch("xyz", ["ping", "look", "move"]) // null
  */
 export function findClosestMatch(input: string, options: string[], maxDistance: number = 2): string | null {
     let minDistance = Infinity

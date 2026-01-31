@@ -12,17 +12,6 @@ export interface CommandInputProps {
     commandHistory?: string[]
 }
 
-/**
- * CommandInput
- * Accessible single-line command entry with autocomplete, history navigation, and validation
- * Responsibilities:
- *  - Capture raw command string
- *  - Provide autocomplete dropdown for valid directions
- *  - Enable command history navigation with arrow keys
- *  - Validate commands and provide helpful suggestions
- *  - Provide a11y semantics for busy / error states (parent supplies via props)
- *  - Reset input after successful submission (unless parent overrides by controlling value)
- */
 export default function CommandInput({
     disabled,
     busy,
@@ -40,9 +29,8 @@ export default function CommandInput({
     const [historyIndex, setHistoryIndex] = useState(-1)
     const inputRef = useRef<HTMLInputElement | null>(null)
     const autocompleteRef = useRef<HTMLDivElement | null>(null)
-    const isInvalid = error != null // stable boolean for aria-invalid
+    const isInvalid = error != null
 
-    // Known commands for validation (constants to avoid re-creation)
     const KNOWN_COMMANDS = React.useMemo(() => ['ping', 'look', 'move', 'clear'], [])
     const DIRECTIONS = React.useMemo(
         () => ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out'],
@@ -66,7 +54,6 @@ export default function CommandInput({
         []
     )
 
-    // Validate command and provide suggestions
     function validateCommand(cmd: string): { valid: boolean; suggestion?: string; error?: string } {
         if (!cmd.trim()) {
             return { valid: false, error: 'Enter a command' }
@@ -76,9 +63,7 @@ export default function CommandInput({
         const parts = trimmed.split(/\s+/)
         const command = parts[0]
 
-        // Check if it's a known command
         if (KNOWN_COMMANDS.includes(command)) {
-            // For move command, validate direction
             if (command === 'move') {
                 if (parts.length < 2) {
                     return { valid: false, error: 'Move command requires a direction (e.g., "move north")' }
@@ -95,7 +80,6 @@ export default function CommandInput({
                     }
                 }
 
-                // Check if exit is available
                 if (availableExits.length > 0 && !availableExits.includes(normalizedDir)) {
                     return {
                         valid: true, // Still valid, just not available
@@ -106,7 +90,6 @@ export default function CommandInput({
             return { valid: true }
         }
 
-        // Unknown command - suggest closest match
         const closest = findClosestMatch(command, KNOWN_COMMANDS)
         return {
             valid: false,
@@ -128,12 +111,10 @@ export default function CommandInput({
         const parts = trimmed.split(/\s+/)
         const command = parts[0]
 
-        // Show direction autocomplete for move command
         if (command === 'move' || command === 'm') {
             const directionInput = parts[1] || ''
             const matches = DIRECTIONS.filter((dir) => dir.startsWith(directionInput.toLowerCase()))
 
-            // Prioritize available exits
             const sortedMatches = matches.sort((a, b) => {
                 const aAvailable = availableExits.includes(a)
                 const bAvailable = availableExits.includes(b)
@@ -146,14 +127,12 @@ export default function CommandInput({
                 setAutocompleteOptions(sortedMatches)
                 setShowAutocomplete(true)
             } else if (directionInput === '') {
-                // Show available exits when no direction typed yet
                 setAutocompleteOptions(availableExits.length > 0 ? availableExits : DIRECTIONS)
                 setShowAutocomplete(true)
             } else {
                 setShowAutocomplete(false)
             }
         } else {
-            // Autocomplete for commands
             const matches = KNOWN_COMMANDS.filter((cmd) => cmd.startsWith(command))
             if (matches.length > 0 && matches.length < KNOWN_COMMANDS.length) {
                 setAutocompleteOptions(matches)
@@ -164,7 +143,6 @@ export default function CommandInput({
         }
     }, [value, availableExits, DIRECTIONS, KNOWN_COMMANDS])
 
-    // Handle command history navigation (up/down arrows)
     const handleHistoryNavigation = useCallback(
         (direction: 'up' | 'down') => {
             if (direction === 'up' && commandHistory.length > 0) {
@@ -186,7 +164,6 @@ export default function CommandInput({
         [commandHistory, historyIndex]
     )
 
-    // Handle autocomplete navigation (arrow keys)
     const handleAutocompleteNavigation = useCallback(
         (direction: 'up' | 'down') => {
             if (!showAutocomplete || autocompleteOptions.length === 0) return
@@ -200,7 +177,6 @@ export default function CommandInput({
         [showAutocomplete, autocompleteOptions.length]
     )
 
-    // Handle autocomplete selection (Tab/Enter)
     const handleAutocompleteSelection = useCallback(() => {
         if (!showAutocomplete || selectedOptionIndex === -1) return false
 
@@ -218,9 +194,7 @@ export default function CommandInput({
         return true
     }, [showAutocomplete, selectedOptionIndex, autocompleteOptions, value])
 
-    // Handle keyboard navigation
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-        // Up arrow - navigate command history or autocomplete
         if (e.key === 'ArrowUp') {
             e.preventDefault()
             if (showAutocomplete && autocompleteOptions.length > 0) {
@@ -231,7 +205,6 @@ export default function CommandInput({
             return
         }
 
-        // Down arrow - navigate command history or autocomplete
         if (e.key === 'ArrowDown') {
             e.preventDefault()
             if (showAutocomplete && autocompleteOptions.length > 0) {
@@ -242,20 +215,17 @@ export default function CommandInput({
             return
         }
 
-        // Escape - close autocomplete
         if (e.key === 'Escape') {
             setShowAutocomplete(false)
             setSelectedOptionIndex(-1)
             return
         }
 
-        // Tab or Enter - select autocomplete option
         if ((e.key === 'Tab' || e.key === 'Enter') && handleAutocompleteSelection()) {
             e.preventDefault()
             return
         }
 
-        // Reset history index on any other key
         if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
             setHistoryIndex(-1)
         }
@@ -271,7 +241,6 @@ export default function CommandInput({
             return
         }
 
-        // Validate command
         const validation = validateCommand(value)
         if (!validation.valid && validation.error) {
             setError(validation.error)
@@ -292,14 +261,12 @@ export default function CommandInput({
             const errorMessage = err instanceof Error ? err.message : 'Unknown command error'
             setError(errorMessage)
 
-            // Check if it's a network timeout
             if (errorMessage.toLowerCase().includes('timeout') || errorMessage.toLowerCase().includes('network')) {
                 setSuggestion('Network issue detected. Please try again.')
             }
         }
     }
 
-    // Handle input change
     function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
         setValue(e.target.value)
         setError(null)
@@ -307,7 +274,6 @@ export default function CommandInput({
         setSelectedOptionIndex(-1)
     }
 
-    // Handle autocomplete option click
     function handleAutocompleteClick(option: string) {
         const parts = value.trim().split(/\s+/)
 
@@ -322,7 +288,6 @@ export default function CommandInput({
         inputRef.current?.focus()
     }
 
-    // Close autocomplete when clicking outside
     useEffect(() => {
         function handleClickOutside(e: MouseEvent) {
             if (
@@ -430,6 +395,3 @@ export default function CommandInput({
         </form>
     )
 }
-
-// Imperative ARIA management effect placed after component to keep JSX static.
-// (We attach it inside the component body for access to state.)

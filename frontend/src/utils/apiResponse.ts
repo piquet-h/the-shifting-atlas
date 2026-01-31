@@ -40,18 +40,15 @@ export function extractErrorMessage(
     json: Record<string, unknown>,
     unwrapped: { isEnvelope: boolean; success: boolean; error?: { message?: string } }
 ): string {
-    // Check for rate limit first
     const rateLimitError = handleRateLimitResponse(response, json)
     if (rateLimitError) {
         return rateLimitError
     }
 
-    // Try unwrapped envelope error
     if (unwrapped.error?.message) {
         return unwrapped.error.message
     }
 
-    // Fallback to direct error property
     const fallbackErr = json.error
     if (typeof fallbackErr === 'string') {
         return fallbackErr
@@ -64,6 +61,5 @@ export function extractErrorMessage(
         }
     }
 
-    // Last resort: HTTP status
     return `HTTP ${response.status}`
 }

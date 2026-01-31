@@ -2,7 +2,7 @@
 
 > **Implementation**: `shared/src/direction/directionNormalizer.ts`  
 > **Design**: `docs/concept/direction-resolution-rules.md`  
-> **Status**: Implemented (N1 complete; N2/N3 planned)
+> **Status**: Implemented (canonical, semantic, and relative resolution)
 
 ## Purpose
 
@@ -10,20 +10,14 @@ The direction normalizer provides consistent, fault-tolerant resolution of playe
 
 ## Quick Start
 
-```typescript
-import { normalizeDirection, isCanonicalDirection } from '@piquet-h/shared/direction'
+Use the normalizer directly from the shared package and branch on the returned status.
 
-// Basic usage
-const result = normalizeDirection('n')
-if (result.status === 'ok') {
-    console.log(result.direction) // 'north'
-}
+Implementation references:
 
-// Validation
-if (isCanonicalDirection('northeast')) {
-    // Direction is valid
-}
-```
+- `shared/src/direction/directionNormalizer.ts` (API + behavior)
+- `shared/src/domainModels.ts` (`Direction`, `DIRECTIONS`, and `isDirection()`)
+- `shared/test/directionNormalizer.test.ts` (canonical + relative resolution)
+- `shared/test/directionNormalizerSemantic.test.ts` (semantic exit names + synonyms)
 
 ## API Reference
 
@@ -35,32 +29,20 @@ Normalizes a raw direction input string to a canonical `Direction` value.
 
 - `input` — Raw player input (case-insensitive, whitespace trimmed)
 
-**Returns:** `DirectionResolutionResult`
+**Returns:** a structured result (see `DirectionNormalizationResult` in `shared/src/direction/directionNormalizer.ts`).
 
-```typescript
-type DirectionResolutionResult =
-    | { status: 'ok'; direction: Direction }
-    | { status: 'ambiguous'; candidates: Direction[] }
-    | { status: 'unknown' }
-```
-
-**Resolution Stages (N1):**
+**Resolution stages:**
 
 1. **Exact match** — Input matches canonical direction (case-insensitive)
 2. **Shortcut expansion** — Single-letter shortcuts (`n` → `north`, `ne` → `northeast`)
-3. **Typo tolerance** — Edit distance ≤1 from canonical (e.g., `nrth` → `north`)
-4. **Fallback** — Return `{ status: 'unknown' }` if no match
+3. **Semantic resolution** — Exit names/synonyms/landmark aliases (when location context is provided)
+4. **Relative resolution** — `left|right|forward|back` (when heading is provided)
+5. **Typo tolerance** — Edit distance ≤1 from canonical
+6. **Fallback** — Return `{ status: 'unknown' }` if no match
 
-**Examples:**
+Avoid embedding examples here; the canonical behaviors are asserted in `shared/test/directionNormalizer*.test.ts`.
 
-```typescript
-normalizeDirection('NORTH') // { status: 'ok', direction: 'north' }
-normalizeDirection('ne') // { status: 'ok', direction: 'northeast' }
-normalizeDirection('nrth') // { status: 'ok', direction: 'north' } (typo)
-normalizeDirection('xyz') // { status: 'unknown' }
-```
-
-### `isCanonicalDirection(value: string): boolean`
+### `isDirection(value: string): boolean`
 
 Type guard checking if a string is a valid canonical `Direction`.
 
@@ -70,17 +52,11 @@ Type guard checking if a string is a valid canonical `Direction`.
 
 **Returns:** `true` if value is in canonical direction set, `false` otherwise
 
-**Example:**
-
-```typescript
-if (isCanonicalDirection(userInput)) {
-    // Safe to cast: userInput as Direction
-}
-```
+See `shared/src/domainModels.ts` for the canonical set and type guard.
 
 ## Canonical Direction Set
 
-N1 supports 12 canonical directions (all lowercase):
+There are 12 canonical directions (all lowercase):
 
 | Category | Directions                                         |
 | -------- | -------------------------------------------------- |
@@ -89,125 +65,56 @@ N1 supports 12 canonical directions (all lowercase):
 | Vertical | `up`, `down`                                       |
 | Radial   | `in`, `out`                                        |
 
-**Shortcuts (N1):**
+**Shortcuts:**
 
 - Single-letter: `n`, `s`, `e`, `w`, `u`, `d`
 - Two-letter: `ne`, `nw`, `se`, `sw`
 
 ## Integration Patterns
 
-### HTTP Handler Usage
+Integration notes:
 
-```typescript
-import { normalizeDirection } from '@piquet-h/shared/direction'
-import { trackGameEventStrict } from '../telemetry.js'
-
-export async function HttpMovePlayer(req: HttpRequest, context: InvocationContext) {
-    const rawDirection = req.query.get('direction') || ''
-    const resolution = normalizeDirection(rawDirection)
-
-    // Telemetry (always emit, regardless of outcome)
-    trackGameEventStrict('Navigation.Input.Parsed', {
-        rawInput: rawDirection,
-        status: resolution.status,
-        direction: resolution.status === 'ok' ? resolution.direction : undefined
-    })
-
-    if (resolution.status !== 'ok') {
-        return { status: 400, jsonBody: { error: 'Invalid direction' } }
-    }
-
-    // Proceed with resolution.direction (guaranteed valid)
-    // ...
-}
-```
-
-### Test Usage
-
-```typescript
-import { normalizeDirection } from '@piquet-h/shared/direction'
-import { describe, it, expect } from 'vitest'
-
-describe('Direction normalization', () => {
-    it('resolves shortcuts', () => {
-        expect(normalizeDirection('n')).toEqual({ status: 'ok', direction: 'north' })
-    })
-
-    it('handles typos', () => {
-        expect(normalizeDirection('esst')).toEqual({ status: 'ok', direction: 'east' })
-    })
-
-    it('rejects invalid input', () => {
-        expect(normalizeDirection('invalid')).toEqual({ status: 'unknown' })
-    })
-})
-```
+- Normalize once per request and pass the canonical `Direction` downstream.
+- Treat `ambiguous` as “needs clarification” (UX prompt) rather than guessing.
+- If you have location context (exit names/synonyms) or player heading, pass it to improve resolution.
 
 ## Telemetry Instrumentation
 
-Always emit `Navigation.Input.Parsed` event when normalizing player input:
+Always emit `Navigation.Input.Parsed` when normalizing player input.
 
-```typescript
-trackGameEventStrict('Navigation.Input.Parsed', {
-    rawInput: string,           // Original player input
-    status: 'ok' | 'ambiguous' | 'unknown',
-    direction?: Direction,      // Only if status === 'ok'
-    candidates?: Direction[],   // Only if status === 'ambiguous'
-    latencyMs?: number          // Optional resolution time
-})
-```
+Reference: `docs/observability/telemetry-catalog.md` → `Navigation.Input.Parsed`.
 
 **Purpose:** Track normalization success rate, identify common typos, tune edit distance threshold.
 
-## Extension Points (N2/N3 Planned)
+## Extension points
 
-### N2: Semantic Exit Names
+Semantic exit names and relative directions are implemented; the behavior is covered by:
 
-Extend `normalizeDirection()` to accept location context:
-
-```typescript
-// Future API (not yet implemented)
-normalizeDirection(input, {
-    locationExits: [{ direction: 'north', name: 'wooden_door', synonyms: ['door', 'gate'] }]
-})
-// Input "door" → resolves to 'north' if unambiguous
-```
-
-See issue #33 for N2 implementation plan.
-
-### N3: Relative Directions
-
-Extend to support player heading:
-
-```typescript
-// Future API (not yet implemented)
-normalizeDirection(input, { currentHeading: 'north' })
-// Input "left" → resolves to 'west'
-```
-
-See issue #256 for N3 implementation plan.
+- `shared/test/directionNormalizerSemantic.test.ts`
+- `shared/test/directionNormalizer.test.ts`
 
 ## Error Handling
 
-| Scenario        | Behavior                                     | HTTP Response   |
-| --------------- | -------------------------------------------- | --------------- |
-| Valid direction | Return `{ status: 'ok' }`                    | 200 (proceed)   |
-| Unknown input   | Return `{ status: 'unknown' }`               | 400 Bad Request |
-| Ambiguous (N2+) | Return `{ status: 'ambiguous', candidates }` | 409 Conflict    |
+| Scenario               | Behavior                                                                | HTTP Response   |
+| ---------------------- | ----------------------------------------------------------------------- | --------------- |
+| Valid direction        | Return `{ status: 'ok', canonical }`                                    | 200 (proceed)   |
+| Valid but missing exit | Return `{ status: 'generate', canonical, generationHint }` (if context) | 409 / UX prompt |
+| Ambiguous              | Return `{ status: 'ambiguous', clarification, ambiguityCount? }`        | 409 / UX prompt |
+| Unknown input          | Return `{ status: 'unknown', clarification }`                           | 400 Bad Request |
 
 **Never throw exceptions** — all failure modes return structured results.
 
 ## Performance Considerations
 
-- **Normalization latency:** <1ms for all N1 cases (in-memory operations only)
-- **Cache exits:** If using semantic resolution (N2), cache exit lookups per location
+- **Normalization latency:** <1ms for in-memory cases
+- **Cache exits:** If using semantic resolution, cache exit lookups per location
 - **Avoid repeated calls:** Normalize once per request; pass `Direction` downstream
 
 ## Common Pitfalls
 
 1. **Case sensitivity:** Always use lowercase internally; normalizer handles case conversion
 2. **Whitespace:** Input is trimmed automatically; no need to pre-process
-3. **Type safety:** Don't cast raw strings to `Direction` — use `isCanonicalDirection()` guard
+3. **Type safety:** Don't cast raw strings to `Direction` — use `isDirection()` guard
 4. **Telemetry:** Emit `Navigation.Input.Parsed` even on failure (observability requirement)
 
 ## Testing Checklist
@@ -225,9 +132,7 @@ See issue #256 for N3 implementation plan.
 - [Direction Resolution Rules](../concept/direction-resolution-rules.md) — Normalization invariants (concept facet)
 - [Exit Edge Invariants](../concept/exits.md) — Exit edge invariants (concept facet)
 - [Telemetry Events](../observability.md) — Event catalog
-- Issue #33 — Semantic Exit Names (N2)
-- Issue #256 — Relative Directions (N3)
 
 ---
 
-**Last Updated:** 2025-10-24
+**Last Updated:** 2026-01-30

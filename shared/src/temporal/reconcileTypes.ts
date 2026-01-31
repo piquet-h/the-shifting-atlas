@@ -9,7 +9,6 @@
 
 import type { ReconciliationMethod, ReconciliationResult } from './playerClockTypes.js'
 
-// Re-export for convenience
 export type { ReconciliationMethod, ReconciliationResult }
 
 /**
