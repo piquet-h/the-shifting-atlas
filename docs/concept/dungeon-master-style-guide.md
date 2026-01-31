@@ -119,12 +119,12 @@ Inject persona/tone as structured tags (e.g., `tone: camp_wry`). Rotate one-line
 
 ## Expansion Hooks (Future)
 
-| Hook                | Purpose                            | Phase          |
-| ------------------- | ---------------------------------- | -------------- |
-| Dynamic cadence     | Vary tension pacing                | After baseline |
-| Player style mimic  | Mirror phrasing over time          | Optional later |
-| Emotional variance  | Tag lines with mood                | Post telemetry |
-| Faction lens filter | Bias narration in controlled zones | With factions  |
+| Hook                | Purpose                                                           | Phase          |
+| ------------------- | ----------------------------------------------------------------- | -------------- |
+| Dynamic cadence     | Vary tension pacing                                               | After baseline |
+| Player style mimic  | Mirror phrasing over time (see `./player-interaction-profile.md`) | Optional later |
+| Emotional variance  | Tag lines with mood                                               | Post telemetry |
+| Faction lens filter | Bias narration in controlled zones                                | With factions  |
 
 ## Related Docs
 

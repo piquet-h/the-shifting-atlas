@@ -11,11 +11,13 @@ This module defines how free‑form player text commands ("Defend myself from th
 This module assumes the cross-cutting vocabulary defined in:
 
 - `../concept/interaction-modes-and-canonicality.md`
+- `../concept/player-interaction-profile.md`
 
 In particular:
 
 - Player turns may be rendered as **explicit dialogue** or collapsed into **implicit/fast-forward** outcomes.
 - Only validated state changes are canonical; phrasing, tone, and inferred intent are non-canonical until validated.
+- Observable behavioral signals may be aggregated (over time, with confidence) into a **Player Interaction Profile**.
 
 Key principles:
 

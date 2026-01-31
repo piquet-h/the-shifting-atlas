@@ -19,6 +19,7 @@ This repository is intentionally documentation-heavy. The goal is high fidelity 
 Useful concept entrypoints:
 
 - Interaction modes & canonicality: `concept/interaction-modes-and-canonicality.md`
+- Player interaction profile: `concept/player-interaction-profile.md`
 
 ### I’m implementing runtime code
 
