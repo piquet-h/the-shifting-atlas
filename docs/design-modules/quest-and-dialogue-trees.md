@@ -6,6 +6,7 @@ Concept vocabulary used by this module:
 
 - `../concept/interaction-modes-and-canonicality.md`
 - `../concept/npc-disposition-and-dialogue-collapsing.md`
+- `../concept/memory-stratification.md`
 
 ## 🎯 Vision:
 
