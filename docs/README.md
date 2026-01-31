@@ -24,6 +24,7 @@ Useful concept entrypoints:
 - Memory stratification: `concept/memory-stratification.md`
 - Alignment (declaration & coherence): `concept/alignment-declaration-and-coherence.md`
 - Reward modulation: `concept/reward-modulation.md`
+- Time compression & narrative pacing: `concept/time-compression-and-narrative-pacing.md`
 
 ### I’m implementing runtime code
 

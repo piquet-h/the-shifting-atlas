@@ -36,6 +36,8 @@ Risk Foreshadow: "A chill drafts through the corridor like a librarian shushing 
 
 ### Temporal Transition Narration (World Time Framework)
 
+Pacing vocabulary (role-play vs guided vs fast-forward) is defined in `./time-compression-and-narrative-pacing.md`.
+
 When players experience waiting, idle drift, or temporal reconciliation (see [World Time & Temporal Reconciliation Framework](../design-modules/world-time-temporal-reconciliation.md)), narration should elegantly convey time passage while maintaining immersion and DM voice.
 
 **Guiding Principles**:
