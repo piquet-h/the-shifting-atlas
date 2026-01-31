@@ -2,6 +2,11 @@
 
 > STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No quest state machine, dialogue engine, or NPC memory exists in the code. This spec is a forward-looking design; initial milestone will introduce a single hardcoded dialogue response once location persistence is working.
 
+Concept vocabulary used by this module:
+
+- `../concept/interaction-modes-and-canonicality.md`
+- `../concept/npc-disposition-and-dialogue-collapsing.md`
+
 ## 🎯 Vision:
 
 Similar to the early Legend of Zelda series of text adventures, this game will leverage the Dungeons & Dragons game mechanics and combine it with a free form generative AI based open world adventure, allowing players to drop into the game at any point and leave at any time.

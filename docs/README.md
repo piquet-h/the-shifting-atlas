@@ -20,6 +20,7 @@ Useful concept entrypoints:
 
 - Interaction modes & canonicality: `concept/interaction-modes-and-canonicality.md`
 - Player interaction profile: `concept/player-interaction-profile.md`
+- NPC disposition & dialogue collapsing: `concept/npc-disposition-and-dialogue-collapsing.md`
 
 ### I’m implementing runtime code
 
