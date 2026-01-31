@@ -22,6 +22,7 @@ Useful concept entrypoints:
 - Player interaction profile: `concept/player-interaction-profile.md`
 - NPC disposition & dialogue collapsing: `concept/npc-disposition-and-dialogue-collapsing.md`
 - Memory stratification: `concept/memory-stratification.md`
+- Alignment (declaration & coherence): `concept/alignment-declaration-and-coherence.md`
 
 ### I’m implementing runtime code
 
