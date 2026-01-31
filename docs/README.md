@@ -26,6 +26,7 @@ Useful concept entrypoints:
 - Reward modulation: `concept/reward-modulation.md`
 - Time compression & narrative pacing: `concept/time-compression-and-narrative-pacing.md`
 - Guardrails & failure modes: `concept/guardrails-and-failure-modes.md`
+- Meta design invariant: `concept/meta-design-invariant.md`
 
 ### I’m implementing runtime code
 
