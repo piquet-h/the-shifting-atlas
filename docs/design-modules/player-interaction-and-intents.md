@@ -8,30 +8,39 @@
 
 This module defines how free‑form player text commands ("Defend myself from the dragon while I back out of the cavern and throw a gold coin behind it") are transformed into a structured, ordered, and partially validated set of atomic **Intents**. These intents drive authoritative world actions via the **Backend Function App** (optionally fronted by API Management) with minimal latency suitable for real‑time, conversational play reminiscent of a human Dungeon Master.
 
+This module assumes the cross-cutting vocabulary defined in:
+
+- `../concept/interaction-modes-and-canonicality.md`
+
+In particular:
+
+- Player turns may be rendered as **explicit dialogue** or collapsed into **implicit/fast-forward** outcomes.
+- Only validated state changes are canonical; phrasing, tone, and inferred intent are non-canonical until validated.
+
 Key principles:
 
--   **Freedom First:** Players can mix tactics, narration, humor, and multi‑step plans in one input.
--   **Deterministic Core:** Only validated, canonical intents are persisted as Event vertices; freeform text never directly changes world state.
--   **Edge‑Optimized:** Primary parsing runs client-side (browser model + heuristics) to reduce round trips; backend endpoint adjudicates, clarifies, or escalates.
--   **Progressive Enhancement:** Heuristic + minimal schema first; local LLM extraction and server refinement later.
--   **Auditability:** Every accepted command has a parse artifact (versioned schema + telemetry correlation IDs).
+- **Freedom First:** Players can mix tactics, narration, humor, and multi‑step plans in one input.
+- **Deterministic Core:** Only validated, canonical intents are persisted as Event vertices; freeform text never directly changes world state.
+- **Edge‑Optimized:** Primary parsing runs client-side (browser model + heuristics) to reduce round trips; backend endpoint adjudicates, clarifies, or escalates.
+- **Progressive Enhancement:** Heuristic + minimal schema first; local LLM extraction and server refinement later.
+- **Auditability:** Every accepted command has a parse artifact (versioned schema + telemetry correlation IDs).
 
 ## Scope & Non‑Goals
 
 In Scope (Phase progression):
 
--   Text command ingestion → normalized structured Intents.
--   Ordering & concurrency grouping (e.g., defend + move concurrently, then throw).
--   Ambiguity detection + optional clarifying question generation.
--   Backend contract for submission & clarification loop.
--   Telemetry events and evaluation metrics definitions.
+- Text command ingestion → normalized structured Intents.
+- Ordering & concurrency grouping (e.g., defend + move concurrently, then throw).
+- Ambiguity detection + optional clarifying question generation.
+- Backend contract for submission & clarification loop.
+- Telemetry events and evaluation metrics definitions.
 
 Out of Scope (initial phases):
 
--   Full tactical planning / optimization (deferred AI augmentation).
--   Rich natural language negotiation or multi-turn dialogue memory beyond short context window.
--   Automatic spell or item effect simulation (handled by downstream systems).
--   Voice input / speech recognition (future extension layer).
+- Full tactical planning / optimization (deferred AI augmentation).
+- Rich natural language negotiation or multi-turn dialogue memory beyond short context window.
+- Automatic spell or item effect simulation (handled by downstream systems).
+- Voice input / speech recognition (future extension layer).
 
 ## Conceptual Architecture
 
@@ -39,12 +48,12 @@ Out of Scope (initial phases):
 
 Lightweight shared vocabulary for incremental rollout (not strict milestones):
 
--   PI-0 Seed: Heuristic parsing + minimal schema validation (no LLM required).
--   PI-1 Local Extraction: Add on-device / browser LLM structured extraction with confidence scoring.
--   PI-2 Clarification Loop: Server adjudication + interactive ambiguity resolution.
--   PI-3 Escalated Semantics: Server-side model refinement for multi-step / low-confidence inputs.
--   PI-4 Evaluation Harness: Telemetry-driven precision/recall measurement; automated regression fixtures.
--   PI-5 Optimization: Cost + latency tuning, caching, speculative parsing.
+- PI-0 Seed: Heuristic parsing + minimal schema validation (no LLM required).
+- PI-1 Local Extraction: Add on-device / browser LLM structured extraction with confidence scoring.
+- PI-2 Clarification Loop: Server adjudication + interactive ambiguity resolution.
+- PI-3 Escalated Semantics: Server-side model refinement for multi-step / low-confidence inputs.
+- PI-4 Evaluation Harness: Telemetry-driven precision/recall measurement; automated regression fixtures.
+- PI-5 Optimization: Cost + latency tuning, caching, speculative parsing.
 
 Docs should reference phases sparingly; avoid coupling code paths to numeric labels (use capability flags instead).
 
@@ -89,8 +98,8 @@ To support **character-driven roleplaying** (see [`../concept/character-driven-r
 
 **Fields**:
 
--   `justification`: Player's stated reasoning for why they can perform the action
--   `backgroundReference`: Explicit mention of character background, class, or past experience
+- `justification`: Player's stated reasoning for why they can perform the action
+- `backgroundReference`: Explicit mention of character background, class, or past experience
 
 **Example Parse**:
 
@@ -111,15 +120,15 @@ To support **character-driven roleplaying** (see [`../concept/character-driven-r
 
 **Implementation Notes**:
 
--   Parser should detect phrases like:
-    -   "my experience as a..."
-    -   "from my time as..."
-    -   "having trained in..."
-    -   "my background in..."
-    -   "as a former..."
--   If background reference is extracted, flag the intent for character-driven adjudication
--   AI DM receives this context along with player's stored background metadata
--   No mechanical bonuses applied; purely narrative context for plausibility evaluation
+- Parser should detect phrases like:
+- "my experience as a..."
+- "from my time as..."
+- "having trained in..."
+- "my background in..."
+- "as a former..."
+- If background reference is extracted, flag the intent for character-driven adjudication
+- AI DM receives this context along with player's stored background metadata
+- No mechanical bonuses applied; purely narrative context for plausibility evaluation
 
 **Example with Multiple Intents**:
 
@@ -341,10 +350,10 @@ All events added centrally (extend `telemetryEvents.ts` before implementation; n
 
 ## Implementation Guardrails (When Work Begins)
 
--   No direct world mutations from client parse; server re-validates everything.
--   New verbs require: (1) doc update, (2) telemetry addition, (3) test vectors.
--   Clarification prompts must be deterministic (no model creativity at first) to reduce latency & drift.
--   All telemetry event names added centrally before emission (consistent with existing policy).
+- No direct world mutations from client parse; server re-validates everything.
+- New verbs require: (1) doc update, (2) telemetry addition, (3) test vectors.
+- Clarification prompts must be deterministic (no model creativity at first) to reduce latency & drift.
+- All telemetry event names added centrally before emission (consistent with existing policy).
 
 ## Change Log
 

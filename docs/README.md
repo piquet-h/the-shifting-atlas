@@ -16,6 +16,10 @@ This repository is intentionally documentation-heavy. The goal is high fidelity 
 - Design Module docs (system semantics): `design-modules/`
 - Concept docs (immutable semantics & vocabulary): `concept/`
 
+Useful concept entrypoints:
+
+- Interaction modes & canonicality: `concept/interaction-modes-and-canonicality.md`
+
 ### I’m implementing runtime code
 
 - Architecture overview (high-level, stable): `architecture/overview.md`
