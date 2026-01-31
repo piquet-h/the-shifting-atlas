@@ -503,7 +503,17 @@ Static source of truth: `shared/src/telemetryEvents.ts`. Any addition requires:
 
 1. Justification in PR description (why needed, why existing name insufficient).
 2. Update to this doc (Event Set table) if not obviously derivative.
-3. Passing lint rule (planned regex check: `^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$`).
+
+3. Passing lint rules (implemented):
+
+- `internal/telemetry-event` enforces **both**:
+    - event-name grammar: `Domain[.Subject].Action` (2–3 PascalCase segments)
+    - membership in `GAME_EVENT_NAMES` (derived from `shared/src/telemetryEvents.ts`)
+- `internal/no-direct-track-event` enforces use of the `trackGameEvent*` wrappers rather than calling Application Insights `trackEvent` directly.
+
+These custom rules live under `eslint-rules/` (overview: `eslint-rules/README.md`) and are enabled in the package ESLint configs (`backend/eslint.config.mjs`, `shared/eslint.config.mjs`, `frontend/eslint.config.mjs`).
+
+Note: The membership/grammar check is strongest for **string literals** (it cannot reliably validate dynamically constructed names).
 
 ## Dashboards (Starter Ideas)
 
