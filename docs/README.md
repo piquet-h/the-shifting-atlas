@@ -23,6 +23,7 @@ Useful concept entrypoints:
 - NPC disposition & dialogue collapsing: `concept/npc-disposition-and-dialogue-collapsing.md`
 - Memory stratification: `concept/memory-stratification.md`
 - Alignment (declaration & coherence): `concept/alignment-declaration-and-coherence.md`
+- Reward modulation: `concept/reward-modulation.md`
 
 ### I’m implementing runtime code
 

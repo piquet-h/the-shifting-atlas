@@ -72,7 +72,7 @@ Coherence may influence:
 
 - NPC interpretation and tone
 - Faction/religious standing _as a social consequence_
-- Optional reward modulation (see Idea 6; separate concept/design doc)
+- Optional reward modulation: `./reward-modulation.md`
 
 Coherence must not directly influence:
 
