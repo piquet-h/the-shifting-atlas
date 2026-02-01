@@ -82,22 +82,31 @@ function buildLayerValueOrDefault(
     authoredAt?: string
     effectiveFromTick?: number
     effectiveToTick?: number | null
-    value: string
+    value?: string
     valuePreview: string
     valueLength: number
+    valueTruncated: boolean
 } {
+    const PREVIEW_CHARS = 240
+    const MAX_INLINE_VALUE_CHARS = 512
+
     if (!layer) {
         return {
             present: false,
             layerType,
             defaulted: true,
             value: defaultValue,
-            valuePreview: defaultValue.slice(0, 240),
-            valueLength: defaultValue.length
+            valuePreview: defaultValue.slice(0, PREVIEW_CHARS),
+            valueLength: defaultValue.length,
+            valueTruncated: false
         }
     }
 
     const value = layer.value ?? ''
+
+    // Token-budget hygiene: for very large layer values, omit the full value and
+    // provide only preview + length with an explicit truncation flag.
+    const valueTruncated = value.length > MAX_INLINE_VALUE_CHARS
     return {
         present: true,
         layerType,
@@ -106,9 +115,10 @@ function buildLayerValueOrDefault(
         authoredAt: layer.authoredAt,
         effectiveFromTick: layer.effectiveFromTick,
         effectiveToTick: layer.effectiveToTick,
-        value,
-        valuePreview: value.slice(0, 240),
-        valueLength: value.length
+        value: valueTruncated ? undefined : value,
+        valuePreview: value.slice(0, PREVIEW_CHARS),
+        valueLength: value.length,
+        valueTruncated
     }
 }
 

@@ -224,6 +224,35 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.strictEqual(parsed.lighting.value, 'daylight', 'Should default to daylight')
     })
 
+    test('WorldContext-getAtmosphere truncates large layer values (preview-only)', async () => {
+        const locationRepo = await fixture.getLocationRepository()
+        const layerRepo = await fixture.getLayerRepository()
+        const locationId = STARTER_LOCATION_ID
+
+        await locationRepo.upsert({
+            id: locationId,
+            name: 'Test',
+            description: 'Test',
+            exits: []
+        })
+
+        const huge = 'x'.repeat(5000)
+        await layerRepo.setLayerForLocation(locationId, 'weather', 0, null, huge)
+
+        const context = await fixture.createInvocationContext()
+        const result = await getAtmosphere({ arguments: { locationId, tick: 0 } }, context)
+
+        const parsed = JSON.parse(result)
+        assert.ok(parsed.weather, 'Should have weather layer')
+
+        // Large values must not be emitted in full (token budget + prompt hygiene)
+        assert.strictEqual(parsed.weather.value, undefined, 'Should omit full value for large layers')
+        assert.strictEqual(parsed.weather.valueTruncated, true, 'Should mark large layers as truncated')
+        assert.strictEqual(parsed.weather.valueLength, 5000, 'Should report original length')
+        assert.strictEqual(typeof parsed.weather.valuePreview, 'string', 'Should include valuePreview')
+        assert.strictEqual(parsed.weather.valuePreview.length, 240, 'Preview should be capped to 240 chars')
+    })
+
     test('WorldContext-getSpatialContext returns expected shape', async () => {
         const locationRepo = await fixture.getLocationRepository()
         const locationId = STARTER_LOCATION_ID
