@@ -8,14 +8,25 @@ Keep long‑term truths (invariants, tone, normalization rules, dungeon run inte
 
 ## Contents
 
-| Doc                             | Focus                                             |
-| ------------------------------- | ------------------------------------------------- |
-| `exits.md`                      | Exit edge invariants & traversal expectations     |
-| `direction-resolution-rules.md` | Canonical direction normalization rules           |
-| `dungeons.md`                   | Dungeon run concept (episodic instance rationale) |
-| `dm-persona-parsing.md`         | Humorous action interpretation principles         |
-| `dungeon-master-style-guide.md` | Narration tone & style guide                      |
-| (automation)                    | Issue generation governance (see below)           |
+| Doc                                          | Focus                                                      |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| `interaction-modes-and-canonicality.md`      | Canonical vs non-canonical boundary + interaction modes    |
+| `exits.md`                                   | Exit edge invariants & traversal expectations              |
+| `direction-resolution-rules.md`              | Canonical direction normalization rules                    |
+| `player-interaction-profile.md`              | Aggregate player behavior profile (non-canonical)          |
+| `npc-disposition-and-dialogue-collapsing.md` | NPC interpretation traits + when to collapse dialogue      |
+| `memory-stratification.md`                   | World state vs NPC micro-memory vs ephemeral scene context |
+| `alignment-declaration-and-coherence.md`     | Alignment as declaration + coherence over time             |
+| `reward-modulation.md`                       | Coherence-weighted rewards (bounded, anti-grief)           |
+| `time-compression-and-narrative-pacing.md`   | Role-play vs guided vs fast-forward pacing rules           |
+| `guardrails-and-failure-modes.md`            | Cross-cutting guardrails and safe failure expectations     |
+| `meta-design-invariant.md`                   | The single sentence that governs agency + incentives       |
+| `dungeons.md`                                | Dungeon run concept (episodic instance rationale)          |
+| `dm-persona-parsing.md`                      | Humorous action interpretation principles                  |
+| `dungeon-master-style-guide.md`              | Narration tone & style guide                               |
+| `narration-governance.md`                    | Bounded creativity + layering invariants (concept-level)   |
+| `perception-actions.md`                      | Observation actions and ephemeral sensory hints            |
+| (automation)                                 | Issue generation governance (see below)                    |
 
 ## Boundaries
 
