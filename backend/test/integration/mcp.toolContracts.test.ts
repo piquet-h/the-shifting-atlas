@@ -10,17 +10,18 @@
  * Boundary behavior (auth/throttle) tested in separate mcp.boundary.test.ts
  */
 
-import { randomUUID } from 'crypto'
-import assert from 'node:assert'
-import { afterEach, beforeEach, describe, test } from 'node:test'
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { PlayerDoc } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
 import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { randomUUID } from 'crypto'
+import assert from 'node:assert'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 // Import MCP tool handlers directly for integration testing
+import { getCanonicalFact, searchLore } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
 import {
     getAtmosphere,
     getLocationContext,
@@ -29,7 +30,6 @@ import {
     getSpatialContext,
     health
 } from '../../src/handlers/mcp/world-context/world-context.js'
-import { getCanonicalFact, searchLore } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
 
 describe('MCP Tool Contracts (WorldContext-*)', () => {
     let fixture: IntegrationTestFixture
@@ -78,6 +78,12 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.ok(parsed.tick !== undefined, 'Should have tick field')
         assert.ok(parsed.location, 'Should have location field')
         assert.strictEqual(parsed.location.id, locationId, 'Location ID should match')
+
+        // MCP location payload should be prompt-safe: exits are returned separately.
+        // Avoid including cached human-readable summaries that can confuse the model.
+        assert.strictEqual(parsed.location.exits, undefined, 'Location should not embed exits array')
+        assert.strictEqual(parsed.location.exitsSummaryCache, undefined, 'Location should not embed exitsSummaryCache')
+
         assert.ok(Array.isArray(parsed.exits), 'Should have exits array')
         assert.ok(Array.isArray(parsed.nearbyPlayers), 'Should have nearbyPlayers array')
         assert.ok(Array.isArray(parsed.recentEvents), 'Should have recentEvents array')

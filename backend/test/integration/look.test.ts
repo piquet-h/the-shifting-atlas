@@ -50,6 +50,16 @@ describe('LOOK Command Flow', () => {
             // Should be ordered: north, south, east, up
             assert.equal(summary, 'Exits: north, south, east, up')
         })
+
+        test('ignores exit descriptions (direction-only cache)', () => {
+            const exits: ExitEdgeResult[] = [
+                { direction: 'north', toLocationId: 'loc1', description: 'through the archway' },
+                { direction: 'east', toLocationId: 'loc2', description: 'past the market stalls' }
+            ]
+            const summary = generateExitsSummaryCache(exits)
+            assert.equal(summary, 'Exits: north, east')
+            assert.doesNotMatch(summary, /\(/, 'Summary should not include parenthesized descriptions')
+        })
     })
 
     describe('Location repository - updateExitsSummaryCache', () => {
@@ -75,6 +85,33 @@ describe('LOOK Command Flow', () => {
 
             const result = await repo.updateExitsSummaryCache('nonexistent-id', 'Exits: north')
             assert.equal(result.updated, false, 'Should not update non-existent location')
+        })
+    })
+
+    describe('Location repository - regenerateExitsSummaryCache', () => {
+        test('generates direction-only cache (ignores descriptions)', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            const fromId = STARTER_LOCATION_ID
+            const toId = '11111111-1111-1111-1111-111111111111'
+
+            await repo.upsert({
+                id: toId,
+                name: 'Dest',
+                description: 'Destination',
+                exits: []
+            })
+
+            // Ensure an exit that includes a description
+            await repo.ensureExit(fromId, 'north', toId, 'through a mossy archway')
+
+            // Regenerate cache and verify it does not include descriptions/parentheses
+            await repo.regenerateExitsSummaryCache(fromId)
+            const updated = await repo.get(fromId)
+            assert.ok(updated, 'Location should exist')
+            assert.ok(updated.exitsSummaryCache, 'Cache should exist after regeneration')
+            assert.doesNotMatch(updated.exitsSummaryCache, /\(/, 'Cache should not include parenthesized descriptions')
+            assert.ok(!updated.exitsSummaryCache.includes('through a mossy archway'), 'Cache should not include free-text exit description')
         })
     })
 

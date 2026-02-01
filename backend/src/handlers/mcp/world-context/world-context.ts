@@ -232,6 +232,18 @@ export class WorldContextHandler {
             return JSON.stringify(null)
         }
 
+        // MCP payload hygiene: the Location persistence model can include both `exits` and
+        // `exitsSummaryCache`, but this tool returns exits separately. Including both forms
+        // (structured exits + cached human-readable summary) has been observed to confuse LLMs.
+        // Keep the location object lean and unambiguous for prompt consumption.
+        const locationForPrompt = {
+            id: location.id,
+            name: location.name,
+            description: location.description,
+            tags: location.tags,
+            version: location.version
+        }
+
         const exits = await this.exitRepo.getExits(locationId)
         const realms = await this.realmService.getContainingRealms(locationId)
         const categorized = categorizeRealms(realms)
@@ -263,7 +275,7 @@ export class WorldContextHandler {
 
         return JSON.stringify({
             tick,
-            location,
+            location: locationForPrompt,
             exits,
             realms: categorized,
             narrativeTags,

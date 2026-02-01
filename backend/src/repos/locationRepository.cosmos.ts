@@ -1,9 +1,10 @@
-import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { Direction, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { WORLD_GRAPH_PARTITION_KEY_PROP } from './base/graphPartition.js'
 import { CosmosGremlinRepository } from './base/index.js'
+import { generateExitsSummaryCache } from './exitRepository.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash, firstScalar } from './utils/index.js'
 
@@ -28,17 +29,16 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             { locationId }
         )
 
-        // Convert to ExitEdge format
-        const exits: ExitEdge[] = (exitsRaw || []).map((e: Record<string, unknown>) => ({
-            fromLocationId: locationId,
-            toLocationId: String(e.to as string),
-            direction: String(e.direction as string) as Direction,
-            description: e.description ? String(e.description as string) : undefined,
-            blocked: e.blocked ? Boolean(e.blocked) : undefined
-        }))
+        // Direction-only cache: filter blocked exits and ignore descriptions.
+        // This cache is intended for fast display / hinting, not narrative prose.
+        const exitsForCache = (exitsRaw || [])
+            .filter((e: Record<string, unknown>) => !Boolean(e.blocked))
+            .map((e: Record<string, unknown>) => ({
+                direction: String(e.direction as string) as Direction,
+                toLocationId: String(e.to as string)
+            }))
 
-        // Generate summary
-        const summary = generateExitsSummary(exits)
+        const summary = generateExitsSummaryCache(exitsForCache)
 
         // Update cache
         await this.updateExitsSummaryCache(locationId, summary)

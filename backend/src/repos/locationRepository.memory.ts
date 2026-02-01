@@ -1,7 +1,7 @@
-import { Direction, ExitEdge, generateExitsSummary, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { Direction, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
-import { ExitEdgeResult, IExitRepository, sortExits } from './exitRepository.js'
+import { ExitEdgeResult, generateExitsSummaryCache, IExitRepository, sortExits } from './exitRepository.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash } from './utils/index.js'
 
@@ -24,14 +24,12 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     async regenerateExitsSummaryCache(locationId: string): Promise<void> {
         const location = this.locations.get(locationId)
         if (!location) return
-        const exits: ExitEdge[] =
+        const exits: ExitEdgeResult[] =
             location.exits?.map((e) => ({
-                fromLocationId: locationId,
-                toLocationId: e.to || '',
                 direction: e.direction as Direction,
-                description: e.description
+                toLocationId: e.to || ''
             })) || []
-        location.exitsSummaryCache = generateExitsSummary(exits)
+        location.exitsSummaryCache = generateExitsSummaryCache(exits)
     }
 
     private sortLocationExits(
