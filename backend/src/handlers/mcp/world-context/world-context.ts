@@ -327,9 +327,20 @@ export class WorldContextHandler {
         if (!locationId) {
             warnings.push('player.currentLocationId is empty')
         } else {
-            location = (await this.locationRepo.get(locationId)) ?? null
-            if (!location) {
+            const fullLocation = await this.locationRepo.get(locationId)
+            if (!fullLocation) {
                 warnings.push(`location not found: ${locationId}`)
+                location = null
+            } else {
+                // Keep player-context location prompt-safe and unambiguous.
+                // Exits are available via WorldContext-getLocationContext.
+                location = {
+                    id: fullLocation.id,
+                    name: fullLocation.name,
+                    description: fullLocation.description,
+                    tags: fullLocation.tags,
+                    version: fullLocation.version
+                }
             }
         }
 

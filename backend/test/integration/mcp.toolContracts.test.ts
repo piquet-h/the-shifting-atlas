@@ -174,6 +174,11 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.ok(parsed.player, 'Should have player field')
         assert.strictEqual(parsed.player.id, playerId, 'Player ID should match')
         assert.ok(parsed.location, 'Should have location field')
+
+        // MCP location payload should be prompt-safe (no embedded exits or cached exit summaries).
+        assert.strictEqual(parsed.location.exits, undefined, 'PlayerContext location should not embed exits array')
+        assert.strictEqual(parsed.location.exitsSummaryCache, undefined, 'PlayerContext location should not embed exitsSummaryCache')
+
         assert.ok(Array.isArray(parsed.inventory), 'Should have inventory array')
         assert.strictEqual(parsed.inventory.length, 1, 'Should have 1 item')
         assert.ok(Array.isArray(parsed.recentEvents), 'Should have recentEvents array')
