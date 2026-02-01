@@ -20,6 +20,8 @@ import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
+import type { ILoreRepository } from '../../src/repos/loreRepository.js'
+
 // Import MCP tool handlers directly for integration testing
 import { getCanonicalFact, searchLore } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
 import {
@@ -389,6 +391,44 @@ describe('MCP Tool Contracts (Lore-*)', () => {
         // For now, lore repository is empty in tests, so should return null
         const parsed = JSON.parse(result)
         assert.strictEqual(parsed, null, 'Should return null for non-existent fact')
+    })
+
+    test('Lore-getCanonicalFact truncates large string fields (prompt-safe)', async () => {
+        const container = await fixture.getContainer()
+        const loreRepo = container.get<ILoreRepository>('ILoreRepository')
+
+        // Seed a new version with a very large string field
+        const huge = 'x'.repeat(5000)
+        await loreRepo.createFactVersion(
+            'faction_shadow_council',
+            {
+                name: 'The Shadow Council',
+                description: huge
+            },
+            1
+        )
+
+        const context = await fixture.createInvocationContext()
+        const result = await getCanonicalFact({ arguments: { factId: 'faction_shadow_council' } }, context)
+
+        const parsed = JSON.parse(result)
+        assert.ok(parsed, 'Should return a fact')
+
+        // Embeddings are not useful to the LLM; omit to prevent token bloat
+        assert.strictEqual(parsed.embeddings, undefined, 'Should omit embeddings from MCP output')
+
+        // Large strings in fields must be truncated to a safe maximum
+        assert.ok(parsed.fields, 'Should include fields')
+        assert.strictEqual(typeof parsed.fields.description, 'string', 'description should be a string')
+        assert.strictEqual(parsed.fields.description.length, 512, 'description should be truncated to 512 chars')
+
+        assert.ok(Array.isArray(parsed.fieldTruncations), 'Should include fieldTruncations metadata')
+        assert.ok(
+            parsed.fieldTruncations.some(
+                (t: { path: string; originalLength: number }) => t.path === 'fields.description' && t.originalLength === 5000
+            ),
+            'fieldTruncations should record the truncated path and original length'
+        )
     })
 
     test('Lore-getCanonicalFact with missing factId returns null', async () => {
