@@ -41,9 +41,14 @@ To give every player a **persistent, evolving identity** in the world — one th
 
 ## 3. **Alignment & Moral Consequences**
 
+Concept vocabulary:
+
+- `../concept/alignment-declaration-and-coherence.md`
+
 - **Alignment Tracking**
     - Uses a **D&D-inspired axis** (Lawful–Chaotic, Good–Evil) but with **AI nuance** — actions are judged in context, not just binary.
-    - Alignment shifts can **unlock or lock** certain quests, NPC relationships, and faction memberships.
+    - Alignment is treated as a **declaration** and the system evaluates **coherence over time**; it is not a hard gate that blocks player actions.
+    - Coherence may influence what opportunities emerge (NPC trust, invitations, reputational consequences), rather than explicit “alignment lockouts.”
 - **Moral Weight**
     - AI remembers **key moral decisions** and references them in future encounters.
     - Example: Sparing a defeated enemy might lead to them returning later as an ally — or betraying you.

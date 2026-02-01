@@ -37,6 +37,7 @@ See:
 2. **Parse intent (non-mutating)**
     - Identify the player’s intent category (e.g., navigation, perception, interaction, combat, magic).
     - Determine which authoritative context is required (player state, location state, nearby entities, recent events).
+    - Interaction mode vocabulary (explicit dialogue vs implicit/fast-forward) and canonicality boundary are defined in `../../concept/interaction-modes-and-canonicality.md`.
 
 3. **Fetch authoritative context (read)**
     - Query canonical sources through tools (MCP and/or backend endpoints).

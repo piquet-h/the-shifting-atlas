@@ -4,6 +4,29 @@
 
 > **Note**: This document specifies the **WorldEventEnvelope** contract for queue-based async processing (Service Bus). For the planned SQL API persistence model (WorldEvent interface with status tracking), see `shared/src/domainModels.ts` — that implementation is deferred, but the container is provisioned.
 
+## Two related models: WorldEvent vs WorldEventEnvelope (intentional)
+
+Two distinct WorldEvent-related models exist, on purpose, because they serve different jobs:
+
+1. **WorldEventEnvelope** (ACTIVE; queue contract)
+    - Defined by schema: `shared/src/events/worldEventSchema.ts` (Zod)
+    - Used for: Service Bus transport + processing (`backend/src/functions/queueProcessWorldEvent.ts`)
+    - Optimized for: at-least-once delivery, idempotency collapse, actor + correlation/causation chains
+    - Type system: namespaced types like `Player.Move`, `World.Exit.Create`
+
+2. **WorldEvent** (PLANNED; durable event history)
+    - Defined by type: `shared/src/domainModels.ts`
+    - Intended for: Cosmos SQL API “worldEvents” audit log / replay / admin queries
+    - Optimized for: status tracking (e.g., Pending/Processing/Completed/Failed), retries, and long-lived timelines
+    - Type system: may remain distinct from envelope types (implementation choice), because the durable record is not required to mirror the transport contract 1:1
+
+Why we keep both:
+
+- The **queue envelope** is a transport-and-processing contract; it must be strict, validated, and friendly to deduplication.
+- The **durable record** is an audit/query model; it can evolve with operational needs (queries, replay, diagnostics) without forcing queue-contract churn.
+
+Status note: The SQL container may be provisioned even when the durable WorldEvent persistence layer is deferred; the queue contract remains authoritative for processing.
+
 ## Purpose
 
 Provide a stable envelope + minimal semantic fields for all asynchronous world evolution operations (player actions, NPC ticks, system timers, AI proposals accepted after validation). Ensures idempotency, traceability, and correlation across processors.

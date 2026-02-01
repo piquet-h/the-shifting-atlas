@@ -6,6 +6,10 @@
 
 > Note: This document mixes implemented PI-0 building blocks with aspirational future phases. Execution tracking lives in GitHub issues/epics; treat this as a contract/tradeoff reference rather than a backlog.
 
+Concept vocabulary used by this module:
+
+- `../concept/time-compression-and-narrative-pacing.md`
+
 ---
 
 ## Objectives

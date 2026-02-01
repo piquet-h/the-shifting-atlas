@@ -13,24 +13,8 @@
  *
  * ## Dual WorldEvent Models (Intentional Separation)
  *
- * Two distinct WorldEvent-related models exist for different persistence patterns:
- *
- * 1. **WorldEvent interface (this file)**: PLANNED SQL API persistence model for event history audit/replay.
- *    - Purpose: Long-term event log storage in Cosmos SQL API worldEvents container (not yet implemented)
- *    - Type system: Simple strings ('PlayerMoved', 'LocationDiscovered')
- *    - Features: Status tracking (Pending/Processing/Completed/Failed), retry counters, scheduled execution
- *    - Use case: Future audit log, replay scenarios, compliance/debugging
- *    - Status: Container provisioned in infrastructure, implementation deferred
- *
- * 2. **WorldEventEnvelope (events/worldEventSchema.ts)**: ACTIVE queue contract for async world evolution.
- *    - Purpose: Real-time event processing via Service Bus queues (fully implemented)
- *    - Type system: Namespaced types ('Player.Move', 'World.Exit.Create')
- *    - Features: Zod validation, idempotency keys, actor envelopes, causation chains
- *    - Use case: Async processors, AI/NPC event ingestion, world state mutations
- *    - Status: Operational with queue processor at backend/src/functions/queueProcessWorldEvent.ts
- *
- * See docs/architecture/world-event-contract.md for complete WorldEventEnvelope specification.
- * See docs/ambiguities.md for detailed rationale on dual-model separation.
+ * The rationale and contract-level details for the two-model split live in documentation:
+ * `docs/architecture/world-event-contract.md#two-related-models-worldevent-vs-worldeventenvelope-intentional`
  */
 
 // --- Direction & movement ----------------------------------------------------
