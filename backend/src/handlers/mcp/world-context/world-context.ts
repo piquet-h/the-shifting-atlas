@@ -82,22 +82,31 @@ function buildLayerValueOrDefault(
     authoredAt?: string
     effectiveFromTick?: number
     effectiveToTick?: number | null
-    value: string
+    value?: string
     valuePreview: string
     valueLength: number
+    valueTruncated: boolean
 } {
+    const PREVIEW_CHARS = 240
+    const MAX_INLINE_VALUE_CHARS = 512
+
     if (!layer) {
         return {
             present: false,
             layerType,
             defaulted: true,
             value: defaultValue,
-            valuePreview: defaultValue.slice(0, 240),
-            valueLength: defaultValue.length
+            valuePreview: defaultValue.slice(0, PREVIEW_CHARS),
+            valueLength: defaultValue.length,
+            valueTruncated: false
         }
     }
 
     const value = layer.value ?? ''
+
+    // Token-budget hygiene: for very large layer values, omit the full value and
+    // provide only preview + length with an explicit truncation flag.
+    const valueTruncated = value.length > MAX_INLINE_VALUE_CHARS
     return {
         present: true,
         layerType,
@@ -106,9 +115,10 @@ function buildLayerValueOrDefault(
         authoredAt: layer.authoredAt,
         effectiveFromTick: layer.effectiveFromTick,
         effectiveToTick: layer.effectiveToTick,
-        value,
-        valuePreview: value.slice(0, 240),
-        valueLength: value.length
+        value: valueTruncated ? undefined : value,
+        valuePreview: value.slice(0, PREVIEW_CHARS),
+        valueLength: value.length,
+        valueTruncated
     }
 }
 
@@ -232,6 +242,18 @@ export class WorldContextHandler {
             return JSON.stringify(null)
         }
 
+        // MCP payload hygiene: the Location persistence model can include both `exits` and
+        // `exitsSummaryCache`, but this tool returns exits separately. Including both forms
+        // (structured exits + cached human-readable summary) has been observed to confuse LLMs.
+        // Keep the location object lean and unambiguous for prompt consumption.
+        const locationForPrompt = {
+            id: location.id,
+            name: location.name,
+            description: location.description,
+            tags: location.tags,
+            version: location.version
+        }
+
         const exits = await this.exitRepo.getExits(locationId)
         const realms = await this.realmService.getContainingRealms(locationId)
         const categorized = categorizeRealms(realms)
@@ -263,7 +285,7 @@ export class WorldContextHandler {
 
         return JSON.stringify({
             tick,
-            location,
+            location: locationForPrompt,
             exits,
             realms: categorized,
             narrativeTags,
@@ -315,9 +337,20 @@ export class WorldContextHandler {
         if (!locationId) {
             warnings.push('player.currentLocationId is empty')
         } else {
-            location = (await this.locationRepo.get(locationId)) ?? null
-            if (!location) {
+            const fullLocation = await this.locationRepo.get(locationId)
+            if (!fullLocation) {
                 warnings.push(`location not found: ${locationId}`)
+                location = null
+            } else {
+                // Keep player-context location prompt-safe and unambiguous.
+                // Exits are available via WorldContext-getLocationContext.
+                location = {
+                    id: fullLocation.id,
+                    name: fullLocation.name,
+                    description: fullLocation.description,
+                    tags: fullLocation.tags,
+                    version: fullLocation.version
+                }
             }
         }
 

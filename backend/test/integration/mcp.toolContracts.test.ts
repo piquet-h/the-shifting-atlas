@@ -10,17 +10,20 @@
  * Boundary behavior (auth/throttle) tested in separate mcp.boundary.test.ts
  */
 
-import { randomUUID } from 'crypto'
-import assert from 'node:assert'
-import { afterEach, beforeEach, describe, test } from 'node:test'
-import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { PlayerDoc } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { InventoryItem } from '@piquet-h/shared/types/inventoryRepository'
 import type { WorldEventRecord } from '@piquet-h/shared/types/worldEventRepository'
 import { buildLocationScopeKey } from '@piquet-h/shared/types/worldEventRepository'
+import { randomUUID } from 'crypto'
+import assert from 'node:assert'
+import { afterEach, beforeEach, describe, test } from 'node:test'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
+import type { ILoreRepository } from '../../src/repos/loreRepository.js'
+
 // Import MCP tool handlers directly for integration testing
+import { getCanonicalFact, searchLore } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
 import {
     getAtmosphere,
     getLocationContext,
@@ -29,7 +32,6 @@ import {
     getSpatialContext,
     health
 } from '../../src/handlers/mcp/world-context/world-context.js'
-import { getCanonicalFact, searchLore } from '../../src/handlers/mcp/lore-memory/lore-memory.js'
 
 describe('MCP Tool Contracts (WorldContext-*)', () => {
     let fixture: IntegrationTestFixture
@@ -78,6 +80,12 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.ok(parsed.tick !== undefined, 'Should have tick field')
         assert.ok(parsed.location, 'Should have location field')
         assert.strictEqual(parsed.location.id, locationId, 'Location ID should match')
+
+        // MCP location payload should be prompt-safe: exits are returned separately.
+        // Avoid including cached human-readable summaries that can confuse the model.
+        assert.strictEqual(parsed.location.exits, undefined, 'Location should not embed exits array')
+        assert.strictEqual(parsed.location.exitsSummaryCache, undefined, 'Location should not embed exitsSummaryCache')
+
         assert.ok(Array.isArray(parsed.exits), 'Should have exits array')
         assert.ok(Array.isArray(parsed.nearbyPlayers), 'Should have nearbyPlayers array')
         assert.ok(Array.isArray(parsed.recentEvents), 'Should have recentEvents array')
@@ -168,6 +176,11 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.ok(parsed.player, 'Should have player field')
         assert.strictEqual(parsed.player.id, playerId, 'Player ID should match')
         assert.ok(parsed.location, 'Should have location field')
+
+        // MCP location payload should be prompt-safe (no embedded exits or cached exit summaries).
+        assert.strictEqual(parsed.location.exits, undefined, 'PlayerContext location should not embed exits array')
+        assert.strictEqual(parsed.location.exitsSummaryCache, undefined, 'PlayerContext location should not embed exitsSummaryCache')
+
         assert.ok(Array.isArray(parsed.inventory), 'Should have inventory array')
         assert.strictEqual(parsed.inventory.length, 1, 'Should have 1 item')
         assert.ok(Array.isArray(parsed.recentEvents), 'Should have recentEvents array')
@@ -211,6 +224,35 @@ describe('MCP Tool Contracts (WorldContext-*)', () => {
         assert.strictEqual(parsed.weather.value, 'clear', 'Should default to clear weather')
         assert.strictEqual(parsed.ambient.value, 'calm', 'Should default to calm ambient')
         assert.strictEqual(parsed.lighting.value, 'daylight', 'Should default to daylight')
+    })
+
+    test('WorldContext-getAtmosphere truncates large layer values (preview-only)', async () => {
+        const locationRepo = await fixture.getLocationRepository()
+        const layerRepo = await fixture.getLayerRepository()
+        const locationId = STARTER_LOCATION_ID
+
+        await locationRepo.upsert({
+            id: locationId,
+            name: 'Test',
+            description: 'Test',
+            exits: []
+        })
+
+        const huge = 'x'.repeat(5000)
+        await layerRepo.setLayerForLocation(locationId, 'weather', 0, null, huge)
+
+        const context = await fixture.createInvocationContext()
+        const result = await getAtmosphere({ arguments: { locationId, tick: 0 } }, context)
+
+        const parsed = JSON.parse(result)
+        assert.ok(parsed.weather, 'Should have weather layer')
+
+        // Large values must not be emitted in full (token budget + prompt hygiene)
+        assert.strictEqual(parsed.weather.value, undefined, 'Should omit full value for large layers')
+        assert.strictEqual(parsed.weather.valueTruncated, true, 'Should mark large layers as truncated')
+        assert.strictEqual(parsed.weather.valueLength, 5000, 'Should report original length')
+        assert.strictEqual(typeof parsed.weather.valuePreview, 'string', 'Should include valuePreview')
+        assert.strictEqual(parsed.weather.valuePreview.length, 240, 'Preview should be capped to 240 chars')
     })
 
     test('WorldContext-getSpatialContext returns expected shape', async () => {
@@ -349,6 +391,44 @@ describe('MCP Tool Contracts (Lore-*)', () => {
         // For now, lore repository is empty in tests, so should return null
         const parsed = JSON.parse(result)
         assert.strictEqual(parsed, null, 'Should return null for non-existent fact')
+    })
+
+    test('Lore-getCanonicalFact truncates large string fields (prompt-safe)', async () => {
+        const container = await fixture.getContainer()
+        const loreRepo = container.get<ILoreRepository>('ILoreRepository')
+
+        // Seed a new version with a very large string field
+        const huge = 'x'.repeat(5000)
+        await loreRepo.createFactVersion(
+            'faction_shadow_council',
+            {
+                name: 'The Shadow Council',
+                description: huge
+            },
+            1
+        )
+
+        const context = await fixture.createInvocationContext()
+        const result = await getCanonicalFact({ arguments: { factId: 'faction_shadow_council' } }, context)
+
+        const parsed = JSON.parse(result)
+        assert.ok(parsed, 'Should return a fact')
+
+        // Embeddings are not useful to the LLM; omit to prevent token bloat
+        assert.strictEqual(parsed.embeddings, undefined, 'Should omit embeddings from MCP output')
+
+        // Large strings in fields must be truncated to a safe maximum
+        assert.ok(parsed.fields, 'Should include fields')
+        assert.strictEqual(typeof parsed.fields.description, 'string', 'description should be a string')
+        assert.strictEqual(parsed.fields.description.length, 512, 'description should be truncated to 512 chars')
+
+        assert.ok(Array.isArray(parsed.fieldTruncations), 'Should include fieldTruncations metadata')
+        assert.ok(
+            parsed.fieldTruncations.some(
+                (t: { path: string; originalLength: number }) => t.path === 'fields.description' && t.originalLength === 5000
+            ),
+            'fieldTruncations should record the truncated path and original length'
+        )
     })
 
     test('Lore-getCanonicalFact with missing factId returns null', async () => {

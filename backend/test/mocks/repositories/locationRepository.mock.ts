@@ -1,5 +1,6 @@
-import { Direction, ExitEdge, Location, generateExitsSummary, getOppositeDirection, isDirection } from '@piquet-h/shared'
+import { Direction, Location, getOppositeDirection, isDirection } from '@piquet-h/shared'
 import { injectable } from 'inversify'
+import { generateExitsSummaryCache } from '../../../src/repos/exitRepository.js'
 import { ILocationRepository } from '../../../src/repos/locationRepository.js'
 
 /**
@@ -127,15 +128,14 @@ export class MockLocationRepository implements ILocationRepository {
         const location = this.mockLocations.get(locationId)
         if (!location) return
 
-        const exits: ExitEdge[] =
+        // Direction-only cache (ignore exit descriptions)
+        const exits =
             location.exits?.map((e) => ({
-                fromLocationId: locationId,
-                toLocationId: e.to || '',
                 direction: e.direction as Direction,
-                description: e.description
+                toLocationId: e.to || ''
             })) || []
 
-        location.exitsSummaryCache = generateExitsSummary(exits)
+        location.exitsSummaryCache = generateExitsSummaryCache(exits)
     }
 
     async listAll(): Promise<Location[]> {
