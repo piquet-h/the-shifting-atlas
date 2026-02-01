@@ -144,6 +144,8 @@ The Well-Architected Framework provides five pillars (Reliability, Security, Cos
 
 **Reference**: `docs/architecture/event-classification-matrix.md` (AI flexibility & edge cases)
 
+**See also**: `docs/architecture/lore-storage-growth-and-surfacing.md` (two-layer lore: canonical facts vs narrative corpus)
+
 ---
 
 ## Foundational Decision Tenets (Detailed)

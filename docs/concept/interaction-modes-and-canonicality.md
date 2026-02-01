@@ -46,6 +46,7 @@ Examples:
 
 - Exact dialogue text, NPC phrasing
 - Tone, humor beats, emotional shading
+- Narrative lore artifacts (rumours, legends) that are persistent but non-authoritative
 - Inferred intent (until validated)
 - Summaries of simulated interaction
 
@@ -75,3 +76,4 @@ Common signals (non-exhaustive):
 - Design Module: `../design-modules/player-interaction-and-intents.md` (command parsing and intent extraction)
 - Workflow: `../workflows/foundry/resolve-player-command.md` (single-turn orchestration)
 - Tenets: `../tenets.md` (authority boundary: canonical state vs narration)
+- Architecture: `../architecture/lore-storage-growth-and-surfacing.md` (canon vs narrative corpus)

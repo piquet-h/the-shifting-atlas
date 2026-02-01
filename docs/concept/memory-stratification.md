@@ -9,6 +9,7 @@
 > - NPC disposition: `./npc-disposition-and-dialogue-collapsing.md`
 > - Narration governance: `./narration-governance.md`
 > - Description layering: `../design-modules/description-layering-and-variation.md`
+> - Lore storage & surfacing: `../architecture/lore-storage-growth-and-surfacing.md`
 
 ## Essence
 
@@ -19,6 +20,14 @@ This facet defines a consistent three-tier vocabulary:
 1. **World State** (canonical)
 2. **NPC Micro‑Memory** (subjective, persistent)
 3. **Scene Ephemeral Context** (short-lived)
+
+### Shared narrative artifacts (persistent, non-canonical)
+
+In addition to the three tiers above, the world may maintain **shared narrative artifacts** (a lore corpus): persistent, reviewable story-shaped chunks (rumours, legends, eyewitness accounts) that can be retrieved to enrich dialogue and descriptions.
+
+**Invariant**: Narrative artifacts may be wrong (diegetically) and must not be treated as authoritative world state.
+
+Reference: `../architecture/lore-storage-growth-and-surfacing.md`
 
 ## 1) World state (canonical)
 

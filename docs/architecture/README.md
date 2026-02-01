@@ -15,6 +15,10 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 - `sql-repository-pattern.md` — repository abstraction patterns for Cosmos SQL.
 - `cosmos-database-naming.md` — naming conventions and consistency rules.
 
+## Lore, history, and memory
+
+- `lore-storage-growth-and-surfacing.md` — two-layer lore (canonical facts + narrative corpus), event-backed history, and NPC memory variance.
+
 ## World traversal, exits, and spatial structure
 
 - `world-spatial-generation-architecture.md` — how the spatial world is generated/expanded.

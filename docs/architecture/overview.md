@@ -63,6 +63,9 @@ Stage Roadmap (Milestones):
 
 - `frontend/` – Presentation + minimal command dispatch
 - `backend/` – All HTTP endpoints + asynchronous world evolution (queue-triggered world event processors and queued background work). The system is narration-first (non-simulation): canonical facts are persisted, and narration closes gaps without contradicting canon. See Tenet #7 and the authority boundary in `agentic-ai-and-mcp.md`.
+
+For how canonical facts, event history, and narrative lore artifacts fit together (and how NPCs can remember differently), see `lore-storage-growth-and-surfacing.md`.
+
 - `shared/` (expanding) – Currently exports telemetry events + dual entry points; will accrete graph helpers, validation schemas, and MCP tool type definitions
 
 ### Shared Package Entry Points (Browser vs Backend)

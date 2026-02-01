@@ -39,6 +39,7 @@ Useful concept entrypoints:
 ### I’m working on AI/agents/MCP
 
 - Canonical AI + MCP architecture: `architecture/agentic-ai-and-mcp.md`
+- Lore storage/growth/surfacing (canon + corpus): `architecture/lore-storage-growth-and-surfacing.md`
 - MCP deployment + auth setup: `deployment/mcp-auth-setup.md`
 - Prompt authoring + hygiene: `developer-workflow/lore-authoring.md` and `design-modules/ai-prompt-engineering.md`
 - Foundry workflow sequencing (optional runtime): `workflows/foundry/README.md`

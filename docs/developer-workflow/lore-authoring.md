@@ -6,6 +6,8 @@
 
 Guide for lore maintainers and contributors on creating, editing, and managing canonical world facts in the loreFacts container. All operations support emergent LLM-generated lore while maintaining audit trails and immutability guarantees per version.
 
+Scope note: This document covers **canonical facts** only. For the complementary narrative lore corpus (rumours, legends, story-shaped world memory) and how it is surfaced, see `../architecture/lore-storage-growth-and-surfacing.md`.
+
 ## Core Principles
 
 1. **Immutability per version**: Each version is a separate document with unique Cosmos `id`
@@ -47,18 +49,18 @@ import { v4 as uuidv4 } from 'uuid'
 import type { CanonicalFact } from '@piquet-h/shared'
 
 const newFact: CanonicalFact = {
-  id: uuidv4(),
-  type: 'faction',
-  factId: 'faction_crimson_order',  // Must be unique across all facts
-  fields: {
-    name: 'The Crimson Order',
-    description: 'An ancient brotherhood of knights sworn to protect the realm.',
-    alignment: 'lawful_good',
-    influence: 'continental',
-    headquarters: 'Crimson Keep, Northern Highlands'
-  },
-  version: 1,  // Always start at version 1
-  createdUtc: new Date().toISOString()
+    id: uuidv4(),
+    type: 'faction',
+    factId: 'faction_crimson_order', // Must be unique across all facts
+    fields: {
+        name: 'The Crimson Order',
+        description: 'An ancient brotherhood of knights sworn to protect the realm.',
+        alignment: 'lawful_good',
+        influence: 'continental',
+        headquarters: 'Crimson Keep, Northern Highlands'
+    },
+    version: 1, // Always start at version 1
+    createdUtc: new Date().toISOString()
 }
 
 // Insert via repository (requires write access - not available via MCP read-only tools)
@@ -100,13 +102,13 @@ if (!current) throw new Error('Fact not found')
 
 // 2. Create new version with updated fields
 const updatedFact = await loreRepository.createFactVersion(
-  'faction_shadow_council',
-  {
-    ...current.fields,
-    description: 'Updated: A secretive organization operating from the ruins beneath Mosswell.',
-    influence: 'regional_expanded'  // New field
-  },
-  current.version  // Expected current version for conflict detection
+    'faction_shadow_council',
+    {
+        ...current.fields,
+        description: 'Updated: A secretive organization operating from the ruins beneath Mosswell.',
+        influence: 'regional_expanded' // New field
+    },
+    current.version // Expected current version for conflict detection
 )
 
 // Result:
@@ -236,19 +238,19 @@ npm run lore:version -- --factId faction_shadow_council --version 1
 // 1. Create new fact with new factId (copy fields from latest old version)
 const oldFact = await loreRepository.getFact('faction_shadow_council')
 const newFact: CanonicalFact = {
-  id: uuidv4(),
-  type: oldFact.type,
-  factId: 'faction_shadow_council_v2',  // New factId
-  fields: {
-    ...oldFact.fields,
-    _migration: {
-      previousFactId: 'faction_shadow_council',
-      migratedUtc: new Date().toISOString(),
-      reason: 'Renamed for consistency with naming conventions'
-    }
-  },
-  version: 1,  // Reset to version 1 for new factId
-  createdUtc: new Date().toISOString()
+    id: uuidv4(),
+    type: oldFact.type,
+    factId: 'faction_shadow_council_v2', // New factId
+    fields: {
+        ...oldFact.fields,
+        _migration: {
+            previousFactId: 'faction_shadow_council',
+            migratedUtc: new Date().toISOString(),
+            reason: 'Renamed for consistency with naming conventions'
+        }
+    },
+    version: 1, // Reset to version 1 for new factId
+    createdUtc: new Date().toISOString()
 }
 // await loreRepository.create(newFact)  // Planned
 
@@ -304,13 +306,11 @@ npm run lore:rename -- \
 
 ```typescript
 // Query all development facts (tagged with _dev: true in fields)
-const devFacts = await cosmosContainer.items
-  .query('SELECT c.factId FROM c WHERE c.fields._dev = true')
-  .fetchAll()
+const devFacts = await cosmosContainer.items.query('SELECT c.factId FROM c WHERE c.fields._dev = true').fetchAll()
 
 // Archive each fact
 for (const fact of devFacts) {
-  await loreRepository.archiveFact(fact.factId)
+    await loreRepository.archiveFact(fact.factId)
 }
 ```
 
@@ -359,9 +359,9 @@ const results = await loreRepository.searchFacts('secret organizations', 5)
 ```typescript
 // Compliance: Show all changes to a fact over time
 const history = await loreRepository.listFactVersions('faction_shadow_council')
-history.forEach(v => {
-  console.log(`Version ${v.version}: Created ${v.createdUtc}`)
-  if (v.archivedUtc) console.log(`  Archived: ${v.archivedUtc}`)
+history.forEach((v) => {
+    console.log(`Version ${v.version}: Created ${v.createdUtc}`)
+    if (v.archivedUtc) console.log(`  Archived: ${v.archivedUtc}`)
 })
 ```
 
@@ -384,28 +384,24 @@ Required indexes for efficient queries:
 
 ```json
 {
-  "indexingPolicy": {
-    "includedPaths": [
-      { "path": "/factId/?" },
-      { "path": "/version/?" },
-      { "path": "/archivedUtc/?" },
-      { "path": "/createdUtc/?" }
-    ],
-    "compositeIndexes": [
-      [
-        { "path": "/factId", "order": "ascending" },
-        { "path": "/version", "order": "descending" }
-      ],
-      [
-        { "path": "/type", "order": "ascending" },
-        { "path": "/factId", "order": "ascending" }
-      ]
-    ]
-  }
+    "indexingPolicy": {
+        "includedPaths": [{ "path": "/factId/?" }, { "path": "/version/?" }, { "path": "/archivedUtc/?" }, { "path": "/createdUtc/?" }],
+        "compositeIndexes": [
+            [
+                { "path": "/factId", "order": "ascending" },
+                { "path": "/version", "order": "descending" }
+            ],
+            [
+                { "path": "/type", "order": "ascending" },
+                { "path": "/factId", "order": "ascending" }
+            ]
+        ]
+    }
 }
 ```
 
 **RU Cost Estimates**:
+
 - Latest version query: ~3-5 RU
 - Version history (10 versions): ~5-8 RU
 - Batch retrieval (20 facts): ~50-80 RU
@@ -414,12 +410,12 @@ Required indexes for efficient queries:
 
 ### Common Errors
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| `ConflictError: Version conflict` | Concurrent edit | Refetch current version, merge changes, retry |
-| `Fact not found` | Invalid factId | Verify factId spelling; check if archived |
-| `Validation error: invalid type` | Invalid FactType | Use allowed types: faction, artifact, historical_event, character, location_lore, creature |
-| `Duplicate factId` | factId already exists | Choose unique factId or edit existing fact |
+| Error                             | Cause                 | Resolution                                                                                 |
+| --------------------------------- | --------------------- | ------------------------------------------------------------------------------------------ |
+| `ConflictError: Version conflict` | Concurrent edit       | Refetch current version, merge changes, retry                                              |
+| `Fact not found`                  | Invalid factId        | Verify factId spelling; check if archived                                                  |
+| `Validation error: invalid type`  | Invalid FactType      | Use allowed types: faction, artifact, historical_event, character, location_lore, creature |
+| `Duplicate factId`                | factId already exists | Choose unique factId or edit existing fact                                                 |
 
 ### Debugging Queries
 
@@ -427,19 +423,21 @@ Required indexes for efficient queries:
 // Check if fact exists (including archived)
 const versions = await loreRepository.listFactVersions('faction_unknown')
 if (versions.length === 0) {
-  console.log('Fact never existed')
-} else if (versions.every(v => v.archivedUtc)) {
-  console.log('Fact exists but all versions archived')
+    console.log('Fact never existed')
+} else if (versions.every((v) => v.archivedUtc)) {
+    console.log('Fact exists but all versions archived')
 }
 ```
 
 ## MCP Tool Compatibility
 
 **Read-only access via MCP**:
+
 - `get-canonical-fact`: Returns latest non-archived version
 - `search-lore`: Returns semantic search results (stub; requires embeddings implementation)
 
 **Write operations NOT exposed via MCP**:
+
 - Fact creation, editing, archival require backend access (not available via MCP read-only tools)
 - Rationale: Maintain governance over canonical lore; prevent unauthorized mutations
 
@@ -454,4 +452,4 @@ if (versions.length === 0) {
 
 ---
 
-*Last updated: 2026-01-13 | Versioning strategy implemented per ADR-007*
+_Last updated: 2026-01-13 | Versioning strategy implemented per ADR-007_

@@ -78,6 +78,10 @@ Benefits:
 - Lowers token footprint vs. naive lore dumps.
 - Enables deterministic replay (fact set + template hash reconstructs context).
 
+In addition to canonical facts, the world may maintain a **narrative lore corpus**: persistent story-shaped chunks (rumours, legends, eyewitness accounts) intended for retrieval and voice, not authority. This corpus is explicitly allowed to be biased or wrong (diegetically) and must never override canonical constraints.
+
+Reference: `../architecture/lore-storage-growth-and-surfacing.md`
+
 ### Layered Descriptions (Tokenless, See `description-layering-and-variation.md`)
 
 To maintain authorial control while leveraging generative AI, each Location stores a stable immutable `baseDescription` plus ordered additive layers (`descLayers`). No inline template tokens are required; ambient and faction variation is handled by additive micro‑snippets and structural event layers without rewriting the base.
