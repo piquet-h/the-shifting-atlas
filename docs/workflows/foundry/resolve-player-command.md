@@ -61,6 +61,8 @@ See:
 
     Note: for immersive/cinematic tempo, narration may be delivered in multiple parts (e.g., a fast acknowledgement followed by richer detail) as long as canonical facts are not invented.
 
+    Perception turns (`look`, `examine`) may choose bounded blocking narration generation to produce a single cohesive description (cache-first), provided the turn has no pending canonical writes. On timeout/failure, return a safe fallback and optionally enqueue async enrichment.
+
 6. **Emit observability signals**
     - Ensure the correlation ID is propagated to all downstream tool calls and logged events.
     - Emit a single high-level “command resolved” signal (details are implementation-specific).

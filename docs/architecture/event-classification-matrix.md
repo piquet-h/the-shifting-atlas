@@ -62,7 +62,11 @@ flowchart TD
 
 **Requirement**: HTTP handlers MUST provide immediate feedback (p95 target: <500ms) for the authoritative portion of the turn.
 
-If richer narration is desired (e.g., `look`, `examine`, high-stakes combat narration), it must not block canonical validation/writes. Rich narration may be delivered as staged output or via async enrichment.
+If richer narration is desired (e.g., `look`, `examine`, high-stakes combat narration), it must not block canonical validation/writes.
+
+For **perception actions** (`look`, `examine`) in **Immersive/Cinematic** tempo, it is acceptable to perform **bounded blocking** narration generation (cache-first) _when the turn has no pending canonical writes_. On timeout / throttling / failure, return a safe fallback (base description + minimal acknowledgement) and optionally enqueue async enrichment.
+
+Rich narration may also be delivered as staged output or via async enrichment.
 
 **Enforcement**:
 
