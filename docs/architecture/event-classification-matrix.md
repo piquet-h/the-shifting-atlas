@@ -154,6 +154,86 @@ return immediate200Response()
 - Player history (first-time customer vs regular)
 - Narrative context (tavern is on fire vs peaceful evening)
 
+### Rule 2.5: Intent Persistence vs Narrative Ephemerality
+
+**CRITICAL DISTINCTION**: The game state and the game narrative are separate concerns.
+
+**What MUST be persisted (canonical state)**:
+
+- **Player input**: The exact command/action text (e.g., `"set fire to the forest"`)
+- **Parsed intent**: Structured representation of what the player tried to do:
+    ```json
+    {
+        "verb": "ignite",
+        "method": "tinderbox",
+        "target": { "kind": "location", "id": "forest-clearing" },
+        "resources": [{ "itemId": "tinderbox-abc", "quantity": 1 }],
+        "context": {
+            "playerId": "player-123",
+            "locationId": "forest-clearing",
+            "timestamp": "2025-11-24T12:34:56Z"
+        }
+    }
+    ```
+- **State changes**: Deterministic mutations of world/player state:
+    ```json
+    {
+        "resourcesConsumed": { "tinderbox": { "chargesRemaining": 4 } },
+        "eventTriggered": {
+            "type": "Location.Fire.Started",
+            "locationId": "forest-clearing",
+            "intensity": "moderate"
+        }
+    }
+    ```
+
+**What is EPHEMERAL (regenerated on demand)**:
+
+- **Narrative text**: The linguistic rendering of the state change. Multiple valid narratives can describe the same state:
+    - "You strike the tinderbox. Flames lick hungrily at the dry undergrowth."
+    - "Sparks leap from your tinderbox. The forest erupts in orange flames."
+    - "Your tinderbox catches. Fire spreads across the forest floor."
+      All describe the same state: `{ eventType: Location.Fire.Started, intensity: moderate }`. On replay, a different message is perfectly valid.
+
+**Why This Matters**:
+
+1. **Reproducibility**: Same intent + same world state → same state changes (narration may vary)
+2. **Auditability**: Audit trail shows what player _did_, not what was _said_
+3. **Flexibility**: Narrative can be regenerated with new AI models without breaking determinism
+4. **Prevents Templating**: By persisting intent (not message), we avoid the false choice between "thousands of templates" or "no flexibility"
+
+**Example: "Set fire to forest" reproducibility**:
+
+```typescript
+// Time 1: Player A sets fire (generates message M1)
+const intent = {
+    verb: 'ignite',
+    method: 'tinderbox',
+    target: 'forest-clearing',
+    resources: [{ item: 'tinderbox', quantity: 1 }]
+}
+const state1 = await applyAction(intent, context) // Deterministic
+const message1 = await narrativeEngine.generate(intent, state1) // M1: "You strike the tinderbox..."
+
+// Time 2: Replay same action
+const state2 = await applyAction(intent, context) // SAME state changes
+const message2 = await narrativeEngine.generate(intent, state2) // M2: Could be different narrative
+
+// Invariant: state1 === state2 (reproducible)
+// Variance: message1 !== message2 (creatively flexible, both valid)
+```
+
+**Implication for HTTP Response Latency**:
+
+Since the message is ephemeral, the HTTP handler can:
+
+1. **Validate + apply state changes** synchronously (<100ms)
+2. **Generate and return narrative** with bounded timeout (1-2s for complex actions)
+3. **Fall back gracefully** if narrative generation is slow—return minimal description + async enrichment
+4. The narrative is **never blocking** on persistence; it's just UX flavor
+
+This decouples latency pressure from correctness: the handler doesn't need to persist the message before returning.
+
 ### Rule 3: Personal vs Shared State Updates
 
 **Personal State Changes** (synchronous in HTTP handler):
