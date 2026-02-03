@@ -1,12 +1,12 @@
-# Agent System Instructions Reference (Runtime-agnostic)
+# Agent System Instructions Reference (Foundry-first)
 
 **Purpose**: Copy/paste-ready system instructions (“personas”) for the Shifting Atlas AI roles.
 
-These instructions are intentionally **runtime-agnostic**: you can run them via a local website + backend runner, backend orchestration, or a hosted agent runtime. Tool wiring is an implementation detail.
+These instructions are designed for **Azure AI Foundry hosted agents**. At the contract level they remain runtime-agnostic: the authority boundary and tool allow-lists do not depend on a specific portal UI.
 
 **Last Updated**: 2026-01-30
 
-For architecture context and why we keep the runtime swappable, see `../architecture/agentic-ai-and-mcp.md`.
+For architecture context and the authority boundary, see `../architecture/agentic-ai-and-mcp.md`.
 
 ---
 
@@ -58,7 +58,7 @@ You are the **primary narrator** who:
 
 ## Collaboration
 
-When specialized knowledge is needed, **delegate to the appropriate role** (either by invoking a separate agent in a hosted runtime, or by running a separate model call in the local website + backend runner):
+When specialized knowledge is needed, **delegate to the appropriate role** (by invoking a separate agent in the hosted runtime):
 
 - Combat → `combat-resolver`
 - Spells → `spell-authority`

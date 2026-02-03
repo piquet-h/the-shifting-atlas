@@ -1,10 +1,10 @@
-# D&D 5e API Integration (Agent-runtime agnostic)
+# D&D 5e API Integration (Tool-surface-driven)
 
 **Status**: Design Proposal  
 **Created**: 2026-01-30  
 **Purpose**: Map D&D 5e SRD API endpoints to the Shifting Atlas multi-role architecture (combat, spells, NPCs, monsters) without depending on a specific hosted agent portal/runtime.
 
-> **Note**: Earlier iterations of this doc assumed specific Foundry portal features. In practice, portal capabilities can vary by tenant/API version. This design module therefore treats Foundry as an optional future runtime and keeps the integration **tool-surface-driven**.
+> **Note**: Earlier iterations of this doc assumed specific Foundry portal features. In practice, portal capabilities can vary by tenant/API version. This design module keeps the integration **tool-surface-driven** and avoids portal-specific assumptions.
 
 > Technical wiring details belong in `docs/architecture/` (see `../architecture/agentic-ai-and-mcp.md`).
 
@@ -28,8 +28,8 @@ Integrate D&D 5e System Reference Document (SRD) API into The Shifting Atlas via
 
 **Architecture Decision (2026-01-30)**: **Adapter-first approach** — All D&D access is expressed as tool calls with stable schemas.
 
-- ✅ **Read-only lookups** → D&D adapter tools (can be implemented in a local **server-side** runner, or behind the backend MCP server)
-- ✅ **Stateful operations** → Backend tools only (MCP endpoints) that combine D&D mechanics + world state + telemetry + persistence
+- ✅ **Read-only lookups** → D&D adapter tools exposed via the backend tool surface (MCP/OpenAPI/Azure Functions tool)
+- ✅ **Stateful operations** → Backend-controlled validation + persistence only (never direct world mutation from narration)
 
 ---
 
@@ -177,7 +177,7 @@ Narration exists to explain how a valid outcome occurs, not to make an invalid o
 
 - **SRD reference is advisory**: D&D SRD data informs adjudication, but canonical world state is still Shifting Atlas state.
 - **Read-only vs stateful split**:
-    - read-only SRD lookups can be served from an adapter (runner or backend)
+    - read-only SRD lookups are served via adapters with stable schemas
     - any action that mutates world state must cross the backend validation boundary
 - **No browser secrets**: local website UX must not embed model credentials in client-side code.
 
@@ -188,7 +188,6 @@ For the D&D-specific specialization layer, see: [Agentic AI & MCP (Section C)](.
 ## See also
 
 - `../architecture/agentic-ai-and-mcp.md` (tool surface + orchestration boundaries)
-- `../developer-workflow/local-dev-setup.md` (run the local website + backend)
 
 ## Open Questions
 

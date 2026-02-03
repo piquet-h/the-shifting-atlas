@@ -25,6 +25,57 @@ This facet defines the vocabulary and invariants used across Design Modules and 
 
 **Used when**: the interaction is routine and the branching risk is low.
 
+## Response tempo (presentation)
+
+Interaction mode controls **what** is rendered (explicit dialogue vs collapsed). Response tempo controls **how quickly** and **how richly** the result is presented.
+
+Tempo is a presentation concern: it may change narration length and detail, but it must not change canonical outcomes.
+
+### Snappy
+
+**Definition**: Minimal, immediate feedback. Prefer concise narration and omit optional flourish.
+
+**Used when**:
+
+- player uses shorthand (e.g., `n`, `look`, `inv`)
+- the intent is routine / low-stakes
+- the player has explicitly selected a fast tempo
+
+### Immersive
+
+**Definition**: Full sensory narration appropriate to the action, without inventing canon.
+
+**Used when**:
+
+- perception actions (`look`, `examine`) where immersion is the point
+- the player supplies rich intent (“tiptoe up behind the guard…”) and expects a richer response
+
+Default: in **Auto** tempo, perception actions (`look`, `examine`) default to **Immersive**.
+
+### Cinematic
+
+**Definition**: High-detail narration with a heavier emphasis on pacing and voice.
+
+**Used when**:
+
+- stakes are high (combat, pursuit, discovery)
+- the player explicitly opts in (setting) or their interaction profile strongly indicates it
+
+Default: in **Auto** tempo, high-stakes turns may be upgraded to **Cinematic**.
+
+### Selection sources (preference + inference)
+
+Tempo may be selected from:
+
+- **Explicit player preference** (a setting): should be stable and respected.
+- **Inferred intent cues**: shorthand vs elaborated phrasing, stakes, ambiguity, and the player’s interaction profile.
+
+Example: in combat, a detailed intent (“tiptoe up behind the guard, and try to slit his throat”) is a strong cue for immersive/cinematic narration, while shorthand (“sneak up and attack”) is a cue for snappy tempo.
+
+**Invariant**: inferred tempo must never override an explicit player setting.
+
+If the player has explicitly chosen a tempo (snappy/immersive/cinematic), that setting wins even when a turn would otherwise default differently.
+
 ## Canonical vs non-canonical data
 
 ### Canonical facts (authoritative)
@@ -70,6 +121,8 @@ Common signals (non-exhaustive):
 - A turn may be represented in multiple forms (raw text, parsed intents, summarized dialogue).
 - Only validated canonical deltas may be persisted as canonical facts.
 - Narration may explain outcomes, but must not invent canonical facts.
+
+Additional invariant (tempo): richer tempo may add detail and pacing, but must not imply canonical deltas that were not validated and committed.
 
 ## Related documentation
 

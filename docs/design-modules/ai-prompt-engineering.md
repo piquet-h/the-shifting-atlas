@@ -1,8 +1,50 @@
-# **Design Document: AI Prompt Engineering**
+# AI Prompt Engineering (Design Module)
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No Azure OpenAI integration, prompt construction utilities, or parsing logic exist in the codebase yet. First AI usage will be postponed until core traversal + persistence are functional.
+> Status (2026-02-03): **Foundations implemented** for a versioned prompt registry and deterministic hashing under `shared/src/prompts/`. Hosted agent orchestration and any write/proposal loops remain milestone-scoped (see `docs/roadmap.md`).
 
-> Related: [Navigation & Traversal](navigation-and-traversal.md) · [Quest & Dialogue Trees](quest-and-dialogue-trees.md) · [Extension Framework](extension-framework.md) · [World Rules & Lore](world-rules-and-lore.md)
+This design module defines **how prompts are treated as product assets**: versioned, reviewable, reproducible, and bounded by canonicality rules.
+
+Implementation details (endpoints, caching, validator wiring, hosted runtime specifics) belong in `docs/architecture/` and `docs/workflows/`.
+
+Related:
+
+- Tenets (authority boundary): `../tenets.md` (especially Tenet #7)
+- Canonical single-turn flow: `../workflows/foundry/resolve-player-command.md`
+- MCP tool boundary and catalog: `../architecture/agentic-ai-and-mcp.md`
+
+## MVP-first posture
+
+For the playable MVP loop:
+
+- Prompts are primarily used for **narration and summarization**.
+- Prompts must not be required for the game to function (timeouts/throttling must degrade gracefully).
+- Prompts must not introduce new canonical facts.
+
+When a model output needs to be validated/replayed, treat it as a **structured artifact** (classification/proposal) and run it through deterministic validation gates (schema → safety → invariants → idempotency).
+
+## Prompt assets & contracts
+
+- Prompt templates live in `shared/src/prompts/` and are versioned + hashed.
+- Prompt templates are **not** exposed as MCP servers (reduce attack surface); if external tooling needs access, use curated backend helper endpoints.
+- Prefer tool-first context: structured facts from `WorldContext-*` / `Lore-*` tools over large prose injection.
+
+## Failure modes & graceful degradation
+
+Normal cases include tool timeouts, model timeouts, or safety/validator rejects.
+
+Required behavior:
+
+- deterministic state updates still succeed
+- narration falls back safely without inventing canon
+- optional async enrichment can be queued
+
+See `../concept/guardrails-and-failure-modes.md`.
+
+---
+
+## Appendix: Historical notes (superseded)
+
+The remainder of this document contains earlier exploratory detail. Treat it as **non-authoritative** unless it is explicitly referenced from architecture/workflow docs.
 
 ## **Vision**
 
@@ -14,7 +56,7 @@ The AI Prompt Engineering system constructs, conditions, and parses prompts that
 
 ### MCP Integration (Tool-First Prompt Strategy)
 
-All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Stages M3–M4) tools are read-only (WorldContext-*, Lore-*), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature (Stage M5+). Prompt assembly therefore:
+All runtime context access for agents will occur through **MCP servers** rather than ad-hoc database queries inside prompts. Early (Stages M3–M4) tools are read-only (WorldContext-_, Lore-_), while proposal-style mutation (`world-mutation-mcp`) is introduced only after validators mature (Stage M5+). Prompt assembly therefore:
 
 1. Resolves structured context via tool calls (locations, exits, tags, lore facts).
 2. Compresses and canonicalizes facts (stable IDs, tag arrays) before inclusion.

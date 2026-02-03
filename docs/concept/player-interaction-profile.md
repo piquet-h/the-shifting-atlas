@@ -11,6 +11,21 @@ A **Player Interaction Profile** is a long-lived, aggregate view of _how a playe
 
 It is used to **tune presentation and interpretation** (especially NPC reactions and narration), not to constrain player agency.
 
+## Profile vs explicit preferences
+
+The profile is **observed** (inferred) behavior over time.
+
+Separately, players may have **explicit preferences** (a setting) that control presentation defaults.
+
+Examples of explicit preferences:
+
+- preferred response tempo: snappy vs immersive vs cinematic
+- default verbosity: concise vs longform
+
+**Invariant**: explicit preferences override inferred profile signals.
+
+The system may still infer a "suggested tempo" for a specific turn based on stakes and command detail, but it must remain a suggestion unless the player opts in.
+
 ## What the profile is (and is not)
 
 ### Is
@@ -68,6 +83,12 @@ PlayerInteractionProfile {
 - **Gradual change**: updates are smoothed (rolling average / decay), never spiky.
 - **No update from simulated-only interactions**: if an interaction was resolved via implicit/fast-forward mode with no grounding signals, do not update the profile.
 - **Explainable inputs**: each axis should have a small set of well-defined contributing signals (avoid open-ended freeform tags).
+
+## Tempo/verbosity guardrail
+
+When a player uses shorthand commands, it is often a signal for **snappy** tempo.
+
+Guardrail: shorthand should influence presentation and pacing only; it must not change the canonical outcome set or relax validation requirements.
 
 ## Guardrails
 

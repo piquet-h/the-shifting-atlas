@@ -2,14 +2,12 @@
 
 > **Status** (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `World-*`, `WorldContext-*`, and `Lore-*`). The orchestration layer (agent runner) and any write/proposal MCP surfaces remain planned.
 
-> **Important**: This architecture is intentionally **agent-runtime-agnostic**.
+> **Important**: This architecture is intentionally **agent-runtime-agnostic at the contract level**, but this repo’s execution posture is **Foundry-first**.
 >
-> The MCP server in this repo is real and already works (it’s callable via JSON-RPC over HTTP, as validated by manual calls). What’s been unstable is _which_ hosted “agent product UI” can wire to it in your tenant at any given time.
->
-> This doc therefore separates:
+> The MCP server in this repo is real and already works (it’s callable via JSON-RPC over HTTP, as validated by manual calls). Tool wiring capabilities in portal UIs can vary by tenant/API version, but the runtime target for agent orchestration is:
 >
 > - **The Tool Surface (MCP)**: stable, owned by this repo
-> - **The Agent Runtime**: swappable (prototype: local website + backend runner; hosted options later)
+> - **The Agent Runtime**: **Azure AI Foundry hosted agents** (primary)
 
 ## A. Agentic AI + MCP (domain-agnostic)
 
@@ -40,17 +38,9 @@ Establish a disciplined, tool-centric approach for integrating Large Language Mo
 
 These principles are intended to implement `docs/tenets.md` (especially Security, Reliability, Performance Efficiency, and Narrative Consistency).
 
-#### Launch posture (Prototype-first, runtime-agnostic)
+#### Launch posture (Foundry-first)
 
-For rapid prototyping, do **not** start by committing to any hosted agent portal UI.
-
-Instead, treat this repo’s backend MCP server as the stable “tool layer”, and run a **thin local agent runner** (local website + backend runner) that:
-
-1. Calls the model (chat completions) with tool/function calling enabled
-2. Executes tool calls by invoking MCP JSON-RPC (`tools/call`) against the backend MCP endpoint
-3. Feeds tool results back into the model
-
-This unlocks prototyping immediately (minutes, not days) while keeping the long-term architecture clean.
+Treat this repo’s backend MCP server as the stable “tool layer”, and run agent orchestration in **Azure AI Foundry hosted agents**.
 
 The backend remains the **sole authority** for:
 
@@ -60,33 +50,16 @@ The backend remains the **sole authority** for:
 
 Agents (whatever runtime you use) are **proposal generators**: they suggest narration, layers, or structured changes; they never directly write authoritative state.
 
-##### Local runner = local website execution (recommended)
+##### Primary runtime: Azure AI Foundry hosted agents
 
-For this repo, the most practical “local runner” is:
+Azure AI Foundry is the intended hosted runtime for orchestration and tool use. When portal UI capabilities vary by tenant/API version, prefer reproducible SDK-based configuration.
 
-- **Frontend (local website)**: Vite dev server for the game UI (player input + streaming output)
-- **Backend (local Functions host)**: server-side orchestrator that calls the model + MCP tools
-
-This keeps secrets out of the browser (Security tenet) while giving you a fast feedback loop.
-
-See: `../developer-workflow/local-dev-setup.md`.
-
-##### Why this is the right “un-messy” foundation
-
-- MCP is your owned contract surface.
-- Agent products (and their UI surface area) change quickly.
-- A local runner lets you keep gameplay iteration fast while you wait for a hosted option to stabilize.
-
-##### Optional future: hosted runtimes
-
-If/when Microsoft Foundry Agent Service tooling matches your needs in your tenant, you can swap the runner:
+Relevant references:
 
 - **Foundry Agent Service tools catalog** (documentation indicates an MCP tool exists in the agents API tool catalog for classic agents API):
     - https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools-classic/overview?view=foundry-classic
 - **Connected agents / workflows** (for multi-agent patterns) may be available depending on API version/tenant rollout:
     - https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/connected-agents?view=foundry&preserve-view=true
-
-But this is optional and should not gate prototyping.
 
 ##### D&D 5e integration note
 
@@ -108,15 +81,15 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 ### Layered Model
 
-| Layer               | Responsibility                             | Implementation Substrate                                                                    |
-| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| Presentation        | Player command UI, streaming output        | Static Web App (React)                                                                      |
-| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                                                                      |
-| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)                                                                  |
-| AI Orchestration    | Run models, call MCP tools, emit proposals | Local Functions host (prototype) → Azure Functions (production) → hosted runtime (optional) |
-| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry                                                    |
-| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                                                                   |
-| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables                                                        |
+| Layer               | Responsibility                             | Implementation Substrate                 |
+| ------------------- | ------------------------------------------ | ---------------------------------------- |
+| Presentation        | Player command UI, streaming output        | Static Web App (React)                   |
+| Synchronous API     | Parse & validate player commands           | Backend HTTP Functions                   |
+| Event Bus           | Decouple effects, schedule AI tasks        | Azure Service Bus (future)               |
+| AI Orchestration    | Run models, call MCP tools, emit proposals | Azure AI Foundry hosted agents (primary) |
+| Validation & Policy | Schema, safety, world invariants           | Pure TS modules in `shared/` + telemetry |
+| Persistence         | Graph + auxiliary stores                   | Cosmos DB Gremlin / (SQL)                |
+| Observability       | Metrics, traces, evaluation datasets       | Application Insights + custom tables     |
 
 ### AI & MCP Stages (High-Level)
 

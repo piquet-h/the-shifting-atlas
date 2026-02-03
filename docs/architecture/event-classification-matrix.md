@@ -7,7 +7,14 @@
 
 ## Core Principle
 
-**ALL player actions return immediately via HTTP 200/400/404.**
+**ALL player actions provide immediate feedback** via HTTP 200/400/404.
+
+Immediate feedback means the deterministic, authoritative part of the turn completes quickly (validation + canonical reads/writes). Rich narration may be delivered with adaptive tempo (snappy vs immersive) without blocking canonical state updates.
+
+Defaults (when player setting is **Auto**):
+
+- `look` / `examine` default to **Immersive**.
+- High-stakes turns (combat, pursuit, discovery) may upgrade to **Cinematic**.
 
 **Personal state changes** (move, get item, update inventory) are synchronous: HTTP handler updates SQL/Graph and returns new state.
 
@@ -39,20 +46,23 @@ flowchart TD
 
 **Note**: These are **common patterns** observed in typical gameplay. AI agents may classify edge cases differently based on narrative context.
 
-| Event Category             | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget               | Typical Examples                                        |
-| -------------------------- | -------------- | ----------------------------- | ------------------------ | ---------------------------- | ------------------------------------------------------- |
-| **Personal State Change**  | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                       | Move north, Pick up item, Look around, Check inventory  |
-| **Shared World Effect**    | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s | Set fire to forest, Trigger avalanche, Plant seed       |
-| **NPC Awareness (Basic)**  | Player HTTP    | ✅ Synchronous                | ❌ None                  | <500ms                       | NPC notices player, Guard greeting, Shopkeeper welcome  |
-| **NPC Behavior (Complex)** | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                          | NPC alerts others, Enemy aggro spreads, NPC flees/moves |
-| **System Evolution**       | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                         | Weather change, Day/night cycle, Resource respawn       |
-| **AI Generation**          | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                         | Description enrichment, Dynamic lore, Quest generation  |
+| Event Category             | Trigger Source | SQL/Graph Update              | Queue Event              | Latency Budget                              | Typical Examples                                        |
+| -------------------------- | -------------- | ----------------------------- | ------------------------ | ------------------------------------------- | ------------------------------------------------------- |
+| **Personal State Change**  | Player HTTP    | ✅ Synchronous                | ❌ Usually none          | <500ms                                      | Move north, Pick up item, Check inventory               |
+| **Perception (Immersive)** | Player HTTP    | ✅ Read-only or minimal sync  | ✅ Optional enrichment   | <500ms (authoritative) + adaptive narration | Look (rich), Examine (rich), Listen, Search             |
+| **Shared World Effect**    | Player HTTP    | ✅ Synchronous<br/>(personal) | ✅ Enqueued<br/>(shared) | HTTP: <500ms<br/>Queue: <30s                | Set fire to forest, Trigger avalanche, Plant seed       |
+| **NPC Awareness (Basic)**  | Player HTTP    | ✅ Synchronous                | ❌ None                  | <500ms                                      | NPC notices player, Guard greeting, Shopkeeper welcome  |
+| **NPC Behavior (Complex)** | Queue Event    | ✅ Async                      | ✅ Only queue            | <5s                                         | NPC alerts others, Enemy aggro spreads, NPC flees/moves |
+| **System Evolution**       | Timer/Schedule | ✅ Async                      | ✅ Only queue            | <60s                                        | Weather change, Day/night cycle, Resource respawn       |
+| **AI Generation**          | Queue Event    | ✅ Async                      | ✅ Only queue            | <10s                                        | Description enrichment, Dynamic lore, Quest generation  |
 
 ## Detailed Rules
 
 ### Rule 1: HTTP Response Must Be Immediate
 
-**Requirement**: All HTTP handlers MUST return within 500ms (p95 target).
+**Requirement**: HTTP handlers MUST provide immediate feedback (p95 target: <500ms) for the authoritative portion of the turn.
+
+If richer narration is desired (e.g., `look`, `examine`, high-stakes combat narration), it must not block canonical validation/writes. Rich narration may be delivered as staged output or via async enrichment.
 
 **Enforcement**:
 
@@ -378,21 +388,23 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 
 **Trigger**: Player moves to location with NPC
 
-**Classification Decision**: NPC reactions to player arrival are **synchronous** (in HTTP response), not async queue events. This ensures players see immediate, contextual responses from NPCs when entering a location.
+**Classification Decision**: NPC reactions to player arrival are **synchronous** (in HTTP response) only to the extent they can be produced within the HTTP latency budget.
 
-**Why Synchronous?**
+- The _fact_ of an NPC noticing you can be synchronous.
+- The _rich prose_ of that reaction should be treated as optional enrichment.
 
-- Player immersion: "The guard eyes you suspiciously" should appear immediately, not on next `LOOK`
-- Narrative flow: Delayed reactions break the real-time feel of the game
-- AI context: The same HTTP handler that processes the move already has location + NPC context
+**Why (some) synchronous?**
+
+- Player immersion: a short acknowledgement should appear immediately.
+- Narrative flow: delayed acknowledgement can feel laggy or broken.
+- Architecture: the move handler already has location + NPC context, so it can return a deterministic or cached acknowledgement cheaply.
 
 **Flow**:
 
 1. Player's move HTTP request received
 2. Move handler queries NPCs at destination location (sync)
-3. AI generates NPC awareness text based on player + NPC context (sync, <500ms budget)
-4. Return location description + NPC reaction text immediately
-5. **No queue event** for basic NPC awareness
+3. Return a **deterministic or cached** NPC acknowledgement immediately (must remain <500ms p95)
+4. Optionally enqueue an async event for richer NPC reaction text, memory updates, or cascading effects
 
 **When to Use Queue Instead**:
 
@@ -405,7 +417,7 @@ const idempotencyKey = `player:${playerId}:fire:${locationId}:${minuteBucket}`
 - Immediate: Sees location description + exits + NPC reaction ("The guard eyes you suspiciously")
 - Real-time feel: NPCs acknowledge player presence instantly
 
-**Key Distinction**: Basic NPC awareness (greeting, noticing player) is synchronous for immersion. Complex NPC behaviors that affect shared world state use async queue events.
+**Key Distinction**: Basic NPC awareness (a short acknowledgement) can be synchronous for immersion. Rich prose, persistent memory, and cascading behaviors belong on the async queue path.
 
 ### Example 5: AI Description Generation (Queue-Only)
 

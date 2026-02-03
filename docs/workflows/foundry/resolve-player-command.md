@@ -39,6 +39,10 @@ See:
     - Determine which authoritative context is required (player state, location state, nearby entities, recent events).
     - Interaction mode vocabulary (explicit dialogue vs implicit/fast-forward) and canonicality boundary are defined in `../../concept/interaction-modes-and-canonicality.md`.
 
+2a. **Select presentation mode (interaction mode + response tempo)** - Choose whether this turn should be rendered as explicit dialogue or implicit/fast-forward. - Choose response tempo (snappy vs immersive vs cinematic). - Defaults (when player setting is **Auto**): - `look` / `examine` → **Immersive** - high-stakes turns (combat, pursuit, discovery) may upgrade to **Cinematic** - Inputs: - explicit player preferences (setting) - per-turn cues (shorthand vs elaborated phrasing, stakes, ambiguity) - Player Interaction Profile (observed tendencies)
+
+    Invariant: presentation choices must not change canonical outcomes; they only affect narration length/pacing.
+
 3. **Fetch authoritative context (read)**
     - Query canonical sources through tools (MCP and/or backend endpoints).
     - Do not infer missing facts; if required context is absent, stop and request specific additional context.
@@ -54,6 +58,8 @@ See:
 5. **Compose narration (post-outcome)**
     - Narration is downstream framing of the validated outcome.
     - Apply narration governance (classification, length bounds, drift checks) as appropriate.
+
+    Note: for immersive/cinematic tempo, narration may be delivered in multiple parts (e.g., a fast acknowledgement followed by richer detail) as long as canonical facts are not invented.
 
 6. **Emit observability signals**
     - Ensure the correlation ID is propagated to all downstream tool calls and logged events.
