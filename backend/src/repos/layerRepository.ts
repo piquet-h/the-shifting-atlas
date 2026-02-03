@@ -12,4 +12,4 @@ import type { ILayerRepository as ILayerRepositoryShared } from '@piquet-h/share
  * We intentionally omit them here so new backend code cannot call them,
  * and implementations are free to remove them.
  */
-export type ILayerRepository = Omit<ILayerRepositoryShared, 'getLayersForLocation'>
+export type ILayerRepository = Omit<ILayerRepositoryShared, 'getLayersForLocation' | 'addLayer' | 'updateLayer'>

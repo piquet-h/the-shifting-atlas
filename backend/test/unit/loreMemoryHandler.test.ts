@@ -195,7 +195,10 @@ describe('LoreMemoryHandler', () => {
             const parsed = JSON.parse(result)
             assert.equal(parsed.id, 'unique-guid-123')
             assert.equal(parsed.version, 3)
-            assert.ok(parsed.embeddings)
+            // Prompt hygiene: embeddings are intentionally omitted (can be massive).
+            // We preserve an explicit indicator for auditability.
+            assert.equal(parsed.embeddings, undefined)
+            assert.equal(parsed.embeddingsOmitted, true)
         })
     })
 })
