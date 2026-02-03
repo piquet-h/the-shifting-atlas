@@ -26,7 +26,7 @@
     - You may **not** see a “Connections” experience.
     - You may or may not see UI affordances to wire custom tools.
 
-If your goal is rapid prototyping, you can skip Foundry entirely and use the **local website + backend runner + MCP** approach described in `../architecture/agentic-ai-and-mcp.md`.
+This repo’s execution posture is **Foundry-first**. If your portal UI does not expose tool wiring, prefer SDK-based configuration (reproducible) rather than switching runtimes.
 
 ---
 
@@ -103,9 +103,7 @@ Narrative hook: 'Three pairs of yellow eyes gleam from the underbrush. The large
 
 ### 2.3 Configure Tools (Via SDK)
 
-**Reality check**: Portal UI capability for custom tools can vary. If you can’t wire tools in the portal, don’t block on it.
-
-For prototyping, prefer **local website + backend runner + MCP** (`../architecture/agentic-ai-and-mcp.md`).
+**Reality check**: Portal UI capability for custom tools can vary. If you can’t wire tools in the portal UI, don’t block on it — wire tools via SDK.
 
 If you still want to try Foundry as a hosted runtime later, the stable integration options are:
 
@@ -195,7 +193,7 @@ If creating agents in the portal playground:
 Tool wiring in the classic portal can vary by tenant/API version.
 
 - If you can wire tools in your portal/SDK, treat tool contracts as an **implementation detail** and keep them aligned with the MCP tool surface described in `../architecture/agentic-ai-and-mcp.md`.
-- If you can’t wire tools in Foundry yet, do **not** block: prototype with the **local website + backend runner + MCP** approach (also in `../architecture/agentic-ai-and-mcp.md`).
+- If you can’t wire tools in Foundry yet, do **not** block: switch to SDK-based wiring, or expose the needed tools as OpenAPI/Azure Functions tools until MCP wiring is available.
 
 This guide intentionally does not include backend implementation code for MCP tools (those details belong with the backend source and the architecture doc).
 
@@ -213,7 +211,7 @@ See `docs/deployment/foundry-setup-checklist.md` for a tested MCP curl example a
 
 When you expand beyond read-only lookups, add additional roles (combat, spells, loot) per `../design-modules/dnd5e-foundry-agent-architecture.md`.
 
-Foundry is optional here: backend orchestration (local/prod) remains the recommended path for stateful workflows.
+Foundry is the intended hosted runtime for these roles. Keep the backend as the authority boundary: deterministic validators and persistence live in Functions.
 
 ---
 

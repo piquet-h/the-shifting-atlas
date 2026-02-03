@@ -4,7 +4,7 @@
 
 **Portal Version**: [Microsoft Foundry (classic)](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry?view=foundry-classic#microsoft-foundry-portals)  
 **Portal URL**: [ai.azure.com](https://ai.azure.com)  
-**Time**: ~60 minutes (if you choose to configure Foundry agents; prototyping can be faster via local website + backend runner)
+**Time**: ~60 minutes
 
 > **Important**: This guide is for the **classic portal** experience. The new portal has different UI elements and capabilities. See [Microsoft's documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/what-is-foundry?view=foundry&preserve-view=true) if you're using the new portal.
 
@@ -24,9 +24,7 @@
 
 **Reality check**: Portal UI and tool wiring can vary by tenant/API version/rollout timing. Do not assume a specific “Connections” experience.
 
-For **rapid prototyping**, prefer the **local website + backend runner + MCP** approach described in `../architecture/agentic-ai-and-mcp.md`.
-
-If you still want Foundry as a hosted runtime later, you typically configure tools **per-agent** using:
+This repo’s execution posture is **Foundry-first**. Configure tools **per-agent** using:
 
 - **Agent creation wizard** (basic tools only)
 - **SDK configuration** (full MCP/OpenAPI/Function Calling support)
@@ -102,7 +100,7 @@ If you create agents in the portal playground:
 
 #### Recommended: MCP Server Wrapper
 
-Implement D&D reference tools as **adapters** and keep their schemas stable (so you can run them locally, behind MCP, or via a hosted runtime later).
+Implement D&D reference tools as **adapters** and keep their schemas stable (so they can be wired as MCP/OpenAPI/Azure Functions tools depending on what your tenant/API version supports).
 
 Design reference:
 

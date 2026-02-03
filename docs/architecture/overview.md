@@ -36,7 +36,10 @@ Implemented (thin slice – see repo for exact handlers):
 - **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata (ADR-005)
 - Read-only MCP tools for agent context (implemented): `World-*`, `WorldContext-*`, and `Lore-*` via Azure Functions `app.mcpTool(...)` (not called directly by the website; intended for agent runtimes behind the external gateway)
 
-Still provisioned but not yet fully integrated: Service Bus (queue processor operates without Service Bus binding), Key Vault (secret management planned for M2).
+Still evolving:
+
+- Service Bus is integrated for queue-triggered Functions (bindings exist via `app.serviceBusQueue(...)`), but local dev/prod wiring can vary by environment and requires the configured connection setting.
+- Key Vault is provisioned for non-Cosmos secrets; Cosmos access is intended to remain Managed Identity-first.
 
 Not yet implemented (planned):
 
@@ -70,7 +73,7 @@ For how canonical facts, event history, and narrative lore artifacts fit togethe
 
 ### Shared Package Entry Points (Browser vs Backend)
 
-The `@atlas/shared` workspace now exposes **two entry points** to keep the frontend bundle free of Node‑only dependencies:
+The `@piquet-h/shared` package now exposes **two entry points** to keep the frontend bundle free of Node‑only dependencies:
 
 - `index.ts` (default / backend): full export surface, including telemetry initialization that references Node built‑ins (`node:crypto`) and the Azure Application Insights SDK.
 - `index.browser.ts` (browser-mapped via the `"browser"` field in `shared/package.json`): minimal, currently exports only canonical telemetry event name constants. It deliberately omits telemetry initialization and any code touching Node APIs.
@@ -150,6 +153,8 @@ Stage M3 (planned) introduces **read‑only MCP servers** (all advisory, no muta
 Later phases add controlled proposal endpoints (`world-mutation-mcp`). This project is narration-first (non-simulation): agents may propose new facts or layers, but only deterministic validation/policy gates can ratchet those proposals into persistence.
 
 Runtime note (launch posture): hosted agent runtimes (e.g., Azure AI Foundry hosted agents) are a valid execution target for narration and tool use, provided the backend remains the sole authority for persistence and invariants.
+
+Execution posture (2026-02): Azure AI Foundry hosted agents are the primary runtime target for orchestration and tool use; the backend MCP tool surface remains the stable contract.
 
 See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
 

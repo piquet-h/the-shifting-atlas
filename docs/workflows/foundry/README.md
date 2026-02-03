@@ -1,8 +1,8 @@
-# Workflows: Azure AI Foundry (Optional Runtime)
+# Workflows: Azure AI Foundry (Primary Hosted Runtime)
 
 These documents describe how The Shifting Atlas can be orchestrated using **Azure AI Foundry** concepts (agents, tools, multi-agent coordination) while preserving the project’s authority boundaries.
 
-Foundry is treated as an **optional hosted runtime**. Prototyping and production orchestration may also run in backend-controlled execution (Azure Functions) without depending on portal capabilities.
+Foundry is treated as the **primary hosted runtime** for agent orchestration and tool use. The backend remains the sole authority for persistence and invariants; Foundry drives narration/proposals via the MCP tool surface.
 
 ## Read this first (authority and contracts)
 
