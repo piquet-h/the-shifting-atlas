@@ -1,8 +1,10 @@
 /**
- * MoveHandler Hero Prose (Arrival) Integration Test
+ * MoveHandler Hero Prose (No Generation) Integration Test
  *
- * Intent: Cover the gap where players "arrive" at a location via /player/{id}/move
- * and should receive hero prose on the first arrival when no cached hero prose exists.
+ * Intent: Verify that MoveHandler does NOT trigger hero prose generation on arrival.
+ * Per event-classification-matrix.md, movement is an action/canonical-write path
+ * and must not wait on AI/narration generation. Hero prose should only be generated
+ * via perception paths (look/examine handlers).
  *
  * This test is memory-mode and stubs Azure OpenAI client behavior (no network).
  */
@@ -18,7 +20,7 @@ import type { IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { getDefaultTestLocations, seedTestWorld } from '../helpers/seedTestWorld.js'
 
-describe('MoveHandler hero prose on arrival', () => {
+describe('MoveHandler does not generate hero prose on arrival', () => {
     let fixture: IntegrationTestFixture
     let container: Container
     let layerRepo: ILayerRepository
@@ -56,7 +58,7 @@ describe('MoveHandler hero prose on arrival', () => {
         } as unknown as InvocationContext
     }
 
-    test('cache miss: arrival triggers generation and move response includes hero prose', async () => {
+    test('move succeeds without calling hero prose generation', async () => {
         const playerRepo = await fixture.getPlayerRepository()
         const { record: player } = await playerRepo.getOrCreate()
 
@@ -71,13 +73,13 @@ describe('MoveHandler hero prose on arrival', () => {
         const existing = await layerRepo.queryLayerHistory(`loc:${destinationId}`, 'dynamic')
         assert.ok(!existing.some((l) => l.metadata?.role === 'hero'), 'Precondition: destination must not have hero prose')
 
+        // Stub OpenAI client to track if it's called (it should NOT be)
         let called = 0
-        const heroText = 'A narrow bridge spans a misty chasm, ropes humming in the wind.'
         const openaiStub: IAzureOpenAIClient = {
             generate: async () => {
                 called += 1
                 return {
-                    content: heroText,
+                    content: 'This should not be generated',
                     tokenUsage: { prompt: 10, completion: 20, total: 30 }
                 }
             },
@@ -98,7 +100,7 @@ describe('MoveHandler hero prose on arrival', () => {
         } as unknown as HttpRequest
 
         const res = await handler.handle(req, ctx)
-        assert.strictEqual(res.status, 200)
+        assert.strictEqual(res.status, 200, 'Move should succeed')
 
         const body = res.jsonBody as {
             success: boolean
@@ -108,19 +110,18 @@ describe('MoveHandler hero prose on arrival', () => {
                 description: { text: string }
             }
         }
-        assert.strictEqual(body.success, true)
-
+        assert.strictEqual(body.success, true, 'Move should be marked as successful')
         assert.strictEqual(body.data?.id, destinationId, 'Expected to move into the seeded north location')
 
-        assert.strictEqual(called, 1, 'Expected Azure OpenAI client to be called on first arrival cache miss')
+        // CRITICAL: Verify that OpenAI client was NOT called during move
+        assert.strictEqual(called, 0, 'Expected Azure OpenAI client NOT to be called during move (hero prose generation should not happen)')
 
-        // Response should reflect hero prose (replacing base description).
-        assert.ok(body.data?.description?.text.includes('misty chasm'), 'Expected response description to include hero prose')
-
-        // And the hero layer should be persisted for subsequent reads.
+        // Verify no hero layer was persisted
         const layers = await layerRepo.queryLayerHistory(`loc:${destinationId}`, 'dynamic')
         const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
-        assert.ok(heroLayer, 'Hero layer should be persisted on successful generation')
-        assert.strictEqual(heroLayer?.value, heroText)
+        assert.strictEqual(heroLayer, undefined, 'Hero layer should NOT be created during move')
+
+        // Response should use base description (no hero prose)
+        assert.ok(body.data?.description?.text, 'Response should have a description')
     })
 })
