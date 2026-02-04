@@ -111,17 +111,17 @@ export async function handlePlayerAction(req: HttpRequest): Promise<HttpResponse
 
 **AI Decision Points**:
 
-1. **Intent Parser** (M4 AI Read): Analyzes player command text to determine:
+1. **Intent Parser** (agent resolver / command resolution seam): Analyzes player command text to determine:
     - Primary intent (move, interact, attack, etc.)
     - Target entities (NPCs, objects, locations)
     - Potential world impact (personal vs shared)
 
-2. **Narrative Agent** (M4+): Evaluates world context to decide:
+2. **Narrative Agent**: Evaluates world context to decide:
     - Does this action affect other players? → Enqueue shared event
     - Is this action significant enough to persist? → Update world state
     - Should NPCs react? → Enqueue reaction events
 
-3. **Policy Validator** (M4+): Enforces game rules:
+3. **Policy Validator**: Enforces game rules:
     - Physics constraints (can't set underwater fire)
     - Permission checks (player level/abilities)
     - Resource availability (tinderbox charges, NPC stock)
@@ -166,12 +166,10 @@ return immediate200Response()
     {
         "verb": "ignite",
         "method": "tinderbox",
-        "target": { "kind": "location", "id": "forest-clearing" },
-        "resources": [{ "itemId": "tinderbox-abc", "quantity": 1 }],
+        "targets": [{ "kind": "location", "id": "forest-clearing" }],
+        "resources": [{ "itemId": "tinderbox-abc", "quantity": 1, "charges": 1 }],
         "context": {
-            "playerId": "player-123",
-            "locationId": "forest-clearing",
-            "timestamp": "2025-11-24T12:34:56Z"
+            "locationId": "forest-clearing"
         }
     }
     ```
@@ -202,37 +200,9 @@ return immediate200Response()
 3. **Flexibility**: Narrative can be regenerated with new AI models without breaking determinism
 4. **Prevents Templating**: By persisting intent (not message), we avoid the false choice between "thousands of templates" or "no flexibility"
 
-**Example: "Set fire to forest" reproducibility**:
+**Invariant:** same intent + same world state ⇒ same state changes. Narration may vary.
 
-```typescript
-// Time 1: Player A sets fire (generates message M1)
-const intent = {
-    verb: 'ignite',
-    method: 'tinderbox',
-    target: 'forest-clearing',
-    resources: [{ item: 'tinderbox', quantity: 1 }]
-}
-const state1 = await applyAction(intent, context) // Deterministic
-const message1 = await narrativeEngine.generate(intent, state1) // M1: "You strike the tinderbox..."
-
-// Time 2: Replay same action
-const state2 = await applyAction(intent, context) // SAME state changes
-const message2 = await narrativeEngine.generate(intent, state2) // M2: Could be different narrative
-
-// Invariant: state1 === state2 (reproducible)
-// Variance: message1 !== message2 (creatively flexible, both valid)
-```
-
-**Implication for HTTP Response Latency**:
-
-Since the message is ephemeral, the HTTP handler can:
-
-1. **Validate + apply state changes** synchronously (<100ms)
-2. **Generate and return narrative** with bounded timeout (1-2s for complex actions)
-3. **Fall back gracefully** if narrative generation is slow—return minimal description + async enrichment
-4. The narrative is **never blocking** on persistence; it's just UX flavor
-
-This decouples latency pressure from correctness: the handler doesn't need to persist the message before returning.
+For the precise persistence contract and envelope rule, see `docs/architecture/action-intent-persistence.md`.
 
 ### Rule 3: Personal vs Shared State Updates
 
