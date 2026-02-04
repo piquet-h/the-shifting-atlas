@@ -71,6 +71,9 @@ export class LocationLookHandler extends BaseHandler {
             return errorResponse(404, 'NotFound', 'Location not found', { correlationId: this.correlationId })
         }
 
+        // Determine if canonical writes are planned (exitsSummaryCache write needed)
+        const canonicalWritesPlanned = !loc.exitsSummaryCache
+
         // Check if exitsSummaryCache exists; if not, generate and persist
         let exitsSummaryCache = loc.exitsSummaryCache
         if (!exitsSummaryCache) {
@@ -95,31 +98,33 @@ export class LocationLookHandler extends BaseHandler {
             timestamp: new Date().toISOString()
         }
 
-        // Attempt hero prose generation on cache miss (bounded blocking, always falls back to base)
-        // Timeout budget defaults to 1200ms and is configurable via HERO_PROSE_TIMEOUT_MS.
-        // This is best-effort: failures never block the response.
-        try {
-            const generationStartTime = Date.now()
-            const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '1200', 10)
-            const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 1200
-            await this.heroProseGenerator.generateHeroProse({
-                locationId: id,
-                locationName: loc.name,
-                baseDescription: loc.description,
-                timeoutMs
-            })
-            const generationLatency = Date.now() - generationStartTime
-            if (generationLatency > 500) {
-                this.track('Timing.Op', {
-                    op: 'hero-prose-generation',
-                    ms: generationLatency,
+        // Attempt hero prose generation ONLY when no canonical writes are planned
+        // Bounded blocking is allowed only for perception actions with no pending canonical writes.
+        // When canonical writes are planned, skip generation and use safe fallback (baseline description).
+        if (!canonicalWritesPlanned) {
+            try {
+                const generationStartTime = Date.now()
+                const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '1200', 10)
+                const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 1200
+                await this.heroProseGenerator.generateHeroProse({
                     locationId: id,
-                    category: 'hero-generation-slow'
+                    locationName: loc.name,
+                    baseDescription: loc.description,
+                    timeoutMs
                 })
+                const generationLatency = Date.now() - generationStartTime
+                if (generationLatency > 500) {
+                    this.track('Timing.Op', {
+                        op: 'hero-prose-generation',
+                        ms: generationLatency,
+                        locationId: id,
+                        category: 'hero-generation-slow'
+                    })
+                }
+            } catch {
+                // Generation errors don't block the response - fall back to base description
+                // Telemetry already emitted by HeroProseGenerator
             }
-        } catch {
-            // Generation errors don't block the response - fall back to base description
-            // Telemetry already emitted by HeroProseGenerator
         }
 
         try {
@@ -155,7 +160,9 @@ export class LocationLookHandler extends BaseHandler {
                 compilationLatencyMs: compilationLatency,
                 layerCount: compiled.provenance.layers.length,
                 supersededSentences: supersededCount,
-                cacheHit: !!loc.exitsSummaryCache
+                cacheHit: !!loc.exitsSummaryCache,
+                heroProseAttempted: !canonicalWritesPlanned,
+                heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined
             })
 
             return okResponse(
