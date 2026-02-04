@@ -1,7 +1,12 @@
+import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../../src/repos/exitRepository.js'
+import type { ILayerRepository } from '../../src/repos/layerRepository.js'
+import type { IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('LOOK Command Flow', () => {
@@ -177,6 +182,218 @@ describe('LOOK Command Flow', () => {
             // Second LOOK - should return cached value
             const location2 = await repo.get(STARTER_LOCATION_ID)
             assert.equal(location2?.exitsSummaryCache, generatedCache, 'Cache should be returned on repeat LOOK')
+        })
+    })
+
+    describe('LocationLookHandler - hero prose generation gating', () => {
+        let container: Container
+        let layerRepo: ILayerRepository
+
+        beforeEach(async () => {
+            container = await fixture.getContainer()
+            layerRepo = await fixture.getLayerRepository()
+        })
+
+        async function createMockContext(): Promise<InvocationContext> {
+            return {
+                invocationId: 'test-invocation',
+                functionName: 'test-function',
+                extraInputs: new Map([['container', container]]),
+                log: () => {},
+                error: () => {},
+                warn: () => {},
+                info: () => {},
+                debug: () => {},
+                trace: () => {}
+            } as unknown as InvocationContext
+        }
+
+        test('cache hit: allows hero prose generation (no canonical writes)', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            // Pre-populate exitsSummaryCache to avoid canonical write
+            await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north, south')
+
+            const location = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(location?.exitsSummaryCache, 'Precondition: cache must exist')
+
+            // Ensure no hero prose exists initially
+            const existingLayers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+            assert.ok(!existingLayers.some((l) => l.metadata?.role === 'hero'), 'Precondition: no hero prose should exist')
+
+            let openaiCalled = 0
+            const heroText = 'The ancient hall echoes with whispers of forgotten kings.'
+            const openaiStub: IAzureOpenAIClient = {
+                generate: async () => {
+                    openaiCalled += 1
+                    return {
+                        content: heroText,
+                        tokenUsage: { prompt: 10, completion: 20, total: 30 }
+                    }
+                },
+                healthCheck: async () => true
+            }
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
+
+            const handler = container.get(LocationLookHandler)
+            const ctx = await createMockContext()
+
+            const req = {
+                params: { locationId: STARTER_LOCATION_ID },
+                query: new Map(),
+                headers: new Map()
+            } as unknown as HttpRequest
+
+            const res = await handler.handle(req, ctx)
+            assert.strictEqual(res.status, 200, 'Should return 200 OK')
+
+            // Hero prose generation should have been attempted
+            assert.strictEqual(openaiCalled, 1, 'Azure OpenAI should be called when no canonical writes planned')
+
+            // Hero layer should be persisted
+            const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+            const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
+            assert.ok(heroLayer, 'Hero layer should be persisted on cache hit')
+            assert.strictEqual(heroLayer?.value, heroText)
+        })
+
+        test('cache miss: skips hero prose generation (canonical writes planned)', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            // Get location without cache (or clear it) to simulate cache miss
+            const location = await repo.get(STARTER_LOCATION_ID)
+            if (location?.exitsSummaryCache) {
+                await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, '')
+            }
+
+            const locationWithoutCache = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(!locationWithoutCache?.exitsSummaryCache, 'Precondition: cache must not exist')
+
+            // Ensure no hero prose exists initially
+            const existingLayers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+            assert.ok(!existingLayers.some((l) => l.metadata?.role === 'hero'), 'Precondition: no hero prose should exist')
+
+            let openaiCalled = 0
+            const openaiStub: IAzureOpenAIClient = {
+                generate: async () => {
+                    openaiCalled += 1
+                    return {
+                        content: 'This should not be generated',
+                        tokenUsage: { prompt: 10, completion: 20, total: 30 }
+                    }
+                },
+                healthCheck: async () => true
+            }
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
+
+            const handler = container.get(LocationLookHandler)
+            const ctx = await createMockContext()
+
+            const req = {
+                params: { locationId: STARTER_LOCATION_ID },
+                query: new Map(),
+                headers: new Map()
+            } as unknown as HttpRequest
+
+            const res = await handler.handle(req, ctx)
+            assert.strictEqual(res.status, 200, 'Should return 200 OK')
+
+            // Hero prose generation should have been SKIPPED
+            assert.strictEqual(openaiCalled, 0, 'Azure OpenAI should NOT be called when canonical writes planned')
+
+            // Hero layer should NOT be persisted
+            const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+            const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
+            assert.ok(!heroLayer, 'Hero layer should NOT be persisted on cache miss')
+
+            // But the exitsSummaryCache should still be persisted (canonical write)
+            const updated = await repo.get(STARTER_LOCATION_ID)
+            assert.ok(updated?.exitsSummaryCache, 'exitsSummaryCache should be persisted even when hero prose is skipped')
+        })
+
+        test('cache miss with AOAI configured: still skips bounded blocking', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            // Clear cache to simulate cache miss
+            const location = await repo.get(STARTER_LOCATION_ID)
+            if (location?.exitsSummaryCache) {
+                await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, '')
+            }
+
+            let openaiCalled = 0
+            const openaiStub: IAzureOpenAIClient = {
+                generate: async () => {
+                    openaiCalled += 1
+                    // Even if AOAI is available, it should not be called on cache miss
+                    return {
+                        content: 'Should not be generated',
+                        tokenUsage: { prompt: 10, completion: 20, total: 30 }
+                    }
+                },
+                healthCheck: async () => true
+            }
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
+
+            const handler = container.get(LocationLookHandler)
+            const ctx = await createMockContext()
+
+            const req = {
+                params: { locationId: STARTER_LOCATION_ID },
+                query: new Map(),
+                headers: new Map()
+            } as unknown as HttpRequest
+
+            const res = await handler.handle(req, ctx)
+            assert.strictEqual(res.status, 200, 'Should return 200 OK')
+
+            // Hero prose generation should be skipped
+            assert.strictEqual(openaiCalled, 0, 'AOAI should not be called even when configured if canonical writes planned')
+        })
+
+        test('cache hit with AOAI timeout: falls back safely with no 5xx', async () => {
+            const repo = await fixture.getLocationRepository()
+
+            // Pre-populate cache
+            await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north')
+
+            let openaiCalled = 0
+            const openaiStub: IAzureOpenAIClient = {
+                generate: async () => {
+                    openaiCalled += 1
+                    // Simulate timeout by returning null
+                    await new Promise((resolve) => setTimeout(resolve, 100))
+                    return null
+                },
+                healthCheck: async () => true
+            }
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
+
+            const handler = container.get(LocationLookHandler)
+            const ctx = await createMockContext()
+
+            const req = {
+                params: { locationId: STARTER_LOCATION_ID },
+                query: new Map(),
+                headers: new Map()
+            } as unknown as HttpRequest
+
+            const res = await handler.handle(req, ctx)
+
+            // Should fall back gracefully - no 5xx error
+            assert.strictEqual(res.status, 200, 'Should return 200 OK even on AOAI timeout')
+            assert.strictEqual(openaiCalled, 1, 'AOAI should be called on cache hit')
+
+            // Response should still contain location data (using base description)
+            // Response is wrapped in ok envelope from shared package
+            const body = res.jsonBody as { data?: { id?: string; name?: string; description?: unknown } }
+            const data = body.data || body // Handle both wrapped and unwrapped formats
+            assert.ok(data.id, 'Response should contain location ID')
+            assert.ok(data.name, 'Response should contain location name')
+            assert.ok(data.description, 'Response should contain description')
         })
     })
 })
