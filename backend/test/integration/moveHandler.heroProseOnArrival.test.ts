@@ -73,15 +73,13 @@ describe('MoveHandler does not generate hero prose on arrival', () => {
         const existing = await layerRepo.queryLayerHistory(`loc:${destinationId}`, 'dynamic')
         assert.ok(!existing.some((l) => l.metadata?.role === 'hero'), 'Precondition: destination must not have hero prose')
 
-        // Stub OpenAI client to track if it's called (it should NOT be)
+        // Stub OpenAI client to verify it's NOT called during move operation
         let called = 0
         const openaiStub: IAzureOpenAIClient = {
             generate: async () => {
                 called += 1
-                return {
-                    content: 'This should not be generated',
-                    tokenUsage: { prompt: 10, completion: 20, total: 30 }
-                }
+                // This should never be called - throw error if it is
+                throw new Error('UNEXPECTED: OpenAI client called during move (hero prose generation should not happen)')
             },
             healthCheck: async () => true
         }
