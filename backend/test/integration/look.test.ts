@@ -378,14 +378,14 @@ describe('LOOK Command Flow', () => {
             } as unknown as HttpRequest
 
             const res = await handler.handle(req, ctx)
-            
+
             // Should fall back gracefully - no 5xx error
             assert.strictEqual(res.status, 200, 'Should return 200 OK even on AOAI timeout')
             assert.strictEqual(openaiCalled, 1, 'AOAI should be called on cache hit')
 
             // Response should still contain location data (using base description)
             // Response is wrapped in ok envelope from shared package
-            const body = res.jsonBody as any
+            const body = res.jsonBody as { data?: { id?: string; name?: string; description?: unknown } }
             const data = body.data || body // Handle both wrapped and unwrapped formats
             assert.ok(data.id, 'Response should contain location ID')
             assert.ok(data.name, 'Response should contain location name')
