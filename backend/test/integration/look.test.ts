@@ -233,7 +233,8 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -284,7 +285,8 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -332,7 +334,8 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -366,7 +369,8 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
+            binding.toConstantValue(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
