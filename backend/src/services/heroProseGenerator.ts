@@ -13,6 +13,7 @@
  * See: docs/architecture/hero-prose-layer-convention.md
  */
 
+import { enrichHeroProseAttributes } from '@piquet-h/shared/telemetryAttributes'
 import { inject, injectable } from 'inversify'
 import { createHash } from 'node:crypto'
 import type { ILayerRepository } from '../repos/layerRepository.js'
@@ -74,10 +75,12 @@ export class HeroProseGenerator {
             const existingHero = selectHeroProse(existingDynamic)
 
             if (existingHero && existingHero.value) {
-                this.telemetry.trackGameEvent('Description.Hero.CacheHit', {
+                const props = {}
+                enrichHeroProseAttributes(props, {
                     locationId,
                     latencyMs: Date.now() - startTime
                 })
+                this.telemetry.trackGameEvent('Description.Hero.CacheHit', props)
                 return {
                     success: true,
                     prose: existingHero.value,
@@ -87,18 +90,22 @@ export class HeroProseGenerator {
 
             // Cache miss - need to generate
             const cacheMissLatency = Date.now() - startTime
-            this.telemetry.trackGameEvent('Description.Hero.CacheMiss', {
+            const cacheMissProps = {}
+            enrichHeroProseAttributes(cacheMissProps, {
                 locationId,
                 latencyMs: cacheMissLatency
             })
+            this.telemetry.trackGameEvent('Description.Hero.CacheMiss', cacheMissProps)
 
             // Check if Azure OpenAI is configured
             if (!this.config.endpoint) {
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+                const configMissingProps = {}
+                enrichHeroProseAttributes(configMissingProps, {
                     locationId,
                     outcomeReason: 'config-missing',
                     latencyMs: Date.now() - startTime
                 })
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', configMissingProps)
                 return {
                     success: false,
                     reason: 'error'
@@ -121,12 +128,14 @@ export class HeroProseGenerator {
 
             // Handle timeout
             if (latencyMs >= timeoutMs) {
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+                const timeoutProps = {}
+                enrichHeroProseAttributes(timeoutProps, {
                     locationId,
                     latencyMs,
                     outcomeReason: 'timeout',
                     model: this.config.model
                 })
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', timeoutProps)
                 return {
                     success: false,
                     reason: 'timeout'
@@ -135,12 +144,14 @@ export class HeroProseGenerator {
 
             // Handle generation failure (null result from OpenAI client)
             if (!result) {
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+                const errorProps = {}
+                enrichHeroProseAttributes(errorProps, {
                     locationId,
                     outcomeReason: 'error',
                     latencyMs,
                     model: this.config.model
                 })
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', errorProps)
                 return {
                     success: false,
                     reason: 'error'
@@ -150,12 +161,14 @@ export class HeroProseGenerator {
             // Validate generated prose
             const prose = result.content.trim()
             if (!prose || prose.length > 1200) {
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+                const invalidProps = {}
+                enrichHeroProseAttributes(invalidProps, {
                     locationId,
                     outcomeReason: 'invalid-response',
                     latencyMs,
                     model: this.config.model
                 })
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', invalidProps)
                 return {
                     success: false,
                     reason: 'invalid-response'
@@ -176,12 +189,14 @@ export class HeroProseGenerator {
                 }
             )
 
-            this.telemetry.trackGameEvent('Description.Hero.Generate.Success', {
+            const successProps = {}
+            enrichHeroProseAttributes(successProps, {
                 locationId,
                 latencyMs,
                 model: this.config.model,
                 tokenUsage: result.tokenUsage.total
             })
+            this.telemetry.trackGameEvent('Description.Hero.Generate.Success', successProps)
 
             return {
                 success: true,
@@ -191,12 +206,14 @@ export class HeroProseGenerator {
             }
         } catch (error) {
             const latencyMs = Date.now() - startTime
-            this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+            const errorProps = {}
+            enrichHeroProseAttributes(errorProps, {
                 locationId,
                 outcomeReason: 'error',
                 latencyMs,
                 model: this.config.endpoint ? this.config.model : undefined
             })
+            this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', errorProps)
             return {
                 success: false,
                 reason: 'error'

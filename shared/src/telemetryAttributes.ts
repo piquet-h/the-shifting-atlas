@@ -61,7 +61,7 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     /** Latency in milliseconds for API calls or user actions */
     LATENCY_MS: 'game.latency.ms',
     // Hero prose (Description.Hero) attributes (Issue #738 - Hero Prose Telemetry)
-    /** Outcome reason for hero prose generation (timeout|throttled|error|config-missing|invalid-response) */
+    /** Outcome reason for hero prose generation (timeout|error|config-missing|invalid-response) */
     HERO_OUTCOME_REASON: 'game.description.hero.outcome.reason',
     /** Model/deployment name for hero prose generation */
     HERO_MODEL: 'game.description.hero.model',
@@ -424,7 +424,7 @@ export interface HeroProseEventAttributes {
  * Redaction rules (Issue #738):
  * - NEVER include raw prompts or generated prose content
  * - Model name should be bounded deployment name (not dynamic user input)
- * - Outcome reasons must be low-cardinality (timeout|throttled|error|config-missing|invalid-response)
+ * - Outcome reasons must be low-cardinality (timeout|error|config-missing|invalid-response)
  *
  * @param properties - Base telemetry properties object (will be mutated)
  * @param attrs - Hero prose attribute values
