@@ -60,6 +60,13 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     ACTION_TYPE: 'game.action.type',
     /** Latency in milliseconds for API calls or user actions */
     LATENCY_MS: 'game.latency.ms',
+    // Hero prose (Description.Hero) attributes (Issue #738 - Hero Prose Telemetry)
+    /** Outcome reason for hero prose generation (timeout|throttled|error|config-missing|invalid-response) */
+    HERO_OUTCOME_REASON: 'game.description.hero.outcome.reason',
+    /** Model/deployment name for hero prose generation */
+    HERO_MODEL: 'game.description.hero.model',
+    /** Token usage for hero prose generation */
+    HERO_TOKEN_USAGE: 'game.description.hero.token.usage',
     // MCP (Model Context Protocol) attributes (M4 AI Read - Issue #428)
     /** MCP tool name being invoked */
     MCP_TOOL_NAME: 'game.mcp.tool.name',
@@ -391,6 +398,53 @@ export function enrichFrontendErrorAttributes(
     }
     if (attrs.errorCode) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE] = attrs.errorCode
+    }
+    return properties
+}
+
+/**
+ * Options for enriching hero prose telemetry events
+ * Used for Description.Hero.CacheHit, Description.Hero.CacheMiss,
+ * Description.Hero.Generate.Success, Description.Hero.Generate.Failure
+ */
+export interface HeroProseEventAttributes {
+    locationId?: string | null
+    latencyMs?: number | null
+    outcomeReason?: string | null
+    model?: string | null
+    tokenUsage?: number | null
+}
+
+/**
+ * Enrich telemetry properties with hero prose attributes.
+ * Used for hero prose cache and generation events.
+ * Includes locationId, latency, outcome reason, model, and token usage.
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * Redaction rules (Issue #738):
+ * - NEVER include raw prompts or generated prose content
+ * - Model name should be bounded deployment name (not dynamic user input)
+ * - Outcome reasons must be low-cardinality (timeout|throttled|error|config-missing|invalid-response)
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Hero prose attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichHeroProseAttributes(properties: Record<string, unknown>, attrs: HeroProseEventAttributes): Record<string, unknown> {
+    if (attrs.locationId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LOCATION_ID] = attrs.locationId
+    }
+    if (attrs.latencyMs !== null && attrs.latencyMs !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = attrs.latencyMs
+    }
+    if (attrs.outcomeReason) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HERO_OUTCOME_REASON] = attrs.outcomeReason
+    }
+    if (attrs.model) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HERO_MODEL] = attrs.model
+    }
+    if (attrs.tokenUsage !== null && attrs.tokenUsage !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.HERO_TOKEN_USAGE] = attrs.tokenUsage
     }
     return properties
 }

@@ -17,7 +17,7 @@ import { inject, injectable } from 'inversify'
 import { createHash } from 'node:crypto'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { IAzureOpenAIClient } from './azureOpenAIClient.js'
+import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from './azureOpenAIClient.js'
 import { selectHeroProse } from './heroProse.js'
 
 export interface GenerateHeroProseOptions {
@@ -53,7 +53,8 @@ export class HeroProseGenerator {
     constructor(
         @inject('IAzureOpenAIClient') private openaiClient: IAzureOpenAIClient,
         @inject('ILayerRepository') private layerRepo: ILayerRepository,
-        @inject(TelemetryService) private telemetry: TelemetryService
+        @inject(TelemetryService) private telemetry: TelemetryService,
+        @inject('AzureOpenAIClientConfig') private config: AzureOpenAIClientConfig
     ) {}
 
     /**
@@ -66,12 +67,6 @@ export class HeroProseGenerator {
         const { locationId, locationName, baseDescription, timeoutMs = this.DEFAULT_TIMEOUT_MS } = options
         const startTime = Date.now()
 
-        this.telemetry.trackGameEvent('Description.HeroProse.Generate.Start', {
-            locationId,
-            locationName,
-            timeoutMs
-        })
-
         try {
             // Check for existing hero prose layer (cache hit)
             // NOTE: getLayersForLocation is deprecated; use scope-based history queries.
@@ -79,7 +74,7 @@ export class HeroProseGenerator {
             const existingHero = selectHeroProse(existingDynamic)
 
             if (existingHero && existingHero.value) {
-                this.telemetry.trackGameEvent('Description.HeroProse.Generate.CacheHit', {
+                this.telemetry.trackGameEvent('Description.Hero.CacheHit', {
                     locationId,
                     latencyMs: Date.now() - startTime
                 })
@@ -87,6 +82,26 @@ export class HeroProseGenerator {
                     success: true,
                     prose: existingHero.value,
                     reason: 'cache-hit'
+                }
+            }
+
+            // Cache miss - need to generate
+            const cacheMissLatency = Date.now() - startTime
+            this.telemetry.trackGameEvent('Description.Hero.CacheMiss', {
+                locationId,
+                latencyMs: cacheMissLatency
+            })
+
+            // Check if Azure OpenAI is configured
+            if (!this.config.endpoint) {
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
+                    locationId,
+                    outcomeReason: 'config-missing',
+                    latencyMs: Date.now() - startTime
+                })
+                return {
+                    success: false,
+                    reason: 'error'
                 }
             }
 
@@ -106,10 +121,11 @@ export class HeroProseGenerator {
 
             // Handle timeout
             if (latencyMs >= timeoutMs) {
-                this.telemetry.trackGameEvent('Description.HeroProse.Generate.Timeout', {
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
                     locationId,
                     latencyMs,
-                    timeoutMs
+                    outcomeReason: 'timeout',
+                    model: this.config.model
                 })
                 return {
                     success: false,
@@ -117,12 +133,13 @@ export class HeroProseGenerator {
                 }
             }
 
-            // Handle generation failure
+            // Handle generation failure (null result from OpenAI client)
             if (!result) {
-                this.telemetry.trackGameEvent('Description.HeroProse.Generate.Failure', {
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
                     locationId,
-                    reason: 'openai-error',
-                    latencyMs
+                    outcomeReason: 'error',
+                    latencyMs,
+                    model: this.config.model
                 })
                 return {
                     success: false,
@@ -133,11 +150,11 @@ export class HeroProseGenerator {
             // Validate generated prose
             const prose = result.content.trim()
             if (!prose || prose.length > 1200) {
-                this.telemetry.trackGameEvent('Description.HeroProse.Generate.Failure', {
+                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
                     locationId,
-                    reason: 'invalid-content',
-                    contentLength: prose.length,
-                    latencyMs
+                    outcomeReason: 'invalid-response',
+                    latencyMs,
+                    model: this.config.model
                 })
                 return {
                     success: false,
@@ -159,12 +176,11 @@ export class HeroProseGenerator {
                 }
             )
 
-            this.telemetry.trackGameEvent('Description.HeroProse.Generate.Success', {
+            this.telemetry.trackGameEvent('Description.Hero.Generate.Success', {
                 locationId,
-                contentLength: prose.length,
-                promptHash,
-                tokenUsage: result.tokenUsage.total,
-                latencyMs
+                latencyMs,
+                model: this.config.model,
+                tokenUsage: result.tokenUsage.total
             })
 
             return {
@@ -175,11 +191,11 @@ export class HeroProseGenerator {
             }
         } catch (error) {
             const latencyMs = Date.now() - startTime
-            this.telemetry.trackGameEvent('Description.HeroProse.Generate.Failure', {
+            this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', {
                 locationId,
-                reason: 'unexpected-error',
-                error: error instanceof Error ? error.message : String(error),
-                latencyMs
+                outcomeReason: 'error',
+                latencyMs,
+                model: this.config.endpoint ? this.config.model : undefined
             })
             return {
                 success: false,
