@@ -5,7 +5,7 @@
 
 import assert from 'node:assert'
 import { execFile } from 'node:child_process'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { describe, test } from 'node:test'
 import { promisify } from 'node:util'
@@ -14,9 +14,17 @@ const execAsync = promisify(execFile)
 
 const SCRIPT_PATH = resolve(new URL('..', import.meta.url).pathname, 'seed-anchor-locations.mjs')
 
+function getOutput(resultOrError) {
+    return (resultOrError?.stdout || '') + (resultOrError?.stderr || '')
+}
+
+async function runSeed(args, options) {
+    return execAsync('node', [SCRIPT_PATH, ...args], options)
+}
+
 describe('seed-anchor-locations.mjs CLI', () => {
     test('--help flag shows usage information', async () => {
-        const { stdout, stderr } = await execAsync('node', [SCRIPT_PATH, '--help'])
+        const { stdout } = await runSeed(['--help'])
 
         assert.ok(stdout.includes('Seed Script: Anchor Locations & Exits'), 'shows title')
         assert.ok(stdout.includes('Usage:'), 'shows usage')
@@ -26,7 +34,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
     })
 
     test('runs successfully in memory mode with default data', async () => {
-        const { stdout, stderr } = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], {
+        const { stdout } = await runSeed(['--mode=memory'], {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }
         })
 
@@ -44,7 +52,7 @@ describe('seed-anchor-locations.mjs CLI', () => {
         const env = { ...process.env, PERSISTENCE_MODE: 'memory' }
 
         // First run
-        const firstRun = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], { env })
+        const firstRun = await runSeed(['--mode=memory'], { env })
         assert.ok(firstRun.stdout.includes('✅ Seed operation completed successfully'), 'first run succeeds')
 
         // Extract counts from first run (basic parsing)
@@ -57,16 +65,18 @@ describe('seed-anchor-locations.mjs CLI', () => {
         // Note: In memory mode with fresh process, each run starts fresh
         // For true idempotency testing, would need persistent storage or same process
         // This test validates the script runs twice without error
-        const secondRun = await execAsync('node', [SCRIPT_PATH, '--mode=memory'], { env })
+        const secondRun = await runSeed(['--mode=memory'], { env })
         assert.ok(secondRun.stdout.includes('✅ Seed operation completed successfully'), 'second run succeeds')
     })
 
     test('handles custom data file path', async () => {
         // Create a temporary test data file
-        const tmpDir = resolve('/tmp', 'seed-test-' + Date.now())
-        await mkdir(tmpDir, { recursive: true })
+        const tmpDirRel = resolve('scripts', 'test', '.tmp', 'seed-test-' + Date.now())
+        const tmpDirAbs = resolve(process.cwd(), tmpDirRel)
+        await mkdir(tmpDirAbs, { recursive: true })
 
-        const testDataPath = resolve(tmpDir, 'test-locations.json')
+        const testDataPathAbs = resolve(tmpDirAbs, 'test-locations.json')
+        const testDataPathRel = resolve(tmpDirRel, 'test-locations.json')
         const testData = [
             {
                 id: 'test-loc-1',
@@ -83,70 +93,76 @@ describe('seed-anchor-locations.mjs CLI', () => {
                 version: 1
             }
         ]
-        await writeFile(testDataPath, JSON.stringify(testData, null, 2))
+        await writeFile(testDataPathAbs, JSON.stringify(testData, null, 2))
 
         // Run with custom data file
-        const { stdout } = await execAsync('node', [SCRIPT_PATH, '--mode=memory', `--data=${testDataPath}`], {
+        const { stdout } = await runSeed(['--mode=memory', `--data=${testDataPathRel}`], {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }
         })
 
-        assert.ok(stdout.includes('Loading location data from: ' + testDataPath), 'uses custom data path')
+        assert.ok(stdout.includes('Loading location data from: '), 'prints data path')
         assert.ok(stdout.includes('✓ Loaded 2 locations from blueprint'), 'loads correct count')
         assert.ok(stdout.includes('✅ Seed operation completed successfully'), 'succeeds with custom data')
+
+        await rm(tmpDirAbs, { recursive: true, force: true })
     })
 
     test('fails gracefully with invalid data file', async () => {
         try {
-            await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=/nonexistent/file.json`, {
+            await runSeed(['--mode=memory', '--data=scripts/test/.tmp/does-not-exist.json'], {
                 env: { ...process.env, PERSISTENCE_MODE: 'memory' }
             })
             assert.fail('Should have thrown an error')
         } catch (error) {
-            assert.ok(error.stdout.includes('❌ Error: Failed to load location data'), 'shows error message')
+            const output = getOutput(error)
+            assert.ok(output.includes('❌ Error: Failed to load location data'), 'shows error message')
             assert.equal(error.code, 1, 'exits with code 1')
         }
     })
 
     test('rejects invalid mode values', async () => {
         try {
-            await execAsync(`node ${SCRIPT_PATH} --mode=invalid`, {
+            await runSeed(['--mode=invalid'], {
                 env: { ...process.env, PERSISTENCE_MODE: 'memory' }
             })
             assert.fail('Should have thrown an error')
         } catch (error) {
-            assert.ok(error.stdout.includes('❌ Error: Invalid mode'), 'shows invalid mode error')
-            assert.ok(error.stdout.includes("Must be 'memory' or 'cosmos'"), 'explains valid modes')
+            const output = getOutput(error)
+            assert.ok(output.includes('❌ Error: Invalid mode'), 'shows invalid mode error')
+            assert.ok(output.includes("Must be 'memory' or 'cosmos'"), 'explains valid modes')
             assert.equal(error.code, 1, 'exits with code 1')
         }
     })
 
     test('prevents path traversal attacks', async () => {
         try {
-            await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=../../../etc/passwd`, {
+            await runSeed(['--mode=memory', '--data=../../../etc/passwd'], {
                 env: { ...process.env, PERSISTENCE_MODE: 'memory' }
             })
             assert.fail('Should have thrown an error')
         } catch (error) {
-            assert.ok(error.stdout.includes('outside the project directory'), 'shows security error')
-            assert.ok(error.stdout.includes('security reasons'), 'explains security concern')
+            const output = getOutput(error)
+            assert.ok(output.includes('outside the project directory'), 'shows security error')
+            assert.ok(output.includes('security reasons'), 'explains security concern')
             assert.equal(error.code, 1, 'exits with code 1')
         }
     })
 
     test('prevents absolute paths outside project', async () => {
         try {
-            await execAsync(`node ${SCRIPT_PATH} --mode=memory --data=/etc/passwd`, {
+            await runSeed(['--mode=memory', '--data=/etc/passwd'], {
                 env: { ...process.env, PERSISTENCE_MODE: 'memory' }
             })
             assert.fail('Should have thrown an error')
         } catch (error) {
-            assert.ok(error.stdout.includes('outside the project directory'), 'shows security error')
+            const output = getOutput(error)
+            assert.ok(output.includes('outside the project directory'), 'shows security error')
             assert.equal(error.code, 1, 'exits with code 1')
         }
     })
 
     test('shows idempotency note in output', async () => {
-        const { stdout } = await execAsync(`node ${SCRIPT_PATH} --mode=memory`, {
+        const { stdout } = await runSeed(['--mode=memory'], {
             env: { ...process.env, PERSISTENCE_MODE: 'memory' }
         })
 

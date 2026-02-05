@@ -16,7 +16,7 @@ Option 2 was selected: the seed data is only required for one-time initializatio
 1. Single authoritative JSON file: `backend/src/data/villageLocations.json`.
 2. Shared package MUST NOT reference backend paths or embed seed data.
 3. Tests validating seed integrity (direction tokens, idempotent seeding) reside in backend test suite.
-4. Any future world expansions use migration scripts (see `scripts/mosswell-migration.mjs`) rather than modifying the seed in place.
+4. Future world expansions should be **additive** changes to the canonical seed file, validated by tests, and applied via the idempotent seeding script.
 
 ## Guardrails
 
@@ -24,9 +24,9 @@ The deployment verification script (`scripts/verify-deployable.mjs`) now fails i
 
 ## Modification Policy
 
--   Minor corrections (typos, exit direction relabel) may adjust the canonical file directly.
--   Structural or semantic changes (adding locations, exits, tags) require a migration script and corresponding tests.
--   Do not add comments inside the JSON file; use `backend/src/data/README.md` for documentation.
+- Minor corrections (typos, exit direction relabel) may adjust the canonical file directly.
+- Structural or semantic changes (adding locations, exits, tags) require corresponding tests and a controlled seeding run.
+- Do not add comments inside the JSON file; use `backend/src/data/README.md` for documentation.
 
 ## Future Considerations
 

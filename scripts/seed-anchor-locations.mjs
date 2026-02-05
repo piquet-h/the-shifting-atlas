@@ -131,17 +131,24 @@ Examples:
         console.log(`✓ Loaded ${blueprint.length} locations from blueprint`)
         console.log()
 
-        // Setup dependency injection container
-        const { createRequire } = await import('module')
-        const backendRequire = createRequire(new URL('../backend/package.json', import.meta.url))
-        backendRequire('reflect-metadata')
-        const { Container } = backendRequire('inversify')
-        const { setupContainer } = await import('../backend/dist/src/inversify.config.js')
-        const container = new Container()
-        await setupContainer(container, mode)
-
-        // Get repositories from container
-        const locationRepository = container.get('ILocationRepository')
+        // Resolve repositories based on mode
+        let locationRepository
+        if (mode === 'memory') {
+            // Memory mode should be runnable without any Cosmos configuration.
+            // Avoid production DI config, which intentionally hard-fails without Cosmos settings.
+            const { InMemoryLocationRepository } = await import('../backend/dist/src/repos/locationRepository.memory.js')
+            locationRepository = new InMemoryLocationRepository()
+        } else {
+            // Cosmos mode uses the production DI container.
+            const { createRequire } = await import('module')
+            const backendRequire = createRequire(new URL('../backend/package.json', import.meta.url))
+            backendRequire('reflect-metadata')
+            const { Container } = backendRequire('inversify')
+            const { setupContainer } = await import('../backend/dist/src/inversify.config.js')
+            const container = new Container()
+            await setupContainer(container, mode)
+            locationRepository = container.get('ILocationRepository')
+        }
 
         // Dynamic import of seedWorld to avoid loading backend modules before env is set
         const { seedWorld } = await import('../backend/dist/src/seeding/seedWorld.js')

@@ -10,7 +10,7 @@ It is intentionally NOT exported via the shared package. Direction validation an
 Change Policy:
 
 1. Fixes: adjust exits or descriptions directly (ensure tests still pass).
-2. Additions: use a migration script (`scripts/mosswell-migration.mjs`) rather than editing the seed in place, unless the world has not yet been initialized in production.
+2. Additions: make additive edits to the canonical seed file and validate via tests; apply changes via the idempotent seeding workflow (memory mode for local, cosmos mode as appropriate).
 3. Duplication: the deploy verification script will fail if a duplicate seed file appears in `shared/`.
 
 Do NOT add comments to the JSON file itself (JSON specification forbids comments). Use this README for rationale.
