@@ -22,6 +22,14 @@ This roadmap is organized by **dependency-driven milestones** validated through 
 
 > Milestone assignments are the source of truth. Do not hard-code issue counts or statuses in documentation — query GitHub Milestones or the repository milestone view for current values. `M3 Core Loop` is an **umbrella**; use **M3a/M3b/M3c** for slices. Milestone `M7 Dungeon Runs` has been deprecated; use `M6 Systems` for dungeon work and `M7 Post-MVP Extensibility` for post-MVP items.
 
+## Milestone description format (delivery order)
+
+GitHub milestone descriptions are treated as a **single concise source of truth** for delivery sequencing, using `## Delivery slices` and per-slice `Order:` lists.
+
+GitHub does **not** have a native “milestone template” feature; we enforce the format via repo automation and a small backfill script.
+
+Reference template: `examples/milestone-description-template.md`
+
 ## Dependency Graph (Critical Path to MVP)
 
 The following diagram shows the critical path dependencies between milestone clusters. MVP completion requires M2 → M3 → M4 sequential delivery, while M5 and M6 can proceed in parallel after M4.

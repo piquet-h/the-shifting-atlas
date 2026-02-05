@@ -1,0 +1,31 @@
+name: Ensure milestone has delivery slices (on create)
+
+on:
+  milestone:
+    types: [created]
+
+concurrency:
+  group: milestone-created-ensure-template-${{ github.repository }}-${{ github.event.milestone.number }}
+  cancel-in-progress: false
+
+jobs:
+  ensure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Ensure delivery slices section
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ensure-milestone-has-delivery-slices.mjs --repo ${{ github.repository }} --milestone ${{ github.event.milestone.number }} --apply

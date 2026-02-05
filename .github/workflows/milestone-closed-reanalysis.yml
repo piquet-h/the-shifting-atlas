@@ -1,0 +1,39 @@
+name: Milestone delivery reanalysis (on close)
+
+on:
+  milestone:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      milestoneNumber:
+        description: 'Milestone number to reanalyze (e.g., 13)'
+        required: true
+        type: number
+
+concurrency:
+  group: milestone-reanalysis-${{ github.repository }}-${{ github.event_name == 'workflow_dispatch' && inputs.milestoneNumber || github.event.milestone.number }}
+  cancel-in-progress: false
+
+jobs:
+  reanalyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Reanalyze milestone description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MILESTONE_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.milestoneNumber || github.event.milestone.number }}
+        run: node scripts/reanalyze-milestone.mjs --repo ${{ github.repository }} --milestone ${{ env.MILESTONE_NUMBER }} --apply
