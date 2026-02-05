@@ -454,7 +454,10 @@ describe('Hero Prose Generator - Telemetry', () => {
             const scenarios = [
                 {
                     name: 'timeout',
-                    client: { generate: async () => ({ content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }), healthCheck: async () => true },
+                    client: {
+                        generate: async () => ({ content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }),
+                        healthCheck: async () => true
+                    },
                     config: { endpoint: 'https://test.openai.azure.com', model: 'gpt-4' },
                     timeoutMs: 1
                 },
@@ -466,7 +469,10 @@ describe('Hero Prose Generator - Telemetry', () => {
                 },
                 {
                     name: 'invalid-response',
-                    client: { generate: async () => ({ content: '', tokenUsage: { prompt: 0, completion: 0, total: 0 } }), healthCheck: async () => true },
+                    client: {
+                        generate: async () => ({ content: '', tokenUsage: { prompt: 0, completion: 0, total: 0 } }),
+                        healthCheck: async () => true
+                    },
                     config: { endpoint: 'https://test.openai.azure.com', model: 'gpt-4' },
                     timeoutMs: 1000
                 },
@@ -482,7 +488,12 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             for (const scenario of scenarios) {
                 mockClient.clear()
-                const generator = new HeroProseGenerator(scenario.client as IAzureOpenAIClient, layerRepo, telemetry, scenario.config as AzureOpenAIClientConfig)
+                const generator = new HeroProseGenerator(
+                    scenario.client as IAzureOpenAIClient,
+                    layerRepo,
+                    telemetry,
+                    scenario.config as AzureOpenAIClientConfig
+                )
 
                 await generator.generateHeroProse({
                     locationId: 'test-location',
@@ -493,7 +504,10 @@ describe('Hero Prose Generator - Telemetry', () => {
 
                 const event = mockClient.findEvent('Description.Hero.GenerateFailure')
                 assert.ok(event, `Failure event should be emitted for ${scenario.name}`)
-                assert.ok(allowedReasons.has(event.properties.outcomeReason as string), `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`)
+                assert.ok(
+                    allowedReasons.has(event.properties.outcomeReason as string),
+                    `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`
+                )
             }
         })
     })
