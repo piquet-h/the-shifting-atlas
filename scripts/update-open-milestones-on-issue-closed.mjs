@@ -306,7 +306,7 @@ function getGitHubModelsModel() {
     // Allow a legacy fallback if the repo already has AI_MODEL configured.
     const v = (process.env.GITHUB_MODELS_MODEL ?? process.env.AI_MODEL ?? '').trim()
     if (v) return v
-    
+
     // Default to gpt-4o-mini if not configured (reasonable default for milestone updates)
     return 'gpt-4o-mini'
 }
@@ -502,6 +502,26 @@ export function validateAiSliceOrders({ milestone, aiSliceOrders }) {
     }
 }
 
+export function normalizeAiSliceOrders({ milestone, aiSliceOrders }) {
+    const existing = milestone.sliceOrders ?? []
+    const ai = Array.isArray(aiSliceOrders) ? aiSliceOrders : []
+
+    const aiByHeader = new Map(ai.map((s) => [s.header, s]))
+    const out = []
+
+    for (const s of existing) {
+        const maybe = aiByHeader.get(s.header)
+        if (maybe) {
+            out.push({ header: maybe.header, order: maybe.order })
+        } else {
+            // Safe default: preserve existing order when AI omits a slice.
+            out.push({ header: s.header, order: s.order })
+        }
+    }
+
+    return out
+}
+
 export function shouldCloseMilestone(issues) {
     const all = issues ?? []
     if (all.length === 0) return false
@@ -521,6 +541,7 @@ function makeSystemPrompt() {
         '- You must output STRICT JSON only. No markdown, no commentary.',
         '- If no changes are needed, output: {"impact":false}.',
         '- If changes are needed, output: {"impact":true,"rationale":"short","sliceOrders":[...]}',
+        '- If impact=true, you MUST return sliceOrders for ALL slices present in the milestone (even if some slices are unchanged).',
         '- Provide per-slice order as issue numbers only, and ONLY include issues that belong to the milestone.',
         'JSON schema (impact=true):',
         '{',
@@ -735,9 +756,17 @@ async function main() {
 
         const aiResult = parseAiJson(aiText)
 
+        // If the model says no impact, do not validate or apply.
+        if (!aiResult.impact) {
+            results.push({ milestone: m.number, considered: true, impact: false })
+            continue
+        }
+
+        const normalizedSliceOrders = normalizeAiSliceOrders({ milestone: m, aiSliceOrders: aiResult.sliceOrders })
+
         // Guardrail: only accept safe, non-dropping, non-cross-slice reorders.
         try {
-            validateAiSliceOrders({ milestone: m, aiSliceOrders: aiResult.sliceOrders })
+            validateAiSliceOrders({ milestone: m, aiSliceOrders: normalizedSliceOrders })
         } catch (e) {
             results.push({
                 milestone: m.number,
@@ -749,14 +778,14 @@ async function main() {
             continue
         }
 
-        results.push({ milestone: m.number, considered: true, impact: aiResult.impact, accepted: true })
+        results.push({ milestone: m.number, considered: true, impact: true, accepted: true })
 
         if (!aiResult.impact) continue
 
         const issueByNumber = indexIssuesByNumber(m.issues)
         const updatedDescription = replaceSliceOrders({
             description: m.description,
-            sliceOrders: aiResult.sliceOrders,
+            sliceOrders: normalizedSliceOrders,
             issueByNumber
         })
 

@@ -272,6 +272,33 @@ test('validateAiSliceOrders: accepts a pure reorder permutation within each slic
     })
 })
 
+test('normalizeAiSliceOrders: fills missing slice headers with existing orders', () => {
+    assert.equal(typeof updater.normalizeAiSliceOrders, 'function')
+
+    const milestone = {
+        sliceOrders: [
+            { header: 'Slice 1 — Foo', order: [1, 2] },
+            { header: 'Slice 2 — Bar', order: [3, 4] }
+        ],
+        issues: [
+            { number: 1, state: 'open' },
+            { number: 2, state: 'open' },
+            { number: 3, state: 'open' },
+            { number: 4, state: 'open' }
+        ]
+    }
+
+    const normalized = updater.normalizeAiSliceOrders({
+        milestone,
+        aiSliceOrders: [{ header: 'Slice 1 — Foo', order: [2, 1] }]
+    })
+
+    assert.deepEqual(normalized, [
+        { header: 'Slice 1 — Foo', order: [2, 1] },
+        { header: 'Slice 2 — Bar', order: [3, 4] }
+    ])
+})
+
 test('buildMilestonePromptPayload: falls back to open issues when no order numbers exist yet', () => {
     const payload = updater.buildMilestonePromptPayload({
         closedIssue: { number: 1000, title: 'Closed issue', state: 'closed', labels: [] },
