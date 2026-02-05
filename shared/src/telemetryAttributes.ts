@@ -405,7 +405,7 @@ export function enrichFrontendErrorAttributes(
 /**
  * Options for enriching hero prose telemetry events
  * Used for Description.Hero.CacheHit, Description.Hero.CacheMiss,
- * Description.Hero.Generate.Success, Description.Hero.Generate.Failure
+ * Description.Hero.GenerateSuccess, Description.Hero.GenerateFailure
  */
 export interface HeroProseEventAttributes {
     locationId?: string | null

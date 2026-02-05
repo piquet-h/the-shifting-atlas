@@ -140,8 +140,8 @@ export const GAME_EVENT_NAMES = [
     // Hero prose telemetry (Issue #738 - Hero Prose Telemetry)
     'Description.Hero.CacheHit', // Hero prose retrieved from cache - properties: { locationId, latencyMs }
     'Description.Hero.CacheMiss', // Hero prose not in cache - properties: { locationId, latencyMs }
-    'Description.Hero.Generate.Success', // Hero prose generated successfully - properties: { locationId, latencyMs, model, tokenUsage }
-    'Description.Hero.Generate.Failure', // Hero prose generation failed - properties: { locationId, latencyMs, outcomeReason, model? }
+    'Description.Hero.GenerateSuccess', // Hero prose generated successfully - properties: { locationId, latencyMs, model, tokenUsage }
+    'Description.Hero.GenerateFailure', // Hero prose generation failed - properties: { locationId, latencyMs, outcomeReason, model? }
     // Description integrity telemetry (M5 Systems - Issue #153)
     'Description.Integrity.JobStart', // Integrity hash job started
     'Description.Integrity.JobComplete', // Integrity hash job completed
