@@ -306,7 +306,18 @@ function getGitHubModelsModel() {
     // Allow a legacy fallback if the repo already has AI_MODEL configured.
     const v = (process.env.GITHUB_MODELS_MODEL ?? process.env.AI_MODEL ?? '').trim()
     if (v) return v
-    return requireEnv('GITHUB_MODELS_MODEL')
+    
+    // Provide helpful error with setup instructions
+    throw new Error(
+        'Missing required env var: GITHUB_MODELS_MODEL\n\n' +
+        'To fix this:\n' +
+        '1. For GitHub Actions: Set GITHUB_MODELS_MODEL as a repository variable\n' +
+        '   (Settings → Secrets and variables → Actions → Variables → New repository variable)\n' +
+        '   Example value: gpt-4o-mini\n\n' +
+        '2. For local runs: Export GITHUB_MODELS_MODEL before running the script\n' +
+        '   export GITHUB_MODELS_MODEL=gpt-4o-mini\n\n' +
+        'See usage() for more details.'
+    )
 }
 
 export function resolveGitHubModelsBaseUrl(envValue) {
