@@ -3,7 +3,7 @@
  *
  * Tests telemetry event emissions for hero prose generation:
  * - Description.Hero.CacheHit / CacheMiss
- * - Description.Hero.Generate.Success / Failure
+ * - Description.Hero.GenerateSuccess / Failure
  * - Low-cardinality dimensions: locationId, latencyMs, outcomeReason, model
  * - No raw prompts or prose in telemetry
  *
@@ -199,7 +199,7 @@ describe('Hero Prose Generator - Telemetry', () => {
     })
 
     describe('Generation success telemetry', () => {
-        test('emits Description.Hero.Generate.Success with required dimensions', async () => {
+        test('emits Description.Hero.GenerateSuccess with required dimensions', async () => {
             const mockClient = new MockTelemetryClient()
             const telemetry = new TelemetryService(mockClient as any)
             const layerRepo = new MockLayerRepository()
@@ -223,7 +223,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Success')
+            const event = mockClient.findEvent('Description.Hero.GenerateSuccess')
             assert.ok(event, 'Generate.Success event should be emitted')
             assert.strictEqual(event.properties.locationId, 'test-location')
             assert.ok(typeof event.properties.latencyMs === 'number')
@@ -255,7 +255,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'SECRET_DESCRIPTION'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Success')
+            const event = mockClient.findEvent('Description.Hero.GenerateSuccess')
             assert.ok(event, 'Generate.Success event should be emitted')
 
             const eventStr = JSON.stringify(event.properties)
@@ -292,7 +292,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 timeoutMs: 50 // Force timeout
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.locationId, 'test-location')
             assert.strictEqual(event.properties.outcomeReason, 'timeout')
@@ -321,7 +321,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.outcomeReason, 'error')
             assert.strictEqual(event.properties.model, 'gpt-4')
@@ -351,7 +351,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.outcomeReason, 'invalid-response')
         })
@@ -380,7 +380,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.outcomeReason, 'invalid-response')
         })
@@ -406,7 +406,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.outcomeReason, 'config-missing')
             assert.strictEqual(event.properties.locationId, 'test-location')
@@ -437,7 +437,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                 baseDescription: 'A test location'
             })
 
-            const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties.outcomeReason, 'error')
             assert.strictEqual(event.properties.model, 'gpt-4')
@@ -491,7 +491,7 @@ describe('Hero Prose Generator - Telemetry', () => {
                     timeoutMs: scenario.timeoutMs
                 })
 
-                const event = mockClient.findEvent('Description.Hero.Generate.Failure')
+                const event = mockClient.findEvent('Description.Hero.GenerateFailure')
                 assert.ok(event, `Failure event should be emitted for ${scenario.name}`)
                 assert.ok(allowedReasons.has(event.properties.outcomeReason as string), `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`)
             }
