@@ -35,6 +35,12 @@ param enableOpenAI bool = true
 @description('Azure OpenAI API version to use for SDK calls.')
 param openAiApiVersion string = '2024-10-21'
 
+@description('Primary GPT-4o model deployment name (used in app settings).')
+param openAiPrimaryDeploymentName string = 'hero-prose'
+
+@description('Hero prose generation timeout in milliseconds (default 1200ms).')
+param heroproseTimeoutMs int = 1200
+
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
   ? foundryMcpTargetOverride
@@ -265,6 +271,8 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       // Azure OpenAI Configuration (uses Foundry account; deployment managed manually via model-router)
       AZURE_OPENAI_ENDPOINT: enableOpenAI ? foundryAccountModule.outputs.endpoint : ''
       AZURE_OPENAI_API_VERSION: openAiApiVersion
+      AZURE_OPENAI_MODEL: enableOpenAI ? openAiPrimaryDeploymentName : ''
+      HERO_PROSE_TIMEOUT_MS: string(heroproseTimeoutMs)
     }
   }
 
