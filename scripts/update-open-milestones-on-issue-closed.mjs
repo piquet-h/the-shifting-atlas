@@ -150,8 +150,8 @@ async function loadRepoDocsContext() {
     const tenets = await tryReadTextFile('docs/tenets.md')
 
     return {
-        roadmapExcerpt: truncate(roadmap ?? '', 1200),
-        tenetsExcerpt: truncate(tenets ?? '', 1200)
+        roadmapExcerpt: truncate(roadmap ?? '', 800),
+        tenetsExcerpt: truncate(tenets ?? '', 800)
     }
 }
 
@@ -167,6 +167,93 @@ function orderedIssueNumberSet(sliceOrders) {
         for (const n of s.order ?? []) set.add(n)
     }
     return set
+}
+
+function extractIssueNumbersFromText(text) {
+    const out = new Set()
+    if (!text) return out
+    const re = /#(\d+)/g
+    for (const m of text.matchAll(re)) {
+        out.add(Number(m[1]))
+        if (out.size >= 50) break
+    }
+    return out
+}
+
+function indexSliceOrdersByHeader(sliceOrders) {
+    const map = new Map()
+    for (const s of sliceOrders ?? []) map.set(s.header, s)
+    return map
+}
+
+function findSliceContainingIssueNumber(sliceOrders, issueNumber) {
+    for (const s of sliceOrders ?? []) {
+        if ((s.order ?? []).includes(issueNumber)) return s
+    }
+    return null
+}
+
+function chooseIssueNumbersForBodies({
+    maxIssueBodiesForPrompt,
+    maxIssueBodyChars,
+    issuesForPrompt,
+    openIssuesByNumber,
+    sliceOrders,
+    closedIssueNumber,
+    closingPullRequestBody
+}) {
+    const bodySet = new Set()
+
+    // 1) PR-referenced issues first (high-signal)
+    for (const n of extractIssueNumbersFromText(closingPullRequestBody)) {
+        if (!openIssuesByNumber.has(n)) continue
+        if (!issuesForPrompt.some((i) => i.number === n)) continue
+        bodySet.add(n)
+        if (bodySet.size >= maxIssueBodiesForPrompt) return bodySet
+    }
+
+    // 2) Slice neighbors around the closed issue (when present in a slice order)
+    const slice = findSliceContainingIssueNumber(sliceOrders, closedIssueNumber)
+    if (slice) {
+        const order = slice.order ?? []
+        const idx = order.indexOf(closedIssueNumber)
+        const window = 2
+        for (let i = Math.max(0, idx - window); i <= Math.min(order.length - 1, idx + window); i++) {
+            const n = order[i]
+            if (!openIssuesByNumber.has(n)) continue
+            if (!issuesForPrompt.some((x) => x.number === n)) continue
+            bodySet.add(n)
+            if (bodySet.size >= maxIssueBodiesForPrompt) return bodySet
+        }
+    }
+
+    // 3) Fill remaining slots in slice-order order (stable + deterministic)
+    const preferred = []
+    const seen = new Set()
+    for (const s of sliceOrders ?? []) {
+        for (const n of s.order ?? []) {
+            if (seen.has(n)) continue
+            seen.add(n)
+            preferred.push(n)
+        }
+    }
+
+    for (const n of preferred) {
+        if (!openIssuesByNumber.has(n)) continue
+        if (!issuesForPrompt.some((x) => x.number === n)) continue
+        bodySet.add(n)
+        if (bodySet.size >= maxIssueBodiesForPrompt) return bodySet
+    }
+
+    // 4) Final fallback: first N prompt issues
+    for (const i of issuesForPrompt) {
+        const n = i.number
+        if (!openIssuesByNumber.has(n)) continue
+        bodySet.add(n)
+        if (bodySet.size >= maxIssueBodiesForPrompt) return bodySet
+    }
+
+    return bodySet
 }
 
 export function hasSliceTemplate(description) {
@@ -217,11 +304,18 @@ export function extractSliceOrders(description) {
 
 function getGitHubModelsModel() {
     // Allow a legacy fallback if the repo already has AI_MODEL configured.
-    return process.env.GITHUB_MODELS_MODEL ?? process.env.AI_MODEL ?? requireEnv('GITHUB_MODELS_MODEL')
+    const v = (process.env.GITHUB_MODELS_MODEL ?? process.env.AI_MODEL ?? '').trim()
+    if (v) return v
+    return requireEnv('GITHUB_MODELS_MODEL')
+}
+
+export function resolveGitHubModelsBaseUrl(envValue) {
+    const v = (envValue ?? '').trim()
+    return v || 'https://models.inference.ai.azure.com'
 }
 
 function getGitHubModelsBaseUrl() {
-    return process.env.GITHUB_MODELS_BASE_URL ?? 'https://models.inference.ai.azure.com'
+    return resolveGitHubModelsBaseUrl(process.env.GITHUB_MODELS_BASE_URL)
 }
 
 function getGitHubModelsToken() {
@@ -287,12 +381,16 @@ export function buildMilestonePromptPayload({ closedIssue, closingPullRequest, m
     const sliceOrders = milestone.sliceOrders ?? []
     const orderedSet = orderedIssueNumberSet(sliceOrders)
 
-    const maxIssuesForPrompt = 60
+    const maxIssuesForPrompt = 40
+    const maxIssueBodiesForPrompt = 15
+    const maxIssueBodyChars = 120
 
     const openIssues = (milestone.issues ?? [])
         .filter((i) => i.state === 'open')
         .slice()
         .sort((a, b) => a.number - b.number)
+
+    const openIssuesByNumber = new Map(openIssues.map((i) => [i.number, i]))
 
     const issuesForPrompt = (orderedSet.size > 0 ? openIssues.filter((i) => orderedSet.has(i.number)) : openIssues)
         .slice(0, maxIssuesForPrompt)
@@ -307,11 +405,21 @@ export function buildMilestonePromptPayload({ closedIssue, closingPullRequest, m
         }))
         .sort((a, b) => a.number - b.number)
 
+    const bodyIssueNumbers = chooseIssueNumbersForBodies({
+        maxIssueBodiesForPrompt,
+        maxIssueBodyChars,
+        issuesForPrompt,
+        openIssuesByNumber,
+        sliceOrders,
+        closedIssueNumber: closedIssue.number,
+        closingPullRequestBody: closingPullRequest?.body ?? ''
+    })
+
     return {
         closedIssue: {
             number: closedIssue.number,
             title: truncate(closedIssue.title ?? '', 180),
-            body: truncate(closedIssue.body ?? '', 800),
+            body: truncate(closedIssue.body ?? '', 400),
             state: closedIssue.state,
             labels: (closedIssue.labels ?? []).filter(
                 (l) => l.startsWith('scope:') || ['feature', 'enhancement', 'refactor', 'infra', 'docs', 'test', 'spike'].includes(l)
@@ -330,17 +438,65 @@ export function buildMilestonePromptPayload({ closedIssue, closingPullRequest, m
             title: milestone.title,
             descriptionExcerpt: truncate(milestone.descriptionExcerpt ?? '', 900),
             sliceOrders,
-            issues: issuesForPrompt.map((i) => ({
+            issues: issuesForPrompt.map((i, idx) => ({
                 ...i,
-                body: truncate(openIssues.find((x) => x.number === i.number)?.body ?? '', 300)
+                body:
+                    bodyIssueNumbers.has(i.number) && idx < maxIssuesForPrompt
+                        ? truncate(openIssues.find((x) => x.number === i.number)?.body ?? '', maxIssueBodyChars)
+                        : ''
             }))
         },
         repoContext: repoContext
             ? {
-                roadmapExcerpt: truncate(repoContext.roadmapExcerpt ?? '', 1200),
-                tenetsExcerpt: truncate(repoContext.tenetsExcerpt ?? '', 1200)
+                roadmapExcerpt: truncate(repoContext.roadmapExcerpt ?? '', 800),
+                tenetsExcerpt: truncate(repoContext.tenetsExcerpt ?? '', 800)
             }
             : { roadmapExcerpt: '', tenetsExcerpt: '' }
+    }
+}
+
+export function validateAiSliceOrders({ milestone, aiSliceOrders }) {
+    const existing = milestone.sliceOrders ?? []
+    const existingByHeader = indexSliceOrdersByHeader(existing)
+    const issueByNumber = new Map((milestone.issues ?? []).map((i) => [i.number, i]))
+
+    if (!Array.isArray(aiSliceOrders)) throw new Error('aiSliceOrders must be an array')
+
+    // Require the AI to return sliceOrders for all known slices (prevents partial rewrites).
+    const existingHeaders = existing.map((s) => s.header)
+    const aiHeaders = aiSliceOrders.map((s) => s.header)
+    for (const h of existingHeaders) {
+        if (!aiHeaders.includes(h)) throw new Error(`AI sliceOrders missing slice header: ${h}`)
+    }
+
+    for (const s of aiSliceOrders) {
+        if (!existingByHeader.has(s.header)) throw new Error(`Unknown slice header: ${s.header}`)
+        if (!Array.isArray(s.order)) throw new Error(`Slice ${s.header} must include order[]`)
+
+        const order = s.order
+        const uniq = new Set(order)
+        if (uniq.size !== order.length) throw new Error(`Slice ${s.header} order has duplicates`)
+
+        // All numbers must be issues in this milestone.
+        for (const n of order) {
+            if (typeof n !== 'number' || Number.isNaN(n)) throw new Error(`Slice ${s.header} order includes non-number`)
+            if (!issueByNumber.has(n)) throw new Error(`Slice ${s.header} order includes non-milestone issue: #${n}`)
+        }
+
+        const existingOrder = existingByHeader.get(s.header).order ?? []
+        const existingSet = new Set(existingOrder)
+        const existingOpenSet = new Set(existingOrder.filter((n) => issueByNumber.get(n)?.state === 'open'))
+
+        // Safety rule: do not allow moving issues between slices. If the slice already has an order,
+        // AI may only reorder within it (can omit closed issues, but must keep all open ones).
+        if (existingOrder.length > 0) {
+            for (const n of order) {
+                if (!existingSet.has(n)) throw new Error(`Slice ${s.header} introduced issue not already in slice: #${n}`)
+            }
+            for (const n of existingOpenSet) {
+                if (!uniq.has(n)) throw new Error(`Slice ${s.header} dropped open issue: #${n}`)
+            }
+        }
     }
 }
 
@@ -577,7 +733,21 @@ async function main() {
 
         const aiResult = parseAiJson(aiText)
 
-        results.push({ milestone: m.number, considered: true, impact: aiResult.impact })
+        // Guardrail: only accept safe, non-dropping, non-cross-slice reorders.
+        try {
+            validateAiSliceOrders({ milestone: m, aiSliceOrders: aiResult.sliceOrders })
+        } catch (e) {
+            results.push({
+                milestone: m.number,
+                considered: true,
+                impact: true,
+                accepted: false,
+                reason: String(e?.message ?? e)
+            })
+            continue
+        }
+
+        results.push({ milestone: m.number, considered: true, impact: aiResult.impact, accepted: true })
 
         if (!aiResult.impact) continue
 

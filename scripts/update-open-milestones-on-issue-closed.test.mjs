@@ -113,10 +113,10 @@ test('buildMilestonePromptPayload: includes issue bodies and repo docs excerpts 
         }
     })
 
-    assert.ok(payload.closedIssue.body.length <= 800)
-    assert.ok(payload.milestone.issues[0].body.length <= 300)
-    assert.ok(payload.repoContext.roadmapExcerpt.length <= 1200)
-    assert.ok(payload.repoContext.tenetsExcerpt.length <= 1200)
+    assert.ok(payload.closedIssue.body.length <= 400)
+    assert.ok(payload.milestone.issues[0].body.length <= 120)
+    assert.ok(payload.repoContext.roadmapExcerpt.length <= 800)
+    assert.ok(payload.repoContext.tenetsExcerpt.length <= 800)
 })
 
 test('shouldCloseMilestone: closes when no open issues remain (but had issues)', () => {
@@ -136,6 +136,140 @@ test('shouldCloseMilestone: closes when no open issues remain (but had issues)',
         ]),
         false
     )
+})
+
+test('resolveGitHubModelsBaseUrl: empty env falls back to default', () => {
+    assert.equal(typeof updater.resolveGitHubModelsBaseUrl, 'function')
+    assert.equal(updater.resolveGitHubModelsBaseUrl(''), 'https://models.inference.ai.azure.com')
+    assert.equal(updater.resolveGitHubModelsBaseUrl('   '), 'https://models.inference.ai.azure.com')
+    assert.equal(
+        updater.resolveGitHubModelsBaseUrl('https://example.test/'),
+        'https://example.test/'
+    )
+})
+
+test('buildMilestonePromptPayload: only includes bodies for a small number of issues', () => {
+    const issues = []
+    for (let n = 1; n <= 40; n++) {
+        issues.push({ number: n, title: `Issue ${n}`, body: 'X'.repeat(5000), state: 'open', labels: [] })
+    }
+
+    const payload = updater.buildMilestonePromptPayload({
+        closedIssue: { number: 1, title: 'Closed', body: 'C'.repeat(5000), state: 'closed', labels: [] },
+        closingPullRequest: null,
+        milestone: {
+            number: 99,
+            title: 'Big milestone',
+            descriptionExcerpt: '...',
+            sliceOrders: [{ header: 'Slice 1 — Foo', order: issues.map((i) => i.number) }],
+            issues
+        },
+        repoContext: { roadmapExcerpt: '', tenetsExcerpt: '' }
+    })
+
+    const bodies = payload.milestone.issues.map((i) => i.body)
+    const nonEmpty = bodies.filter((b) => b.length > 0)
+    assert.ok(nonEmpty.length <= 15)
+    assert.ok(nonEmpty.every((b) => b.length <= 120))
+})
+
+test('buildMilestonePromptPayload: prioritizes bodies for PR-referenced issues and slice neighbors', () => {
+    assert.equal(typeof updater.buildMilestonePromptPayload, 'function')
+
+    const issues = []
+    for (let n = 1; n <= 25; n++) {
+        issues.push({ number: n, title: `Issue ${n}`, body: `BODY-${n}-` + 'X'.repeat(5000), state: 'open', labels: [] })
+    }
+
+    // Slice order is 1..25; closed issue is #10.
+    // Closing PR references #22, so we want that body included even if it's far from #10.
+    const payload = updater.buildMilestonePromptPayload({
+        closedIssue: { number: 10, title: 'Closed', body: 'C'.repeat(2000), state: 'closed', labels: [] },
+        closingPullRequest: { number: 99, title: 'PR', body: 'Fixes #22', files: [] },
+        milestone: {
+            number: 1,
+            title: 'M',
+            descriptionExcerpt: '...',
+            sliceOrders: [{ header: 'Slice 1 — Foo', order: issues.map((i) => i.number) }],
+            issues
+        },
+        repoContext: { roadmapExcerpt: '', tenetsExcerpt: '' }
+    })
+
+    const byNumber = new Map(payload.milestone.issues.map((i) => [i.number, i]))
+    assert.ok(byNumber.get(22).body.startsWith('BODY-22-'))
+
+    // Neighbors around closed #10 should be included (at least 9/11).
+    assert.ok(byNumber.get(9).body.startsWith('BODY-9-'))
+    assert.ok(byNumber.get(11).body.startsWith('BODY-11-'))
+})
+
+test('validateAiSliceOrders: rejects dropping open issues from an existing slice', () => {
+    assert.equal(typeof updater.validateAiSliceOrders, 'function')
+
+    const milestone = {
+        sliceOrders: [{ header: 'Slice 1 — Foo', order: [1, 2, 3] }],
+        issues: [
+            { number: 1, state: 'open' },
+            { number: 2, state: 'open' },
+            { number: 3, state: 'open' }
+        ]
+    }
+
+    assert.throws(() => {
+        updater.validateAiSliceOrders({
+            milestone,
+            aiSliceOrders: [{ header: 'Slice 1 — Foo', order: [2, 1] }]
+        })
+    })
+})
+
+test('validateAiSliceOrders: rejects introducing a number not already in the slice', () => {
+    const milestone = {
+        sliceOrders: [
+            { header: 'Slice 1 — Foo', order: [1, 2] },
+            { header: 'Slice 2 — Bar', order: [3, 4] }
+        ],
+        issues: [
+            { number: 1, state: 'open' },
+            { number: 2, state: 'open' },
+            { number: 3, state: 'open' },
+            { number: 4, state: 'open' }
+        ]
+    }
+
+    assert.throws(() => {
+        updater.validateAiSliceOrders({
+            milestone,
+            aiSliceOrders: [
+                { header: 'Slice 1 — Foo', order: [1, 2, 3] },
+                { header: 'Slice 2 — Bar', order: [4] }
+            ]
+        })
+    })
+})
+
+test('validateAiSliceOrders: accepts a pure reorder permutation within each slice', () => {
+    const milestone = {
+        sliceOrders: [
+            { header: 'Slice 1 — Foo', order: [1, 2] },
+            { header: 'Slice 2 — Bar', order: [3, 4] }
+        ],
+        issues: [
+            { number: 1, state: 'open' },
+            { number: 2, state: 'open' },
+            { number: 3, state: 'open' },
+            { number: 4, state: 'open' }
+        ]
+    }
+
+    updater.validateAiSliceOrders({
+        milestone,
+        aiSliceOrders: [
+            { header: 'Slice 1 — Foo', order: [2, 1] },
+            { header: 'Slice 2 — Bar', order: [4, 3] }
+        ]
+    })
 })
 
 test('buildMilestonePromptPayload: falls back to open issues when no order numbers exist yet', () => {
