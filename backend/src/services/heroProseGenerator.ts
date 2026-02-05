@@ -206,7 +206,9 @@ export class HeroProseGenerator {
             }
         } catch (error) {
             const latencyMs = Date.now() - startTime
-            const errorProps = {}
+            const errorProps = {
+                error: error instanceof Error ? error.message : String(error)
+            }
             enrichHeroProseAttributes(errorProps, {
                 locationId,
                 outcomeReason: 'error',
