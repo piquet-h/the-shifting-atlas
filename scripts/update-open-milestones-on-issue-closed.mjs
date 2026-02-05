@@ -65,7 +65,7 @@ Env:
   GITHUB_TOKEN   required (GitHub API)
 
     # GitHub Models (recommended / "GitHub native")
-    GITHUB_MODELS_MODEL     required (e.g., gpt-4o-mini)
+    GITHUB_MODELS_MODEL     optional, default: gpt-4o-mini
     GITHUB_MODELS_BASE_URL  optional, default: https://models.inference.ai.azure.com
 
 Notes:
@@ -306,7 +306,9 @@ function getGitHubModelsModel() {
     // Allow a legacy fallback if the repo already has AI_MODEL configured.
     const v = (process.env.GITHUB_MODELS_MODEL ?? process.env.AI_MODEL ?? '').trim()
     if (v) return v
-    return requireEnv('GITHUB_MODELS_MODEL')
+    
+    // Default to gpt-4o-mini if not configured (reasonable default for milestone updates)
+    return 'gpt-4o-mini'
 }
 
 export function resolveGitHubModelsBaseUrl(envValue) {

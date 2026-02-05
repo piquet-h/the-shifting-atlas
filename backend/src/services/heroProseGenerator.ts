@@ -105,7 +105,7 @@ export class HeroProseGenerator {
                     outcomeReason: 'config-missing',
                     latencyMs: Date.now() - startTime
                 })
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', configMissingProps)
+                this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', configMissingProps)
                 return {
                     success: false,
                     reason: 'error'
@@ -135,7 +135,7 @@ export class HeroProseGenerator {
                     outcomeReason: 'timeout',
                     model: this.config.model
                 })
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', timeoutProps)
+                this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', timeoutProps)
                 return {
                     success: false,
                     reason: 'timeout'
@@ -151,7 +151,7 @@ export class HeroProseGenerator {
                     latencyMs,
                     model: this.config.model
                 })
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', errorProps)
+                this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', errorProps)
                 return {
                     success: false,
                     reason: 'error'
@@ -168,7 +168,7 @@ export class HeroProseGenerator {
                     latencyMs,
                     model: this.config.model
                 })
-                this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', invalidProps)
+                this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', invalidProps)
                 return {
                     success: false,
                     reason: 'invalid-response'
@@ -196,7 +196,7 @@ export class HeroProseGenerator {
                 model: this.config.model,
                 tokenUsage: result.tokenUsage.total
             })
-            this.telemetry.trackGameEvent('Description.Hero.Generate.Success', successProps)
+            this.telemetry.trackGameEvent('Description.Hero.GenerateSuccess', successProps)
 
             return {
                 success: true,
@@ -213,7 +213,7 @@ export class HeroProseGenerator {
                 latencyMs,
                 model: this.config.endpoint ? this.config.model : undefined
             })
-            this.telemetry.trackGameEvent('Description.Hero.Generate.Failure', errorProps)
+            this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', errorProps)
             return {
                 success: false,
                 reason: 'error'
