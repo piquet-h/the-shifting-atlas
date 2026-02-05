@@ -13,7 +13,7 @@
  * See: docs/architecture/hero-prose-layer-convention.md
  */
 
-import { enrichHeroProseAttributes } from '@piquet-h/shared/telemetryAttributes'
+import { enrichHeroProseAttributes } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { createHash } from 'node:crypto'
 import type { ILayerRepository } from '../repos/layerRepository.js'
