@@ -239,6 +239,7 @@ The `(scopeId, promptHash)` idempotency key prevents:
 
 ## Related Documents
 
+- [Hero Prose Blocking Policy](./hero-prose-blocking-policy.md) — When blocking AI is allowed, timeout budgets, fallback behavior
 - [Description Layering & Variation](../design-modules/description-layering-and-variation.md) — Overall layering model
 - [Layer Overlap Policy](./layer-overlap-policy.md) — Temporal layer management
 - Epic: #735 (Prompt Registry & Versioning)
