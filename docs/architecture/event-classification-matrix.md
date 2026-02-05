@@ -66,6 +66,8 @@ If richer narration is desired (e.g., `look`, `examine`, high-stakes combat narr
 
 For **perception actions** (`look`, `examine`) in **Immersive/Cinematic** tempo, it is acceptable to perform **bounded blocking** narration generation (cache-first) _when the turn has no pending canonical writes_. On timeout / throttling / failure, return a safe fallback (base description + minimal acknowledgement) and optionally enqueue async enrichment.
 
+**Exception**: First-look hero prose generation is the **sole** allowed blocking AI operation, subject to strict guardrails. See [Hero Prose Blocking Policy](./hero-prose-blocking-policy.md) for timeout budgets, cache-first strategy, fallback behavior, and edge cases.
+
 Rich narration may also be delivered as staged output or via async enrichment.
 
 **Enforcement**:
@@ -589,6 +591,7 @@ customEvents
 
 ## References
 
+- [Hero Prose Blocking Policy](./hero-prose-blocking-policy.md) - Timeout budgets, cache-first strategy, fallback behavior for first-look hero prose exception
 - [World Event Contract](./world-event-contract.md) - Event envelope schema and queue processing
 - [MVP Azure Architecture](./mvp-azure-architecture.md) - Infrastructure overview
 - [Copilot operating guide](../../.github/copilot-instructions.md) - Workflow and cross-cutting constraints
