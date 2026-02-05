@@ -30,8 +30,8 @@ jobs:
       - name: Update open milestone delivery orders (AI)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Required: GitHub Models model name (set as a GitHub Actions Variable)
+          # Optional: GitHub Models model name (defaults to gpt-4o-mini if not set)
           GITHUB_MODELS_MODEL: ${{ vars.GITHUB_MODELS_MODEL }}
-          # Optional: override endpoint (defaults in the script)
+          # Optional: override endpoint (defaults to https://models.inference.ai.azure.com)
           GITHUB_MODELS_BASE_URL: ${{ vars.GITHUB_MODELS_BASE_URL }}
         run: node scripts/update-open-milestones-on-issue-closed.mjs --repo ${{ github.repository }} --issue ${{ github.event.issue.number }} --apply
