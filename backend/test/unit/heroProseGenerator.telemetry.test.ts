@@ -80,7 +80,7 @@ class MockLayerRepository implements ILayerRepository {
         toTick: number | null,
         value: string,
         metadata?: Record<string, unknown>
-    ): Promise<void> {
+    ): Promise<DescriptionLayer> {
         const layer: DescriptionLayer = {
             id: crypto.randomUUID(),
             scopeId: `loc:${locationId}`,
@@ -92,17 +92,36 @@ class MockLayerRepository implements ILayerRepository {
             metadata
         }
         this.layers.push(layer)
+        return layer
     }
 
     seedLayer(layer: DescriptionLayer): void {
         this.layers.push(layer)
     }
 
-    // Unused interface methods
+    // Required interface methods (unused in these tests)
+    async getActiveLayerForLocation(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async setLayerForRealm(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
+    async getActiveLayer(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async setLayerInterval(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
     async getLayersForLocation(): Promise<DescriptionLayer[]> {
         throw new Error('Not implemented')
     }
-    async getLayerHistory(): Promise<DescriptionLayer[]> {
+    async addLayer(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
+    async updateLayer(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async deleteLayer(): Promise<boolean> {
         throw new Error('Not implemented')
     }
 }
