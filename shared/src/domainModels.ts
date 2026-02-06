@@ -462,6 +462,14 @@ export interface LoreSearchResult {
     version?: number
 }
 
+// --- Terrain Types ----------------------------------------------------------
+
+/**
+ * Terrain type enumeration for spatial generation guidance.
+ * Provides contextual hints to AI for expected exit patterns during world expansion.
+ */
+export type TerrainType = 'open-plain' | 'dense-forest' | 'hilltop' | 'riverbank' | 'narrow-corridor'
+
 // Future extension placeholders:
 // - NPC entity model
 // - Faction / Governance structures

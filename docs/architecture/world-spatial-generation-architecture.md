@@ -375,22 +375,62 @@ AI_COST_ALERT_THRESHOLD=10.00  # Daily USD threshold
 
 ### Terrain Guidance Configuration
 
+Terrain guidance provides contextual hints to AI without enforcing rigid rules. The `TERRAIN_GUIDANCE` configuration (defined in `shared/src/config/terrainGuidance.ts`) maps terrain types to expected spatial characteristics.
+
+**Configuration Schema** (`TerrainGuidanceConfig`):
+
+- `typicalExitCount`: Expected number of exits (used for validation warnings, not enforcement)
+- `exitPattern`: Spatial arrangement hint (`cardinal`, `linear`, `radial`, `custom`)
+- `promptHint`: Natural language guidance for AI (max 500 chars)
+- `defaultDirections`: Suggested exit directions (empty array = AI must justify all exits)
+
+**Complete Terrain Guidance Table**:
+
+| Terrain Type | Typical Exits | Pattern | Default Directions | Prompt Hint |
+|--------------|---------------|---------|-------------------|-------------|
+| `open-plain` | 4 | `cardinal` | N, S, E, W | Open plains typically allow travel in multiple directions unless narrative obstacles (fog, cliffs, swamps) are present. |
+| `dense-forest` | 2 | `linear` | *none* (AI justification required) | Dense forests may limit visible exits to clearings or paths, but clever players might detect game trails. |
+| `hilltop` | 5 | `radial` | N, S, E, W, down | Hilltops offer panoramic views suggesting multiple descent routes unless sheer cliffs block specific directions. |
+| `riverbank` | 3 | `custom` | *none* (depends on water flow) | Riverbanks permit travel parallel to water flow; perpendicular crossings require bridges or fords. Consider current direction. |
+| `narrow-corridor` | 2 | `linear` | *none* (AI justification required) | Corridors permit forward/back movement, but consider alcoves or climbing opportunities for additional exits. |
+
+**Override Scenarios** (AI contextual decisions):
+
+- **Open Plain + Fog**: Typical 4 exits → AI reduces to 2 based on "thick fog obscures distant landmarks"
+- **Dense Forest + Game Trail**: Typical 2 exits → AI adds diagonal exit for "a faint deer trail winds northeast"
+- **Hilltop + Sheer Cliffs**: Typical 5 exits → AI removes directions based on "sheer cliffs block descent to the east and west"
+- **Riverbank + Bridge**: Typical 3 exits (parallel only) → AI adds perpendicular crossing for "ancient stone bridge spans the river north"
+- **Narrow Corridor + Alcove**: Typical 2 exits → AI adds perpendicular for "a shadowy alcove opens to the west"
+- **Seasonal Variation**: Riverbank crossings change (frozen winter → walkable, thawed summer → impassable without boat)
+
+**Usage Example**:
+
 ```typescript
-export const TERRAIN_GUIDANCE: Record<TerrainType, TerrainGuidanceConfig> = {
-    'open-plain': {
-        typicalExitCount: 4,
-        exitPattern: 'cardinal',
-        promptHint: 'Open plains typically allow travel in multiple directions unless narrative obstacles are present.',
-        defaultDirections: ['north', 'south', 'east', 'west']
-    },
-    'dense-forest': {
-        typicalExitCount: 2,
-        exitPattern: 'linear',
-        promptHint: 'Dense forests may limit visible exits to clearings or paths.',
-        defaultDirections: []
-    }
+import { TERRAIN_GUIDANCE, getTerrainGuidance } from '@piquet-h/shared'
+
+// Get guidance for a terrain type
+const guidance = getTerrainGuidance('open-plain')
+console.log(guidance.promptHint)
+// "Open plains typically allow travel in multiple directions unless narrative obstacles..."
+
+// Determine neighbor directions for batch generation
+const stubDirections = guidance.defaultDirections.length > 0
+    ? guidance.defaultDirections
+    : inferDirectionsFromContext(arrivalDirection, terrain)
+
+// Validate inferred exits (warning only, not enforcement)
+if (inferredExits.length < guidance.typicalExitCount - 2) {
+    logger.warn(`Exit count ${inferredExits.length} significantly below typical ${guidance.typicalExitCount} for ${terrain}`)
 }
 ```
+
+**Validation Rules** (enforced at module load):
+
+- Prompt hints must be ≤ 500 characters (AI context window efficiency)
+- Exit patterns must be one of: `cardinal`, `linear`, `radial`, `custom`
+- `typicalExitCount` must be ≥ 0
+- Empty `defaultDirections` array is valid (signals "AI must justify all exits")
+- Undefined terrain types throw descriptive error (no silent fallback)
 
 ---
 
