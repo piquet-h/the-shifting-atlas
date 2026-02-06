@@ -93,13 +93,13 @@ Failure Handling: First failing gate stops evaluation; proposal returns a struct
 
 ### AI & MCP Stages (High-Level)
 
-> **Naming alignment:** Unified roadmap (2025-11-23) uses **M3 Core Loop**, **M4 AI Read**, **M5 Quality & Depth**, **M6 Systems**. Legacy references to “M3 AI Read” in this doc map to **M4 AI Read**.
+> **Naming alignment:** Unified roadmap (2025-11-23) uses **M3 Core Loop**, **M4a–M4c (AI Read split)**, **M5 Quality & Depth**, **M6 Systems**. M4 is split: M4a (MCP Foundations), M4b (World Gen), M4c (Agent Sandbox). Legacy references to "M3 AI Read" in this doc map to **M4a (AI Read Foundations)**.
 
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
 | Stage (Milestone)   | Focus                        | Key MCP Servers / Additions                                                                                                                                              | Exit Criteria                                        |
 | ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| M4 AI Read          | Foundations (Read-Only)      | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
+| M4a (AI Read)       | Foundations (Read-Only)      | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
 | M6 AI Enrich\*      | Flavor & Dialogue Seed       | +`classification`, `lore-memory`                                                                                                                                         | Safe ambience & NPC one-liners in playtest           |
 | M7 Systems\*        | Structured Proposals         | +`world-mutation` (proposal endpoints)                                                                                                                                   | Validator rejects unsafe / incoherent >90% precision |
 | (Optional) Planning | Narrative Planning (offline) | +`simulation-planner` (optional; offline tooling, not live gameplay)                                                                                                     | Quest seed generation gated & logged                 |

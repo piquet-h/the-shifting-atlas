@@ -4,11 +4,11 @@ This project uses a **minimal, opinionated label + milestone scheme** to keep bo
 
 ## Axes
 
-| Axis  | Label Prefix         | Allowed Values                                                                                                                                        | Purpose                              |
-| ----- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Scope | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`                                                             | High-level functional grouping (≤9). |
-| Type  | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                                                                         | Nature of work & WIP policy.         |
-| Stage | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Data Foundations`, `M3 Core Loop`, `M4 AI Read`, `M5 Quality & Depth`, `M6 Systems`, `M7 Post-MVP Extensibility` | Delivery sequence narrative.         |
+| Axis  | Label Prefix         | Allowed Values                                                                                                                                                     | Purpose                              |
+| ----- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| Scope | `scope:`             | `core`, `world`, `traversal`, `ai`, `mcp`, `systems`, `observability`, `devx`, `security`                                                                          | High-level functional grouping (≤9). |
+| Type  | (none)               | `feature`, `enhancement`, `refactor`, `infra`, `docs`, `spike`, `test`, `bug`                                                                                      | Nature of work & WIP policy.         |
+| Stage | Milestone (no label) | `M0 Foundation`, `M1 Traversal`, `M2 Data Foundations`, `M3 Core Loop`, `M4a/b/c (AI Read split)`, `M5 Quality & Depth`, `M6 Systems`, `M7 Post-MVP Extensibility` | Delivery sequence narrative.         |
 
 Guidelines:
 
@@ -30,8 +30,8 @@ Milestone: M0 Foundation
 ```text
 Title: MCP Read-Only Servers (WorldContext, Lore, classification)
 Labels: scope:mcp, feature
-Priority Basis: Milestone (M4) + enables AI read capabilities
-Milestone: M4 AI Read
+Priority Basis: Milestone (M4a) + enables AI read capabilities
+Milestone: M4a (AI Read)
 ```
 
 ```text

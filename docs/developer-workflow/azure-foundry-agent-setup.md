@@ -1,6 +1,6 @@
 # Azure AI Foundry Agent Setup Guide
 
-**Status**: Implementation Guide for M4 AI Read milestone  
+**Status**: Implementation Guide for M4a (AI Read Foundations) milestone  
 **Last Updated**: 2026-01-30
 
 ## Overview

@@ -530,7 +530,7 @@ Historical notes and rationale are captured in `docs/adr/ADR-004-player-store-cu
 
 ---
 
-### MCP (Model Context Protocol) & Narrative Gateway (M4 AI Read - Issue #428)
+### MCP (Model Context Protocol) & Narrative Gateway (M4a: AI Read - Issue #428)
 
 > **Status:** Events defined; MCP tool handlers partially implemented  
 > **Reference:** `docs/architecture/agentic-ai-and-mcp.md`  
