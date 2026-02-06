@@ -4,7 +4,6 @@
         "ms-azuretools.vscode-azureresourcegroups",
         "ms-azuretools.vscode-azurestaticwebapps",
         "github.copilot",
-        "github.copilot-chat",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
         "bradlc.vscode-tailwindcss",
