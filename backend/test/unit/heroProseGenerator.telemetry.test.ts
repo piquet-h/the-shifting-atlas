@@ -12,18 +12,48 @@
 
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
+import type { Contracts } from 'applicationinsights'
 import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
 import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 import { HeroProseGenerator } from '../../src/services/heroProseGenerator.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
+import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 
 // Mock telemetry client
-class MockTelemetryClient {
+class MockTelemetryClient implements ITelemetryClient {
     events: Array<{ name: string; properties: Record<string, unknown> }> = []
 
-    trackEvent(name: string, properties?: Record<string, unknown>): void {
-        this.events.push({ name, properties: properties || {} })
+    trackEvent(telemetry: Contracts.EventTelemetry): void {
+        this.events.push({ name: telemetry.name, properties: telemetry.properties || {} })
+    }
+
+    trackException(): void {
+        // Not used in these tests
+    }
+
+    trackMetric(): void {
+        // Not used in these tests
+    }
+
+    trackTrace(): void {
+        // Not used in these tests
+    }
+
+    trackDependency(): void {
+        // Not used in these tests
+    }
+
+    trackRequest(): void {
+        // Not used in these tests
+    }
+
+    addTelemetryProcessor(): void {
+        // Not used in these tests
+    }
+
+    flush(): void {
+        // Not used in these tests
     }
 
     clear(): void {
@@ -81,7 +111,7 @@ describe('Hero Prose Generator - Telemetry', () => {
     describe('Cache telemetry', () => {
         test('emits Description.Hero.CacheHit with locationId and latencyMs', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => null,
@@ -125,7 +155,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Description.Hero.CacheMiss when no hero prose exists', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => ({
@@ -155,7 +185,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('does not include raw prose in cache hit telemetry', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => null,
@@ -201,7 +231,7 @@ describe('Hero Prose Generator - Telemetry', () => {
     describe('Generation success telemetry', () => {
         test('emits Description.Hero.GenerateSuccess with required dimensions', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => ({
@@ -233,7 +263,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('does not include raw prompt or prose in success telemetry', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => ({
@@ -268,7 +298,7 @@ describe('Hero Prose Generator - Telemetry', () => {
     describe('Generation failure telemetry', () => {
         test('emits Failure with outcomeReason=timeout when timeout occurs', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => {
@@ -302,7 +332,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Failure with outcomeReason=error when OpenAI returns null', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => null, // Simulate OpenAI error
@@ -329,7 +359,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Failure with outcomeReason=invalid-response for empty prose', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => ({
@@ -358,7 +388,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Failure with outcomeReason=invalid-response for prose exceeding 1200 chars', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => ({
@@ -387,7 +417,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Failure with outcomeReason=config-missing when endpoint not configured', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => null,
@@ -416,7 +446,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
         test('emits Failure with outcomeReason=error on unexpected exception', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
             const openaiClient: IAzureOpenAIClient = {
                 generate: async () => {
@@ -447,14 +477,17 @@ describe('Hero Prose Generator - Telemetry', () => {
     describe('Low-cardinality outcome reasons', () => {
         test('outcomeReason values are bounded and low-cardinality', async () => {
             const mockClient = new MockTelemetryClient()
-            const telemetry = new TelemetryService(mockClient as any)
+            const telemetry = new TelemetryService(mockClient)
             const layerRepo = new MockLayerRepository()
 
             // Test all failure scenarios and collect outcomeReasons
             const scenarios = [
                 {
                     name: 'timeout',
-                    client: { generate: async () => ({ content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }), healthCheck: async () => true },
+                    client: {
+                        generate: async () => ({ content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }),
+                        healthCheck: async () => true
+                    },
                     config: { endpoint: 'https://test.openai.azure.com', model: 'gpt-4' },
                     timeoutMs: 1
                 },
@@ -466,7 +499,10 @@ describe('Hero Prose Generator - Telemetry', () => {
                 },
                 {
                     name: 'invalid-response',
-                    client: { generate: async () => ({ content: '', tokenUsage: { prompt: 0, completion: 0, total: 0 } }), healthCheck: async () => true },
+                    client: {
+                        generate: async () => ({ content: '', tokenUsage: { prompt: 0, completion: 0, total: 0 } }),
+                        healthCheck: async () => true
+                    },
                     config: { endpoint: 'https://test.openai.azure.com', model: 'gpt-4' },
                     timeoutMs: 1000
                 },
@@ -482,7 +518,12 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             for (const scenario of scenarios) {
                 mockClient.clear()
-                const generator = new HeroProseGenerator(scenario.client as IAzureOpenAIClient, layerRepo, telemetry, scenario.config as AzureOpenAIClientConfig)
+                const generator = new HeroProseGenerator(
+                    scenario.client as IAzureOpenAIClient,
+                    layerRepo,
+                    telemetry,
+                    scenario.config as AzureOpenAIClientConfig
+                )
 
                 await generator.generateHeroProse({
                     locationId: 'test-location',
@@ -493,7 +534,10 @@ describe('Hero Prose Generator - Telemetry', () => {
 
                 const event = mockClient.findEvent('Description.Hero.GenerateFailure')
                 assert.ok(event, `Failure event should be emitted for ${scenario.name}`)
-                assert.ok(allowedReasons.has(event.properties.outcomeReason as string), `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`)
+                assert.ok(
+                    allowedReasons.has(event.properties.outcomeReason as string),
+                    `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`
+                )
             }
         })
     })
