@@ -80,7 +80,7 @@ class MockLayerRepository implements ILayerRepository {
         toTick: number | null,
         value: string,
         metadata?: Record<string, unknown>
-    ): Promise<void> {
+    ): Promise<DescriptionLayer> {
         const layer: DescriptionLayer = {
             id: crypto.randomUUID(),
             scopeId: `loc:${locationId}`,
@@ -92,17 +92,36 @@ class MockLayerRepository implements ILayerRepository {
             metadata
         }
         this.layers.push(layer)
+        return layer
     }
 
     seedLayer(layer: DescriptionLayer): void {
         this.layers.push(layer)
     }
 
-    // Unused interface methods
+    // Required interface methods (unused in these tests)
+    async getActiveLayerForLocation(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async setLayerForRealm(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
+    async getActiveLayer(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async setLayerInterval(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
     async getLayersForLocation(): Promise<DescriptionLayer[]> {
         throw new Error('Not implemented')
     }
-    async getLayerHistory(): Promise<DescriptionLayer[]> {
+    async addLayer(): Promise<DescriptionLayer> {
+        throw new Error('Not implemented')
+    }
+    async updateLayer(): Promise<DescriptionLayer | null> {
+        throw new Error('Not implemented')
+    }
+    async deleteLayer(): Promise<boolean> {
         throw new Error('Not implemented')
     }
 }
@@ -148,9 +167,9 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.CacheHit')
             assert.ok(event, 'CacheHit event should be emitted')
-            assert.strictEqual(event.properties.locationId, 'test-location')
-            assert.ok(typeof event.properties.latencyMs === 'number')
-            assert.ok((event.properties.latencyMs as number) >= 0)
+            assert.strictEqual(event.properties['game.location.id'], 'test-location')
+            assert.ok(typeof event.properties['game.latency.ms'] === 'number')
+            assert.ok((event.properties['game.latency.ms'] as number) >= 0)
         })
 
         test('emits Description.Hero.CacheMiss when no hero prose exists', async () => {
@@ -179,8 +198,8 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.CacheMiss')
             assert.ok(event, 'CacheMiss event should be emitted')
-            assert.strictEqual(event.properties.locationId, 'test-location')
-            assert.ok(typeof event.properties.latencyMs === 'number')
+            assert.strictEqual(event.properties['game.location.id'], 'test-location')
+            assert.ok(typeof event.properties['game.latency.ms'] === 'number')
         })
 
         test('does not include raw prose in cache hit telemetry', async () => {
@@ -255,10 +274,10 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateSuccess')
             assert.ok(event, 'Generate.Success event should be emitted')
-            assert.strictEqual(event.properties.locationId, 'test-location')
-            assert.ok(typeof event.properties.latencyMs === 'number')
-            assert.strictEqual(event.properties.model, 'gpt-4-test-model')
-            assert.strictEqual(event.properties.tokenUsage, 40)
+            assert.strictEqual(event.properties['game.location.id'], 'test-location')
+            assert.ok(typeof event.properties['game.latency.ms'] === 'number')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4-test-model')
+            assert.strictEqual(event.properties['game.description.hero.token.usage'], 40)
         })
 
         test('does not include raw prompt or prose in success telemetry', async () => {
@@ -324,10 +343,10 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.locationId, 'test-location')
-            assert.strictEqual(event.properties.outcomeReason, 'timeout')
-            assert.ok(typeof event.properties.latencyMs === 'number')
-            assert.strictEqual(event.properties.model, 'gpt-4')
+            assert.strictEqual(event.properties['game.location.id'], 'test-location')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'timeout')
+            assert.ok(typeof event.properties['game.latency.ms'] === 'number')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4')
         })
 
         test('emits Failure with outcomeReason=error when OpenAI returns null', async () => {
@@ -353,8 +372,8 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.outcomeReason, 'error')
-            assert.strictEqual(event.properties.model, 'gpt-4')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'error')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4')
         })
 
         test('emits Failure with outcomeReason=invalid-response for empty prose', async () => {
@@ -383,7 +402,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.outcomeReason, 'invalid-response')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'invalid-response')
         })
 
         test('emits Failure with outcomeReason=invalid-response for prose exceeding 1200 chars', async () => {
@@ -412,7 +431,7 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.outcomeReason, 'invalid-response')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'invalid-response')
         })
 
         test('emits Failure with outcomeReason=config-missing when endpoint not configured', async () => {
@@ -438,10 +457,10 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.outcomeReason, 'config-missing')
-            assert.strictEqual(event.properties.locationId, 'test-location')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'config-missing')
+            assert.strictEqual(event.properties['game.location.id'], 'test-location')
             // Model should not be included when config is missing
-            assert.strictEqual(event.properties.model, undefined)
+            assert.strictEqual(event.properties['game.description.hero.model'], undefined)
         })
 
         test('emits Failure with outcomeReason=error on unexpected exception', async () => {
@@ -469,8 +488,8 @@ describe('Hero Prose Generator - Telemetry', () => {
 
             const event = mockClient.findEvent('Description.Hero.GenerateFailure')
             assert.ok(event, 'Generate.Failure event should be emitted')
-            assert.strictEqual(event.properties.outcomeReason, 'error')
-            assert.strictEqual(event.properties.model, 'gpt-4')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'error')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4')
         })
     })
 
@@ -535,8 +554,8 @@ describe('Hero Prose Generator - Telemetry', () => {
                 const event = mockClient.findEvent('Description.Hero.GenerateFailure')
                 assert.ok(event, `Failure event should be emitted for ${scenario.name}`)
                 assert.ok(
-                    allowedReasons.has(event.properties.outcomeReason as string),
-                    `outcomeReason '${event.properties.outcomeReason}' must be low-cardinality`
+                    allowedReasons.has(event.properties['game.description.hero.outcome.reason'] as string),
+                    `outcomeReason '${event.properties['game.description.hero.outcome.reason']}' must be low-cardinality`
                 )
             }
         })
