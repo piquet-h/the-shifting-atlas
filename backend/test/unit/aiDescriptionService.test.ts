@@ -19,11 +19,7 @@ import type { Direction, TerrainType } from '@piquet-h/shared'
 import type { IAzureOpenAIClient, OpenAIGenerateResult } from '../../src/services/azureOpenAIClient.js'
 import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
-import {
-    AIDescriptionService,
-    type BatchDescriptionRequest,
-    type GeneratedDescription
-} from '../../src/services/AIDescriptionService.js'
+import { AIDescriptionService, type BatchDescriptionRequest } from '../../src/services/AIDescriptionService.js'
 
 // Mock telemetry client
 class MockTelemetryClient implements ITelemetryClient {

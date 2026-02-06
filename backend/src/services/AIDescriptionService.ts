@@ -162,10 +162,7 @@ export class AIDescriptionService implements IAIDescriptionService {
      * Generate description for a single location with retry logic.
      * Falls back to template-based description on persistent failure.
      */
-    private async generateSingleDescription(
-        location: LocationDescriptionRequest,
-        style: DescriptionStyle
-    ): Promise<GeneratedDescription> {
+    private async generateSingleDescription(location: LocationDescriptionRequest, style: DescriptionStyle): Promise<GeneratedDescription> {
         // Attempt generation with retries
         for (let attempt = 0; attempt < MAX_RETRY_ATTEMPTS; attempt++) {
             const result = await this.attemptGeneration(location, style)
@@ -193,10 +190,7 @@ export class AIDescriptionService implements IAIDescriptionService {
      * Attempt to generate description using AI client.
      * Returns null on failure (for retry logic).
      */
-    private async attemptGeneration(
-        location: LocationDescriptionRequest,
-        style: DescriptionStyle
-    ): Promise<GeneratedDescription | null> {
+    private async attemptGeneration(location: LocationDescriptionRequest, style: DescriptionStyle): Promise<GeneratedDescription | null> {
         const prompt = this.buildLocationPrompt(location, style)
 
         const result = await this.aiClient.generate({
