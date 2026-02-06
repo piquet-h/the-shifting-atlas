@@ -181,7 +181,7 @@ describe('AIDescriptionService Integration Tests', () => {
                     locationId: 'multi-exit',
                     terrain: 'open-plain' as TerrainType,
                     arrivalDirection: 'north' as Direction,
-                    neighbors: ['south' as Direction, 'east' as Direction, 'west' as Direction, 'northeast' as Direction]
+                    neighbors: ['south' as Direction, 'east' as Direction, 'west' as Direction]
                 }
             ],
             style: 'concise'
@@ -191,11 +191,10 @@ describe('AIDescriptionService Integration Tests', () => {
 
         assert.strictEqual(results.length, 1)
 
-        // Template should mention exit directions
+        // Template should mention all exit directions from the neighbors array
         const description = results[0].description.toLowerCase()
-        assert.ok(
-            description.includes('south') || description.includes('east') || description.includes('west'),
-            'Description should mention exit directions'
-        )
+        assert.ok(description.includes('south'), 'Description should mention south exit')
+        assert.ok(description.includes('east'), 'Description should mention east exit')
+        assert.ok(description.includes('west'), 'Description should mention west exit')
     })
 })
