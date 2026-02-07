@@ -49,6 +49,7 @@ This document provides a complete guide to authoring, validating, and using prom
 Container for template identification and versioning metadata.
 
 #### metadata.id (required)
+
 - **Type**: `string`
 - **Pattern**: `^[a-z0-9-_]+$` (lowercase alphanumeric, hyphens, underscores only)
 - **Length**: 1-100 characters
@@ -57,44 +58,51 @@ Container for template identification and versioning metadata.
 - **Naming Convention**: Use kebab-case. Include version suffix for variants (e.g., `-v2`, `-experimental`).
 
 #### metadata.version (required)
+
 - **Type**: `string`
 - **Pattern**: `^\d+\.\d+\.\d+$` (semantic versioning)
 - **Description**: Template version following semver format (MAJOR.MINOR.PATCH).
 - **Example**: `"1.0.0"`, `"2.1.3"`
 - **Versioning Rules**:
-  - Increment MAJOR for breaking changes to template contract
-  - Increment MINOR for new variables or backward-compatible changes
-  - Increment PATCH for wording/formatting fixes that don't affect behavior
+    - Increment MAJOR for breaking changes to template contract
+    - Increment MINOR for new variables or backward-compatible changes
+    - Increment PATCH for wording/formatting fixes that don't affect behavior
 
 #### metadata.name (required)
+
 - **Type**: `string`
 - **Length**: 1-200 characters
 - **Description**: Human-readable display name for the template.
 - **Example**: `"Location Generator"`, `"NPC Dialogue Generator V2"`
 
 #### metadata.description (required)
+
 - **Type**: `string`
 - **Length**: 1-1000 characters
 - **Description**: Detailed description of the template's purpose, expected output, and use cases.
 - **Example**: `"Generates descriptions for new locations in the world, including exits, ambient details, and points of interest"`
 
 #### metadata.tags (optional)
+
 - **Type**: `string[]`
 - **Description**: Categorization tags for searching and filtering templates.
 - **Example**: `["location", "world", "generation"]`, `["npc", "dialogue", "quest"]`
 - **Recommended Tags**: `location`, `npc`, `quest`, `item`, `event`, `world`, `generation`, `experimental`
 
 #### metadata.author (optional)
+
 - **Type**: `string`
 - **Description**: Template author or system identifier.
 - **Example**: `"system"`, `"world-team"`, `"migration-script"`
 
 #### metadata.createdAt (optional)
+
 - **Type**: `string` (ISO 8601 datetime)
 - **Description**: Timestamp when template was first created.
 - **Example**: `"2025-01-01T00:00:00Z"`
 
 #### metadata.updatedAt (optional)
+
 - **Type**: `string` (ISO 8601 datetime)
 - **Description**: Timestamp of last template modification.
 - **Example**: `"2025-01-10T09:00:00Z"`
@@ -111,6 +119,7 @@ The actual prompt content sent to the AI model.
 - **Security**: MUST NOT contain API keys, secrets, passwords, or protected tokens (see Security section).
 
 **Example**:
+
 ```
 Generate a [terrain_type] location connected to [existing_location].
 
@@ -137,23 +146,27 @@ Array of variable definitions for template interpolation.
 Each variable object contains:
 
 #### name (required)
+
 - **Type**: `string`
 - **Pattern**: `^[a-zA-Z_][a-zA-Z0-9_]*$` (valid identifier)
 - **Description**: Variable name used in `[name]` placeholders within the template.
 - **Example**: `"terrain_type"`, `"existing_location"`, `"faction"`
 
 #### description (required)
+
 - **Type**: `string`
 - **Length**: At least 1 character
 - **Description**: Human-readable description of what the variable represents and how it's used.
 - **Example**: `"Type of terrain (e.g., forest, mountain, urban)"`
 
 #### required (optional, default: true)
+
 - **Type**: `boolean`
 - **Description**: Whether the variable must be provided when using the template.
 - **Example**: `true` (must provide), `false` (optional)
 
 #### defaultValue (optional)
+
 - **Type**: `string`
 - **Description**: Default value if variable is not provided (only meaningful when required=false).
 - **Example**: `"neutral"`, `"temperate"`
@@ -165,16 +178,19 @@ Array of example inputs and outputs demonstrating template usage.
 Each example object contains:
 
 #### input (required)
+
 - **Type**: `object` (key-value pairs)
 - **Description**: Variable values for this example.
 - **Example**: `{ "terrain_type": "forest", "existing_location": "Millhaven village" }`
 
 #### output (optional)
+
 - **Type**: `string`
 - **Description**: Expected or sample AI output for this input.
 - **Example**: `"A dense forest clearing with ancient oaks..."`
 
 #### description (optional)
+
 - **Type**: `string`
 - **Description**: Description of what this example demonstrates.
 - **Example**: `"Generate a forest location near a village in autumn"`
@@ -184,11 +200,13 @@ Each example object contains:
 ### Naming Conventions
 
 **Template IDs**:
+
 - Use kebab-case: `location-generator`, `npc-dialogue`
 - Include version suffix for variants: `location-generator-v2`, `npc-dialogue-experimental`
 - Keep IDs stable across template iterations (use version field for changes)
 
 **Variable Names**:
+
 - Use snake_case: `terrain_type`, `player_level`, `faction_control`
 - Be descriptive: prefer `existing_location` over `loc`
 - Avoid abbreviations unless widely understood
@@ -211,6 +229,7 @@ Each example object contains:
 ### Examples
 
 Include 2-3 examples showing:
+
 - Happy path (typical usage)
 - Edge case (unusual but valid input)
 - Maximum complexity (all optional variables provided)
@@ -248,38 +267,43 @@ Before committing a template, ensure:
 ### Creating a New Template
 
 1. **Create JSON file** in `shared/src/prompts/templates/`:
-   ```bash
-   cd shared/src/prompts/templates
-   touch my-template.json
-   ```
+
+    ```bash
+    cd shared/src/prompts/templates
+    touch my-template.json
+    ```
 
 2. **Author template** following schema (see example above)
 
 3. **Validate**:
-   ```bash
-   node scripts/validate-prompts.mjs
-   ```
+
+    ```bash
+    node scripts/validate-prompts.mjs
+    ```
 
 4. **Test locally** (see Backend Integration section)
 
 5. **Bundle for production**:
-   ```bash
-   node scripts/bundle-prompts.mjs
-   ```
+    ```bash
+    node scripts/bundle-prompts.mjs
+    ```
 
 ### Updating an Existing Template
 
 **For patch changes** (wording, formatting):
+
 - Update template content
 - Increment PATCH version: `1.0.0` → `1.0.1`
 - Update `updatedAt` timestamp
 
 **For minor changes** (new optional variables):
+
 - Add variables to `variables` array
 - Update template to use new variables
 - Increment MINOR version: `1.0.1` → `1.1.0`
 
 **For major changes** (breaking contract):
+
 - Create new template file with version suffix: `my-template-v2.json`
 - Update `id` to include version: `my-template-v2`
 - Set version to `1.0.0` for new template
@@ -288,11 +312,13 @@ Before committing a template, ensure:
 ### Validation Script Usage
 
 **Basic validation**:
+
 ```bash
 node scripts/validate-prompts.mjs
 ```
 
 **Output**:
+
 ```
 Validating prompt templates in: shared/src/prompts/templates
 
@@ -307,29 +333,37 @@ Validation complete:
 ```
 
 **Exit codes**:
+
 - `0`: All templates valid
 - `1`: One or more validation errors
 
 ### Bundling for Production
 
 **Create bundle**:
+
 ```bash
 node scripts/bundle-prompts.mjs
 ```
 
 This creates `shared/src/prompts/templates/prompts.bundle.json` containing:
+
 - All validated templates
 - Content hashes for each template
 - Bundle generation timestamp
 
 **Bundle structure**:
+
 ```json
 {
     "version": "1.0.0",
     "generatedAt": "2025-01-10T09:42:00Z",
     "templates": {
-        "location-generator": { /* full template */ },
-        "npc-dialogue-generator": { /* full template */ }
+        "location-generator": {
+            /* full template */
+        },
+        "npc-dialogue-generator": {
+            /* full template */
+        }
     },
     "hashes": {
         "location-generator": "02f80b430822...",
@@ -345,6 +379,7 @@ This creates `shared/src/prompts/templates/prompts.bundle.json` containing:
 Templates are accessed via the `IPromptTemplateRepository` interface, injected through Inversify DI.
 
 **Configuration** (`backend/src/inversify.config.ts`):
+
 ```typescript
 import { PromptTemplateRepository, type IPromptTemplateRepository } from '@piquet-h/shared'
 
@@ -356,6 +391,7 @@ container
 ### Using Templates in Handlers
 
 **Basic usage**:
+
 ```typescript
 import type { IPromptTemplateRepository } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
@@ -372,7 +408,7 @@ export class MyHandler extends BaseHandler {
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
         // Get latest version by ID
         const template = await this.promptRepo.getLatest('location-generator')
-        
+
         if (!template) {
             return errorResponse(404, 'TemplateNotFound', 'Template not found')
         }
@@ -387,29 +423,33 @@ export class MyHandler extends BaseHandler {
 ### Query Patterns
 
 **Get latest version by ID**:
+
 ```typescript
 const template = await promptRepo.getLatest('location-generator')
 // Returns latest version of location-generator
 ```
 
 **Get specific version**:
+
 ```typescript
 const template = await promptRepo.getByVersion('location-generator', '1.0.0')
 // Returns version 1.0.0 specifically
 ```
 
 **Get by content hash** (for replay/audit):
+
 ```typescript
 const template = await promptRepo.getByHash('02f80b430822...')
 // Returns template with exact content hash
 ```
 
 **Flexible query**:
+
 ```typescript
 const template = await promptRepo.get({
     id: 'location-generator',
-    version: '1.0.0',  // optional
-    hash: '02f80b...'   // optional
+    version: '1.0.0', // optional
+    hash: '02f80b...' // optional
 })
 ```
 
@@ -421,16 +461,11 @@ Templates use `[variable_name]` placeholders that need to be replaced before sen
 const template = await promptRepo.getLatest('location-generator')
 
 // Simple string replacement (for basic use cases)
-let prompt = template.content
-    .replace('[terrain_type]', 'forest')
-    .replace('[existing_location]', 'Millhaven village')
+let prompt = template.content.replace('[terrain_type]', 'forest').replace('[existing_location]', 'Millhaven village')
 
 // Or use a helper function for all variables
 function interpolate(template: string, vars: Record<string, string>): string {
-    return Object.entries(vars).reduce(
-        (result, [key, value]) => result.replace(`[${key}]`, value),
-        template
-    )
+    return Object.entries(vars).reduce((result, [key, value]) => result.replace(`[${key}]`, value), template)
 }
 
 const prompt = interpolate(template.content, {
@@ -462,14 +497,9 @@ export class GenerateLocationHandler extends BaseHandler {
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
         // 1. Get template
         const template = await this.promptRepo.getLatest('location-generator')
-        
+
         if (!template) {
-            this.recordNormalizedError(
-                'Location.Generate',
-                'TemplateNotFound',
-                'Location generator template not found',
-                500
-            )
+            this.recordNormalizedError('Location.Generate', 'TemplateNotFound', 'Location generator template not found', 500)
             return errorResponse(500, 'TemplateNotFound', 'Template not found')
         }
 
@@ -512,32 +542,10 @@ If you have existing inline prompts in code (e.g., in `worldTemplates.ts`), foll
 Run the migration script in dry-run mode:
 
 ```bash
-node scripts/migrate-prompts.mjs --dry-run
+node scripts/migrate-prompts-v2.mjs --dry-run
 ```
 
-**Output**:
-```
-Prompt Template Migration
-=========================
-
-🔍 DRY RUN MODE - No files will be written
-
-📝 location-template.json
-   ID: location-template
-   Variables: 5
-   Template length: 248 chars
-   (would write to shared/src/prompts/templates/location-template.json)
-
-📝 npc-dialogue-template.json
-   ID: npc-dialogue-template
-   Variables: 5
-   Template length: 187 chars
-   (would write to shared/src/prompts/templates/npc-dialogue-template.json)
-
-Migration complete: 2 templates previewed
-
-To apply changes, run without --dry-run flag
-```
+This prints a deterministic plan of what would be created/updated, without writing files.
 
 #### Step 2: Review Generated Templates
 
@@ -553,7 +561,7 @@ The script generates templates with default metadata. Review and customize:
 Run without dry-run flag:
 
 ```bash
-node scripts/migrate-prompts.mjs
+node scripts/migrate-prompts-v2.mjs
 ```
 
 #### Step 4: Validate Generated Templates
@@ -569,6 +577,7 @@ Fix any validation errors.
 Replace inline prompt strings with repository lookups:
 
 **Before** (inline prompt):
+
 ```typescript
 const LOCATION_PROMPT = `Generate a [terrain_type] location...`
 
@@ -577,6 +586,7 @@ const prompt = LOCATION_PROMPT.replace('[terrain_type]', 'forest')
 ```
 
 **After** (repository):
+
 ```typescript
 constructor(
     @inject('IPromptTemplateRepository') private promptRepo: IPromptTemplateRepository
@@ -601,25 +611,24 @@ Once verified, remove old inline prompt constants from `worldTemplates.ts` or ot
 
 ### Migration Script Customization
 
-The migration script (`scripts/migrate-prompts.mjs`) contains a mapping of inline prompts. To add more prompts to migrate:
+The supported migration tool is `scripts/migrate-prompts-v2.mjs`.
 
-1. Edit `scripts/migrate-prompts.mjs`
-2. Add entry to `inlinePrompts` object:
-   ```javascript
-   const inlinePrompts = {
-       'my-prompt': {
-           template: `Your prompt text with [variables]`,
-           variables: ['variable1', 'variable2']
-       }
-   }
-   ```
-3. Run migration script
+- It currently discovers known inline sources (notably `shared/src/prompts/worldTemplates.ts`).
+- If you have additional inline prompt sources, prefer migrating them manually into `shared/src/prompts/templates/`.
+
+After adding/editing templates, always run:
+
+```bash
+node scripts/validate-prompts.mjs
+node scripts/bundle-prompts.mjs
+```
 
 ## Environment Differences
 
 ### Development (file-based)
 
 **Configuration**:
+
 ```typescript
 const loader = new PromptLoader({
     source: 'files',
@@ -629,12 +638,14 @@ const loader = new PromptLoader({
 ```
 
 **Behavior**:
+
 - Reads from individual JSON files in `shared/src/prompts/templates/`
 - Changes take effect immediately (no cache)
 - Useful for iterative template development
 - Slower due to file system reads
 
 **Use when**:
+
 - Developing new templates
 - Testing template changes locally
 - Running local development server
@@ -642,6 +653,7 @@ const loader = new PromptLoader({
 ### Production (bundle)
 
 **Configuration**:
+
 ```typescript
 const loader = new PromptLoader({
     source: 'bundle',
@@ -651,12 +663,14 @@ const loader = new PromptLoader({
 ```
 
 **Behavior**:
+
 - Reads from bundled `prompts.bundle.json` artifact
 - In-memory caching for performance
 - Templates validated during build
 - Faster lookups (single JSON parse)
 
 **Use when**:
+
 - Deploying to Azure Functions
 - Running production environment
 - CI/CD pipeline builds
@@ -673,6 +687,7 @@ container
 ```
 
 This provides:
+
 - In-memory caching with 5-minute TTL
 - Loads from `shared/src/prompts/worldTemplates.ts`
 - No file system dependency (suitable for serverless)
@@ -684,6 +699,7 @@ This provides:
 **Problem**: Multiple authors using different template styles.
 
 **Recommended Pattern**:
+
 - Follow this schema guide strictly
 - Use template tags to indicate domain: `["location", "official"]` vs `["location", "experimental"]`
 - Code review process for all template changes
@@ -694,14 +710,15 @@ This provides:
 **Problem**: Template works locally but fails in production.
 
 **Solution**:
+
 1. **Always validate** before committing:
-   ```bash
-   node scripts/validate-prompts.mjs
-   ```
+    ```bash
+    node scripts/validate-prompts.mjs
+    ```
 2. **Always bundle** before deploying:
-   ```bash
-   node scripts/bundle-prompts.mjs
-   ```
+    ```bash
+    node scripts/bundle-prompts.mjs
+    ```
 3. **Check CI** validation passes
 4. **Version templates** explicitly to track changes
 
@@ -710,6 +727,7 @@ This provides:
 **Problem**: `promptRepo.getLatest('my-template')` returns `undefined`.
 
 **Debugging**:
+
 1. Verify template exists in `shared/src/prompts/templates/my-template.json`
 2. Check template ID matches exactly (case-sensitive)
 3. Ensure template is valid: `node scripts/validate-prompts.mjs`
@@ -721,12 +739,14 @@ This provides:
 **Problem**: Variables not being replaced in prompt.
 
 **Common Causes**:
+
 - Variable name mismatch (check spelling)
 - Using `{variable}` instead of `[variable]` syntax
 - Variable defined but not used in template
 - Variable used but not defined in `variables` array
 
 **Solution**:
+
 - Validate variable names match between `variables` array and template content
 - Use consistent `[variable_name]` syntax
 - Add unit tests for interpolation logic
@@ -738,6 +758,7 @@ This provides:
 **Cause**: Template content changed but hash wasn't updated.
 
 **Solution**:
+
 - Hashes are computed automatically during bundling
 - Increment version number when changing template
 - Use `computeTemplateHash()` from `shared/src/prompts/canonicalize.ts` for custom hashing
@@ -746,6 +767,7 @@ This provides:
 ## Summary
 
 This guide covers:
+
 - ✅ Complete schema field reference
 - ✅ Authoring best practices and conventions
 - ✅ Security validation and protected tokens
@@ -756,7 +778,8 @@ This guide covers:
 - ✅ Edge case handling
 
 For additional context:
+
 - See existing templates in `shared/src/prompts/templates/`
 - Review validation script at `scripts/validate-prompts.mjs`
-- Check migration script at `scripts/migrate-prompts.mjs`
+- Check migration script at `scripts/migrate-prompts-v2.mjs`
 - Explore handler examples in `backend/src/handlers/getPromptTemplate.ts`

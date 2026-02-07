@@ -1,8 +1,17 @@
 # Scripts
 
-Utility scripts for development, maintenance, and operations.
+Utility scripts for development, maintenance, and repo automation.
 
-## Available Scripts
+## Script map (what’s still relevant)
+
+This repo intentionally keeps a small set of scripts that are either:
+
+- **CI automation** (run in GitHub Actions)
+- **Operator/developer tools** (run locally for maintenance)
+
+If a script is not referenced by npm scripts, GitHub workflows, or documentation, it should be treated as a candidate for deletion.
+
+## Available scripts
 
 ### `seed-anchor-locations.mjs`
 
@@ -57,18 +66,6 @@ node scripts/scan-exits-consistency.mjs [--output=report.json] [--seed-locations
 
 ---
 
-### `validate-package-refs.mjs`
-
-Validates package reference patterns in package.json files.
-
-**Usage:**
-
-```bash
-node scripts/validate-package-refs.mjs
-```
-
----
-
 ### `verify-deployable.mjs`
 
 Verifies the project is deployable (checks for file-based dependencies and other issues).
@@ -78,6 +75,96 @@ Verifies the project is deployable (checks for file-based dependencies and other
 ```bash
 node scripts/verify-deployable.mjs
 ```
+
+---
+
+### `verify-shared-version-bump.mjs`
+
+Guards the **two-stage shared→backend workflow** by failing when:
+
+1. `shared/package.json` version changes **and**
+2. `shared/src/` changes **and**
+3. `backend/src/` changes **and**
+4. `backend/package.json` is **not** updated.
+
+**Usage:**
+
+```bash
+node scripts/verify-shared-version-bump.mjs
+```
+
+---
+
+### `verify-instructions.mjs`
+
+Repo hygiene check for instruction/prompt docs (freshness, deprecated patterns) used by CI.
+
+**Usage:**
+
+```bash
+node scripts/verify-instructions.mjs
+```
+
+---
+
+### `generate-concept-issues.mjs`
+
+Generates concept issues (used by GitHub Actions).
+
+**Usage:**
+
+```bash
+node scripts/generate-concept-issues.mjs
+```
+
+---
+
+### Milestone automation (GitHub Actions)
+
+These scripts maintain the milestone description “delivery slices” format.
+
+- `ensure-milestone-has-delivery-slices.mjs`
+- `reanalyze-milestone.mjs`
+- `update-open-milestones-on-issue-closed.mjs`
+
+They are designed primarily for CI usage; see workflow files under `.github/workflows/`.
+
+---
+
+### Prompt registry tooling
+
+- `validate-prompts.mjs` — schema + secret scanning for prompt templates
+- `bundle-prompts.mjs` — produce `prompts.bundle.json`
+- `migrate-prompts-v2.mjs` — one-time migration helper (manual; see `scripts/MIGRATION_SCRIPT_README.md`)
+
+---
+
+### AI cost telemetry tooling
+
+- `verify-ai-cost-payload.mjs` — schema guardrails for AI cost telemetry payloads
+- `simulate-ai-cost.mjs` — local harness that generates synthetic AI cost events
+
+---
+
+### Cosmos SQL partition distribution tooling
+
+#### `validate-partition-distribution.ts`
+
+Analyzes **document distribution** by the container’s partition key.
+
+**Usage:**
+
+```bash
+npm run validate:partitions
+npm run validate:partitions -- --container players
+npm run validate:partitions -- --format csv > partition-report.csv
+npm run validate:partitions -- --dry-run
+```
+
+Notes:
+
+- This script reports **document-count distribution**, not RU/operation hotness.
+- Use Application Insights / Azure metrics for RU and latency hot partition analysis.
 
 ---
 
@@ -223,6 +310,13 @@ node scripts/observability/verify-workbooks.mjs
 **See also:** `docs/observability/workbooks.md` for workflow details.
 
 ---
+
+## Removed scripts
+
+These scripts were deleted because they were redundant or misleading:
+
+- `validate-package-refs.mjs` — redundant with `verify-deployable.mjs` (which already validates `file:` dependency patterns)
+- `migrate-prompts.mjs` — superseded; created incorrect prompt IDs compared to the current prompt registry
 
 ## Testing
 

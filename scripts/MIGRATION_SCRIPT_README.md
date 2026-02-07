@@ -188,4 +188,4 @@ Check template schema compliance and protected token detection.
 
 - `validate-prompts.mjs` - Validates template schema and security
 - `bundle-prompts.mjs` - Creates runtime bundle artifact
-- `migrate-prompts.mjs` - Original simple migration script (deprecated)
+- `migrate-prompts-v2.mjs` - Supported migration script (multi-source, idempotent)

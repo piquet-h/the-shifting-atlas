@@ -80,24 +80,35 @@ async function loadSharedPackage() {
 }
 
 /**
- * Load prompt templates from shared package
+ * Load prompt templates from the prompt registry (JSON files).
+ *
+ * Note:
+ * - `shared/src/prompts/worldTemplates.ts` is deprecated.
+ * - This harness should exercise the same prompts that production uses.
  */
 async function loadPrompts() {
-    try {
-        // Import from main shared package to avoid hard-coded dist paths
-        const sharedPath = resolve(__dirname, '../shared/dist/index.js')
-        const shared = await import(sharedPath)
+    const templatesDir = resolve(__dirname, '../shared/src/prompts/templates')
+    const templateFiles = ['location-generator.json', 'npc-dialogue-generator.json', 'quest-generator.json']
 
-        // Try to get templates from prompts submodule
-        const promptsPath = resolve(__dirname, '../shared/dist/prompts/worldTemplates.js')
-        const prompts = await import(promptsPath)
-
-        return [prompts.LOCATION_TEMPLATE, prompts.NPC_DIALOGUE_TEMPLATE, prompts.QUEST_TEMPLATE]
-    } catch (error) {
-        console.error('❌ Error: Could not load prompt templates.')
-        console.error('   Make sure the shared package is built.')
-        throw error
+    const prompts = []
+    for (const file of templateFiles) {
+        const filePath = resolve(templatesDir, file)
+        try {
+            const raw = await readFile(filePath, 'utf8')
+            const parsed = JSON.parse(raw)
+            const template = parsed?.template
+            if (typeof template !== 'string' || template.trim().length === 0) {
+                console.warn(`⚠️  Warning: Template file missing 'template' string: ${filePath}`)
+                continue
+            }
+            prompts.push(template)
+        } catch (error) {
+            console.error(`❌ Error: Could not load prompt template: ${filePath}`)
+            throw error
+        }
     }
+
+    return prompts
 }
 
 /**
@@ -153,7 +164,7 @@ function generateCompletion(promptText, ratio) {
  * Track token bucket frequencies
  */
 class BucketTracker {
-    constructor() {
+    constructor () {
         this.buckets = new Map()
     }
 

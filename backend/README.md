@@ -130,4 +130,4 @@ Deployment details live exclusively in the workflow YAML under `.github/workflow
 ## Notes
 
 Until one of the above lands this package deploys an almost empty artifact (negligible cost / risk). Keeping the scaffold explicit avoids surprise architectural shifts later.
-Refer to `.github/copilot-instructions.md` Section 12.1 for dependency policy: never use `file:` references to `@piquet-h/shared`; always consume registry version (validated by `scripts/validate-package-refs.mjs`).
+Refer to `.github/copilot-instructions.md` Section 12.1 for dependency policy: never use `file:` references to `@piquet-h/shared`; always consume registry version (validated by `scripts/verify-deployable.mjs`).

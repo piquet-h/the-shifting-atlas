@@ -5,6 +5,7 @@
 **Workbook**: SQL API Partition Monitoring Dashboard (`infrastructure/workbook-sql-partition-monitoring-dashboard.bicep`)
 
 **Related**:
+
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md)
 - [Observability Overview](../observability.md)
 - [Alerts Catalog](./alerts-catalog.md)
@@ -16,6 +17,7 @@
 **Access**: Azure Portal → Application Insights → Workbooks → "SQL API Partition Monitoring"
 
 The dedicated workbook provides real-time visibility into:
+
 1. **Partition Key Cardinality** - Number of unique partition keys per container (health indicator)
 2. **Hot Partition Detection** - Partitions consuming >5% of operations (alert threshold: >80% RU)
 3. **Throttling Analysis** - 429 errors by partition key
@@ -30,15 +32,16 @@ The dedicated workbook provides real-time visibility into:
 
 ### SQL API Containers (Dual Persistence Architecture)
 
-| Container | Partition Key Path | Strategy | Rationale |
-|-----------|-------------------|----------|-----------|
-| `players` | `/id` | Player GUID | Naturally distributes by player identity; player-centric operations isolated |
-| `inventory` | `/playerId` | Player GUID | Colocates all items for a player; efficient cross-item queries |
-| `descriptionLayers` | `/locationId` | Location GUID | Colocates all layers for a location; supports layer composition |
-| `worldEvents` | `/scopeKey` | Scope pattern | Partitions by event scope (`loc:<id>` or `player:<id>`) for efficient timelines |
-| `temporalLedger` | `/scopeKey` | Scope pattern | Partitions by event scope (`wc` for world clock, `player:<id>` for player events) |
+| Container           | Partition Key Path | Strategy      | Rationale                                                                         |
+| ------------------- | ------------------ | ------------- | --------------------------------------------------------------------------------- |
+| `players`           | `/id`              | Player GUID   | Naturally distributes by player identity; player-centric operations isolated      |
+| `inventory`         | `/playerId`        | Player GUID   | Colocates all items for a player; efficient cross-item queries                    |
+| `descriptionLayers` | `/locationId`      | Location GUID | Colocates all layers for a location; supports layer composition                   |
+| `worldEvents`       | `/scopeKey`        | Scope pattern | Partitions by event scope (`loc:<id>` or `player:<id>`) for efficient timelines   |
+| `temporalLedger`    | `/scopeKey`        | Scope pattern | Partitions by event scope (`wc` for world clock, `player:<id>` for player events) |
 
 **Expected RU Consumption (temporalLedger)**:
+
 - **Write operations** (`log`): ~3-5 RU per entry (upsert with partition key)
 - **Query by player** (single partition): ~2.5-3 RU per query + 0.5 RU per result
 - **Query by world clock** (single partition): ~2.5-3 RU per query + 0.5 RU per result
@@ -49,16 +52,19 @@ The dedicated workbook provides real-time visibility into:
 ### Partition Key Patterns
 
 **Player-Centric** (`/id`, `/playerId`):
+
 - Pros: Natural distribution matches user activity, prevents hotspots unless single player dominates
 - Cons: Cross-player queries expensive (cross-partition), must use partition key in queries
 - Monitoring: Track unique player count vs document distribution
 
 **Location-Centric** (`/locationId`):
+
 - Pros: Efficient location-based queries, colocates related data
 - Cons: Popular locations become hot partitions (e.g., starter location)
 - Monitoring: Track document count per location, alert on >20% concentration
 
 **Scope-Centric** (`/scopeKey`):
+
 - Pros: Flexible partitioning for different scopes (location, player, global)
 - Cons: Requires careful scope key design to avoid imbalance
 - Monitoring: Track scope key cardinality and distribution
@@ -69,16 +75,16 @@ The dedicated workbook provides real-time visibility into:
 
 All SQL API operations emit `SQL.Query.Executed` and `SQL.Query.Failed` events with partition key context:
 
-| Dimension | Type | Purpose | Example |
-|-----------|------|---------|---------|
-| `containerName` | string | Container name | `players`, `inventory` |
-| `partitionKey` | string | Partition key value used | Player GUID, Location GUID |
-| `operationName` | string | Operation name | `players.GetById`, `inventory.Query` |
-| `ruCharge` | number | Request Units consumed | `5.2` |
-| `latencyMs` | number | Operation latency | `45` |
-| `resultCount` | number | Documents returned | `1`, `0`, `10` |
-| `crossPartitionQuery` | boolean | Whether query spans partitions | `true` (only for query operations) |
-| `httpStatusCode` | number | HTTP status (failures only) | `404`, `429` |
+| Dimension             | Type    | Purpose                        | Example                              |
+| --------------------- | ------- | ------------------------------ | ------------------------------------ |
+| `containerName`       | string  | Container name                 | `players`, `inventory`               |
+| `partitionKey`        | string  | Partition key value used       | Player GUID, Location GUID           |
+| `operationName`       | string  | Operation name                 | `players.GetById`, `inventory.Query` |
+| `ruCharge`            | number  | Request Units consumed         | `5.2`                                |
+| `latencyMs`           | number  | Operation latency              | `45`                                 |
+| `resultCount`         | number  | Documents returned             | `1`, `0`, `10`                       |
+| `crossPartitionQuery` | boolean | Whether query spans partitions | `true` (only for query operations)   |
+| `httpStatusCode`      | number  | HTTP status (failures only)    | `404`, `429`                         |
 
 **Note**: `partitionKey` dimension omitted for cross-partition queries (where `crossPartitionQuery=true`).
 
@@ -98,7 +104,7 @@ customEvents
 | extend containerName = tostring(customDimensions.containerName),
          partitionKey = tostring(customDimensions.partitionKey)
 | where isnotempty(partitionKey)
-| summarize 
+| summarize
     uniquePartitionKeys = dcount(partitionKey),
     totalOperations = count(),
     totalRU = sum(todouble(customDimensions.ruCharge))
@@ -109,6 +115,7 @@ customEvents
 ```
 
 **Interpretation**:
+
 - `uniquePartitionKeys < 10`: Very low cardinality, high risk of hotspots
 - `avgOpsPerPartition > 100`: Potential uneven distribution, investigate top partitions
 - Low cardinality with high RU: Immediate hotspot risk
@@ -127,7 +134,7 @@ customEvents
          partitionKey = tostring(customDimensions.partitionKey),
          ruCharge = todouble(customDimensions.ruCharge)
 | where containerName == containerFilter and isnotempty(partitionKey)
-| summarize 
+| summarize
     operationCount = count(),
     totalRU = sum(ruCharge),
     avgRU = round(avg(ruCharge), 2),
@@ -146,6 +153,7 @@ customEvents
 ```
 
 **Alert Thresholds**:
+
 - `operationPct > 20%`: Single partition handling >20% of operations (amber)
 - `operationPct > 40%`: Single partition dominant (red, immediate review)
 - `p95Latency > 500ms` AND `operationPct > 15%`: Hot partition causing degradation
@@ -178,7 +186,7 @@ customEvents
          ruCharge = todouble(customDimensions.ruCharge)
 | where containerName == containerFilter and isnotempty(partitionKey)
 | summarize totalRU = sum(ruCharge) by partitionKey, bin(timestamp, bucketSize)
-| summarize 
+| summarize
     maxRU = max(totalRU),
     avgRU = round(avg(totalRU), 1),
     p95RU = percentile(totalRU, 95)
@@ -189,6 +197,7 @@ customEvents
 ```
 
 **Capacity Planning**:
+
 - Provisioned RU/s per partition: Total RU/s ÷ partition count
 - Target: Max RU per 5-min interval should be <80% of (provisioned RU/s per partition × 300s)
 - Example: 1000 RU/s provisioned, 10 partitions → 100 RU/s per partition → <24,000 RU per 5-min
@@ -204,11 +213,13 @@ customEvents
 **Status**: Active (deployed in main.bicep, Issue #387)
 
 **Trigger Conditions**:
+
 - Single partition consuming >80% of total RU in 5-minute window
 - Container has >1000 documents (suppresses new container false positives)
 - Evaluated every 5 minutes
 
 **Alert Payload**:
+
 - `containerName`: Affected container
 - `partitionKey`: Hot partition key value
 - `ruPercent`: Percentage of total RU consumed by this partition
@@ -217,15 +228,18 @@ customEvents
 - `p95Latency`: P95 latency for partition operations
 
 **Auto-Resolution**:
+
 - Resolves when partition RU consumption drops below 70% for 3 consecutive intervals (15 minutes)
 
 **Response Actions**:
+
 1. Query partition key distribution (see queries above)
 2. Identify if hotspot is expected (e.g., starter location) or anomaly
 3. Review operation types (`operationName` dimension) for optimization opportunities
 4. Consider partition key migration if persistent hotspot confirmed
 
 **Edge Cases**:
+
 - **New containers** (<1000 documents): Alert suppressed to avoid false positives during bootstrap
 - **Player activity spikes**: Expected for player-centric partitions during login storms
 - **Starter location**: Known hotspot for location-based partitions; may require special handling
@@ -239,6 +253,7 @@ customEvents
 **Purpose**: Analyze partition key distribution across SQL containers and identify potential hotspots.
 
 **Usage**:
+
 ```bash
 # Dry run (report only, no changes)
 npm run validate:partitions --dry-run
@@ -251,15 +266,22 @@ npm run validate:partitions --format csv > partition-report.csv
 ```
 
 **Output**:
+
 - Partition key cardinality by container
-- Top 20 hot partitions by operation count and RU
+- Top 20 partitions by document count (and % of documents)
 - Hotspot risk assessment (green/amber/red)
 - Recommended actions for identified issues
 
+Notes:
+
+- This script analyzes **document distribution** by partition key.
+- For **RU / operation hot partitions**, use the workbook queries and Azure Monitor metrics (those are the authoritative sources for RU and latency).
+
 **Validation Criteria**:
-- ✅ **Healthy**: No partition >15% of operations, cardinality >10
+
+- ✅ **Healthy**: No partition >15% of documents, cardinality >10
 - ⚠️ **Warning**: Any partition >15% OR cardinality <5
-- 🔴 **Critical**: Any partition >25% OR sustained >80% RU for 1+ hour
+- 🔴 **Critical**: Any partition >25% of documents (distribution) **or** sustained >80% RU for 1+ hour (metrics)
 
 ---
 
@@ -268,6 +290,7 @@ npm run validate:partitions --format csv > partition-report.csv
 ### When to Migrate
 
 Migrate partition key strategy if:
+
 1. Single partition consistently >40% of operations for 7+ days
 2. Sustained 429 throttling isolated to specific partition key
 3. P95 latency >500ms for operations on hot partition
@@ -276,6 +299,7 @@ Migrate partition key strategy if:
 ### Migration Process
 
 **Prerequisites**:
+
 - Validated new partition key strategy addresses root cause
 - Tested new strategy in non-production environment
 - Scheduled maintenance window (downtime required for data migration)
@@ -283,55 +307,59 @@ Migrate partition key strategy if:
 **Steps**:
 
 1. **Export Existing Data**
-   ```bash
-   # Export all documents from container
-   az cosmosdb sql container export \
-     --account-name <account> \
-     --database-name game \
-     --container-name <container> \
-     --output-path ./backup/<container>-export.json
-   ```
+
+    ```bash
+    # Export all documents from container
+    az cosmosdb sql container export \
+      --account-name <account> \
+      --database-name game \
+      --container-name <container> \
+      --output-path ./backup/<container>-export.json
+    ```
 
 2. **Create New Container with Updated Partition Key**
-   ```bash
-   # Bicep deployment with new partition key path
-   # Update infrastructure/cosmos-sql-containers.bicep
-   # Deploy with new partition key definition
-   az deployment group create \
-     --resource-group <rg> \
-     --template-file infrastructure/main.bicep \
-     --parameters @parameters.json
-   ```
+
+    ```bash
+    # Bicep deployment with new partition key path
+    # Update infrastructure/cosmos-sql-containers.bicep
+    # Deploy with new partition key definition
+    az deployment group create \
+      --resource-group <rg> \
+      --template-file infrastructure/main.bicep \
+      --parameters @parameters.json
+    ```
 
 3. **Transform and Import Data**
-   ```typescript
-   // Script to transform documents for new partition key
-   // Example: location-based → player-based migration
-   const documents = loadExport('./backup/inventory-export.json')
-   const transformed = documents.map(doc => ({
-     ...doc,
-     partitionKey: doc.playerId // New partition key field
-   }))
-   await bulkImport(newContainer, transformed)
-   ```
+
+    ```typescript
+    // Script to transform documents for new partition key
+    // Example: location-based → player-based migration
+    const documents = loadExport('./backup/inventory-export.json')
+    const transformed = documents.map((doc) => ({
+        ...doc,
+        partitionKey: doc.playerId // New partition key field
+    }))
+    await bulkImport(newContainer, transformed)
+    ```
 
 4. **Dual-Write Period**
-   - Update application code to write to both old and new containers
-   - Monitor new container for data consistency
-   - Duration: 7 days minimum
+    - Update application code to write to both old and new containers
+    - Monitor new container for data consistency
+    - Duration: 7 days minimum
 
 5. **Cutover**
-   - Update config to point reads to new container
-   - Monitor for issues (rollback plan ready)
-   - Decommission old container after 30-day soak period
+    - Update config to point reads to new container
+    - Monitor for issues (rollback plan ready)
+    - Decommission old container after 30-day soak period
 
 6. **Verify Distribution**
-   ```bash
-   # Run validation script on new container
-   npm run validate:partitions --container <new-container>
-   ```
+    ```bash
+    # Run validation script on new container
+    npm run validate:partitions --container <new-container>
+    ```
 
 **Rollback Plan**:
+
 - Keep old container active during dual-write period
 - Single config change to revert reads to old container
 - No data loss if rollback within dual-write window
@@ -370,12 +398,14 @@ Migrate partition key strategy if:
 **Symptoms**: Partition >80% RU, 429 throttling, elevated latency
 
 **Root Causes**:
+
 1. Popular entity (e.g., starter location, admin player)
 2. Inefficient query patterns (missing indexes, large result sets)
 3. Write amplification (frequent updates to same documents)
 4. Batch operations not distributed across partitions
 
 **Remediation**:
+
 1. Identify operation types via `operationName` dimension
 2. Optimize queries (add indexes, reduce result set size)
 3. Consider caching for read-heavy popular entities
@@ -386,11 +416,13 @@ Migrate partition key strategy if:
 **Symptoms**: `uniquePartitionKeys < 10`, uneven distribution
 
 **Root Causes**:
+
 1. Partition key design doesn't match data model
 2. Limited entity types (e.g., only admin users created)
 3. Test/development environment (not representative of production)
 
 **Remediation**:
+
 1. Review partition key strategy (see migration guide)
 2. Validate with production-like data volumes
 3. Consider synthetic partition key (hash-based) if natural key insufficient
@@ -400,11 +432,13 @@ Migrate partition key strategy if:
 **Symptoms**: 429 errors, low overall RU consumption, few partitions
 
 **Root Causes**:
+
 1. Provisioned RU/s too low for burst traffic
 2. Partition skew (one partition consuming majority)
 3. Cross-partition queries (high RU cost)
 
 **Remediation**:
+
 1. Increase provisioned RU/s (temporary)
 2. Investigate partition distribution (run validation script)
 3. Optimize cross-partition queries or redesign partition key

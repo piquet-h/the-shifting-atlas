@@ -18,7 +18,7 @@
  *
  * Output:
  *   - Partition key cardinality by container
- *   - Top hot partitions by operation count
+ *   - Top partitions by document count (and % of documents)
  *   - Risk assessment (green/amber/red)
  *   - Recommended actions
  */
@@ -61,8 +61,40 @@ interface ContainerAnalysis {
  */
 function parseArgs(): { container?: string; format: 'text' | 'csv'; dryRun: boolean } {
     const args = process.argv.slice(2)
-    const container = args.find((arg) => arg.startsWith('--container'))?.split('=')[1]
-    const format = args.includes('--format=csv') ? 'csv' : 'text'
+
+    // Support both:
+    //   --container players
+    //   --container=players
+    let container
+    for (let i = 0; i < args.length; i++) {
+        const a = args[i]
+        if (a === '--container') {
+            container = args[i + 1]
+            break
+        }
+        if (a.startsWith('--container=')) {
+            container = a.split('=')[1]
+            break
+        }
+    }
+
+    // Support both:
+    //   --format csv
+    //   --format=csv
+    let format: 'text' | 'csv' = 'text'
+    for (let i = 0; i < args.length; i++) {
+        const a = args[i]
+        if (a === '--format') {
+            const v = (args[i + 1] ?? '').trim()
+            if (v === 'csv') format = 'csv'
+            break
+        }
+        if (a === '--format=csv') {
+            format = 'csv'
+            break
+        }
+    }
+
     const dryRun = args.includes('--dry-run')
 
     return { container, format, dryRun }
@@ -83,48 +115,91 @@ function createClient(): CosmosClient {
 /**
  * Query container for partition key distribution
  */
-async function analyzeContainer(container: Container): Promise<PartitionMetrics[]> {
-    // Query to get document count per partition key
-    // Note: This is a simplified analysis using SQL API query
-    // For production, consider using container feed with continuation tokens
-    const query = {
-        query: 'SELECT c.id, c.partitionKey FROM c'
+function partitionKeyPathToSqlExpression(partitionKeyPath: string): string {
+    // Cosmos partition key paths look like '/playerId' or '/foo/bar'.
+    // Convert to a safe SQL expression: c.playerId or c.foo.bar.
+    const path = (partitionKeyPath ?? '').trim()
+    if (!path.startsWith('/')) {
+        throw new Error(`Invalid partition key path: ${partitionKeyPath}`)
     }
 
-    const { resources } = await container.items.query(query).fetchAll()
+    const segments = path
+        .split('/')
+        .filter(Boolean)
+        .map((s) => s.trim())
 
-    // Group by partition key (extracting from document structure)
-    const partitionCounts = new Map<string, number>()
+    if (segments.length === 0) {
+        throw new Error(`Invalid partition key path (no segments): ${partitionKeyPath}`)
+    }
 
-    for (const doc of resources) {
-        // Determine partition key value based on container's partition key path
-        // This is a simplification; in production, use container metadata to get partition key path
-        let partitionKeyValue: string
-
-        if ('id' in doc) {
-            partitionKeyValue = doc.id // For /id partition key
-        } else if ('playerId' in doc) {
-            partitionKeyValue = (doc as any).playerId // For /playerId partition key
-        } else if ('locationId' in doc) {
-            partitionKeyValue = (doc as any).locationId // For /locationId partition key
-        } else if ('scopeKey' in doc) {
-            partitionKeyValue = (doc as any).scopeKey // For /scopeKey partition key
-        } else {
-            partitionKeyValue = 'unknown'
+    for (const seg of segments) {
+        // Conservative identifier validation. (No bracket-quoting; keep queries simple.)
+        if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(seg)) {
+            throw new Error(`Unsupported partition key path segment '${seg}' in '${partitionKeyPath}'`)
         }
-
-        partitionCounts.set(partitionKeyValue, (partitionCounts.get(partitionKeyValue) || 0) + 1)
     }
 
-    const totalDocuments = resources.length
+    return `c.${segments.join('.')}`
+}
+
+async function resolvePartitionKeyPath(container: Container): Promise<string> {
+    // Prefer authoritative container metadata.
+    try {
+        const { resource } = await container.read()
+        const path = resource?.partitionKey?.paths?.[0]
+        if (typeof path === 'string' && path.startsWith('/')) {
+            return path
+        }
+    } catch {
+        // Fall through to safe defaults.
+    }
+
+    // Safe repo defaults (keeps the script usable even if metadata read fails).
+    switch (container.id) {
+        case 'players':
+            return '/id'
+        case 'inventory':
+            return '/playerId'
+        case 'descriptionLayers':
+            return '/locationId'
+        case 'worldEvents':
+            return '/scopeKey'
+        default:
+            return '/id'
+    }
+}
+
+async function analyzeContainer(container: Container): Promise<PartitionMetrics[]> {
+    const partitionKeyPath = await resolvePartitionKeyPath(container)
+    const pkExpr = partitionKeyPathToSqlExpression(partitionKeyPath)
+
+    // Aggregate server-side so we don't fetch full documents.
+    const query = {
+        query: `SELECT ${pkExpr} AS pk, COUNT(1) AS documentCount FROM c WHERE IS_DEFINED(${pkExpr}) GROUP BY ${pkExpr}`
+    }
+
+    const iterator = container.items.query(query, { maxItemCount: 1000 })
+    const rows: Array<{ pk: unknown; documentCount: number }> = []
+
+    while (iterator.hasMoreResults()) {
+        const page = await iterator.fetchNext()
+        rows.push(...(page.resources ?? []))
+    }
+
+    const totalDocuments = rows.reduce((sum, r) => sum + (Number(r.documentCount) || 0), 0)
     const metrics: PartitionMetrics[] = []
 
-    for (const [partitionKey, count] of partitionCounts.entries()) {
+    for (const r of rows) {
+        const pk = r.pk
+        if (pk === null || pk === undefined) continue
+        const key = String(pk)
+        const count = Number(r.documentCount) || 0
+        if (count <= 0) continue
         metrics.push({
             containerName: container.id,
-            partitionKey,
+            partitionKey: key,
             documentCount: count,
-            percentageOfTotal: (count / totalDocuments) * 100
+            percentageOfTotal: totalDocuments > 0 ? (count / totalDocuments) * 100 : 0
         })
     }
 
@@ -174,7 +249,7 @@ function generateRecommendations(metrics: PartitionMetrics[], totalDocuments: nu
         recommendations.push(
             `CRITICAL: Single partition (${metrics[0].partitionKey}) contains ${maxPartitionPct.toFixed(1)}% of documents. Immediate review required.`
         )
-        recommendations.push('Consider partition key migration or caching for popular entities.')
+        recommendations.push('Consider partition key migration, sharding, or caching for popular entities.')
     } else if (maxPartitionPct > THRESHOLDS.WARNING_PARTITION_PCT) {
         recommendations.push(`WARNING: Partition ${metrics[0].partitionKey} contains ${maxPartitionPct.toFixed(1)}% of documents.`)
         recommendations.push('Monitor for growth trends. Review query patterns for optimization.')
@@ -190,7 +265,7 @@ function generateRecommendations(metrics: PartitionMetrics[], totalDocuments: nu
 /**
  * Analyze single container
  */
-async function analyzeContainerFull(client: CosmosClient, containerName: string): Promise<ContainerAnalysis> {
+async function analyzeContainerFull(client: CosmosClient, containerName: string, dryRun: boolean): Promise<ContainerAnalysis> {
     const database = client.database(COSMOS_DATABASE)
     const container = database.container(containerName)
 
@@ -199,7 +274,7 @@ async function analyzeContainerFull(client: CosmosClient, containerName: string)
     const uniquePartitionKeys = metrics.length
     const topPartitions = metrics.slice(0, 20)
     const riskLevel = assessRisk(metrics, totalDocuments)
-    const recommendations = generateRecommendations(metrics, totalDocuments)
+    const recommendations = dryRun ? [] : generateRecommendations(metrics, totalDocuments)
 
     return {
         containerName,
@@ -214,7 +289,7 @@ async function analyzeContainerFull(client: CosmosClient, containerName: string)
 /**
  * Format output as text
  */
-function formatText(analyses: ContainerAnalysis[]): string {
+function formatText(analyses: ContainerAnalysis[], dryRun: boolean): string {
     let output = '='.repeat(80) + '\n'
     output += 'Partition Key Distribution Analysis\n'
     output += '='.repeat(80) + '\n\n'
@@ -242,11 +317,15 @@ function formatText(analyses: ContainerAnalysis[]): string {
             output += '\n'
         }
 
-        output += 'Recommendations:\n'
-        for (const rec of analysis.recommendations) {
-            output += `  • ${rec}\n`
+        if (dryRun) {
+            output += 'Recommendations: (omitted --dry-run)\n\n'
+        } else {
+            output += 'Recommendations:\n'
+            for (const rec of analysis.recommendations) {
+                output += `  • ${rec}\n`
+            }
+            output += '\n'
         }
-        output += '\n'
     }
 
     output += '='.repeat(80) + '\n'
@@ -293,7 +372,7 @@ async function main() {
     for (const containerName of containersToAnalyze) {
         try {
             console.error(`Analyzing container: ${containerName}...`)
-            const analysis = await analyzeContainerFull(client, containerName)
+            const analysis = await analyzeContainerFull(client, containerName, dryRun)
             analyses.push(analysis)
         } catch (error) {
             console.error(`Error analyzing container ${containerName}:`, error)
@@ -303,7 +382,7 @@ async function main() {
     if (format === 'csv') {
         console.log(formatCSV(analyses))
     } else {
-        console.log(formatText(analyses))
+        console.log(formatText(analyses, dryRun))
     }
 
     if (!dryRun) {

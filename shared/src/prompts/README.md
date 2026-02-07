@@ -133,8 +133,6 @@ const bucket = VariantBucketing.getBucket(userId, templateId)
 - **Rapid rollout changes**: New config applies immediately (no cached selection)
 - **Missing config**: Returns fallback variant with template ID as-is
 
-
-
 ## Runtime Usage
 
 Use the `PromptLoader` to load templates at runtime:
@@ -143,8 +141,8 @@ Use the `PromptLoader` to load templates at runtime:
 import { PromptLoader } from '@piquet-h/shared/prompts'
 
 const loader = new PromptLoader({
-    source: 'bundle',  // or 'files' for development
-    cacheTtlMs: 5 * 60 * 1000  // 5 minutes
+    source: 'bundle', // or 'files' for development
+    cacheTtlMs: 5 * 60 * 1000 // 5 minutes
 })
 
 // Load by ID
@@ -168,7 +166,7 @@ loader.clearCache()
 
 - `node scripts/validate-prompts.mjs` - Validate all templates (run in CI)
 - `node scripts/bundle-prompts.mjs` - Create production bundle
-- `node scripts/migrate-prompts.mjs --dry-run` - Preview migration from inline prompts
+- `node scripts/migrate-prompts-v2.mjs --dry-run` - Preview migration from inline prompts (manual / one-time)
 
 ## Security
 
@@ -197,16 +195,19 @@ node scripts/validate-prompts.mjs
 ```
 
 **What it checks:**
+
 - ✅ Valid JSON schema (required fields, types, patterns)
 - ✅ No protected tokens (API keys, secrets, passwords)
 - ✅ Proper file naming conventions
 - ✅ Hash computation for integrity
 
 **Exit codes:**
+
 - `0` = All templates valid
 - `1` = Validation errors found
 
 **Example output:**
+
 ```
 Validating prompt templates in: shared/src/prompts/templates
 
@@ -231,6 +232,7 @@ node scripts/bundle-prompts.mjs
 This generates `shared/src/prompts/templates/prompts.bundle.json` containing all validated templates with computed hashes.
 
 **Bundle artifact is used in:**
+
 - CI/CD pipelines
 - Production deployments
 - Performance-optimized template loading
@@ -238,6 +240,7 @@ This generates `shared/src/prompts/templates/prompts.bundle.json` containing all
 ### 4. Testing Templates
 
 **Unit tests:**
+
 ```bash
 cd shared
 npm test -- --grep "prompt"
@@ -259,11 +262,13 @@ Validates all templates in `shared/src/prompts/templates/`.
 ### CI Integration
 
 The validation script is run automatically in CI:
+
 - On all PRs touching `shared/src/prompts/templates/`
 - Before building production bundles
 - As part of shared package tests
 
 **CI fails if:**
+
 - Any template has schema errors
 - Protected tokens are detected
 - File naming doesn't match template ID
@@ -271,6 +276,7 @@ The validation script is run automatically in CI:
 ### Protected Token Detection
 
 Templates are automatically scanned for:
+
 - API keys: `/api[_-]?key/i`
 - Secrets: `/secret/i`, `/password/i`, `/credential/i`
 - Private keys: `/-----BEGIN.*PRIVATE KEY-----/`
@@ -284,10 +290,10 @@ Templates are automatically scanned for:
 
 ```bash
 # Preview migration (no files written)
-node scripts/migrate-prompts.mjs --dry-run
+node scripts/migrate-prompts-v2.mjs --dry-run
 
-# Apply migration
-node scripts/migrate-prompts.mjs
+# Apply migration (writes template files)
+node scripts/migrate-prompts-v2.mjs
 
 # Validate migrated templates
 node scripts/validate-prompts.mjs
@@ -296,6 +302,7 @@ node scripts/validate-prompts.mjs
 ### Step-by-Step Migration Guide
 
 See **schema.md** "Migration from Inline Prompts" section for complete workflow:
+
 1. Preview migration with `--dry-run`
 2. Review and customize generated templates
 3. Apply migration
@@ -306,16 +313,11 @@ See **schema.md** "Migration from Inline Prompts" section for complete workflow:
 
 ### Adding Custom Prompts to Migration
 
-Edit `scripts/migrate-prompts.mjs` and add to `inlinePrompts` object:
+The migration script (`scripts/migrate-prompts-v2.mjs`) discovers known inline templates (currently `shared/src/prompts/worldTemplates.ts`).
+If you have additional inline sources, prefer migrating them manually into `shared/src/prompts/templates/` and then running:
 
-```javascript
-const inlinePrompts = {
-    'my-prompt': {
-        template: `Your prompt text with [variables]`,
-        variables: ['variable1', 'variable2']
-    }
-}
-```
+- `node scripts/validate-prompts.mjs`
+- `node scripts/bundle-prompts.mjs`
 
 ## Backend Integration Examples
 
@@ -335,25 +337,21 @@ container
 ```typescript
 @injectable()
 export class MyHandler extends BaseHandler {
-    constructor(
-        @inject('IPromptTemplateRepository') private promptRepo: IPromptTemplateRepository
-    ) {
+    constructor(@inject('IPromptTemplateRepository') private promptRepo: IPromptTemplateRepository) {
         super(telemetry)
     }
 
     protected async execute(req: HttpRequest): Promise<HttpResponseInit> {
         // Get template by ID
         const template = await this.promptRepo.getLatest('location-generator')
-        
+
         if (!template) {
             return errorResponse(404, 'TemplateNotFound', 'Template not found')
         }
 
         // Use template content
-        const prompt = template.content
-            .replace('[terrain_type]', 'forest')
-            .replace('[existing_location]', 'Millhaven')
-        
+        const prompt = template.content.replace('[terrain_type]', 'forest').replace('[existing_location]', 'Millhaven')
+
         // Track usage
         this.track('Prompt.Used', {
             templateId: template.id,
@@ -365,6 +363,7 @@ export class MyHandler extends BaseHandler {
 ```
 
 See **schema.md** "Backend Integration" section for:
+
 - Complete handler examples
 - Query patterns (by ID, version, hash)
 - Variable interpolation helpers
@@ -373,18 +372,21 @@ See **schema.md** "Backend Integration" section for:
 ## Environment Differences
 
 ### Development (file-based)
+
 - Loads from individual JSON files
 - No caching (changes apply immediately)
 - Slower (file system reads)
 - Use for iterative template development
 
 ### Production (bundle)
+
 - Loads from `prompts.bundle.json` artifact
 - In-memory caching (5-minute TTL)
 - Faster (single JSON parse)
 - Use for deployed environments
 
 **Configuration:**
+
 ```typescript
 // Development
 const loader = new PromptLoader({
@@ -413,4 +415,3 @@ See **schema.md** "Environment Differences" for detailed comparison.
 - Prompt templates are NOT exposed as MCP servers. If tooling requires HTTP access, implement a backend helper endpoint that calls into these shared helpers.
 - When adding a template, update `shared/src/telemetryEvents.ts` if the template requires new AI telemetry event names.
 - Template hashes are computed deterministically from canonical JSON (sorted keys, no whitespace variance).
-
