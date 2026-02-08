@@ -27,7 +27,7 @@ import { prepareAICostTelemetry } from '@piquet-h/shared'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import type { IAzureOpenAIClient } from './azureOpenAIClient.js'
 import { TOKENS } from '../di/tokens.js'
-import type { TelemetryService } from '../telemetry/TelemetryService.js'
+import { TelemetryService } from '../telemetry/TelemetryService.js'
 
 /** Maximum number of locations allowed in a single batch request */
 const MAX_BATCH_SIZE = 20
@@ -122,7 +122,7 @@ export interface IAIDescriptionService {
 export class AIDescriptionService implements IAIDescriptionService {
     constructor(
         @inject(TOKENS.AzureOpenAIClient) private aiClient: IAzureOpenAIClient,
-        @inject('TelemetryService') private telemetry: TelemetryService,
+        @inject(TelemetryService) private telemetry: TelemetryService,
         @inject(TOKENS.LayerRepository) @optional() private layerRepository?: ILayerRepository
     ) {}
 
