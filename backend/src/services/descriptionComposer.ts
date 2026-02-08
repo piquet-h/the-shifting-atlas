@@ -138,7 +138,7 @@ export class DescriptionComposer {
         // 6. Assemble layers in deterministic order
         const { text, provenance } = this.assembleLayers(maskedBase, activeLayers, locationId, context, heroProseUsed)
 
-        // 6. Convert to HTML
+        // 7. Convert to HTML
         const html = this.markdownToHtml(text)
 
         this.telemetryService.trackGameEvent('Description.Compile', {
