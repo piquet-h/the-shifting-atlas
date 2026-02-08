@@ -333,6 +333,54 @@ customEvents
 - Sampling applies uniformly to all telemetry types (requests, dependencies, events, traces)
 - Request sampling decisions are correlated—all telemetry for a sampled request is included
 
+### Azure SDK Diagnostic Filtering
+
+By default, Azure SDK clients (Service Bus, Storage Queue, Key Vault, Cosmos DB) emit verbose HTTP-level diagnostic traces to Application Insights. These low-value traces (e.g., `GET https://statlascldf.queue.core.windows.net/mcp-backplane.../messages`) add noise without operational value.
+
+**Solution**: Telemetry processors filter these traces during backend initialization ([backend/src/index.ts](../backend/src/index.ts)).
+
+**Filtered Endpoints:**
+
+- `queue.core.windows.net` — Azure Storage Queue operations
+- `blob.core.windows.net` — Blob storage operations
+- `table.core.windows.net` — Table storage operations
+- `servicebus.windows.net` — Azure Service Bus operations
+- `vault.azure.net` — Azure Key Vault secret fetch calls (infrastructure overhead)
+
+**Filtering Logic:**
+
+- Drops HTTP dependency traces targeting Azure service endpoints
+- Specifically targets `GET` requests to message queues, secret bundles, and diagnostic endpoints
+- Preserves actual errors/failures for debugging (5xx responses, permission denied, secret not found still logged)
+
+**What's Preserved (Not Filtered):**
+
+- Cosmos DB query execution traces (game state operations)
+- Azure OpenAI completions API calls (narrative generation)
+- Actual error responses from any filtered endpoint (failures are still visible)
+
+**Verification Query:**
+
+To confirm the filter is active, check that dependency traces from Azure service endpoints no longer appear:
+
+```kusto
+dependencies
+| where timestamp > ago(24h)
+| where target contains "queue.core.windows.net"
+   or target contains "servicebus.windows.net"
+   or target contains "vault.azure.net"
+| summarize Count = count() by target, operation_Name
+```
+
+If this returns no results, filtering is working correctly. If results appear, the processor may not be active or the Azure SDK version has changed its trace behavior.
+
+**Testing Locally:**
+
+- Memory mode (default): Filtering disabled (Azure Insights not initialized)
+- Cosmos mode: Filtering enabled if `APPLICATIONINSIGHTS_CONNECTION_STRING` is set
+
+To re-enable noisy diagnostics temporarily for troubleshooting, comment out the Azure SDK filter processor in [backend/src/index.ts](../backend/src/index.ts#L99-L139).
+
 ## Partition Signals (Reference)
 
 Scaling thresholds live in `adr/ADR-002-graph-partition-strategy.md`. Emit partition health only if a decision boundary nears—do not pre‑emptively stream RU/vertex counts each request.

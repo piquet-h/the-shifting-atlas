@@ -42,6 +42,7 @@
             "Azure.Storage.Blobs": "Warning",
             "Azure.Core": "Warning",
             "Azure.Core.Pipeline": "Warning",
+            "Azure.Messaging.ServiceBus": "Warning",
             "Microsoft.Azure.WebJobs": "Warning",
             "Host.Triggers.MCP": "Warning"
         }

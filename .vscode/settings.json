@@ -117,5 +117,18 @@
             "allowedModels": ["copilot/auto"]
         }
     },
-    "@azure.argTenant": "fecae6e9-696f-46e4-b1c8-5b471b499a24"
+    "@azure.argTenant": "fecae6e9-696f-46e4-b1c8-5b471b499a24",
+    "azureMcp.enabledServices": [
+        "bestpractices",
+        "bicepschema",
+        "cloudarchitect",
+        "cosmos",
+        "documentation",
+        "functionapp",
+        "foundry",
+        "role",
+        "servicebus",
+        "workbooks",
+        "storage"
+    ]
 }

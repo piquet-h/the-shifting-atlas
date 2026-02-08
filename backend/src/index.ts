@@ -95,6 +95,50 @@ app.hook.appStart(async () => {
         } catch (error: unknown) {
             console.error('Failed to add telemetry processor', error)
         }
+
+        // Drop verbose Azure SDK diagnostic traces (Service Bus, Storage Queue, Key Vault, Cosmos SDK)
+        try {
+            const client = appInsights.defaultClient
+            if (client && typeof client.addTelemetryProcessor === 'function') {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                client.addTelemetryProcessor((envelope: any) => {
+                    try {
+                        const baseData = envelope && envelope.data && envelope.data.baseData
+                        // Filter out SDK dependency traces from Azure services
+                        if (baseData && baseData.dependencyKind === 'Http') {
+                            const target = ((baseData.target || '') as string).toLowerCase()
+                            const name = ((baseData.name || '') as string).toLowerCase()
+
+                            // Drop traces matching Azure service endpoints for SDK diagnostics
+                            const sdkDiagnosticPatterns = [
+                                'queue.core.windows.net',
+                                'blob.core.windows.net',
+                                'table.core.windows.net',
+                                'servicebus.windows.net',
+                                'vault.azure.net' // Key Vault secret fetch calls
+                            ]
+
+                            // Also filter by operation type if it's a GET to a queue or blob diagnostics endpoint
+                            if (
+                                sdkDiagnosticPatterns.some((pattern) => target.includes(pattern)) &&
+                                (name.includes('get') ||
+                                    name.includes('messages') ||
+                                    name.includes('/messages') ||
+                                    name.includes('secretbundle'))
+                            ) {
+                                return false
+                            }
+                        }
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    } catch (_error) {
+                        // ignore
+                    }
+                    return true
+                })
+            }
+        } catch (error: unknown) {
+            console.error('Failed to add Azure SDK diagnostic filter', error)
+        }
     } else {
         console.log('[startup] Memory mode detected - skipping Application Insights initialization')
     }
