@@ -125,7 +125,8 @@ These scripts maintain the milestone description “delivery slices” format.
 
 - `ensure-milestone-has-delivery-slices.mjs`
 - `reanalyze-milestone.mjs`
-- `update-open-milestones-on-issue-closed.mjs`
+
+Drift control note: milestone descriptions are kept in sync deterministically on issue changes (milestoned/demilestoned/edited/closed/reopened).
 
 They are designed primarily for CI usage; see workflow files under `.github/workflows/`.
 
