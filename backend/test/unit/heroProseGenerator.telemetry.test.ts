@@ -10,13 +10,13 @@
  * See: Issue #738 - Hero Prose Telemetry
  */
 
+import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
+import type { Contracts } from 'applicationinsights'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import type { Contracts } from 'applicationinsights'
-import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
+import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 import { HeroProseGenerator } from '../../src/services/heroProseGenerator.js'
-import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 
@@ -504,7 +504,11 @@ describe('Hero Prose Generator - Telemetry', () => {
                 {
                     name: 'timeout',
                     client: {
-                        generate: async () => ({ content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }),
+                        generate: async () => {
+                            // Ensure observed latency exceeds the timeout budget.
+                            await new Promise((resolve) => setTimeout(resolve, 10))
+                            return { content: 'x', tokenUsage: { prompt: 0, completion: 0, total: 0 } }
+                        },
                         healthCheck: async () => true
                     },
                     config: { endpoint: 'https://test.openai.azure.com', model: 'gpt-4' },

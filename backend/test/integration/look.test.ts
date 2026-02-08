@@ -3,10 +3,11 @@ import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { TOKENS } from '../../src/di/tokens.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import { ExitEdgeResult, generateExitsSummaryCache } from '../../src/repos/exitRepository.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
-import type { IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
+import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('LOOK Command Flow', () => {
@@ -208,6 +209,26 @@ describe('LOOK Command Flow', () => {
             } as unknown as InvocationContext
         }
 
+        function bindAzureOpenAI(openaiStub: IAzureOpenAIClient): void {
+            // Inversify v7 removed fluent rebind().toConstantValue().
+            // Also: LocationLookHandler delegates to HeroProseGenerator, which intentionally
+            // short-circuits if AzureOpenAIConfig.endpoint is empty.
+            if (container.isBound(TOKENS.AzureOpenAIClient)) {
+                container.unbind(TOKENS.AzureOpenAIClient)
+            }
+            if (container.isBound(TOKENS.AzureOpenAIConfig)) {
+                container.unbind(TOKENS.AzureOpenAIConfig)
+            }
+
+            const config: AzureOpenAIClientConfig = {
+                endpoint: 'https://test.openai.azure.com',
+                model: 'gpt-4-test'
+            }
+
+            container.bind<AzureOpenAIClientConfig>(TOKENS.AzureOpenAIConfig).toConstantValue(config)
+            container.bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient).toConstantValue(openaiStub)
+        }
+
         test('cache hit: allows hero prose generation (no canonical writes)', async () => {
             const repo = await fixture.getLocationRepository()
 
@@ -233,8 +254,7 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
-            binding.toConstantValue(openaiStub)
+            bindAzureOpenAI(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -285,8 +305,7 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
-            binding.toConstantValue(openaiStub)
+            bindAzureOpenAI(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -334,8 +353,7 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
-            binding.toConstantValue(openaiStub)
+            bindAzureOpenAI(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()
@@ -369,8 +387,7 @@ describe('LOOK Command Flow', () => {
                 },
                 healthCheck: async () => true
             }
-            const binding = await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')
-            binding.toConstantValue(openaiStub)
+            bindAzureOpenAI(openaiStub)
 
             const handler = container.get(LocationLookHandler)
             const ctx = await createMockContext()

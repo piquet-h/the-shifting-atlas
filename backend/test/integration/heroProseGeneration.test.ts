@@ -12,9 +12,10 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { TOKENS } from '../../src/di/tokens.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
+import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from '../../src/services/azureOpenAIClient.js'
 import { HeroProseGenerator } from '../../src/services/heroProseGenerator.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
@@ -36,6 +37,26 @@ describe('Hero Prose Generation', () => {
         await fixture.teardown()
     })
 
+    function bindAzureOpenAI(openaiStub: IAzureOpenAIClient): void {
+        // Inversify v7 removed fluent rebind().toConstantValue().
+        // Also, HeroProseGenerator intentionally short-circuits when endpoint is missing,
+        // so tests that expect generation must override BOTH client + config.
+        if (container.isBound(TOKENS.AzureOpenAIClient)) {
+            container.unbind(TOKENS.AzureOpenAIClient)
+        }
+        if (container.isBound(TOKENS.AzureOpenAIConfig)) {
+            container.unbind(TOKENS.AzureOpenAIConfig)
+        }
+
+        const config: AzureOpenAIClientConfig = {
+            endpoint: 'https://test.openai.azure.com',
+            model: 'gpt-4-test'
+        }
+
+        container.bind<AzureOpenAIClientConfig>(TOKENS.AzureOpenAIConfig).toConstantValue(config)
+        container.bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient).toConstantValue(openaiStub)
+    }
+
     test('cache hit uses existing hero layer without calling OpenAI', async () => {
         const locationId = STARTER_LOCATION_ID
 
@@ -54,7 +75,7 @@ describe('Hero Prose Generation', () => {
             },
             healthCheck: async () => true
         }
-        ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+        bindAzureOpenAI(openaiStub)
 
         const loc = await locationRepo.get(locationId)
         assert.ok(loc, 'Location should exist')
@@ -92,7 +113,7 @@ describe('Hero Prose Generation', () => {
             },
             healthCheck: async () => true
         }
-        ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+        bindAzureOpenAI(openaiStub)
 
         const generator = container.get(HeroProseGenerator)
         const result = await generator.generateHeroProse({
@@ -125,7 +146,7 @@ describe('Hero Prose Generation', () => {
             },
             healthCheck: async () => true
         }
-        ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+        bindAzureOpenAI(openaiStub)
 
         const generator = container.get(HeroProseGenerator)
         const result = await generator.generateHeroProse({
@@ -154,7 +175,7 @@ describe('Hero Prose Generation', () => {
             },
             healthCheck: async () => true
         }
-        ;(await container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient')).toConstantValue(openaiStub)
+        bindAzureOpenAI(openaiStub)
 
         const generator = container.get(HeroProseGenerator)
         const result = await generator.generateHeroProse({

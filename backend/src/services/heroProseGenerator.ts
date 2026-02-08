@@ -16,6 +16,7 @@
 import { enrichHeroProseAttributes } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { createHash } from 'node:crypto'
+import { TOKENS } from '../di/tokens.js'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from './azureOpenAIClient.js'
@@ -55,7 +56,7 @@ export class HeroProseGenerator {
         @inject('IAzureOpenAIClient') private openaiClient: IAzureOpenAIClient,
         @inject('ILayerRepository') private layerRepo: ILayerRepository,
         @inject(TelemetryService) private telemetry: TelemetryService,
-        @inject('AzureOpenAIClientConfig') private config: AzureOpenAIClientConfig
+        @inject(TOKENS.AzureOpenAIConfig) private config: AzureOpenAIClientConfig
     ) {}
 
     /**

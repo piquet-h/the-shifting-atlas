@@ -20,6 +20,7 @@ import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { TOKENS } from '../../src/di/tokens.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
@@ -38,11 +39,30 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
         container = await fixture.getContainer()
         locationRepo = await fixture.getLocationRepository()
         layerRepo = await fixture.getLayerRepository()
+
+        // UnitTestFixture runs in 'mock' DI mode, and the mock location repo starts empty.
+        // Seed the starter location so LocationLookHandler has something to look up.
+        await locationRepo.upsert({
+            id: STARTER_LOCATION_ID,
+            name: 'Starter Location',
+            description: 'A plain stone chamber, quiet and still.',
+            exits: [],
+            tags: ['test-seed']
+        })
     })
 
     afterEach(async () => {
         await fixture.teardown()
     })
+
+    function bindAzureOpenAIClient(mockClient: IAzureOpenAIClient): void {
+        // Inversify v7 removed the fluent `rebind(...).toConstantValue(...)` API.
+        // Use unbind + bind instead.
+        if (container.isBound(TOKENS.AzureOpenAIClient)) {
+            container.unbind(TOKENS.AzureOpenAIClient)
+        }
+        container.bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient).toConstantValue(mockClient)
+    }
 
     /**
      * Helper to create a mock InvocationContext with the DI container
@@ -109,7 +129,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -164,7 +184,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -205,7 +225,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -246,7 +266,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -278,7 +298,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -353,7 +373,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -420,7 +440,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -471,7 +491,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
@@ -519,7 +539,7 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
                 },
                 healthCheck: async () => true
             }
-            container.rebind<IAzureOpenAIClient>('IAzureOpenAIClient').toConstantValue(mockAOAI)
+            bindAzureOpenAIClient(mockAOAI)
 
             // Execute
             const handler = container.get(LocationLookHandler)
