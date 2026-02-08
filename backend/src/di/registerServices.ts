@@ -8,6 +8,7 @@ import {
     type AzureOpenAIClientConfig,
     type IAzureOpenAIClient
 } from '../services/azureOpenAIClient.js'
+import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
 import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import { LocationClockManager } from '../services/LocationClockManager.js'
@@ -28,6 +29,9 @@ export function registerCoreServices(container: Container): void {
     container.bind(DescriptionComposer).toSelf().inSingletonScope()
     container.bind(RealmService).toSelf().inSingletonScope()
     container.bind(HeroProseGenerator).toSelf().inSingletonScope()
+
+    // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
+    container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token

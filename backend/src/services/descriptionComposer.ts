@@ -78,34 +78,53 @@ export class DescriptionComposer {
     async compileForLocation(locationId: string, context: ViewContext, options?: CompileOptions): Promise<CompiledDescription> {
         const startTime = Date.now()
 
-        // The base description comes from the Location entity (options.baseDescription)
-        const originalBaseDescription = options?.baseDescription || ''
-
-        // 1. Fetch all layers for location (these are overlays, not the base)
+        // 1. Fetch all layers for location (includes base layers and overlays)
         // NOTE: getLayersForLocation is deprecated; query per-type histories for the location scope.
         const allLayers = await this.getAllLayersForLocation(locationId)
 
-        // 2. Check for hero-prose layer that can replace base description
+        // 2. Determine the base description priority:
+        //    a) Base layer from repository (highest priority - AI-generated)
+        //    b) Hero-prose layer (replaces base if valid)
+        //    c) options.baseDescription (fallback - legacy Location.description)
+        const baseLayers = allLayers.filter((l) => l.layerType === 'base')
+        let effectiveBase = ''
+        let baseLayerUsed: DescriptionLayer | null = null
+
+        if (baseLayers.length > 0) {
+            // Use most recently authored base layer
+            baseLayers.sort((a, b) => {
+                const aTime = new Date(a.authoredAt).getTime()
+                const bTime = new Date(b.authoredAt).getTime()
+                return bTime - aTime // Descending order (most recent first)
+            })
+            baseLayerUsed = baseLayers[0]
+            effectiveBase = baseLayerUsed.value ?? baseLayerUsed.content ?? ''
+        } else {
+            // Fall back to options.baseDescription (legacy path)
+            effectiveBase = options?.baseDescription || ''
+        }
+
+        // 3. Check for hero-prose layer that can replace base description
         const heroProse = selectHeroProse(allLayers)
-        let effectiveBase = originalBaseDescription
         let heroProseFallback = false
         let heroProseUsed: DescriptionLayer | null = null
 
         if (heroProse) {
             const heroContent = heroProse.value ?? heroProse.content ?? ''
             if (isValidHeroProseContent(heroContent)) {
-                // Use hero-prose as effective base
+                // Use hero-prose as effective base (overrides base layer or options.baseDescription)
                 effectiveBase = heroContent
                 heroProseUsed = heroProse
+                baseLayerUsed = null // Hero-prose replaced the base layer
             } else {
-                // Hero-prose invalid, fall back to original base
+                // Hero-prose invalid, fall back to base layer or options.baseDescription
                 heroProseFallback = true
             }
         }
 
-        // 3. Filter active layers based on context (excludes 'base' type and ALL hero-prose layers)
+        // 4. Filter active layers based on context (excludes 'base' type and ALL hero-prose layers)
         const overlayLayers = allLayers.filter((l) => {
-            // Exclude 'base' type layers
+            // Exclude 'base' type layers (already used as foundation)
             if (l.layerType === 'base') return false
             // Hero-prose layers replace the base description and are never treated as overlays.
             if (isHeroProse(l)) return false
@@ -113,20 +132,21 @@ export class DescriptionComposer {
         })
         const activeLayers = this.filterActiveLayers(overlayLayers, context)
 
-        // 4. Apply supersede masking to effective base (structural layers can mask sentences)
+        // 5. Apply supersede masking to effective base (structural layers can mask sentences)
         const maskedBase = this.applySupersedeMaskToBase(effectiveBase, activeLayers)
 
-        // 5. Assemble layers in deterministic order
+        // 6. Assemble layers in deterministic order
         const { text, provenance } = this.assembleLayers(maskedBase, activeLayers, locationId, context, heroProseUsed)
 
-        // 6. Convert to HTML
+        // 7. Convert to HTML
         const html = this.markdownToHtml(text)
 
         this.telemetryService.trackGameEvent('Description.Compile', {
             locationId,
             layerCount: allLayers.length,
             activeLayerCount: activeLayers.length,
-            hasBaseDescription: !!originalBaseDescription,
+            hasBaseLayer: !!baseLayerUsed,
+            hasLegacyBaseDescription: !!(options?.baseDescription && !baseLayerUsed),
             hasHeroProse: !!heroProse,
             heroProseFallback,
             supersededSentences: provenance.layers.filter((l) => l.superseded).length,
