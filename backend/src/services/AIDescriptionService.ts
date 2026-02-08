@@ -20,10 +20,11 @@
  * See: docs/architecture/world-spatial-generation-architecture.md (Section 2)
  */
 
-import { injectable, inject } from 'inversify'
+import { injectable, inject, optional } from 'inversify'
 import type { Direction, TerrainType } from '@piquet-h/shared'
 import { getTerrainGuidance } from '@piquet-h/shared'
 import { prepareAICostTelemetry } from '@piquet-h/shared'
+import type { ILayerRepository } from '../repos/layerRepository.js'
 import type { IAzureOpenAIClient } from './azureOpenAIClient.js'
 import { TOKENS } from '../di/tokens.js'
 import type { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -121,7 +122,8 @@ export interface IAIDescriptionService {
 export class AIDescriptionService implements IAIDescriptionService {
     constructor(
         @inject(TOKENS.AzureOpenAIClient) private aiClient: IAzureOpenAIClient,
-        @inject('TelemetryService') private telemetry: TelemetryService
+        @inject('TelemetryService') private telemetry: TelemetryService,
+        @inject(TOKENS.LayerRepository) @optional() private layerRepository?: ILayerRepository
     ) {}
 
     async batchGenerateDescriptions(request: BatchDescriptionRequest): Promise<GeneratedDescription[]> {
@@ -141,6 +143,11 @@ export class AIDescriptionService implements IAIDescriptionService {
             results.push(description)
             totalTokens += description.tokensUsed
             totalCost += description.cost
+
+            // Persist generated description as base layer (if repository available)
+            if (this.layerRepository) {
+                await this.persistBaseLayer(location.locationId, description, location.terrain, request.style)
+            }
         }
 
         const avgLatencyMs = (Date.now() - startTime) / request.locations.length
@@ -286,5 +293,60 @@ Example: "Windswept moorland stretches endlessly beneath vast sky. To the south,
      */
     private sleep(ms: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, ms))
+    }
+
+    /**
+     * Persist generated description as a base layer in the layer repository.
+     * Base layers are indefinite (fromTick=0, toTick=null) and include generation metadata.
+     *
+     * @param locationId - Location identifier
+     * @param description - Generated description result
+     * @param terrain - Terrain type used for generation
+     * @param style - Description style used
+     */
+    private async persistBaseLayer(
+        locationId: string,
+        description: GeneratedDescription,
+        terrain: TerrainType,
+        style: DescriptionStyle
+    ): Promise<void> {
+        if (!this.layerRepository) {
+            return
+        }
+
+        const startTime = Date.now()
+
+        try {
+            await this.layerRepository.setLayerForLocation(
+                locationId,
+                'base',
+                0, // effectiveFromTick: start at world tick 0
+                null, // effectiveToTick: indefinite
+                description.description,
+                {
+                    // Metadata for provenance and debugging
+                    model: description.model,
+                    style,
+                    terrain,
+                    tokensUsed: description.tokensUsed,
+                    cost: description.cost,
+                    generatedAt: new Date().toISOString()
+                }
+            )
+
+            this.telemetry.trackGameEvent('AI.Description.BaseLayerPersisted', {
+                locationId,
+                layerType: 'base',
+                model: description.model,
+                latencyMs: Date.now() - startTime
+            })
+        } catch (error) {
+            // Log persistence failure but don't fail the batch operation
+            this.telemetry.trackGameEvent('AI.Description.BaseLayerPersistFailed', {
+                locationId,
+                error: error instanceof Error ? error.message : String(error),
+                latencyMs: Date.now() - startTime
+            })
+        }
     }
 }
