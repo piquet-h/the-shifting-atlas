@@ -59,14 +59,7 @@ describe('Description Composer - Base Layer Priority', () => {
         const locationId = crypto.randomUUID()
 
         // Add base layer to repository
-        await layerRepo.setLayerForLocation(
-            locationId,
-            'base',
-            0,
-            null,
-            'AI-generated description of the location.',
-            { model: 'gpt-4' }
-        )
+        await layerRepo.setLayerForLocation(locationId, 'base', 0, null, 'AI-generated description of the location.', { model: 'gpt-4' })
 
         const context: ViewContext = {
             weather: 'clear',

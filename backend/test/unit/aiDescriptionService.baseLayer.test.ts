@@ -46,7 +46,7 @@ class MockTelemetryClient implements ITelemetryClient {
 
 // Mock Azure OpenAI Client
 class MockAzureOpenAIClient implements IAzureOpenAIClient {
-    async generate(options: { prompt: string }): Promise<OpenAIGenerateResult | null> {
+    async generate(): Promise<OpenAIGenerateResult | null> {
         return {
             content: 'Windswept moorland stretches endlessly beneath vast sky.',
             tokenUsage: { prompt: 150, completion: 30, total: 180 }
