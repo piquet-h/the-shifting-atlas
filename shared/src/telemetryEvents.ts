@@ -67,6 +67,10 @@ export const GAME_EVENT_NAMES = [
     'World.Layer.Added',
     'World.Exit.Created',
     'World.Exit.Removed',
+    // Batch generation telemetry (Issue #759 - BatchGenerateHandler foundation)
+    'World.BatchGeneration.Started', // Batch generation initiated - properties: { rootLocationId, batchSize, terrain, correlationId }
+    'World.BatchGeneration.Completed', // Batch generation completed - properties: { rootLocationId, correlationId }
+    'World.BatchGeneration.Failed', // Batch generation failed - properties: { rootLocationId, reason, correlationId }
     // Realm hierarchy and relationship telemetry
     'World.Realm.Upsert',
     'World.Realm.EdgeCreated',
