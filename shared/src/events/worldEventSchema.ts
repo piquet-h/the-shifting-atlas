@@ -54,11 +54,11 @@ export type Actor = z.infer<typeof ActorSchema>
  *
  * 'World.Location.BatchGenerate' - Request batch generation of connected locations
  *   Payload: {
- *     rootLocationId: string (UUID) - Starting location anchor for expansion
- *     terrain: TerrainType - Terrain type for generated locations
- *     arrivalDirection: Direction - Direction player arrived from (spatial hint)
- *     expansionDepth: number (1-3) - How many layers deep to expand
- *     batchSize: number (1-20) - Target number of locations to generate
+ *     rootLocationId: UUID (string) - Starting location anchor for expansion
+ *     terrain: TerrainType (enum) - Terrain type for generated locations
+ *     arrivalDirection: Direction (enum) - Direction player arrived from (spatial hint)
+ *     expansionDepth: number - How many layers deep to expand (range: 1-3)
+ *     batchSize: number - Target number of locations to generate (range: 1-20)
  *   }
  */
 export const WorldEventTypeSchema = z.enum([

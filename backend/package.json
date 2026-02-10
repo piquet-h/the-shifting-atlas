@@ -39,7 +39,7 @@
         "@azure/functions": "^4.11.0",
         "@azure/identity": "^4.13.0",
         "@azure/keyvault-secrets": "^4.10.0",
-        "@piquet-h/shared": "file:../shared",
+        "@piquet-h/shared": "^0.3.127",
         "@types/marked": "^5.0.2",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
