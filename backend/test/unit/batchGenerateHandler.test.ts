@@ -272,15 +272,7 @@ describe('BatchGenerateHandler', () => {
         const duplicateCount = telemetry.events.filter((e) => e.name === 'World.Event.Duplicate').length
 
         // Second invocation should be detected as duplicate and not re-process
-        assert.strictEqual(
-            started2 - baselineStartedCount,
-            1,
-            'Second invocation should be detected as duplicate, not emit new Started'
-        )
-        assert.strictEqual(
-            duplicateCount - baselineDuplicateCount,
-            1,
-            'Duplicate event telemetry should be emitted for second invocation'
-        )
+        assert.strictEqual(started2 - baselineStartedCount, 1, 'Second invocation should be detected as duplicate, not emit new Started')
+        assert.strictEqual(duplicateCount - baselineDuplicateCount, 1, 'Duplicate event telemetry should be emitted for second invocation')
     })
 })
