@@ -49,6 +49,17 @@ export type Actor = z.infer<typeof ActorSchema>
  * Design Philosophy: These event types capture WHAT changed (deterministic state),
  * not HOW to describe it (AI-driven immersion). Handlers persist structured
  * metadata; AI generates narrative descriptions when players observe the world.
+ *
+ * Event Payload Documentation:
+ *
+ * 'World.Location.BatchGenerate' - Request batch generation of connected locations
+ *   Payload: {
+ *     rootLocationId: UUID (string) - Starting location anchor for expansion
+ *     terrain: TerrainType (enum) - Terrain type for generated locations
+ *     arrivalDirection: Direction (enum) - Direction player arrived from (spatial hint)
+ *     expansionDepth: number - How many layers deep to expand (range: 1-3)
+ *     batchSize: number - Target number of locations to generate (range: 1-20)
+ *   }
  */
 export const WorldEventTypeSchema = z.enum([
     'Player.Move',
@@ -56,6 +67,7 @@ export const WorldEventTypeSchema = z.enum([
     'NPC.Tick',
     'World.Ambience.Generated',
     'World.Exit.Create',
+    'World.Location.BatchGenerate',
     'Location.Environment.Changed',
     'Quest.Proposed',
     'Navigation.Exit.GenerationHint' // Exit generation hint queued for processing
