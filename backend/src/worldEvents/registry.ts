@@ -1,4 +1,5 @@
 import type { Container } from 'inversify'
+import { BatchGenerateHandler } from './handlers/BatchGenerateHandler.js'
 import { EnvironmentChangeHandler } from './handlers/EnvironmentChangeHandler.js'
 import { ExitCreateHandler } from './handlers/ExitCreateHandler.js'
 import { NPCTickHandler } from './handlers/NPCTickHandler.js'
@@ -10,5 +11,6 @@ export function buildWorldEventHandlerRegistry(container: Container): Map<string
     registry.set('World.Exit.Create', container.get(ExitCreateHandler))
     registry.set('NPC.Tick', container.get(NPCTickHandler))
     registry.set('Location.Environment.Changed', container.get(EnvironmentChangeHandler))
+    registry.set('World.Location.BatchGenerate', container.get(BatchGenerateHandler))
     return registry
 }
