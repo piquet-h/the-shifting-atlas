@@ -1,3 +1,5 @@
+import type { Direction } from './domainModels.js'
+
 export interface LocationExit {
     direction: string
     to?: string
@@ -17,9 +19,9 @@ export interface Location {
     /** Exit availability metadata (pending/forbidden directions). */
     exitAvailability?: {
         /** Directions awaiting generation. */
-        pending?: Record<string, string>
+        pending?: Partial<Record<Direction, string>>
         /** Directions that are permanently forbidden. */
-        forbidden?: Record<string, string>
+        forbidden?: Partial<Record<Direction, string>>
     }
 }
 
