@@ -155,6 +155,25 @@ Default commands (from repo root):
 - `npm run typecheck` (or `npm run typecheck:<package>`)
 - `npm test` (only when runtime behavior changes; prefer package-scoped tests)
 
+### 0.16 Prettier Formatting Auto-Correction (Non-negotiable)
+
+**Prettier is the authoritative code formatter.** When prettier errors appear in CI (identified as "Delete" or "Add" formatting errors):
+
+**Do NOT manually edit code to fix these errors.** Prettier auto-fixes them:
+
+```bash
+# Run from repo root:
+npm run format                    # Auto-fix all packages
+npm run format:<package>          # Auto-fix specific package (shared/backend/frontend)
+
+# Or from within a package directory:
+npm run format
+```
+
+After running format, review the diff, stage changes, and push a follow-up commit with message like `fix: prettier formatting`.
+
+**Verification:** After formatting, run `npm run format:check` (or package-specific variant) to confirm prettier passes before considering work done.
+
 ### 0.11 New Azure Function High‑Level Flow
 
 Use Appendix A checklist before committing: trigger chosen, validation, telemetry constant, idempotency note, tests (happy + invalid), risk tag.
@@ -261,7 +280,7 @@ Function naming: `<Trigger><Action>` (`HttpMovePlayer`, `QueueProcessNPCStep`).
 Single responsibility per Function.
 Telemetry event names centralized (no inline literals).
 Comment only domain nuance or cross-service contract.
-Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings; do not handcraft alternative spacing/semicolons.
+Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings. When prettier errors appear in CI, run `npm run format` to auto-fix (do not manually edit spacing/semicolons).
 
 ---
 
@@ -320,7 +339,7 @@ Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readi
 | M1 Traversal              | 2            | CLOSED   | Location persistence, exits, move/look                                | `milestone:"M1 Traversal"` or filter by ID 2               |
 | M2 Data Foundations       | 3            | CLOSED   | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3        |
 | M3a Event Backbone        | 11           | CLOSED   | Queue processing, idempotency, DLQ, correlation                       | `milestone:"M3a Event Backbone"` or filter by ID 11        |
-| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation        | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
+| M3b Player UI & Telemetry | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation         | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12 |
 | M3c Temporal PI-0         | 13           | Active   | WorldClock, PlayerClock, durations, reconcile policies                | `milestone:"M3c Temporal PI-0"` or filter by ID 13         |
 | M4 AI Read                | 4            | Active   | MCP read-only, prompt templates, intent parser                        | `milestone:"M4 AI Read"` or filter by ID 4                 |
 | M5 Quality & Depth        | 7            | Active   | Layering engine, dashboards, alerts, integrity monitoring             | `milestone:"M5 Quality & Depth"` or filter by ID 7         |
