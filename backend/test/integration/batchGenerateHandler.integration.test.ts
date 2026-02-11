@@ -18,7 +18,6 @@ import type { InvocationContext } from '@azure/functions'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { BatchGenerateHandler } from '../../src/worldEvents/handlers/BatchGenerateHandler.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { IWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { TOKENS } from '../../src/di/tokens.js'
@@ -43,7 +42,6 @@ describe('BatchGenerateHandler Integration', () => {
     let fixture: IntegrationTestFixture
     let handler: BatchGenerateHandler
     let locationRepo: ILocationRepository
-    let layerRepo: ILayerRepository
     let eventPublisher: IWorldEventPublisher
     let mockTelemetry: MockTelemetryClient
     let mockContext: InvocationContext
@@ -54,7 +52,6 @@ describe('BatchGenerateHandler Integration', () => {
 
         handler = container.get(BatchGenerateHandler)
         locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
-        layerRepo = container.get<ILayerRepository>(TOKENS.LayerRepository)
         eventPublisher = container.get<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
         mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient) as MockTelemetryClient
         mockContext = createMockContext()
@@ -64,6 +61,7 @@ describe('BatchGenerateHandler Integration', () => {
 
         // Clear event publisher queue
         if ('clear' in eventPublisher) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(eventPublisher as any).clear()
         }
     })
@@ -139,10 +137,14 @@ describe('BatchGenerateHandler Integration', () => {
             const generatedLocations = allLocations.filter((loc) => !baselineLocations.some((b) => b.id === loc.id))
             for (const location of generatedLocations) {
                 assert.ok(location.id, 'Location should have UUID')
-                assert.ok(location.name.includes('Unexplored') || location.name.includes('plain'), 'Location should have placeholder or generated name')
+                assert.ok(
+                    location.name.includes('Unexplored') || location.name.includes('plain'),
+                    'Location should have placeholder or generated name'
+                )
             }
 
             // Assert: Exit events enqueued
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
             assert.equal(enqueuedEvents.length, 3, 'Should enqueue 3 exit creation events')
 
@@ -196,7 +198,7 @@ describe('BatchGenerateHandler Integration', () => {
 
             const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
             assert.ok(completedEvent, 'Should emit Completed telemetry')
-            
+
             // Narrow corridor with empty defaultDirections falls back to cardinal [N,S,E,W]
             // Filtering out arrivalDirection='south' leaves [N,E,W] = 3 locations
             // The assertion is lenient (1-4) to handle potential future terrain config changes

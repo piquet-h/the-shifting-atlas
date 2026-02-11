@@ -1,7 +1,7 @@
 /**
  * WorldEventPublisher - Publishes world events to Azure Service Bus queue
  *
- * This service is responsible for enqueueing world events to the 'world-events' 
+ * This service is responsible for enqueueing world events to the 'world-events'
  * Service Bus queue for async processing. Events are published with correlation
  * IDs for traceability across the event cascade.
  *
@@ -25,16 +25,16 @@ export interface IWorldEventPublisher {
 
 /**
  * In-memory event publisher for development and testing.
- * 
+ *
  * Production Implementation Note:
  * In production Azure Functions, events should be published using one of:
  * 1. Service Bus output binding (simplest, declared in function config)
  * 2. @azure/service-bus SDK client (for batch optimization)
- * 
+ *
  * For now, this in-memory implementation allows handlers to be developed
  * and tested without Service Bus infrastructure. Events can be verified
  * in integration tests by checking the enqueuedEvents array.
- * 
+ *
  * TODO: Implement production ServiceBusWorldEventPublisher when deploying
  */
 @injectable()

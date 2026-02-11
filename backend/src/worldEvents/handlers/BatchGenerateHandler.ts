@@ -24,7 +24,7 @@ import { TOKENS } from '../../di/tokens.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
-import type { IAIDescriptionService, BatchDescriptionRequest, GeneratedDescription } from '../../services/AIDescriptionService.js'
+import type { IAIDescriptionService, BatchDescriptionRequest } from '../../services/AIDescriptionService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import type { WorldEventHandlerResult } from '../types.js'
@@ -197,11 +197,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         try {
             // 1. Determine neighbor directions from terrain guidance
-            const neighborDirections = this.determineNeighborDirections(
-                payload.terrain,
-                payload.arrivalDirection,
-                payload.batchSize
-            )
+            const neighborDirections = this.determineNeighborDirections(payload.terrain, payload.arrivalDirection, payload.batchSize)
 
             context.log('Determined neighbor directions', {
                 terrain: payload.terrain,
@@ -221,7 +217,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             context.log('Created stub locations', { count: stubs.length })
 
             // 3. Prepare AI batch request
-            const batchRequest = this.prepareBatchRequest(payload.rootLocationId, stubs, payload.terrain, payload.arrivalDirection)
+            const batchRequest = this.prepareBatchRequest(stubs)
 
             // 4. Generate descriptions (with fallback on error)
             const descriptions = await this.aiService.batchGenerateDescriptions(batchRequest)
@@ -283,9 +279,10 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
      */
     private determineNeighborDirections(terrain: TerrainType, arrivalDirection: Direction, batchSize: number): Direction[] {
         const guidance = getTerrainGuidance(terrain)
-        const candidateDirections = guidance.defaultDirections && guidance.defaultDirections.length > 0
-            ? guidance.defaultDirections
-            : ['north', 'south', 'east', 'west'] as Direction[] // Default to cardinal
+        const candidateDirections =
+            guidance.defaultDirections && guidance.defaultDirections.length > 0
+                ? guidance.defaultDirections
+                : (['north', 'south', 'east', 'west'] as Direction[]) // Default to cardinal
 
         // Filter out arrival direction (player came from that direction, location already exists there)
         const available = candidateDirections.filter((d) => d !== arrivalDirection)
@@ -341,12 +338,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
      * - AI generates ONE generic description per location (not one per compass direction)
      * - Description should be objective and spatial, mentioning exits naturally
      */
-    private prepareBatchRequest(
-        rootLocationId: string,
-        stubs: StubLocation[],
-        terrain: TerrainType,
-        arrivalDirection: Direction
-    ): BatchDescriptionRequest {
+    private prepareBatchRequest(stubs: StubLocation[]): BatchDescriptionRequest {
         return {
             locations: stubs.map((stub) => ({
                 locationId: stub.id,
