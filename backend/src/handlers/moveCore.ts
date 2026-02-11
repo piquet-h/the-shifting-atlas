@@ -1,6 +1,5 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import {
-    buildExitInfoArray,
     CompiledDescription,
     Direction,
     enrichErrorAttributes,

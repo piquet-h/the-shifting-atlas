@@ -10,7 +10,7 @@
  * - description.provenance: Metadata about layers applied and compilation timestamp
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { buildExitInfoArray, Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
