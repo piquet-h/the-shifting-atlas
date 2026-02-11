@@ -16,7 +16,7 @@
 
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, TerrainType } from '@piquet-h/shared'
-import { DIRECTIONS, TERRAIN_TYPES, getTerrainGuidance, getOppositeDirection } from '@piquet-h/shared'
+import { DIRECTIONS, TERRAIN_TYPES, getTerrainGuidance } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
@@ -275,7 +275,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
     /**
      * Determine neighbor directions based on terrain guidance.
-     * Filters out the arrival direction (player came from there).
+     * Filters out the arrival direction (player came from there, so already a location there).
      * Returns min(batchSize, available directions) directions.
      *
      * IMPORTANT: This method provides spatial hints to AI, not rigid constraints.
@@ -287,9 +287,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             ? guidance.defaultDirections
             : ['north', 'south', 'east', 'west'] as Direction[] // Default to cardinal
 
-        // Filter out arrival direction (player came from there, don't generate stub in that direction)
-        const oppositeArrival = getOppositeDirection(arrivalDirection)
-        const available = candidateDirections.filter((d) => d !== oppositeArrival)
+        // Filter out arrival direction (player came from that direction, location already exists there)
+        const available = candidateDirections.filter((d) => d !== arrivalDirection)
 
         // Take min(batchSize, available.length)
         return available.slice(0, Math.min(batchSize, available.length))
