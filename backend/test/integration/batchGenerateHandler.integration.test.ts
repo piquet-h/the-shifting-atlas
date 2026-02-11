@@ -140,7 +140,6 @@ describe('BatchGenerateHandler Integration', () => {
             for (const location of generatedLocations) {
                 assert.ok(location.id, 'Location should have UUID')
                 assert.ok(location.name.includes('Unexplored') || location.name.includes('plain'), 'Location should have placeholder or generated name')
-                assert.equal(location.terrain, 'open-plain', 'Location should have correct terrain')
             }
 
             // Assert: Exit events enqueued

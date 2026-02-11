@@ -83,7 +83,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
     constructor(
         @inject('IDeadLetterRepository') deadLetterRepo: IDeadLetterRepository,
-        @inject(TelemetryService) private telemetry: TelemetryService,
+        @inject(TelemetryService) telemetry: TelemetryService,
         @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository,
         @inject(TOKENS.AIDescriptionService) private aiService: IAIDescriptionService,
         @inject(TOKENS.LayerRepository) private layerRepo: ILayerRepository,
@@ -316,7 +316,6 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 id,
                 name,
                 description: '', // Will be filled by AI-generated layer
-                terrain,
                 tags: [],
                 exits: [], // Will be populated by ExitCreateHandler
                 version: 1
