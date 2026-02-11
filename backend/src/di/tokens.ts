@@ -44,6 +44,7 @@ export const TOKENS = {
     AzureOpenAIClient: 'IAzureOpenAIClient',
     AzureOpenAIConfig: 'AzureOpenAIConfig',
     AIDescriptionService: 'IAIDescriptionService',
+    WorldEventPublisher: 'IWorldEventPublisher',
 
     // Cosmos container names / config bits
     CosmosContainerLayers: 'CosmosContainer:Layers',
