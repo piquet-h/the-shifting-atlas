@@ -14,6 +14,13 @@ export interface Location {
     version?: number
     /** Cached human-readable summary of exits (regenerated when exits change). */
     exitsSummaryCache?: string
+    /** Exit availability metadata (pending/forbidden directions). */
+    exitAvailability?: {
+        /** Directions awaiting generation. */
+        pending?: Record<string, string>
+        /** Directions that are permanently forbidden. */
+        forbidden?: Record<string, string>
+    }
 }
 
 // Stable UUIDv4 seed location identifiers (formerly STARTER_ROOM_ID / SECOND_ROOM_ID).

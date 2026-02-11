@@ -5,13 +5,13 @@
  * representation, including data integrity issues.
  */
 import assert from 'node:assert'
-import test from 'node:test'
-import type { Direction } from '../../src/domainModels.js'
+import { describe, test } from 'node:test'
+import type { Direction } from '../src/domainModels.js'
 import {
     buildExitInfoArray,
     determineExitAvailability,
     type ExitAvailabilityMetadata
-} from '../../src/exitAvailability.js'
+} from '../src/exitAvailability.js'
 
 describe('Exit Availability Edge Cases', () => {
     describe('Forbidden directions never generate', () => {
