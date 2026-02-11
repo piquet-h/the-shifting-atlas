@@ -22,6 +22,7 @@ import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
 import { isValidGuid } from './utils/validation.js'
+import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
@@ -334,16 +335,8 @@ export class MoveHandler extends BaseHandler {
             { baseDescription: result.location.description }
         )
 
-        // Convert exits array to map format for buildExitInfoArray
-        const exitsMap: Partial<Record<Direction, string>> = {}
-        if (result.location.exits) {
-            for (const exit of result.location.exits) {
-                if (exit.to) {
-                    exitsMap[exit.direction as Direction] = exit.to
-                }
-            }
-        }
-        const exitInfoArray = buildExitInfoArray(exitsMap, undefined) // exitAvailability not yet wired from persistence
+        // Build exit availability info using shared helper
+        const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits)
 
         const latencyMs = Date.now() - started
         const props = {

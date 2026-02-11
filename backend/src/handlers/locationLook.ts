@@ -24,6 +24,7 @@ import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 import { isValidGuid } from './utils/validation.js'
+import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 
 @injectable()
 export class LocationLookHandler extends BaseHandler {
@@ -165,18 +166,8 @@ export class LocationLookHandler extends BaseHandler {
                 heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined
             })
 
-            // Build exit availability info
-            // Note: loc.exits is from Location interface (array format), need to convert to LocationNode format
-            const exitsMap: Partial<Record<Direction, string>> = {}
-            if (loc.exits) {
-                for (const exit of loc.exits) {
-                    if (exit.to) {
-                        exitsMap[exit.direction as Direction] = exit.to
-                    }
-                }
-            }
-            
-            const exitInfoArray = buildExitInfoArray(exitsMap, undefined) // LocationNode.exitAvailability not yet wired from persistence
+            // Build exit availability info using shared helper
+            const exitInfoArray = convertLocationExitsToExitInfo(loc.exits)
 
             return okResponse(
                 {
