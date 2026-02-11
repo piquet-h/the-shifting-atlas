@@ -1,8 +1,11 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import {
+    buildExitInfoArray,
     CompiledDescription,
+    Direction,
     enrichErrorAttributes,
     enrichMovementAttributes,
+    ExitInfo,
     getExitGenerationHintStore,
     getPlayerHeadingStore,
     hashPlayerIdForTelemetry,
@@ -30,7 +33,7 @@ export interface MoveValidationError {
 
 export interface MoveResult {
     success: boolean
-    location?: { id: string; name: string; description: CompiledDescription; exits?: { direction: string; description?: string }[] }
+    location?: { id: string; name: string; description: CompiledDescription; exits?: ExitInfo[] }
     error?: MoveValidationError
     latencyMs: number
 }
@@ -325,6 +328,17 @@ export class MoveHandler extends BaseHandler {
             { baseDescription: result.location.description }
         )
 
+        // Convert exits array to map format for buildExitInfoArray
+        const exitsMap: Partial<Record<Direction, string>> = {}
+        if (result.location.exits) {
+            for (const exit of result.location.exits) {
+                if (exit.to) {
+                    exitsMap[exit.direction as Direction] = exit.to
+                }
+            }
+        }
+        const exitInfoArray = buildExitInfoArray(exitsMap, undefined) // exitAvailability not yet wired from persistence
+
         const latencyMs = Date.now() - started
         const props = {
             from: fromId,
@@ -356,7 +370,7 @@ export class MoveHandler extends BaseHandler {
                         supersededSentences: 0
                     }
                 },
-                exits: result.location.exits
+                exits: exitInfoArray
             },
             latencyMs
         }

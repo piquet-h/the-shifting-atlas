@@ -105,6 +105,13 @@ export interface LocationNode {
     description: string
     /** Sparse mapping from direction to destination location ID. */
     exits?: Partial<Record<Direction, string>>
+    /** Exit availability metadata (pending/forbidden directions). */
+    exitAvailability?: {
+        /** Directions awaiting generation. */
+        pending?: Partial<Record<Direction, string>>
+        /** Directions that are permanently forbidden. */
+        forbidden?: Partial<Record<Direction, string>>
+    }
     /** Tag facets for biome / narrative / faction queries (e.g., 'biome:forest'). */
     tags?: string[]
     /** Version counter for optimistic concurrency (optional). */

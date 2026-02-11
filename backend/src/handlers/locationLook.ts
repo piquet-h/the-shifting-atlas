@@ -10,7 +10,7 @@
  * - description.provenance: Metadata about layers applied and compilation timestamp
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { buildExitInfoArray, Direction, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
@@ -165,6 +165,19 @@ export class LocationLookHandler extends BaseHandler {
                 heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined
             })
 
+            // Build exit availability info
+            // Note: loc.exits is from Location interface (array format), need to convert to LocationNode format
+            const exitsMap: Partial<Record<Direction, string>> = {}
+            if (loc.exits) {
+                for (const exit of loc.exits) {
+                    if (exit.to) {
+                        exitsMap[exit.direction as Direction] = exit.to
+                    }
+                }
+            }
+            
+            const exitInfoArray = buildExitInfoArray(exitsMap, undefined) // LocationNode.exitAvailability not yet wired from persistence
+
             return okResponse(
                 {
                     id: loc.id,
@@ -178,10 +191,7 @@ export class LocationLookHandler extends BaseHandler {
                             supersededSentences: supersededCount
                         }
                     },
-                    exits: (loc.exits || []).map((e) => ({
-                        direction: e.direction,
-                        description: e.description
-                    })),
+                    exits: exitInfoArray,
                     metadata: {
                         exitsSummaryCache,
                         tags: loc.tags,
