@@ -309,7 +309,10 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         for (const direction of directions) {
             const id = uuidv4()
-            const name = `Unexplored ${terrain.replace('-', ' ')}` // Placeholder
+            // Placeholder name (title-cased terrain)
+            const terrainWords = terrain.split('-')
+            const titleCasedTerrain = terrainWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+            const name = `Unexplored ${titleCasedTerrain}`
 
             // Create location entity
             await this.locationRepo.upsert({

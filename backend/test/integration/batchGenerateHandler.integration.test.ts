@@ -197,8 +197,9 @@ describe('BatchGenerateHandler Integration', () => {
             const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
             assert.ok(completedEvent, 'Should emit Completed telemetry')
             
-            // Narrow corridor with no defaultDirections falls back to cardinal directions
-            // With arrivalDirection='south' filtered out, we get [north, east, west] = 3
+            // Narrow corridor with empty defaultDirections falls back to cardinal [N,S,E,W]
+            // Filtering out arrivalDirection='south' leaves [N,E,W] = 3 locations
+            // The assertion is lenient (1-4) to handle potential future terrain config changes
             assert.ok(completedEvent.properties.locationsGenerated >= 1, 'Should generate at least 1 location')
             assert.ok(completedEvent.properties.locationsGenerated <= 4, 'Should not exceed available directions (4 cardinal - 1 arrival)')
         })
