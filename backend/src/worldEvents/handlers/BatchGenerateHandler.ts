@@ -1,24 +1,32 @@
 /**
- * BatchGenerateHandler - World location batch generation scaffold (Issue #759)
+ * BatchGenerateHandler - World location batch generation with AI integration (Issue #761)
  *
- * Foundation for batch world expansion:
- * - Validates batch generation event payloads
- * - Emits lifecycle telemetry (Started, Completed, Failed)
- * - NO world mutations yet (deferred to #761 for AI integration)
+ * Complete world expansion orchestration:
+ * - Creates stub location entities (Gremlin + SQL)
+ * - Calls AIDescriptionService for batched description generation
+ * - Persists descriptions as base layers
+ * - Enqueues World.Exit.Create events for bidirectional exit creation
+ * - Emits lifecycle telemetry with metrics
  *
  * Design Philosophy (per tenets.md #7):
  * - Deterministic code captures state for repeatable play
- * - AI creates immersion (integration in #761)
- * - Scaffold demonstrates handler pipeline before adding complexity
+ * - AI creates immersion (descriptions are atmospheric, not mechanical)
+ * - Arrival direction is a spatial hint, not a constraint on output
  */
 
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, TerrainType } from '@piquet-h/shared'
-import { DIRECTIONS, TERRAIN_TYPES } from '@piquet-h/shared'
+import { DIRECTIONS, TERRAIN_TYPES, getTerrainGuidance } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
+import { v4 as uuidv4 } from 'uuid'
+import { TOKENS } from '../../di/tokens.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
+import type { ILocationRepository } from '../../repos/locationRepository.js'
+import type { ILayerRepository } from '../../repos/layerRepository.js'
+import type { IAIDescriptionService, BatchDescriptionRequest } from '../../services/AIDescriptionService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
+import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import type { WorldEventHandlerResult } from '../types.js'
 import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEventHandler.js'
 
@@ -60,13 +68,26 @@ function isUUID(value: string): boolean {
     return uuidRegex.test(value)
 }
 
+/**
+ * Stub location data during creation
+ */
+interface StubLocation {
+    id: string
+    direction: Direction
+    terrain: TerrainType
+}
+
 @injectable()
 export class BatchGenerateHandler extends BaseWorldEventHandler {
     readonly type = 'World.Location.BatchGenerate' as const
 
     constructor(
         @inject('IDeadLetterRepository') deadLetterRepo: IDeadLetterRepository,
-        @inject(TelemetryService) telemetry: TelemetryService
+        @inject(TelemetryService) telemetry: TelemetryService,
+        @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository,
+        @inject(TOKENS.AIDescriptionService) private aiService: IAIDescriptionService,
+        @inject(TOKENS.LayerRepository) private layerRepo: ILayerRepository,
+        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher
     ) {
         super(deadLetterRepo, telemetry)
     }
@@ -147,14 +168,20 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
     }
 
     /**
-     * Execute batch generate handler (stub - no world mutations yet)
+     * Execute batch generate handler with full AI integration
      *
-     * Emits lifecycle telemetry and logs placeholder for AI integration.
-     * Actual location creation deferred to #761.
+     * Orchestrates:
+     * 1. Neighbor direction determination (terrain-guided)
+     * 2. Stub location creation (Gremlin + SQL)
+     * 3. AI description generation (batched)
+     * 4. Description layer persistence
+     * 5. Exit event enqueueing (bidirectional)
+     * 6. Metrics telemetry
      */
     protected async executeHandler(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult> {
         // Safe to cast after validation passes
         const payload = event.payload as unknown as BatchGeneratePayload
+        const startTime = Date.now()
 
         // Emit Started telemetry
         this.telemetry.trackGameEvent(
@@ -168,28 +195,190 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             { correlationId: event.correlationId }
         )
 
-        // Placeholder log for AI integration (deferred to #761)
-        context.log('BatchGenerateHandler: stub pending AI integration', {
-            rootLocationId: payload.rootLocationId,
-            batchSize: payload.batchSize,
-            terrain: payload.terrain,
-            arrivalDirection: payload.arrivalDirection,
-            expansionDepth: payload.expansionDepth
-        })
+        try {
+            // 1. Determine neighbor directions from terrain guidance
+            const neighborDirections = this.determineNeighborDirections(payload.terrain, payload.arrivalDirection, payload.batchSize)
 
-        // Emit Completed telemetry
-        this.telemetry.trackGameEvent(
-            'World.BatchGeneration.Completed',
-            {
-                rootLocationId: payload.rootLocationId,
-                correlationId: event.correlationId
-            },
-            { correlationId: event.correlationId }
-        )
+            context.log('Determined neighbor directions', {
+                terrain: payload.terrain,
+                arrivalDirection: payload.arrivalDirection,
+                neighborDirections
+            })
 
-        return {
-            outcome: 'success',
-            details: 'Batch generation scaffold executed (no mutations yet)'
+            // 2. Create stub location entities (Gremlin + SQL)
+            const stubs = await this.createStubLocations(
+                payload.rootLocationId,
+                neighborDirections,
+                payload.terrain,
+                event.correlationId,
+                context
+            )
+
+            context.log('Created stub locations', { count: stubs.length })
+
+            // 3. Prepare AI batch request
+            const batchRequest = this.prepareBatchRequest(stubs)
+
+            // 4. Generate descriptions (with fallback on error)
+            const descriptions = await this.aiService.batchGenerateDescriptions(batchRequest)
+
+            context.log('Generated AI descriptions', { count: descriptions.length })
+
+            // 5. Update location descriptions (already handled by AIDescriptionService layer persistence)
+            // Note: AIDescriptionService persists base layers automatically
+
+            // 6. Enqueue exit creation events (bidirectional)
+            await this.enqueueExitEvents(payload.rootLocationId, stubs, neighborDirections, event.correlationId, context)
+
+            context.log('Enqueued exit events', { count: stubs.length })
+
+            // 7. Emit completion telemetry with metrics
+            const durationMs = Date.now() - startTime
+            const totalCost = descriptions.reduce((sum, d) => sum + d.cost, 0)
+
+            this.telemetry.trackGameEvent(
+                'World.BatchGeneration.Completed',
+                {
+                    rootLocationId: payload.rootLocationId,
+                    locationsGenerated: stubs.length,
+                    exitsCreated: stubs.length * 2, // bidirectional
+                    aiCost: totalCost,
+                    durationMs,
+                    correlationId: event.correlationId
+                },
+                { correlationId: event.correlationId }
+            )
+
+            return {
+                outcome: 'success',
+                details: `Generated ${stubs.length} locations with ${stubs.length * 2} exits`
+            }
+        } catch (error) {
+            // Emit failure telemetry
+            this.telemetry.trackGameEvent(
+                'World.BatchGeneration.Failed',
+                {
+                    rootLocationId: payload.rootLocationId,
+                    reason: String(error),
+                    correlationId: event.correlationId
+                },
+                { correlationId: event.correlationId }
+            )
+
+            throw error
         }
+    }
+
+    /**
+     * Determine neighbor directions based on terrain guidance.
+     * Filters out the arrival direction (player came from there, so already a location there).
+     * Returns min(batchSize, available directions) directions.
+     *
+     * IMPORTANT: This method provides spatial hints to AI, not rigid constraints.
+     * The AI may choose to mention exits differently in descriptions.
+     */
+    private determineNeighborDirections(terrain: TerrainType, arrivalDirection: Direction, batchSize: number): Direction[] {
+        const guidance = getTerrainGuidance(terrain)
+        const candidateDirections =
+            guidance.defaultDirections && guidance.defaultDirections.length > 0
+                ? guidance.defaultDirections
+                : (['north', 'south', 'east', 'west'] as Direction[]) // Default to cardinal
+
+        // Filter out arrival direction (player came from that direction, location already exists there)
+        const available = candidateDirections.filter((d) => d !== arrivalDirection)
+
+        // Take min(batchSize, available.length)
+        return available.slice(0, Math.min(batchSize, available.length))
+    }
+
+    /**
+     * Create stub location entities in both Gremlin graph and SQL documents.
+     * Locations have placeholder names until AI descriptions are generated.
+     */
+    private async createStubLocations(
+        rootLocationId: string,
+        directions: Direction[],
+        terrain: TerrainType,
+        correlationId: string,
+        context: InvocationContext
+    ): Promise<StubLocation[]> {
+        const stubs: StubLocation[] = []
+
+        for (const direction of directions) {
+            const id = uuidv4()
+            // Placeholder name (title-cased terrain)
+            const terrainWords = terrain.split('-')
+            const titleCasedTerrain = terrainWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+            const name = `Unexplored ${titleCasedTerrain}`
+
+            // Create location entity
+            await this.locationRepo.upsert({
+                id,
+                name,
+                description: '', // Will be filled by AI-generated layer
+                tags: [],
+                exits: [], // Will be populated by ExitCreateHandler
+                version: 1
+            })
+
+            stubs.push({ id, direction, terrain })
+
+            context.log('Created stub location', { id, direction, terrain })
+        }
+
+        return stubs
+    }
+
+    /**
+     * Prepare batch request for AIDescriptionService.
+     * Maps stub locations to AIDescriptionService input format.
+     *
+     * IMPORTANT PER AGENT INSTRUCTIONS:
+     * - arrivalDirection is passed as a spatial hint for contextual generation
+     * - AI generates ONE generic description per location (not one per compass direction)
+     * - Description should be objective and spatial, mentioning exits naturally
+     */
+    private prepareBatchRequest(stubs: StubLocation[]): BatchDescriptionRequest {
+        return {
+            locations: stubs.map((stub) => ({
+                locationId: stub.id,
+                terrain: stub.terrain,
+                arrivalDirection: stub.direction, // Direction player arrives FROM root location
+                neighbors: [] // Onward exits TBD (future: exit inference)
+            })),
+            style: 'atmospheric'
+        }
+    }
+
+    /**
+     * Enqueue World.Exit.Create events for bidirectional exit creation.
+     * Each event creates an exit FROM root TO stub and reciprocal.
+     */
+    private async enqueueExitEvents(
+        rootLocationId: string,
+        stubs: StubLocation[],
+        directions: Direction[],
+        parentCorrelationId: string,
+        context: InvocationContext
+    ): Promise<void> {
+        const events: WorldEventEnvelope[] = stubs.map((stub, idx) => ({
+            eventId: uuidv4(),
+            type: 'World.Exit.Create',
+            occurredUtc: new Date().toISOString(),
+            actor: { kind: 'system' },
+            correlationId: parentCorrelationId, // Inherit from BatchGenerate
+            idempotencyKey: `exit:${rootLocationId}:${directions[idx]}`,
+            version: 1,
+            payload: {
+                fromLocationId: rootLocationId,
+                toLocationId: stub.id,
+                direction: directions[idx],
+                reciprocal: true
+            }
+        }))
+
+        await this.eventPublisher.enqueueEvents(events)
+
+        context.log('Enqueued exit creation events', { count: events.length })
     }
 }
