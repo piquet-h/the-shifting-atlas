@@ -212,6 +212,12 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
+            // TODO: Check if direction is forbidden before emitting generation hint
+            // When Location/LocationNode exitAvailability is wired from persistence:
+            // if (from.exitAvailability?.forbidden?.[dir]) {
+            //     return no-exit error without generation hint
+            // }
+            
             // Valid canonical direction but no exit - emit generation hint
             const hintStore = getExitGenerationHintStore()
             const playerId = this.playerGuid || 'anonymous'
