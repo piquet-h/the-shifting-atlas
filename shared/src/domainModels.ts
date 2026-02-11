@@ -105,7 +105,10 @@ export interface LocationNode {
     description: string
     /** Sparse mapping from direction to destination location ID. */
     exits?: Partial<Record<Direction, string>>
-    /** Exit availability metadata (pending/forbidden directions). See ExitAvailabilityMetadata in exitAvailability.ts */
+    /**
+     * Exit availability metadata: tracks which directions are pending generation or permanently forbidden.
+     * Note: Matches ExitAvailabilityMetadata shape from exitAvailability.ts (cannot import due to circular dependency).
+     */
     exitAvailability?: {
         /** Directions awaiting generation. */
         pending?: Partial<Record<Direction, string>>

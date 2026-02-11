@@ -27,7 +27,8 @@ export function convertLocationExitsToExitInfo(exits: LocationExit[] | undefined
         }
     }
     
-    // TODO: When Location.exitAvailability is wired from persistence, pass it here
-    // For now, only hard exits are returned
+    // TODO(persistence): When Location.exitAvailability is wired from persistence layer,
+    // pass it as the second parameter to buildExitInfoArray to include pending/forbidden states.
+    // Tracking: Part of broader persistence integration for exit availability metadata.
     return buildExitInfoArray(exitsMap, undefined)
 }

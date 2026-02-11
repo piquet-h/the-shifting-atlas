@@ -17,7 +17,7 @@ export interface Location {
     version?: number
     /** Cached human-readable summary of exits (regenerated when exits change). */
     exitsSummaryCache?: string
-    /** Exit availability metadata (pending/forbidden directions). */
+    /** Exit availability metadata: tracks which directions are pending generation or permanently forbidden. */
     exitAvailability?: ExitAvailabilityMetadata
 }
 
