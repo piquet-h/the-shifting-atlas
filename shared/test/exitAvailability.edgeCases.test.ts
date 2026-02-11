@@ -35,12 +35,12 @@ describe('Exit Availability Edge Cases', () => {
             
             const exitInfo = buildExitInfoArray(undefined, metadata)
             
-            const up = exitInfo.find(e => e.direction === 'up')
+            const up = exitInfo.find((e) => e.direction === 'up')
             assert.ok(up)
             assert.equal(up.availability, 'forbidden')
             assert.equal(up.reason, 'ceiling')
             
-            const down = exitInfo.find(e => e.direction === 'down')
+            const down = exitInfo.find((e) => e.direction === 'down')
             assert.ok(down)
             assert.equal(down.availability, 'forbidden')
             assert.equal(down.reason, 'solid floor')
@@ -55,8 +55,8 @@ describe('Exit Availability Edge Cases', () => {
             const exitInfo = buildExitInfoArray(undefined, metadata)
             
             assert.equal(exitInfo.length, 2)
-            assert.ok(exitInfo.some(e => e.direction === 'south' && e.availability === 'pending'))
-            assert.ok(exitInfo.some(e => e.direction === 'north' && e.availability === 'forbidden'))
+            assert.ok(exitInfo.some((e) => e.direction === 'south' && e.availability === 'pending'))
+            assert.ok(exitInfo.some((e) => e.direction === 'north' && e.availability === 'forbidden'))
         })
     })
 
@@ -73,7 +73,7 @@ describe('Exit Availability Edge Cases', () => {
             assert.equal(availability, 'hard', 'Hard exit should win over forbidden')
             
             const exitInfo = buildExitInfoArray(exits, metadata)
-            const north = exitInfo.find(e => e.direction === 'north')
+            const north = exitInfo.find((e) => e.direction === 'north')
             assert.ok(north)
             assert.equal(north.availability, 'hard')
             assert.equal(north.toLocationId, 'loc-123')
@@ -112,7 +112,7 @@ describe('Exit Availability Edge Cases', () => {
             const exitInfo = buildExitInfoArray(exits, undefined)
             
             assert.equal(exitInfo.length, 2)
-            assert.ok(exitInfo.every(e => e.availability === 'hard'))
+            assert.ok(exitInfo.every((e) => e.availability === 'hard'))
         })
 
         test('location with empty exitAvailability metadata', () => {
@@ -152,7 +152,7 @@ describe('Exit Availability Edge Cases', () => {
             // Metadata may still have pending entry (not yet cleaned up)
             const exitInfo2 = buildExitInfoArray(exits2, metadata1)
             
-            const west = exitInfo2.find(e => e.direction === 'west')
+            const west = exitInfo2.find((e) => e.direction === 'west')
             assert.ok(west)
             assert.equal(west.availability, 'hard', 'Should transition to hard')
             assert.equal(west.toLocationId, 'loc-new')

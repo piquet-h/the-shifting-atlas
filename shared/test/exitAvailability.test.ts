@@ -122,11 +122,11 @@ test('buildExitInfoArray: multiple hard exits', () => {
     const result = buildExitInfoArray(exits, undefined)
     
     assert.equal(result.length, 3)
-    const directions = result.map(e => e.direction)
+    const directions = result.map((e) => e.direction)
     assert.ok(directions.includes('north'))
     assert.ok(directions.includes('south'))
     assert.ok(directions.includes('east'))
-    assert.ok(result.every(e => e.availability === 'hard'))
+    assert.ok(result.every((e) => e.availability === 'hard'))
 })
 
 test('buildExitInfoArray: pending exits with reasons', () => {
@@ -140,7 +140,7 @@ test('buildExitInfoArray: pending exits with reasons', () => {
     const result = buildExitInfoArray(undefined, metadata)
     
     assert.equal(result.length, 2)
-    const west = result.find(e => e.direction === 'west')
+    const west = result.find((e) => e.direction === 'west')
     assert.ok(west)
     assert.equal(west.availability, 'pending')
     assert.equal(west.reason, 'unexplored')
@@ -158,7 +158,7 @@ test('buildExitInfoArray: forbidden exits with reasons', () => {
     const result = buildExitInfoArray(undefined, metadata)
     
     assert.equal(result.length, 2)
-    const down = result.find(e => e.direction === 'down')
+    const down = result.find((e) => e.direction === 'down')
     assert.ok(down)
     assert.equal(down.availability, 'forbidden')
     assert.equal(down.reason, 'solid floor')
@@ -175,20 +175,20 @@ test('buildExitInfoArray: mixed hard, pending, and forbidden', () => {
     
     assert.equal(result.length, 4)
     
-    const north = result.find(e => e.direction === 'north')
+    const north = result.find((e) => e.direction === 'north')
     assert.ok(north)
     assert.equal(north.availability, 'hard')
     assert.equal(north.toLocationId, 'loc-123')
     
-    const south = result.find(e => e.direction === 'south')
+    const south = result.find((e) => e.direction === 'south')
     assert.ok(south)
     assert.equal(south.availability, 'pending')
     
-    const east = result.find(e => e.direction === 'east')
+    const east = result.find((e) => e.direction === 'east')
     assert.ok(east)
     assert.equal(east.availability, 'forbidden')
     
-    const west = result.find(e => e.direction === 'west')
+    const west = result.find((e) => e.direction === 'west')
     assert.ok(west)
     assert.equal(west.availability, 'forbidden')
 })
@@ -326,5 +326,5 @@ test('serialization: array of ExitInfo can be JSON stringified', () => {
     const parsed = JSON.parse(json) as ExitInfo[]
     
     assert.equal(parsed.length, 4)
-    assert.ok(parsed.every(e => isExitAvailability(e.availability)))
+    assert.ok(parsed.every((e) => isExitAvailability(e.availability)))
 })
