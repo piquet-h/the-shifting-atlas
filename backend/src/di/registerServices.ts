@@ -18,6 +18,7 @@ import { ReconcileEngine } from '../services/ReconcileEngine.js'
 import type { IWorldClockService } from '../services/types.js'
 import { WorldClockService } from '../services/WorldClockService.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
+import { InMemoryWorldEventPublisher, type IWorldEventPublisher } from '../worldEvents/worldEventPublisher.js'
 import { TOKENS } from './tokens.js'
 
 export function registerCoreServices(container: Container): void {
@@ -32,6 +33,9 @@ export function registerCoreServices(container: Container): void {
 
     // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
+
+    // World Event Publisher (in-memory for testing, to be replaced with Service Bus in production)
+    container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(InMemoryWorldEventPublisher).inSingletonScope()
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token
