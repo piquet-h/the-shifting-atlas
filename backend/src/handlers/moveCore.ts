@@ -1,7 +1,6 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import {
     CompiledDescription,
-    Direction,
     enrichErrorAttributes,
     enrichMovementAttributes,
     ExitInfo,
@@ -20,8 +19,8 @@ import { DescriptionComposer } from '../services/descriptionComposer.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
-import { isValidGuid } from './utils/validation.js'
 import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
+import { isValidGuid } from './utils/validation.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
@@ -217,7 +216,7 @@ export class MoveHandler extends BaseHandler {
             // if (from.exitAvailability?.forbidden?.[dir]) {
             //     return no-exit error without generation hint
             // }
-            
+
             // Valid canonical direction but no exit - emit generation hint
             const hintStore = getExitGenerationHintStore()
             const playerId = this.playerGuid || 'anonymous'

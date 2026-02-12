@@ -1,6 +1,6 @@
 /**
  * Integration tests for exit availability representation in move/look handlers.
- * 
+ *
  * Tests cover:
  * - Look handler returns ExitInfo array with availability states
  * - Move handler returns ExitInfo array with availability states
@@ -79,7 +79,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             // All exits should have availability='hard'
             const exits = body.data.exits as ExitInfo[]
             assert.ok(exits.length > 0, 'Should have at least one exit')
-            
+
             for (const exit of exits) {
                 assert.ok(exit.direction, 'Exit should have direction')
                 assert.equal(exit.availability, 'hard', 'All existing exits should have availability=hard')
@@ -98,7 +98,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
 
             assert.equal(response.status, 200)
             const body = JSON.parse(response.body as string)
-            
+
             // Should still work - only hard exits returned
             const exits = body.data.exits as ExitInfo[]
             assert.ok(exits.every((e) => e.availability === 'hard'))
@@ -107,7 +107,6 @@ describe('Exit Availability in Move/Look Handlers', () => {
 
     describe('MoveHandler - exit availability', () => {
         test('successful move returns ExitInfo array for destination', async () => {
-            const ctx = await createMockContext(fixture)
             // Move north from STARTER_LOCATION_ID
             const req = makeMoveRequest({ dir: 'north' }) as HttpRequest
 
@@ -131,7 +130,6 @@ describe('Exit Availability in Move/Look Handlers', () => {
         })
 
         test('backward compatibility: destination without exitAvailability metadata', async () => {
-            const ctx = await createMockContext(fixture)
             const req = makeMoveRequest({ dir: 'north' }) as HttpRequest
 
             const container = await fixture.getContainer()
@@ -139,7 +137,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             const result = await handler.performMove(req)
 
             assert.equal(result.success, true)
-            
+
             // Should still work - only hard exits returned
             const exits = result.location!.exits as ExitInfo[]
             assert.ok(exits.every((e) => e.availability === 'hard'))
@@ -157,7 +155,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
 
             const body = JSON.parse(response.body as string)
             const exits = body.data.exits as ExitInfo[]
-            
+
             const hardExit = exits[0]
             assert.ok(hardExit.direction, 'Should have direction')
             assert.equal(hardExit.availability, 'hard', 'Should have availability')
@@ -176,7 +174,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             assert.doesNotThrow(() => {
                 const body = JSON.parse(response.body as string)
                 const exits = body.data.exits
-                
+
                 // Should be able to re-serialize
                 const reSerialize = JSON.stringify(exits)
                 const reParse = JSON.parse(reSerialize)
