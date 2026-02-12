@@ -1,17 +1,13 @@
 /**
  * Unit tests for exit availability edge cases and forbidden direction logic.
- * 
+ *
  * These tests validate the contract and behavior of exit availability
  * representation, including data integrity issues.
  */
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 import type { Direction } from '../src/domainModels.js'
-import {
-    buildExitInfoArray,
-    determineExitAvailability,
-    type ExitAvailabilityMetadata
-} from '../src/exitAvailability.js'
+import { buildExitInfoArray, determineExitAvailability, type ExitAvailabilityMetadata } from '../src/exitAvailability.js'
 
 describe('Exit Availability Edge Cases', () => {
     describe('Forbidden directions never generate', () => {
@@ -19,7 +15,7 @@ describe('Exit Availability Edge Cases', () => {
             const metadata: ExitAvailabilityMetadata = {
                 forbidden: { north: 'solid wall' }
             }
-            
+
             const availability = determineExitAvailability('north', undefined, metadata)
             assert.equal(availability, 'forbidden')
         })
@@ -32,14 +28,14 @@ describe('Exit Availability Edge Cases', () => {
                     out: 'no visible exit'
                 }
             }
-            
+
             const exitInfo = buildExitInfoArray(undefined, metadata)
-            
+
             const up = exitInfo.find((e) => e.direction === 'up')
             assert.ok(up)
             assert.equal(up.availability, 'forbidden')
             assert.equal(up.reason, 'ceiling')
-            
+
             const down = exitInfo.find((e) => e.direction === 'down')
             assert.ok(down)
             assert.equal(down.availability, 'forbidden')
@@ -51,9 +47,9 @@ describe('Exit Availability Edge Cases', () => {
                 pending: { south: 'unexplored' },
                 forbidden: { north: 'wall' }
             }
-            
+
             const exitInfo = buildExitInfoArray(undefined, metadata)
-            
+
             assert.equal(exitInfo.length, 2)
             assert.ok(exitInfo.some((e) => e.direction === 'south' && e.availability === 'pending'))
             assert.ok(exitInfo.some((e) => e.direction === 'north' && e.availability === 'forbidden'))
@@ -68,10 +64,10 @@ describe('Exit Availability Edge Cases', () => {
             const metadata: ExitAvailabilityMetadata = {
                 forbidden: { north: 'should be ignored' }
             }
-            
+
             const availability = determineExitAvailability('north', exits, metadata)
             assert.equal(availability, 'hard', 'Hard exit should win over forbidden')
-            
+
             const exitInfo = buildExitInfoArray(exits, metadata)
             const north = exitInfo.find((e) => e.direction === 'north')
             assert.ok(north)
@@ -84,7 +80,7 @@ describe('Exit Availability Edge Cases', () => {
             const metadata: ExitAvailabilityMetadata = {
                 pending: { east: 'should be ignored' }
             }
-            
+
             const availability = determineExitAvailability('east', exits, metadata)
             assert.equal(availability, 'hard', 'Hard exit should win over pending')
         })
@@ -95,7 +91,7 @@ describe('Exit Availability Edge Cases', () => {
                 pending: { west: 'should be ignored' },
                 forbidden: { west: 'permanent wall' }
             }
-            
+
             const availability = determineExitAvailability('west', undefined, metadata)
             assert.equal(availability, 'forbidden', 'Forbidden should win over pending')
         })
@@ -107,10 +103,10 @@ describe('Exit Availability Edge Cases', () => {
                 north: 'loc-1',
                 south: 'loc-2'
             }
-            
+
             // No metadata provided - should only return hard exits
             const exitInfo = buildExitInfoArray(exits, undefined)
-            
+
             assert.equal(exitInfo.length, 2)
             assert.ok(exitInfo.every((e) => e.availability === 'hard'))
         })
@@ -123,9 +119,9 @@ describe('Exit Availability Edge Cases', () => {
                 pending: {},
                 forbidden: {}
             }
-            
+
             const exitInfo = buildExitInfoArray(exits, metadata)
-            
+
             assert.equal(exitInfo.length, 1)
             assert.equal(exitInfo[0].availability, 'hard')
         })
@@ -133,7 +129,7 @@ describe('Exit Availability Edge Cases', () => {
         test('location with no exits field at all', () => {
             // undefined exits should be treated as "unknown/none visible"
             const exitInfo = buildExitInfoArray(undefined, undefined)
-            
+
             assert.equal(exitInfo.length, 0, 'No pending implied for missing exits')
         })
     })
@@ -146,12 +142,12 @@ describe('Exit Availability Edge Cases', () => {
             }
             const exitInfo1 = buildExitInfoArray(undefined, metadata1)
             assert.equal(exitInfo1[0].availability, 'pending')
-            
+
             // After generation: hard
             const exits2: Partial<Record<Direction, string>> = { west: 'loc-new' }
             // Metadata may still have pending entry (not yet cleaned up)
             const exitInfo2 = buildExitInfoArray(exits2, metadata1)
-            
+
             const west = exitInfo2.find((e) => e.direction === 'west')
             assert.ok(west)
             assert.equal(west.availability, 'hard', 'Should transition to hard')
@@ -165,12 +161,12 @@ describe('Exit Availability Edge Cases', () => {
             }
             const exitInfo1 = buildExitInfoArray(undefined, metadata)
             assert.equal(exitInfo1[0].availability, 'pending')
-            
+
             // Next request, it's hard
             const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
             const exitInfo2 = buildExitInfoArray(exits, metadata)
             assert.equal(exitInfo2[0].availability, 'hard')
-            
+
             // No error, client should handle the state change
             assert.ok(true, 'State transition should be transparent')
         })
@@ -184,14 +180,14 @@ describe('Exit Availability Edge Cases', () => {
             const metadata: ExitAvailabilityMetadata = {
                 forbidden: { north: 'wall' }
             }
-            
+
             // Detection logic
             const hasHardExit = exits['north'] !== undefined
             const isForbidden = metadata.forbidden?.['north'] !== undefined
             const shouldWarn = hasHardExit && isForbidden
-            
+
             assert.equal(shouldWarn, true, 'Should detect data integrity issue')
-            
+
             // Actual warning emission would happen in handler
             // This test just validates the detection logic
         })

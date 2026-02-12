@@ -1,11 +1,11 @@
 /**
  * Exit availability state representation for frontier expansion.
- * 
+ *
  * Distinguishes between:
  * - hard: Exit exists and is traversable
  * - pending: Exit is valid but awaiting generation
  * - forbidden: Direction is permanently blocked (never generate)
- * 
+ *
  * Related: docs/concept/exit-intent-capture.md
  */
 
@@ -13,7 +13,7 @@ import type { Direction } from './domainModels.js'
 
 /**
  * Exit availability state.
- * 
+ *
  * - `hard`: Exit edge exists and is traversable
  * - `pending`: Valid direction but no exit yet; generation may be triggered
  * - `forbidden`: Direction is permanently blocked; never generate
@@ -56,13 +56,13 @@ export function isExitAvailability(value: string): value is ExitAvailability {
 
 /**
  * Determine exit availability for a direction at a location.
- * 
+ *
  * Rules:
  * 1. If exit edge exists → 'hard'
  * 2. If direction is in forbidden set → 'forbidden'
  * 3. If direction is in pending set → 'pending'
  * 4. Otherwise → undefined (unknown/not configured)
- * 
+ *
  * Edge case: If a direction has both an exit edge AND is marked forbidden,
  * the hard exit takes precedence (data integrity issue - should emit warning).
  */
@@ -75,37 +75,35 @@ export function determineExitAvailability(
     if (exits && exits[direction]) {
         return 'hard'
     }
-    
+
     // Rule 2: Check forbidden
     if (metadata?.forbidden && metadata.forbidden[direction]) {
         return 'forbidden'
     }
-    
+
     // Rule 3: Check pending
     if (metadata?.pending && metadata.pending[direction]) {
         return 'pending'
     }
-    
+
     // Unknown/not configured
     return undefined
 }
 
 /**
  * Build ExitInfo array for a location including availability states.
- * 
+ *
  * @param exits - Sparse mapping from direction to destination location ID
  * @param metadata - Exit availability metadata (pending, forbidden)
- * @param includeAll - If true, include all directions (defaults to only configured directions)
  * @returns Array of ExitInfo with availability states
  */
 export function buildExitInfoArray(
     exits: Partial<Record<Direction, string>> | undefined,
-    metadata: ExitAvailabilityMetadata | undefined,
-    includeAll = false
+    metadata: ExitAvailabilityMetadata | undefined
 ): ExitInfo[] {
     const result: ExitInfo[] = []
     const processedDirections = new Set<Direction>()
-    
+
     // Add hard exits
     if (exits) {
         for (const [dir, toId] of Object.entries(exits)) {
@@ -118,7 +116,22 @@ export function buildExitInfoArray(
             })
         }
     }
-    
+
+    // Add forbidden (takes precedence over pending)
+    if (metadata?.forbidden) {
+        for (const [dir, reason] of Object.entries(metadata.forbidden)) {
+            const direction = dir as Direction
+            if (!processedDirections.has(direction)) {
+                processedDirections.add(direction)
+                result.push({
+                    direction,
+                    availability: 'forbidden',
+                    reason
+                })
+            }
+        }
+    }
+
     // Add pending
     if (metadata?.pending) {
         for (const [dir, reason] of Object.entries(metadata.pending)) {
@@ -133,21 +146,6 @@ export function buildExitInfoArray(
             }
         }
     }
-    
-    // Add forbidden
-    if (metadata?.forbidden) {
-        for (const [dir, reason] of Object.entries(metadata.forbidden)) {
-            const direction = dir as Direction
-            if (!processedDirections.has(direction)) {
-                processedDirections.add(direction)
-                result.push({
-                    direction,
-                    availability: 'forbidden',
-                    reason
-                })
-            }
-        }
-    }
-    
+
     return result
 }

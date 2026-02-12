@@ -1,4 +1,3 @@
-import type { Direction } from './domainModels.js'
 import type { ExitAvailabilityMetadata } from './exitAvailability.js'
 
 export interface LocationExit {
