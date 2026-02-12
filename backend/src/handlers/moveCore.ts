@@ -1,8 +1,10 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import {
     CompiledDescription,
+    Direction,
     enrichErrorAttributes,
     enrichMovementAttributes,
+    ExitInfo,
     getExitGenerationHintStore,
     getPlayerHeadingStore,
     hashPlayerIdForTelemetry,
@@ -19,6 +21,7 @@ import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
 import { isValidGuid } from './utils/validation.js'
+import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
@@ -30,7 +33,7 @@ export interface MoveValidationError {
 
 export interface MoveResult {
     success: boolean
-    location?: { id: string; name: string; description: CompiledDescription; exits?: { direction: string; description?: string }[] }
+    location?: { id: string; name: string; description: CompiledDescription; exits?: ExitInfo[] }
     error?: MoveValidationError
     latencyMs: number
 }
@@ -209,6 +212,12 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         const exit = from.exits?.find((e) => e.direction === dir)
         if (!exit || !exit.to) {
+            // TODO: Check if direction is forbidden before emitting generation hint
+            // When Location/LocationNode exitAvailability is wired from persistence:
+            // if (from.exitAvailability?.forbidden?.[dir]) {
+            //     return no-exit error without generation hint
+            // }
+            
             // Valid canonical direction but no exit - emit generation hint
             const hintStore = getExitGenerationHintStore()
             const playerId = this.playerGuid || 'anonymous'
@@ -325,6 +334,9 @@ export class MoveHandler extends BaseHandler {
             { baseDescription: result.location.description }
         )
 
+        // Build exit availability info using shared helper
+        const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits)
+
         const latencyMs = Date.now() - started
         const props = {
             from: fromId,
@@ -356,7 +368,7 @@ export class MoveHandler extends BaseHandler {
                         supersededSentences: 0
                     }
                 },
-                exits: result.location.exits
+                exits: exitInfoArray
             },
             latencyMs
         }

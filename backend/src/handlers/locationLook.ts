@@ -24,6 +24,7 @@ import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 import { isValidGuid } from './utils/validation.js'
+import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 
 @injectable()
 export class LocationLookHandler extends BaseHandler {
@@ -165,6 +166,9 @@ export class LocationLookHandler extends BaseHandler {
                 heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined
             })
 
+            // Build exit availability info using shared helper
+            const exitInfoArray = convertLocationExitsToExitInfo(loc.exits)
+
             return okResponse(
                 {
                     id: loc.id,
@@ -178,10 +182,7 @@ export class LocationLookHandler extends BaseHandler {
                             supersededSentences: supersededCount
                         }
                     },
-                    exits: (loc.exits || []).map((e) => ({
-                        direction: e.direction,
-                        description: e.description
-                    })),
+                    exits: exitInfoArray,
                     metadata: {
                         exitsSummaryCache,
                         tags: loc.tags,

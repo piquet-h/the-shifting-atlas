@@ -1,3 +1,6 @@
+import type { Direction } from './domainModels.js'
+import type { ExitAvailabilityMetadata } from './exitAvailability.js'
+
 export interface LocationExit {
     direction: string
     to?: string
@@ -14,6 +17,8 @@ export interface Location {
     version?: number
     /** Cached human-readable summary of exits (regenerated when exits change). */
     exitsSummaryCache?: string
+    /** Exit availability metadata: tracks which directions are pending generation or permanently forbidden. */
+    exitAvailability?: ExitAvailabilityMetadata
 }
 
 // Stable UUIDv4 seed location identifiers (formerly STARTER_ROOM_ID / SECOND_ROOM_ID).
