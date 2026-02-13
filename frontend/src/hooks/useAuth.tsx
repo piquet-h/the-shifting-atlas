@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const abortRef = useRef<AbortController | null>(null)
+    const loadingRef = useRef(true)
     const [nonce, setNonce] = useState(0)
 
     const load = useCallback(async () => {
@@ -58,6 +59,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         const controller = new AbortController()
         abortRef.current = controller
         setLoading(true)
+        loadingRef.current = true
         setError(null)
         try {
             const principal = await fetchPrincipal(controller.signal)
@@ -68,6 +70,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
             }
         } finally {
             setLoading(false)
+            loadingRef.current = false
         }
     }, [])
 
@@ -99,8 +102,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     const refresh = useCallback(() => setNonce((n) => n + 1), [])
 
     const signIn = useCallback((provider = 'msa', redirectPath = '/') => {
-        const url = `/.auth/login/${encodeURIComponent(provider)}?post_login_redirect_uri=${encodeURIComponent(redirectPath)}`
-        window.location.href = url
+        const performLogin = async () => {
+            // Wait deterministically for initial auth check to complete
+            while (loadingRef.current) {
+                await new Promise((resolve) => setTimeout(resolve, 10))
+            }
+            const url = `/.auth/login/${encodeURIComponent(provider)}?post_login_redirect_uri=${encodeURIComponent(redirectPath)}`
+            window.location.href = url
+        }
+        performLogin()
     }, [])
 
     const signOut = useCallback(
