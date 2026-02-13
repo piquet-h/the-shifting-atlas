@@ -11,15 +11,16 @@
  * - Move to location without pending exits does not trigger prefetch
  */
 
-import type { HttpRequest, InvocationContext } from '@azure/functions'
-import { STARTER_LOCATION_ID, type Direction, type Location, type WorldEventEnvelope } from '@piquet-h/shared'
+import type { HttpRequest } from '@azure/functions'
+import { STARTER_LOCATION_ID, type Location } from '@piquet-h/shared'
+import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../../src/di/tokens.js'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { IWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
+import { InMemoryWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
@@ -28,24 +29,22 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
     let fixture: IntegrationTestFixture
     let moveHandler: MoveHandler
     let locationRepo: ILocationRepository
-    let eventPublisher: IWorldEventPublisher
+    let eventPublisher: InMemoryWorldEventPublisher
     let mockTelemetry: MockTelemetryClient
+    let container: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
     beforeEach(async () => {
         fixture = new IntegrationTestFixture('memory')
-        const container = await fixture.getContainer()
+        container = await fixture.getContainer()
 
         moveHandler = container.get(MoveHandler)
         locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
-        eventPublisher = container.get<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
+        eventPublisher = container.get<InMemoryWorldEventPublisher>(TOKENS.WorldEventPublisher)
         mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient) as MockTelemetryClient
 
         // Clear telemetry and event publisher before each test
         mockTelemetry.clear()
-        if ('clear' in eventPublisher) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ;(eventPublisher as any).clear()
-        }
+        eventPublisher.clear()
     })
 
     afterEach(async () => {
@@ -78,17 +77,17 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
 
             // Create a test player
             const testPlayerId = uuidv4()
-            const playerRepo = (fixture as any).container.get<any>('IPlayerRepository')
+            const playerRepo = container.get<IPlayerRepository>(TOKENS.PlayerRepository)
             const { record: testPlayer } = await playerRepo.getOrCreate(testPlayerId)
             // Update to set location
             testPlayer.currentLocationId = STARTER_LOCATION_ID
             await playerRepo.update(testPlayer)
 
-            // Link from starter location to frontier
-            await locationRepo.ensureExit(STARTER_LOCATION_ID, 'northwest', frontierLocationId)
+            // Link from starter location to frontier (using 'up' to avoid conflicts)
+            await locationRepo.ensureExit(STARTER_LOCATION_ID, 'up', frontierLocationId)
 
             // Act: Move to the frontier location
-            const req = makeMoveRequest({ dir: 'northwest' }, {}, { playerId: testPlayerId }) as HttpRequest
+            const req = makeMoveRequest({ dir: 'up' }, {}, { playerId: testPlayerId }) as HttpRequest
             const result = await moveHandler.performMove(req)
 
             // Assert: Move succeeded
@@ -96,7 +95,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             assert.equal(result.location?.id, frontierLocationId, `Should move to frontier location, got ${result.location?.id}`)
 
             // Assert: Batch generation event was enqueued
-            const enqueuedEvents = (eventPublisher as any).enqueuedEvents as WorldEventEnvelope[]
+            const enqueuedEvents = eventPublisher.enqueuedEvents
             assert.ok(enqueuedEvents.length > 0, 'Should have enqueued at least one event')
 
             const batchEvent = enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
@@ -115,6 +114,19 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
         })
 
         test('batch generation is capped at configurable size (default 20)', async () => {
+            // Arrange: Create a custom starting location to avoid conflicts
+            const startLocationId = uuidv4()
+            const startLocation: Location = {
+                id: startLocationId,
+                name: 'Test Start',
+                description: 'Starting point for test',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            }
+            await locationRepo.upsert(startLocation)
+
             // Arrange: Create a frontier location with many pending exits
             const frontierLocationId = uuidv4()
             const frontierLocation: Location = {
@@ -123,7 +135,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
                 description: 'A central hub with paths in all directions',
                 terrain: 'open-plain',
                 tags: [],
-                exits: [{ direction: 'south', to: STARTER_LOCATION_ID }],
+                exits: [{ direction: 'south', to: startLocationId }],
                 exitAvailability: {
                     pending: {
                         north: 'pending',
@@ -138,26 +150,28 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
                 version: 1
             }
             await locationRepo.upsert(frontierLocation)
-            
-            // Create a test player
+
+            // Create a test player at the custom start location
             const testPlayerId = uuidv4()
-            const playerRepo = (fixture as any).container.get<any>('IPlayerRepository')
+            const playerRepo = container.get<IPlayerRepository>(TOKENS.PlayerRepository)
             const { record: testPlayer } = await playerRepo.getOrCreate(testPlayerId)
             // Update to set location
-            testPlayer.currentLocationId = STARTER_LOCATION_ID
+            testPlayer.currentLocationId = startLocationId
             await playerRepo.update(testPlayer)
-            
-            await locationRepo.ensureExit(STARTER_LOCATION_ID, 'northwest', frontierLocationId)
+
+            await locationRepo.ensureExit(startLocationId, 'north', frontierLocationId)
 
             // Act: Move to the crossroads
-            const req = makeMoveRequest({ dir: 'northwest' }, {}, { playerId: testPlayerId }) as HttpRequest
+            const req = makeMoveRequest({ dir: 'north' }, {}, { playerId: testPlayerId }) as HttpRequest
             const result = await moveHandler.performMove(req)
 
             // Assert: Move succeeded
             assert.equal(result.success, true, `Move should succeed: ${JSON.stringify(result.error)}`)
+            assert.equal(result.location?.id, frontierLocationId, `Should move to frontier, got ${result.location?.id}`)
 
             // Assert: Batch event was enqueued with capped size
-            const enqueuedEvents = (eventPublisher as any).enqueuedEvents as WorldEventEnvelope[]
+            const enqueuedEvents = eventPublisher.enqueuedEvents
+
             const batchEvent = enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
             assert.ok(batchEvent, 'Should have enqueued batch generation')
 
@@ -177,7 +191,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             assert.equal(result.success, true)
 
             // Assert: No batch generation event was enqueued
-            const enqueuedEvents = (eventPublisher as any).enqueuedEvents as WorldEventEnvelope[]
+            const enqueuedEvents = eventPublisher.enqueuedEvents
             const batchEvent = enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
             assert.equal(batchEvent, undefined, 'Should NOT have enqueued batch generation for location without pending exits')
         })
@@ -212,7 +226,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             assert.equal(result.success, true)
 
             // Assert: No batch generation event was enqueued
-            const enqueuedEvents = (eventPublisher as any).enqueuedEvents as WorldEventEnvelope[]
+            const enqueuedEvents = eventPublisher.enqueuedEvents
             const batchEvent = enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
             assert.equal(batchEvent, undefined, 'Should NOT trigger prefetch for forbidden exits')
         })
@@ -248,26 +262,19 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             await moveHandler.performMove(req2)
 
             // Clear events from first trip
-            ;(eventPublisher as any).clear()
+            eventPublisher.clear()
 
             // Move to frontier again
             const req3 = makeMoveRequest({ dir: 'north' }) as HttpRequest
             await moveHandler.performMove(req3)
 
             // Assert: Should be debounced (not enqueue again within time window)
-            const enqueuedEvents = (eventPublisher as any).enqueuedEvents as WorldEventEnvelope[]
+            const enqueuedEvents = eventPublisher.enqueuedEvents
             const batchEvents = enqueuedEvents.filter((e) => e.type === 'World.Location.BatchGenerate')
 
             // NOTE: Debouncing behavior depends on implementation
             // Either: 0 events (fully debounced) or 1 event (re-enqueued after time window)
             assert.ok(batchEvents.length <= 1, 'Should debounce repeated arrivals')
-
-            // Assert: Telemetry tracks debounce if it occurred
-            if (batchEvents.length === 0) {
-                const debounceEvents = mockTelemetry.events.filter((e) => e.name.includes('Debounce') || e.name.includes('Skipped'))
-                // Implementation may log debounce/skip events
-                // This assertion is informational - exact behavior TBD
-            }
         })
     })
 

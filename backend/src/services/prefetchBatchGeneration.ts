@@ -176,14 +176,7 @@ export function tryCreatePrefetchEvent(
     }
 
     // Create event and record debounce
-    const event = createBatchGenerationEvent(
-        locationId,
-        terrain,
-        arrivalDirection,
-        pendingExits.length,
-        correlationId,
-        config
-    )
+    const event = createBatchGenerationEvent(locationId, terrain, arrivalDirection, pendingExits.length, correlationId, config)
 
     debounceTracker.recordPrefetch(locationId)
 
