@@ -1,6 +1,7 @@
 import tsPlugin from '@typescript-eslint/eslint-plugin'
 import tsParser from '@typescript-eslint/parser'
 import prettierPlugin from 'eslint-plugin-prettier'
+import azureFunctionNamingRule from '../eslint-rules/azure-function-naming.mjs'
 import cosmosGremlinRepoConstructorRule from '../eslint-rules/cosmos-gremlin-repo-constructor.mjs'
 import handlersMustExtendBaseRule from '../eslint-rules/handlers-must-extend-base.mjs'
 import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mjs'
@@ -19,6 +20,7 @@ export default [
             prettier: prettierPlugin,
             internal: {
                 rules: {
+                    'azure-function-naming': azureFunctionNamingRule,
                     'telemetry-event': telemetryEventRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
@@ -33,6 +35,7 @@ export default [
             ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
+            'internal/azure-function-naming': 'error',
             'internal/telemetry-event': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',

@@ -8,7 +8,7 @@ import { bootstrapPlayerHandler } from '../handlers/bootstrapPlayer.js'
  * Migration Notes: This logic previously lived in `frontend/api/src/functions/playerBootstrap.ts` and is now
  * the authoritative backend implementation. The SWA managed API has been deprecated.
  */
-app.http('playerBootstrap', {
+app.http('PlayerBootstrap', {
     route: 'player/bootstrap',
     methods: ['GET'],
     authLevel: 'anonymous',

@@ -21,7 +21,7 @@ import { TelemetryService } from '../telemetry/TelemetryService.js'
 
 const SCHEDULE = process.env.INTEGRITY_JOB_SCHEDULE || '0 0 2 * * *'
 
-app.timer('TimerComputeIntegrityHashes', {
+app.timer('timerComputeIntegrityHashes', {
     schedule: SCHEDULE,
     handler: async (timer: Timer, context: InvocationContext): Promise<void> => {
         context.log('Integrity hash computation timer triggered', {

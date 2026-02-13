@@ -4,6 +4,57 @@ This directory contains custom ESLint rules specific to The Shifting Atlas proje
 
 ## Rules
 
+### `azure-function-naming`
+
+**Purpose:** Validates Azure Functions are registered with consistent, predictable names based on trigger type.
+
+**Applies to:** Function registration in `backend/src/functions/*.ts` files (e.g., `app.http('Name', {...})`)
+
+**Patterns enforced:**
+
+- **HTTP functions:** PascalCase action name without prefix (e.g., `PlayerMove`, `GetExits`, `Ping`)
+- **Queue/Service Bus functions:** camelCase with descriptive prefix (e.g., `queueProcessWorldEvent`, `serviceBusPublishUpdate`)
+- **Timer functions:** camelCase with `timer` prefix (e.g., `timerComputeIntegrityHashes`)
+- **CosmosDB triggers:** camelCase with `cosmosDB` prefix (e.g., `cosmosDBProcessChanges`)
+
+**Why it matters:**
+
+- Improves discoverability: clear naming reveals trigger type
+- Aligns with Azure Functions conventions
+- Prevents naming confusion when multiple triggers coexist
+
+**Example - Correct:**
+
+```typescript
+// HTTP
+app.http('Ping', { ... })
+app.http('PlayerMove', { ... })
+
+// Queue
+app.serviceBusQueue('queueProcessWorldEvent', { ... })
+
+// Timer
+app.timer('timerComputeIntegrityHashes', { ... })
+```
+
+**Example - Violations:**
+
+```typescript
+// ❌ HTTP should be PascalCase
+app.http('playerMove', { ... })
+
+// ❌ Queue should have 'queue' prefix (or 'serviceBus' for Service Bus)
+app.serviceBusQueue('ProcessWorldEvent', { ... })
+
+// ❌ Timer should be camelCase with 'timer' prefix
+app.timer('ComputeIntegrityHashes', { ... })
+```
+
+**When added:** February 2026
+**Related guidance:** Section 4 of copilot-instructions.md documents `<Trigger><Action>` naming pattern
+
+---
+
 ### `cosmos-gremlin-repo-constructor`
 
 **Purpose:** Ensures proper Inversify dependency injection for Cosmos DB Gremlin repositories.

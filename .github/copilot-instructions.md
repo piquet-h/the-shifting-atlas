@@ -276,11 +276,16 @@ Dual persistence (ADR-002 → superseded for player storage by ADR-004): Immutab
 
 ES Modules everywhere.
 Async/await for all I/O.
-Function naming: `<Trigger><Action>` (`HttpMovePlayer`, `QueueProcessNPCStep`).
-Single responsibility per Function.
-Telemetry event names centralized (no inline literals).
-Comment only domain nuance or cross-service contract.
-Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings. When prettier errors appear in CI, run `npm run format` to auto-fix (do not manually edit spacing/semicolons).
+Function naming: `<Trigger><Action>` pattern enforced by ESLint rule `azure-function-naming`:
+
+- HTTP: PascalCase (e.g., `PlayerMove`, `GetExits`)
+- Queue/Service Bus: camelCase with prefix (e.g., `queueProcessWorldEvent`, `serviceBusPublish`)
+- Timer: camelCase with `timer` prefix (e.g., `timerComputeIntegrityHashes`)
+- Run `npm run lint` to validate before committing
+  Single responsibility per Function.
+  Telemetry event names centralized (no inline literals).
+  Comment only domain nuance or cross-service contract.
+  Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings. When prettier errors appear in CI, run `npm run format` to auto-fix (do not manually edit spacing/semicolons).
 
 ---
 
@@ -489,173 +494,22 @@ timer.unref() // REQUIRED for background cleanup timers
 
 ---
 
-## 12.1. Package Dependency Rules (CRITICAL)
+## 12.1. Cross-Package Changes Constraint (GitHub.com agents)
 
-**The shared package is published to GitHub Packages registry and MUST be referenced via registry, NOT via file path.**
+**When working from GitHub.com (not local environment):**
 
-### Correct Pattern (backend/package.json):
+If a task requires modifying BOTH `shared/` AND (`backend/` OR `frontend/`):
 
-```json
-{
-    "dependencies": {
-        "@piquet-h/shared": "^0.3.x"
-    }
-}
-```
+1. **Stop** — You cannot complete this task from GitHub.com
+2. **Create an issue** describing the required changes:
+    - Title: "Shared package update needed for [feature]"
+    - Body: List what needs to change in shared/ and what needs to change in backend/frontend
+    - Label: `scope:shared` + affected scope
+3. **Respond to user**: "This requires sequential PRs (shared must publish first). Created issue #[number] for local coordination."
 
-### FORBIDDEN Pattern (breaks CI/CD):
+**Why:** Shared package must publish to GitHub Packages registry before backend/frontend can consume it. GitHub.com agents cannot execute multi-stage sequential PRs.
 
-```json
-{
-    "dependencies": {
-        "@piquet-h/shared": "file:../shared"
-    }
-}
-```
-
-### Why This Matters:
-
-- **File-based references (`file:../shared`)**: Only work locally; break in CI/deployment where the shared package directory doesn't exist
-- **Registry references (`^0.3.x`)**: Pull from GitHub Packages; work everywhere (local dev, CI, production)
-- **Historical problem**: Copilot coding agent has repeatedly reverted correct registry references to file-based references in PRs, breaking builds
-
-### Agent Rules:
-
-1. **NEVER** change `@piquet-h/shared` dependency in backend/package.json to `file:../shared`
-2. **ALWAYS** use semver range like `^0.3.x` to reference the published package from GitHub Packages
-3. When adding imports from `@piquet-h/shared` in backend code:
-    - Import the module normally: `import { Direction } from '@piquet-h/shared'`
-    - Do NOT modify backend/package.json unless bumping to a new version
-    - Verify the dependency already exists before assuming it needs to be added
-4. If you need a newer version of shared:
-    - Check shared/package.json for current version
-    - Update backend/package.json with the correct semver range (e.g., `^0.4.0`)
-    - Do NOT use file paths
-
-### Verification:
-
-- CI validation script checks for `file:` patterns in backend/package.json
-- Pre-commit hook can catch this locally (see scripts/verify-deployable.mjs)
-- Backend tests will fail if file-based reference is used in a clean CI environment
-
----
-
-## 12.2. Cross-Package PR Splitting (Shared + Backend Changes)
-
-**When changes affect both `shared/` and `backend/` packages, they MUST be split into sequential PRs.**
-
-### Problem
-
-Backend code cannot import from a shared package version that doesn't exist in GitHub Packages yet. If both are in one PR:
-
-- CI tries to `npm install` backend dependencies
-- Shared version X doesn't exist in registry yet
-- Build fails with "package not found"
-
-### Required Pattern: Two-Stage Merge
-
-#### Stage 1: Shared Package Changes Only
-
-1. **Create PR with ONLY shared/ changes:**
-    - New utilities, types, or functions
-    - Version bump in `shared/package.json`
-    - Tests in `shared/test/`
-    - NO backend integration code
-
-2. **Merge to main**
-    - CI automatically publishes new version to GitHub Packages
-    - Wait ~5 minutes for publish workflow to complete
-
-3. **Verify publication:**
-    ```bash
-    # Check that version exists in registry
-    npm view @piquet-h/shared@0.3.6
-    ```
-
-#### Stage 2: Backend Integration
-
-4. **Create follow-up PR with backend changes:**
-    - Update `backend/package.json` to reference new shared version
-    - Add backend code using new shared utilities
-    - Integration tests
-
-5. **Merge backend PR**
-    - Now backend can successfully install shared package from registry
-
-### Agent Automation Rules
-
-When the coding agent creates a PR that touches both `shared/` and `backend/`:
-
-1. **Detect cross-package change:**
-
-    ```bash
-    git diff main..HEAD --name-only | grep -q '^shared/' && \
-    git diff main..HEAD --name-only | grep -q '^backend/' && \
-    echo "CROSS-PACKAGE DETECTED"
-    ```
-
-2. **Automatically split into two branches:**
-
-    ```bash
-    # Stage 1: Shared-only branch (current PR)
-    git checkout <current-branch>
-    git reset --soft <first-shared-commit>
-    # Keep only shared/ changes
-
-    # Stage 2: Backend integration branch
-    git checkout -b feat/<name>-backend-integration
-    # Rebase backend commits onto main
-    # Update backend/package.json to reference new shared version
-    ```
-
-3. **Update PR descriptions:**
-    - Stage 1 PR: Mark as "Part 1: Shared package changes"
-    - Add note: "Backend integration will follow in separate PR after publish"
-    - Stage 2 PR: Reference stage 1 PR number, note dependency on published version
-
-4. **Prevent merge until ready:**
-    - Stage 2 PR stays as draft until stage 1 is merged + published
-    - Add comment with command to verify publication
-
-### Manual Split Process (User-Initiated)
-
-If agent creates combined PR before automation:
-
-```bash
-# 1. Save backend work
-git checkout -b feat/<name>-backend-integration origin/<pr-branch>
-
-# 2. Reset original branch to remove backend
-git checkout <pr-branch>
-git reset --soft <last-shared-commit>
-git restore --staged backend/
-
-# 3. Force-push shared-only PR
-git push --force-with-lease
-
-# 4. Prepare backend branch
-git checkout feat/<name>-backend-integration
-git rebase --onto main <last-shared-commit>
-# Update backend/package.json version reference
-git add backend/package.json && git commit --amend --no-edit
-```
-
-### Exceptions
-
-Single PR acceptable only if:
-
-- Shared changes are trivial hotfix (typo, comment)
-- No version bump required
-- Backend already compatible with current shared version
-
-### Detection Heuristics
-
-Agent should split when PR includes:
-
-- ✅ New exports in `shared/src/index.ts`
-- ✅ Version bump in `shared/package.json`
-- ✅ New imports in backend from `@piquet-h/shared`
-- ✅ Backend code using newly-added shared functions
+**Local agents:** Can use `file:../shared` temporarily during development, but must restore registry reference (`^0.3.x`) before committing.
 
 ---
 

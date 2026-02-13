@@ -6,7 +6,7 @@ export async function playerHandler(req: HttpRequest, context: InvocationContext
     return bootstrapPlayerHandler(req, context)
 }
 
-app.http('player', {
+app.http('Player', {
     route: 'player',
     methods: ['GET'],
     authLevel: 'anonymous',
