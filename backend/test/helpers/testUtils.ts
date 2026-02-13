@@ -31,12 +31,13 @@ export function makePrincipalPayload(
 }
 
 /** Build a move request-like object used by move handler core tests */
-export function makeMoveRequest(query: Record<string, string>, headers?: Record<string, string>): unknown {
+export function makeMoveRequest(query: Record<string, string>, headers?: Record<string, string>, params?: Record<string, string>): unknown {
     return {
         method: 'GET',
         url: 'http://localhost/api/player/move',
         query: { get: (k: string) => query[k] || null },
-        headers: { get: (name: string) => headers?.[name] || null }
+        headers: { get: (name: string) => headers?.[name] || null },
+        params: params || {}
     }
 }
 

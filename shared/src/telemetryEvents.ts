@@ -71,6 +71,8 @@ export const GAME_EVENT_NAMES = [
     'World.BatchGeneration.Started', // Batch generation initiated - properties: { rootLocationId, batchSize, terrain, correlationId }
     'World.BatchGeneration.Completed', // Batch generation completed - properties: { rootLocationId, correlationId }
     'World.BatchGeneration.Failed', // Batch generation failed - properties: { rootLocationId, reason, correlationId }
+    'World.BatchGeneration.Prefetch', // Prefetch triggered on arrival - properties: { rootLocationId, pendingExitCount, correlationId }
+    'World.BatchGeneration.Debounced', // Prefetch debounced (already enqueued recently) - properties: { rootLocationId, correlationId }
     // Realm hierarchy and relationship telemetry
     'World.Realm.Upsert',
     'World.Realm.EdgeCreated',
