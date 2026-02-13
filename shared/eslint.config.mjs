@@ -6,6 +6,7 @@ import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
 import noInlineHumorEventsRule from '../eslint-rules/no-inline-humor-events.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from '../eslint-rules/telemetry-event.mjs'
+import telemetryRegistryPatternRule from '../eslint-rules/telemetry-registry-pattern.mjs'
 
 export default [
     {
@@ -20,6 +21,7 @@ export default [
             internal: {
                 rules: {
                     'telemetry-event': telemetryEventRule,
+                    'telemetry-registry-pattern': telemetryRegistryPatternRule,
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-inline-humor-events': noInlineHumorEventsRule,
@@ -32,6 +34,7 @@ export default [
             '@typescript-eslint/no-explicit-any': 'warn',
             'prettier/prettier': 'error',
             'internal/telemetry-event': 'error',
+            'internal/telemetry-registry-pattern': 'error',
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-inline-humor-events': 'error',

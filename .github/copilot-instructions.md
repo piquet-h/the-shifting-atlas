@@ -298,19 +298,16 @@ Access pattern: use `@azure/cosmos` with Azure AD (Managed Identity in prod; Def
 
 ## 6. Telemetry
 
-- **Module**: `shared/src/telemetry.ts`
+- **Module**: `shared/src/telemetryEvents.ts` (authoritative registry)
 - **Purpose**: In-game events (player actions, world generation, navigation)
-- **Event format**: `Domain.Subject.Action` (e.g., `Player.Get`, `Location.Move`)
+- **Event format**: `Domain.Subject?.Action` (2–3 segments max; PascalCase)
+- **Registry rule**: ALL event names added to `GAME_EVENT_NAMES` array; **no inline literals**
 - **Destination**: Application Insights ONLY
 - **Location**: `shared/src/` folder ONLY
 
-Include correlation IDs across chained events.
-Avoid noisy high‑cardinality ad‑hoc logs.
-
----
-
-## 7. AI / Prompts
-
+When adding new events: run `npm run lint` (enforces 2-3 segment pattern, PascalCase, and registry membership).
+See `docs/observability.md` for detailed telemetry naming guidance and dimensions.
+Include correlation IDs across chained events; avoid noisy high-cardinality ad-hoc logs.
 Store prompts under `shared/src/prompts/`.
 Reference doc filenames instead of pasting lore blocks.
 World content generation: use `.github/skills/world-content-generation/` (on-demand).

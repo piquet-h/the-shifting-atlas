@@ -13,9 +13,9 @@ When a class extends `CosmosGremlinRepository`, the base class has a constructor
 
 **What it checks:**
 
--   ✅ Classes extending `CosmosGremlinRepository` must have an explicit constructor
--   ✅ The constructor must have a parameter decorated with `@inject('GremlinClient')`
--   ✅ The constructor must call `super(client)` to initialize the base class
+- ✅ Classes extending `CosmosGremlinRepository` must have an explicit constructor
+- ✅ The constructor must have a parameter decorated with `@inject('GremlinClient')`
+- ✅ The constructor must call `super(client)` to initialize the base class
 
 **Example - Correct pattern:**
 
@@ -74,12 +74,66 @@ export class BadRepository extends CosmosGremlinRepository {
 
 **What it checks:**
 
--   Handler classes must extend `BaseHandler`
--   Discourages standalone handler functions (old pattern)
+- Handler classes must extend `BaseHandler`
+- Discourages standalone handler functions (old pattern)
 
 ---
 
-### `telemetry-event-name`
+### `telemetry-event`
+
+**Purpose:** Enforces that telemetry event names follow the canonical pattern (2-3 PascalCase segments) and are registered in `GAME_EVENT_NAMES`.
+
+**Applies to:** Usage sites where telemetry is tracked (e.g., `this.track('Event.Name', {...})`, `trackGameEvent(...)`)
+
+**Catches:**
+
+- Event name violates pattern: `/^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$/`
+- Event name not declared in `GAME_EVENT_NAMES` registry
+- Non-PascalCase segments (e.g., `player.Get`, `my_event`)
+
+**Example - Violation:**
+
+```typescript
+this.track('World.BatchGeneration.Prefetch.Failed', {...}) // ❌ 4 segments
+```
+
+---
+
+### `telemetry-registry-pattern`
+
+**Purpose:** Validates telemetry event names **at the source** in `shared/src/telemetryEvents.ts` `GAME_EVENT_NAMES` array before they can spread to usage sites.
+
+**Why a separate rule:** Catches naming violations at definition time, preventing downstream violations. Simpler than trying to validate usage patterns.
+
+**Enforces:**
+
+- 2-3 segments maximum (`Domain.Subject?.Action`)
+- PascalCase for each segment
+- Pattern: `/^[A-Z][A-Za-z]+(\.[A-Z][A-Za-z]+){1,2}$/`
+
+**Example - Violation:**
+
+```typescript
+export const GAME_EVENT_NAMES = [
+    // ❌ Bad - 4 segments
+    'World.BatchGeneration.Prefetch.Failed',
+    // ✅ Good - 3 segments
+    'World.BatchPrefetch.Failed'
+] as const
+```
+
+**When added:** February 2026
+**Related incident:** Telemetry event naming pattern violation caught by tests, added as lint rule to prevent future violations.
+
+---
+
+### `telemetry-event-name` (DEPRECATED)
+
+**Purpose:** ~~Enforces that telemetry event names are constants from the shared telemetry module, not inline string literals.~~
+
+**Note:** Replaced by `telemetry-event` and `telemetry-registry-pattern` rules.
+
+---
 
 ### `telemetry-inject-decorator`
 
@@ -87,10 +141,10 @@ export class BadRepository extends CosmosGremlinRepository {
 
 **Checks:**
 
--   Repository class (name contains `Repository`) constructor has a non-optional parameter named `telemetryService` typed `TelemetryService`.
--   Parameter must have `@inject(TelemetryService)` decorator.
--   Warns if legacy string token `@inject('TelemetryService')` is used (policy forbids string tokens for concrete services).
--   Ignores optional parameters (`telemetryService?: TelemetryService`) and base abstract repository files.
+- Repository class (name contains `Repository`) constructor has a non-optional parameter named `telemetryService` typed `TelemetryService`.
+- Parameter must have `@inject(TelemetryService)` decorator.
+- Warns if legacy string token `@inject('TelemetryService')` is used (policy forbids string tokens for concrete services).
+- Ignores optional parameters (`telemetryService?: TelemetryService`) and base abstract repository files.
 
 **Example - Correct:**
 
@@ -107,18 +161,6 @@ constructor(protected telemetryService: TelemetryService) { /* missing decorator
 **When added:** November 2025
 **Related incidents:** Post-mortem of DI failure for `CosmosLocationRepository` (E2E test seed error).
 
-**Purpose:** Enforces that telemetry event names are constants from the shared telemetry module, not inline string literals.
-
-**Prevents:**
-
-```typescript
-// ❌ Bad - inline string
-telemetryClient.trackEvent({ name: 'Player.Move' })
-
-// ✅ Good - constant
-telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
-```
-
 ---
 
 ### `no-direct-track-event`
@@ -127,9 +169,9 @@ telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
 
 **Benefits:**
 
--   Standardized event structure
--   Automatic correlation ID handling
--   Centralized validation
+- Standardized event structure
+- Automatic correlation ID handling
+- Centralized validation
 
 ---
 
@@ -145,9 +187,9 @@ telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
 
 **Benefits:**
 
--   Centralized secret management
--   Testability (mock secrets in tests)
--   Consistent error handling
+- Centralized secret management
+- Testability (mock secrets in tests)
+- Consistent error handling
 
 ---
 
@@ -159,15 +201,15 @@ telemetryClient.trackEvent({ name: TelemetryEvents.PLAYER_MOVE })
 
 **Forbidden fields (case-insensitive):**
 
--   `promptText`, `prompt`
--   `completionText`, `completion`, `response`, `responseText`
--   `text`, `content`, `message`
+- `promptText`, `prompt`
+- `completionText`, `completion`, `response`, `responseText`
+- `text`, `content`, `message`
 
 **What it checks:**
 
--   `trackEvent()`, `emit()`, `log()`, `trace()` calls
--   Direct property assignment and `properties`/`customDimensions` objects
--   Nested object structures (recursive checking)
+- `trackEvent()`, `emit()`, `log()`, `trace()` calls
+- Direct property assignment and `properties`/`customDimensions` objects
+- Nested object structures (recursive checking)
 
 **Example violations:**
 
@@ -210,9 +252,9 @@ telemetryClient.trackEvent({
 **When added:** November 2025  
 **Related:**
 
--   Audit script: `scripts/verify-ai-cost-payload.mjs`
--   Unit tests: `shared/test/aiCostPayloadSafety.test.ts`
--   Documentation: `docs/observability/ai-cost-telemetry.md`
+- Audit script: `scripts/verify-ai-cost-payload.mjs`
+- Unit tests: `shared/test/aiCostPayloadSafety.test.ts`
+- Documentation: `docs/observability/ai-cost-telemetry.md`
 
 ---
 
@@ -227,9 +269,9 @@ telemetryClient.trackEvent({
 
 **What it checks:**
 
--   Detects inline usage of `DM.Humor.QuipShown` and `DM.Humor.QuipSuppressed` event names
--   Enforces import and usage of constants from `GAME_EVENT_NAMES`
--   Allows inline usage only in `telemetryEvents.ts` where the enum is defined
+- Detects inline usage of `DM.Humor.QuipShown` and `DM.Humor.QuipSuppressed` event names
+- Enforces import and usage of constants from `GAME_EVENT_NAMES`
+- Allows inline usage only in `telemetryEvents.ts` where the enum is defined
 
 **Example violations:**
 
