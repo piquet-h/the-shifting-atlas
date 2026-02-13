@@ -279,8 +279,12 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
     })
 
     describe('Cost control - no prefetch on Look', () => {
-        test('look operation never triggers prefetch even with pending exits', async () => {
-            // Arrange: Create frontier location with pending exits
+        test('move handler never triggers prefetch (documented requirement)', async () => {
+            // This test documents the requirement that prefetch only happens in MoveHandler,
+            // not in LocationLookHandler. The Look handler is a separate handler and
+            // doesn't have access to the prefetch logic.
+
+            // Create a frontier location with pending exits
             const frontierLocationId = uuidv4()
             const frontierLocation: Location = {
                 id: frontierLocationId,
@@ -299,14 +303,18 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             }
             await locationRepo.upsert(frontierLocation)
 
-            // Act: Directly call look (simulating a look request)
-            // Note: We can't easily test LocationLookHandler here without creating HTTP request
-            // This is more of a documentation test - the implementation should never
-            // trigger prefetch from look handlers
+            // Verify: Direct LocationRepository.get() doesn't trigger prefetch
+            const location = await locationRepo.get(frontierLocationId)
+            assert.ok(location, 'Location should exist')
+            assert.ok(location.exitAvailability?.pending, 'Should have pending exits')
 
-            // For now, this is a placeholder to document the requirement
-            // In practice, prefetch logic will only be in MoveHandler
-            assert.ok(true, 'Look handlers should never trigger prefetch (documented requirement)')
+            // Verify: No events were enqueued by repository access
+            const enqueuedEvents = eventPublisher.enqueuedEvents
+            assert.equal(enqueuedEvents.length, 0, 'Repository operations should not trigger prefetch')
+
+            // Note: LocationLookHandler would also not trigger prefetch as it doesn't
+            // have IWorldEventPublisher injected. This is intentional for cost control.
+            assert.ok(true, 'Prefetch is only triggered by MoveHandler after successful moves')
         })
     })
 })

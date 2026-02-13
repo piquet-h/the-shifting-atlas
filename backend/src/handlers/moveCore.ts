@@ -374,9 +374,8 @@ export class MoveHandler extends BaseHandler {
                 }
             } catch (error) {
                 // Log error but don't fail the move (non-blocking)
-                this.track('World.BatchGeneration.Prefetch', {
+                this.track('World.BatchGeneration.Prefetch.Failed', {
                     rootLocationId: result.location.id,
-                    success: false,
                     error: error instanceof Error ? error.message : String(error),
                     correlationId: this.correlationId
                 })
