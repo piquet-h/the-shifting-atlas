@@ -8,15 +8,20 @@ import {
     getPlayerHeadingStore,
     hashPlayerIdForTelemetry,
     normalizeDirection,
-    STARTER_LOCATION_ID
+    STARTER_LOCATION_ID,
+    type Direction,
+    type TerrainType
 } from '@piquet-h/shared'
 import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
+import { tryCreatePrefetchEvent } from '../services/prefetchBatchGeneration.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import type { IWorldEventPublisher } from '../worldEvents/worldEventPublisher.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
 import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
@@ -43,7 +48,8 @@ export class MoveHandler extends BaseHandler {
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
         @inject('ILocationRepository') private locationRepo: ILocationRepository,
         @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
-        @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer
+        @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer,
+        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher
     ) {
         super(telemetry)
     }
@@ -335,6 +341,46 @@ export class MoveHandler extends BaseHandler {
 
         // Build exit availability info using shared helper
         const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits)
+
+        // Prefetch batch generation for pending exits (Issue #811)
+        // Only trigger on successful arrival, not on look operations
+        if (result.location.exitAvailability) {
+            try {
+                const prefetchResult = tryCreatePrefetchEvent(
+                    result.location.id,
+                    (result.location.terrain || 'open-plain') as TerrainType,
+                    dir as Direction,
+                    result.location.exitAvailability,
+                    this.correlationId
+                )
+
+                if (prefetchResult.event) {
+                    // Enqueue batch generation event
+                    await this.eventPublisher.enqueueEvents([prefetchResult.event])
+
+                    // Emit telemetry
+                    this.track('World.BatchGeneration.Prefetch', {
+                        rootLocationId: result.location.id,
+                        pendingExitCount: prefetchResult.pendingExitCount,
+                        correlationId: this.correlationId
+                    })
+                } else if (prefetchResult.debounced) {
+                    // Emit debounce telemetry
+                    this.track('World.BatchGeneration.Debounced', {
+                        rootLocationId: result.location.id,
+                        pendingExitCount: prefetchResult.pendingExitCount,
+                        correlationId: this.correlationId
+                    })
+                }
+            } catch (error) {
+                // Log error but don't fail the move (non-blocking)
+                this.track('World.BatchGeneration.Prefetch.Failed', {
+                    rootLocationId: result.location.id,
+                    error: error instanceof Error ? error.message : String(error),
+                    correlationId: this.correlationId
+                })
+            }
+        }
 
         const latencyMs = Date.now() - started
         const props = {

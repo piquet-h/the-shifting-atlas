@@ -1,4 +1,5 @@
 import type { ExitAvailabilityMetadata } from './exitAvailability.js'
+import type { TerrainType } from './domainModels.js'
 
 export interface LocationExit {
     direction: string
@@ -10,6 +11,8 @@ export interface Location {
     id: string
     name: string
     description: string
+    /** Terrain type for spatial generation guidance (optional for backward compatibility) */
+    terrain?: TerrainType
     exits?: LocationExit[]
     /** Optional semantic / facet tags (e.g., 'settlement:mosswell', 'shop:smithy'). */
     tags?: string[]
