@@ -71,7 +71,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             const response = await handler.handle(req, ctx)
 
             assert.equal(response.status, 200)
-            const body = JSON.parse(response.body as string)
+            const body = response.jsonBody as { success: boolean; data: { exits: ExitInfo[] } }
             assert.ok(body.success)
             assert.ok(body.data)
             assert.ok(Array.isArray(body.data.exits), 'exits should be an array')
@@ -97,7 +97,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             const response = await handler.handle(req, ctx)
 
             assert.equal(response.status, 200)
-            const body = JSON.parse(response.body as string)
+            const body = response.jsonBody as { success: boolean; data: { exits: ExitInfo[] } }
 
             // Should still work - only hard exits returned
             const exits = body.data.exits as ExitInfo[]
@@ -153,7 +153,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
             const handler = container.get(LocationLookHandler)
             const response = await handler.handle(req, ctx)
 
-            const body = JSON.parse(response.body as string)
+            const body = response.jsonBody as { success: boolean; data: { exits: ExitInfo[] } }
             const exits = body.data.exits as ExitInfo[]
 
             const hardExit = exits[0]
@@ -172,7 +172,7 @@ describe('Exit Availability in Move/Look Handlers', () => {
 
             // Response should be valid JSON
             assert.doesNotThrow(() => {
-                const body = JSON.parse(response.body as string)
+                const body = response.jsonBody as { success: boolean; data: { exits: ExitInfo[] } }
                 const exits = body.data.exits
 
                 // Should be able to re-serialize
