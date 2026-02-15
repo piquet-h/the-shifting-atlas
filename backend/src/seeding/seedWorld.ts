@@ -102,11 +102,10 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
             const up = await locRepo.upsert(loc)
             if (up.created) locationVerticesCreated++
 
-            // Remove exits that are no longer in the blueprint
-            const existingAfterUpsert = await locRepo.get(loc.id)
-            if (existingAfterUpsert?.exits) {
+            // Remove exits that are no longer in the blueprint (only needed for updates, not new locations)
+            if (!up.created && existing?.exits) {
                 const blueprintExitKeys = new Set((loc.exits || []).map((ex) => `${ex.direction}:${ex.to}`))
-                for (const existingExit of existingAfterUpsert.exits) {
+                for (const existingExit of existing.exits) {
                     const existingKey = `${existingExit.direction}:${existingExit.to}`
                     if (!blueprintExitKeys.has(existingKey)) {
                         log(`seedWorld: removing stale exit ${loc.id} ${existingExit.direction} → ${existingExit.to}`)

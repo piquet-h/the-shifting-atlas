@@ -115,9 +115,10 @@ describe('World Seeding', () => {
         const stub1 = await locationRepository.get('frontier-north-road-01')
         assert.ok(stub1, 'Stub should exist before modification')
 
+        const playerDiscoveredDescription = 'PLAYER DISCOVERED: A well-worn path through grasslands.'
         const modifiedStub = {
             ...stub1,
-            description: 'PLAYER DISCOVERED: A well-worn path through grasslands.',
+            description: playerDiscoveredDescription,
             version: (stub1.version || 1) + 1
         }
         await locationRepository.upsert(modifiedStub)
@@ -135,11 +136,7 @@ describe('World Seeding', () => {
         // Verify the modified stub was NOT overwritten
         const stubAfterReseed = await locationRepository.get('frontier-north-road-01')
         assert.ok(stubAfterReseed, 'Stub should still exist after reseed')
-        assert.equal(
-            stubAfterReseed.description,
-            'PLAYER DISCOVERED: A well-worn path through grasslands.',
-            'Stub description should not be overwritten by reseeding'
-        )
+        assert.equal(stubAfterReseed.description, playerDiscoveredDescription, 'Stub description should not be overwritten by reseeding')
         assert.ok(stubAfterReseed.version && stubAfterReseed.version > 1, 'Stub version should reflect player modification')
     })
 })
