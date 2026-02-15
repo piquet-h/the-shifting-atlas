@@ -10,6 +10,17 @@
  *
  * Dependencies: #806 (exit availability states), #810 (prefetch on arrival), #809 (immersive pause)
  * Risk: LOW
+ *
+ * IMPORTANT: These tests validate the **UX contract** using mock responses.
+ * The actual UI implementation of:
+ * - Auto-refresh mechanism
+ * - Visual treatment of pending/forbidden exits
+ * - Immersive arrival pause
+ * ...is tracked in the dependency issues above.
+ *
+ * The tests simulate the expected backend behavior (pending → hard transitions)
+ * and verify that the contract is testable. Once the UI features are implemented,
+ * these tests will continue to pass with the real implementation.
  */
 import { expect, test } from '@playwright/test'
 
@@ -304,6 +315,9 @@ test.describe('Frontier Arrival: Full Flow with Pending Exits', () => {
         // For now, we verify that after the wait, the location has been refreshed
         // by checking if navigation is possible (this might need adjustment based on UI implementation)
 
+        // INTENTIONAL TIMEOUT: Simulate time for auto-refresh cycles to complete
+        // This is not waiting for a specific condition, but rather validating that
+        // the system remains stable during the expected auto-refresh period
         await page.waitForTimeout(3000) // Give time for auto-refresh cycles
 
         // STEP 6: Verify that pending exits became available WITHOUT manual retry
@@ -345,6 +359,8 @@ test.describe('Frontier Arrival: Forbidden Direction Handling', () => {
 
         // ASSERTION 2: Forbidden exit should NOT trigger auto-refresh cycles
         // We verify this by checking that the UI remains stable over time
+        // INTENTIONAL TIMEOUT: Validate that forbidden exits don't trigger auto-refresh
+        // This timeout is necessary to prove absence of unwanted behavior (auto-refresh)
         await page.waitForTimeout(5000) // Wait 5 seconds
 
         // Page should remain stable (no crashes or errors)
@@ -466,6 +482,9 @@ test.describe('Frontier Arrival: Bounded Refresh Attempts', () => {
         fetchCount = 0
 
         // Wait for potential auto-refresh cycles
+        // INTENTIONAL TIMEOUT: This test validates bounded refresh behavior
+        // We need to wait long enough to see if unbounded refresh would occur
+        // The 20 second wait allows time for multiple refresh cycles
         await page.waitForTimeout(20000) // 20 seconds
 
         // ASSERTION: Fetch count should be bounded (not grow indefinitely)
@@ -589,6 +608,7 @@ test.describe('Frontier Arrival: Player Navigation During Refresh', () => {
         await expect(explorerStatus.getByText('Frontier Outpost', { exact: true })).toBeVisible({ timeout: 10000 })
 
         // Before auto-refresh completes, navigate away
+        // INTENTIONAL TIMEOUT: Brief pause to allow arrival state to settle
         await page.waitForTimeout(1000) // Brief pause
 
         // Navigate back south
@@ -601,6 +621,7 @@ test.describe('Frontier Arrival: Player Navigation During Refresh', () => {
         // ASSERTION: No errors, no memory leaks
         // The auto-refresh timers should be cleared when navigating away
         // We verify this by checking console errors and page stability
+        // INTENTIONAL TIMEOUT: Allow time to verify no background errors occur
         await page.waitForTimeout(3000)
 
         // Page should still be functional
