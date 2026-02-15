@@ -97,11 +97,6 @@
                 "direction": "south",
                 "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
                 "description": "Back down the lane."
-            },
-            {
-                "direction": "west",
-                "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
-                "description": "Track to the shrine circle."
             }
         ],
         "exitAvailability": {
@@ -123,17 +118,12 @@
                 "description": "Slope east back to the road."
             },
             {
-                "direction": "south",
-                "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-                "description": "Toward the gate."
-            },
-            {
                 "direction": "northwest",
                 "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-                "description": "Reciprocal path."
+                "description": "Path toward the north gate."
             }
         ],
-        "version": 1
+        "version": 2
     },
     {
         "id": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f",
