@@ -20,6 +20,11 @@ export interface SeedWorldResult {
 /**
  * Idempotent world seeding. Safe to run multiple times. Adds/updates locations and exits.
  *
+ * Idempotency guarantees:
+ * - Will not overwrite locations that have been modified (version > blueprint)
+ * - Will not remove player-discovered locations
+ * - Safe to run multiple times with same blueprint
+ *
  * Use bulkMode=true for faster initial seeding (skips redundant vertex checks and defers cache regen).
  */
 export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult> {
@@ -35,7 +40,13 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
 
     if (bulkMode) {
         // Phase 1: Upsert all vertices first so exit creation is guaranteed to succeed
+        // Only upsert if location doesn't exist OR blueprint version >= existing version
         for (const loc of blueprint) {
+            const existing = await locRepo.get(loc.id)
+            if (existing && existing.version && loc.version && existing.version > loc.version) {
+                log(`seedWorld: skipping ${loc.id} (existing v${existing.version} > blueprint v${loc.version})`)
+                continue
+            }
             const up = await locRepo.upsert(loc)
             if (up.created) locationVerticesCreated++
         }
@@ -83,12 +94,16 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
     } else {
         // Non-bulk mode: original one-pass behavior (simpler & fine for small blueprints)
         for (const loc of blueprint) {
+            const existing = await locRepo.get(loc.id)
+            if (existing && existing.version && loc.version && existing.version > loc.version) {
+                log(`seedWorld: skipping ${loc.id} (existing v${existing.version} > blueprint v${loc.version})`)
+                continue
+            }
             const up = await locRepo.upsert(loc)
             if (up.created) locationVerticesCreated++
 
-            // Remove exits that are no longer in the blueprint
-            const existing = await locRepo.get(loc.id)
-            if (existing?.exits) {
+            // Remove exits that are no longer in the blueprint (only needed for updates, not new locations)
+            if (!up.created && existing?.exits) {
                 const blueprintExitKeys = new Set((loc.exits || []).map((ex) => `${ex.direction}:${ex.to}`))
                 for (const existingExit of existing.exits) {
                     const existingKey = `${existingExit.direction}:${existingExit.to}`
