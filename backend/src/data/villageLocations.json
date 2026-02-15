@@ -84,11 +84,6 @@
         "tags": ["settlement:mosswell", "infrastructure:gate"],
         "exits": [
             {
-                "direction": "northeast",
-                "to": "frontier-north-road-01",
-                "description": "North Road continuing into open country."
-            },
-            {
                 "direction": "southeast",
                 "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
                 "description": "Cut across to the shrine."
@@ -101,7 +96,9 @@
         ],
         "exitAvailability": {
             "pending": {
-                "north": "Open wilderness awaiting exploration"
+                "north": "Open wilderness awaiting exploration",
+                "northeast": "Road continues into open country",
+                "northwest": "Rolling hills extend into the distance"
             }
         },
         "version": 2
@@ -743,83 +740,6 @@
                 "description": "Planks back to the landing."
             }
         ],
-        "version": 1
-    },
-    {
-        "id": "frontier-north-road-01",
-        "name": "North Road - Mile 1",
-        "description": "Open countryside extends in all directions.",
-        "tags": ["road", "frontier:stub"],
-        "terrain": "open-plain",
-        "exits": [
-            {
-                "direction": "southwest",
-                "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-                "description": "Back to the north gate."
-            },
-            {
-                "direction": "northeast",
-                "to": "frontier-north-road-02",
-                "description": "Road continues northeast."
-            }
-        ],
-        "exitAvailability": {
-            "pending": {
-                "north": "Road stretches onward",
-                "east": "Open fields",
-                "west": "Open fields"
-            }
-        },
-        "version": 1
-    },
-    {
-        "id": "frontier-north-road-02",
-        "name": "North Road - Mile 2",
-        "description": "Rolling hills bracket the road.",
-        "tags": ["road", "frontier:stub"],
-        "terrain": "open-plain",
-        "exits": [
-            {
-                "direction": "southwest",
-                "to": "frontier-north-road-01",
-                "description": "Road back toward the gate."
-            },
-            {
-                "direction": "northeast",
-                "to": "frontier-north-road-03",
-                "description": "Road continues northeast."
-            }
-        ],
-        "exitAvailability": {
-            "pending": {
-                "north": "Road stretches onward",
-                "east": "Open fields",
-                "west": "Open fields"
-            }
-        },
-        "version": 1
-    },
-    {
-        "id": "frontier-north-road-03",
-        "name": "North Road - Mile 3",
-        "description": "Distant tree line marks the horizon.",
-        "tags": ["road", "frontier:stub"],
-        "terrain": "open-plain",
-        "exits": [
-            {
-                "direction": "southwest",
-                "to": "frontier-north-road-02",
-                "description": "Road back toward the gate."
-            }
-        ],
-        "exitAvailability": {
-            "pending": {
-                "north": "Road continues into distance",
-                "northeast": "Road stretches onward",
-                "east": "Open fields",
-                "west": "Open fields"
-            }
-        },
         "version": 1
     }
 ]
