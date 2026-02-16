@@ -3,7 +3,13 @@
         "id": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
         "name": "Mosswell River Jetty",
         "description": "Timbered jetty where river current meets brackish tide; a moss‑rimmed fountain anchors a plank‑lined plaza just inland. Gulls wheel overhead, brine mingles with forge smoke west and spice canvas east. A lantern tavern sign swings in a salt breeze while herb scents drift from a walled garden above the bank.",
-        "tags": ["settlement:mosswell", "harbor:jetty", "landmark:fountain", "hub", "river-mouth"],
+        "tags": [
+            "settlement:mosswell",
+            "harbor:jetty",
+            "landmark:fountain",
+            "hub",
+            "river-mouth"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -57,7 +63,10 @@
         "id": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
         "name": "North Road",
         "description": "Slight rise leading north; bustle of the square fades behind while the wooden gate looms ahead.",
-        "tags": ["settlement:mosswell", "road"],
+        "tags": [
+            "settlement:mosswell",
+            "road"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -81,10 +90,13 @@
         "id": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
         "name": "North Gate",
         "description": "Rough timber gate flanked by shallow ditches; open country stretches beyond.",
-        "tags": ["settlement:mosswell", "infrastructure:gate"],
+        "tags": [
+            "settlement:mosswell",
+            "infrastructure:gate"
+        ],
         "exits": [
             {
-                "direction": "southeast",
+                "direction": "southwest",
                 "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
                 "description": "Cut across to the shrine."
             },
@@ -107,7 +119,10 @@
         "id": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
         "name": "Stone Circle Shrine",
         "description": "Lichen-crusted standing stones ring a worn altar; the air feels cooler here.",
-        "tags": ["settlement:mosswell", "religion:shrine"],
+        "tags": [
+            "settlement:mosswell",
+            "religion:shrine"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -115,7 +130,7 @@
                 "description": "Slope east back to the road."
             },
             {
-                "direction": "northwest",
+                "direction": "northeast",
                 "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
                 "description": "Path toward the north gate."
             }
@@ -126,7 +141,11 @@
         "id": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f",
         "name": "Herb Garden Wall",
         "description": "Low stone wall enclosing cultivated herbs; scent of thyme and lavender hangs thick.",
-        "tags": ["settlement:mosswell", "garden", "landmark:herb-garden"],
+        "tags": [
+            "settlement:mosswell",
+            "garden",
+            "landmark:herb-garden"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -150,7 +169,10 @@
         "id": "c5e8d2bc-0f42-4a31-93d6-734c347b19e7",
         "name": "Herbalist Cottage",
         "description": "Drying racks and bundled roots; glass vials of pungent tinctures line rough shelves.",
-        "tags": ["settlement:mosswell", "shop:apothecary"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:apothecary"
+        ],
         "exits": [
             {
                 "direction": "out",
@@ -164,7 +186,10 @@
         "id": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b",
         "name": "North Cottage West",
         "description": "Modest timber cottage with a stacked woodpile and narrow smoke trail.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -183,7 +208,10 @@
         "id": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d",
         "name": "North Cottage East",
         "description": "Whitewashed walls and a neat barrel; faint aroma of stewing roots.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "south",
@@ -202,7 +230,10 @@
         "id": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f",
         "name": "Smithy",
         "description": "Open-sided forge: wavering heat, ringing anvil, and racks of half-finished tools.",
-        "tags": ["settlement:mosswell", "shop:smithy"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:smithy"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -221,7 +252,11 @@
         "id": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb",
         "name": "Carpenter & Fletcher",
         "description": "Curling wood shavings and bow staves rest beside a resin-scented bench.",
-        "tags": ["settlement:mosswell", "shop:fletcher", "shop:carpenter"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:fletcher",
+            "shop:carpenter"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -240,7 +275,10 @@
         "id": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
         "name": "Manor Overlook",
         "description": "Slate-roof manor with a modest balcony and steward’s lectern inside.",
-        "tags": ["settlement:mosswell", "civic:manor"],
+        "tags": [
+            "settlement:mosswell",
+            "civic:manor"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -269,7 +307,11 @@
         "id": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41",
         "name": "Market Row",
         "description": "Strip of stalls—spices, rough cloth, seed pouches—beneath patched canvas.",
-        "tags": ["settlement:mosswell", "market", "commerce"],
+        "tags": [
+            "settlement:mosswell",
+            "market",
+            "commerce"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -298,7 +340,10 @@
         "id": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a",
         "name": "General Goods Store",
         "description": "Packed shelves—oil, cord, grain sacks, cookware, and travel staples.",
-        "tags": ["settlement:mosswell", "shop:general"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:general"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -322,7 +367,10 @@
         "id": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
         "name": "Tailor & Weaver",
         "description": "Spindle hum and dyed cloth bolts; measuring cord draped over a stool.",
-        "tags": ["settlement:mosswell", "shop:tailor"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:tailor"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -351,7 +399,11 @@
         "id": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
         "name": "The Lantern & Ladle (Tavern)",
         "description": "Broad-beamed common room: stew steam, low songs, swinging lantern sign.",
-        "tags": ["settlement:mosswell", "shop:tavern", "hospitality:inn"],
+        "tags": [
+            "settlement:mosswell",
+            "shop:tavern",
+            "hospitality:inn"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -385,7 +437,10 @@
         "id": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42",
         "name": "Stables Courtyard",
         "description": "Packed earth yard, hitch posts and feed bins; flecks of hay in angled light.",
-        "tags": ["settlement:mosswell", "support:stables"],
+        "tags": [
+            "settlement:mosswell",
+            "support:stables"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -404,7 +459,10 @@
         "id": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1",
         "name": "South Road",
         "description": "Rutted lane flanked by low fences; smell of tilled soil and straw.",
-        "tags": ["settlement:mosswell", "road"],
+        "tags": [
+            "settlement:mosswell",
+            "road"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -433,7 +491,10 @@
         "id": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
         "name": "South Farms",
         "description": "Patchwork of tilled strips and a leaning scarecrow; distant harness clinks.",
-        "tags": ["settlement:mosswell", "agriculture:fields"],
+        "tags": [
+            "settlement:mosswell",
+            "agriculture:fields"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -452,7 +513,10 @@
         "id": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
         "name": "Southwest Path Junction",
         "description": "Foot-worn junction amid low cottages; distant bleat of goats.",
-        "tags": ["settlement:mosswell", "junction"],
+        "tags": [
+            "settlement:mosswell",
+            "junction"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -496,7 +560,10 @@
         "id": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5",
         "name": "Granary",
         "description": "Raised timber structure; dry grain scent and soft creak of slatted walls.",
-        "tags": ["settlement:mosswell", "agriculture:granary"],
+        "tags": [
+            "settlement:mosswell",
+            "agriculture:granary"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -520,7 +587,10 @@
         "id": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f",
         "name": "Drying Shed",
         "description": "Open rack shed with hanging herbs and grain sheaves airing in the breeze.",
-        "tags": ["settlement:mosswell", "agriculture:processing"],
+        "tags": [
+            "settlement:mosswell",
+            "agriculture:processing"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -534,7 +604,10 @@
         "id": "0a6c11dc-2cfd-439b-9b0d-3fd8a882ae2d",
         "name": "SW Cottage West",
         "description": "Low cottage with patched thatch and a goat tether post.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "northeast",
@@ -548,7 +621,10 @@
         "id": "a0d8f2ad-5fd0-4e1e-8b5e-7f8ef9be58ba",
         "name": "SW Cottage North",
         "description": "Small cottage near a leaning fence; herbs hang drying under eaves.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "southeast",
@@ -562,7 +638,10 @@
         "id": "5fbf477a-bbd3-44f0-9034-6d781da8d2e0",
         "name": "SW Cottage South",
         "description": "Weathered planks and a chicken coop; faint cluck of hens.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "northwest",
@@ -576,7 +655,10 @@
         "id": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52",
         "name": "East Cottage North",
         "description": "Narrow cottage with a rain barrel and stacked crates.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "south",
@@ -595,7 +677,10 @@
         "id": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c",
         "name": "East Cottage Middle",
         "description": "Shared wall cottage; laundry line sways overhead.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -619,7 +704,10 @@
         "id": "2d85f5ae-cf69-4b80-9b80-3fcd447ddb5e",
         "name": "East Cottage South",
         "description": "Cottage with a small herb box and fading blue shutters.",
-        "tags": ["settlement:mosswell", "residential:cottages"],
+        "tags": [
+            "settlement:mosswell",
+            "residential:cottages"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -633,7 +721,10 @@
         "id": "f62cb3bc-5521-4c63-9ef4-0cdf7e33a360",
         "name": "Tavern Guest Rooms",
         "description": "Creaking hallway of bunks and shuttered windows above the lane.",
-        "tags": ["settlement:mosswell", "hospitality:rooms"],
+        "tags": [
+            "settlement:mosswell",
+            "hospitality:rooms"
+        ],
         "exits": [
             {
                 "direction": "down",
@@ -647,7 +738,10 @@
         "id": "bf9a9f54-4408-4ad7-b4cf-a993eaca0fb1",
         "name": "Manor Office",
         "description": "Quiet study: wax-sealed scrolls, quill stand, narrow window surveying the square.",
-        "tags": ["settlement:mosswell", "civic:administration"],
+        "tags": [
+            "settlement:mosswell",
+            "civic:administration"
+        ],
         "exits": [
             {
                 "direction": "southeast",
@@ -661,7 +755,10 @@
         "id": "e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3",
         "name": "Field Edge Track",
         "description": "Narrow track skirting outside fences; skylarks flit over furrows.",
-        "tags": ["settlement:mosswell", "agriculture:path"],
+        "tags": [
+            "settlement:mosswell",
+            "agriculture:path"
+        ],
         "exits": [
             {
                 "direction": "northeast",
@@ -675,7 +772,11 @@
         "id": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
         "name": "Lower Jetty Landing",
         "description": "Damp planks close to the tide line; river current tugs south toward open water while mooring posts drip with salt-silvered rope.",
-        "tags": ["settlement:mosswell", "harbor:landing", "river-mouth"],
+        "tags": [
+            "settlement:mosswell",
+            "harbor:landing",
+            "river-mouth"
+        ],
         "exits": [
             {
                 "direction": "east",
@@ -704,7 +805,11 @@
         "id": "2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f",
         "name": "River Mouth Dunes",
         "description": "Low salt-streaked dunes; tang of the near ocean heavy in the air and distant boom of surf beyond the bar.",
-        "tags": ["settlement:mosswell", "shore:dunes", "river-mouth"],
+        "tags": [
+            "settlement:mosswell",
+            "shore:dunes",
+            "river-mouth"
+        ],
         "exits": [
             {
                 "direction": "north",
@@ -718,7 +823,11 @@
         "id": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70",
         "name": "Harbor Warehouse",
         "description": "Broad-beamed shed of tarred timber, crates stamped with faded trade sigils stacked shoulder high.",
-        "tags": ["settlement:mosswell", "harbor:warehouse", "commerce"],
+        "tags": [
+            "settlement:mosswell",
+            "harbor:warehouse",
+            "commerce"
+        ],
         "exits": [
             {
                 "direction": "west",
@@ -732,7 +841,11 @@
         "id": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081",
         "name": "Fish Market Wharf",
         "description": "Row of tables with woven baskets; sharp scent of brine and river silt—early trade murmurs echo under gull cries.",
-        "tags": ["settlement:mosswell", "market:fish", "harbor:wharf"],
+        "tags": [
+            "settlement:mosswell",
+            "market:fish",
+            "harbor:wharf"
+        ],
         "exits": [
             {
                 "direction": "east",
