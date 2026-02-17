@@ -201,6 +201,11 @@
                                         "representation": "orange"
                                     },
                                     {
+                                        "operator": ">",
+                                        "thresholdValue": "0",
+                                        "representation": "orange"
+                                    },
+                                    {
                                         "operator": "Default",
                                         "representation": "green"
                                     }

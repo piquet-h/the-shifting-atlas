@@ -153,7 +153,9 @@ describe('Hero Prose Generator - Telemetry', () => {
                 metadata: {
                     replacesBase: true,
                     role: 'hero',
-                    promptHash: 'cached-hash'
+                    promptHash: 'cached-hash',
+                    // Persist the Foundry deployment name that created this layer so cache hits can report provenance.
+                    model: 'scene-phi-4-mini'
                 }
             })
 
@@ -168,6 +170,7 @@ describe('Hero Prose Generator - Telemetry', () => {
             const event = mockClient.findEvent('Description.Hero.CacheHit')
             assert.ok(event, 'CacheHit event should be emitted')
             assert.strictEqual(event.properties['game.location.id'], 'test-location')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'scene-phi-4-mini')
             assert.ok(typeof event.properties['game.latency.ms'] === 'number')
             assert.ok((event.properties['game.latency.ms'] as number) >= 0)
         })

@@ -76,10 +76,13 @@ export class HeroProseGenerator {
             const existingHero = selectHeroProse(existingDynamic)
 
             if (existingHero && existingHero.value) {
+                const cachedModel = typeof existingHero.metadata?.model === 'string' ? existingHero.metadata.model : undefined
                 const props = {}
                 enrichHeroProseAttributes(props, {
                     locationId,
-                    latencyMs: Date.now() - startTime
+                    latencyMs: Date.now() - startTime,
+                    // Prefer provenance from the cached layer so cache hits remain attributable even if config changes later.
+                    model: cachedModel
                 })
                 this.telemetry.trackGameEvent('Description.Hero.CacheHit', props)
                 return {
@@ -186,7 +189,10 @@ export class HeroProseGenerator {
                 {
                     replacesBase: true,
                     role: 'hero',
-                    promptHash
+                    promptHash,
+                    // Store the Foundry deployment name used to generate this prose.
+                    // This enables long-lived cache hits to report accurate provenance.
+                    model: this.config.model
                 }
             )
 
