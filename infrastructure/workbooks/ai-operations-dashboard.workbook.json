@@ -1,0 +1,325 @@
+{
+    "version": "Notebook/1.0",
+    "parameters": [
+        {
+            "id": "timerange-root",
+            "name": "TimeRange",
+            "type": 4,
+            "label": "Time Range",
+            "description": "Time window used by all queries in this workbook.",
+            "value": {
+                "durationMs": 86400000
+            }
+        },
+        {
+            "id": "locationid-root",
+            "name": "LocationId",
+            "type": 1,
+            "label": "Location Id (optional)",
+            "description": "Filter hero prose events to a single location GUID. Leave blank for all locations.",
+            "value": ""
+        },
+        {
+            "id": "model-root",
+            "name": "Model",
+            "type": 2,
+            "label": "Model (optional)",
+            "description": "Filter hero prose events to a specific AOAI deployment/model name. Use All for no filter.",
+            "value": "All"
+        },
+        {
+            "id": "outcome-root",
+            "name": "OutcomeReason",
+            "type": 2,
+            "label": "Outcome reason (optional)",
+            "description": "Filter hero prose failures by outcome reason (timeout|error|config-missing|invalid-response). Use All for no filter.",
+            "value": "All"
+        }
+    ],
+    "items": [
+        {
+            "type": 1,
+            "content": {
+                "json": "# AI Operations Dashboard\n\nOperational overview for LLM-backed features and MCP: hero prose generation, failure reasons, latency, and token usage.\n\n**Included Telemetry:**\n- `Description.Hero.*` (cache + generation)\n- `Timing.Op` (hero-prose slow warnings)\n- `MCP.*` (tool usage + auth + throttling)\n\n**Notes:**\n- Hero prose uses structured `game.*` customDimensions (e.g. `game.latency.ms`).\n- Outcome reasons are low-cardinality: `timeout|error|config-missing|invalid-response`.\n"
+            },
+            "name": "header"
+        },
+        {
+            "type": 9,
+            "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "timerange-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "TimeRange",
+                        "type": 4,
+                        "label": "Time Range",
+                        "description": "Time window used by all queries in this workbook.",
+                        "value": {
+                            "durationMs": 86400000
+                        },
+                        "typeSettings": {
+                            "selectableValues": [
+                                {
+                                    "durationMs": 3600000
+                                },
+                                {
+                                    "durationMs": 14400000
+                                },
+                                {
+                                    "durationMs": 43200000
+                                },
+                                {
+                                    "durationMs": 86400000
+                                },
+                                {
+                                    "durationMs": 172800000
+                                },
+                                {
+                                    "durationMs": 604800000
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "locationid-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "LocationId",
+                        "type": 1,
+                        "label": "Location Id (optional)",
+                        "description": "Filter hero prose events to a single location GUID. Leave blank for all locations.",
+                        "value": "",
+                        "typeSettings": {
+                            "multiLineText": false,
+                            "paramValidationRules": [
+                                {
+                                    "match": true,
+                                    "regExp": "^$|^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                                    "message": "Enter a GUID (or leave blank)."
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "model-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "Model",
+                        "type": 2,
+                        "label": "Model (optional)",
+                        "description": "Filter hero prose events to a specific AOAI deployment/model name. Use All for no filter.",
+                        "query": "customEvents\n| where timestamp > ago(7d)\n| where name in ('Description.Hero.GenerateSuccess', 'Description.Hero.GenerateFailure')\n| extend model = tostring(customDimensions['game.description.hero.model'])\n| where isnotempty(model)\n| distinct model\n| order by model asc",
+                        "value": "All",
+                        "typeSettings": {
+                            "additionalResourceOptions": [
+                                "value::all"
+                            ],
+                            "showDefault": false
+                        },
+                        "timeContext": {
+                            "durationMs": 604800000
+                        },
+                        "queryType": 0,
+                        "resourceType": "microsoft.insights/components"
+                    },
+                    {
+                        "id": "outcome-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "OutcomeReason",
+                        "type": 2,
+                        "label": "Outcome reason (optional)",
+                        "description": "Filter hero prose failures by outcome reason. Use All for no filter.",
+                        "query": "customEvents\n| where timestamp > ago(7d)\n| where name == 'Description.Hero.GenerateFailure'\n| extend outcomeReason = tostring(customDimensions['game.description.hero.outcome.reason'])\n| where isnotempty(outcomeReason)\n| distinct outcomeReason\n| order by outcomeReason asc",
+                        "value": "All",
+                        "typeSettings": {
+                            "additionalResourceOptions": [
+                                "value::all"
+                            ],
+                            "showDefault": false
+                        },
+                        "timeContext": {
+                            "durationMs": 604800000
+                        },
+                        "queryType": 0,
+                        "resourceType": "microsoft.insights/components"
+                    }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components"
+            },
+            "name": "parameters"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Hero Prose (Description.Hero)\n\nCache hit/miss, generation success/failure, and quality signals."
+            },
+            "name": "hero-section"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet locRaw = '{LocationId:escape}';\nlet hasLoc = locRaw != '' and locRaw != '{LocationId:escape}';\ncustomEvents\n| where timestamp > startTime\n| where name in ('Description.Hero.CacheHit','Description.Hero.CacheMiss','Description.Hero.GenerateSuccess','Description.Hero.GenerateFailure')\n| extend locationId = tostring(customDimensions['game.location.id'])\n| where (not(hasLoc)) or (locationId == locRaw)\n| summarize\n    CacheHit = countif(name == 'Description.Hero.CacheHit'),\n    CacheMiss = countif(name == 'Description.Hero.CacheMiss'),\n    GenerateSuccess = countif(name == 'Description.Hero.GenerateSuccess'),\n    GenerateFailure = countif(name == 'Description.Hero.GenerateFailure')\n| extend CacheTotal = CacheHit + CacheMiss\n| extend CacheHitRate = round(100.0 * CacheHit / iff(CacheTotal == 0, 1, CacheTotal), 2)\n| extend GenerateTotal = GenerateSuccess + GenerateFailure\n| extend GenerateSuccessRate = round(100.0 * GenerateSuccess / iff(GenerateTotal == 0, 1, GenerateTotal), 2)\n| project CacheHit, CacheMiss, CacheHitRate, GenerateSuccess, GenerateFailure, GenerateSuccessRate",
+                "size": 0,
+                "title": "Hero Prose Overview",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No hero prose events in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "hero-overview"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet locRaw = '{LocationId:escape}';\nlet hasLoc = locRaw != '' and locRaw != '{LocationId:escape}';\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\nlet reasonRaw = '{OutcomeReason:escape}';\nlet reasonFilter = iff(reasonRaw == '' or reasonRaw == '{OutcomeReason:escape}' or reasonRaw == 'All', '', reasonRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Description.Hero.GenerateFailure'\n| extend\n    locationId = tostring(customDimensions['game.location.id']),\n    latencyMs = todouble(customDimensions['game.latency.ms']),\n    model = tostring(customDimensions['game.description.hero.model']),\n    outcomeReason = tostring(customDimensions['game.description.hero.outcome.reason'])\n| where (not(hasLoc)) or (locationId == locRaw)\n| where modelFilter == '' or model == modelFilter\n| where reasonFilter == '' or outcomeReason == reasonFilter\n| summarize\n    Failures = count(),\n    P95LatencyMs = round(percentile(latencyMs, 95), 0)\n  by outcomeReason, model\n| order by Failures desc",
+                "size": 0,
+                "title": "Hero Prose Failures by Reason",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "Failures",
+                            "formatter": 18,
+                            "formatOptions": {
+                                "thresholdsOptions": "colors",
+                                "thresholdsGrid": [
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "20",
+                                        "representation": "redBright"
+                                    },
+                                    {
+                                        "operator": ">",
+                                        "thresholdValue": "5",
+                                        "representation": "orange"
+                                    },
+                                    {
+                                        "operator": "Default",
+                                        "representation": "green"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "noDataMessage": "No hero prose failures in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "hero-failures"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet locRaw = '{LocationId:escape}';\nlet hasLoc = locRaw != '' and locRaw != '{LocationId:escape}';\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name in ('Description.Hero.CacheHit','Description.Hero.CacheMiss','Description.Hero.GenerateSuccess','Description.Hero.GenerateFailure')\n| extend\n    locationId = tostring(customDimensions['game.location.id']),\n    latencyMs = todouble(customDimensions['game.latency.ms']),\n    model = tostring(customDimensions['game.description.hero.model'])\n| where isnotnull(latencyMs) and latencyMs >= 0\n| where (not(hasLoc)) or (locationId == locRaw)\n| where modelFilter == '' or model == modelFilter\n| summarize\n    Count = count(),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    P99 = round(percentile(latencyMs, 99), 0)\n  by EventName = name\n| order by EventName asc",
+                "size": 0,
+                "title": "Hero Prose Latency Percentiles (ms)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No hero prose latency samples in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "hero-latency"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet locRaw = '{LocationId:escape}';\nlet hasLoc = locRaw != '' and locRaw != '{LocationId:escape}';\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Description.Hero.GenerateSuccess'\n| extend\n    locationId = tostring(customDimensions['game.location.id']),\n    model = tostring(customDimensions['game.description.hero.model']),\n    tokenUsage = todouble(customDimensions['game.description.hero.token.usage'])\n| where (not(hasLoc)) or (locationId == locRaw)\n| where modelFilter == '' or model == modelFilter\n| where isnotnull(tokenUsage) and tokenUsage > 0\n| summarize\n    TotalTokens = sum(tokenUsage),\n    AvgTokens = round(avg(tokenUsage), 1)\n  by bin(timestamp, 1h)\n| order by timestamp asc",
+                "size": 1,
+                "title": "Hero Prose Token Usage Trend (1h buckets)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "timechart",
+                "chartSettings": {
+                    "xAxis": "timestamp",
+                    "yAxis": [
+                        "TotalTokens"
+                    ]
+                },
+                "noDataMessage": "No token usage samples (Description.Hero.GenerateSuccess) in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "customWidth": "50",
+            "name": "hero-token-trend"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'Timing.Op'\n| extend\n    op = tostring(customDimensions.op),\n    ms = todouble(customDimensions.ms),\n    category = tostring(customDimensions.category),\n    locationId = tostring(customDimensions.locationId)\n| where op == 'hero-prose-generation'\n| where isnotnull(ms) and ms >= 0\n| summarize\n    SlowEvents = count(),\n    P95Ms = round(percentile(ms, 95), 0),\n    MaxMs = round(max(ms), 0)\n  by category\n| order by SlowEvents desc",
+                "size": 0,
+                "title": "Hero Prose Slow Warnings (Timing.Op)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No Timing.Op hero-prose-generation events in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "customWidth": "50",
+            "name": "hero-slow-warnings"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## MCP (Model Context Protocol)\n\nOperational view of tool usage, auth decisions, throttling, and failures."
+            },
+            "name": "mcp-section"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'MCP.Tool.Invoked'\n| extend\n    toolName = tostring(customDimensions['game.mcp.tool.name']),\n    latencyMs = todouble(customDimensions['game.latency.ms'])\n| where isnotempty(toolName)\n| summarize\n    Calls = count(),\n    P95LatencyMs = round(percentile(latencyMs, 95), 0)\n  by toolName\n| order by Calls desc\n| take 20",
+                "size": 0,
+                "title": "MCP Tool Usage (Top 20)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No MCP.Tool.Invoked events in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "mcp-tool-usage"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name in ('MCP.Auth.Allowed', 'MCP.Auth.Denied')\n| summarize\n    Allowed = countif(name == 'MCP.Auth.Allowed'),\n    Denied = countif(name == 'MCP.Auth.Denied')\n| extend Total = Allowed + Denied\n| extend DenyRate = round(100.0 * Denied / iff(Total == 0, 1, Total), 2)\n| project Allowed, Denied, DenyRate",
+                "size": 0,
+                "title": "MCP Auth Decisions",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No MCP.Auth.* events in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "mcp-auth"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name in ('MCP.Throttled', 'MCP.Failed')\n| extend\n    toolName = tostring(customDimensions['game.mcp.tool.name']),\n    throttleReason = tostring(customDimensions['game.mcp.throttle.reason']),\n    failureReason = tostring(customDimensions['game.mcp.failure.reason'])\n| extend reason = iff(name == 'MCP.Throttled', throttleReason, failureReason)\n| summarize Count = count() by EventName = name, reason, toolName\n| order by Count desc\n| take 50",
+                "size": 0,
+                "title": "MCP Throttles & Failures (Top 50)",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "noDataMessage": "No MCP.Throttled / MCP.Failed events in the selected time range.",
+                "noDataMessageStyle": 1
+            },
+            "name": "mcp-throttles-failures"
+        }
+    ],
+    "fallbackResourceIds": [],
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

@@ -35,8 +35,8 @@ param enableOpenAI bool = true
 @description('Azure OpenAI API version to use for SDK calls.')
 param openAiApiVersion string = '2024-10-21'
 
-@description('Primary GPT-4o model deployment name (used in app settings).')
-param openAiPrimaryDeploymentName string = 'hero-prose'
+@description('Primary model deployment name (used in app settings).')
+param openAiPrimaryDeploymentName string = 'scene-phi-4-mini'
 
 @description('Hero prose generation timeout in milliseconds (default 1200ms).')
 param heroproseTimeoutMs int = 1200
@@ -1053,6 +1053,16 @@ module workbookPlayerOperations 'workbook-player-operations-dashboard.bicep' = {
 // Workbook: SQL API Partition Monitoring Dashboard (hot partition troubleshooting)
 module workbookSqlPartitionMonitoring 'workbook-sql-partition-monitoring-dashboard.bicep' = {
   name: 'workbook-sql-partition-monitoring-dashboard'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
+
+// Workbook: AI Operations Dashboard (hero prose + MCP telemetry)
+module workbookAiOperations 'workbook-ai-operations-dashboard.bicep' = {
+  name: 'workbook-ai-operations-dashboard'
   params: {
     name: name
     location: location
