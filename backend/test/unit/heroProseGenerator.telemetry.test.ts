@@ -10,7 +10,7 @@
  * See: Issue #738 - Hero Prose Telemetry
  */
 
-import type { DescriptionLayer } from '@piquet-h/shared/types/layerRepository'
+import type { DescriptionLayer, LayerType } from '@piquet-h/shared/types/layerRepository'
 import type { Contracts } from 'applicationinsights'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
@@ -69,13 +69,13 @@ class MockTelemetryClient implements ITelemetryClient {
 class MockLayerRepository implements ILayerRepository {
     private layers: DescriptionLayer[] = []
 
-    async queryLayerHistory(scopeId: string, layerType: string): Promise<DescriptionLayer[]> {
+    async queryLayerHistory(scopeId: string, layerType: LayerType): Promise<DescriptionLayer[]> {
         return this.layers.filter((l) => l.scopeId === scopeId && l.layerType === layerType)
     }
 
     async setLayerForLocation(
         locationId: string,
-        layerType: string,
+        layerType: LayerType,
         fromTick: number,
         toTick: number | null,
         value: string,
