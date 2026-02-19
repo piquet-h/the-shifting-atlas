@@ -360,6 +360,83 @@ describe('Hero Prose Generator - Telemetry', () => {
             assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4')
         })
 
+        test('emits Failure with outcomeReason=timeout when OpenAI client reports timeout diagnostics (even if fast)', async () => {
+            const mockClient = new MockTelemetryClient()
+            const telemetry = new TelemetryService(mockClient)
+            const layerRepo = new MockLayerRepository()
+
+            const openaiClient = {
+                generate: async () => null,
+                generateWithDiagnostics: async () => {
+                    return {
+                        result: null,
+                        diagnostics: {
+                            outcome: 'timeout',
+                            errorName: 'AbortError'
+                        }
+                    }
+                },
+                healthCheck: async () => true
+            } satisfies IAzureOpenAIClient & {
+                generateWithDiagnostics: () => Promise<unknown>
+            }
+
+            const config: AzureOpenAIClientConfig = {
+                endpoint: 'https://test.openai.azure.com',
+                model: 'gpt-4'
+            }
+
+            const generator = new HeroProseGenerator(openaiClient, layerRepo, telemetry, config)
+
+            await generator.generateHeroProse({
+                locationId: 'test-location',
+                locationName: 'Test Location',
+                baseDescription: 'A test location',
+                timeoutMs: 5000
+            })
+
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
+            assert.ok(event, 'Generate.Failure event should be emitted')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'timeout')
+
+            const deps = mockClient.findDependencies('AzureOpenAI.completions')
+            assert.strictEqual(deps.length, 1)
+            assert.strictEqual(deps[0].resultCode, '408')
+            assert.strictEqual(deps[0].properties?.['game.description.hero.outcome.reason'], 'timeout')
+        })
+
+        test('dependency outcomeReason=timeout when OpenAI returns after the budget (late)', async () => {
+            const mockClient = new MockTelemetryClient()
+            const telemetry = new TelemetryService(mockClient)
+            const layerRepo = new MockLayerRepository()
+            const openaiClient: IAzureOpenAIClient = {
+                generate: async () => {
+                    // Ensure observed latency exceeds the timeout budget.
+                    await new Promise((resolve) => setTimeout(resolve, 10))
+                    return { content: 'Too slow', tokenUsage: { prompt: 1, completion: 1, total: 2 } }
+                },
+                healthCheck: async () => true
+            }
+            const config: AzureOpenAIClientConfig = {
+                endpoint: 'https://test.openai.azure.com',
+                model: 'gpt-4'
+            }
+
+            const generator = new HeroProseGenerator(openaiClient, layerRepo, telemetry, config)
+
+            await generator.generateHeroProse({
+                locationId: 'test-location',
+                locationName: 'Test Location',
+                baseDescription: 'A test location',
+                timeoutMs: 1
+            })
+
+            const deps = mockClient.findDependencies('AzureOpenAI.completions')
+            assert.strictEqual(deps.length, 1)
+            assert.strictEqual(deps[0].resultCode, '408')
+            assert.strictEqual(deps[0].properties?.['game.description.hero.outcome.reason'], 'timeout')
+        })
+
         test('emits Failure with outcomeReason=error when OpenAI returns null', async () => {
             const mockClient = new MockTelemetryClient()
             const telemetry = new TelemetryService(mockClient)

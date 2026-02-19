@@ -24,7 +24,7 @@ import { TOKENS } from '../../src/di/tokens.js'
 import { LocationLookHandler } from '../../src/handlers/locationLook.js'
 import type { ILayerRepository } from '../../src/repos/layerRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import type { IAzureOpenAIClient, OpenAIGenerateResult } from '../../src/services/azureOpenAIClient.js'
+import type { AzureOpenAIClientConfig, IAzureOpenAIClient, OpenAIGenerateResult } from '../../src/services/azureOpenAIClient.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
@@ -64,6 +64,13 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
         container.bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient).toConstantValue(mockClient)
     }
 
+    function bindAzureOpenAIConfig(config: AzureOpenAIClientConfig): void {
+        if (container.isBound(TOKENS.AzureOpenAIConfig)) {
+            container.unbind(TOKENS.AzureOpenAIConfig)
+        }
+        container.bind<AzureOpenAIClientConfig>(TOKENS.AzureOpenAIConfig).toConstantValue(config)
+    }
+
     /**
      * Helper to create a mock InvocationContext with the DI container
      */
@@ -93,6 +100,48 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
     }
 
     describe('Cache Hit Path (No Canonical Writes)', () => {
+        test('uses default HERO_PROSE_TIMEOUT_MS=2500 when env var is missing', async () => {
+            const original = process.env.HERO_PROSE_TIMEOUT_MS
+            delete process.env.HERO_PROSE_TIMEOUT_MS
+
+            try {
+                // Avoid canonical writes so hero prose is attempted.
+                await locationRepo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: north')
+
+                bindAzureOpenAIConfig({
+                    endpoint: 'https://test.openai.azure.com',
+                    model: 'scene-phi-4-mini'
+                })
+
+                let observedTimeoutMs: number | undefined
+                const mockAOAI: IAzureOpenAIClient = {
+                    generate: async (opts): Promise<OpenAIGenerateResult> => {
+                        observedTimeoutMs = opts.timeoutMs
+                        return {
+                            content: 'A brief hero line.',
+                            tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                        }
+                    },
+                    healthCheck: async () => true
+                }
+                bindAzureOpenAIClient(mockAOAI)
+
+                const handler = container.get(LocationLookHandler)
+                const ctx = createMockContext()
+                const req = createMockRequest(STARTER_LOCATION_ID)
+
+                await handler.handle(req, ctx)
+
+                assert.strictEqual(observedTimeoutMs, 2500)
+            } finally {
+                if (original === undefined) {
+                    delete process.env.HERO_PROSE_TIMEOUT_MS
+                } else {
+                    process.env.HERO_PROSE_TIMEOUT_MS = original
+                }
+            }
+        })
+
         test('should NOT call AOAI when hero prose layer already exists (cache hit)', async () => {
             const locationId = STARTER_LOCATION_ID
             const heroText = 'The ancient hall echoes with whispers of forgotten kings.'

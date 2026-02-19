@@ -22,9 +22,9 @@ import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import type { ViewContext } from '../services/types.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
+import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 import { errorResponse, okResponse } from './utils/responseBuilder.js'
 import { isValidGuid } from './utils/validation.js'
-import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 
 @injectable()
 export class LocationLookHandler extends BaseHandler {
@@ -105,8 +105,8 @@ export class LocationLookHandler extends BaseHandler {
         if (!canonicalWritesPlanned) {
             try {
                 const generationStartTime = Date.now()
-                const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '1200', 10)
-                const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 1200
+                const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '2500', 10)
+                const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 2500
                 await this.heroProseGenerator.generateHeroProse({
                     locationId: id,
                     locationName: loc.name,

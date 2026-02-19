@@ -55,7 +55,8 @@ export interface HeroProseGenerationResult {
  */
 @injectable()
 export class HeroProseGenerator {
-    private readonly DEFAULT_TIMEOUT_MS = 1200
+    // Default is intentionally generous so caches can warm; handlers can still override.
+    private readonly DEFAULT_TIMEOUT_MS = 2500
 
     private getEndpointHost(endpoint: string): string | undefined {
         try {
@@ -186,7 +187,9 @@ export class HeroProseGenerator {
                             : '0',
                 properties: {
                     'game.description.hero.model': this.config.model,
-                    'game.description.hero.outcome.reason': result ? 'generated' : diagnostics.outcome
+                    // Normalize so dependency telemetry matches user-visible hero outcome buckets.
+                    // If we exceeded the timeout budget, treat it as timeout even if content exists.
+                    'game.description.hero.outcome.reason': isLate ? 'timeout' : result ? 'generated' : diagnostics.outcome
                 }
             })
 
@@ -208,10 +211,11 @@ export class HeroProseGenerator {
 
             // Handle generation failure (null result from OpenAI client)
             if (!result) {
+                const outcomeReason = diagnostics.outcome === 'timeout' ? 'timeout' : 'error'
                 const errorProps: Record<string, unknown> = {}
                 enrichHeroProseAttributes(errorProps, {
                     locationId,
-                    outcomeReason: 'error',
+                    outcomeReason,
                     latencyMs,
                     model: this.config.model
                 })
@@ -233,7 +237,7 @@ export class HeroProseGenerator {
                 this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', errorProps)
                 return {
                     success: false,
-                    reason: 'error'
+                    reason: outcomeReason
                 }
             }
 
