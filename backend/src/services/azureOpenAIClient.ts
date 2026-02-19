@@ -31,6 +31,23 @@ export interface OpenAIGenerateOptions {
     timeoutMs?: number
 }
 
+export type OpenAIGenerateOutcome = 'success' | 'timeout' | 'error' | 'empty'
+
+export interface OpenAIGenerateDiagnostics {
+    outcome: OpenAIGenerateOutcome
+    httpStatus?: number
+    errorCode?: string
+    errorType?: string
+    errorName?: string
+    // Intentionally not used for low-cardinality dashboards; available for exception/debug only.
+    errorMessage?: string
+}
+
+export interface OpenAIGenerateWithDiagnosticsResult {
+    result: OpenAIGenerateResult | null
+    diagnostics: OpenAIGenerateDiagnostics
+}
+
 export interface OpenAIGenerateResult {
     content: string
     tokenUsage: {
@@ -53,6 +70,12 @@ export interface IAzureOpenAIClient {
     generate(options: OpenAIGenerateOptions): Promise<OpenAIGenerateResult | null>
 
     /**
+     * Optional richer generate call for callers that want bounded failure diagnostics.
+     * Implementations must still never throw.
+     */
+    generateWithDiagnostics?(options: OpenAIGenerateOptions): Promise<OpenAIGenerateWithDiagnosticsResult>
+
+    /**
      * Test/health check to verify OpenAI connectivity
      */
     healthCheck(): Promise<boolean>
@@ -67,6 +90,17 @@ export interface IAzureOpenAIClient {
 export class NullAzureOpenAIClient implements IAzureOpenAIClient {
     async generate(): Promise<OpenAIGenerateResult | null> {
         return null
+    }
+
+    async generateWithDiagnostics(): Promise<OpenAIGenerateWithDiagnosticsResult> {
+        return {
+            result: null,
+            diagnostics: {
+                outcome: 'error',
+                errorName: 'NullAzureOpenAIClient',
+                errorCode: 'not-configured'
+            }
+        }
     }
 
     async healthCheck(): Promise<boolean> {
@@ -108,61 +142,123 @@ export class AzureOpenAIClient implements IAzureOpenAIClient {
     }
 
     async generate(options: OpenAIGenerateOptions): Promise<OpenAIGenerateResult | null> {
+        const withDiag = this.generateWithDiagnostics
+        if (withDiag) {
+            const { result, diagnostics } = await withDiag.call(this, options)
+            if (!result && diagnostics.outcome === 'error' && diagnostics.errorMessage) {
+                console.error('OpenAI generation error:', diagnostics.errorMessage)
+            }
+            return result
+        }
+
+        // Fallback (should not be used in this codebase; generateWithDiagnostics is implemented).
+        return this.generateLegacy(options)
+    }
+
+    async generateWithDiagnostics(options: OpenAIGenerateOptions): Promise<OpenAIGenerateWithDiagnosticsResult> {
         const { prompt, maxTokens = 500, temperature = 0.7, timeoutMs = 30000 } = options
 
+        // Create abort controller for timeout
+        const controller = new AbortController()
+        const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
+
         try {
-            // Create abort controller for timeout
-            const controller = new AbortController()
-            const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
+            const response = await this.client.completions.create(
+                {
+                    prompt,
+                    model: this.config.model,
+                    max_tokens: maxTokens,
+                    temperature
+                },
+                { signal: controller.signal }
+            )
 
-            try {
-                const response = await this.client.completions.create(
-                    {
-                        prompt,
-                        model: this.config.model,
-                        max_tokens: maxTokens,
-                        temperature
-                    },
-                    { signal: controller.signal }
-                )
+            if (!response.choices || response.choices.length === 0) {
+                return { result: null, diagnostics: { outcome: 'empty' } }
+            }
 
-                clearTimeout(timeoutHandle)
+            const content = (response.choices[0].text || '').trim()
+            if (!content) {
+                return { result: null, diagnostics: { outcome: 'empty' } }
+            }
 
-                if (!response.choices || response.choices.length === 0) {
-                    return null
-                }
-
-                const content = (response.choices[0].text || '').trim()
-                if (!content) {
-                    return null
-                }
-
-                return {
+            return {
+                result: {
                     content,
                     tokenUsage: {
                         prompt: response.usage?.prompt_tokens ?? 0,
                         completion: response.usage?.completion_tokens ?? 0,
                         total: response.usage?.total_tokens ?? 0
                     }
-                }
-            } catch (error) {
-                clearTimeout(timeoutHandle)
-
-                // Check for timeout (AbortError)
-                if (error instanceof Error && error.name === 'AbortError') {
-                    return null
-                }
-
-                // Re-throw to be caught by outer try-catch
-                throw error
+                },
+                diagnostics: { outcome: 'success' }
             }
         } catch (error) {
-            // Log error for debugging but don't throw - caller will handle null gracefully
-            if (error instanceof Error) {
-                console.error('OpenAI generation error:', error.message)
+            const diag = this.extractDiagnostics(error)
+
+            // Check for timeout (AbortError)
+            if (diag.errorName === 'AbortError') {
+                return {
+                    result: null,
+                    diagnostics: {
+                        outcome: 'timeout',
+                        errorName: diag.errorName,
+                        errorCode: diag.errorCode,
+                        errorType: diag.errorType,
+                        httpStatus: diag.httpStatus
+                    }
+                }
             }
+
+            return {
+                result: null,
+                diagnostics: {
+                    outcome: 'error',
+                    errorName: diag.errorName,
+                    errorCode: diag.errorCode,
+                    errorType: diag.errorType,
+                    httpStatus: diag.httpStatus,
+                    errorMessage: diag.errorMessage
+                }
+            }
+        } finally {
+            clearTimeout(timeoutHandle)
+        }
+    }
+
+    private async generateLegacy(options: OpenAIGenerateOptions): Promise<OpenAIGenerateResult | null> {
+        // Preserve the historical behavior: return null on any error.
+        try {
+            const { result } = await this.generateWithDiagnostics(options)
+            return result
+        } catch {
             return null
         }
+    }
+
+    // Extract a bounded set of diagnostics from OpenAI/Azure SDK errors.
+    // NOTE: We intentionally avoid attaching request IDs here to keep cardinality low.
+    private extractDiagnostics(error: unknown): {
+        httpStatus?: number
+        errorCode?: string
+        errorType?: string
+        errorName?: string
+        errorMessage?: string
+    } {
+        const anyErr = error as Record<string, unknown> | null
+        const errorName =
+            error instanceof Error ? error.name : typeof anyErr?.['name'] === 'string' ? (anyErr['name'] as string) : undefined
+        const errorMessage =
+            error instanceof Error ? error.message : typeof anyErr?.['message'] === 'string' ? (anyErr['message'] as string) : undefined
+
+        const httpStatusRaw = anyErr && typeof anyErr['status'] === 'number' ? (anyErr['status'] as number) : undefined
+        const httpStatus = typeof httpStatusRaw === 'number' && Number.isFinite(httpStatusRaw) ? httpStatusRaw : undefined
+
+        // OpenAI SDK errors often include code/type fields.
+        const errorCode = anyErr && typeof anyErr['code'] === 'string' ? (anyErr['code'] as string) : undefined
+        const errorType = anyErr && typeof anyErr['type'] === 'string' ? (anyErr['type'] as string) : undefined
+
+        return { httpStatus, errorCode, errorType, errorName, errorMessage }
     }
 
     async healthCheck(): Promise<boolean> {

@@ -13,6 +13,7 @@
  * Never import standalone telemetry functions from this service.
  */
 import { GameEventName, isGameEventName, SERVICE_BACKEND, SERVICE_SWA_API } from '@piquet-h/shared'
+import type { Contracts } from 'applicationinsights'
 import { inject, injectable } from 'inversify'
 import { randomUUID } from 'node:crypto'
 import type { ITelemetryClient } from './ITelemetryClient.js'
@@ -98,6 +99,13 @@ export class TelemetryService {
      */
     trackException(error: Error, properties?: Record<string, unknown>): void {
         this.client.trackException({ exception: error, properties })
+    }
+
+    /**
+     * Track a dependency (e.g., Azure OpenAI call) so failures appear in the App Insights Failures blade.
+     */
+    trackDependency(telemetry: Contracts.DependencyTelemetry): void {
+        this.client.trackDependency(telemetry)
     }
 
     private inferService(): string {

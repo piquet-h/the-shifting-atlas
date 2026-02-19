@@ -19,7 +19,12 @@ import { createHash } from 'node:crypto'
 import { TOKENS } from '../di/tokens.js'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import type { AzureOpenAIClientConfig, IAzureOpenAIClient } from './azureOpenAIClient.js'
+import type {
+    AzureOpenAIClientConfig,
+    IAzureOpenAIClient,
+    OpenAIGenerateDiagnostics,
+    OpenAIGenerateWithDiagnosticsResult
+} from './azureOpenAIClient.js'
 import { selectHeroProse } from './heroProse.js'
 
 export interface GenerateHeroProseOptions {
@@ -51,6 +56,34 @@ export interface HeroProseGenerationResult {
 @injectable()
 export class HeroProseGenerator {
     private readonly DEFAULT_TIMEOUT_MS = 1200
+
+    private getEndpointHost(endpoint: string): string | undefined {
+        try {
+            return new URL(endpoint).host
+        } catch {
+            return undefined
+        }
+    }
+
+    private async generateWithDiagnostics(options: {
+        prompt: string
+        maxTokens: number
+        temperature: number
+        timeoutMs: number
+    }): Promise<OpenAIGenerateWithDiagnosticsResult> {
+        const client = this.openaiClient as IAzureOpenAIClient
+
+        if (typeof client.generateWithDiagnostics === 'function') {
+            return client.generateWithDiagnostics(options)
+        }
+
+        // Fallback for older stubs/tests: infer diagnostics from null/non-null result.
+        const result = await client.generate(options)
+        const diagnostics: OpenAIGenerateDiagnostics = {
+            outcome: result ? 'success' : 'error'
+        }
+        return { result, diagnostics }
+    }
 
     constructor(
         @inject('IAzureOpenAIClient') private openaiClient: IAzureOpenAIClient,
@@ -121,14 +154,41 @@ export class HeroProseGenerator {
             const promptHash = this.hashPrompt(prompt)
 
             // Attempt generation with timeout
-            const result = await this.openaiClient.generate({
+            const callStart = Date.now()
+            const { result, diagnostics } = await this.generateWithDiagnostics({
                 prompt,
                 maxTokens: 200,
                 temperature: 0.8,
                 timeoutMs
             })
+            const callLatencyMs = Date.now() - callStart
+
+            const isLate = callLatencyMs >= timeoutMs
 
             const latencyMs = Date.now() - startTime
+
+            // Track the Azure OpenAI call as a dependency so failures appear in App Insights Failures.
+            // Only emitted when we actually attempt generation (cache miss + config present).
+            this.telemetry.trackDependency({
+                name: 'AzureOpenAI.completions',
+                dependencyTypeName: 'HTTP',
+                target: this.getEndpointHost(this.config.endpoint),
+                data: this.config.model,
+                duration: callLatencyMs,
+                success: !!result && !isLate,
+                resultCode:
+                    typeof diagnostics.httpStatus === 'number'
+                        ? String(diagnostics.httpStatus)
+                        : diagnostics.outcome === 'timeout' || isLate
+                          ? '408'
+                          : result
+                            ? '200'
+                            : '0',
+                properties: {
+                    'game.description.hero.model': this.config.model,
+                    'game.description.hero.outcome.reason': result ? 'generated' : diagnostics.outcome
+                }
+            })
 
             // Handle timeout
             if (latencyMs >= timeoutMs) {
@@ -148,13 +208,28 @@ export class HeroProseGenerator {
 
             // Handle generation failure (null result from OpenAI client)
             if (!result) {
-                const errorProps = {}
+                const errorProps: Record<string, unknown> = {}
                 enrichHeroProseAttributes(errorProps, {
                     locationId,
                     outcomeReason: 'error',
                     latencyMs,
                     model: this.config.model
                 })
+
+                // Add bounded OpenAI diagnostics for self-explanatory failures.
+                if (typeof diagnostics.httpStatus === 'number') {
+                    errorProps['game.ai.openai.http.status'] = diagnostics.httpStatus
+                }
+                if (diagnostics.errorCode) {
+                    errorProps['game.ai.openai.error.code'] = diagnostics.errorCode
+                }
+                if (diagnostics.errorType) {
+                    errorProps['game.ai.openai.error.type'] = diagnostics.errorType
+                }
+                if (diagnostics.errorName) {
+                    errorProps['game.ai.openai.error.name'] = diagnostics.errorName
+                }
+
                 this.telemetry.trackGameEvent('Description.Hero.GenerateFailure', errorProps)
                 return {
                     success: false,

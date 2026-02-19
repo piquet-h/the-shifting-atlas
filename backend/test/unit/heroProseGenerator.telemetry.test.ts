@@ -23,13 +23,15 @@ import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
 // Mock telemetry client
 class MockTelemetryClient implements ITelemetryClient {
     events: Array<{ name: string; properties: Record<string, unknown> }> = []
+    dependencies: Array<Contracts.DependencyTelemetry> = []
+    exceptions: Array<Contracts.ExceptionTelemetry> = []
 
     trackEvent(telemetry: Contracts.EventTelemetry): void {
         this.events.push({ name: telemetry.name, properties: telemetry.properties || {} })
     }
 
-    trackException(): void {
-        // Not used in these tests
+    trackException(telemetry: Contracts.ExceptionTelemetry): void {
+        this.exceptions.push(telemetry)
     }
 
     trackMetric(): void {
@@ -40,8 +42,8 @@ class MockTelemetryClient implements ITelemetryClient {
         // Not used in these tests
     }
 
-    trackDependency(): void {
-        // Not used in these tests
+    trackDependency(telemetry: Contracts.DependencyTelemetry): void {
+        this.dependencies.push(telemetry)
     }
 
     trackRequest(): void {
@@ -58,10 +60,16 @@ class MockTelemetryClient implements ITelemetryClient {
 
     clear(): void {
         this.events.length = 0
+        this.dependencies.length = 0
+        this.exceptions.length = 0
     }
 
     findEvent(name: string): { name: string; properties: Record<string, unknown> } | undefined {
         return this.events.find((e) => e.name === name)
+    }
+
+    findDependencies(name: string): Array<Contracts.DependencyTelemetry> {
+        return this.dependencies.filter((d) => d.name === name)
     }
 }
 
@@ -377,6 +385,61 @@ describe('Hero Prose Generator - Telemetry', () => {
             assert.ok(event, 'Generate.Failure event should be emitted')
             assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'error')
             assert.strictEqual(event.properties['game.description.hero.model'], 'gpt-4')
+
+            // Failures should show up in App Insights Failures blade as a failed dependency.
+            const deps = mockClient.findDependencies('AzureOpenAI.completions')
+            assert.strictEqual(deps.length, 1)
+            assert.strictEqual(deps[0].success, false)
+        })
+
+        test('includes bounded OpenAI diagnostics on failure when available', async () => {
+            const mockClient = new MockTelemetryClient()
+            const telemetry = new TelemetryService(mockClient)
+            const layerRepo = new MockLayerRepository()
+
+            const openaiClient = {
+                generate: async () => null,
+                // Optional richer diagnostics path (used by HeroProseGenerator when available)
+                generateWithDiagnostics: async () => {
+                    return {
+                        result: null,
+                        diagnostics: {
+                            outcome: 'error',
+                            httpStatus: 403,
+                            errorCode: 'Forbidden',
+                            errorType: 'permission_denied',
+                            errorName: 'AuthenticationError'
+                        }
+                    }
+                },
+                healthCheck: async () => true
+            } satisfies IAzureOpenAIClient & {
+                generateWithDiagnostics: () => Promise<unknown>
+            }
+
+            const config: AzureOpenAIClientConfig = {
+                endpoint: 'https://test.openai.azure.com',
+                model: 'scene-phi-4-mini'
+            }
+
+            const generator = new HeroProseGenerator(openaiClient, layerRepo, telemetry, config)
+
+            await generator.generateHeroProse({
+                locationId: 'test-location',
+                locationName: 'Test Location',
+                baseDescription: 'A test location'
+            })
+
+            const event = mockClient.findEvent('Description.Hero.GenerateFailure')
+            assert.ok(event, 'Generate.Failure event should be emitted')
+            assert.strictEqual(event.properties['game.description.hero.outcome.reason'], 'error')
+            assert.strictEqual(event.properties['game.description.hero.model'], 'scene-phi-4-mini')
+
+            // These are intentionally bounded, low-cardinality fields.
+            assert.strictEqual(event.properties['game.ai.openai.http.status'], 403)
+            assert.strictEqual(event.properties['game.ai.openai.error.code'], 'Forbidden')
+            assert.strictEqual(event.properties['game.ai.openai.error.type'], 'permission_denied')
+            assert.strictEqual(event.properties['game.ai.openai.error.name'], 'AuthenticationError')
         })
 
         test('emits Failure with outcomeReason=invalid-response for empty prose', async () => {
