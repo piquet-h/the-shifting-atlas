@@ -38,8 +38,8 @@ param openAiApiVersion string = '2024-10-21'
 @description('Primary model deployment name (used in app settings).')
 param openAiPrimaryDeploymentName string = 'scene-phi-4-mini'
 
-@description('Hero prose generation timeout in milliseconds (default 1200ms).')
-param heroproseTimeoutMs int = 1200
+@description('Hero prose generation timeout in milliseconds (default 2500ms).')
+param heroproseTimeoutMs int = 2500
 
 var storageName = toLower('st${name}${unique}')
 var foundryMcpTarget = !empty(foundryMcpTargetOverride)
