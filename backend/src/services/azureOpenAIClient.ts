@@ -163,7 +163,90 @@ export class AzureOpenAIClient implements IAzureOpenAIClient {
         const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs)
 
         try {
-            const response = await this.client.completions.create(
+            // Prefer chat completions (matches Foundry/Azure OpenAI modern deployments).
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const chatClient = (this.client as any).chat?.completions
+                if (chatClient && typeof chatClient.create === 'function') {
+                    const response = await chatClient.create(
+                        {
+                            messages: [{ role: 'user', content: prompt }],
+                            model: this.config.model,
+                            max_tokens: maxTokens,
+                            temperature
+                        },
+                        { signal: controller.signal }
+                    )
+
+                    if (!response.choices || response.choices.length === 0) {
+                        return { result: null, diagnostics: { outcome: 'empty' } }
+                    }
+
+                    const content = (response.choices[0].message?.content || '').trim()
+                    if (!content) {
+                        return { result: null, diagnostics: { outcome: 'empty' } }
+                    }
+
+                    return {
+                        result: {
+                            content,
+                            tokenUsage: {
+                                prompt: response.usage?.prompt_tokens ?? 0,
+                                completion: response.usage?.completion_tokens ?? 0,
+                                total: response.usage?.total_tokens ?? 0
+                            }
+                        },
+                        diagnostics: { outcome: 'success' }
+                    }
+                }
+            } catch (error) {
+                const diag = this.extractDiagnostics(error)
+
+                // Check for timeout (AbortError)
+                if (diag.errorName === 'AbortError') {
+                    return {
+                        result: null,
+                        diagnostics: {
+                            outcome: 'timeout',
+                            errorName: diag.errorName,
+                            errorCode: diag.errorCode,
+                            errorType: diag.errorType,
+                            httpStatus: diag.httpStatus
+                        }
+                    }
+                }
+
+                // If chat completions yields 404, fall back to legacy completions.
+                if (diag.httpStatus !== 404) {
+                    return {
+                        result: null,
+                        diagnostics: {
+                            outcome: 'error',
+                            errorName: diag.errorName,
+                            errorCode: diag.errorCode,
+                            errorType: diag.errorType,
+                            httpStatus: diag.httpStatus,
+                            errorMessage: diag.errorMessage
+                        }
+                    }
+                }
+            }
+
+            // Legacy completions fallback.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const legacyClient = (this.client as any).completions
+            if (!legacyClient || typeof legacyClient.create !== 'function') {
+                return {
+                    result: null,
+                    diagnostics: {
+                        outcome: 'error',
+                        errorName: 'AzureOpenAIClient',
+                        errorCode: 'missing-client'
+                    }
+                }
+            }
+
+            const response = await legacyClient.create(
                 {
                     prompt,
                     model: this.config.model,
