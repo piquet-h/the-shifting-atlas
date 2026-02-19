@@ -254,7 +254,7 @@ resource backendFunctionApp 'Microsoft.Web/sites@2024-11-01' = {
       COSMOS_SQL_DATABASE: 'game'
       COSMOS_SQL_CONTAINER_PLAYERS: 'players'
       COSMOS_SQL_CONTAINER_INVENTORY: 'inventory'
-      COSMOS_SQL_CONTAINER_LAYERS: 'descriptionLayersV2'
+      COSMOS_SQL_CONTAINER_LAYERS: 'descriptionLayers'
       COSMOS_SQL_CONTAINER_EVENTS: 'worldEvents'
       COSMOS_SQL_CONTAINER_PROCESSED_EVENTS: 'processedEvents'
       COSMOS_SQL_CONTAINER_DEADLETTERS: 'deadLetters'
@@ -528,28 +528,13 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
       }
     }
 
+    // Scope-aware description layers (PK: /scopeId)
+    // Used by backend CosmosLayerRepository (loc:<locationId>, realm:<realmId>)
     resource sqlLayers 'containers' = {
       name: 'descriptionLayers'
       properties: {
         resource: {
           id: 'descriptionLayers'
-          partitionKey: {
-            paths: ['/locationId']
-            kind: 'Hash'
-            version: 2
-          }
-        }
-        options: {}
-      }
-    }
-
-    // v2: Scope-aware description layers (PK: /scopeId)
-    // Used by backend CosmosLayerRepository (loc:<locationId>, realm:<realmId>)
-    resource sqlLayersV2 'containers' = {
-      name: 'descriptionLayersV2'
-      properties: {
-        resource: {
-          id: 'descriptionLayersV2'
           partitionKey: {
             paths: ['/scopeId']
             kind: 'Hash'
@@ -753,27 +738,12 @@ resource cosmosSqlAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' = {
       }
     }
 
+    // Scope-aware description layers (PK: /scopeId)
     resource sqlLayersTest 'containers' = {
       name: 'descriptionLayers'
       properties: {
         resource: {
           id: 'descriptionLayers'
-          partitionKey: {
-            paths: ['/locationId']
-            kind: 'Hash'
-            version: 2
-          }
-        }
-        options: {}
-      }
-    }
-
-    // v2: Scope-aware description layers (PK: /scopeId)
-    resource sqlLayersV2Test 'containers' = {
-      name: 'descriptionLayersV2'
-      properties: {
-        resource: {
-          id: 'descriptionLayersV2'
           partitionKey: {
             paths: ['/scopeId']
             kind: 'Hash'
