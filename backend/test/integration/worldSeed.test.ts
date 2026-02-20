@@ -155,4 +155,66 @@ describe('World Seeding', () => {
             'Stone Circle Shrine should have hard northeast exit back to North Gate'
         )
     })
+
+    test('seed has at least 3 frontier:boundary locations covering diverse expansion vectors', async () => {
+        const locationRepository = await fixture.getLocationRepository()
+
+        await seedWorld({
+            locationRepository,
+            blueprint: starterLocationsData as Location[],
+            bulkMode: true
+        })
+
+        const allLocations = await locationRepository.listAll()
+        const frontierLocations = allLocations.filter((loc) => loc.tags?.includes('frontier:boundary'))
+
+        assert.ok(frontierLocations.length >= 3, 'At least 3 frontier:boundary locations should exist')
+
+        const NORTH_GATE_ID = 'd0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a'
+        const RIVER_MOUTH_DUNES_ID = '2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f'
+        const FIELD_EDGE_TRACK_ID = 'e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3'
+
+        // North Gate: overland wilderness expansion
+        const northGate = frontierLocations.find((l) => l.id === NORTH_GATE_ID)
+        assert.ok(northGate, 'North Gate should be a frontier:boundary location')
+        assert.ok(northGate.exitAvailability?.pending, 'North Gate should have pending exits')
+
+        // River Mouth Dunes: coastal expansion (dunes boundary)
+        const dunes = frontierLocations.find((l) => l.id === RIVER_MOUTH_DUNES_ID)
+        assert.ok(dunes, 'River Mouth Dunes should be a frontier:boundary location')
+        assert.ok(dunes.exitAvailability?.pending, 'River Mouth Dunes should have pending exits')
+        const dunesPendingDirs = Object.keys(dunes.exitAvailability!.pending!)
+        assert.ok(dunesPendingDirs.length >= 2, 'River Mouth Dunes should have at least 2 pending directions')
+        // Forbidden south (open sea) — coastal hard boundary
+        assert.ok(dunes.exitAvailability?.forbidden?.south, 'River Mouth Dunes should have forbidden south (open sea)')
+
+        // Field Edge Track: plains expansion (farmland boundary)
+        const fieldEdge = frontierLocations.find((l) => l.id === FIELD_EDGE_TRACK_ID)
+        assert.ok(fieldEdge, 'Field Edge Track should be a frontier:boundary location')
+        assert.ok(fieldEdge.exitAvailability?.pending, 'Field Edge Track should have pending exits')
+        const fieldPendingDirs = Object.keys(fieldEdge.exitAvailability!.pending!)
+        assert.ok(fieldPendingDirs.length >= 2, 'Field Edge Track should have at least 2 pending directions')
+    })
+
+    test('frontier locations carry no pre-created stub destinations', async () => {
+        const locationRepository = await fixture.getLocationRepository()
+
+        await seedWorld({
+            locationRepository,
+            blueprint: starterLocationsData as Location[],
+            bulkMode: true
+        })
+
+        const allLocations = await locationRepository.listAll()
+        const frontierLocations = allLocations.filter((loc) => loc.tags?.includes('frontier:boundary'))
+
+        // For each frontier location, verify pending exits have no matching hard exit to a real location
+        for (const frontier of frontierLocations) {
+            const pendingDirs = Object.keys(frontier.exitAvailability?.pending ?? {})
+            for (const dir of pendingDirs) {
+                const hardExit = (frontier.exits || []).find((e) => e.direction === dir)
+                assert.ok(!hardExit, `Frontier location "${frontier.name}" should not have hard exit in pending direction "${dir}"`)
+            }
+        }
+    })
 })

@@ -92,7 +92,8 @@
         "description": "Rough timber gate flanked by shallow ditches; open country stretches beyond.",
         "tags": [
             "settlement:mosswell",
-            "infrastructure:gate"
+            "infrastructure:gate",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -113,7 +114,7 @@
                 "northwest": "Rolling hills extend into the distance"
             }
         },
-        "version": 2
+        "version": 3
     },
     {
         "id": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
@@ -757,7 +758,8 @@
         "description": "Narrow track skirting outside fences; skylarks flit over furrows.",
         "tags": [
             "settlement:mosswell",
-            "agriculture:path"
+            "agriculture:path",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -766,7 +768,14 @@
                 "description": "Toward central south farms."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "south": "Track continues into open countryside beyond the village farms",
+                "southwest": "Hedgerow path bends toward wilder terrain",
+                "west": "Open plain stretches to the horizon"
+            }
+        },
+        "version": 2
     },
     {
         "id": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
@@ -808,7 +817,8 @@
         "tags": [
             "settlement:mosswell",
             "shore:dunes",
-            "river-mouth"
+            "river-mouth",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -817,7 +827,17 @@
                 "description": "Trail back to the lower jetty."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "east": "Sandy dune track curves toward a distant headland",
+                "southeast": "Tide-washed beach extends around the coastal bend"
+            },
+            "forbidden": {
+                "south": "Open sea bars passage — surf crashes beyond the bar",
+                "west": "River-mouth current churns — no crossing without a boat"
+            }
+        },
+        "version": 2
     },
     {
         "id": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70",
