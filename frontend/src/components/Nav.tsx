@@ -125,7 +125,7 @@ export default function Nav(): React.ReactElement {
                                     </div>
                                 ) : (
                                     <button
-                                        onClick={() => signIn('msa', '/')}
+                                        onClick={() => signIn('msa', '/game')}
                                         className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors"
                                     >
                                         Sign In with Microsoft
