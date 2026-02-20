@@ -6,7 +6,7 @@
 
 ## Summary
 
-Hero prose generation is the **sole exception** to the strict non-blocking AI rule. Bounded blocking (≤1200ms default) is permitted **only** when all of the following conditions are met:
+Hero prose generation is the **sole exception** to the strict non-blocking AI rule. Bounded blocking (timeout is code-configured; default currently 2500ms) is permitted **only** when all of the following conditions are met:
 
 1. **Perception action only**: `look` or `examine` (not movement, combat, or mutating actions)
 2. **Cache miss**: No existing hero prose layer for the location
@@ -27,12 +27,12 @@ This policy balances immersion (rich first-look prose) with performance (p95 lat
 
 ### Permitted Conditions (ALL must be true)
 
-| Condition | Requirement | Rationale |
-|-----------|-------------|-----------|
-| **Action Type** | Perception only (`look`, `examine`) | Player expects richer narration for perception; not time-critical |
-| **Cache Status** | Cache miss (no existing hero prose layer) | Blocking only needed once per location; all future requests hit cache |
-| **State Mutations** | No pending canonical writes in HTTP handler | Avoid blocking on dual concerns (state update + AI generation) |
-| **Timeout Budget** | Configurable, defaults to 1200ms | Hard cap ensures graceful degradation on slow AI responses |
+| Condition           | Requirement                                      | Rationale                                                             |
+| ------------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| **Action Type**     | Perception only (`look`, `examine`)              | Player expects richer narration for perception; not time-critical     |
+| **Cache Status**    | Cache miss (no existing hero prose layer)        | Blocking only needed once per location; all future requests hit cache |
+| **State Mutations** | No pending canonical writes in HTTP handler      | Avoid blocking on dual concerns (state update + AI generation)        |
+| **Timeout Budget**  | Configurable, defaults to 2500ms in current code | Hard cap ensures graceful degradation on slow AI responses            |
 
 ### Implementation Check (locationLook.ts)
 
@@ -42,10 +42,8 @@ This policy balances immersion (rich first-look prose) with performance (p95 lat
 // When canonical writes are planned, skip generation and use safe fallback (baseline description).
 if (!canonicalWritesPlanned) {
     try {
-        const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '1200', 10)
-        const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 
-            ? configuredTimeoutMs 
-            : 1200
+        const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '2500', 10)
+        const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 2500
         await this.heroProseGenerator.generateHeroProse({
             locationId: id,
             locationName: loc.name,
@@ -75,30 +73,21 @@ These actions **must** return <500ms p95 with immediate state updates. AI enrich
 
 ## Timeout Budgets and Tuning Knobs
 
+### Source of truth (code-first)
+
+Timeout behavior is **normative in code**, not in this document.
+
+- `backend/src/handlers/locationLook.ts` (environment variable parsing + handler fallback)
+- `backend/src/services/heroProseGenerator.ts` (`DEFAULT_TIMEOUT_MS`)
+
+Current implementation default is `2500ms` when `HERO_PROSE_TIMEOUT_MS` is unset/invalid.
+
 ### Environment Variable: `HERO_PROSE_TIMEOUT_MS`
 
 **Type**: Integer (milliseconds)  
-**Default**: `1200`  
+**Default in current code**: `2500`  
 **Valid Range**: `1 - 10000` (enforced by HeroProseGenerator)  
 **Purpose**: Hard timeout for AI generation to prevent indefinite blocking
-
-**Configuration Examples:**
-
-```bash
-# Default (1200ms)
-# No environment variable needed
-
-# Lower timeout for faster fallback (e.g., cost-conscious deployment)
-HERO_PROSE_TIMEOUT_MS=800
-
-# Higher timeout for richer prose (e.g., high-quality experience mode)
-HERO_PROSE_TIMEOUT_MS=2000
-
-# Invalid values fall back to default (1200ms)
-HERO_PROSE_TIMEOUT_MS=0       # → 1200ms
-HERO_PROSE_TIMEOUT_MS=abc     # → 1200ms
-HERO_PROSE_TIMEOUT_MS=-500    # → 1200ms
-```
 
 **Behavior on Timeout:**
 
@@ -223,8 +212,8 @@ Hero prose layers conform to the existing `DescriptionLayer` schema with specifi
 await this.layerRepo.setLayerForLocation(
     locationId,
     'dynamic',
-    0,        // fromTick (immediate)
-    null,     // toTick (indefinite)
+    0, // fromTick (immediate)
+    null, // toTick (indefinite)
     prose,
     {
         replacesBase: true,
@@ -236,13 +225,13 @@ await this.layerRepo.setLayerForLocation(
 
 **Validation Constraints:**
 
-| Field | Constraint | Enforcement |
-|-------|------------|-------------|
-| `value` | ≤1200 characters | HeroProseGenerator (pre-persist validation) |
-| `value` | Non-empty, non-whitespace | `isValidHeroProseContent()` check |
-| `metadata.role` | Exactly `'hero'` | Required for `isHeroProse()` selection |
-| `metadata.replacesBase` | Exactly `true` | Required for replace-base semantics |
-| `metadata.promptHash` | Non-empty string | Required for idempotency |
+| Field                   | Constraint                | Enforcement                                 |
+| ----------------------- | ------------------------- | ------------------------------------------- |
+| `value`                 | ≤1200 characters          | HeroProseGenerator (pre-persist validation) |
+| `value`                 | Non-empty, non-whitespace | `isValidHeroProseContent()` check           |
+| `metadata.role`         | Exactly `'hero'`          | Required for `isHeroProse()` selection      |
+| `metadata.replacesBase` | Exactly `true`            | Required for replace-base semantics         |
+| `metadata.promptHash`   | Non-empty string          | Required for idempotency                    |
 
 **Content Validation (heroProse.ts):**
 
@@ -252,12 +241,12 @@ export function isValidHeroProseContent(content: string): boolean {
     if (!content || content.trim().length === 0) {
         return false
     }
-    
+
     // Exceeds length limit (1200 chars)
     if (content.length > 1200) {
         return false
     }
-    
+
     return true
 }
 ```
@@ -271,7 +260,7 @@ Hero prose generation **always** degrades gracefully. Players **never** see erro
 **Fallback Hierarchy:**
 
 1. **Cache Hit**: Return cached hero prose from `descriptionLayers` (fastest path, <200ms)
-2. **Generation Success**: Persist new hero prose, return immediately (1200ms timeout)
+2. **Generation Success**: Persist new hero prose, return immediately (bounded by configured timeout)
 3. **Timeout**: AI service doesn't respond within timeout → return base description
 4. **Error**: AI service returns error → return base description
 5. **Invalid Response**: AI returns empty/oversized prose → return base description
@@ -308,25 +297,25 @@ this.telemetryService.trackGameEvent('Description.Compile', {
     activeLayerCount: activeLayers.length,
     hasBaseDescription: !!originalBaseDescription,
     hasHeroProse: !!heroProse,
-    heroProseFallback,  // true if hero prose existed but was invalid
+    heroProseFallback // true if hero prose existed but was invalid
     // ...
 })
 ```
 
 ### Player Experience Expectations
 
-| Scenario | Player Sees | Latency | Telemetry |
-|----------|-------------|---------|-----------|
-| **Cache hit** | Hero prose + overlays | <200ms | `Description.Hero.CacheHit` |
-| **First look (success)** | Hero prose + overlays | ~1000ms | `Description.Hero.Generate.Success` |
-| **First look (timeout)** | Base description + overlays | ~1200ms | `Description.Hero.Generate.Failure` (reason: timeout) |
-| **First look (error)** | Base description + overlays | <500ms | `Description.Hero.Generate.Failure` (reason: error) |
-| **Invalid hero prose** | Base description + overlays | <200ms | `Description.Compile` (heroProseFallback: true) |
+| Scenario                 | Player Sees                 | Latency                       | Telemetry                                             |
+| ------------------------ | --------------------------- | ----------------------------- | ----------------------------------------------------- |
+| **Cache hit**            | Hero prose + overlays       | <200ms                        | `Description.Hero.CacheHit`                           |
+| **First look (success)** | Hero prose + overlays       | ~1000ms                       | `Description.Hero.Generate.Success`                   |
+| **First look (timeout)** | Base description + overlays | ~`timeoutMs` (2500ms default) | `Description.Hero.Generate.Failure` (reason: timeout) |
+| **First look (error)**   | Base description + overlays | <500ms                        | `Description.Hero.Generate.Failure` (reason: error)   |
+| **Invalid hero prose**   | Base description + overlays | <200ms                        | `Description.Compile` (heroProseFallback: true)       |
 
 **Key Invariants:**
 
 - ✅ Player **always** receives a valid description (never blank, never error message)
-- ✅ HTTP response **always** returns within timeout + margin (<1500ms worst case)
+- ✅ HTTP response **always** returns within configured timeout + processing margin
 - ✅ Base description acts as **fallback safety net** for all failure modes
 - ✅ Overlays (ambient, structural events) **still apply** even when hero prose fails
 
@@ -498,10 +487,10 @@ Total: ~1100ms p95
 **Cache Miss Path with Timeout** (AI slow/unavailable):
 
 ```
-Total: ~1250ms p95
+Total: ~(timeoutMs + 50-150ms) p95
 ├─ Location fetch (Gremlin): 80ms
 ├─ Hero prose cache check (SQL API): 50ms
-├─ AI generation timeout: 1200ms ← blocking window
+├─ AI generation timeout: timeoutMs (2500ms default) ← blocking window
 ├─ Layer filtering + assembly (base): 20ms
 └─ Markdown to HTML + response: 50ms
 ```
@@ -511,7 +500,7 @@ Total: ~1250ms p95
 - **Cache hit rate**: Target ≥95% (most requests hit cached hero prose)
 - **Generation success rate**: Target ≥80% (successful generation within timeout)
 - **p95 latency** (cache hit): Target <500ms
-- **p95 latency** (cache miss): Target <1500ms (includes timeout margin)
+- **p95 latency** (cache miss): Target <(timeoutMs + 300ms) (includes timeout margin)
 
 ### Cost Implications
 
@@ -530,10 +519,10 @@ Total: ~1250ms p95
 **Scaling Projections:**
 
 | Locations | One-Time Cost (all locations) | Amortized (per player, 100 locations visited) |
-|-----------|-------------------------------|-----------------------------------------------|
-| 100 | $0.008 | $0.008 |
-| 1,000 | $0.08 | $0.008 |
-| 10,000 | $0.80 | $0.008 |
+| --------- | ----------------------------- | --------------------------------------------- |
+| 100       | $0.008                        | $0.008                                        |
+| 1,000     | $0.08                         | $0.008                                        |
+| 10,000    | $0.80                         | $0.008                                        |
 
 **Cost Guardrails:**
 
@@ -544,12 +533,12 @@ Total: ~1250ms p95
 
 **Comparison to Alternative Strategies:**
 
-| Strategy | Cost per Player | Latency (p95) | Immersion Quality |
-|----------|-----------------|---------------|-------------------|
-| **No hero prose (base only)** | $0 | 200ms | Baseline |
-| **Hero prose (current)** | $0.008/100 locs | 200ms (cached) | High |
-| **Per-player generation** | $0.008/100 locs × players | 1100ms always | Highest (personalized) |
-| **Async-only hero prose** | $0.008/100 locs | 200ms (delayed) | High (eventual) |
+| Strategy                      | Cost per Player           | Latency (p95)   | Immersion Quality      |
+| ----------------------------- | ------------------------- | --------------- | ---------------------- |
+| **No hero prose (base only)** | $0                        | 200ms           | Baseline               |
+| **Hero prose (current)**      | $0.008/100 locs           | 200ms (cached)  | High                   |
+| **Per-player generation**     | $0.008/100 locs × players | 1100ms always   | Highest (personalized) |
+| **Async-only hero prose**     | $0.008/100 locs           | 200ms (delayed) | High (eventual)        |
 
 Current strategy (cache-first blocking) optimizes for **immediate immersion** at **minimal cost** with **acceptable latency** (cache hit dominates).
 
@@ -560,30 +549,31 @@ Current strategy (cache-first blocking) optimizes for **immediate immersion** at
 **Hero Prose Lifecycle:**
 
 1. **Cache Hit**: `Description.Hero.CacheHit`
-   - `locationId`, `latencyMs`
-   - Emitted when existing hero prose found (no generation needed)
+    - `locationId`, `latencyMs`
+    - Emitted when existing hero prose found (no generation needed)
 
 2. **Cache Miss**: `Description.Hero.CacheMiss`
-   - `locationId`, `latencyMs`
-   - Emitted when no hero prose found (generation attempted)
+    - `locationId`, `latencyMs`
+    - Emitted when no hero prose found (generation attempted)
 
 3. **Generation Success**: `Description.Hero.Generate.Success`
-   - `locationId`, `latencyMs`, `model`, `tokenUsage`
-   - Emitted when AI generation completes successfully
+    - `locationId`, `latencyMs`, `model`, `tokenUsage`
+    - Emitted when AI generation completes successfully
 
 4. **Generation Failure**: `Description.Hero.Generate.Failure`
-   - `locationId`, `latencyMs`, `model`, `outcomeReason` (timeout|error|invalid-response|config-missing)
-   - Emitted on timeout, error, or validation failure
+    - `locationId`, `latencyMs`, `model`, `outcomeReason` (timeout|error|invalid-response|config-missing)
+    - Emitted on timeout, error, or validation failure
 
 5. **Compilation with Hero Prose**: `Description.Compile`
-   - `hasHeroProse: true`, `heroProseFallback: false`
-   - Emitted when hero prose used as effective base
+    - `hasHeroProse: true`, `heroProseFallback: false`
+    - Emitted when hero prose used as effective base
 
 6. **Compilation with Fallback**: `Description.Compile`
-   - `hasHeroProse: true`, `heroProseFallback: true`
-   - Emitted when hero prose invalid (fallback to base)
+    - `hasHeroProse: true`, `heroProseFallback: true`
+    - Emitted when hero prose invalid (fallback to base)
 
 **Slow Generation Warning**: `Timing.Op`
+
 - `op: 'hero-prose-generation'`, `ms: <latency>`, `category: 'hero-generation-slow'`
 - Emitted when generation latency >500ms (even if within timeout budget)
 
@@ -595,7 +585,7 @@ Current strategy (cache-first blocking) optimizes for **immediate immersion** at
 customEvents
 | where name in ('Description.Hero.CacheHit', 'Description.Hero.CacheMiss')
 | where timestamp > ago(7d)
-| summarize 
+| summarize
     hits = countif(name == 'Description.Hero.CacheHit'),
     misses = countif(name == 'Description.Hero.CacheMiss')
 | extend cacheHitRate = todouble(hits) / (hits + misses) * 100
@@ -608,7 +598,7 @@ customEvents
 customEvents
 | where name in ('Description.Hero.Generate.Success', 'Description.Hero.Generate.Failure')
 | where timestamp > ago(7d)
-| summarize 
+| summarize
     successes = countif(name == 'Description.Hero.Generate.Success'),
     failures = countif(name == 'Description.Hero.Generate.Failure')
 | extend successRate = todouble(successes) / (successes + failures) * 100
@@ -632,10 +622,10 @@ customEvents
 customEvents
 | where name in ('Description.Hero.CacheHit', 'Description.Hero.CacheMiss')
 | where timestamp > ago(24h)
-| extend 
+| extend
     eventType = name,
     latencyMs = todouble(customDimensions.latencyMs)
-| summarize 
+| summarize
     p50 = percentile(latencyMs, 50),
     p95 = percentile(latencyMs, 95),
     p99 = percentile(latencyMs, 99)
@@ -647,20 +637,20 @@ customEvents
 **Recommended Alert Rules:**
 
 1. **Low Cache Hit Rate**
-   - **Condition**: Cache hit rate <80% over 1 hour
-   - **Action**: Investigate if layers not persisting or high churn in visited locations
+    - **Condition**: Cache hit rate <80% over 1 hour
+    - **Action**: Investigate if layers not persisting or high churn in visited locations
 
 2. **High Timeout Rate**
-   - **Condition**: Timeout failures >30% of generation attempts over 1 hour
-   - **Action**: Investigate AOAI service latency or increase `HERO_PROSE_TIMEOUT_MS`
+    - **Condition**: Timeout failures >30% of generation attempts over 1 hour
+    - **Action**: Investigate AOAI service latency or increase `HERO_PROSE_TIMEOUT_MS`
 
 3. **Config Missing Spike**
-   - **Condition**: >10 `config-missing` failures over 5 minutes
-   - **Action**: Check AOAI endpoint configuration or credentials
+    - **Condition**: >10 `config-missing` failures over 5 minutes
+    - **Action**: Check AOAI endpoint configuration or credentials
 
 4. **Slow Generation Trend**
-   - **Condition**: p95 generation latency >1500ms over 1 hour
-   - **Action**: Investigate AOAI service performance or reduce timeout budget
+    - **Condition**: p95 generation latency >1500ms over 1 hour
+    - **Action**: Investigate AOAI service performance or reduce timeout budget
 
 ## Related Documentation
 
@@ -687,11 +677,11 @@ customEvents
 ## Revision History
 
 - **2026-02-05**: Initial policy defined
-  - Documented blocking conditions (perception, cache-miss, no canonical writes)
-  - Timeout budgets and `HERO_PROSE_TIMEOUT_MS` tuning knob
-  - Idempotency via `promptHash` and cache-first strategy
-  - Storage contract (layerType, metadata convention)
-  - Fallback behavior guarantees (always return base on failure)
-  - Edge cases (offline dev, AOAI outage, malformed responses)
-  - Performance characteristics and cost projections
-  - Observability (telemetry events, dashboard queries, alerts)
+    - Documented blocking conditions (perception, cache-miss, no canonical writes)
+    - Timeout budgets and `HERO_PROSE_TIMEOUT_MS` tuning knob
+    - Idempotency via `promptHash` and cache-first strategy
+    - Storage contract (layerType, metadata convention)
+    - Fallback behavior guarantees (always return base on failure)
+    - Edge cases (offline dev, AOAI outage, malformed responses)
+    - Performance characteristics and cost projections
+    - Observability (telemetry events, dashboard queries, alerts)

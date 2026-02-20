@@ -225,6 +225,29 @@ Notes:
 
 ---
 
+## Hero narration evolution map (agentic alignment)
+
+Purpose: evolve current hero-prose generation into full narrator-orchestrated agentic behavior without violating the authority boundary (deterministic canon first, narration second).
+
+This map is intentionally milestone + issue anchored; use linked issues as the live source of truth for status/details.
+
+| Phase                                          | Milestone anchor               | Evolution step                                                                                                            | Primary issue anchors                                |
+| ---------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **P0 – Bounded hero prose (current baseline)** | M4b World Generation           | Keep first-look hero prose as bounded, cache-first enrichment on perception actions only                                  | #822 (epic), #823 (telemetry constants), #829, #830  |
+| **P1 – Narrator runtime + proposal contracts** | M4c Agent Sandbox (Write-lite) | Shift from single-service prose generation toward narrator-driven sense→decide→propose loop with validation gates         | #700 (epic), #701, #703, #705, #762, #763, #764      |
+| **P2 – Unified scene synthesis layer**         | M5b Layering                   | Merge hero-prose, ambient layers, and narrative synthesis behind explicit latency contracts and deterministic composition | #765 (epic), #767, #768, #769, #442, #443, #445      |
+| **P3 – External narrator boundary hardening**  | M5a Observability + M6c DevX   | Enforce gateway-first auth/quotas and operational runbooks for external narrator callers                                  | #774, #428, #429, #427, #707, #708, #709, #710, #711 |
+| **P4 – Post-MVP specialization**               | M7 Post-MVP Extensibility      | Add deeper retrieval + parser sophistication while preserving Proposal→Validate→Apply                                     | #471 (epic), #462, #463, #464, #727                  |
+
+### Drift guardrails for this map
+
+- Hero prose remains a **narration layer**, not a canonical mutation path.
+- Any autonomous write path must stay behind **Proposal → Validate → Apply**.
+- Narrator/bestiary/specialists may explain outcomes, but canonical state stays deterministic and validator-enforced.
+- Keep timeout/latency behavior anchored to code (`locationLook.ts`, `heroProseGenerator.ts`) rather than duplicating constants across docs.
+
+---
+
 ## M5 Quality & Depth (Post-MVP)
 
 **Status**: See GitHub milestone

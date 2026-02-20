@@ -105,6 +105,7 @@ export class LocationLookHandler extends BaseHandler {
         if (!canonicalWritesPlanned) {
             try {
                 const generationStartTime = Date.now()
+                // Keep default aligned with HeroProseGenerator.DEFAULT_TIMEOUT_MS (code is source of truth).
                 const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '2500', 10)
                 const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 2500
                 await this.heroProseGenerator.generateHeroProse({

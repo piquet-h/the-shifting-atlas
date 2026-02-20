@@ -55,7 +55,10 @@ export interface HeroProseGenerationResult {
  */
 @injectable()
 export class HeroProseGenerator {
-    // Default is intentionally generous so caches can warm; handlers can still override.
+    // Canonical default timeout for hero prose generation.
+    // Rationale: first-look perception can tolerate bounded extra latency to improve immersion and warm cache,
+    // while all non-perception/mutating flows remain non-blocking.
+    // Docs should reference this constant rather than duplicating numeric defaults.
     private readonly DEFAULT_TIMEOUT_MS = 2500
 
     private getEndpointHost(endpoint: string): string | undefined {
