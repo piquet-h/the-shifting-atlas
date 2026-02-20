@@ -55,6 +55,31 @@ export class InMemoryWorldEventPublisher implements IWorldEventPublisher {
  * Configuration:
  * - ServiceBusAtlas__fullyQualifiedNamespace  (Managed Identity / recommended)
  * - ServiceBusAtlas                           (connection string / legacy)
+ *
+ * Design note – SDK vs. Azure Functions output bindings:
+ * Azure Functions v4 output bindings (`output.serviceBusQueue` / `context.extraOutputs.set`)
+ * were evaluated and ruled out for this service:
+ *
+ *  1. **Call-site mismatch**: `enqueueEvents` is invoked from `MoveHandler.performMove()`,
+ *     which does not receive `InvocationContext`. Output bindings require `context.extraOutputs.set`
+ *     at the call site; threading context down to the publisher would couple domain handlers to
+ *     the Azure Functions runtime.
+ *
+ *  2. **Cross-function publishing**: the publisher is consumed by both HTTP handlers
+ *     (`PlayerMove`) and Service Bus handlers (`BatchGenerateHandler`). Output bindings are
+ *     declared per-function registration, so a single binding object cannot be shared across
+ *     functions via DI.
+ *
+ *  3. **Testability**: `InMemoryWorldEventPublisher` gives hermetic unit tests with no Azure
+ *     Functions context dependency. Output-binding-based publishing would require an
+ *     `InvocationContext` mock with `extraOutputs` support in every test.
+ *
+ *  4. **Fire-and-forget semantics**: the prefetch publish in `MoveHandler` is wrapped in
+ *     try/catch and must not block the HTTP response. Output bindings are synchronous with
+ *     the function return, changing failure semantics.
+ *
+ * The SDK approach keeps the domain layer infrastructure-agnostic while delivering the same
+ * batch-send efficiency.
  */
 @injectable()
 export class ServiceBusWorldEventPublisher implements IWorldEventPublisher {
