@@ -43,31 +43,36 @@ describe('GameView Soft-Denial Integration', () => {
             expect(source).toMatch(/errorCode === ['"]ExitGenerationRequested['"]/)
         })
 
-        it('extracts generationHint from response', () => {
+        it('returns arrival-pause marker object from mutation (replaced soft-denial for pending paths)', () => {
             const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
 
-            // Check for generationHint extraction
-            expect(source).toMatch(/generationHint/)
-            expect(source).toMatch(/jsonObj\?\.generationHint/)
+            // ExitGenerationRequested now returns an arrival-pause marker (auto-refresh, no retry)
+            expect(source).toMatch(/__arrivalPause:\s*true/)
         })
 
-        it('returns soft-denial marker object from mutation', () => {
+        it('checks for arrival-pause marker in onSuccess', () => {
             const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
 
-            // Check for soft-denial marker in return
-            expect(source).toMatch(/__softDenial:\s*true/)
+            expect(source).toMatch(/'__arrivalPause'\s*in\s*result/)
+        })
+
+        it('sets arrivalPause state when arrival-pause marker detected', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/setArrivalPause\(\{/)
+            expect(source).toMatch(/direction:.*arrivalPauseResult\.direction/)
         })
     })
 
     describe('Mutation Success Handling', () => {
-        it('checks for soft-denial marker in onSuccess', () => {
+        it('checks for soft-denial marker in onSuccess (backward compat fallback)', () => {
             const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
 
-            // Check for soft-denial detection in onSuccess
+            // Check for soft-denial detection in onSuccess (legacy path; kept for backward compat)
             expect(source).toMatch(/'__softDenial'\s*in\s*result/)
         })
 
-        it('sets soft-denial state when marker detected', () => {
+        it('sets soft-denial state when legacy marker detected', () => {
             const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
 
             // Check for setSoftDenial call
@@ -220,6 +225,103 @@ describe('GameView Soft-Denial Integration', () => {
             const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
 
             expect(source).toMatch(/correlationId={softDenial\.correlationId}/)
+        })
+    })
+})
+
+describe('GameView ArrivalPause Integration', () => {
+    describe('ArrivalPauseOverlay Import and State', () => {
+        it('imports ArrivalPauseOverlay component', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/import ArrivalPauseOverlay/)
+        })
+
+        it('maintains arrivalPause state for overlay visibility', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/const \[arrivalPause, setArrivalPause\]/)
+        })
+    })
+
+    describe('Arrival Pause Handlers', () => {
+        it('defines handleArrivalPauseRefresh callback', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/const handleArrivalPauseRefresh\s*=\s*useCallback/)
+        })
+
+        it('handleArrivalPauseRefresh calls refetch', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            const match = source.match(/handleArrivalPauseRefresh.*?useCallback\(\s*\(\)\s*=>\s*\{([\s\S]*?)\},/)
+            expect(match).not.toBeNull()
+            if (match) {
+                expect(match[1]).toMatch(/refetch\(\)/)
+            }
+        })
+
+        it('defines handleArrivalPauseExhausted callback', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/const handleArrivalPauseExhausted\s*=\s*useCallback/)
+        })
+
+        it('defines handleArrivalPauseExplore callback', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/const handleArrivalPauseExplore\s*=\s*useCallback/)
+        })
+
+        it('defines handleArrivalPauseDismiss callback', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/const handleArrivalPauseDismiss\s*=\s*useCallback/)
+        })
+    })
+
+    describe('Auto-navigate on Exit Ready', () => {
+        it('watches location exits for the pending direction becoming available', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/exitAvailable.*exits.*some/)
+        })
+
+        it('emits Navigation.ArrivalPause.Ready telemetry when exit becomes available', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/trackGameEventClient\(\s*['"]Navigation\.ArrivalPause\.Ready['"]/)
+        })
+
+        it('auto-navigates and clears arrivalPause when exit is ready', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/setArrivalPause\(null\)/)
+            expect(source).toMatch(/handleNavigate\(arrivalPause\.direction\)/)
+        })
+    })
+
+    describe('ArrivalPauseOverlay Rendering', () => {
+        it('conditionally renders ArrivalPauseOverlay when arrivalPause state is set', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/\{arrivalPause\s*&&\s*\(?\s*<ArrivalPauseOverlay/)
+        })
+
+        it('passes direction and correlationId to ArrivalPauseOverlay', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/direction={arrivalPause\.direction}/)
+            expect(source).toMatch(/correlationId={arrivalPause\.correlationId}/)
+        })
+
+        it('wires refresh, exhausted, explore, and dismiss callbacks', () => {
+            const source = fs.readFileSync(GAMEVIEW_PATH, 'utf-8')
+
+            expect(source).toMatch(/onRefresh={handleArrivalPauseRefresh}/)
+            expect(source).toMatch(/onExhausted={handleArrivalPauseExhausted}/)
+            expect(source).toMatch(/onExplore={handleArrivalPauseExplore}/)
+            expect(source).toMatch(/onDismiss={handleArrivalPauseDismiss}/)
         })
     })
 })
