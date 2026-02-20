@@ -20,7 +20,7 @@ export const ResponsiveLayout: React.FC<React.PropsWithChildren> = ({ children }
     return (
         <div
             className={[
-                'flex-1 w-full mx-auto transition-colors duration-300',
+                'flex-1 w-full mx-auto transition-colors duration-300 overflow-auto',
                 'container max-w-7xl 3xl:max-w-[1600px]',
                 'px-3 sm:px-4 md:px-6 lg:px-8',
                 isLarge ? 'relative' : ''

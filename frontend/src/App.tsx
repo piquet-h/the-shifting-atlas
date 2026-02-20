@@ -42,14 +42,14 @@ export default function App(): React.ReactElement {
                 >
                     Skip to main content.
                 </a>
-                <div className="app-root min-h-screen flex flex-col lg:gap-4">
+                <div className="app-root h-screen flex flex-col lg:gap-4 overflow-hidden">
                     <Nav />
                     {/* Global main landmark wraps all routed content */}
                     <main
                         id="main"
                         ref={mainRef}
                         tabIndex={-1}
-                        className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg"
+                        className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg overflow-hidden"
                         aria-label="Main content"
                     >
                         <LiveAnnouncer />

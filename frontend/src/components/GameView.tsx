@@ -465,7 +465,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     }, [location])
 
     return (
-        <div className={['flex flex-col gap-4 sm:gap-5 min-h-screen', className].filter(Boolean).join(' ')}>
+        <div className={['flex flex-col gap-4 sm:gap-5 h-full', className].filter(Boolean).join(' ')}>
             {/* Soft-denial overlay for 'generate' status responses */}
             {softDenial && (
                 <SoftDenialOverlay
@@ -482,9 +482,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             {/* Responsive layouts: Mobile (<640px), Tablet (640-1024px), Desktop (≥1024px) */}
             {isDesktop ? (
                 /* Desktop: Two-column layout: Command panel + sidebar */
-                <div className="grid grid-cols-12 gap-4 lg:gap-5 min-h-screen">
+                <div className="grid grid-cols-12 gap-4 lg:gap-5 h-full">
                     {/* Main content area (Your Atlas) */}
-                    <div className="col-span-8 flex flex-col gap-4 lg:gap-5 min-h-screen">
+                    <div className="col-span-8 flex flex-col gap-4 lg:gap-5 h-full">
                         <section aria-labelledby="game-command-title-desktop" className="card rounded-xl flex flex-col flex-1 min-h-0">
                             <h3 id="game-command-title-desktop" className="text-responsive-base font-semibold text-white mb-3">
                                 Your Atlas
@@ -510,9 +510,9 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 </div>
             ) : isTablet ? (
                 /* Tablet: Two-column layout with sidebar */
-                <div className="grid grid-cols-12 gap-4 sm:gap-5 min-h-screen">
+                <div className="grid grid-cols-12 gap-4 sm:gap-5 h-full">
                     {/* Main content area: Your Atlas */}
-                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5 min-h-screen">
+                    <div className="col-span-8 flex flex-col gap-4 sm:gap-5 h-full">
                         <section aria-labelledby="game-command-title-tablet" className="card rounded-xl flex flex-col flex-1 min-h-0">
                             <h3 id="game-command-title-tablet" className="text-responsive-base font-semibold text-white mb-3">
                                 Your Atlas
