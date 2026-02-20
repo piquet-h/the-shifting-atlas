@@ -41,7 +41,20 @@ export function registerCoreServices(container: Container): void {
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
 
     // World Event Publisher: use Service Bus when configured, in-memory otherwise
-    registerWorldEventPublisher(container)
+    container
+        .bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
+        .toDynamicValue(() => {
+            const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
+            const connectionString = process.env.ServiceBusAtlas
+            if (namespace || connectionString) {
+                const client = namespace
+                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    : new ServiceBusClient(connectionString!)
+                return new ServiceBusWorldEventPublisher(client)
+            }
+            return new InMemoryWorldEventPublisher()
+        })
+        .inSingletonScope()
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token
@@ -53,30 +66,6 @@ export function registerCoreServices(container: Container): void {
     container.bind(WorldClockService).toSelf().inSingletonScope()
 
     container.bind(ReconcileEngine).toSelf().inSingletonScope()
-}
-
-/**
- * Register the appropriate world event publisher based on available configuration.
- *
- * Selection logic:
- * 1. ServiceBusAtlas__fullyQualifiedNamespace set → Managed Identity (recommended for production)
- * 2. ServiceBusAtlas set → connection string (legacy / local emulator)
- * 3. Neither set → InMemoryWorldEventPublisher (unit tests / local dev without Service Bus)
- */
-function registerWorldEventPublisher(container: Container): void {
-    const fullyQualifiedNamespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
-    const connectionString = process.env.ServiceBusAtlas
-
-    if (fullyQualifiedNamespace || connectionString) {
-        const client = fullyQualifiedNamespace
-            ? new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential())
-            : new ServiceBusClient(connectionString!)
-
-        container.bind<ServiceBusClient>(TOKENS.ServiceBusClient).toConstantValue(client)
-        container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(ServiceBusWorldEventPublisher).inSingletonScope()
-    } else {
-        container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(InMemoryWorldEventPublisher).inSingletonScope()
-    }
 }
 
 export function registerClock(container: Container, createClock: () => IClock): void {

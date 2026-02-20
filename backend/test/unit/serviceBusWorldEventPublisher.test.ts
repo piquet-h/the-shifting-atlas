@@ -105,10 +105,13 @@ describe('ServiceBusWorldEventPublisher', () => {
             const err = new Error('transient send failure')
             sender.sendMessages.rejects(err)
 
-            await assert.rejects(() => publisher.enqueueEvents([makeEnvelope()]), (thrown: Error) => {
-                assert.equal(thrown.message, 'transient send failure')
-                return true
-            })
+            await assert.rejects(
+                () => publisher.enqueueEvents([makeEnvelope()]),
+                (thrown: Error) => {
+                    assert.equal(thrown.message, 'transient send failure')
+                    return true
+                }
+            )
         })
 
         test('creates a second batch when first batch is full', async () => {
@@ -136,10 +139,7 @@ describe('ServiceBusWorldEventPublisher', () => {
             const oversizedBatch = { tryAddMessage: sinon.stub().returns(false) }
             sender.createMessageBatch.resolves(oversizedBatch)
 
-            await assert.rejects(
-                () => publisher.enqueueEvents([makeEnvelope()]),
-                /too large to fit in a single Service Bus message batch/
-            )
+            await assert.rejects(() => publisher.enqueueEvents([makeEnvelope()]), /too large to fit in a single Service Bus message batch/)
         })
     })
 })

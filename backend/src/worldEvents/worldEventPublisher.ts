@@ -11,8 +11,7 @@
 
 import type { ServiceBusClient } from '@azure/service-bus'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
-import { inject, injectable } from 'inversify'
-import { TOKENS } from '../di/tokens.js'
+import { injectable } from 'inversify'
 
 export const SERVICE_BUS_WORLD_EVENTS_QUEUE = 'world-events'
 
@@ -59,7 +58,7 @@ export class InMemoryWorldEventPublisher implements IWorldEventPublisher {
  */
 @injectable()
 export class ServiceBusWorldEventPublisher implements IWorldEventPublisher {
-    constructor(@inject(TOKENS.ServiceBusClient) private readonly client: ServiceBusClient) {}
+    constructor(private readonly client: ServiceBusClient) {}
 
     async enqueueEvents(events: WorldEventEnvelope[]): Promise<void> {
         if (events.length === 0) {
