@@ -79,22 +79,14 @@ export default function ArrivalPauseOverlay({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Action handlers with telemetry
+    // Action handlers
     const handleExplore = useCallback(() => {
-        telemetry.trackGameEvent('Navigation.SoftDenial.Explored', {
-            direction,
-            correlationId
-        })
         onExplore()
-    }, [telemetry, direction, correlationId, onExplore])
+    }, [onExplore])
 
     const handleDismiss = useCallback(() => {
-        telemetry.trackGameEvent('Navigation.SoftDenial.Quit', {
-            direction,
-            correlationId
-        })
         onDismiss()
-    }, [telemetry, direction, correlationId, onDismiss])
+    }, [onDismiss])
 
     // Handle keyboard Escape to dismiss
     useEffect(() => {

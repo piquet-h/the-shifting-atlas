@@ -452,11 +452,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     const handleArrivalPauseExhausted = useCallback(() => {
         if (!arrivalPause) return
-        trackGameEventClient('Navigation.ArrivalPause.Exhausted', {
-            direction: arrivalPause.direction,
-            correlationId: arrivalPause.correlationId
-        })
-        // Fall back to SoftDenialOverlay as final state
+        // Fall back to SoftDenialOverlay as final state (hook already emitted Exhausted telemetry)
         setSoftDenial({
             direction: arrivalPause.direction,
             correlationId: arrivalPause.correlationId
