@@ -1,4 +1,6 @@
 import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import { ServiceBusClient } from '@azure/service-bus'
+import { DefaultAzureCredential } from '@azure/identity'
 import type { Container } from 'inversify'
 
 import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
@@ -18,7 +20,11 @@ import { ReconcileEngine } from '../services/ReconcileEngine.js'
 import type { IWorldClockService } from '../services/types.js'
 import { WorldClockService } from '../services/WorldClockService.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import { InMemoryWorldEventPublisher, type IWorldEventPublisher } from '../worldEvents/worldEventPublisher.js'
+import {
+    InMemoryWorldEventPublisher,
+    ServiceBusWorldEventPublisher,
+    type IWorldEventPublisher
+} from '../worldEvents/worldEventPublisher.js'
 import { TOKENS } from './tokens.js'
 
 export function registerCoreServices(container: Container): void {
@@ -34,8 +40,8 @@ export function registerCoreServices(container: Container): void {
     // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
 
-    // World Event Publisher (in-memory for testing, to be replaced with Service Bus in production)
-    container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(InMemoryWorldEventPublisher).inSingletonScope()
+    // World Event Publisher: use Service Bus when configured, in-memory otherwise
+    registerWorldEventPublisher(container)
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token
@@ -47,6 +53,30 @@ export function registerCoreServices(container: Container): void {
     container.bind(WorldClockService).toSelf().inSingletonScope()
 
     container.bind(ReconcileEngine).toSelf().inSingletonScope()
+}
+
+/**
+ * Register the appropriate world event publisher based on available configuration.
+ *
+ * Selection logic:
+ * 1. ServiceBusAtlas__fullyQualifiedNamespace set → Managed Identity (recommended for production)
+ * 2. ServiceBusAtlas set → connection string (legacy / local emulator)
+ * 3. Neither set → InMemoryWorldEventPublisher (unit tests / local dev without Service Bus)
+ */
+function registerWorldEventPublisher(container: Container): void {
+    const fullyQualifiedNamespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
+    const connectionString = process.env.ServiceBusAtlas
+
+    if (fullyQualifiedNamespace || connectionString) {
+        const client = fullyQualifiedNamespace
+            ? new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential())
+            : new ServiceBusClient(connectionString!)
+
+        container.bind<ServiceBusClient>(TOKENS.ServiceBusClient).toConstantValue(client)
+        container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(ServiceBusWorldEventPublisher).inSingletonScope()
+    } else {
+        container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(InMemoryWorldEventPublisher).inSingletonScope()
+    }
 }
 
 export function registerClock(container: Container, createClock: () => IClock): void {

@@ -9,8 +9,12 @@
  * 'ServiceBusAtlas' connection string. For testing, this can be mocked.
  */
 
+import type { ServiceBusClient } from '@azure/service-bus'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
-import { injectable } from 'inversify'
+import { inject, injectable } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
+
+export const SERVICE_BUS_WORLD_EVENTS_QUEUE = 'world-events'
 
 /**
  * Interface for publishing world events to the queue
@@ -26,29 +30,66 @@ export interface IWorldEventPublisher {
 /**
  * In-memory event publisher for development and testing.
  *
- * Production Implementation Note:
- * In production Azure Functions, events should be published using one of:
- * 1. Service Bus output binding (simplest, declared in function config)
- * 2. @azure/service-bus SDK client (for batch optimization)
- *
- * For now, this in-memory implementation allows handlers to be developed
- * and tested without Service Bus infrastructure. Events can be verified
- * in integration tests by checking the enqueuedEvents array.
- *
- * TODO: Implement production ServiceBusWorldEventPublisher when deploying
+ * Events can be verified in integration tests by checking the enqueuedEvents array.
  */
 @injectable()
 export class InMemoryWorldEventPublisher implements IWorldEventPublisher {
     public enqueuedEvents: WorldEventEnvelope[] = []
 
     async enqueueEvents(events: WorldEventEnvelope[]): Promise<void> {
-        // For now, store in memory for testing
-        // In production, this would send to Service Bus
         this.enqueuedEvents.push(...events)
     }
 
     /** Clear enqueued events (for test cleanup) */
     clear(): void {
         this.enqueuedEvents = []
+    }
+}
+
+/**
+ * Production Service Bus publisher.
+ *
+ * Sends WorldEventEnvelope messages to the 'world-events' queue using batch send
+ * for efficiency. The correlationId is stamped both in the message body and as
+ * an application property for end-to-end traceability.
+ *
+ * Configuration:
+ * - ServiceBusAtlas__fullyQualifiedNamespace  (Managed Identity / recommended)
+ * - ServiceBusAtlas                           (connection string / legacy)
+ */
+@injectable()
+export class ServiceBusWorldEventPublisher implements IWorldEventPublisher {
+    constructor(@inject(TOKENS.ServiceBusClient) private readonly client: ServiceBusClient) {}
+
+    async enqueueEvents(events: WorldEventEnvelope[]): Promise<void> {
+        if (events.length === 0) {
+            return
+        }
+
+        const sender = this.client.createSender(SERVICE_BUS_WORLD_EVENTS_QUEUE)
+        try {
+            let currentBatch = await sender.createMessageBatch()
+            for (const event of events) {
+                const message = {
+                    body: event,
+                    correlationId: event.correlationId,
+                    applicationProperties: {
+                        correlationId: event.correlationId,
+                        eventType: event.type
+                    }
+                }
+                if (!currentBatch.tryAddMessage(message)) {
+                    // Batch is full – flush and start a new one
+                    await sender.sendMessages(currentBatch)
+                    currentBatch = await sender.createMessageBatch()
+                    if (!currentBatch.tryAddMessage(message)) {
+                        throw new Error(`World event ${event.eventId} is too large to fit in a single Service Bus message batch`)
+                    }
+                }
+            }
+            await sender.sendMessages(currentBatch)
+        } finally {
+            await sender.close()
+        }
     }
 }
