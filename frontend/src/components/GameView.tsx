@@ -21,6 +21,7 @@ import { buildHeaders, buildMoveRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
+import ArrivalPauseOverlay from './ArrivalPauseOverlay'
 import CommandInterface, { formatMoveResponse, type CommandInterfaceHandle } from './CommandInterface'
 import NavigationUI from './NavigationUI'
 import SoftDenialOverlay, { type GenerationHint, type LocationContext } from './SoftDenialOverlay'
@@ -195,7 +196,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     // Fetch player's current location using TanStack Query
     // Uses currentLocationId from context (already fetched at bootstrap)
-    const { location } = usePlayerLocation(currentLocationId)
+    const { location, refetch } = usePlayerLocation(currentLocationId)
 
     /**
      * Command history state (placeholder for future unified history integration).
@@ -217,6 +218,12 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     const [softDenial, setSoftDenial] = useState<{
         direction: Direction
         generationHint?: GenerationHint
+        correlationId?: string
+    } | null>(null)
+
+    // Arrival-pause state for ExitGenerationRequested (replaces manual retry soft-denial)
+    const [arrivalPause, setArrivalPause] = useState<{
+        direction: Direction
         correlationId?: string
     } | null>(null)
 
@@ -290,19 +297,11 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
                 const errorObj = jsonObj?.error as Record<string, unknown> | undefined
                 const errorCode = unwrapped.error?.code || errorObj?.code
                 if (errorCode === 'ExitGenerationRequested') {
-                    // Extract generationHint from response payload
-                    const generationHint = jsonObj?.generationHint as { direction?: string; originLocationId?: string } | undefined
-
-                    // Return special marker for soft-denial handling
+                    // Return arrival-pause marker for auto-refresh handling (no manual retry)
                     return {
-                        __softDenial: true as const,
+                        __arrivalPause: true as const,
                         direction,
-                        correlationId,
-                        generationHint: generationHint
-                            ? {
-                                  direction: generationHint.direction || direction
-                              }
-                            : undefined
+                        correlationId
                     }
                 }
 
@@ -336,7 +335,28 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
             // Clear navigating flag
             setIsNavigating(false)
 
-            // Check for soft-denial marker
+            // Check for arrival-pause marker (ExitGenerationRequested — auto-refresh, no manual retry)
+            if (result && '__arrivalPause' in result && result.__arrivalPause) {
+                const arrivalPauseResult = result as {
+                    __arrivalPause: true
+                    direction: Direction
+                    correlationId: string
+                }
+                setArrivalPause({
+                    direction: arrivalPauseResult.direction,
+                    correlationId: arrivalPauseResult.correlationId
+                })
+                const softLatency = context?.startTime ? Math.round(performance.now() - context.startTime) : undefined
+                const softDirection = context?.direction || variables.direction
+                appendCommandLog({
+                    command: `move ${softDirection}`,
+                    response: 'The path is still being revealed. Please wait…',
+                    latencyMs: softLatency
+                })
+                return
+            }
+
+            // Legacy check for soft-denial marker (kept for backward compatibility)
             if (result && '__softDenial' in result && result.__softDenial) {
                 const softDenialResult = result as {
                     __softDenial: true
@@ -425,6 +445,44 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         setSoftDenial(null)
     }, [])
 
+    // Arrival-pause action handlers
+    const handleArrivalPauseRefresh = useCallback(() => {
+        refetch()
+    }, [refetch])
+
+    const handleArrivalPauseExhausted = useCallback(() => {
+        if (!arrivalPause) return
+        // Fall back to SoftDenialOverlay as final state (hook already emitted Exhausted telemetry)
+        setSoftDenial({
+            direction: arrivalPause.direction,
+            correlationId: arrivalPause.correlationId
+        })
+        setArrivalPause(null)
+    }, [arrivalPause])
+
+    const handleArrivalPauseExplore = useCallback(() => {
+        setArrivalPause(null)
+    }, [])
+
+    const handleArrivalPauseDismiss = useCallback(() => {
+        setArrivalPause(null)
+    }, [])
+
+    // Watch location exits for the pending direction becoming available after a refresh.
+    // When the exit appears (hard), auto-navigate and dismiss the arrival pause overlay.
+    React.useEffect(() => {
+        if (!arrivalPause) return
+        const exitAvailable = location?.exits?.some((e) => e.direction === arrivalPause.direction)
+        if (exitAvailable) {
+            trackGameEventClient('Navigation.ArrivalPause.Ready', {
+                direction: arrivalPause.direction,
+                correlationId: arrivalPause.correlationId
+            })
+            setArrivalPause(null)
+            handleNavigate(arrivalPause.direction)
+        }
+    }, [location, arrivalPause, handleNavigate])
+
     // Derive location context for soft-denial narratives
     // This is a simple heuristic based on location name/description keywords
     const locationContextForDenial: LocationContext = React.useMemo(() => {
@@ -466,7 +524,18 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
 
     return (
         <div className={['flex flex-col gap-4 sm:gap-5 h-full', className].filter(Boolean).join(' ')}>
-            {/* Soft-denial overlay for 'generate' status responses */}
+            {/* Arrival-pause overlay for ExitGenerationRequested (auto-refresh, no manual retry) */}
+            {arrivalPause && (
+                <ArrivalPauseOverlay
+                    direction={arrivalPause.direction}
+                    correlationId={arrivalPause.correlationId}
+                    onRefresh={handleArrivalPauseRefresh}
+                    onExhausted={handleArrivalPauseExhausted}
+                    onExplore={handleArrivalPauseExplore}
+                    onDismiss={handleArrivalPauseDismiss}
+                />
+            )}
+            {/* Soft-denial overlay for hard 'no exit' cases and exhausted arrival pause */}
             {softDenial && (
                 <SoftDenialOverlay
                     direction={softDenial.direction}

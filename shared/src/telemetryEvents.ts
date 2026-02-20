@@ -49,6 +49,11 @@ export const GAME_EVENT_NAMES = [
     'Navigation.SoftDenial.Retry',
     'Navigation.SoftDenial.Explored',
     'Navigation.SoftDenial.Quit',
+    // Arrival pause UX telemetry (Issue #809 - Immersive arrival pause for pending paths)
+    'Navigation.ArrivalPause.Shown', // Pause overlay displayed on ExitGenerationRequested
+    'Navigation.ArrivalPause.AutoRefresh', // Auto-refresh attempt scheduled
+    'Navigation.ArrivalPause.Ready', // Pending exit became hard; auto-navigating
+    'Navigation.ArrivalPause.Exhausted', // Max refresh attempts reached; falling back
     // Command layer (frontend CLI / parser)
     'Command.Executed',
     // UI interaction telemetry (M2 Observability - frontend correlation)

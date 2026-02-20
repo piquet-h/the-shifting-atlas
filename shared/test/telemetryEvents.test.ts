@@ -201,6 +201,37 @@ test('unknown Navigation.SoftDenial.* variant rejected', () => {
     )
 })
 
+// Arrival pause telemetry events tests (Issue #809 - Immersive arrival pause)
+test('Navigation.ArrivalPause.Shown is registered', () => {
+    assert.ok(isGameEventName('Navigation.ArrivalPause.Shown'), 'Navigation.ArrivalPause.Shown should be recognized')
+})
+
+test('Navigation.ArrivalPause.AutoRefresh is registered', () => {
+    assert.ok(isGameEventName('Navigation.ArrivalPause.AutoRefresh'), 'Navigation.ArrivalPause.AutoRefresh should be recognized')
+})
+
+test('Navigation.ArrivalPause.Ready is registered', () => {
+    assert.ok(isGameEventName('Navigation.ArrivalPause.Ready'), 'Navigation.ArrivalPause.Ready should be recognized')
+})
+
+test('Navigation.ArrivalPause.Exhausted is registered', () => {
+    assert.ok(isGameEventName('Navigation.ArrivalPause.Exhausted'), 'Navigation.ArrivalPause.Exhausted should be recognized')
+})
+
+test('Navigation.ArrivalPause events match telemetry pattern', () => {
+    const arrivalPauseEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('Navigation.ArrivalPause.'))
+    assert.ok(arrivalPauseEvents.length === 4, `Expected 4 Navigation.ArrivalPause events, found ${arrivalPauseEvents.length}`)
+
+    for (const event of arrivalPauseEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown Navigation.ArrivalPause.* variant rejected', () => {
+    assert.equal(isGameEventName('Navigation.ArrivalPause.Unknown'), false, 'Unknown Navigation.ArrivalPause.* variant should be rejected')
+    assert.equal(isGameEventName('Navigation.ArrivalPause.Retry'), false, 'Manual-retry event not registered for arrival pause')
+})
+
 // Temporal telemetry events tests (M3c Temporal PI-0 - Issue #506)
 test('World.Clock.Advanced is registered', () => {
     assert.ok(isGameEventName('World.Clock.Advanced'), 'World.Clock.Advanced should be recognized')
