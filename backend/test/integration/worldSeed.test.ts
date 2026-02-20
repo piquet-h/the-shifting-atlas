@@ -156,7 +156,7 @@ describe('World Seeding', () => {
         )
     })
 
-    test('seed has at least 3 frontier:boundary locations covering diverse expansion vectors', async () => {
+    test('seed has at least 6 frontier:boundary locations covering road, farm, and harbor expansion vectors', async () => {
         const locationRepository = await fixture.getLocationRepository()
 
         await seedWorld({
@@ -168,11 +168,14 @@ describe('World Seeding', () => {
         const allLocations = await locationRepository.listAll()
         const frontierLocations = allLocations.filter((loc) => loc.tags?.includes('frontier:boundary'))
 
-        assert.ok(frontierLocations.length >= 3, 'At least 3 frontier:boundary locations should exist')
+        assert.ok(frontierLocations.length >= 6, 'At least 6 frontier:boundary locations should exist')
 
         const NORTH_GATE_ID = 'd0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a'
         const RIVER_MOUTH_DUNES_ID = '2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f'
         const FIELD_EDGE_TRACK_ID = 'e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3'
+        const SOUTH_FARMS_ID = 'ec88e970-9d2b-4a34-9804-6b2afd5adb9e'
+        const HARBOR_WAREHOUSE_ID = '3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70'
+        const FISH_MARKET_WHARF_ID = '4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081'
 
         // North Gate: overland wilderness expansion
         const northGate = frontierLocations.find((l) => l.id === NORTH_GATE_ID)
@@ -194,6 +197,24 @@ describe('World Seeding', () => {
         assert.ok(fieldEdge.exitAvailability?.pending, 'Field Edge Track should have pending exits')
         const fieldPendingDirs = Object.keys(fieldEdge.exitAvailability!.pending!)
         assert.ok(fieldPendingDirs.length >= 2, 'Field Edge Track should have at least 2 pending directions')
+
+        // South Farms: southern overland expansion
+        const southFarms = frontierLocations.find((l) => l.id === SOUTH_FARMS_ID)
+        assert.ok(southFarms, 'South Farms should be a frontier:boundary location')
+        assert.ok(southFarms.exitAvailability?.pending, 'South Farms should have pending exits')
+        const southFarmsPendingDirs = Object.keys(southFarms.exitAvailability!.pending!)
+        assert.ok(southFarmsPendingDirs.includes('south'), 'South Farms should include pending south expansion')
+
+        // Harbor Warehouse: quay and trade-lane expansion
+        const harborWarehouse = frontierLocations.find((l) => l.id === HARBOR_WAREHOUSE_ID)
+        assert.ok(harborWarehouse, 'Harbor Warehouse should be a frontier:boundary location')
+        assert.ok(harborWarehouse.exitAvailability?.pending, 'Harbor Warehouse should have pending exits')
+
+        // Fish Market Wharf: coastal edge with explicit water boundary rules
+        const fishWharf = frontierLocations.find((l) => l.id === FISH_MARKET_WHARF_ID)
+        assert.ok(fishWharf, 'Fish Market Wharf should be a frontier:boundary location')
+        assert.ok(fishWharf.exitAvailability?.pending, 'Fish Market Wharf should have pending exits')
+        assert.ok(fishWharf.exitAvailability?.forbidden?.south, 'Fish Market Wharf should have forbidden south (open water)')
     })
 
     test('frontier locations carry no pre-created stub destinations', async () => {

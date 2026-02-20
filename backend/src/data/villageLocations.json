@@ -494,7 +494,8 @@
         "description": "Patchwork of tilled strips and a leaning scarecrow; distant harness clinks.",
         "tags": [
             "settlement:mosswell",
-            "agriculture:fields"
+            "agriculture:fields",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -508,7 +509,14 @@
                 "description": "Skirting fields along the outer track."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "south": "Farm track descends into broad, uncultivated pastureland",
+                "southeast": "Irrigation ruts continue toward low reed marshes",
+                "east": "Cart path bends between fallow fields toward distant hedgerows"
+            }
+        },
+        "version": 2
     },
     {
         "id": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
@@ -846,7 +854,8 @@
         "tags": [
             "settlement:mosswell",
             "harbor:warehouse",
-            "commerce"
+            "commerce",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -855,7 +864,13 @@
                 "description": "Return along the quay."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "north": "Timber quay extends toward newer cargo cranes upriver",
+                "northeast": "Raised loading lane leads to unopened dock storehouses"
+            }
+        },
+        "version": 2
     },
     {
         "id": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081",
@@ -864,7 +879,8 @@
         "tags": [
             "settlement:mosswell",
             "market:fish",
-            "harbor:wharf"
+            "harbor:wharf",
+            "frontier:boundary"
         ],
         "exits": [
             {
@@ -873,6 +889,16 @@
                 "description": "Planks back to the landing."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "north": "Boardwalk skirts fish sheds toward a distant breakwater",
+                "northeast": "Narrow catwalk follows pilings to a weathered mooring arm"
+            },
+            "forbidden": {
+                "south": "Open tidal channel runs deep here — no safe foot crossing",
+                "southwest": "Undercut mud flats collapse into churning water"
+            }
+        },
+        "version": 2
     }
 ]
