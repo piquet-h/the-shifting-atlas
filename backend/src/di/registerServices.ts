@@ -1,4 +1,6 @@
 import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import { ServiceBusClient } from '@azure/service-bus'
+import { DefaultAzureCredential } from '@azure/identity'
 import type { Container } from 'inversify'
 
 import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
@@ -18,7 +20,11 @@ import { ReconcileEngine } from '../services/ReconcileEngine.js'
 import type { IWorldClockService } from '../services/types.js'
 import { WorldClockService } from '../services/WorldClockService.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
-import { InMemoryWorldEventPublisher, type IWorldEventPublisher } from '../worldEvents/worldEventPublisher.js'
+import {
+    InMemoryWorldEventPublisher,
+    ServiceBusWorldEventPublisher,
+    type IWorldEventPublisher
+} from '../worldEvents/worldEventPublisher.js'
 import { TOKENS } from './tokens.js'
 
 export function registerCoreServices(container: Container): void {
@@ -34,8 +40,21 @@ export function registerCoreServices(container: Container): void {
     // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
 
-    // World Event Publisher (in-memory for testing, to be replaced with Service Bus in production)
-    container.bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher).to(InMemoryWorldEventPublisher).inSingletonScope()
+    // World Event Publisher: use Service Bus when configured, in-memory otherwise
+    container
+        .bind<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
+        .toDynamicValue(() => {
+            const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
+            const connectionString = process.env.ServiceBusAtlas
+            if (namespace || connectionString) {
+                const client = namespace
+                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    : new ServiceBusClient(connectionString!)
+                return new ServiceBusWorldEventPublisher(client)
+            }
+            return new InMemoryWorldEventPublisher()
+        })
+        .inSingletonScope()
 
     // Bind by class, not by token.
     // Tests (and some call sites) resolve this manager directly, and binding it via token

@@ -113,6 +113,22 @@ Auth:
 
 - Uses Azure AD via `DefaultAzureCredential` (Managed Identity in prod; `az login` locally)
 
+### Service Bus world-events queue
+
+World events are published to the `world-events` Service Bus queue by `ServiceBusWorldEventPublisher`. The publisher is selected automatically based on which env var is present:
+
+| Env var | Value | Auth |
+| --- | --- | --- |
+| `ServiceBusAtlas__fullyQualifiedNamespace` | `<namespace>.servicebus.windows.net` | Managed Identity (recommended) |
+| `ServiceBusAtlas` | full connection string | SAS key / local emulator |
+
+If neither is set (the default for unit tests and memory-mode local dev), an `InMemoryWorldEventPublisher` is used and no Service Bus connection is required.
+
+For local development with a real Service Bus namespace:
+
+1. Add `ServiceBusAtlas__fullyQualifiedNamespace` to `local.settings.json` and run `az login`.
+2. Grant your developer identity the **Azure Service Bus Data Sender** role on the namespace.
+
 ## Deployment
 
 Deployment details live exclusively in the workflow YAML under `.github/workflows/backend-functions-deploy.yml`. Read that file for triggers, required permissions, and steps. Required Azure resources are provisioned via Bicep in `infrastructure/`. No duplicated narrative here to avoid drift.
@@ -122,7 +138,7 @@ Deployment details live exclusively in the workflow YAML under `.github/workflow
 | Area                 | Status      | Notes                                                                  |
 | -------------------- | ----------- | ---------------------------------------------------------------------- |
 | HTTP player/actions  | Implemented | Unified here (migrated from SWA API)                                   |
-| Queue world events   | Pending     | Introduce Service Bus & processors                                     |
+| Queue world events   | Implemented | Service Bus publisher wired; `world-events` queue consumed by `serviceBusProcessWorldEvent` |
 | Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories                                     |
 | Telemetry enrichment | Ongoing     | Add world event emission instrumentation + span enrichment (Epic #310) |
 | Auth propagation     | Pending     | Enforce claims / roles on sensitive ops                                |
