@@ -10,11 +10,10 @@
  * - Enforce idempotency via ${originLocationId}:${dir} key
  * - Check for expired intents (hints too old to process)
  * - Store invalid/expired hints in DLQ with categorization
- * - Emit telemetry for observability
- *
- * Processing Logic (DEFERRED):
- * - Actual exit generation (location creation, edge wiring) is not implemented
- * - This is a stub that validates, deduplicates, and logs for future expansion
+ * - Materialize exits: create stub neighbor location + bidirectional exit edges
+ * - Clear pending availability after successful materialization
+ * - Emit telemetry for each outcome (hint received, materialized, skipped-idempotent,
+ *   forbidden-policy, failed-validation)
  *
  * Configuration (env vars):
  * - EXIT_HINT_MAX_AGE_MS: Maximum age for hints before expiration (default: 5 minutes)
@@ -23,10 +22,14 @@
  * See docs/architecture/exit-generation-hints.md for specification.
  */
 import type { InvocationContext } from '@azure/functions'
+import type { Direction, ExitAvailabilityMetadata } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import { buildExitHintIdempotencyKey, isExitHintExpired, safeValidateExitGenerationHintPayload } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
+import { v4 as uuidv4 } from 'uuid'
+import { TOKENS } from '../di/tokens.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
+import type { ILocationRepository } from '../repos/locationRepository.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { getContainer } from './utils/contextHelpers.js'
@@ -143,7 +146,8 @@ interface ExitHintQueueMessage {
 export class QueueProcessExitGenerationHintHandler {
     constructor(
         @inject('IDeadLetterRepository') private deadLetterRepository: IDeadLetterRepository,
-        @inject(TelemetryService) private telemetryService: TelemetryService
+        @inject(TelemetryService) private telemetryService: TelemetryService,
+        @inject(TOKENS.LocationRepository) private locationRepository: ILocationRepository
     ) {}
 
     async handle(message: unknown, context: InvocationContext): Promise<void> {
@@ -288,7 +292,7 @@ export class QueueProcessExitGenerationHintHandler {
         // 7. Mark as processed in cache
         markProcessed(idempotencyKey, correlationId)
 
-        // 8. Log processing (actual generation logic is deferred)
+        // 8. Log hint received
         context.log('Exit generation hint received', {
             eventId: rawMessage.eventId,
             dir: payload.dir,
@@ -299,7 +303,129 @@ export class QueueProcessExitGenerationHintHandler {
             correlationId
         })
 
-        // 9. Emit telemetry
+        // 9. Look up origin location
+        const origin = await this.locationRepository.get(payload.originLocationId)
+        if (!origin) {
+            context.error('Exit generation hint: origin location not found', {
+                originLocationIdHash: hashPrefix(payload.originLocationId),
+                correlationId
+            })
+            await this.storeDeadLetter(
+                rawMessage,
+                {
+                    category: 'missing-origin',
+                    message: 'Origin location not found for exit generation hint',
+                    issues: [{ path: 'originLocationId', message: 'Location not found', code: 'not-found' }]
+                },
+                { correlationId, firstAttemptTimestamp, errorCode: 'handler-error' },
+                context
+            )
+            this.telemetryService.trackGameEventStrict(
+                'Navigation.Exit.GenerationRequested',
+                {
+                    dir: payload.dir,
+                    originLocationIdHash: hashPrefix(payload.originLocationId),
+                    playerIdHash: hashPrefix(payload.playerId),
+                    debounced: payload.debounced,
+                    outcome: 'failed-validation',
+                    correlationId
+                },
+                { correlationId }
+            )
+            return
+        }
+
+        // 10. Check if hard exit already exists for this direction (idempotent path)
+        const existingExit = origin.exits?.find((e) => e.direction === payload.dir)
+        if (existingExit) {
+            context.log('Exit generation hint: hard exit already exists, skipping (idempotent)', {
+                dir: payload.dir,
+                originLocationIdHash: hashPrefix(payload.originLocationId),
+                correlationId
+            })
+            this.telemetryService.trackGameEventStrict(
+                'Navigation.Exit.GenerationRequested',
+                {
+                    dir: payload.dir,
+                    originLocationIdHash: hashPrefix(payload.originLocationId),
+                    playerIdHash: hashPrefix(payload.playerId),
+                    debounced: payload.debounced,
+                    outcome: 'skipped-idempotent',
+                    correlationId
+                },
+                { correlationId }
+            )
+            return
+        }
+
+        // 11. Check if direction is forbidden by generation policy
+        const forbiddenEntry = origin.exitAvailability?.forbidden?.[payload.dir as Direction]
+        if (forbiddenEntry !== undefined) {
+            context.log('Exit generation hint: direction is forbidden by policy', {
+                dir: payload.dir,
+                originLocationIdHash: hashPrefix(payload.originLocationId),
+                reason: forbiddenEntry || 'unspecified',
+                correlationId
+            })
+            this.telemetryService.trackGameEventStrict(
+                'Navigation.Exit.GenerationRequested',
+                {
+                    dir: payload.dir,
+                    originLocationIdHash: hashPrefix(payload.originLocationId),
+                    playerIdHash: hashPrefix(payload.playerId),
+                    debounced: payload.debounced,
+                    outcome: 'forbidden-policy',
+                    correlationId
+                },
+                { correlationId }
+            )
+            return
+        }
+
+        // 12. Materialize: create stub neighbor location and bidirectional exit
+        const stubId = uuidv4()
+        const stubTerrain = origin.terrain ?? 'open-plain'
+
+        await this.locationRepository.upsert({
+            id: stubId,
+            name: 'Unexplored Region',
+            description: '',
+            terrain: stubTerrain,
+            tags: [],
+            exits: [],
+            version: 1
+        })
+
+        await this.locationRepository.ensureExitBidirectional(payload.originLocationId, payload.dir, stubId, { reciprocal: true })
+
+        // 13. Clear pending availability for this direction
+        const existingPending = origin.exitAvailability?.pending
+        if (existingPending && payload.dir in existingPending) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { [payload.dir as Direction]: _removed, ...updatedPending } = existingPending
+            const hasPending = Object.keys(updatedPending).length > 0
+            const updatedAvailability: ExitAvailabilityMetadata = {
+                ...origin.exitAvailability,
+                pending: hasPending ? (updatedPending as Partial<Record<Direction, string>>) : undefined
+            }
+            // Re-fetch to get latest state (includes newly created exit in Cosmos)
+            const refreshed = await this.locationRepository.get(payload.originLocationId)
+            if (refreshed) {
+                await this.locationRepository.upsert({
+                    ...refreshed,
+                    exitAvailability: updatedAvailability
+                })
+            }
+        }
+
+        context.log('Exit generation hint materialized', {
+            dir: payload.dir,
+            originLocationIdHash: hashPrefix(payload.originLocationId),
+            newLocationId: stubId,
+            correlationId
+        })
+
+        // 14. Emit success telemetry
         this.telemetryService.trackGameEventStrict(
             'Navigation.Exit.GenerationRequested',
             {
@@ -307,24 +433,11 @@ export class QueueProcessExitGenerationHintHandler {
                 originLocationIdHash: hashPrefix(payload.originLocationId),
                 playerIdHash: hashPrefix(payload.playerId),
                 debounced: payload.debounced,
-                outcome: 'queued', // Stub - actual processing deferred
+                outcome: 'materialized',
                 correlationId
             },
             { correlationId }
         )
-
-        // STUB: Actual exit generation logic would go here
-        // This includes:
-        // - Creating a new location
-        // - Creating bidirectional exit edges
-        // - Emitting World.Exit.Create event
-        // For now, we just log and emit telemetry.
-
-        context.log('Exit generation hint processed (stub - generation deferred)', {
-            eventId: rawMessage.eventId,
-            idempotencyKeyHash: hashPrefix(idempotencyKey),
-            correlationId
-        })
     }
 
     /**
