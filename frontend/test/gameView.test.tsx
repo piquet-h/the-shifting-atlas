@@ -211,6 +211,15 @@ describe('GameView Component', () => {
 
             expect(markup).toMatch(/Your Atlas/)
         })
+
+        it('constrains Your Atlas panel for internal scrolling', async () => {
+            mockIsDesktop = true
+            const { default: GameView } = await import('../src/components/GameView')
+            const markup = renderWithProviders(<GameView />)
+
+            expect(markup).toMatch(/game-command-title-desktop/)
+            expect(markup).toMatch(/card rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden/)
+        })
     })
 
     describe('Responsive Layout', () => {
