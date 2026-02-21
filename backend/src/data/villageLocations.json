@@ -816,7 +816,12 @@
                 "description": "Stairs up to the main jetty plaza."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "forbidden": {
+                "north": { "reason": "Open river mouth stretches beyond reach of the landing — no foothold on the water", "motif": "water", "reveal": "onLook" }
+            }
+        },
+        "version": 2
     },
     {
         "id": "2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f",
@@ -841,11 +846,11 @@
                 "southeast": "Tide-washed beach extends around the coastal bend"
             },
             "forbidden": {
-                "south": "Open sea bars passage — surf crashes beyond the bar",
-                "west": "River-mouth current churns — no crossing without a boat"
+                "south": { "reason": "Open sea bars passage — surf crashes beyond the bar", "motif": "water", "reveal": "onLook" },
+                "west": { "reason": "River-mouth current churns — no crossing without a boat", "motif": "water", "reveal": "onLook" }
             }
         },
-        "version": 2
+        "version": 3
     },
     {
         "id": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70",
@@ -868,9 +873,13 @@
             "pending": {
                 "north": "Timber quay extends toward newer cargo cranes upriver",
                 "northeast": "Raised loading lane leads to unopened dock storehouses"
+            },
+            "forbidden": {
+                "south": { "reason": "Quay edge drops to deep harbour water — no safe crossing on foot", "motif": "water", "reveal": "onLook" },
+                "east": { "reason": "Open harbour basin bars passage — no dock extends this way", "motif": "water", "reveal": "onLook" }
             }
         },
-        "version": 2
+        "version": 3
     },
     {
         "id": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081",
@@ -895,10 +904,10 @@
                 "northeast": "Narrow catwalk follows pilings to a weathered mooring arm"
             },
             "forbidden": {
-                "south": "Open tidal channel runs deep here — no safe foot crossing",
-                "southwest": "Undercut mud flats collapse into churning water"
+                "south": { "reason": "Open tidal channel runs deep here — no safe foot crossing", "motif": "water", "reveal": "onLook" },
+                "southwest": { "reason": "Undercut mud flats collapse into churning water", "motif": "water", "reveal": "onLook" }
             }
         },
-        "version": 2
+        "version": 3
     }
 ]

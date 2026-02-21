@@ -21,6 +21,47 @@ import type { Direction } from './domainModels.js'
 export type ExitAvailability = 'hard' | 'pending' | 'forbidden'
 
 /**
+ * Motif describing the type of barrier for a forbidden exit direction.
+ * Used by narration consumers to select contextually appropriate copy.
+ *
+ * - `cliff`  — sheer drop or impassable rock face
+ * - `ward`   — magical or arcane barrier
+ * - `water`  — open water, river, or sea preventing foot passage
+ * - `law`    — legal or civic restriction (locked gate, border)
+ * - `ruin`   — collapsed structure blocking the way
+ */
+export type ForbiddenExitMotif = 'cliff' | 'ward' | 'water' | 'law' | 'ruin'
+
+/**
+ * When a forbidden exit should be narrated to the player.
+ *
+ * - `onTryMove` (default): only describe the barrier when the player attempts movement
+ * - `onLook`: include barrier hint in the location description (obvious geographic feature)
+ */
+export type ForbiddenExitReveal = 'onLook' | 'onTryMove'
+
+/**
+ * Metadata for a single forbidden exit direction.
+ *
+ * Consumer rule: do not narrate a forbidden direction unless the location description
+ * implies it, the player attempts movement, or `reveal === 'onLook'`.
+ */
+export interface ForbiddenExitEntry {
+    /** Required: human-readable reason why this direction is blocked. */
+    reason: string
+    /**
+     * Optional barrier type hint for narration consumers.
+     * When omitted, consumers should use conservative / generic copy.
+     */
+    motif?: ForbiddenExitMotif
+    /**
+     * When to surface the barrier to the player.
+     * Defaults to `'onTryMove'` when omitted.
+     */
+    reveal?: ForbiddenExitReveal
+}
+
+/**
  * Exit information including availability state and optional metadata.
  */
 export interface ExitInfo {
@@ -34,6 +75,10 @@ export interface ExitInfo {
     reason?: string
     /** Optional flavor text when using this exit (only for 'hard' exits). */
     description?: string
+    /** Barrier motif for forbidden exits (narration hint). */
+    motif?: ForbiddenExitMotif
+    /** When to reveal the barrier in narration (defaults to 'onTryMove'). */
+    reveal?: ForbiddenExitReveal
 }
 
 /**
@@ -44,7 +89,7 @@ export interface ExitAvailabilityMetadata {
     /** Directions that are pending generation. */
     pending?: Partial<Record<Direction, string>>
     /** Directions that are permanently forbidden. */
-    forbidden?: Partial<Record<Direction, string>>
+    forbidden?: Partial<Record<Direction, ForbiddenExitEntry>>
 }
 
 /**
@@ -52,6 +97,29 @@ export interface ExitAvailabilityMetadata {
  */
 export function isExitAvailability(value: string): value is ExitAvailability {
     return value === 'hard' || value === 'pending' || value === 'forbidden'
+}
+
+/**
+ * Type guard for ForbiddenExitMotif.
+ * Fails closed: unknown motif values are treated as invalid.
+ */
+export function isForbiddenExitMotif(value: unknown): value is ForbiddenExitMotif {
+    return value === 'cliff' || value === 'ward' || value === 'water' || value === 'law' || value === 'ruin'
+}
+
+/**
+ * Normalise a raw forbidden exit value from storage or JSON.
+ *
+ * Handles legacy format where the value was a plain string (reason only):
+ *   `"Open sea bars passage"` → `{ reason: "Open sea bars passage", reveal: "onTryMove" }`
+ *
+ * New format (ForbiddenExitEntry) is returned as-is.
+ */
+export function normalizeForbiddenEntry(raw: ForbiddenExitEntry | string): ForbiddenExitEntry {
+    if (typeof raw === 'string') {
+        return { reason: raw, reveal: 'onTryMove' }
+    }
+    return raw
 }
 
 /**
@@ -76,8 +144,8 @@ export function determineExitAvailability(
         return 'hard'
     }
 
-    // Rule 2: Check forbidden
-    if (metadata?.forbidden && metadata.forbidden[direction]) {
+    // Rule 2: Check forbidden (key-in check: ForbiddenExitEntry is always truthy)
+    if (metadata?.forbidden && direction in metadata.forbidden) {
         return 'forbidden'
     }
 
@@ -119,14 +187,17 @@ export function buildExitInfoArray(
 
     // Add forbidden (takes precedence over pending)
     if (metadata?.forbidden) {
-        for (const [dir, reason] of Object.entries(metadata.forbidden)) {
+        for (const [dir, rawEntry] of Object.entries(metadata.forbidden)) {
             const direction = dir as Direction
             if (!processedDirections.has(direction)) {
                 processedDirections.add(direction)
+                const entry = normalizeForbiddenEntry(rawEntry as ForbiddenExitEntry | string)
                 result.push({
                     direction,
                     availability: 'forbidden',
-                    reason
+                    reason: entry.reason,
+                    motif: entry.motif,
+                    reveal: entry.reveal ?? 'onTryMove'
                 })
             }
         }

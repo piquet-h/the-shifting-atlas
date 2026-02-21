@@ -13,7 +13,7 @@ describe('Exit Availability Edge Cases', () => {
     describe('Forbidden directions never generate', () => {
         test('forbidden direction returns forbidden availability', () => {
             const metadata: ExitAvailabilityMetadata = {
-                forbidden: { north: 'solid wall' }
+                forbidden: { north: { reason: 'solid wall' } }
             }
 
             const availability = determineExitAvailability('north', undefined, metadata)
@@ -23,9 +23,9 @@ describe('Exit Availability Edge Cases', () => {
         test('forbidden with reason', () => {
             const metadata: ExitAvailabilityMetadata = {
                 forbidden: {
-                    up: 'ceiling',
-                    down: 'solid floor',
-                    out: 'no visible exit'
+                    up: { reason: 'ceiling' },
+                    down: { reason: 'solid floor' },
+                    out: { reason: 'no visible exit' }
                 }
             }
 
@@ -45,7 +45,7 @@ describe('Exit Availability Edge Cases', () => {
         test('buildExitInfoArray does not include forbidden in pending', () => {
             const metadata: ExitAvailabilityMetadata = {
                 pending: { south: 'unexplored' },
-                forbidden: { north: 'wall' }
+                forbidden: { north: { reason: 'wall' } }
             }
 
             const exitInfo = buildExitInfoArray(undefined, metadata)
@@ -62,7 +62,7 @@ describe('Exit Availability Edge Cases', () => {
             // Hard exit takes precedence
             const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
             const metadata: ExitAvailabilityMetadata = {
-                forbidden: { north: 'should be ignored' }
+                forbidden: { north: { reason: 'should be ignored' } }
             }
 
             const availability = determineExitAvailability('north', exits, metadata)
@@ -89,7 +89,7 @@ describe('Exit Availability Edge Cases', () => {
             // If a direction is both forbidden and pending, forbidden wins
             const metadata: ExitAvailabilityMetadata = {
                 pending: { west: 'should be ignored' },
-                forbidden: { west: 'permanent wall' }
+                forbidden: { west: { reason: 'permanent wall' } }
             }
 
             const availability = determineExitAvailability('west', undefined, metadata)
@@ -178,7 +178,7 @@ describe('Exit Availability Edge Cases', () => {
             // when a hard exit exists but the direction is also marked forbidden
             const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
             const metadata: ExitAvailabilityMetadata = {
-                forbidden: { north: 'wall' }
+                forbidden: { north: { reason: 'wall' } }
             }
 
             // Detection logic
