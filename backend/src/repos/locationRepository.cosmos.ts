@@ -1,4 +1,4 @@
-import { Direction, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { Direction, ExitAvailabilityMetadata, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -16,6 +16,75 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         @inject(TelemetryService) protected telemetryService: TelemetryService
     ) {
         super(client, telemetryService)
+    }
+
+    /**
+     * Helper: Parse exitAvailability from Gremlin vertex properties.
+     * Handles malformed JSON gracefully and emits telemetry on conflicts.
+     */
+    private hydrateExitAvailability(
+        locationId: string,
+        v: Record<string, unknown>,
+        exits: Array<{ direction: string; to?: string; description?: string }>
+    ): ExitAvailabilityMetadata | undefined {
+        const pendingRaw = firstScalar(v.exitAvailabilityPendingJson)
+        const forbiddenRaw = firstScalar(v.exitAvailabilityForbiddenJson)
+
+        if (!pendingRaw && !forbiddenRaw) return undefined
+
+        const result: ExitAvailabilityMetadata = {}
+
+        if (pendingRaw) {
+            try {
+                result.pending = JSON.parse(pendingRaw) as Record<string, string>
+            } catch (error) {
+                this.telemetryService?.trackGameEvent('World.ExitAvailability.Malformed', {
+                    locationId,
+                    property: 'exitAvailabilityPendingJson'
+                })
+                console.warn(`[LocationRepository] Malformed exitAvailabilityPendingJson for location ${locationId}:`, error)
+            }
+        }
+
+        if (forbiddenRaw) {
+            try {
+                result.forbidden = JSON.parse(forbiddenRaw) as Record<string, string>
+            } catch (error) {
+                this.telemetryService?.trackGameEvent('World.ExitAvailability.Malformed', {
+                    locationId,
+                    property: 'exitAvailabilityForbiddenJson'
+                })
+                console.warn(`[LocationRepository] Malformed exitAvailabilityForbiddenJson for location ${locationId}:`, error)
+            }
+        }
+
+        if (!result.pending && !result.forbidden) return undefined
+
+        // Detect hard exit conflicts with pending/forbidden metadata
+        if (exits.length > 0) {
+            const hardExitDirs = new Set(exits.map((e) => e.direction))
+            const conflictDirections: string[] = []
+
+            if (result.pending) {
+                for (const dir of Object.keys(result.pending)) {
+                    if (hardExitDirs.has(dir)) conflictDirections.push(dir)
+                }
+            }
+            if (result.forbidden) {
+                for (const dir of Object.keys(result.forbidden)) {
+                    if (hardExitDirs.has(dir)) conflictDirections.push(dir)
+                }
+            }
+
+            if (conflictDirections.length > 0) {
+                this.telemetryService?.trackGameEvent('World.ExitAvailability.HardConflict', {
+                    locationId,
+                    conflictDirections: conflictDirections.join(',')
+                })
+            }
+        }
+
+        return result
     }
 
     /** Helper: Regenerate and update exits summary cache for a location */
@@ -82,7 +151,8 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                 exits,
                 tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined,
                 version: typeof v.version === 'number' ? v.version : undefined,
-                exitsSummaryCache: firstScalar(v.exitsSummaryCache) as string | undefined
+                exitsSummaryCache: firstScalar(v.exitsSummaryCache) as string | undefined,
+                exitAvailability: this.hydrateExitAvailability(id, v, exits)
             }
         } catch (error) {
             console.error(`[LocationRepository.get] Error fetching location ${id}:`, error)
@@ -257,6 +327,21 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
                     bindings[`tag${i}`] = location.tags[i]
                     query = query + `.property('tags', tag${i})`
                 }
+            }
+
+            // Persist exitAvailability as JSON-string vertex properties (deterministic, queryable)
+            // Always drop to handle removal; then set if non-empty
+            query = query + ".sideEffect(properties('exitAvailabilityPendingJson').drop())"
+            query = query + ".sideEffect(properties('exitAvailabilityForbiddenJson').drop())"
+
+            if (location.exitAvailability?.pending && Object.keys(location.exitAvailability.pending).length > 0) {
+                bindings['exitAvailabilityPendingJson'] = JSON.stringify(location.exitAvailability.pending)
+                query = query + ".property('exitAvailabilityPendingJson', exitAvailabilityPendingJson)"
+            }
+
+            if (location.exitAvailability?.forbidden && Object.keys(location.exitAvailability.forbidden).length > 0) {
+                bindings['exitAvailabilityForbiddenJson'] = JSON.stringify(location.exitAvailability.forbidden)
+                query = query + ".property('exitAvailabilityForbiddenJson', exitAvailabilityForbiddenJson)"
             }
 
             await this.queryWithTelemetry('location.upsert.write', query, bindings)
