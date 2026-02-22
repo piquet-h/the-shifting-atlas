@@ -48,7 +48,12 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
 
         if (forbiddenRaw) {
             try {
-                result.forbidden = JSON.parse(forbiddenRaw) as Record<string, string>
+                const parsed = JSON.parse(forbiddenRaw) as Record<string, unknown>
+                // Inline normalization mirrors normalizeForbiddenEntry() in shared/src/exitAvailability.ts.
+                // TODO: Replace with normalizeForbiddenEntry() once @piquet-h/shared ≥ 0.3.134 is consumed.
+                result.forbidden = Object.fromEntries(
+                    Object.entries(parsed).map(([dir, raw]) => [dir, typeof raw === 'string' ? { reason: raw, reveal: 'onTryMove' } : raw])
+                ) as ExitAvailabilityMetadata['forbidden']
             } catch (error) {
                 this.telemetryService?.trackGameEvent('World.ExitAvailability.Malformed', {
                     locationId,
