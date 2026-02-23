@@ -39,7 +39,7 @@ See:
     - Determine which authoritative context is required (player state, location state, nearby entities, recent events).
     - Interaction mode vocabulary (explicit dialogue vs implicit/fast-forward) and canonicality boundary are defined in `../../concept/interaction-modes-and-canonicality.md`.
 
-2a. **Select presentation mode (interaction mode + response tempo)** - Choose whether this turn should be rendered as explicit dialogue or implicit/fast-forward. - Choose response tempo (snappy vs immersive vs cinematic). - Defaults (when player setting is **Auto**): - `look` / `examine` → **Immersive** - high-stakes turns (combat, pursuit, discovery) may upgrade to **Cinematic** - Inputs: - explicit player preferences (setting) - per-turn cues (shorthand vs elaborated phrasing, stakes, ambiguity) - Player Interaction Profile (observed tendencies)
+2a. **Select presentation mode (interaction mode + response tempo)** - Choose whether this turn should be rendered as explicit dialogue or implicit/fast-forward. - Choose response tempo (snappy vs immersive vs cinematic). - Defaults (when player setting is **Auto**): - `look` / `examine` → **Immersive** - high-stakes turns (combat, pursuit, discovery) may upgrade to **Cinematic** - NPC talk turns default to **explicit dialogue** (players expect to wait for a reply) - Inputs: - explicit player preferences (setting) - per-turn cues (shorthand vs elaborated phrasing, stakes, ambiguity) - Player Interaction Profile (observed tendencies)
 
     Invariant: presentation choices must not change canonical outcomes; they only affect narration length/pacing.
 
@@ -62,6 +62,8 @@ See:
     Note: for immersive/cinematic tempo, narration may be delivered in multiple parts (e.g., a fast acknowledgement followed by richer detail) as long as canonical facts are not invented.
 
     Perception turns (`look`, `examine`) may choose bounded blocking narration generation to produce a single cohesive description (cache-first), provided the turn has no pending canonical writes. On timeout/failure, return a safe fallback and optionally enqueue async enrichment.
+
+    NPC dialogue turns are typically bounded blocking: the request waits for the agent’s reply. If the agent cannot obtain required context within the timeout, return a safe fallback response (no invented canon) and allow the player to retry.
 
 6. **Emit observability signals**
     - Ensure the correlation ID is propagated to all downstream tool calls and logged events.
@@ -86,4 +88,4 @@ See:
 
 ---
 
-_Last updated: 2026-01-30_
+_Last updated: 2026-02-23_

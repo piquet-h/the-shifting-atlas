@@ -7,8 +7,15 @@
 This document details how to build an **Intent Parser MCP Server** and **Intent Parser Agent** that transforms free-form player text (`"throw a rock at the seagull and then chase it"`) into structured, actionable game commands using Microsoft Agent Framework.
 
 **Status**: DESIGN SPECIFICATION - Intent parsing spec exists but not implemented  
-**Priority**: **P0 - Critical Foundation** (M3 - Required before AI narrative generation)  
+**Priority**: **High** — scheduling is tracked via GitHub milestones/issues (avoid hard-coding milestone sequencing in this doc)  
 **Related Specs**: `docs/design-modules/player-interaction-and-intents.md`, `docs/design-modules/entity-promotion.md`
+
+**Runtime posture**:
+
+- **Preferred**: Azure AI Foundry hosted agents as the orchestration runtime (Foundry-first posture).
+- **Alternative**: a separate Python Agent Framework host can be used for local experimentation or runtime portability.
+
+This document uses Python examples to make the boundary explicit, but the core requirement is unchanged: **agents are decision-makers; the backend remains authoritative for persistence and invariants**.
 
 ---
 
@@ -35,7 +42,7 @@ This document details how to build an **Intent Parser MCP Server** and **Intent 
 
 ---
 
-## Architecture Overview: TypeScript + Python Split
+## Architecture Overview: TypeScript + Agent Runtime Split
 
 ### Language Boundary
 
@@ -49,7 +56,7 @@ This document details how to build an **Intent Parser MCP Server** and **Intent 
 - ✅ Entity promotion, inventory management
 - ❌ NO AI decision-making
 
-**Python (Agent Framework)**:
+**Agent runtime (Foundry hosted agents or Python Agent Framework)**:
 
 - ✅ AI agents (decision-making only)
 - ✅ Workflows (multi-agent orchestration)
@@ -58,7 +65,7 @@ This document details how to build an **Intent Parser MCP Server** and **Intent 
 - ❌ NO direct database access
 - ❌ NO business logic duplication
 
-### Communication Pattern
+### Communication Pattern (conceptual)
 
 ```
 Player Browser (React/TypeScript)

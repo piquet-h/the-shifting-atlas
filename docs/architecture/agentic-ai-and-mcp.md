@@ -50,6 +50,35 @@ The backend remains the **sole authority** for:
 
 Agents (whatever runtime you use) are **proposal generators**: they suggest narration, layers, or structured changes; they never directly write authoritative state.
 
+#### Synchronous NPC dialogue (recommended default)
+
+For player-facing NPC dialogue, the default experience is **strictly synchronous**: the player submits input and waits for an immediate NPC response.
+
+In Foundry-first posture, the **agent runtime is the orchestrator** for that turn:
+
+1. Gameplay HTTP endpoint receives `{ playerId, npcId, inputText, correlationId }`.
+2. The endpoint invokes a Foundry-hosted **NPC / Narrator agent** (blocking, with a bounded timeout).
+3. The agent fetches authoritative context via **read-only MCP tools** (WorldContext-_, Lore-_, and any mechanics oracle you add).
+4. The agent performs a model generation to produce the NPC response.
+5. The endpoint returns the response to the player and persists any deterministic, low-risk artifacts (for example: a dialogue transcript and conversation-memory deltas).
+
+Important: in this synchronous path, **MCP tools are not the orchestrator**. Tools return structured facts; the agent composes and decides.
+
+Failure posture must be safe and explicit:
+
+- If tool calls fail or time out, do not invent canonical facts; return a bounded fallback and optionally enqueue async enrichment.
+- Any canonical mutation implied by the dialogue remains **proposal-only** (see “Mutation Admission Gates” below).
+
+This turn-level flow is captured at the workflow layer in `../workflows/foundry/resolve-player-command.md`.
+
+#### MCP Sampling (optional; not required for Foundry-first)
+
+MCP **Sampling** is a protocol feature that allows an MCP server to request an LLM generation from the **host/client** (for example, VS Code or a hosted agent runtime). Sampling is useful when you want MCP servers to benefit from the host’s model access controls without embedding their own model SDKs or credentials.
+
+In this repo’s default posture (Foundry-hosted agents as orchestrators), sampling is not required to deliver synchronous NPC dialogue: the orchestrating **agent** can call the model directly.
+
+If you introduce sampling later, prefer it for bounded helper work (summarization, classification, rewriting), not as a replacement for canonical fact retrieval.
+
 ##### Primary runtime: Azure AI Foundry hosted agents
 
 Azure AI Foundry is the intended hosted runtime for orchestration and tool use. When portal UI capabilities vary by tenant/API version, prefer reproducible SDK-based configuration.
@@ -78,6 +107,17 @@ No mutating MCP server (e.g., `world-mutation-mcp`) is enabled until ALL gates b
 7. Audit Gate: Telemetry event successfully emitted BEFORE persistence (write aborted if emission fails hard).
 
 Failure Handling: First failing gate stops evaluation; proposal returns a structured rejection (no partial passes). Retrying identical input without environmental change is discouraged unless failure reason was transient (rate or infrastructure).
+
+#### Propose vs commit (why read-only tools stay read-only)
+
+Read-only tools (for example, `Lore-*` and `WorldContext-*`) answer: “what is true right now?” and “what are the constraints?”. They are intentionally safe to call from agent runtimes.
+
+Write surfaces are separated into **proposal intake** and **deterministic commit**:
+
+- **Proposal intake** accepts a structured proposal (schema-validated) and returns an accept/reject result.
+- **Deterministic commit** runs gates (schema/safety/invariants/duplication/replay/rate/audit) and performs authoritative persistence.
+
+This separation keeps canonical mutations auditable and prevents bypassing cross-cutting governance by calling a domain tool directly.
 
 ### Layered Model
 

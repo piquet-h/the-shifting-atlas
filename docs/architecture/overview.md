@@ -156,6 +156,8 @@ Runtime note (launch posture): hosted agent runtimes (e.g., Azure AI Foundry hos
 
 Execution posture (2026-02): Azure AI Foundry hosted agents are the primary runtime target for orchestration and tool use; the backend MCP tool surface remains the stable contract.
 
+For synchronous, player-facing NPC dialogue turns, treat the Foundry agent runtime as the orchestrator: it composes tool results (facts/constraints) and produces the NPC response. The canonical single-turn sequencing is defined in `../workflows/foundry/resolve-player-command.md`.
+
 See `agentic-ai-and-mcp.md` for the full roadmap and server inventory.
 
 ### World Event Contract
@@ -227,4 +229,4 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ---
 
-_Last updated: 2025-10-22 (updated status accuracy date, added world event processor + Cosmos SQL API containers section, reflected dual persistence pattern)_
+_Last updated: 2026-02-23 (clarified synchronous Foundry turn orchestration pointer)_
