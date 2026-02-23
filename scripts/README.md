@@ -54,6 +54,117 @@ node scripts/seed-anchor-locations.mjs --data=custom-locations.json
 
 ---
 
+### `analyze-implicit-exits.mjs`
+
+Scans location descriptions for directional language patterns and reports directions that are narratively implied but not yet represented as explicit exits or `exitAvailability` entries.
+
+**Usage:**
+
+```bash
+node scripts/analyze-implicit-exits.mjs [--data=path] [--output=report.json]
+```
+
+**Options:**
+
+- `--data=<path>` — Path to locations JSON file relative to project root (default: `backend/src/data/villageLocations.json`)
+- `--output=<path>` — Write JSON report to file instead of stdout
+- `--help, -h` — Show help message
+
+**Output format (stdout or file):**
+
+```json
+{
+  "scannedAt": "...",
+  "summary": { "totalLocations": 34, "totalCandidates": 0, ... },
+  "candidates": [
+    {
+      "locationId": "...",
+      "locationName": "...",
+      "direction": "north",
+      "evidencePhrase": "…to the north, hills rise…",
+      "confidence": "medium",
+      "suggestedAvailability": "pending"
+    }
+  ],
+  "skipped": []
+}
+```
+
+**Pattern detection:**
+
+- **Forbidden indicators** (high confidence): "sheer cliffs block passage west", "impassable north", "no way through east"
+- **Pending indicators** (medium confidence): "to the north", "northward", "rises toward the south", "stretches beyond east"
+- **Pending indicators** (low confidence): "distant mountains north", "far to the west"
+
+Directions already covered by a hard exit, `exitAvailability.pending`, or `exitAvailability.forbidden` are automatically skipped.
+
+**Workflow:**
+
+```
+1. node scripts/analyze-implicit-exits.mjs --output=report.json
+2. Curator reviews report → edits scripts/implicit-exits-additions.json
+3. node scripts/apply-implicit-exits.mjs --dry-run   # preview
+4. node scripts/apply-implicit-exits.mjs             # apply
+5. git diff → review → commit
+```
+
+---
+
+### `apply-implicit-exits.mjs`
+
+Merges curated additions from `scripts/implicit-exits-additions.json` into `villageLocations.json` without overwriting existing exits or `exitAvailability` entries.
+
+**Usage:**
+
+```bash
+node scripts/apply-implicit-exits.mjs [--data=path] [--additions=path] [--dry-run]
+```
+
+**Options:**
+
+- `--data=<path>` — Path to locations JSON file relative to project root (default: `backend/src/data/villageLocations.json`)
+- `--additions=<path>` — Path to curated additions JSON (default: `scripts/implicit-exits-additions.json`)
+- `--dry-run` — Preview proposed changes without modifying any file
+- `--help, -h` — Show help message
+
+**Additions JSON format** (`scripts/implicit-exits-additions.json`):
+
+```json
+[
+  {
+    "locationId": "<uuid>",
+    "direction": "north",
+    "availability": "pending",
+    "reason": "Open countryside awaiting exploration"
+  },
+  {
+    "locationId": "<uuid>",
+    "direction": "west",
+    "availability": "forbidden",
+    "reason": "Sheer cliffs block passage",
+    "motif": "cliff",
+    "reveal": "onLook"
+  }
+]
+```
+
+**Safety guarantees:**
+
+- Hard exits are never overwritten
+- Existing `exitAvailability.pending` / `.forbidden` entries are never overwritten
+- Additions for unknown `locationId` values are skipped with a warning
+- All entries are validated before any writes
+
+**Manual review workflow:**
+
+1. Run `analyze-implicit-exits.mjs` to generate a candidate report
+2. Copy relevant candidates into `scripts/implicit-exits-additions.json`, editing `reason`, `motif`, and `reveal` as appropriate
+3. Run `apply-implicit-exits.mjs --dry-run` to preview
+4. Run `apply-implicit-exits.mjs` to apply
+5. Review `git diff backend/src/data/villageLocations.json` before committing
+
+---
+
 ### `scan-exits-consistency.mjs`
 
 Detects structural anomalies in the location graph (dangling exits, orphan locations).

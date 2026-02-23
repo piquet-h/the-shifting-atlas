@@ -4,7 +4,9 @@ import type { Direction } from '../src/domainModels.js'
 import {
     buildExitInfoArray,
     determineExitAvailability,
+    isForbiddenExitMotif,
     isExitAvailability,
+    normalizeForbiddenEntry,
     type ExitAvailabilityMetadata,
     type ExitInfo
 } from '../src/exitAvailability.js'
@@ -29,7 +31,7 @@ test('isExitAvailability: invalid states', () => {
 test('determineExitAvailability: hard exit takes precedence', () => {
     const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
     const metadata: ExitAvailabilityMetadata = {
-        forbidden: { north: 'wall' } // Data error: both hard and forbidden
+        forbidden: { north: { reason: 'wall' } } // Data error: both hard and forbidden
     }
 
     // Hard exit wins
@@ -46,7 +48,7 @@ test('determineExitAvailability: hard exit without metadata', () => {
 
 test('determineExitAvailability: forbidden without exit', () => {
     const metadata: ExitAvailabilityMetadata = {
-        forbidden: { south: 'chasm' }
+        forbidden: { south: { reason: 'chasm' } }
     }
 
     const result = determineExitAvailability('south', undefined, metadata)
@@ -65,7 +67,7 @@ test('determineExitAvailability: pending without exit', () => {
 test('determineExitAvailability: forbidden takes precedence over pending', () => {
     const metadata: ExitAvailabilityMetadata = {
         pending: { up: 'ceiling' },
-        forbidden: { up: 'solid stone' } // Data error: both pending and forbidden
+        forbidden: { up: { reason: 'solid stone' } } // Data error: both pending and forbidden
     }
 
     // Forbidden wins over pending
@@ -76,7 +78,7 @@ test('determineExitAvailability: forbidden takes precedence over pending', () =>
 test('determineExitAvailability: unknown direction', () => {
     const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
     const metadata: ExitAvailabilityMetadata = {
-        forbidden: { south: 'wall' }
+        forbidden: { south: { reason: 'wall' } }
     }
 
     const result = determineExitAvailability('west', exits, metadata)
@@ -150,8 +152,8 @@ test('buildExitInfoArray: pending exits with reasons', () => {
 test('buildExitInfoArray: forbidden exits with reasons', () => {
     const metadata: ExitAvailabilityMetadata = {
         forbidden: {
-            down: 'solid floor',
-            out: 'no exit visible'
+            down: { reason: 'solid floor' },
+            out: { reason: 'no exit visible' }
         }
     }
 
@@ -168,7 +170,7 @@ test('buildExitInfoArray: mixed hard, pending, and forbidden', () => {
     const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
     const metadata: ExitAvailabilityMetadata = {
         pending: { south: 'unexplored' },
-        forbidden: { east: 'wall', west: 'chasm' }
+        forbidden: { east: { reason: 'wall' }, west: { reason: 'chasm' } }
     }
 
     const result = buildExitInfoArray(exits, metadata)
@@ -210,7 +212,7 @@ test('buildExitInfoArray: hard exit overrides pending (data error)', () => {
 test('buildExitInfoArray: hard exit overrides forbidden (data error)', () => {
     const exits: Partial<Record<Direction, string>> = { south: 'loc-456' }
     const metadata: ExitAvailabilityMetadata = {
-        forbidden: { south: 'should be ignored' }
+        forbidden: { south: { reason: 'should be ignored' } }
     }
 
     const result = buildExitInfoArray(exits, metadata)
@@ -223,7 +225,7 @@ test('buildExitInfoArray: hard exit overrides forbidden (data error)', () => {
 test('buildExitInfoArray: forbidden overrides pending (data error)', () => {
     const metadata: ExitAvailabilityMetadata = {
         pending: { up: 'should be ignored' },
-        forbidden: { up: 'solid ceiling' }
+        forbidden: { up: { reason: 'solid ceiling' } }
     }
 
     const result = buildExitInfoArray(undefined, metadata)
@@ -257,7 +259,7 @@ test('edge case: location has no exits field at all (backward compat)', () => {
 test('edge case: direction is both forbidden and has hard exit (data error)', () => {
     const exits: Partial<Record<Direction, string>> = { north: 'loc-123' }
     const metadata: ExitAvailabilityMetadata = {
-        forbidden: { north: 'wall' }
+        forbidden: { north: { reason: 'wall' } }
     }
 
     // Hard wins, warning should be emitted (tested separately in handler)
@@ -304,21 +306,25 @@ test('serialization: ExitInfo can be JSON stringified', () => {
 test('serialization: ExitAvailabilityMetadata can be JSON stringified', () => {
     const metadata: ExitAvailabilityMetadata = {
         pending: { south: 'unexplored' },
-        forbidden: { up: 'solid ceiling', down: 'solid floor' }
+        forbidden: {
+            up: { reason: 'solid ceiling', motif: 'ruin' },
+            down: { reason: 'solid floor', motif: 'cliff', reveal: 'onLook' }
+        }
     }
 
     const json = JSON.stringify(metadata)
     const parsed = JSON.parse(json) as ExitAvailabilityMetadata
 
     assert.deepEqual(parsed.pending, { south: 'unexplored' })
-    assert.deepEqual(parsed.forbidden, { up: 'solid ceiling', down: 'solid floor' })
+    assert.deepEqual(parsed.forbidden?.up, { reason: 'solid ceiling', motif: 'ruin' })
+    assert.deepEqual(parsed.forbidden?.down, { reason: 'solid floor', motif: 'cliff', reveal: 'onLook' })
 })
 
 test('serialization: array of ExitInfo can be JSON stringified', () => {
     const exits: Partial<Record<Direction, string>> = { north: 'loc-123', south: 'loc-456' }
     const metadata: ExitAvailabilityMetadata = {
         pending: { west: 'unexplored' },
-        forbidden: { east: 'wall' }
+        forbidden: { east: { reason: 'wall', motif: 'ruin' } }
     }
 
     const exitInfoArray = buildExitInfoArray(exits, metadata)
@@ -327,4 +333,108 @@ test('serialization: array of ExitInfo can be JSON stringified', () => {
 
     assert.equal(parsed.length, 4)
     assert.ok(parsed.every((e) => isExitAvailability(e.availability)))
+})
+
+// --- isForbiddenExitMotif Tests ---
+
+test('isForbiddenExitMotif: valid motifs', () => {
+    assert.ok(isForbiddenExitMotif('cliff'))
+    assert.ok(isForbiddenExitMotif('ward'))
+    assert.ok(isForbiddenExitMotif('water'))
+    assert.ok(isForbiddenExitMotif('law'))
+    assert.ok(isForbiddenExitMotif('ruin'))
+})
+
+test('isForbiddenExitMotif: invalid values fail closed', () => {
+    assert.equal(isForbiddenExitMotif('wall'), false)
+    assert.equal(isForbiddenExitMotif('magic'), false)
+    assert.equal(isForbiddenExitMotif(''), false)
+    assert.equal(isForbiddenExitMotif('Cliff'), false) // case sensitive
+    assert.equal(isForbiddenExitMotif(undefined), false)
+    assert.equal(isForbiddenExitMotif(null), false)
+    assert.equal(isForbiddenExitMotif(42), false)
+})
+
+// --- normalizeForbiddenEntry Tests ---
+
+test('normalizeForbiddenEntry: legacy string → ForbiddenExitEntry with default reveal', () => {
+    const result = normalizeForbiddenEntry('Open sea bars passage')
+    assert.equal(result.reason, 'Open sea bars passage')
+    assert.equal(result.reveal, 'onTryMove')
+    assert.equal(result.motif, undefined)
+})
+
+test('normalizeForbiddenEntry: ForbiddenExitEntry passthrough', () => {
+    const entry = { reason: 'solid wall', motif: 'ruin' as const, reveal: 'onLook' as const }
+    const result = normalizeForbiddenEntry(entry)
+    assert.equal(result.reason, 'solid wall')
+    assert.equal(result.motif, 'ruin')
+    assert.equal(result.reveal, 'onLook')
+})
+
+test('normalizeForbiddenEntry: ForbiddenExitEntry without optional fields', () => {
+    const entry = { reason: 'no passage' }
+    const result = normalizeForbiddenEntry(entry)
+    assert.equal(result.reason, 'no passage')
+    assert.equal(result.motif, undefined)
+    assert.equal(result.reveal, undefined)
+})
+
+// --- ForbiddenExitEntry motif/reveal in buildExitInfoArray ---
+
+test('buildExitInfoArray: forbidden exit populates motif and reveal', () => {
+    const metadata: ExitAvailabilityMetadata = {
+        forbidden: {
+            south: { reason: 'Open sea bars passage', motif: 'water', reveal: 'onLook' }
+        }
+    }
+
+    const result = buildExitInfoArray(undefined, metadata)
+    const south = result.find((e) => e.direction === 'south')
+
+    assert.ok(south)
+    assert.equal(south.availability, 'forbidden')
+    assert.equal(south.reason, 'Open sea bars passage')
+    assert.equal(south.motif, 'water')
+    assert.equal(south.reveal, 'onLook')
+})
+
+test('buildExitInfoArray: forbidden exit without reveal defaults to onTryMove', () => {
+    const metadata: ExitAvailabilityMetadata = {
+        forbidden: { north: { reason: 'solid wall' } }
+    }
+
+    const result = buildExitInfoArray(undefined, metadata)
+    const north = result.find((e) => e.direction === 'north')
+
+    assert.ok(north)
+    assert.equal(north.reveal, 'onTryMove')
+})
+
+test('buildExitInfoArray: forbidden exit without motif has undefined motif', () => {
+    const metadata: ExitAvailabilityMetadata = {
+        forbidden: { west: { reason: 'steep drop' } }
+    }
+
+    const result = buildExitInfoArray(undefined, metadata)
+    const west = result.find((e) => e.direction === 'west')
+
+    assert.ok(west)
+    assert.equal(west.motif, undefined)
+})
+
+test('buildExitInfoArray: legacy string forbidden entry normalizes via normalizeForbiddenEntry', () => {
+    // normalizeForbiddenEntry is called for runtime hydration; this test validates behavior
+    // when the metadata already holds a ForbiddenExitEntry (the canonical runtime form)
+    const metadata: ExitAvailabilityMetadata = {
+        forbidden: { east: { reason: 'chasm below', motif: 'cliff' } }
+    }
+
+    const result = buildExitInfoArray(undefined, metadata)
+    const east = result.find((e) => e.direction === 'east')
+
+    assert.ok(east)
+    assert.equal(east.reason, 'chasm below')
+    assert.equal(east.motif, 'cliff')
+    assert.equal(east.reveal, 'onTryMove') // default applied
 })

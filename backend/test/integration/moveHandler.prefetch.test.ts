@@ -318,3 +318,92 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
         })
     })
 })
+
+/**
+ * Contract test: MoveHandler prefetch path with Cosmos-repository wiring.
+ *
+ * Verifies that when the location repository returns a destination with
+ * exitAvailability.pending (as CosmosLocationRepository would after hydration),
+ * MoveHandler invokes tryCreatePrefetchEvent and enqueues a batch generation event.
+ *
+ * Runs in memory mode always; runs in cosmos mode when PERSISTENCE_MODE=cosmos.
+ */
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
+import { getDebounceTracker } from '../../src/services/prefetchBatchGeneration.js'
+
+describeForBothModes('MoveHandler prefetch - Cosmos repository wiring contract', (mode) => {
+    let contractFixture: IntegrationTestFixture
+    let contractMoveHandler: MoveHandler
+    let contractLocationRepo: ILocationRepository
+    let contractEventPublisher: InMemoryWorldEventPublisher
+
+    beforeEach(async () => {
+        contractFixture = new IntegrationTestFixture(mode)
+        await contractFixture.setup()
+        const container = await contractFixture.getContainer()
+        contractMoveHandler = container.get(MoveHandler)
+        contractLocationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
+        contractEventPublisher = container.get<InMemoryWorldEventPublisher>(TOKENS.WorldEventPublisher)
+        contractEventPublisher.clear()
+        getDebounceTracker().clear()
+    })
+
+    afterEach(async () => {
+        await contractFixture.teardown()
+    })
+
+    test('Given destination with exitAvailability.pending, When MoveHandler arrives, Then prefetch is triggered', async () => {
+        const container = await contractFixture.getContainer()
+        const playerRepo = container.get<IPlayerRepository>(TOKENS.PlayerRepository)
+
+        // Set up: unique start and frontier locations to avoid conflicts with seeded world
+        const startId = uuidv4()
+        const destId = uuidv4()
+
+        await contractLocationRepo.upsert({
+            id: startId,
+            name: 'Contract Test Start',
+            description: 'Starting point for contract test',
+            terrain: 'open-plain',
+            exits: [{ direction: 'in', to: destId }],
+            version: 1
+        })
+        await contractLocationRepo.upsert({
+            id: destId,
+            name: 'Cosmos-Wired Frontier',
+            description: 'Testing exitAvailability round-trip with real repo',
+            terrain: 'open-plain',
+            exits: [{ direction: 'out', to: startId }],
+            exitAvailability: {
+                pending: {
+                    north: 'unexplored route',
+                    east: 'unknown territory'
+                }
+            },
+            version: 1
+        })
+        await contractLocationRepo.ensureExit(startId, 'in', destId)
+
+        // Verify repository returns exitAvailability (proves Cosmos hydration path)
+        const dest = await contractLocationRepo.get(destId)
+        assert.ok(dest?.exitAvailability?.pending, 'Repository must return exitAvailability.pending')
+
+        // Set up player at the start location
+        const testPlayerId = uuidv4()
+        const { record: testPlayer } = await playerRepo.getOrCreate(testPlayerId)
+        testPlayer.currentLocationId = startId
+        await playerRepo.update(testPlayer)
+
+        // Act: Move to the frontier location
+        const req = makeMoveRequest({ dir: 'in' }, {}, { playerId: testPlayerId }) as HttpRequest
+        const result = await contractMoveHandler.performMove(req)
+
+        assert.strictEqual(result.success, true, 'Move should succeed')
+        assert.ok(result.location, 'Destination location should be returned')
+
+        // Assert: prefetch event was enqueued (proves MoveHandler uses exitAvailability from repo)
+        const batchEvents = contractEventPublisher.enqueuedEvents.filter((e) => e.type === 'World.Location.BatchGenerate')
+        assert.ok(batchEvents.length > 0, 'A batch generation event should be enqueued on arrival at frontier')
+        assert.strictEqual(batchEvents[0].payload.rootLocationId, destId)
+    })
+})

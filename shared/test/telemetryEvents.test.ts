@@ -334,3 +334,57 @@ test('unknown MCP.* variant rejected', () => {
     assert.equal(isGameEventName('MCP.Tool.Unknown'), false, 'Unregistered MCP.Tool.* variant should be rejected')
     assert.equal(isGameEventName('MCP.Started'), false, 'Unregistered MCP.* variant should be rejected')
 })
+
+// Area generation telemetry events tests
+test('World.AreaGeneration.Started is registered', () => {
+    assert.ok(isGameEventName('World.AreaGeneration.Started'), 'World.AreaGeneration.Started should be recognized')
+})
+
+test('World.AreaGeneration.Completed is registered', () => {
+    assert.ok(isGameEventName('World.AreaGeneration.Completed'), 'World.AreaGeneration.Completed should be recognized')
+})
+
+test('World.AreaGeneration.Failed is registered', () => {
+    assert.ok(isGameEventName('World.AreaGeneration.Failed'), 'World.AreaGeneration.Failed should be recognized')
+})
+
+test('World.AreaGeneration events match telemetry pattern', () => {
+    const areaGenEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('World.AreaGeneration.'))
+    assert.ok(areaGenEvents.length === 3, `Expected 3 World.AreaGeneration events, found ${areaGenEvents.length}`)
+
+    for (const event of areaGenEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown World.AreaGeneration.* variant rejected', () => {
+    assert.equal(isGameEventName('World.AreaGeneration.Unknown'), false, 'Unknown World.AreaGeneration.* variant should be rejected')
+    assert.equal(isGameEventName('World.AreaGeneration.Retried'), false, 'Unregistered World.AreaGeneration.* variant should be rejected')
+})
+
+// Reconnection telemetry events tests
+test('World.Reconnection.Started is registered', () => {
+    assert.ok(isGameEventName('World.Reconnection.Started'), 'World.Reconnection.Started should be recognized')
+})
+
+test('World.Reconnection.Completed is registered', () => {
+    assert.ok(isGameEventName('World.Reconnection.Completed'), 'World.Reconnection.Completed should be recognized')
+})
+
+test('World.Reconnection.Failed is registered', () => {
+    assert.ok(isGameEventName('World.Reconnection.Failed'), 'World.Reconnection.Failed should be recognized')
+})
+
+test('World.Reconnection events match telemetry pattern', () => {
+    const reconnectionEvents = GAME_EVENT_NAMES.filter((name) => name.startsWith('World.Reconnection.'))
+    assert.ok(reconnectionEvents.length === 3, `Expected 3 World.Reconnection events, found ${reconnectionEvents.length}`)
+
+    for (const event of reconnectionEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+    }
+})
+
+test('unknown World.Reconnection.* variant rejected', () => {
+    assert.equal(isGameEventName('World.Reconnection.Unknown'), false, 'Unknown World.Reconnection.* variant should be rejected')
+    assert.equal(isGameEventName('World.Reconnection.Retried'), false, 'Unregistered World.Reconnection.* variant should be rejected')
+})
