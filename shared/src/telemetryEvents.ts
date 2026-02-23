@@ -79,6 +79,14 @@ export const GAME_EVENT_NAMES = [
     'World.BatchGeneration.Prefetch', // Prefetch triggered on arrival - properties: { rootLocationId, pendingExitCount, correlationId }
     'World.BatchPrefetch.Failed', // Prefetch failed (non-blocking) - properties: { rootLocationId, error, correlationId }
     'World.BatchGeneration.Debounced', // Prefetch debounced (already enqueued recently) - properties: { rootLocationId, correlationId }
+    // Area generation telemetry (area generation outcomes within a realm)
+    'World.AreaGeneration.Started', // Area generation initiated - properties: { realmKey, durationMs }
+    'World.AreaGeneration.Completed', // Area generation completed - properties: { realmKey, createdCount, durationMs }
+    'World.AreaGeneration.Failed', // Area generation failed - properties: { realmKey, reason, durationMs }
+    // Reconnection telemetry (exit reconnection outcomes within a realm)
+    'World.Reconnection.Started', // Reconnection pass initiated - properties: { realmKey }
+    'World.Reconnection.Completed', // Reconnection pass completed - properties: { realmKey, reconnectedCount, durationMs }
+    'World.Reconnection.Failed', // Reconnection pass failed - properties: { realmKey, reason, durationMs }
     // Exit availability metadata integrity (Issue #849 - exitAvailability Cosmos persistence)
     'World.ExitAvailability.Malformed', // exitAvailability JSON property malformed on read - properties: { locationId, property }
     'World.ExitAvailability.HardConflict', // Hard exit edge and pending/forbidden entry for same direction - properties: { locationId, conflictDirections }
