@@ -44,8 +44,10 @@ export class WorldOperationsHandler {
      * - enqueuedCount / anchorLocationId / terrain / clamped / maxBudget on success
      * - error / message on failure
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async triggerAreaGeneration(toolArguments: unknown, _context: InvocationContext): Promise<string> {
+    // context is part of the MCP handler signature contract; the DI container is retrieved
+    // by the exported wrapper function (triggerAreaGeneration below), not by this method.
+    async triggerAreaGeneration(toolArguments: unknown, context: InvocationContext): Promise<string> {
+        void context
         const toolArgs = toolArguments as ToolArgs<TriggerAreaGenerationArgs>
         const args = toolArgs?.arguments ?? {}
 

@@ -24,7 +24,8 @@ import { InMemoryWorldEventPublisher } from '../../src/worldEvents/worldEventPub
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
-// MCP handlers accept InvocationContext but don't use it (void context pattern)
+// The handler class method voids context; the exported wrapper uses it for DI.
+// Tests call the handler method directly so an empty mock is sufficient.
 const mockContext = {} as InvocationContext
 
 describe('MCP trigger-area-generation handler (Integration - memory mode)', () => {
