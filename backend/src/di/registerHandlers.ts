@@ -2,6 +2,7 @@ import type { Container } from 'inversify'
 
 import { BootstrapPlayerHandler } from '../handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from '../handlers/containerHealth.js'
+import { GenerateAreaHandler } from '../handlers/generateArea.js'
 import { GetExitsHandler } from '../handlers/getExits.js'
 import { GetPromptTemplateHandler } from '../handlers/getPromptTemplate.js'
 import { GremlinHealthHandler } from '../handlers/gremlinHealth.js'
@@ -42,6 +43,7 @@ export const HANDLER_CLASSES = [
     PlayerCreateHandler,
     PlayerGetHandler,
     ContainerHealthHandler,
+    GenerateAreaHandler,
 
     // Queue handlers
     QueueProcessWorldEventHandler,
