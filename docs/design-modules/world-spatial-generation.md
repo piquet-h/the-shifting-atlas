@@ -2,7 +2,7 @@
 
 **Focus**: AI-driven world expansion that creates navigable topology from narrative descriptions, enabling organic frontier growth without rigid spatial rules.
 
-**Status**: Planned (M4 Layering & Enrichment)
+**Status**: Implemented (M4b area generation + reconnection epic)
 
 ---
 
@@ -295,12 +295,14 @@ Candidates are identified by traversing the exit graph outward from the newly ge
 
 ## Milestone Alignment
 
-| Milestone | Deliverable                                           | Status |
-| --------- | ----------------------------------------------------- | ------ |
-| M3        | AI read-only integration (MCP servers, cost tracking) | 🚧     |
-| M4        | Batch generation handler + exit inference service     | 📋     |
-| M4        | Terrain guidance system + prompt templates            | 📋     |
-| M5        | Dynamic topology (seasonal variations, obstacles)     | 📋     |
+| Milestone | Deliverable                                                       | Status |
+| --------- | ----------------------------------------------------------------- | ------ |
+| M3        | AI read-only integration (MCP servers, cost tracking)             | ✅     |
+| M4        | Batch generation handler + exit inference service                 | ✅     |
+| M4        | Terrain guidance system + prompt templates                        | ✅     |
+| M4        | Area generation orchestrator + operator entrypoint                | ✅     |
+| M4        | TemporalProximityService + travelDurationMs exit persistence      | ✅     |
+| M5        | Dynamic topology (seasonal variations, obstacles)                 | 📋     |
 
 ---
 

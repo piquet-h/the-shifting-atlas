@@ -79,10 +79,10 @@ export const GAME_EVENT_NAMES = [
     'World.BatchGeneration.Prefetch', // Prefetch triggered on arrival - properties: { rootLocationId, pendingExitCount, correlationId }
     'World.BatchPrefetch.Failed', // Prefetch failed (non-blocking) - properties: { rootLocationId, error, correlationId }
     'World.BatchGeneration.Debounced', // Prefetch debounced (already enqueued recently) - properties: { rootLocationId, correlationId }
-    // Area generation telemetry (area generation outcomes within a realm)
-    'World.AreaGeneration.Started', // Area generation initiated - properties: { realmKey, durationMs }
-    'World.AreaGeneration.Completed', // Area generation completed - properties: { realmKey, createdCount, durationMs }
-    'World.AreaGeneration.Failed', // Area generation failed - properties: { realmKey, reason, durationMs }
+    // Area generation telemetry (operator-triggered area generation via AreaGenerationOrchestrator)
+    'World.AreaGeneration.Started', // Area generation initiated - properties: { anchorLocationId, mode, budgetLocations, idempotencyKey, correlationId }
+    'World.AreaGeneration.Completed', // Area generation completed - properties: { anchorLocationId, mode, batchSize, terrain, clamped, idempotencyKey, correlationId, durationMs }
+    'World.AreaGeneration.Failed', // Area generation failed - properties: { anchorLocationId, mode, reason, idempotencyKey, correlationId, durationMs }
     // Reconnection telemetry (exit reconnection outcomes within a realm)
     'World.Reconnection.Started', // Reconnection pass initiated - properties: { realmKey }
     'World.Reconnection.Completed', // Reconnection pass completed - properties: { realmKey, reconnectedCount, durationMs }
