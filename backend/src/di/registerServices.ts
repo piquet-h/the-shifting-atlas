@@ -17,6 +17,7 @@ import { LocationClockManager } from '../services/LocationClockManager.js'
 import { PlayerClockService } from '../services/PlayerClockService.js'
 import { RealmService } from '../services/RealmService.js'
 import { ReconcileEngine } from '../services/ReconcileEngine.js'
+import { TemporalProximityService, type ITemporalProximityService } from '../services/temporalProximityService.js'
 import type { IWorldClockService } from '../services/types.js'
 import { WorldClockService } from '../services/WorldClockService.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -66,6 +67,9 @@ export function registerCoreServices(container: Container): void {
     container.bind(WorldClockService).toSelf().inSingletonScope()
 
     container.bind(ReconcileEngine).toSelf().inSingletonScope()
+
+    // Temporal proximity service (graph BFS over exit edges)
+    container.bind<ITemporalProximityService>(TOKENS.TemporalProximityService).to(TemporalProximityService).inSingletonScope()
 }
 
 export function registerClock(container: Container, createClock: () => IClock): void {
