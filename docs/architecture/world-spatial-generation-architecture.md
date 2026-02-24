@@ -386,13 +386,13 @@ Terrain guidance provides contextual hints to AI without enforcing rigid rules. 
 
 **Complete Terrain Guidance Table**:
 
-| Terrain Type | Typical Exits | Pattern | Default Directions | Prompt Hint |
-|--------------|---------------|---------|-------------------|-------------|
-| `open-plain` | 4 | `cardinal` | N, S, E, W | Open plains typically allow travel in multiple directions unless narrative obstacles (fog, cliffs, swamps) are present. |
-| `dense-forest` | 2 | `linear` | *none* (AI justification required) | Dense forests may limit visible exits to clearings or paths, but clever players might detect game trails. |
-| `hilltop` | 5 | `radial` | N, S, E, W, down | Hilltops offer panoramic views suggesting multiple descent routes unless sheer cliffs block specific directions. |
-| `riverbank` | 3 | `custom` | *none* (depends on water flow) | Riverbanks permit travel parallel to water flow; perpendicular crossings require bridges or fords. Consider current direction. |
-| `narrow-corridor` | 2 | `linear` | *none* (AI justification required) | Corridors permit forward/back movement, but consider alcoves or climbing opportunities for additional exits. |
+| Terrain Type      | Typical Exits | Pattern    | Default Directions                 | Prompt Hint                                                                                                                    |
+| ----------------- | ------------- | ---------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `open-plain`      | 4             | `cardinal` | N, S, E, W                         | Open plains typically allow travel in multiple directions unless narrative obstacles (fog, cliffs, swamps) are present.        |
+| `dense-forest`    | 2             | `linear`   | _none_ (AI justification required) | Dense forests may limit visible exits to clearings or paths, but clever players might detect game trails.                      |
+| `hilltop`         | 5             | `radial`   | N, S, E, W, down                   | Hilltops offer panoramic views suggesting multiple descent routes unless sheer cliffs block specific directions.               |
+| `riverbank`       | 3             | `custom`   | _none_ (depends on water flow)     | Riverbanks permit travel parallel to water flow; perpendicular crossings require bridges or fords. Consider current direction. |
+| `narrow-corridor` | 2             | `linear`   | _none_ (AI justification required) | Corridors permit forward/back movement, but consider alcoves or climbing opportunities for additional exits.                   |
 
 **Override Scenarios** (AI contextual decisions):
 
@@ -414,9 +414,8 @@ console.log(guidance.promptHint)
 // "Open plains typically allow travel in multiple directions unless narrative obstacles..."
 
 // Determine neighbor directions for batch generation
-const stubDirections = guidance.defaultDirections.length > 0
-    ? guidance.defaultDirections
-    : inferDirectionsFromContext(arrivalDirection, terrain)
+const stubDirections =
+    guidance.defaultDirections.length > 0 ? guidance.defaultDirections : inferDirectionsFromContext(arrivalDirection, terrain)
 
 // Validate inferred exits (warning only, not enforcement)
 if (inferredExits.length < guidance.typicalExitCount - 2) {
@@ -554,6 +553,70 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 
 ---
 
+## Narrative-Time Reconnection Contract
+
+See gameplay semantics in [World Spatial Generation – Narrative-Time Reconnection](../design-modules/world-spatial-generation.md#narrative-time-reconnection).
+
+### Exit edge schema additions
+
+New optional property on every Gremlin exit edge:
+
+| Property           | Type     | Required                                          | Description                                                |
+| ------------------ | -------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| `travelDurationMs` | `number` | No (defaults to `ActionRegistry` `move` baseline) | Narrative travel cost for this single edge in milliseconds |
+
+When `travelDurationMs` is absent, callers fall back to `ActionRegistry.getDuration('move')` (currently 60 000 ms).
+
+### Graph traversal service interface
+
+```typescript
+interface IGraphProximityService {
+    /**
+     * Traverse exit graph outward from `originId` up to `maxHops`, accumulating
+     * travelDurationMs per edge. Returns all reachable location IDs with their
+     * accumulated travel time, excluding `originId` itself.
+     */
+    findWithinTravelTime(
+        originId: string,
+        maxHops: number,
+        maxAccumulatedMs: number
+    ): Promise<Array<{ locationId: string; accumulatedMs: number; hopCount: number }>>
+
+    /**
+     * Checks whether a direct reconnection exit between `candidateId` and `targetId`
+     * would be travel-time consistent. Returns the verdict and the path found.
+     *
+     * Acceptance criteria:
+     *   - candidateId is reachable from targetId via the existing graph (no cycles).
+     *   - accumulatedMs along the existing path ≤ directMs × RECONNECT_TOLERANCE_FACTOR.
+     *   - No description contradiction detected by AI consistency check.
+     */
+    checkDirectReconnection(
+        candidateId: string,
+        targetId: string,
+        directMs: number
+    ): Promise<{ accepted: boolean; reason: string; existingPathMs?: number }>
+}
+```
+
+### Reconnection tolerance configuration
+
+New environment variables (add to `backend/local.settings.json` and Azure App Settings):
+
+```json
+"SPATIAL_RECONNECT_TOLERANCE_FACTOR": "2.0",
+"SPATIAL_RECONNECT_MAX_HOPS": "6"
+```
+
+- `SPATIAL_RECONNECT_TOLERANCE_FACTOR`: Maximum ratio of existing-path `travelDurationMs` to proposed direct edge `travelDurationMs` (default `2.0`).
+- `SPATIAL_RECONNECT_MAX_HOPS`: Graph search depth cap for proximity traversal (default `6`).
+
+### Tie-break rule
+
+If multiple reconnection candidates pass both the travel-time gate and the description consistency gate, the candidate with the **lowest `hopCount`** is chosen. Ties on `hopCount` are broken by **lowest `accumulatedMs`**.
+
+---
+
 ## Security & Cost Controls
 
 ### API Key Management
@@ -583,7 +646,8 @@ If BatchGenerate fails after creating stubs but before generating descriptions:
 - **Tenet #7**: Narrative Consistency (AI-driven spatial logic)
 - **Concept**: [Exits](../concept/exits.md), [Direction Resolution](../concept/direction-resolution-rules.md)
 - **Issue #258**: World Event Type-Specific Payload Handlers (ExitCreateHandler foundation)
+- **Design Module**: [Narrative-Time Reconnection](../design-modules/world-spatial-generation.md#narrative-time-reconnection)
 
 ---
 
-_Last updated: 2025-11-25 (initial creation)_
+_Last updated: 2026-02-24 (add narrative-time reconnection contract)_

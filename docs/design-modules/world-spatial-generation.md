@@ -8,11 +8,11 @@
 
 ## Objectives
 
--   **Hybrid expansion**: Combine player-triggered exploration with scheduled world building for organic discovery
--   **Description-driven topology**: Extract exits from AI-generated prose rather than imposing predetermined spatial templates
--   **Narrative consistency**: Ensure every location's description explains its traversal affordances (per Tenet #7)
--   **Cost efficiency**: Batch AI description generation to minimize API calls and latency
--   **Terrain-aware guidance**: Provide contextual hints to AI without rigid constraints
+- **Hybrid expansion**: Combine player-triggered exploration with scheduled world building for organic discovery
+- **Description-driven topology**: Extract exits from AI-generated prose rather than imposing predetermined spatial templates
+- **Narrative consistency**: Ensure every location's description explains its traversal affordances (per Tenet #7)
+- **Cost efficiency**: Batch AI description generation to minimize API calls and latency
+- **Terrain-aware guidance**: Provide contextual hints to AI without rigid constraints
 
 ---
 
@@ -26,9 +26,9 @@
 
 ### Event Types
 
--   `World.Location.BatchGenerate`: Eager creation of root location + immediate neighbors with batched AI descriptions
--   `World.Exit.Create`: Individual exit creation (handled by ExitCreateHandler per Issue #258)
--   `World.Exit.InferFromDescription`: AI-driven exit extraction from existing location prose
+- `World.Location.BatchGenerate`: Eager creation of root location + immediate neighbors with batched AI descriptions
+- `World.Exit.Create`: Individual exit creation (handled by ExitCreateHandler per Issue #258)
+- `World.Exit.InferFromDescription`: AI-driven exit extraction from existing location prose
 
 ### Exit Inference Contract
 
@@ -67,22 +67,22 @@ interface InferredExit {
 
 **✅ Encouraged**:
 
--   AI decides if a river is crossable based on narrative ("swift current churns" → no east exit)
--   Seasonal variations affect topology (frozen lake → walkable; thawed → requires boat)
--   Dynamic obstacles modify exits without rewriting descriptions (fire blocks passage → temporary exit removal via world state overlay)
+- AI decides if a river is crossable based on narrative ("swift current churns" → no east exit)
+- Seasonal variations affect topology (frozen lake → walkable; thawed → requires boat)
+- Dynamic obstacles modify exits without rewriting descriptions (fire blocks passage → temporary exit removal via world state overlay)
 
 **❌ Prohibited**:
 
--   Hard-coded rules like "all plains have 4 exits" (violates narrative primacy)
--   Ignoring description contradictions (if text says "sheer cliffs north", no north exit)
--   Generating exits without contextual justification
+- Hard-coded rules like "all plains have 4 exits" (violates narrative primacy)
+- Ignoring description contradictions (if text says "sheer cliffs north", no north exit)
+- Generating exits without contextual justification
 
 ### Performance & Cost Constraints
 
--   **Batch size**: Maximum 20 locations per AI batch call (split larger expansions into staggered events)
--   **Expansion depth**: Default `depth: 1` (root + immediate neighbors only); `depth: 2` exponentially increases generation load
--   **Rate limiting**: Stagger follow-up batches by 5+ seconds to avoid API throttling
--   **Cost target**: <$0.01 per location cluster (1 root + 4–8 neighbors via batch discount)
+- **Batch size**: Maximum 20 locations per AI batch call (split larger expansions into staggered events)
+- **Expansion depth**: Default `depth: 1` (root + immediate neighbors only); `depth: 2` exponentially increases generation load
+- **Rate limiting**: Stagger follow-up batches by 5+ seconds to avoid API throttling
+- **Cost target**: <$0.01 per location cluster (1 root + 4–8 neighbors via batch discount)
 
 ---
 
@@ -239,13 +239,33 @@ System logs contradiction for curator review.
 
 ---
 
+## Narrative-Time Reconnection
+
+When expanding the world, the system may encounter a newly generated neighbor whose description implies it could connect back to an already-mapped location by an alternative path (e.g., a path round a forest edge, a river joining a lake shore). This avoids the world growing as disconnected finger-branches with no cross-connections.
+
+### Invariants
+
+1. **Graph proximity, not coordinates**: Reconnection candidates are identified by traversing the Gremlin exit graph outward from the new location up to a configurable hop limit, not by spatial grid distance. There are no (x, y) coordinates.
+2. **Travel-time gate**: An edge-level `travelDurationMs` property records the narrative cost of each traversal. A candidate reconnection is only offered if the sum of travel durations along the candidate graph path does not exceed the sum along the original path by more than a configurable tolerance (default: ≤ 2× original). This prevents nonsensical shortcuts.
+3. **Description consistency gate**: Reconnection is only accepted when the AI confirms both endpoint descriptions are mutually consistent (no contradictions like "sheer cliff" on one side, "gentle slope" on the other). Contradictions are logged for curator review and the reconnection is not created.
+4. **No coordinate arithmetic**: The graph is the geometry. Hop count and accumulated `travelDurationMs` are the only spatial measurements.
+5. **Reciprocal required**: Any reconnection exit is created bidirectionally; a one-way reconnect is a bug.
+
+### Player experience
+
+- Players may discover they can return to a known location via an unexpected route.
+- The world feels more continuous and less tree-like after multiple expansions.
+- No reconnection is ever revealed before description consistency is verified.
+
+---
+
 ## Dependencies
 
--   **Navigation & Traversal**: Exit creation mechanics, direction normalization
--   **Description Layering**: Base descriptions remain immutable; inference uses composite prose
--   **AI Prompt Engineering**: Prompt templates for batch generation and exit inference
--   **World Event Handlers**: `ExitCreateHandler` (Issue #258), new `BatchGenerateHandler`
--   **Player Identity**: Player-triggered expansion requires player location tracking
+- **Navigation & Traversal**: Exit creation mechanics, direction normalization
+- **Description Layering**: Base descriptions remain immutable; inference uses composite prose
+- **AI Prompt Engineering**: Prompt templates for batch generation and exit inference
+- **World Event Handlers**: `ExitCreateHandler` (Issue #258), new `BatchGenerateHandler`
+- **Player Identity**: Player-triggered expansion requires player location tracking
 
 ---
 
@@ -262,14 +282,14 @@ System logs contradiction for curator review.
 
 ## Related Documentation
 
--   **Design Module**: Description Layering & Variation
--   **Design Module**: AI Prompt Engineering
--   **Tenet #7**: Narrative Consistency (AI-driven decision-making)
--   **Concept**: Exits (`../concept/exits.md`)
--   **Concept**: Direction Resolution (`../concept/direction-resolution-rules.md`)
--   **Architecture**: (TBD: `world-spatial-generation-architecture.md`)
--   **Issue #258**: World Event Type-Specific Payload Handlers (ExitCreateHandler)
+- **Design Module**: Description Layering & Variation
+- **Design Module**: AI Prompt Engineering
+- **Tenet #7**: Narrative Consistency (AI-driven decision-making)
+- **Concept**: Exits (`../concept/exits.md`)
+- **Concept**: Direction Resolution (`../concept/direction-resolution-rules.md`)
+- **Architecture**: [`world-spatial-generation-architecture.md`](../architecture/world-spatial-generation-architecture.md)
+- **Issue #258**: World Event Type-Specific Payload Handlers (ExitCreateHandler)
 
 ---
 
-_Last updated: 2025-11-25 (initial creation)_
+_Last updated: 2026-02-24 (add narrative-time reconnection section)_
