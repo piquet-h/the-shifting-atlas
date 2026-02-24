@@ -449,4 +449,402 @@ describe('BatchGenerateHandler Integration', () => {
             assert.equal(eastExit.to, lexSmallest, 'Phase 2 should pick the lexicographically smallest tied candidate')
         })
     })
+
+    describe('Reconnection: ms-Aligned Travel Durations (300k ms)', () => {
+        it('should close the around-the-block loop: 300k ms N + 300k ms E → batch from NE reconnects to Start via Phase 2', async () => {
+            // Arrange:
+            //   Start (R) ──north 300k ms──> L_N ──east 300k ms──> L_NE
+            //                                ↑                        │
+            //                             (south)                  (west)
+            //
+            // Batch generate from L_NE, travelDurationMs=300k ms, arrivalDirection='east'.
+            // Budget = 2 × 300k = 600k ms.
+            //
+            // Phase 1: 'west' exit exists → reconnect to L_N.
+            // Stub directions remaining: ['north', 'south'].
+            // Phase 2 candidates from L_NE within 600k ms:
+            //   L_N  (1 hop, 300k ms) – already used by Phase 1.
+            //   R    (2 hops, 300k+300k = 600k ms) – available → assigned to 'north' stub.
+            // 'south' → no remaining candidates → 1 new stub.
+            //
+            // Expected: 1 new location (south), 2 reconnections (west→L_N, north→R).
+            const rId = uuidv4()
+            const lNorthId = uuidv4()
+            const lNEId = uuidv4()
+
+            await locationRepo.upsert({
+                id: rId,
+                name: 'Start',
+                description: 'Starting point',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lNorthId,
+                name: 'North',
+                description: 'North location',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lNEId,
+                name: 'NE Clearing',
+                description: 'Northeast clearing',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+
+            // Wire exits with explicit 300k ms travel durations
+            await locationRepo.ensureExitBidirectional(rId, 'north', lNorthId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rId, 'north', 300_000)
+            await locationRepo.setExitTravelDuration(lNorthId, 'south', 300_000)
+
+            await locationRepo.ensureExitBidirectional(lNorthId, 'east', lNEId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(lNorthId, 'east', 300_000)
+            await locationRepo.setExitTravelDuration(lNEId, 'west', 300_000)
+
+            const baselineCount = (await locationRepo.listAll()).length // 3
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: lNEId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'east', // Player arrived at L_NE by traveling east (from L_N)
+                    expansionDepth: 1,
+                    batchSize: 3, // Wants: north, south, west
+                    travelDurationMs: 300_000
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+
+            // Assert: handler succeeded
+            assert.equal(result.outcome, 'success')
+
+            // 'west' reconnects to L_N (Phase 1 direct).
+            // 'north' reconnects to R (Phase 2 – 2 hops × 300k ms = 600k ms = budget limit).
+            // 'south' gets a new stub (no candidates remaining).
+            const allLocations = await locationRepo.listAll()
+            const newCount = allLocations.length - baselineCount
+            assert.equal(newCount, 1, 'Should create exactly 1 new stub (south only); north and west reconnected')
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 1, 'locationsGenerated should be 1')
+            assert.equal(completedEvent.properties.reconnectionsCreated, 2, 'reconnectionsCreated should be 2 (north→R and west→L_N)')
+
+            // Verify the loop is actually closed: L_NE should now have a north exit pointing to R
+            const lNEAfter = await locationRepo.get(lNEId)
+            const northExit = lNEAfter?.exits?.find((e) => e.direction === 'north')
+            assert.ok(northExit, 'L_NE should have a north exit after Phase 2 loop closure')
+            assert.equal(northExit.to, rId, 'L_NE north exit should point back to Start (R), closing the loop')
+        })
+
+        it('should stitch two wilderness paths within 300k ms budget deterministically', async () => {
+            // Arrange:
+            //   L_A ──east──>  HUB ──north──> ROOT (batch root, arrivalDirection='north')
+            //   L_B ──west──>  HUB
+            //
+            // ROOT has south exit to HUB (Phase 1 direct reconnect).
+            // HUB has north→L_A and south→L_B each at 300k ms.
+            // Both L_A and L_B are 2 hops (600k ms) from ROOT – exactly at budget.
+            // Deterministic tie-break: lex-smallest id wins 'east' stub; lex-largest wins 'west' stub.
+            // Expected: 0 new stubs, 3 reconnections.
+            const rootId = uuidv4()
+            const hubId = uuidv4()
+            const idA = uuidv4()
+            const idB = uuidv4()
+            const lexSmallest = [idA, idB].sort()[0]
+            const lexLargest = [idA, idB].sort()[1]
+
+            for (const [id, name] of [
+                [rootId, 'Root'],
+                [hubId, 'Hub'],
+                [idA, 'Branch A'],
+                [idB, 'Branch B']
+            ]) {
+                await locationRepo.upsert({ id, name, description: '', terrain: 'open-plain', tags: [], exits: [], version: 1 })
+            }
+
+            // ROOT→south→HUB with 300k ms (Phase 1 direct hit for 'south')
+            await locationRepo.ensureExitBidirectional(rootId, 'south', hubId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rootId, 'south', 300_000)
+            await locationRepo.setExitTravelDuration(hubId, 'north', 300_000)
+
+            // HUB→east→L_A and HUB→west→L_B (both 2 hops, 600k ms from ROOT)
+            await locationRepo.ensureExitBidirectional(hubId, 'east', idA, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(hubId, 'east', 300_000)
+            await locationRepo.setExitTravelDuration(idA, 'west', 300_000)
+
+            await locationRepo.ensureExitBidirectional(hubId, 'west', idB, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(hubId, 'west', 300_000)
+            await locationRepo.setExitTravelDuration(idB, 'east', 300_000)
+
+            const baselineCount = (await locationRepo.listAll()).length // 4
+
+            // open-plain default directions: [north, south, east, west]
+            // arrivalDirection='north' filtered → [south, east, west]; batchSize=3
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'north',
+                    expansionDepth: 1,
+                    batchSize: 3,
+                    travelDurationMs: 300_000
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // 0 new stubs: south→HUB (Phase 1), east→lex-smallest (Phase 2), west→lex-largest (Phase 2)
+            const allLocations = await locationRepo.listAll()
+            assert.equal(allLocations.length - baselineCount, 0, 'No new stubs: all 3 directions stitched within 300k ms budget')
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 0, 'locationsGenerated should be 0')
+            assert.equal(completedEvent.properties.reconnectionsCreated, 3, 'reconnectionsCreated should be 3')
+
+            // Verify deterministic tie-break for the two equidistant branches
+            const rootAfter = await locationRepo.get(rootId)
+            const eastExit = rootAfter?.exits?.find((e) => e.direction === 'east')
+            const westExit = rootAfter?.exits?.find((e) => e.direction === 'west')
+            assert.ok(eastExit, "ROOT should have an 'east' exit")
+            assert.ok(westExit, "ROOT should have a 'west' exit")
+            assert.equal(eastExit.to, lexSmallest, 'east exit should point to lex-smallest candidate (deterministic)')
+            assert.equal(westExit.to, lexLargest, 'west exit should point to lex-largest candidate (deterministic)')
+        })
+
+        it('should not stitch across realmKey boundaries during Phase 2 wilderness reconnection', async () => {
+            // Arrange:
+            //   ROOT (realm:A) ──south──> BRIDGE (realm:A) ──east──> L_SAME (realm:A)
+            //                                                ──west──> L_OTHER (realm:B)
+            //
+            // Batch generate from ROOT with realmKey='realm:A', travelDurationMs=300k ms.
+            // Phase 1: south→BRIDGE (direct).
+            // Phase 2 budget=600k ms; candidates filtered to realm:A only.
+            //   BRIDGE (realm:A, 1 hop, 300k) – used.
+            //   L_SAME (realm:A, 2 hops, 600k) – available → stitched to 'east' stub.
+            //   L_OTHER (realm:B, 2 hops, 600k) – excluded by realmKey filter → 'west' gets a new stub.
+            // Expected: 1 new stub (west), 2 reconnections (south→BRIDGE Phase 1, east→L_SAME Phase 2).
+            const rootId = uuidv4()
+            const bridgeId = uuidv4()
+            const lSameId = uuidv4()
+            const lOtherId = uuidv4()
+
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Root',
+                description: '',
+                terrain: 'open-plain',
+                tags: ['realm:A'],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: bridgeId,
+                name: 'Bridge',
+                description: '',
+                terrain: 'open-plain',
+                tags: ['realm:A'],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lSameId,
+                name: 'Same Realm',
+                description: '',
+                terrain: 'open-plain',
+                tags: ['realm:A'],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lOtherId,
+                name: 'Other Realm',
+                description: '',
+                terrain: 'open-plain',
+                tags: ['realm:B'],
+                exits: [],
+                version: 1
+            })
+
+            // ROOT→south→BRIDGE (Phase 1 direct)
+            await locationRepo.ensureExitBidirectional(rootId, 'south', bridgeId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rootId, 'south', 300_000)
+            await locationRepo.setExitTravelDuration(bridgeId, 'north', 300_000)
+
+            // BRIDGE→east→L_SAME (same realm, 2 hops from ROOT)
+            await locationRepo.ensureExitBidirectional(bridgeId, 'east', lSameId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(bridgeId, 'east', 300_000)
+            await locationRepo.setExitTravelDuration(lSameId, 'west', 300_000)
+
+            // BRIDGE→west→L_OTHER (different realm, 2 hops from ROOT)
+            await locationRepo.ensureExitBidirectional(bridgeId, 'west', lOtherId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(bridgeId, 'west', 300_000)
+            await locationRepo.setExitTravelDuration(lOtherId, 'east', 300_000)
+
+            const baselineCount = (await locationRepo.listAll()).length // 4
+
+            // open-plain: [north, south, east, west]; filter arrivalDirection='north' → [south, east, west]
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'north',
+                    expansionDepth: 1,
+                    batchSize: 3,
+                    travelDurationMs: 300_000,
+                    realmKey: 'realm:A' // Only stitch within realm:A
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // 1 new stub (west – L_OTHER excluded by realm filter)
+            const allLocations = await locationRepo.listAll()
+            assert.equal(
+                allLocations.length - baselineCount,
+                1,
+                'Should create exactly 1 new stub (west); L_OTHER excluded by realmKey filter'
+            )
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 1, 'locationsGenerated should be 1 (west stub)')
+            assert.equal(
+                completedEvent.properties.reconnectionsCreated,
+                2,
+                'reconnectionsCreated should be 2 (south→BRIDGE Phase 1, east→L_SAME Phase 2)'
+            )
+
+            // Verify east exit points to L_SAME (same realm), NOT L_OTHER (different realm)
+            const rootAfter = await locationRepo.get(rootId)
+            const eastExit = rootAfter?.exits?.find((e) => e.direction === 'east')
+            assert.ok(eastExit, "ROOT should have an 'east' exit via Phase 2 stitching")
+            assert.equal(eastExit.to, lSameId, 'east exit should stitch to L_SAME (same realm), not L_OTHER')
+            assert.notEqual(eastExit.to, lOtherId, 'east exit must NOT stitch across realm boundary to L_OTHER')
+        })
+
+        it('should be idempotent: rerunning batch generate on a fully-expanded root creates no duplicates', async () => {
+            // Arrange: Pre-wire a root location with fully-created bidirectional exits to 3 neighbors
+            // (simulating the state after a prior batch-generate + exit-create cycle has completed).
+            // A second batch generate must reconnect all 3 directions via Phase 1 and create 0 new stubs.
+            const rootId = uuidv4()
+            const lNorthId = uuidv4()
+            const lEastId = uuidv4()
+            const lWestId = uuidv4()
+
+            for (const [id, name] of [
+                [rootId, 'Expanded Root'],
+                [lNorthId, 'North Stub'],
+                [lEastId, 'East Stub'],
+                [lWestId, 'West Stub']
+            ]) {
+                await locationRepo.upsert({ id, name, description: '', terrain: 'open-plain', tags: [], exits: [], version: 1 })
+            }
+
+            // Wire bidirectional exits with explicit 300k ms (mirrors what ExitCreateHandler would produce)
+            await locationRepo.ensureExitBidirectional(rootId, 'north', lNorthId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rootId, 'north', 300_000)
+            await locationRepo.setExitTravelDuration(lNorthId, 'south', 300_000)
+
+            await locationRepo.ensureExitBidirectional(rootId, 'east', lEastId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rootId, 'east', 300_000)
+            await locationRepo.setExitTravelDuration(lEastId, 'west', 300_000)
+
+            await locationRepo.ensureExitBidirectional(rootId, 'west', lWestId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(rootId, 'west', 300_000)
+            await locationRepo.setExitTravelDuration(lWestId, 'east', 300_000)
+
+            const baselineCount = (await locationRepo.listAll()).length // 4
+
+            // Run batch generate – all 3 directions already have exits → Phase 1 reconnects all.
+            const makeEvent = (): WorldEventEnvelope => ({
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south', // south is filtered; N/E/W are checked
+                    expansionDepth: 1,
+                    batchSize: 3,
+                    travelDurationMs: 300_000
+                }
+            })
+
+            // First rerun
+            const firstResult = await handler.handle(makeEvent(), mockContext)
+            assert.equal(firstResult.outcome, 'success')
+
+            const afterFirst = await locationRepo.listAll()
+            assert.equal(afterFirst.length - baselineCount, 0, 'First rerun: no new locations (all exits found by Phase 1)')
+
+            const firstCompleted = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(firstCompleted, 'Should emit Completed telemetry')
+            assert.equal(firstCompleted.properties.locationsGenerated, 0, 'First rerun: locationsGenerated must be 0')
+            assert.equal(firstCompleted.properties.reconnectionsCreated, 3, 'First rerun: all 3 directions reconnect via Phase 1')
+
+            mockTelemetry.clear()
+
+            // Second rerun – must produce identical results
+            const secondResult = await handler.handle(makeEvent(), mockContext)
+            assert.equal(secondResult.outcome, 'success')
+
+            const afterSecond = await locationRepo.listAll()
+            assert.equal(afterSecond.length, afterFirst.length, 'Second rerun: location count unchanged (idempotent)')
+
+            const secondCompleted = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(secondCompleted, 'Should emit Completed telemetry on second rerun')
+            assert.equal(secondCompleted.properties.locationsGenerated, 0, 'Second rerun: locationsGenerated must be 0')
+            assert.equal(secondCompleted.properties.reconnectionsCreated, 3, 'Second rerun: reconnectionsCreated must be 3 (no duplicates)')
+
+            // Verify no duplicate exits were introduced on root
+            const rootAfter = await locationRepo.get(rootId)
+            const northExits = rootAfter?.exits?.filter((e) => e.direction === 'north') ?? []
+            const eastExits = rootAfter?.exits?.filter((e) => e.direction === 'east') ?? []
+            const westExits = rootAfter?.exits?.filter((e) => e.direction === 'west') ?? []
+            assert.equal(northExits.length, 1, 'Root must have exactly 1 north exit (no duplicates)')
+            assert.equal(eastExits.length, 1, 'Root must have exactly 1 east exit (no duplicates)')
+            assert.equal(westExits.length, 1, 'Root must have exactly 1 west exit (no duplicates)')
+        })
+    })
 })

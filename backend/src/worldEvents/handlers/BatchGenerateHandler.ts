@@ -79,6 +79,12 @@ interface BatchGeneratePayload {
      * Falls back to DEFAULT_TRAVEL_DURATION_MS when absent.
      */
     travelDurationMs?: number
+    /**
+     * Optional realm key used to restrict Phase 2 (wilderness fuzzy) reconnection candidates
+     * to locations that share the same realm tag (e.g. 'settlement:mosswell').
+     * When absent, no realm filtering is applied.
+     */
+    realmKey?: string
 }
 
 /**
@@ -226,6 +232,17 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             }
         }
 
+        // Validate optional realmKey (must be a non-empty string when provided)
+        if (p.realmKey !== undefined) {
+            if (typeof p.realmKey !== 'string' || p.realmKey.trim() === '') {
+                return {
+                    valid: false,
+                    missing: ['realmKey'],
+                    message: 'realmKey must be a non-empty string when provided'
+                }
+            }
+        }
+
         return { valid: true, missing: [] }
     }
 
@@ -271,7 +288,13 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             // 2. Resolve each direction to a reconnection target or a new stub.
             //    Phase 1 (all terrains): check if root already has an exit pointing to a live location.
             //    Phase 2 (wilderness only): fuzzy proximity search for nearby unconnected candidates.
-            const directionTargets = await this.resolveDirectionTargets(payload.rootLocationId, neighborDirections, payload.terrain, stepMs)
+            const directionTargets = await this.resolveDirectionTargets(
+                payload.rootLocationId,
+                neighborDirections,
+                payload.terrain,
+                stepMs,
+                payload.realmKey
+            )
 
             const reconnectionTargets = directionTargets.filter((t) => t.type === 'reconnect' && t.targetId !== undefined) as Array<{
                 direction: Direction
@@ -402,7 +425,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         rootId: string,
         directions: Direction[],
         terrain: TerrainType,
-        stepMs: number
+        stepMs: number,
+        realmKey?: string
     ): Promise<DirectionTarget[]> {
         const results: DirectionTarget[] = directions.map((d) => ({ direction: d, type: 'stub' as const }))
         const usedCandidateIds = new Set<string>()
@@ -420,7 +444,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         // Phase 2: fuzzy proximity search for wilderness (non-settlement) terrain types.
         if (!SETTLEMENT_TERRAIN_TYPES.has(terrain)) {
             const budget = WILDERNESS_RECONNECT_TOLERANCE * stepMs
-            const candidates = await this.temporalProximitySvc.findWithinTravelTime(rootId, budget)
+            const candidates = await this.temporalProximitySvc.findWithinTravelTime(rootId, budget, realmKey)
 
             // Deterministic sort per design: hops ASC, accumulatedTravelMs ASC, locationId ASC.
             candidates.sort(byProximityPriority)
