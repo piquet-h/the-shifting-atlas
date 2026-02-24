@@ -246,16 +246,40 @@ When expanding the world, the system may encounter a newly generated neighbor wh
 ### Invariants
 
 1. **Graph proximity, not coordinates**: Reconnection candidates are identified by traversing the Gremlin exit graph outward from the new location up to a configurable hop limit, not by spatial grid distance. There are no (x, y) coordinates.
-2. **Travel-time gate**: An edge-level `travelDurationMs` property records the narrative cost of each traversal. A candidate reconnection is only offered if the sum of travel durations along the candidate graph path does not exceed the sum along the original path by more than a configurable tolerance (default: ≤ 2× original). This prevents nonsensical shortcuts.
-3. **Description consistency gate**: Reconnection is only accepted when the AI confirms both endpoint descriptions are mutually consistent (no contradictions like "sheer cliff" on one side, "gentle slope" on the other). Contradictions are logged for curator review and the reconnection is not created.
-4. **No coordinate arithmetic**: The graph is the geometry. Hop count and accumulated `travelDurationMs` are the only spatial measurements.
-5. **Reciprocal required**: Any reconnection exit is created bidirectionally; a one-way reconnect is a bug.
+2. **`travelDurationMs` is the canonical travel unit**: Every exit edge carries a `travelDurationMs` property — a positive integer aligned to WorldClock milliseconds. This is the single source of truth for narrative travel cost. When absent, callers fall back to the ActionRegistry `move` baseline.
+3. **Travel-time gate**: A candidate reconnection is only accepted if the accumulated `travelDurationMs` along the existing graph path does not exceed the proposed direct edge cost by more than a configurable tolerance (default: ≤ 2× original). This prevents nonsensical shortcuts.
+4. **Description consistency gate**: Reconnection is only accepted when the AI confirms both endpoint descriptions are mutually consistent (no contradictions like "sheer cliff" on one side, "gentle slope" on the other). Contradictions are logged for curator review and the reconnection is not created.
+5. **No coordinate arithmetic**: The graph is the geometry. Hop count and accumulated `travelDurationMs` are the only spatial measurements.
+6. **Reciprocal required**: Any reconnection exit is created bidirectionally; a one-way reconnect is a bug.
+7. **Realm/biome scope boundary**: Reconnection candidates must share the same realm scope as the origin location. Traversal does not cross realm boundaries unless the generation event explicitly permits it.
+8. **Idempotency**: Each area generation request and each reconnection claim carries a unique idempotency key derived from the location pair and direction. Duplicate claims are silently dropped without error.
+
+### Urban reconnection (strict)
+
+Applies when the origin location's terrain is a **settlement type** (e.g., `town`, `village`, `district`).
+
+A closed urban loop is validated by a **direct direction check**: if a newly generated neighbor N was reached by walking direction D from origin O, the system checks whether walking direction D⁻¹ (the logical opposite) from N leads back to O, with accumulated `travelDurationMs` along the round-trip path equal to the expected step count multiplied by the configured urban step size.
+
+- **No graph search required**: Only the single-hop reverse exit is checked.
+- **Deterministic close**: A 5-minute north → 5-minute east → 5-minute south loop reconnects when the south exit from the third location points back to the origin with a `travelDurationMs` within `URBAN_STEP_MS` epsilon of the expected step cost. No full tolerance band (e.g., 2×) applies; only the epsilon window is used.
+- **Realm constraint applies**: Urban loop candidates are rejected if the candidate is in a different realm scope.
+
+### Wilderness reconnection (fuzzy budget)
+
+Applies when the origin location's terrain is a **non-settlement type** (e.g., `open-plain`, `dense-forest`, `riverbank`).
+
+Candidates are identified by traversing the exit graph outward from the newly generated location up to a maximum hop count, accumulating `travelDurationMs`. All reachable nodes within the budget are candidate reconnection targets.
+
+- **Budget-bounded, not exact**: Acceptance is determined by whether the accumulated path cost falls within the tolerance ratio of the proposed direct edge's `travelDurationMs`. Roads (short `travelDurationMs`) and trails (long `travelDurationMs`) may converge near the same node; the actual edge values on each hop are used, not assumed equal.
+- **Multiple candidates are resolved deterministically**: If more than one candidate passes the travel-time gate and description consistency gate, the candidate with the **lowest hop count** is chosen. Ties on hop count are broken by **lowest accumulated `travelDurationMs`**, then by **`locationId` lexicographic ascending**.
+- **Realm constraint applies**: Traversal stops at realm boundaries; candidates in a different realm scope are excluded.
 
 ### Player experience
 
 - Players may discover they can return to a known location via an unexpected route.
 - The world feels more continuous and less tree-like after multiple expansions.
 - No reconnection is ever revealed before description consistency is verified.
+- Urban loop closings feel architecturally natural (streets form blocks); wilderness connections feel like stumbled-upon shortcuts.
 
 ---
 
@@ -292,4 +316,4 @@ When expanding the world, the system may encounter a newly generated neighbor wh
 
 ---
 
-_Last updated: 2026-02-24 (add narrative-time reconnection section)_
+_Last updated: 2026-02-24 (add travel duration semantics, urban/wilderness reconnection, realm scope, idempotency invariants)_

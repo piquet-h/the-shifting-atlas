@@ -565,7 +565,37 @@ New optional property on every Gremlin exit edge:
 | ------------------ | -------- | ------------------------------------------------- | ---------------------------------------------------------- |
 | `travelDurationMs` | `number` | No (defaults to `ActionRegistry` `move` baseline) | Narrative travel cost for this single edge in milliseconds |
 
-When `travelDurationMs` is absent, callers fall back to `ActionRegistry.getDuration('move')` (currently 60 000 ms).
+**Constraints**:
+
+- Must be a positive integer (> 0).
+- Aligned to WorldClock millisecond units (same unit as `IWorldClockService.getCurrentTick()`).
+- When `travelDurationMs` is absent, callers fall back to `ActionRegistry.getDuration('move')` (currently 60 000 ms).
+
+### Urban step configuration
+
+Settlement terrain uses a discrete **urban step** so that loops close exactly.
+
+| Config key        | Default value | Unit | Description                                        |
+| ----------------- | ------------- | ---- | -------------------------------------------------- |
+| `URBAN_STEP_MS`   | `300_000`     | ms   | Default walk step for settlement terrain (5 min)   |
+
+Per-terrain/realm overrides are expressed via the `TERRAIN_GUIDANCE` config (see Terrain Guidance Configuration section). Examples:
+
+| Terrain                    | Suggested `travelDurationMs` | Rationale                                |
+| -------------------------- | ---------------------------- | ---------------------------------------- |
+| Town street / district     | 300 000 ms (5 min)           | Default urban step                       |
+| Road between settlements   | 60 000 ms (1 min)            | Fast road matches ActionRegistry `move`  |
+| Wilderness trail           | 600 000 ms (10 min)          | Slow footpath                            |
+| Dense forest path          | 1 200 000 ms (20 min)        | Difficult terrain                        |
+| Overland                   | 3 600 000 ms (1 hr)          | Matches ActionRegistry `move_overland`   |
+
+New environment variable:
+
+```json
+"SPATIAL_URBAN_STEP_MS": "300000"
+```
+
+The urban step is also used as the epsilon for urban loop-close exact matching (see urban reconnection algorithm below).
 
 ### Graph traversal service interface
 
@@ -575,11 +605,15 @@ interface IGraphProximityService {
      * Traverse exit graph outward from `originId` up to `maxHops`, accumulating
      * travelDurationMs per edge. Returns all reachable location IDs with their
      * accumulated travel time, excluding `originId` itself.
+     *
+     * Traversal stops at realm boundaries unless `crossRealmAllowed` is true.
+     * Missing `travelDurationMs` on an edge falls back to ActionRegistry.getDuration('move').
      */
     findWithinTravelTime(
         originId: string,
         maxHops: number,
-        maxAccumulatedMs: number
+        maxAccumulatedMs: number,
+        options?: { crossRealmAllowed?: boolean }
     ): Promise<Array<{ locationId: string; accumulatedMs: number; hopCount: number }>>
 
     /**
@@ -590,14 +624,36 @@ interface IGraphProximityService {
      *   - candidateId is reachable from targetId via the existing graph (no cycles).
      *   - accumulatedMs along the existing path ≤ directMs × RECONNECT_TOLERANCE_FACTOR.
      *   - No description contradiction detected by AI consistency check.
+     *   - Both locations share the same realm scope (unless crossRealmAllowed is true).
      */
     checkDirectReconnection(
         candidateId: string,
         targetId: string,
-        directMs: number
+        directMs: number,
+        options?: { crossRealmAllowed?: boolean }
     ): Promise<{ accepted: boolean; reason: string; existingPathMs?: number }>
 }
 ```
+
+### Urban reconnection algorithm
+
+When origin terrain is a settlement type, the reconnection check is a **single-hop direction check** (no graph search needed):
+
+1. Identify proposed direct edge direction `D` and its proposed `travelDurationMs = T`.
+2. Resolve opposite direction `D⁻¹`.
+3. Check if a `D⁻¹` exit exists from the candidate location `C` pointing back to the origin, with the hop's `travelDurationMs` within `T ± SPATIAL_URBAN_STEP_MS` (epsilon-matched, not a full tolerance band).
+4. If found and realm scopes match → accept reconnection.
+5. If not found → reject; do not fall through to fuzzy wilderness algorithm.
+
+### Wilderness reconnection algorithm
+
+When origin terrain is a non-settlement type, the reconnection check is a **budget-bounded graph traversal**:
+
+1. Run `findWithinTravelTime(newLocationId, SPATIAL_RECONNECT_MAX_HOPS, directMs × RECONNECT_TOLERANCE_FACTOR)`.
+2. Filter results to same realm scope as origin (unless `crossRealmAllowed = true`).
+3. For each candidate, run AI description consistency check.
+4. Accept all candidates that pass both gates.
+5. Apply tie-break: sort ascending by `hopCount`, then ascending by `accumulatedMs`, then ascending by `locationId`. Take first.
 
 ### Reconnection tolerance configuration
 
@@ -605,15 +661,65 @@ New environment variables (add to `backend/local.settings.json` and Azure App Se
 
 ```json
 "SPATIAL_RECONNECT_TOLERANCE_FACTOR": "2.0",
-"SPATIAL_RECONNECT_MAX_HOPS": "6"
+"SPATIAL_RECONNECT_MAX_HOPS": "6",
+"SPATIAL_URBAN_STEP_MS": "300000"
 ```
 
 - `SPATIAL_RECONNECT_TOLERANCE_FACTOR`: Maximum ratio of existing-path `travelDurationMs` to proposed direct edge `travelDurationMs` (default `2.0`).
 - `SPATIAL_RECONNECT_MAX_HOPS`: Graph search depth cap for proximity traversal (default `6`).
+- `SPATIAL_URBAN_STEP_MS`: Exact step size for urban loop-close matching (default `300 000` ms = 5 minutes).
 
 ### Tie-break rule
 
-If multiple reconnection candidates pass both the travel-time gate and the description consistency gate, the candidate with the **lowest `hopCount`** is chosen. Ties on `hopCount` are broken by **lowest `accumulatedMs`**.
+If multiple reconnection candidates pass both the travel-time gate and the description consistency gate, the candidate with the **lowest `hopCount`** is chosen. Ties on `hopCount` are broken by **lowest `accumulatedMs`**. Ties on both are broken by **`locationId` lexicographic ascending**. This ordering is deterministic and produces the same result given the same graph state.
+
+### Idempotency strategy
+
+All area generation requests and reconnection claims use explicit idempotency keys to prevent duplicate edges or duplicate generation events.
+
+**Area generation idempotency key**:
+
+```
+batch-gen:{rootLocationId}:{contentVersion}
+```
+
+`contentVersion` is a monotonic integer incremented by the generation event payload. Duplicate events with the same key and lower or equal version are silently dropped.
+
+**Reconnection claim idempotency key**:
+
+```
+reconnect:{lexMin(fromId, toId)}:{lexMax(fromId, toId)}:{direction}
+```
+
+`fromId` and `toId` are sorted lexicographically so that the key is direction-independent (a reconnect from A→B and B→A are the same claim). The exit creation event (`World.Exit.Create`) carries this key as `idempotencyKey`. If an exit in `direction` between the two locations already exists, the handler returns `outcome: 'duplicate'` and does not modify graph state.
+
+**Handler behavior on duplicate**:
+
+- Return `outcome: 'duplicate'` (not an error, not a success with side-effects).
+- Log at debug level with the idempotency key.
+- Do not emit reconnection telemetry (avoids inflating counters).
+
+### Edge cases
+
+#### Conflicting reconnection candidates within budget
+
+Two candidates both pass the travel-time gate and description consistency gate with identical hop count and accumulated `travelDurationMs`. Resolution:
+
+- Apply the full tie-break sequence defined above: `hopCount` → `accumulatedMs` → `locationId` (lexicographic ascending).
+- Log both candidates in telemetry (`World.Reconnection.TieResolved`) for curator review.
+
+#### Mixed step sizes (roads vs trails converge near the same node)
+
+A road edge (short `travelDurationMs`) and a trail edge (long `travelDurationMs`) may both lead to the same candidate within the budget. The actual `travelDurationMs` on each edge is used; no assumption of uniform step size is made. The tolerance factor `SPATIAL_RECONNECT_TOLERANCE_FACTOR` absorbs minor convergence differences without requiring coordinate matching.
+
+#### Realm/biome mismatch
+
+If the traversal reaches a location that belongs to a different realm scope than the origin:
+
+- That location is excluded as a reconnection candidate.
+- Traversal does not continue beyond that location (realm boundary terminates the search branch).
+- The exclusion is logged at debug level.
+- Exception: if the generation event's payload explicitly sets `crossRealmAllowed: true`, traversal crosses the boundary and the candidate is evaluated under the same travel-time and description consistency gates.
 
 ---
 
@@ -650,4 +756,4 @@ If multiple reconnection candidates pass both the travel-time gate and the descr
 
 ---
 
-_Last updated: 2026-02-24 (add narrative-time reconnection contract)_
+_Last updated: 2026-02-24 (expand reconnection contract: URBAN_STEP_MS, urban/wilderness algorithms, idempotency strategy, realm scope, edge cases)_
