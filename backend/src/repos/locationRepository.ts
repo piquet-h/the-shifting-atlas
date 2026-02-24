@@ -28,4 +28,12 @@ export interface ILocationRepository {
     ): Promise<{ exitsCreated: number; exitsSkipped: number; reciprocalApplied: number }>
     updateExitsSummaryCache(locationId: string, cache: string): Promise<{ updated: boolean }>
     regenerateExitsSummaryCache(locationId: string): Promise<void>
+    /**
+     * Set the travel duration for an existing exit edge.
+     * Idempotent: calling again with a new value overwrites the previous one.
+     * @param fromId - Source location ID
+     * @param direction - Exit direction
+     * @param travelDurationMs - Positive integer milliseconds for traversal
+     */
+    setExitTravelDuration(fromId: string, direction: string, travelDurationMs: number): Promise<{ updated: boolean }>
 }

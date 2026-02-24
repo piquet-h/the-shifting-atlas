@@ -519,4 +519,23 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             return { updated: false }
         }
     }
+
+    async setExitTravelDuration(fromId: string, direction: string, travelDurationMs: number): Promise<{ updated: boolean }> {
+        if (!isDirection(direction)) return { updated: false }
+
+        const edges = await this.query<Record<string, unknown>>("g.V(fid).outE('exit').has('direction', dir)", {
+            fid: fromId,
+            dir: direction
+        })
+
+        if (!edges || edges.length === 0) return { updated: false }
+
+        await this.queryWithTelemetry(
+            'exit.setTravelDuration',
+            "g.V(fid).outE('exit').has('direction', dir).property('travelDurationMs', dur)",
+            { fid: fromId, dir: direction, dur: travelDurationMs }
+        )
+
+        return { updated: true }
+    }
 }
