@@ -25,10 +25,44 @@ import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { IAIDescriptionService, BatchDescriptionRequest } from '../../services/AIDescriptionService.js'
+import type { ITemporalProximityService } from '../../services/temporalProximityService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import type { WorldEventHandlerResult } from '../types.js'
 import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEventHandler.js'
+
+/**
+ * Default travel step duration when travelDurationMs is absent from the event payload.
+ * Matches ActionRegistry 'move' base duration (1 minute) and the TemporalProximityService default.
+ */
+const DEFAULT_TRAVEL_DURATION_MS = 60_000
+
+/**
+ * Tolerance multiplier for wilderness fuzzy reconnection.
+ * A candidate is accepted if its accumulated graph cost ≤ TOLERANCE × proposed direct edge cost.
+ */
+const WILDERNESS_RECONNECT_TOLERANCE = 2
+
+/**
+ * Settlement terrain types use strict (urban) reconnection: only a direct exit check,
+ * no graph search. Currently empty – all live terrain types are non-settlement (wilderness).
+ * When urban terrain types are added (e.g. 'town', 'village', 'district'), list them here.
+ */
+const SETTLEMENT_TERRAIN_TYPES = new Set<TerrainType>([])
+
+/**
+ * Comparator for wilderness reconnection candidates.
+ * Priority: hops ASC → accumulatedTravelMs ASC → locationId lexicographic ASC.
+ * Deterministic: given the same graph state, always produces the same ordering.
+ */
+function byProximityPriority(
+    a: { hops: number; accumulatedTravelMs: number; locationId: string },
+    b: { hops: number; accumulatedTravelMs: number; locationId: string }
+): number {
+    if (a.hops !== b.hops) return a.hops - b.hops
+    if (a.accumulatedTravelMs !== b.accumulatedTravelMs) return a.accumulatedTravelMs - b.accumulatedTravelMs
+    return a.locationId.localeCompare(b.locationId)
+}
 
 /**
  * Payload shape for World.Location.BatchGenerate events
@@ -39,6 +73,22 @@ interface BatchGeneratePayload {
     arrivalDirection: Direction
     expansionDepth: number
     batchSize: number
+    /**
+     * Traversal-time context for the step that triggered this batch (milliseconds).
+     * When provided, used to calculate the wilderness reconnection budget (2× this value).
+     * Falls back to DEFAULT_TRAVEL_DURATION_MS when absent.
+     */
+    travelDurationMs?: number
+}
+
+/**
+ * Result of direction-target resolution: reconnect to an existing location or create a new stub.
+ */
+interface DirectionTarget {
+    direction: Direction
+    type: 'reconnect' | 'stub'
+    /** Set when type === 'reconnect'. The ID of the existing location to connect to. */
+    targetId?: string
 }
 
 /**
@@ -87,7 +137,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         @inject(TOKENS.LocationRepository) private locationRepo: ILocationRepository,
         @inject(TOKENS.AIDescriptionService) private aiService: IAIDescriptionService,
         @inject(TOKENS.LayerRepository) private layerRepo: ILayerRepository,
-        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher
+        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher,
+        @inject(TOKENS.TemporalProximityService) private temporalProximitySvc: ITemporalProximityService
     ) {
         super(deadLetterRepo, telemetry)
     }
@@ -164,6 +215,17 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             }
         }
 
+        // Validate optional travelDurationMs (must be a positive number when provided)
+        if (p.travelDurationMs !== undefined) {
+            if (typeof p.travelDurationMs !== 'number' || p.travelDurationMs <= 0) {
+                return {
+                    valid: false,
+                    missing: ['travelDurationMs'],
+                    message: 'travelDurationMs must be a positive number when provided'
+                }
+            }
+        }
+
         return { valid: true, missing: [] }
     }
 
@@ -182,6 +244,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         // Safe to cast after validation passes
         const payload = event.payload as unknown as BatchGeneratePayload
         const startTime = Date.now()
+        const stepMs = payload.travelDurationMs ?? DEFAULT_TRAVEL_DURATION_MS
 
         // Emit Started telemetry
         this.telemetry.trackGameEvent(
@@ -205,10 +268,33 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 neighborDirections
             })
 
-            // 2. Create stub location entities (Gremlin + SQL)
+            // 2. Resolve each direction to a reconnection target or a new stub.
+            //    Phase 1 (all terrains): check if root already has an exit pointing to a live location.
+            //    Phase 2 (wilderness only): fuzzy proximity search for nearby unconnected candidates.
+            const directionTargets = await this.resolveDirectionTargets(payload.rootLocationId, neighborDirections, payload.terrain, stepMs)
+
+            const reconnectionTargets = directionTargets.filter((t) => t.type === 'reconnect' && t.targetId !== undefined) as Array<{
+                direction: Direction
+                type: 'reconnect'
+                targetId: string
+            }>
+            const stubTargets = directionTargets.filter((t) => t.type === 'stub')
+            const stubDirections = stubTargets.map((t) => t.direction)
+
+            // 3. Process reconnections: ensure bidirectional exits to existing locations.
+            //    ensureExitBidirectional is idempotent; calling it on an existing exit is safe
+            //    and preserves travelDurationMs and other edge metadata unchanged.
+            for (const target of reconnectionTargets) {
+                await this.locationRepo.ensureExitBidirectional(payload.rootLocationId, target.direction, target.targetId, {
+                    reciprocal: true
+                })
+                context.log('Reconnected to existing location', { direction: target.direction, targetId: target.targetId })
+            }
+
+            // 4. Create stub location entities for non-reconnected directions
             const stubs = await this.createStubLocations(
                 payload.rootLocationId,
-                neighborDirections,
+                stubDirections,
                 payload.terrain,
                 event.correlationId,
                 context
@@ -216,23 +302,23 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
             context.log('Created stub locations', { count: stubs.length })
 
-            // 3. Prepare AI batch request
+            // 5. Prepare AI batch request
             const batchRequest = this.prepareBatchRequest(stubs)
 
-            // 4. Generate descriptions (with fallback on error)
+            // 6. Generate descriptions (with fallback on error)
             const descriptions = await this.aiService.batchGenerateDescriptions(batchRequest)
 
             context.log('Generated AI descriptions', { count: descriptions.length })
 
-            // 5. Update location descriptions (already handled by AIDescriptionService layer persistence)
+            // 7. Update location descriptions (already handled by AIDescriptionService layer persistence)
             // Note: AIDescriptionService persists base layers automatically
 
-            // 6. Enqueue exit creation events (bidirectional)
-            await this.enqueueExitEvents(payload.rootLocationId, stubs, neighborDirections, event.correlationId, context)
+            // 8. Enqueue exit creation events for stubs (bidirectional)
+            await this.enqueueExitEvents(payload.rootLocationId, stubs, stubDirections, event.correlationId, context)
 
             context.log('Enqueued exit events', { count: stubs.length })
 
-            // 7. Emit completion telemetry with metrics
+            // 9. Emit completion telemetry with metrics
             const durationMs = Date.now() - startTime
             const totalCost = descriptions.reduce((sum, d) => sum + d.cost, 0)
 
@@ -241,7 +327,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 {
                     rootLocationId: payload.rootLocationId,
                     locationsGenerated: stubs.length,
-                    exitsCreated: stubs.length * 2, // bidirectional
+                    reconnectionsCreated: reconnectionTargets.length,
+                    exitsCreated: stubs.length * 2 + reconnectionTargets.length * 2,
                     aiCost: totalCost,
                     durationMs,
                     correlationId: event.correlationId
@@ -251,7 +338,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
             return {
                 outcome: 'success',
-                details: `Generated ${stubs.length} locations with ${stubs.length * 2} exits`
+                details: `Generated ${stubs.length} locations, reconnected ${reconnectionTargets.length} existing locations`
             }
         } catch (error) {
             // Emit failure telemetry
@@ -289,6 +376,69 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         // Take min(batchSize, available.length)
         return available.slice(0, Math.min(batchSize, available.length))
+    }
+
+    /**
+     * Resolve each candidate direction to either a reconnection target (existing location)
+     * or a new stub.
+     *
+     * **Phase 1 – strict direct check (all terrain types)**
+     * For each direction, ask TemporalProximityService whether root already has an exit in
+     * that direction pointing to a live location.  When found, the existing location becomes
+     * the reconnection target; no stub is created.  This makes batch generation idempotent
+     * and closes urban loops without duplicating nodes.
+     *
+     * **Phase 2 – fuzzy proximity search (non-settlement / wilderness terrain types only)**
+     * For any direction still marked as a stub after Phase 1, search the exit graph outward
+     * from root up to `WILDERNESS_RECONNECT_TOLERANCE × stepMs`.  Candidates are sorted
+     * deterministically (hops ASC → accumulatedTravelMs ASC → locationId ASC) and the
+     * nearest unassigned candidate is assigned to each stub direction in canonical order.
+     * This stitches nearby branches without coordinates, bounded by the travel-time budget.
+     *
+     * Edge metadata (travelDurationMs etc.) on existing exits is never touched – only
+     * ensureExitBidirectional is called, which is idempotent.
+     */
+    private async resolveDirectionTargets(
+        rootId: string,
+        directions: Direction[],
+        terrain: TerrainType,
+        stepMs: number
+    ): Promise<DirectionTarget[]> {
+        const results: DirectionTarget[] = directions.map((d) => ({ direction: d, type: 'stub' as const }))
+        const usedCandidateIds = new Set<string>()
+
+        // Phase 1: direct exit check for all terrain types (urban strict behavior).
+        for (const target of results) {
+            const check = await this.temporalProximitySvc.checkDirectReconnection(rootId, target.direction, stepMs)
+            if (check.found && check.locationId) {
+                target.type = 'reconnect'
+                target.targetId = check.locationId
+                usedCandidateIds.add(check.locationId)
+            }
+        }
+
+        // Phase 2: fuzzy proximity search for wilderness (non-settlement) terrain types.
+        if (!SETTLEMENT_TERRAIN_TYPES.has(terrain)) {
+            const budget = WILDERNESS_RECONNECT_TOLERANCE * stepMs
+            const candidates = await this.temporalProximitySvc.findWithinTravelTime(rootId, budget)
+
+            // Deterministic sort per design: hops ASC, accumulatedTravelMs ASC, locationId ASC.
+            candidates.sort(byProximityPriority)
+
+            // Assign the nearest unassigned candidate to each remaining stub direction
+            // (directions iterate in the canonical order returned by determineNeighborDirections).
+            for (const target of results) {
+                if (target.type !== 'stub') continue
+                const candidate = candidates.find((c) => !usedCandidateIds.has(c.locationId))
+                if (candidate) {
+                    target.type = 'reconnect'
+                    target.targetId = candidate.locationId
+                    usedCandidateIds.add(candidate.locationId)
+                }
+            }
+        }
+
+        return results
     }
 
     /**

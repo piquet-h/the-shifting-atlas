@@ -206,4 +206,247 @@ describe('BatchGenerateHandler Integration', () => {
             assert.ok(completedEvent.properties.locationsGenerated <= 4, 'Should not exceed available directions (4 cardinal - 1 arrival)')
         })
     })
+
+    describe('Reconnection: Strict Loop Closure', () => {
+        it('should reconnect to existing location when direct exit already exists, no stub created', async () => {
+            // Arrange: Create root R with an existing bidirectional exit to L_north.
+            // This simulates a world where R already has a mapped north neighbour.
+            const rootId = uuidv4()
+            const lNorthId = uuidv4()
+
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Town Centre',
+                description: 'The heart of the settlement',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lNorthId,
+                name: 'North Alley',
+                description: 'A cobbled alley heading north',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            // Pre-wire the north exit so checkDirectReconnection will find it.
+            await locationRepo.ensureExitBidirectional(rootId, 'north', lNorthId, { reciprocal: true })
+
+            const baselineCount = (await locationRepo.listAll()).length // 2
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south', // Player arrived from south → south filtered
+                    expansionDepth: 1,
+                    batchSize: 4 // Wants: north, east, west (south is arrival direction)
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+
+            // Assert: handler succeeded
+            assert.equal(result.outcome, 'success')
+
+            // 'north' should reconnect to lNorthId (Phase 1 direct check).
+            // Only 'east' and 'west' should get stubs → 2 new locations.
+            const allLocations = await locationRepo.listAll()
+            const newCount = allLocations.length - baselineCount
+            assert.equal(newCount, 2, 'Should create only 2 stubs (north reconnected to existing location)')
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 2, 'locationsGenerated should be 2')
+            assert.equal(completedEvent.properties.reconnectionsCreated, 1, 'reconnectionsCreated should be 1')
+            assert.equal(completedEvent.properties.exitsCreated, 2 * 2 + 1 * 2, 'exitsCreated: 4 for stubs + 2 for reconnection = 6')
+
+            // The exit events enqueued should only cover the 2 stub directions, not north.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
+            assert.equal(enqueuedEvents.length, 2, 'Should enqueue exit events only for the 2 stub directions')
+            for (const exitEvent of enqueuedEvents) {
+                assert.notEqual(exitEvent.payload.direction, 'north', 'north direction should not get a new exit event')
+            }
+        })
+    })
+
+    describe('Reconnection: Wilderness Fuzzy Stitching', () => {
+        it('should stitch to nearest reachable candidate within travel budget', async () => {
+            // Arrange:
+            //   root R ──north──> L_N ──east──> L_NE
+            // Budget = 2 × DEFAULT_TRAVEL_DURATION_MS = 120,000 ms.
+            // L_N  is 1 hop / 60,000 ms from R  → within budget.
+            // L_NE is 2 hops / 120,000 ms from R → exactly at budget limit (≤ 120,000 ms).
+            //
+            // BatchGenerate from R with arrivalDirection='south':
+            //   Phase 1 checks: 'north' has exit → reconnect to L_N.
+            //   Stub directions remaining: ['east', 'west'].
+            //   Phase 2 fuzzy candidates (sorted): L_N(1 hop, used), L_NE(2 hops, unused).
+            //   'east' → assigned to L_NE (nearest unassigned candidate).
+            //   'west' → no unused candidates → create stub.
+            // Expected: 1 new stub (west), 2 reconnections (north→L_N, east→L_NE).
+            const rootId = uuidv4()
+            const lNorthId = uuidv4()
+            const lNorthEastId = uuidv4()
+
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Crossroads',
+                description: 'Where the paths meet',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lNorthId,
+                name: 'North Fields',
+                description: 'Rolling fields to the north',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: lNorthEastId,
+                name: 'Northeast Heath',
+                description: 'Heathland to the northeast',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+
+            // Wire up: R→north→L_N (bidirectional) and L_N→east→L_NE (bidirectional)
+            await locationRepo.ensureExitBidirectional(rootId, 'north', lNorthId, { reciprocal: true })
+            await locationRepo.ensureExitBidirectional(lNorthId, 'east', lNorthEastId, { reciprocal: true })
+
+            const baselineCount = (await locationRepo.listAll()).length // 3
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 3 // Wants: north, east, west
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+
+            // Assert: handler succeeded
+            assert.equal(result.outcome, 'success')
+
+            // Only 'west' should be a stub → 1 new location.
+            const allLocations = await locationRepo.listAll()
+            const newCount = allLocations.length - baselineCount
+            assert.equal(newCount, 1, 'Should create only 1 stub (north and east reconnected)')
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 1, 'locationsGenerated should be 1')
+            assert.equal(completedEvent.properties.reconnectionsCreated, 2, 'reconnectionsCreated should be 2')
+
+            // Only 1 exit event should be enqueued (for the west stub).
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
+            assert.equal(enqueuedEvents.length, 1, 'Should enqueue exit event only for the 1 stub direction (west)')
+            assert.equal(enqueuedEvents[0].payload.direction, 'west', 'Stub should be in the west direction')
+        })
+
+        it('should pick the deterministic nearest candidate when multiple candidates exist at same hop count', async () => {
+            // Arrange: Two candidates at the same hop-count from root; lex-smallest wins.
+            //
+            //   root R ──south──> Intermediary ──north──> L_A (2 hops, 120k ms from R)
+            //                                 ──west──>  L_B (2 hops, 120k ms from R)
+            //
+            // BatchGenerate from R, arrivalDirection='north', batchSize=2 → directions=['south','east'].
+            //   Phase 1: 'south' has direct exit → reconnect to Intermediary.
+            //   Phase 2 for 'east': candidates sorted by hops ASC, travelMs ASC, locationId ASC.
+            //                       Intermediary is already used; L_A and L_B are tied (2 hops, 120k).
+            //                       The lex-smallest ID is assigned to 'east'.
+            // Expected: 0 new stubs, 2 reconnections.  'east' connects to lex-smallest of (L_A, L_B).
+            const rootId = uuidv4()
+            const intermediaryId = uuidv4()
+            const idA = uuidv4()
+            const idB = uuidv4()
+            const lexSmallest = [idA, idB].sort()[0]
+
+            for (const [id, name] of [
+                [rootId, 'Root'],
+                [intermediaryId, 'Intermediary'],
+                [idA, 'Location A'],
+                [idB, 'Location B']
+            ]) {
+                await locationRepo.upsert({ id, name, description: '', terrain: 'open-plain', tags: [], exits: [], version: 1 })
+            }
+
+            // R→south→Intermediary (Phase 1 direct hit for 'south')
+            await locationRepo.ensureExitBidirectional(rootId, 'south', intermediaryId, { reciprocal: true })
+            // Intermediary→north→L_A and Intermediary→west→L_B (both 2 hops from R)
+            await locationRepo.ensureExitBidirectional(intermediaryId, 'north', idA, { reciprocal: true })
+            await locationRepo.ensureExitBidirectional(intermediaryId, 'west', idB, { reciprocal: true })
+
+            const baselineCount = (await locationRepo.listAll()).length // 4
+
+            // open-plain default directions: [north, south, east, west]
+            // arrivalDirection='north' filtered → [south, east, west]; batchSize=2 → [south, east]
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'north',
+                    expansionDepth: 1,
+                    batchSize: 2 // Wants: south, east
+                }
+            }
+
+            // Act
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // 0 new locations: south→Intermediary (Phase 1), east→lex-smallest(L_A/L_B) (Phase 2).
+            const allLocations = await locationRepo.listAll()
+            assert.equal(allLocations.length - baselineCount, 0, 'No new stub locations should be created')
+
+            const completedEvent = mockTelemetry.events.find((e) => e.name === 'World.BatchGeneration.Completed')
+            assert.ok(completedEvent, 'Should emit Completed telemetry')
+            assert.equal(completedEvent.properties.locationsGenerated, 0, 'locationsGenerated should be 0')
+            assert.equal(completedEvent.properties.reconnectionsCreated, 2, 'reconnectionsCreated should be 2')
+
+            // Verify deterministic tie-break: root's 'east' exit points to the lex-smallest candidate.
+            const rootAfter = await locationRepo.get(rootId)
+            const eastExit = rootAfter?.exits?.find((e) => e.direction === 'east')
+            assert.ok(eastExit, "Root should have an 'east' exit after Phase 2 reconnection")
+            assert.equal(eastExit.to, lexSmallest, 'Phase 2 should pick the lexicographically smallest tied candidate')
+        })
+    })
 })
