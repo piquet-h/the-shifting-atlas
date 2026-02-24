@@ -12,9 +12,14 @@ import { computeContentHash } from './utils/index.js'
 @injectable()
 export class InMemoryLocationRepository implements ILocationRepository, IExitRepository {
     private locations: Map<string, Location>
+    private exitTravelDurations: Map<string, number> = new Map()
     constructor() {
         const locs = starterLocationsData as Location[]
         this.locations = new Map(locs.map((r) => [r.id, r]))
+    }
+
+    private exitKey(locationId: string, direction: string): string {
+        return `${locationId}:${direction}`
     }
 
     async listAll(): Promise<Location[]> {
@@ -178,8 +183,19 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         const exits: ExitEdgeResult[] = location.exits.map((exit) => ({
             direction: exit.direction as Direction,
             toLocationId: exit.to || '',
-            description: exit.description
+            description: exit.description,
+            travelDurationMs: this.exitTravelDurations.get(this.exitKey(locationId, exit.direction))
         }))
         return sortExits(exits)
+    }
+
+    async setExitTravelDuration(fromId: string, direction: string, travelDurationMs: number): Promise<{ updated: boolean }> {
+        if (!isDirection(direction)) return { updated: false }
+        const from = this.locations.get(fromId)
+        if (!from || !from.exits) return { updated: false }
+        const exit = from.exits.find((e) => e.direction === direction)
+        if (!exit) return { updated: false }
+        this.exitTravelDurations.set(this.exitKey(fromId, direction), travelDurationMs)
+        return { updated: true }
     }
 }

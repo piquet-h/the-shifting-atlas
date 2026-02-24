@@ -7,6 +7,8 @@ export interface ExitEdgeResult {
     direction: Direction
     toLocationId: string
     description?: string
+    /** Travel duration in milliseconds for this exit. Absent when not stored on the edge. */
+    travelDurationMs?: number
 }
 
 /** Ordered exit categories for canonical display */
@@ -69,6 +71,9 @@ export function generateExitsSummaryCache(exits: ExitEdgeResult[]): string {
     return `Exits: ${directions}`
 }
 
+/** Sentinel value returned by Gremlin coalesce() when travelDurationMs property is absent on an edge. */
+const TRAVEL_DURATION_ABSENT = -1
+
 /**
  * Repository interface for exit edge retrieval and ordering operations.
  * Creation operations remain in locationRepository (ensureExit, ensureExitBidirectional).
@@ -91,16 +96,18 @@ export class CosmosExitRepository implements IExitRepository {
 
     async getExits(locationId: string): Promise<ExitEdgeResult[]> {
         const exitsRaw = await this.client.submit<Record<string, unknown>>(
-            "g.V(locationId).outE('exit').project('direction','toLocationId','description')" +
-                ".by(values('direction')).by(inV().id())" +
-                ".by(coalesce(values('description'), constant('')))",
+            `g.V(locationId).outE('exit').project('direction','toLocationId','description','travelDurationMs')` +
+                `.by(values('direction')).by(inV().id())` +
+                `.by(coalesce(values('description'), constant('')))` +
+                `.by(coalesce(values('travelDurationMs'), constant(${TRAVEL_DURATION_ABSENT})))`,
             { locationId }
         )
 
         const exits: ExitEdgeResult[] = (exitsRaw || []).map((e) => ({
             direction: String(e.direction) as Direction,
             toLocationId: String(e.toLocationId),
-            description: e.description ? String(e.description) : undefined
+            description: e.description ? String(e.description) : undefined,
+            travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined
         }))
 
         return sortExits(exits)

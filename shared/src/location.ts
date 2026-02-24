@@ -5,7 +5,12 @@ export interface LocationExit {
     direction: string
     to?: string
     description?: string
+    /** Travel duration in milliseconds for this exit. Absent when not specified. */
+    travelDurationMs?: number
 }
+
+/** Default travel duration for exits within urban/settlement areas (5 minutes). */
+export const URBAN_TRAVEL_DURATION_MS = 300_000
 
 export interface Location {
     id: string
