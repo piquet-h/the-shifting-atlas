@@ -294,6 +294,14 @@ export class IntegrationTestFixture extends BaseTestFixture {
         return container.get(ReconcileEngine)
     }
 
+    /** Get TemporalProximityService instance from DI container */
+    async getTemporalProximityService(): Promise<import('../../src/services/temporalProximityService.js').ITemporalProximityService> {
+        const container = await this.getContainer()
+        return container.get<import('../../src/services/temporalProximityService.js').ITemporalProximityService>(
+            'ITemporalProximityService'
+        )
+    }
+
     /**
      * Get the telemetry client from the container
      * In test mode, this returns MockTelemetryClient for assertions

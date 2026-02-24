@@ -39,6 +39,7 @@ export const TOKENS = {
     LoreRepository: 'ILoreRepository',
 
     // Services
+    TemporalProximityService: 'ITemporalProximityService',
     WorldClockService: 'IWorldClockService',
     LocationClockManager: 'ILocationClockManager',
     AzureOpenAIClient: 'IAzureOpenAIClient',
