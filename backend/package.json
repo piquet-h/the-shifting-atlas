@@ -40,7 +40,7 @@
         "@azure/identity": "^4.13.0",
         "@azure/keyvault-secrets": "^4.10.0",
         "@azure/service-bus": "^7.9.5",
-        "@piquet-h/shared": "^0.3.130",
+        "@piquet-h/shared": "^0.3.137",
         "@types/marked": "^5.0.2",
         "applicationinsights": "^2.9.5",
         "ci": "^2.3.0",
