@@ -3,6 +3,7 @@
     "Values": {
         "FUNCTIONS_WORKER_RUNTIME": "node",
         "AzureWebJobsStorage": "",
-        "PERSISTENCE_MODE": "memory"
+        "PERSISTENCE_MODE": "memory",
+        "MEMORY_QUEUE_AUTODRAIN": "true"
     }
 }

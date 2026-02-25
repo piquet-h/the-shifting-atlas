@@ -12,11 +12,13 @@ import {
     type Direction,
     type TerrainType
 } from '@piquet-h/shared'
+import { type ExitGenerationHintPayload } from '@piquet-h/shared/events'
 import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
 import { TOKENS } from '../di/tokens.js'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
+import type { IExitGenerationHintPublisher } from '../queues/exitGenerationHintPublisher.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
 import { tryCreatePrefetchEvent } from '../services/prefetchBatchGeneration.js'
@@ -49,7 +51,8 @@ export class MoveHandler extends BaseHandler {
         @inject('ILocationRepository') private locationRepo: ILocationRepository,
         @inject('IPlayerRepository') private playerRepo: IPlayerRepository,
         @inject(DescriptionComposer) private descriptionComposer: DescriptionComposer,
-        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher
+        @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher,
+        @inject(TOKENS.ExitGenerationHintPublisher) private exitHintPublisher: IExitGenerationHintPublisher
     ) {
         super(telemetry)
     }
@@ -238,6 +241,24 @@ export class MoveHandler extends BaseHandler {
                     debounceHit: hintResult.debounceHit
                 }
                 this.track('Navigation.Exit.GenerationRequested', telemetryProps)
+
+                // Publish hint for async materialization only when we have a valid
+                // authenticated player GUID (queue schema requires UUID playerId).
+                if (this.playerGuid) {
+                    const payload: ExitGenerationHintPayload = {
+                        dir,
+                        originLocationId: fromId,
+                        playerId: this.playerGuid,
+                        timestamp: hintResult.hint.timestamp,
+                        debounced: hintResult.debounceHit
+                    }
+
+                    try {
+                        await this.exitHintPublisher.enqueueHint(payload, this.correlationId)
+                    } catch {
+                        // Non-blocking: hint enqueue failures should not fail move responses.
+                    }
+                }
             }
 
             // Return generate status with hint payload

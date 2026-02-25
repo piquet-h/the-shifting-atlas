@@ -6,6 +6,8 @@
  */
 
 import { inject, injectable, optional } from 'inversify'
+import { TOKENS } from '../di/tokens.js'
+import type { ILocationAnchorSyncPublisher } from '../queues/locationAnchorSyncPublisher.js'
 import type { IWorldClockRepository } from '../repos/worldClockRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import type { ILocationClockManager, IWorldClockService } from './types.js'
@@ -15,7 +17,8 @@ export class WorldClockService implements IWorldClockService {
     constructor(
         @inject('IWorldClockRepository') private readonly repository: IWorldClockRepository,
         @inject(TelemetryService) private readonly telemetry: TelemetryService,
-        @inject('ILocationClockManager') @optional() private readonly locationClockManager?: ILocationClockManager
+        @inject('ILocationClockManager') @optional() private readonly locationClockManager?: ILocationClockManager,
+        @inject(TOKENS.LocationAnchorSyncPublisher) @optional() private readonly locationAnchorSyncPublisher?: ILocationAnchorSyncPublisher
     ) {}
 
     /**
@@ -59,9 +62,24 @@ export class WorldClockService implements IWorldClockService {
             reason
         })
 
-        // Sync location clocks on world clock advancement
-        // Uses batchUpdateAll strategy: only updates existing location clocks (lazy initialization)
-        if (this.locationClockManager) {
+        // Sync location clocks on world clock advancement.
+        // Preferred path: enqueue location-anchor-sync queue message (production parity).
+        // Fallback path: direct sync for environments/tests without a publisher binding.
+        if (this.locationAnchorSyncPublisher) {
+            try {
+                await this.locationAnchorSyncPublisher.enqueueSync(updated.currentTick, reason, `world-clock-${updated.currentTick}`)
+                this.telemetry.trackGameEvent('Location.Clock.QueueSyncEnqueued', {
+                    worldClockTick: updated.currentTick,
+                    advancementReason: reason
+                })
+            } catch (error) {
+                // Log but don't fail world clock advancement if queue enqueue fails.
+                this.telemetry.trackGameEvent('Location.Clock.QueueSyncEnqueueFailed', {
+                    error: error instanceof Error ? error.message : String(error),
+                    worldClockTick: updated.currentTick
+                })
+            }
+        } else if (this.locationClockManager) {
             try {
                 const synced = await this.locationClockManager.syncAllLocations(updated.currentTick)
                 this.telemetry.trackGameEvent('Location.Clock.BatchSynced', {

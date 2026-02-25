@@ -117,12 +117,33 @@ Auth:
 
 World events are published to the `world-events` Service Bus queue by `ServiceBusWorldEventPublisher`. The publisher is selected automatically based on which env var is present:
 
-| Env var | Value | Auth |
-| --- | --- | --- |
+| Env var                                    | Value                                | Auth                           |
+| ------------------------------------------ | ------------------------------------ | ------------------------------ |
 | `ServiceBusAtlas__fullyQualifiedNamespace` | `<namespace>.servicebus.windows.net` | Managed Identity (recommended) |
-| `ServiceBusAtlas` | full connection string | SAS key / local emulator |
+| `ServiceBusAtlas`                          | full connection string               | SAS key / local emulator       |
 
 If neither is set (the default for unit tests and memory-mode local dev), an `InMemoryWorldEventPublisher` is used and no Service Bus connection is required.
+
+### Service Bus deep-dive (production vs local parity)
+
+Current queue surfaces:
+
+| Queue                   | Producer (runtime)                                                                                 | Consumer (Azure Function)                                                       | Production transport                    | Local memory-mode parity                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `world-events`          | `IWorldEventPublisher` (used by move prefetch, area orchestration, batch handlers)                 | `serviceBusProcessWorldEvent` / `QueueProcessWorldEventHandler`                 | `ServiceBusWorldEventPublisher`         | `InMemoryWorldEventPublisher` with optional synchronous autodrain into `QueueProcessWorldEventHandler`                 |
+| `exit-generation-hints` | `IExitGenerationHintPublisher` (emitted from `MoveHandler` on no-exit hint, authenticated players) | `serviceBusProcessExitGenerationHint` / `QueueProcessExitGenerationHintHandler` | `ServiceBusExitGenerationHintPublisher` | `InMemoryExitGenerationHintPublisher` with optional synchronous autodrain into `QueueProcessExitGenerationHintHandler` |
+| `location-anchor-sync`  | `ILocationAnchorSyncPublisher` (emitted by `WorldClockService.advanceTick`)                        | `serviceBusSyncLocationAnchors` / `QueueSyncLocationAnchorsHandler`             | `ServiceBusLocationAnchorSyncPublisher` | `InMemoryLocationAnchorSyncPublisher` with optional synchronous autodrain into `QueueSyncLocationAnchorsHandler`       |
+
+Design intent:
+
+- Production remains queue-backed when `ServiceBusAtlas*` settings are present.
+- Local memory-mode can run the same handler code paths synchronously via in-memory publishers.
+- This preserves behavior fidelity while making local expansion/testing deterministic and fast.
+
+When running in memory mode, you can enable synchronous queue-like processing (autodrain) so `world-events` are processed immediately after enqueue:
+
+- `MEMORY_QUEUE_AUTODRAIN=true` (default for `local.settings.memory.json`)
+- Set `MEMORY_QUEUE_AUTODRAIN=false` to keep queued events buffered in-memory for inspection.
 
 For local development with a real Service Bus namespace:
 
@@ -135,13 +156,13 @@ Deployment details live exclusively in the workflow YAML under `.github/workflow
 
 ## Roadmap Snapshot (High Level)
 
-| Area                 | Status      | Notes                                                                  |
-| -------------------- | ----------- | ---------------------------------------------------------------------- |
-| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)                                   |
+| Area                 | Status      | Notes                                                                                       |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------- |
+| HTTP player/actions  | Implemented | Unified here (migrated from SWA API)                                                        |
 | Queue world events   | Implemented | Service Bus publisher wired; `world-events` queue consumed by `serviceBusProcessWorldEvent` |
-| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories                                     |
-| Telemetry enrichment | Ongoing     | Add world event emission instrumentation + span enrichment (Epic #310) |
-| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops                                |
+| Cosmos integration   | Pending     | Graph (Gremlin) + SQL repositories                                                          |
+| Telemetry enrichment | Ongoing     | Add world event emission instrumentation + span enrichment (Epic #310)                      |
+| Auth propagation     | Pending     | Enforce claims / roles on sensitive ops                                                     |
 
 ## Notes
 

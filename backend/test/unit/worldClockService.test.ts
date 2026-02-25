@@ -5,8 +5,10 @@
 
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+import { TOKENS } from '../../src/di/tokens.js'
+import { InMemoryLocationAnchorSyncPublisher } from '../../src/queues/locationAnchorSyncPublisher.js'
 import type { IWorldClockService } from '../../src/services/types.js'
+import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('WorldClockService (unit)', () => {
     let fixture: UnitTestFixture
@@ -95,6 +97,24 @@ describe('WorldClockService (unit)', () => {
             // Unit test verifies the service calls repository correctly
             const tick = await service.getCurrentTick()
             assert.strictEqual(tick, 1500)
+        })
+
+        test('enqueues location-anchor-sync message on advancement', async () => {
+            const container = await fixture.getContainer()
+            const syncPublisher = container.get<InMemoryLocationAnchorSyncPublisher>(
+                TOKENS.LocationAnchorSyncPublisher
+            ) as InMemoryLocationAnchorSyncPublisher
+
+            await service.advanceTick(1200, 'queue-sync-test')
+
+            assert.ok(syncPublisher.enqueuedMessages.length >= 1)
+            const message = syncPublisher.enqueuedMessages[0] as {
+                worldClockTick: number
+                advancementReason?: string
+                correlationId?: string
+            }
+            assert.strictEqual(message.worldClockTick, 1200)
+            assert.strictEqual(message.advancementReason, 'queue-sync-test')
         })
     })
 

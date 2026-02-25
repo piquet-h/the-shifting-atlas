@@ -8,13 +8,15 @@
  * - Debounce effectiveness (identical requests within window)
  */
 import type { HttpRequest, InvocationContext } from '@azure/functions'
+import { resetExitGenerationHintStore } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import { resetExitGenerationHintStore } from '@piquet-h/shared'
+import { TOKENS } from '../../src/di/tokens.js'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
+import { InMemoryExitGenerationHintPublisher } from '../../src/queues/exitGenerationHintPublisher.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
-import { makeMoveRequest } from '../helpers/testUtils.js'
 import type { MockTelemetryClient } from '../helpers/MockTelemetryClient.js'
+import { makeMoveRequest } from '../helpers/testUtils.js'
 
 describe('Exit Generation Hint Integration', () => {
     let fixture: IntegrationTestFixture
@@ -193,5 +195,33 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(res.error?.generationHint)
         assert.ok(res.error?.generationHint?.originLocationId)
         assert.equal(res.error?.generationHint?.direction, 'out')
+    })
+
+    test('enqueues exit-generation-hint message for authenticated player in memory mode', async () => {
+        const ctx = await createMockContext(fixture)
+        const playerId = '00000000-0000-4000-8000-000000000777'
+        const req = makeMoveRequest(
+            { dir: 'out' },
+            { 'x-player-guid': playerId },
+            {
+                playerId
+            }
+        ) as HttpRequest
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+
+        const publisher = container.get<InMemoryExitGenerationHintPublisher>(
+            TOKENS.ExitGenerationHintPublisher
+        ) as InMemoryExitGenerationHintPublisher
+
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
+        assert.equal(res.success, false)
+        assert.equal(res.error?.type, 'generate')
+        assert.ok(publisher.enqueuedMessages.length > 0, 'Should enqueue hint message for authenticated player')
+        assert.equal(publisher.enqueuedMessages[0].type, 'Navigation.Exit.GenerationHint')
+        assert.equal(publisher.enqueuedMessages[0].actor.id, playerId)
     })
 })

@@ -26,6 +26,18 @@ export interface IWorldEventPublisher {
     enqueueEvents(events: WorldEventEnvelope[]): Promise<void>
 }
 
+export interface InMemoryWorldEventPublisherOptions {
+    /**
+     * When true, synchronously drains queued events via processEvent.
+     * Intended for local memory-mode testing only.
+     */
+    autoDrain?: boolean
+    /**
+     * Event processor callback used by autodrain.
+     */
+    processEvent?: (event: WorldEventEnvelope) => Promise<void>
+}
+
 /**
  * In-memory event publisher for development and testing.
  *
@@ -34,9 +46,49 @@ export interface IWorldEventPublisher {
 @injectable()
 export class InMemoryWorldEventPublisher implements IWorldEventPublisher {
     public enqueuedEvents: WorldEventEnvelope[] = []
+    private isDraining = false
+
+    constructor(private readonly options: InMemoryWorldEventPublisherOptions = {}) {
+        if (options.autoDrain && !options.processEvent) {
+            throw new Error('InMemoryWorldEventPublisher autodrain requires processEvent callback')
+        }
+    }
 
     async enqueueEvents(events: WorldEventEnvelope[]): Promise<void> {
+        if (events.length === 0) {
+            return
+        }
+
         this.enqueuedEvents.push(...events)
+
+        if (this.options.autoDrain) {
+            await this.drain()
+        }
+    }
+
+    private async drain(): Promise<void> {
+        if (this.isDraining) {
+            return
+        }
+
+        this.isDraining = true
+        try {
+            // FIFO drain; events enqueued during processing are appended and
+            // processed in the same drain cycle.
+            while (this.enqueuedEvents.length > 0) {
+                const event = this.enqueuedEvents.shift()!
+                try {
+                    await this.options.processEvent!(event)
+                } catch (error) {
+                    // Preserve queue state for retry/debug by restoring the
+                    // failed event at the head and bubbling the error.
+                    this.enqueuedEvents.unshift(event)
+                    throw error
+                }
+            }
+        } finally {
+            this.isDraining = false
+        }
     }
 
     /** Clear enqueued events (for test cleanup) */

@@ -1,17 +1,31 @@
-import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
-import { ServiceBusClient } from '@azure/service-bus'
+import type { InvocationContext } from '@azure/functions'
 import { DefaultAzureCredential } from '@azure/identity'
+import { ServiceBusClient } from '@azure/service-bus'
+import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
+import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import type { Container } from 'inversify'
 
 import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
+import { QueueProcessExitGenerationHintHandler } from '../handlers/queueProcessExitGenerationHint.js'
+import { QueueSyncLocationAnchorsHandler } from '../handlers/queueSyncLocationAnchors.js'
+import {
+    InMemoryExitGenerationHintPublisher,
+    ServiceBusExitGenerationHintPublisher,
+    type IExitGenerationHintPublisher
+} from '../queues/exitGenerationHintPublisher.js'
+import {
+    InMemoryLocationAnchorSyncPublisher,
+    ServiceBusLocationAnchorSyncPublisher,
+    type ILocationAnchorSyncPublisher
+} from '../queues/locationAnchorSyncPublisher.js'
+import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
+import { AreaGenerationOrchestrator } from '../services/AreaGenerationOrchestrator.js'
 import {
     AzureOpenAIClient,
     NullAzureOpenAIClient,
     type AzureOpenAIClientConfig,
     type IAzureOpenAIClient
 } from '../services/azureOpenAIClient.js'
-import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
-import { AreaGenerationOrchestrator } from '../services/AreaGenerationOrchestrator.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
 import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import { LocationClockManager } from '../services/LocationClockManager.js'
@@ -22,6 +36,7 @@ import { TemporalProximityService, type ITemporalProximityService } from '../ser
 import type { IWorldClockService } from '../services/types.js'
 import { WorldClockService } from '../services/WorldClockService.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
+import { QueueProcessWorldEventHandler } from '../worldEvents/queueProcessWorldEvent.js'
 import {
     InMemoryWorldEventPublisher,
     ServiceBusWorldEventPublisher,
@@ -30,6 +45,37 @@ import {
 import { TOKENS } from './tokens.js'
 
 export function registerCoreServices(container: Container): void {
+    const createInMemoryQueueInvocationContext = (invocationId: string, functionName: string): InvocationContext => {
+        const extraInputs = new Map<string, unknown>()
+        extraInputs.set('container', container)
+
+        return {
+            invocationId,
+            functionName,
+            log: () => {
+                // no-op for local in-memory autodrain
+            },
+            warn: () => {
+                // no-op for local in-memory autodrain
+            },
+            error: () => {
+                // no-op for local in-memory autodrain
+            },
+            extraInputs: {
+                get: (key: string) => extraInputs.get(key),
+                set: (key: string, value: unknown) => {
+                    extraInputs.set(key, value)
+                }
+            }
+        } as unknown as InvocationContext
+    }
+
+    const autoDrainRaw = (process.env.MEMORY_QUEUE_AUTODRAIN || '').toLowerCase()
+    const autoDrainFromEnv = autoDrainRaw === '1' || autoDrainRaw === 'true'
+    const autoDrainDisabledFromEnv = autoDrainRaw === '0' || autoDrainRaw === 'false'
+    const defaultAutoDrain = process.env.NODE_ENV !== 'test'
+    const autoDrainEnabled = autoDrainDisabledFromEnv ? false : autoDrainFromEnv || defaultAutoDrain
+
     // TelemetryService wraps ITelemetryClient with enrichment logic.
     // Consistency policy: class-based injection only (no string token binding).
     container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
@@ -55,7 +101,87 @@ export function registerCoreServices(container: Container): void {
                     : new ServiceBusClient(connectionString!)
                 return new ServiceBusWorldEventPublisher(client)
             }
-            return new InMemoryWorldEventPublisher()
+
+            if (!autoDrainEnabled) {
+                return new InMemoryWorldEventPublisher()
+            }
+
+            return new InMemoryWorldEventPublisher({
+                autoDrain: true,
+                processEvent: async (event) => {
+                    const handler = container.get(QueueProcessWorldEventHandler)
+                    const context = createInMemoryQueueInvocationContext(
+                        `memory-autodrain-world-events-${event.eventId}`,
+                        'memory-autodrain-world-events'
+                    )
+
+                    await handler.handle(event, context)
+                }
+            })
+        })
+        .inSingletonScope()
+
+    // Exit Generation Hint Publisher: Service Bus in production, in-memory in local/test.
+    container
+        .bind<IExitGenerationHintPublisher>(TOKENS.ExitGenerationHintPublisher)
+        .toDynamicValue(() => {
+            const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
+            const connectionString = process.env.ServiceBusAtlas
+            if (namespace || connectionString) {
+                const client = namespace
+                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    : new ServiceBusClient(connectionString!)
+                return new ServiceBusExitGenerationHintPublisher(client)
+            }
+
+            if (!autoDrainEnabled) {
+                return new InMemoryExitGenerationHintPublisher()
+            }
+
+            return new InMemoryExitGenerationHintPublisher({
+                autoDrain: true,
+                processMessage: async (message: WorldEventEnvelope) => {
+                    const handler = container.get(QueueProcessExitGenerationHintHandler)
+                    const context = createInMemoryQueueInvocationContext(
+                        `memory-autodrain-exit-hints-${message.eventId}`,
+                        'memory-autodrain-exit-hints'
+                    )
+
+                    await handler.handle(message, context)
+                }
+            })
+        })
+        .inSingletonScope()
+
+    // Location Anchor Sync Publisher: Service Bus in production, in-memory in local/test.
+    container
+        .bind<ILocationAnchorSyncPublisher>(TOKENS.LocationAnchorSyncPublisher)
+        .toDynamicValue(() => {
+            const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
+            const connectionString = process.env.ServiceBusAtlas
+            if (namespace || connectionString) {
+                const client = namespace
+                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    : new ServiceBusClient(connectionString!)
+                return new ServiceBusLocationAnchorSyncPublisher(client)
+            }
+
+            if (!autoDrainEnabled) {
+                return new InMemoryLocationAnchorSyncPublisher()
+            }
+
+            return new InMemoryLocationAnchorSyncPublisher({
+                autoDrain: true,
+                processMessage: async (message) => {
+                    const handler = container.get(QueueSyncLocationAnchorsHandler)
+                    const context = createInMemoryQueueInvocationContext(
+                        `memory-autodrain-location-sync-${message.correlationId}`,
+                        'memory-autodrain-location-sync'
+                    )
+
+                    await handler.handle(message, context)
+                }
+            })
         })
         .inSingletonScope()
 
