@@ -3,7 +3,13 @@
     "Values": {
         "FUNCTIONS_WORKER_RUNTIME": "node",
         "AzureWebJobsStorage": "",
+        "AzureWebJobsSecretStorageType": "Files",
         "PERSISTENCE_MODE": "memory",
-        "MEMORY_QUEUE_AUTODRAIN": "true"
+        "ALLOW_LOCAL_MEMORY_CONTAINER": "1",
+        "MEMORY_QUEUE_AUTODRAIN": "true",
+        "AzureWebJobs.serviceBusProcessWorldEvent.Disabled": "true",
+        "AzureWebJobs.serviceBusProcessExitGenerationHint.Disabled": "true",
+        "AzureWebJobs.serviceBusSyncLocationAnchors.Disabled": "true",
+        "AzureWebJobs.timerComputeIntegrityHashes.Disabled": "true"
     }
 }
