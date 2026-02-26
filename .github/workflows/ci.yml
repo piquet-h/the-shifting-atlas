@@ -129,21 +129,22 @@ jobs:
       - name: Validate unit tests are isolated
         run: |
           echo "Validating test layer separation..."
-          
+
           # Define exception files (tests that legitimately test configuration logic)
           EXCEPTIONS=(
             "backend/test/unit/persistenceConfigStrict.test.ts"
             "backend/test/unit/appInsightsSampling.test.ts"
             "backend/test/unit/gremlinConfig.binding.test.ts"
             "backend/test/unit/nullTelemetryClient.test.ts"
+            "backend/test/unit/inversifyProductionConfig.memoryMode.test.ts"
           )
-          
+
           # Build grep exclude pattern
           EXCLUDE_PATTERN=""
           for file in "${EXCEPTIONS[@]}"; do
             EXCLUDE_PATTERN="$EXCLUDE_PATTERN --exclude=$(basename $file)"
           done
-          
+
           # Check for PERSISTENCE_MODE manipulation (excluding exception files)
           echo "Checking for PERSISTENCE_MODE manipulation..."
           if grep -r "process.env.PERSISTENCE_MODE" backend/test/unit/ $EXCLUDE_PATTERN 2>/dev/null; then
@@ -153,7 +154,7 @@ jobs:
             echo "  2. Be moved to integration tests if they need specific persistence modes"
             exit 1
           fi
-          
+
           # Check for direct repository instantiation
           echo "Checking for direct repository instantiation..."
           if grep -r "new InMemory.*Repository\|new Cosmos.*Repository" backend/test/unit/ 2>/dev/null; then
@@ -161,7 +162,7 @@ jobs:
             echo "Found violations in files listed above. Use fixture.getXxxRepository() instead."
             exit 1
           fi
-          
+
           # Check for setupTestContainer with explicit mode (excluding DI tests)
           echo "Checking for setupTestContainer with explicit mode..."
           if grep -r "setupTestContainer.*'cosmos'\|setupTestContainer.*'memory'" backend/test/unit/ --exclude=nullTelemetryClient.test.ts --exclude=mockRepositories.test.ts 2>/dev/null; then
@@ -169,7 +170,7 @@ jobs:
             echo "Found violations in files listed above. Use UnitTestFixture which automatically uses 'mock' mode."
             exit 1
           fi
-          
+
           echo "✓ Test layer separation validation passed"
 
       - name: Run shared tests (coverage)
