@@ -189,7 +189,9 @@ export const GAME_EVENT_NAMES = [
     'MCP.Auth.Allowed', // MCP auth decision: allowed - properties: { toolName, clientAppId, clientSubscriptionId }
     'MCP.Auth.Denied', // MCP auth decision: denied - properties: { toolName, clientAppId, clientSubscriptionId, reason }
     'MCP.Throttled', // MCP request throttled/rate-limited - properties: { toolName, clientAppId, throttleReason, retryAfterMs }
-    'MCP.Failed' // MCP unexpected failure - properties: { toolName, clientAppId, failureReason, errorCode }
+    'MCP.Failed', // MCP unexpected failure - properties: { toolName, clientAppId, failureReason, errorCode }
+    // World map graph telemetry (WorldMap UI)
+    'World.Map.Fetched' // World graph fetched for map view - properties: { nodeCount, edgeCount, latencyMs }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:

@@ -48,6 +48,12 @@ export default function Nav(): React.ReactElement {
                 {/* Navigation links - visible on medium+ screens */}
                 <div className="hidden md:flex items-center gap-2 sm:gap-3">
                     <Link
+                        to="/map"
+                        className="text-responsive-sm text-slate-300 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded px-2 py-1 transition-colors"
+                    >
+                        Map
+                    </Link>
+                    <Link
                         to="/help"
                         className="text-responsive-sm text-slate-300 hover:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent rounded px-2 py-1 transition-colors"
                     >
@@ -83,6 +89,12 @@ export default function Nav(): React.ReactElement {
                     <div className="absolute right-0 top-full mt-2 w-40 sm:w-44 rounded-md bg-slate-800/95 backdrop-blur border border-white/10 shadow-lg p-2 flex flex-col gap-1 z-50">
                         {/* Mobile-only navigation links */}
                         <div className="md:hidden border-b border-white/10 pb-1 mb-1">
+                            <Link
+                                to="/map"
+                                className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors block"
+                            >
+                                Map
+                            </Link>
                             <Link
                                 to="/help"
                                 className="touch-target text-left text-responsive-sm px-2 py-2 rounded text-slate-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:bg-white/10 transition-colors block"
