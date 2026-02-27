@@ -103,6 +103,41 @@ describe('Exit Availability in Move/Look Handlers', () => {
             const exits = body.data.exits as ExitInfo[]
             assert.ok(exits.every((e) => e.availability === 'hard'))
         })
+
+        test('includes pending exits when exitAvailability.pending metadata is present', async () => {
+            const container = await fixture.getContainer()
+            const locationRepo = await fixture.getLocationRepository()
+
+            const pendingLocationId = '11111111-1111-1111-1111-111111111111'
+            await locationRepo.upsert({
+                id: pendingLocationId,
+                name: 'Frontier Gate',
+                description: 'A gate looking out into unmapped land.',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1,
+                exitAvailability: {
+                    pending: {
+                        north: 'Unmapped road beyond the palisade'
+                    }
+                }
+            })
+
+            const ctx = await createMockContext(fixture)
+            const req = makeLookRequest(pendingLocationId)
+            const handler = container.get(LocationLookHandler)
+            const response = await handler.handle(req, ctx)
+
+            assert.equal(response.status, 200)
+            const body = response.jsonBody as { success: boolean; data: { exits: ExitInfo[] } }
+            assert.ok(body.success)
+
+            const exits = body.data.exits as ExitInfo[]
+            const pending = exits.find((e) => e.direction === 'north')
+            assert.ok(pending, 'Should include a north ExitInfo entry')
+            assert.equal(pending.availability, 'pending', 'North should be availability=pending')
+        })
     })
 
     describe('MoveHandler - exit availability', () => {

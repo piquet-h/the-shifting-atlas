@@ -16,19 +16,19 @@
 
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, TerrainType } from '@piquet-h/shared'
-import { DIRECTIONS, TERRAIN_TYPES, getTerrainGuidance } from '@piquet-h/shared'
+import { DIRECTIONS, TERRAIN_TYPES, getOppositeDirection, getTerrainGuidance } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../../di/tokens.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
-import type { ILocationRepository } from '../../repos/locationRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
-import type { IAIDescriptionService, BatchDescriptionRequest } from '../../services/AIDescriptionService.js'
+import type { ILocationRepository } from '../../repos/locationRepository.js'
+import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
 import type { ITemporalProximityService } from '../../services/temporalProximityService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
-import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import type { WorldEventHandlerResult } from '../types.js'
+import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEventHandler.js'
 
 /**
@@ -42,6 +42,15 @@ const DEFAULT_TRAVEL_DURATION_MS = 60_000
  * A candidate is accepted if its accumulated graph cost ≤ TOLERANCE × proposed direct edge cost.
  */
 const WILDERNESS_RECONNECT_TOLERANCE = 2
+
+/**
+ * Minimum cosine alignment required between requested expansion direction and
+ * travel-weighted candidate displacement for fuzzy reconnection.
+ *
+ * 1.0 = perfect alignment, 0.0 = orthogonal, -1.0 = opposite.
+ * Keep this intentionally permissive to allow near-matches (e.g. west(9) ≈ west(10)).
+ */
+const NARRATIVE_ALIGNMENT_MIN = 0.4
 
 /**
  * Settlement terrain types use strict (urban) reconnection: only a direct exit check,
@@ -62,6 +71,37 @@ function byProximityPriority(
     if (a.hops !== b.hops) return a.hops - b.hops
     if (a.accumulatedTravelMs !== b.accumulatedTravelMs) return a.accumulatedTravelMs - b.accumulatedTravelMs
     return a.locationId.localeCompare(b.locationId)
+}
+
+const DIRECTION_VECTORS: Readonly<Record<Direction, { x: number; y: number }>> = {
+    north: { x: 0, y: 1 },
+    south: { x: 0, y: -1 },
+    east: { x: 1, y: 0 },
+    west: { x: -1, y: 0 },
+    northeast: { x: 1, y: 1 },
+    northwest: { x: -1, y: 1 },
+    southeast: { x: 1, y: -1 },
+    southwest: { x: -1, y: -1 },
+    up: { x: 0, y: 0 },
+    down: { x: 0, y: 0 },
+    in: { x: 0, y: 0 },
+    out: { x: 0, y: 0 }
+}
+
+function narrativeAlignmentScore(direction: Direction, displacementX?: number, displacementY?: number): number {
+    if (typeof displacementX !== 'number' || typeof displacementY !== 'number') {
+        return 0
+    }
+
+    const dir = DIRECTION_VECTORS[direction]
+    const mag = Math.hypot(displacementX, displacementY)
+    const dirMag = Math.hypot(dir.x, dir.y)
+    if (mag === 0 || dirMag === 0) {
+        return 0
+    }
+
+    const dot = displacementX * dir.x + displacementY * dir.y
+    return dot / (mag * dirMag)
 }
 
 /**
@@ -431,6 +471,16 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         const results: DirectionTarget[] = directions.map((d) => ({ direction: d, type: 'stub' as const }))
         const usedCandidateIds = new Set<string>()
 
+        // Guardrail: never stitch a new direction to a location that is already directly adjacent
+        // to the root via another direction. This avoids confusing duplicate adjacency like
+        // "north" pointing to the same neighbor as an existing "southwest" exit.
+        const root = await this.locationRepo.get(rootId)
+        for (const exit of root?.exits || []) {
+            if (exit.to) {
+                usedCandidateIds.add(exit.to)
+            }
+        }
+
         // Phase 1: direct exit check for all terrain types (urban strict behavior).
         for (const target of results) {
             const check = await this.temporalProximitySvc.checkDirectReconnection(rootId, target.direction, stepMs)
@@ -453,7 +503,11 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             // (directions iterate in the canonical order returned by determineNeighborDirections).
             for (const target of results) {
                 if (target.type !== 'stub') continue
-                const candidate = candidates.find((c) => !usedCandidateIds.has(c.locationId))
+                const candidate = candidates.find(
+                    (c) =>
+                        !usedCandidateIds.has(c.locationId) &&
+                        narrativeAlignmentScore(target.direction, c.displacementX, c.displacementY) >= NARRATIVE_ALIGNMENT_MIN
+                )
                 if (candidate) {
                     target.type = 'reconnect'
                     target.targetId = candidate.locationId
@@ -478,6 +532,12 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
     ): Promise<StubLocation[]> {
         const stubs: StubLocation[] = []
 
+        const guidance = getTerrainGuidance(terrain)
+        const terrainDirections =
+            guidance.defaultDirections && guidance.defaultDirections.length > 0
+                ? guidance.defaultDirections
+                : (['north', 'south', 'east', 'west'] as Direction[])
+
         for (const direction of directions) {
             const id = uuidv4()
             // Placeholder name (title-cased terrain)
@@ -485,13 +545,28 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             const titleCasedTerrain = terrainWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
             const name = `Unexplored ${titleCasedTerrain}`
 
+            // New stubs should be frontier-expandable immediately.
+            // Mark all terrain-default directions (except the reciprocal/back direction to root)
+            // as pending generation so look/prefetch can surface them.
+            const backDirection = getOppositeDirection(direction)
+            const pendingDirections = terrainDirections.filter((d) => d !== backDirection)
+            const pending =
+                pendingDirections.length > 0
+                    ? pendingDirections.reduce<Partial<Record<Direction, string>>>((acc, d) => {
+                          acc[d] = 'Open wilderness awaiting exploration'
+                          return acc
+                      }, {})
+                    : undefined
+
             // Create location entity
             await this.locationRepo.upsert({
                 id,
                 name,
                 description: '', // Will be filled by AI-generated layer
+                terrain,
                 tags: [],
                 exits: [], // Will be populated by ExitCreateHandler
+                exitAvailability: pending ? { pending } : undefined,
                 version: 1
             })
 

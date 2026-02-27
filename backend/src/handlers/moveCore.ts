@@ -5,6 +5,7 @@ import {
     enrichMovementAttributes,
     ExitInfo,
     getExitGenerationHintStore,
+    getOppositeDirection,
     getPlayerHeadingStore,
     hashPlayerIdForTelemetry,
     normalizeDirection,
@@ -361,7 +362,7 @@ export class MoveHandler extends BaseHandler {
         )
 
         // Build exit availability info using shared helper
-        const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits)
+        const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits, result.location.exitAvailability)
 
         // Prefetch batch generation for pending exits (Issue #811)
         // Only trigger on successful arrival, not on look operations
@@ -370,7 +371,9 @@ export class MoveHandler extends BaseHandler {
                 const prefetchResult = tryCreatePrefetchEvent(
                     result.location.id,
                     (result.location.terrain || 'open-plain') as TerrainType,
-                    dir as Direction,
+                    // Contract: arrivalDirection is the direction the player arrived FROM.
+                    // If the player moved "north", they arrived from "south".
+                    getOppositeDirection(dir as Direction),
                     result.location.exitAvailability,
                     this.correlationId
                 )

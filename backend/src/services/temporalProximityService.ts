@@ -29,6 +29,27 @@ export interface ProximityCandidate {
     accumulatedTravelMs: number
     /** Number of exit-edge hops from source. */
     hops: number
+    /** Direction of the first hop from source along the selected shortest path. */
+    firstHopDirection?: string
+    /** Travel-weighted X displacement for the selected shortest path. */
+    displacementX?: number
+    /** Travel-weighted Y displacement for the selected shortest path. */
+    displacementY?: number
+}
+
+const DIRECTION_VECTORS: Readonly<Record<string, { x: number; y: number }>> = {
+    north: { x: 0, y: 1 },
+    south: { x: 0, y: -1 },
+    east: { x: 1, y: 0 },
+    west: { x: -1, y: 0 },
+    northeast: { x: 1, y: 1 },
+    northwest: { x: -1, y: 1 },
+    southeast: { x: 1, y: -1 },
+    southwest: { x: -1, y: -1 },
+    up: { x: 0, y: 0 },
+    down: { x: 0, y: 0 },
+    in: { x: 0, y: 0 },
+    out: { x: 0, y: 0 }
 }
 
 /**
@@ -89,10 +110,17 @@ export class TemporalProximityService implements ITemporalProximityService {
             locationId: string
             accumulatedMs: number
             hops: number
+            firstHopDirection?: string
+            displacementX: number
+            displacementY: number
         }
-        const frontier: Entry[] = [{ locationId: fromLocationId, accumulatedMs: 0, hops: 0 }]
+        const frontier: Entry[] = [{ locationId: fromLocationId, accumulatedMs: 0, hops: 0, displacementX: 0, displacementY: 0 }]
         bestCost.set(fromLocationId, 0)
         bestHops.set(fromLocationId, 0)
+        const bestFirstHopDirection = new Map<string, string | undefined>()
+        bestFirstHopDirection.set(fromLocationId, undefined)
+        const bestDisplacement = new Map<string, { x: number; y: number }>()
+        bestDisplacement.set(fromLocationId, { x: 0, y: 0 })
 
         while (frontier.length > 0) {
             // Pop the entry with lowest accumulated cost (Dijkstra front).
@@ -126,7 +154,20 @@ export class TemporalProximityService implements ITemporalProximityService {
 
                 bestCost.set(exit.toLocationId, newCost)
                 bestHops.set(exit.toLocationId, current.hops + 1)
-                frontier.push({ locationId: exit.toLocationId, accumulatedMs: newCost, hops: current.hops + 1 })
+                const firstHopDirection = current.hops === 0 ? exit.direction : current.firstHopDirection
+                const vector = DIRECTION_VECTORS[exit.direction] || { x: 0, y: 0 }
+                const nextDisplacementX = current.displacementX + vector.x * stepMs
+                const nextDisplacementY = current.displacementY + vector.y * stepMs
+                bestFirstHopDirection.set(exit.toLocationId, firstHopDirection)
+                bestDisplacement.set(exit.toLocationId, { x: nextDisplacementX, y: nextDisplacementY })
+                frontier.push({
+                    locationId: exit.toLocationId,
+                    accumulatedMs: newCost,
+                    hops: current.hops + 1,
+                    firstHopDirection,
+                    displacementX: nextDisplacementX,
+                    displacementY: nextDisplacementY
+                })
             }
         }
 
@@ -134,7 +175,14 @@ export class TemporalProximityService implements ITemporalProximityService {
         const candidates: ProximityCandidate[] = []
         for (const [locationId, accumulatedTravelMs] of bestCost) {
             if (locationId === fromLocationId) continue
-            candidates.push({ locationId, accumulatedTravelMs, hops: bestHops.get(locationId) ?? 0 })
+            candidates.push({
+                locationId,
+                accumulatedTravelMs,
+                hops: bestHops.get(locationId) ?? 0,
+                firstHopDirection: bestFirstHopDirection.get(locationId),
+                displacementX: bestDisplacement.get(locationId)?.x,
+                displacementY: bestDisplacement.get(locationId)?.y
+            })
         }
 
         // Primary sort: ascending accumulatedTravelMs; secondary: lexicographic locationId.

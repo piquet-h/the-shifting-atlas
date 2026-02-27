@@ -3,6 +3,7 @@
  *
  * Shared conversion logic to avoid duplication between move and look handlers.
  */
+import type { ExitAvailabilityMetadata } from '@piquet-h/shared'
 import { buildExitInfoArray, type Direction, type ExitInfo, type LocationExit } from '@piquet-h/shared'
 
 /**
@@ -16,7 +17,7 @@ import { buildExitInfoArray, type Direction, type ExitInfo, type LocationExit } 
  * @param exits - Location exits array
  * @returns ExitInfo array with availability states
  */
-export function convertLocationExitsToExitInfo(exits: LocationExit[] | undefined): ExitInfo[] {
+export function convertLocationExitsToExitInfo(exits: LocationExit[] | undefined, exitAvailability?: ExitAvailabilityMetadata): ExitInfo[] {
     // Convert exits array to map format for buildExitInfoArray
     const exitsMap: Partial<Record<Direction, string>> = {}
     if (exits) {
@@ -27,8 +28,13 @@ export function convertLocationExitsToExitInfo(exits: LocationExit[] | undefined
         }
     }
 
-    // TODO(persistence): When Location.exitAvailability is wired from persistence layer,
-    // pass it as the second parameter to buildExitInfoArray to include pending/forbidden states.
-    // Tracking: Part of broader persistence integration for exit availability metadata.
-    return buildExitInfoArray(exitsMap, undefined)
+    // Prefer not to surface forbidden exits by default; those are typically narrated only
+    // when the player attempts the move (reveal=onTryMove). Pending exits are safe to show.
+    const safeMetadata: ExitAvailabilityMetadata | undefined = exitAvailability
+        ? {
+              pending: exitAvailability.pending
+          }
+        : undefined
+
+    return buildExitInfoArray(exitsMap, safeMetadata)
 }

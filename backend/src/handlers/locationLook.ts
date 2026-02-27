@@ -168,7 +168,7 @@ export class LocationLookHandler extends BaseHandler {
             })
 
             // Build exit availability info using shared helper
-            const exitInfoArray = convertLocationExitsToExitInfo(loc.exits)
+            const exitInfoArray = convertLocationExitsToExitInfo(loc.exits, loc.exitAvailability)
 
             return okResponse(
                 {

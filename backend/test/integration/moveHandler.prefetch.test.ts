@@ -12,7 +12,7 @@
  */
 
 import type { HttpRequest } from '@azure/functions'
-import { STARTER_LOCATION_ID, type Location } from '@piquet-h/shared'
+import { STARTER_LOCATION_ID, getOppositeDirection, type Location } from '@piquet-h/shared'
 import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
@@ -106,6 +106,14 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             assert.ok(batchEvent.payload.terrain, 'Should include terrain')
             assert.ok(batchEvent.payload.arrivalDirection, 'Should include arrival direction')
             assert.ok(batchEvent.payload.batchSize, 'Should include batch size')
+
+            // Contract: arrivalDirection means "direction the player arrived FROM".
+            // If the move direction is 'up', the player arrived from its opposite.
+            assert.equal(
+                batchEvent.payload.arrivalDirection,
+                getOppositeDirection('up'),
+                'arrivalDirection should be opposite of the move direction'
+            )
 
             // Assert: Telemetry event was emitted
             const telemetryEvents = mockTelemetry.events.filter((e) => e.name === 'World.BatchGeneration.Prefetch')
@@ -328,8 +336,8 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
  *
  * Runs in memory mode always; runs in cosmos mode when PERSISTENCE_MODE=cosmos.
  */
-import { describeForBothModes } from '../helpers/describeForBothModes.js'
 import { getDebounceTracker } from '../../src/services/prefetchBatchGeneration.js'
+import { describeForBothModes } from '../helpers/describeForBothModes.js'
 
 describeForBothModes('MoveHandler prefetch - Cosmos repository wiring contract', (mode) => {
     let contractFixture: IntegrationTestFixture

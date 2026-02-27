@@ -21,7 +21,7 @@ export interface CommandInterfaceHandle {
 
 export function formatMoveResponse(direction: string, loc: LocationResponse): string {
     const exits: string | undefined = Array.isArray(loc.exits) ? loc.exits.map((e) => e.direction).join(', ') : undefined
-    return `Moved ${direction} -> ${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
+    return `Moved ${direction} -> ${loc.name}: ${loc.description.text}${exits ? ` (Exits: ${exits})` : ''}`
 }
 
 /**
@@ -132,7 +132,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
-                            response = `${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
+                            response = `${loc.name}: ${loc.description.text}${exits ? ` (Exits: ${exits})` : ''}`
                         } else {
                             error = 'Malformed location response'
                         }
@@ -172,7 +172,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
                                 : undefined
-                            response = `Moved ${dir} -> ${loc.name}: ${loc.description.text}${exits ? `\nExits: ${exits}` : ''}`
+                            response = `Moved ${dir} -> ${loc.name}: ${loc.description.text}${exits ? ` (Exits: ${exits})` : ''}`
                         } else {
                             error = 'Malformed move response'
                         }
