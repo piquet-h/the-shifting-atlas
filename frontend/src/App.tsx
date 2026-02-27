@@ -10,6 +10,7 @@ import About from './pages/About'
 import Game from './pages/Game'
 import Help from './pages/Help'
 import LearnMore from './pages/LearnMore'
+import Map from './pages/Map'
 import NotFound from './pages/NotFound'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
@@ -57,6 +58,7 @@ export default function App(): React.ReactElement {
                             <Routes>
                                 <Route path="/" element={<Homepage />} />
                                 <Route path="/game" element={<Game />} />
+                                <Route path="/map" element={<Map />} />
                                 <Route path="/learn-more" element={<LearnMore />} />
                                 <Route
                                     path="/profile"
