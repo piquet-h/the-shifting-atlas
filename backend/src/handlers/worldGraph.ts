@@ -50,7 +50,7 @@ export class WorldGraphHandler extends BaseHandler {
         super(telemetry)
     }
 
-    protected async execute(_req: HttpRequest): Promise<HttpResponseInit> {
+    protected async execute(): Promise<HttpResponseInit> {
         try {
             const [rawNodes, rawEdges] = await Promise.all([
                 this.gremlinClient.submit<Record<string, unknown>>("g.V().hasLabel('location').valueMap(true)"),
@@ -59,7 +59,7 @@ export class WorldGraphHandler extends BaseHandler {
                         ".project('fromId','toId','direction','travelDurationMs')" +
                         '.by(outV().id())' +
                         '.by(inV().id())' +
-                        '.by(values(\'direction\'))' +
+                        ".by(values('direction'))" +
                         `.by(coalesce(values('travelDurationMs'), constant(${TRAVEL_DURATION_ABSENT})))`
                 )
             ])
