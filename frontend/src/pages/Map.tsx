@@ -7,7 +7,7 @@ import WorldMap from '../components/WorldMap'
  */
 export default function Map(): React.ReactElement {
     return (
-        <div className="h-full flex flex-col" aria-labelledby="map-page-title">
+        <div className="flex-1 min-h-0 flex flex-col" aria-labelledby="map-page-title">
             <h1 id="map-page-title" tabIndex={-1} className="sr-only">
                 The Shifting Atlas – World Map
             </h1>

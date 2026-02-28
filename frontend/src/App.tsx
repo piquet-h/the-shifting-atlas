@@ -50,7 +50,7 @@ export default function App(): React.ReactElement {
                         id="main"
                         ref={mainRef}
                         tabIndex={-1}
-                        className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg overflow-hidden"
+                        className="flex-1 flex flex-col min-h-0 outline-none focus-visible:ring-2 focus-visible:ring-atlas-accent focus-visible:ring-offset-2 focus-visible:ring-offset-atlas-bg overflow-hidden"
                         aria-label="Main content"
                     >
                         <LiveAnnouncer />

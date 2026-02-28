@@ -227,7 +227,7 @@ export default function WorldMap(): React.ReactElement {
     }, [])
 
     return (
-        <div className="relative h-full w-full flex flex-col" aria-label="World map">
+        <div className="relative flex-1 min-h-0 w-full flex flex-col" aria-label="World map">
             {/* Header bar */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-atlas-card/80 backdrop-blur shrink-0">
                 <div className="flex items-center gap-3">
