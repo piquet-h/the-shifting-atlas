@@ -30,6 +30,10 @@ import { buildMoveResponse } from './moveResponse.js'
 import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
 import { isValidGuid } from './utils/validation.js'
 
+// Fallback used when an exit edge has no explicit travelDurationMs.
+// Kept consistent with other temporal traversal utilities.
+const DEFAULT_TRAVEL_DURATION_MS = 60_000
+
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
     statusCode: number
@@ -40,7 +44,14 @@ export interface MoveValidationError {
 
 export interface MoveResult {
     success: boolean
-    location?: { id: string; name: string; description: CompiledDescription; exits?: ExitInfo[] }
+    location?: {
+        id: string
+        name: string
+        description: CompiledDescription
+        exits?: ExitInfo[]
+        /** Simulated travel duration for the move leg (distinct from request latency). */
+        travel?: { durationMs: number; source: 'edge' | 'default' }
+    }
     error?: MoveValidationError
     latencyMs: number
 }
@@ -280,6 +291,13 @@ export class MoveHandler extends BaseHandler {
             }
         }
 
+        // Determine the simulated travel time for this movement leg.
+        // This is used for narrative/time consistency and should not be confused with request latency.
+        const legTravelDurationMs =
+            typeof exit.travelDurationMs === 'number' && exit.travelDurationMs > 0 ? exit.travelDurationMs : DEFAULT_TRAVEL_DURATION_MS
+        const legTravelSource: 'edge' | 'default' =
+            typeof exit.travelDurationMs === 'number' && exit.travelDurationMs > 0 ? 'edge' : 'default'
+
         // Execute move
         const result = await this.locationRepo.move(fromId, dir)
         if (result.status === 'error') {
@@ -437,7 +455,11 @@ export class MoveHandler extends BaseHandler {
                         supersededSentences: 0
                     }
                 },
-                exits: exitInfoArray
+                exits: exitInfoArray,
+                travel: {
+                    durationMs: legTravelDurationMs,
+                    source: legTravelSource
+                }
             },
             latencyMs
         }

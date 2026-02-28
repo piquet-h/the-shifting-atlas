@@ -6,7 +6,16 @@ export interface CommandRecord {
     response?: string
     error?: string
     latencyMs?: number
+    /** Simulated in-world travel time for movement commands (distinct from request latency). */
+    travelMs?: number
     ts: number
+}
+
+function formatTravelMs(ms: number): string {
+    // Keep this intentionally simple + additive-friendly (players can sum loops in seconds).
+    const seconds = Math.round(ms / 1000)
+    if (seconds <= 0) return `${ms}ms`
+    return `${seconds}s`
 }
 
 export interface CommandOutputProps {
@@ -62,6 +71,14 @@ export default function CommandOutput({
                             {rec.latencyMs != null && (
                                 <span className="ml-auto text-[10px] sm:text-xs text-slate-500 flex-shrink-0" title="Latency">
                                     {rec.latencyMs}ms
+                                </span>
+                            )}
+                            {rec.travelMs != null && (
+                                <span
+                                    className="text-[10px] sm:text-xs text-slate-500 flex-shrink-0"
+                                    title="Simulated travel time (in-world)"
+                                >
+                                    Travel {formatTravelMs(rec.travelMs)}
                                 </span>
                             )}
                         </div>

@@ -54,7 +54,20 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     }
 
     async get(id: string): Promise<Location | undefined> {
-        return this.locations.get(id)
+        const location = this.locations.get(id)
+        if (!location) return undefined
+
+        // Hydrate optional travelDurationMs onto exits for callers that need it (e.g., move loop consistency).
+        // Return a shallow clone to avoid mutating the stored record.
+        if (!location.exits || location.exits.length === 0) return location
+
+        return {
+            ...location,
+            exits: location.exits.map((e) => ({
+                ...e,
+                travelDurationMs: e.travelDurationMs ?? this.exitTravelDurations.get(this.exitKey(id, e.direction))
+            }))
+        }
     }
 
     async move(fromId: string, direction: string) {

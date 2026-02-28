@@ -8,6 +8,9 @@ import { generateExitsSummaryCache } from './exitRepository.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash, firstScalar } from './utils/index.js'
 
+/** Sentinel used by coalesce() when travelDurationMs is absent on an exit edge. */
+const TRAVEL_DURATION_ABSENT = -1
+
 /** Cosmos (Gremlin) implementation of ILocationRepository. */
 @injectable()
 export class CosmosLocationRepository extends CosmosGremlinRepository implements ILocationRepository {
@@ -131,15 +134,17 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
             let exits: Array<{ direction: string; to?: string; description?: string }> = []
             try {
                 const exitsRaw = await this.query<Record<string, unknown>>(
-                    "g.V(locationId).outE('exit').project('direction','to','description')" +
+                    "g.V(locationId).outE('exit').project('direction','to','description','travelDurationMs')" +
                         ".by(values('direction')).by(inV().id())" +
-                        ".by(coalesce(values('description'), constant('')))",
+                        ".by(coalesce(values('description'), constant('')))" +
+                        `.by(coalesce(values('travelDurationMs'), constant(${TRAVEL_DURATION_ABSENT})))`,
                     { locationId: id }
                 )
                 exits = (exitsRaw || []).map((e: Record<string, unknown>) => ({
                     direction: String(e.direction as string),
                     to: String(e.to as string),
-                    description: e.description ? String(e.description as string) : undefined
+                    description: e.description ? String(e.description as string) : undefined,
+                    travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined
                 }))
 
                 console.debug(`[LocationRepository.get] Location ${id} has ${exits.length} exits`)

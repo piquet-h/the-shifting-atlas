@@ -109,6 +109,29 @@ describe('Accessibility - Error Handling', () => {
     })
 })
 
+describe('Accessibility - Command Output Timing', () => {
+    it('renders travel duration separately from latency when provided', async () => {
+        const { default: CommandOutput } = await import('../src/components/CommandOutput')
+        const items = [
+            {
+                id: '1',
+                command: 'move north',
+                response: 'Moved north -> Somewhere',
+                latencyMs: 250,
+                travelMs: 90_000,
+                ts: Date.now()
+            }
+        ]
+
+        const markup = renderToString(<CommandOutput items={items} />)
+
+        // Should show BOTH values, and not conflate them.
+        expect(markup).toMatch(/250[\s\S]*ms/)
+        expect(markup).toMatch(/Travel/i)
+        expect(markup).toMatch(/90/)
+    })
+})
+
 describe('Accessibility - Focus Management', () => {
     it('buttons have focus-visible ring styles for keyboard users', async () => {
         const { default: CommandInput } = await import('../src/components/CommandInput')

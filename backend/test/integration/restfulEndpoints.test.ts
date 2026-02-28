@@ -242,6 +242,94 @@ describe('RESTful Endpoints Integration', () => {
             assert.ok(navEvents.length > 0, 'Should emit navigation telemetry events')
         })
 
+        test('includes travel duration metadata when configured (for loop consistency)', async () => {
+            const ctx = await createMockContext(fixture)
+            const playerId = await createTestPlayer(ctx)
+
+            const locationRepo = await fixture.getLocationRepository()
+            const playerRepo = await fixture.getPlayerRepository()
+
+            // Use a fresh origin location so the test isn't affected by seeded STARTER exits.
+            const originId = '550e8400-e29b-41d4-a716-446655440011'
+            const destId = '550e8400-e29b-41d4-a716-446655440010'
+
+            await locationRepo.upsert({
+                id: originId,
+                name: 'Origin Clearing',
+                description: 'A neutral starting point for the test loop',
+                tags: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: destId,
+                name: 'North Trail',
+                description: 'A short trail to the north',
+                tags: [],
+                version: 1
+            })
+
+            // Seed a bidirectional exit and set travel durations for each leg.
+            await locationRepo.ensureExitBidirectional(originId, 'north', destId, { reciprocal: true })
+            await locationRepo.setExitTravelDuration(originId, 'north', 90_000)
+            await locationRepo.setExitTravelDuration(destId, 'south', 120_000)
+
+            // Move the player to the fresh origin location (authoritative server-side state).
+            const player = await playerRepo.get(playerId)
+            assert.ok(player, 'Expected test player to exist')
+            if (player) {
+                player.currentLocationId = originId
+                await playerRepo.update(player)
+            }
+
+            // Sanity: repo should hydrate travelDurationMs for both directions.
+            const origin = await locationRepo.get(originId)
+            const northExit = origin?.exits?.find((e) => e.direction === 'north')
+            assert.strictEqual(northExit?.travelDurationMs, 90_000)
+            const northTrail = await locationRepo.get(destId)
+            const southExit = northTrail?.exits?.find((e) => e.direction === 'south')
+            assert.strictEqual(southExit?.travelDurationMs, 120_000)
+
+            // Move north
+            const moveNorthReq = createMockRequest({
+                method: 'POST',
+                params: { playerId },
+                body: JSON.stringify({ direction: 'north' })
+            })
+            const moveNorthRes = await handlePlayerMove(moveNorthReq, ctx)
+            assert.ok([200, 201].includes(moveNorthRes.status || 0), `Move north should succeed, got status ${moveNorthRes.status}`)
+
+            const moveNorthBody = moveNorthRes.jsonBody as {
+                success: boolean
+                data?: { id: string; travel?: { durationMs: number; source?: string } }
+            }
+            assert.strictEqual(moveNorthBody.success, true)
+            assert.ok(moveNorthBody.data)
+            assert.strictEqual(moveNorthBody.data?.id, destId, 'North leg should land at the configured destination')
+            assert.strictEqual(moveNorthBody.data?.travel?.durationMs, 90_000, 'North leg should return configured travel duration')
+
+            // Move south (return loop)
+            const moveSouthReq = createMockRequest({
+                method: 'POST',
+                params: { playerId },
+                body: JSON.stringify({ direction: 'south' })
+            })
+            const moveSouthRes = await handlePlayerMove(moveSouthReq, ctx)
+            assert.ok([200, 201].includes(moveSouthRes.status || 0), `Move south should succeed, got status ${moveSouthRes.status}`)
+
+            const moveSouthBody = moveSouthRes.jsonBody as {
+                success: boolean
+                data?: { id: string; travel?: { durationMs: number; source?: string } }
+            }
+            assert.strictEqual(moveSouthBody.success, true)
+            assert.ok(moveSouthBody.data)
+            assert.strictEqual(moveSouthBody.data?.id, originId, 'Return move should land back at the configured origin')
+            assert.strictEqual(moveSouthBody.data?.travel?.durationMs, 120_000, 'South leg should return configured travel duration')
+
+            // Loop sanity: accumulated loop travel should be additive and deterministic.
+            const loopMs = (moveNorthBody.data?.travel?.durationMs || 0) + (moveSouthBody.data?.travel?.durationMs || 0)
+            assert.strictEqual(loopMs, 210_000, 'Loop travel duration should add up deterministically')
+        })
+
         test('returns error for invalid direction', async () => {
             const ctx = await createMockContext(fixture)
             const playerId = await createTestPlayer(ctx)

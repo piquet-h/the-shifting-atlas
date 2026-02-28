@@ -68,6 +68,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
             let error: string | undefined
             let response: string | undefined
             let latencyMs: number | undefined
+            let travelMs: number | undefined
             try {
                 const start = performance.now()
                 const lower = raw.trim().toLowerCase()
@@ -162,12 +163,13 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                     })
                     const json = await res.json().catch(() => ({}))
                     latencyMs = Math.round(performance.now() - start)
-                    const unwrapped = unwrapEnvelope<LocationResponse>(json)
+                    const unwrapped = unwrapEnvelope<LocationResponse & { travel?: { durationMs?: number } }>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
                         error = extractErrorMessage(res, json, unwrapped)
                     } else {
                         const loc = unwrapped.data
                         if (loc) {
+                            travelMs = typeof loc.travel?.durationMs === 'number' ? loc.travel.durationMs : undefined
                             updateCurrentLocationId(loc.id)
                             const exits: string | undefined = Array.isArray(loc.exits)
                                 ? loc.exits.map((e) => e.direction).join(', ')
@@ -184,7 +186,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                 error = err instanceof Error ? err.message : 'Unknown error'
             } finally {
                 setBusy(false)
-                setHistory((h) => h.map((rec) => (rec.id === id ? { ...rec, response, error, latencyMs } : rec)))
+                setHistory((h) => h.map((rec) => (rec.id === id ? { ...rec, response, error, latencyMs, travelMs } : rec)))
                 // Canonical event (Command.Executed) now part of shared telemetry specification.
                 trackGameEventClient('Command.Executed', {
                     command: raw.split(/\s+/)[0],
