@@ -30,6 +30,8 @@
         "@piquet-h/shared": "^0.3.137",
         "@tanstack/react-query": "^5.90.11",
         "@tanstack/react-query-devtools": "^5.91.1",
+        "@types/cytoscape": "^3.21.9",
+        "cytoscape": "^3.33.1",
         "isomorphic-dompurify": "^2.33.0",
         "marked": "^17.0.1",
         "react": "^18.2.0",
@@ -37,8 +39,8 @@
         "react-router-dom": "^6.30.3"
     },
     "devDependencies": {
-        "@azure/static-web-apps-cli": "^2.0.8",
         "@axe-core/cli": "^4.9.0",
+        "@azure/static-web-apps-cli": "^2.0.8",
         "@playwright/test": "^1.57.0",
         "@tailwindcss/forms": "^0.5.4",
         "@tailwindcss/typography": "^0.5.9",

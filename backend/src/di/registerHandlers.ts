@@ -21,6 +21,7 @@ import { PlayerLinkHandler } from '../handlers/playerLink.js'
 import { PlayerMoveHandler } from '../handlers/playerMove.js'
 import { QueueProcessExitGenerationHintHandler } from '../handlers/queueProcessExitGenerationHint.js'
 import { QueueSyncLocationAnchorsHandler } from '../handlers/queueSyncLocationAnchors.js'
+import { WorldGraphHandler } from '../handlers/worldGraph.js'
 import { QueueProcessWorldEventHandler } from '../worldEvents/queueProcessWorldEvent.js'
 
 export const HANDLER_CLASSES = [
@@ -46,6 +47,7 @@ export const HANDLER_CLASSES = [
     PlayerGetHandler,
     ContainerHealthHandler,
     GenerateAreaHandler,
+    WorldGraphHandler,
 
     // Queue handlers
     QueueProcessWorldEventHandler,
