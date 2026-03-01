@@ -14,6 +14,7 @@
 
 import React, { useCallback, useEffect } from 'react'
 import CompassRoseIcon from '../assets/compass-rose.svg?react'
+import { usePointerFine } from '../hooks/useMediaQueries'
 
 /** Direction type matching shared domain models */
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
@@ -176,6 +177,13 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
     // Check if there are no exits at all
     const hasNoExits = availableExits.length === 0
 
+    // Detect pointer type to conditionally show keyboard hints
+    const isPointerFine = usePointerFine()
+
+    // Only show vertical/radial row when at least one such exit is available
+    const hasVerticalOrRadialExits =
+        verticals.some((config) => exitMap.has(config.direction)) || radials.some((config) => exitMap.has(config.direction))
+
     return (
         <section className={['card rounded-xl p-4 sm:p-5', className].filter(Boolean).join(' ')} aria-labelledby="navigation-title">
             <h3 id="navigation-title" className="text-responsive-base font-semibold text-white mb-3">
@@ -255,33 +263,37 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
                         </div>
                     </div>
 
-                    {/* Vertical & Radial Directions - Horizontal Row */}
-                    <div className="flex justify-center gap-2 flex-wrap" role="group" aria-label="Vertical and radial directions">
-                        {verticals.map((config) => (
-                            <DirectionButton
-                                key={config.direction}
-                                config={config}
-                                exitInfo={exitMap.get(config.direction)}
-                                disabled={disabled}
-                                onClick={() => onNavigate(config.direction)}
-                            />
-                        ))}
-                        {radials.map((config) => (
-                            <DirectionButton
-                                key={config.direction}
-                                config={config}
-                                exitInfo={exitMap.get(config.direction)}
-                                disabled={disabled}
-                                onClick={() => onNavigate(config.direction)}
-                            />
-                        ))}
-                    </div>
+                    {/* Vertical & Radial Directions - only shown when at least one exit is available */}
+                    {hasVerticalOrRadialExits && (
+                        <div className="flex justify-center gap-2 flex-wrap" role="group" aria-label="Vertical and radial directions">
+                            {verticals.map((config) => (
+                                <DirectionButton
+                                    key={config.direction}
+                                    config={config}
+                                    exitInfo={exitMap.get(config.direction)}
+                                    disabled={disabled}
+                                    onClick={() => onNavigate(config.direction)}
+                                />
+                            ))}
+                            {radials.map((config) => (
+                                <DirectionButton
+                                    key={config.direction}
+                                    config={config}
+                                    exitInfo={exitMap.get(config.direction)}
+                                    disabled={disabled}
+                                    onClick={() => onNavigate(config.direction)}
+                                />
+                            ))}
+                        </div>
+                    )}
 
-                    {/* Keyboard shortcut hint */}
-                    <p className="mt-3 text-xs text-slate-400 text-center">
-                        Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal
-                        directions
-                    </p>
+                    {/* Keyboard shortcut hint - hidden on touch/coarse-pointer devices */}
+                    {isPointerFine && (
+                        <p className="mt-3 text-xs text-slate-400 text-center">
+                            Keyboard: <span className="font-mono">Arrow keys</span> or <span className="font-mono">WASD</span> for cardinal
+                            directions
+                        </p>
+                    )}
                 </>
             )}
         </section>

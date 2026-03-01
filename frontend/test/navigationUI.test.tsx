@@ -73,13 +73,15 @@ describe('NavigationUI Component', () => {
             expect(markup).toMatch(/Out/)
         })
 
-        it('renders keyboard shortcut hint', () => {
+        it('hides keyboard shortcut hint when pointer is not fine (default SSR/touch state)', () => {
             const onNavigate = vi.fn()
+            // usePointerFine starts as false (SSR / before useEffect runs, and on touch devices).
+            // This test verifies the hint is absent in that default state, which matches
+            // mobile/touch device behavior where keyboard hints are irrelevant.
             const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
 
-            expect(markup).toMatch(/Keyboard/)
-            expect(markup).toMatch(/Arrow keys/)
-            expect(markup).toMatch(/WASD/)
+            expect(markup).not.toMatch(/Keyboard/)
+            expect(markup).not.toMatch(/Arrow keys/)
         })
 
         it('displays "No visible exits" message when no exits available', () => {
@@ -143,7 +145,10 @@ describe('NavigationUI Component', () => {
 
         it('uses role=group for direction button groups when exits exist', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
+            // Include a vertical exit so the vertical/radial group is also rendered
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'up' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/role="group"/)
             expect(markup).toMatch(/aria-label="Cardinal and intercardinal directions"/)
