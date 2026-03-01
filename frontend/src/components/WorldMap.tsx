@@ -10,7 +10,7 @@ import cytoscape, { type ElementDefinition } from 'cytoscape'
 import React, { useEffect, useRef, useState } from 'react'
 import { unwrapEnvelope } from '../utils/envelope'
 import { computeVisibleNodeIds } from '../utils/mapDrill'
-import { getEdgeClassName } from '../utils/mapSemantics'
+import { computeInsideNodeIds, getEdgeClassName } from '../utils/mapSemantics'
 import { computePositions, URBAN_MS } from '../utils/worldMapPositions'
 
 // ---------------------------------------------------------------------------
@@ -163,6 +163,7 @@ export default function WorldMap(): React.ReactElement {
     const [showSurface, setShowSurface] = useState(true)
     const [showInterior, setShowInterior] = useState(true)
     const [showVertical, setShowVertical] = useState(true)
+    const [showInsideNodes, setShowInsideNodes] = useState(true)
     const [viewMode, setViewMode] = useState<'all' | 'focus'>('all')
     const [focusId, setFocusId] = useState<string | null>(null)
     const [focusName, setFocusName] = useState<string | null>(null)
@@ -284,6 +285,22 @@ export default function WorldMap(): React.ReactElement {
         cy.fit(cy.elements(':visible'), 60)
     }, [distanceScale])
 
+    // If the user hides inside nodes, ensure we are not focusing an inside node.
+    useEffect(() => {
+        if (showInsideNodes) return
+        if (viewMode !== 'focus' || !focusId) return
+
+        const graph = graphRef.current
+        if (!graph) return
+
+        const insideIds = computeInsideNodeIds(graph.edges)
+        if (!insideIds.has(focusId)) return
+
+        setFocusId(null)
+        setFocusName(null)
+        setViewMode('all')
+    }, [focusId, showInsideNodes, viewMode])
+
     // Apply visibility filters whenever sidebar state changes.
     useEffect(() => {
         const cy = cyRef.current
@@ -302,6 +319,11 @@ export default function WorldMap(): React.ReactElement {
             maxDepth: focusDepth,
             allowedKinds
         })
+
+        if (!showInsideNodes) {
+            const insideIds = computeInsideNodeIds(graph.edges)
+            for (const id of insideIds) visibleNodeIds.delete(id)
+        }
 
         // Node visibility
         cy.nodes().forEach((n) => {
@@ -330,7 +352,7 @@ export default function WorldMap(): React.ReactElement {
 
         // Keep viewport comfortable.
         cy.fit(cy.elements(':visible'), 60)
-    }, [focusDepth, focusId, selectedId, showInterior, showSurface, showVertical, viewMode])
+    }, [focusDepth, focusId, selectedId, showInsideNodes, showInterior, showSurface, showVertical, viewMode])
 
     // Destroy on unmount
     useEffect(() => {
@@ -419,6 +441,15 @@ export default function WorldMap(): React.ReactElement {
                                 onChange={(e) => setShowVertical(e.target.checked)}
                             />
                             <span>Vertical (up/down)</span>
+                        </label>
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4 accent-violet-300"
+                                checked={showInsideNodes}
+                                onChange={(e) => setShowInsideNodes(e.target.checked)}
+                            />
+                            <span>Inside nodes (targets of “in”)</span>
                         </label>
                     </div>
 

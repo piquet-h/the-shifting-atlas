@@ -156,6 +156,50 @@ describe('World Seeding', () => {
         )
     })
 
+    test('Lantern & Ladle seed splits outside vs common room, with guest rooms upstairs', async () => {
+        const locationRepository = await fixture.getLocationRepository()
+
+        await seedWorld({
+            locationRepository,
+            blueprint: starterLocationsData as Location[],
+            bulkMode: true
+        })
+
+        const TAVERN_OUTSIDE_ID = '9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c'
+        const TAVERN_COMMON_ROOM_ID = 'c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1'
+        const TAVERN_GUEST_ROOMS_ID = 'f62cb3bc-5521-4c63-9ef4-0cdf7e33a360'
+
+        const outside = await locationRepository.get(TAVERN_OUTSIDE_ID)
+        const commonRoom = await locationRepository.get(TAVERN_COMMON_ROOM_ID)
+        const guestRooms = await locationRepository.get(TAVERN_GUEST_ROOMS_ID)
+
+        assert.ok(outside, 'Tavern outside location should exist')
+        assert.ok(commonRoom, 'Tavern common room location should exist')
+        assert.ok(guestRooms, 'Tavern guest rooms location should exist')
+
+        assert.ok(
+            (outside.exits || []).some((e) => e.direction === 'in' && e.to === TAVERN_COMMON_ROOM_ID),
+            'Tavern outside should have an in-exit to the common room'
+        )
+
+        assert.ok(!(outside.exits || []).some((e) => e.direction === 'up'), 'Tavern outside should not have an up-exit (stairs are inside)')
+
+        assert.ok(
+            (commonRoom.exits || []).some((e) => e.direction === 'out' && e.to === TAVERN_OUTSIDE_ID),
+            'Tavern common room should have an out-exit back to outside'
+        )
+
+        assert.ok(
+            (commonRoom.exits || []).some((e) => e.direction === 'up' && e.to === TAVERN_GUEST_ROOMS_ID),
+            'Tavern common room should have an up-exit to guest rooms'
+        )
+
+        assert.ok(
+            (guestRooms.exits || []).some((e) => e.direction === 'down' && e.to === TAVERN_COMMON_ROOM_ID),
+            'Tavern guest rooms should lead down to the common room'
+        )
+    })
+
     test('seed has at least 6 frontier:boundary locations covering road, farm, and harbor expansion vectors', async () => {
         const locationRepository = await fixture.getLocationRepository()
 
