@@ -388,12 +388,14 @@
     },
     {
         "id": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-        "name": "The Lantern & Ladle (Tavern)",
-        "description": "Broad-beamed common room: stew steam, low songs, swinging lantern sign.",
+        "name": "The Lantern & Ladle — Outside",
+        "description": "Lantern sign and warm windowlight at a broad timber door; laughter and stew-scent leak into the lane.",
         "tags": [
             "settlement:mosswell",
             "shop:tavern",
-            "hospitality:inn"
+            "hospitality:inn",
+            "structure:lantern-and-ladle",
+            "structureArea:outside"
         ],
         "exits": [
             {
@@ -415,6 +417,31 @@
                 "direction": "northwest",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
                 "description": "Back to the square."
+            },
+            {
+                "direction": "in",
+                "to": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
+                "description": "Step inside the tavern."
+            }
+        ],
+        "version": 1
+    },
+    {
+        "id": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
+        "name": "The Lantern & Ladle — Common Room",
+        "description": "Broad-beamed common room: stew steam, low songs, swinging lantern sign.",
+        "tags": [
+            "settlement:mosswell",
+            "shop:tavern",
+            "hospitality:inn",
+            "structure:lantern-and-ladle",
+            "structureArea:common-room"
+        ],
+        "exits": [
+            {
+                "direction": "out",
+                "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
+                "description": "Back out to the lane."
             },
             {
                 "direction": "up",
@@ -718,16 +745,18 @@
     },
     {
         "id": "f62cb3bc-5521-4c63-9ef4-0cdf7e33a360",
-        "name": "Tavern Guest Rooms",
+        "name": "The Lantern & Ladle — Guest Rooms",
         "description": "Creaking hallway of bunks and shuttered windows above the lane.",
         "tags": [
             "settlement:mosswell",
-            "hospitality:rooms"
+            "hospitality:rooms",
+            "structure:lantern-and-ladle",
+            "structureArea:guest-rooms"
         ],
         "exits": [
             {
                 "direction": "down",
-                "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
+                "to": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
                 "description": "Stairs to common room."
             }
         ],
@@ -808,7 +837,11 @@
         ],
         "exitAvailability": {
             "forbidden": {
-                "north": { "reason": "Open river mouth stretches beyond reach of the landing — no foothold on the water", "motif": "water", "reveal": "onLook" }
+                "north": {
+                    "reason": "Open river mouth stretches beyond reach of the landing — no foothold on the water",
+                    "motif": "water",
+                    "reveal": "onLook"
+                }
             }
         },
         "version": 2
@@ -836,8 +869,16 @@
                 "southeast": "Tide-washed beach extends around the coastal bend"
             },
             "forbidden": {
-                "south": { "reason": "Open sea bars passage — surf crashes beyond the bar", "motif": "water", "reveal": "onLook" },
-                "west": { "reason": "River-mouth current churns — no crossing without a boat", "motif": "water", "reveal": "onLook" }
+                "south": {
+                    "reason": "Open sea bars passage — surf crashes beyond the bar",
+                    "motif": "water",
+                    "reveal": "onLook"
+                },
+                "west": {
+                    "reason": "River-mouth current churns — no crossing without a boat",
+                    "motif": "water",
+                    "reveal": "onLook"
+                }
             }
         },
         "version": 3
@@ -865,8 +906,16 @@
                 "northeast": "Raised loading lane leads to unopened dock storehouses"
             },
             "forbidden": {
-                "south": { "reason": "Quay edge drops to deep harbour water — no safe crossing on foot", "motif": "water", "reveal": "onLook" },
-                "east": { "reason": "Open harbour basin bars passage — no dock extends this way", "motif": "water", "reveal": "onLook" }
+                "south": {
+                    "reason": "Quay edge drops to deep harbour water — no safe crossing on foot",
+                    "motif": "water",
+                    "reveal": "onLook"
+                },
+                "east": {
+                    "reason": "Open harbour basin bars passage — no dock extends this way",
+                    "motif": "water",
+                    "reveal": "onLook"
+                }
             }
         },
         "version": 3
@@ -894,8 +943,16 @@
                 "northeast": "Narrow catwalk follows pilings to a weathered mooring arm"
             },
             "forbidden": {
-                "south": { "reason": "Open tidal channel runs deep here — no safe foot crossing", "motif": "water", "reveal": "onLook" },
-                "southwest": { "reason": "Undercut mud flats collapse into churning water", "motif": "water", "reveal": "onLook" }
+                "south": {
+                    "reason": "Open tidal channel runs deep here — no safe foot crossing",
+                    "motif": "water",
+                    "reveal": "onLook"
+                },
+                "southwest": {
+                    "reason": "Undercut mud flats collapse into churning water",
+                    "motif": "water",
+                    "reveal": "onLook"
+                }
             }
         },
         "version": 3
