@@ -70,7 +70,11 @@ function byProximityPriority(
 ): number {
     if (a.hops !== b.hops) return a.hops - b.hops
     if (a.accumulatedTravelMs !== b.accumulatedTravelMs) return a.accumulatedTravelMs - b.accumulatedTravelMs
-    return a.locationId.localeCompare(b.locationId)
+    // IMPORTANT: Avoid localeCompare here. For UUIDs, we want a strict, locale-independent
+    // lexicographic ordering that matches JS default string comparison.
+    if (a.locationId < b.locationId) return -1
+    if (a.locationId > b.locationId) return 1
+    return 0
 }
 
 const DIRECTION_VECTORS: Readonly<Record<Direction, { x: number; y: number }>> = {

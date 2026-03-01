@@ -42,15 +42,11 @@ describe('mapSemantics', () => {
         })
 
         it('returns false for the outside threshold node (has structureArea:outside)', () => {
-            expect(
-                isInteriorNode(['structure:lantern-and-ladle', 'structureArea:outside', 'settlement:mosswell'])
-            ).toBe(false)
+            expect(isInteriorNode(['structure:lantern-and-ladle', 'structureArea:outside', 'settlement:mosswell'])).toBe(false)
         })
 
         it('returns true for an interior node with a structure tag and no outside area', () => {
-            expect(
-                isInteriorNode(['structure:lantern-and-ladle', 'structureArea:common-room', 'settlement:mosswell'])
-            ).toBe(true)
+            expect(isInteriorNode(['structure:lantern-and-ladle', 'structureArea:common-room', 'settlement:mosswell'])).toBe(true)
         })
 
         it('returns true for room:<n> area tag', () => {
@@ -92,4 +88,3 @@ describe('mapSemantics', () => {
         })
     })
 })
-

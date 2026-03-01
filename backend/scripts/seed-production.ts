@@ -35,11 +35,14 @@ try {
     console.error('⚠️  Warning: Could not load local.settings.json')
 }
 
+import type { Location } from '@piquet-h/shared'
 import { Container } from 'inversify'
+import starterLocationsData from '../src/data/villageLocations.json' with { type: 'json' }
+import { TOKENS } from '../src/di/tokens.js'
+import type { IGremlinClient } from '../src/gremlin/gremlinClient.js'
 import { setupContainer } from '../src/inversify.config.js'
 import { resolvePersistenceMode } from '../src/persistenceConfig.js'
 import { ILocationRepository } from '../src/repos/locationRepository.js'
-import { IPlayerRepository } from '../src/repos/playerRepository.js'
 import { seedWorld } from '../src/seeding/seedWorld.js'
 
 async function main() {
@@ -64,20 +67,21 @@ async function main() {
     console.log('🌱 Seeding PRODUCTION Cosmos database...')
     console.log('   Partition: "world" (production)')
     console.log('   Mode: cosmos')
-    console.log('   Source: villageLocations.json (34 Mosswell locations)\n')
+    console.log(`   Source: villageLocations.json (${(starterLocationsData as Location[]).length} Mosswell locations)\n`)
+
+    let container: Container | undefined
+    let exitCode = 0
 
     try {
         // Build DI container in cosmos mode and resolve repositories
         // Let setupContainer infer mode & bind PersistenceConfig from environment instead of passing explicit mode
-        const container = await setupContainer(new Container())
+        container = await setupContainer(new Container())
         const locationRepository = container.get<ILocationRepository>('ILocationRepository')
-        const playerRepository = container.get<IPlayerRepository>('IPlayerRepository')
 
         const result = await seedWorld({
             log: console.log,
-            demoPlayerId: '00000000-0000-4000-8000-000000000001',
             locationRepository,
-            playerRepository,
+            blueprint: starterLocationsData as Location[],
             bulkMode: true
         })
 
@@ -85,9 +89,9 @@ async function main() {
         console.log(`   Locations processed: ${result.locationsProcessed}`)
         console.log(`   Location vertices created: ${result.locationVerticesCreated}`)
         console.log(`   Exits created: ${result.exitsCreated}`)
-        console.log(`   Demo player: ${result.demoPlayerId} (${result.playerCreated ? 'created' : 'already exists'})`)
+        console.log(`   Exits removed: ${result.exitsRemoved}`)
 
-        if (result.locationVerticesCreated === 0 && result.exitsCreated === 0) {
+        if (result.locationVerticesCreated === 0 && result.exitsCreated === 0 && result.exitsRemoved === 0) {
             console.log('\n💡 All locations already exist (idempotent run)')
         }
 
@@ -98,7 +102,20 @@ async function main() {
             console.error('   Message:', error.message)
             console.error('   Stack:', error.stack)
         }
-        process.exit(1)
+        exitCode = 1
+    } finally {
+        // Ensure we close the Gremlin websocket connection so the script can exit cleanly.
+        // Without this, the Node event loop may stay alive and require Ctrl+C.
+        if (container?.isBound(TOKENS.GremlinClient)) {
+            try {
+                const gremlin = container.get<IGremlinClient>(TOKENS.GremlinClient)
+                await gremlin.close()
+            } catch (err) {
+                console.warn('⚠️  Warning: failed to close Gremlin client (best-effort):', err)
+            }
+        }
+
+        process.exit(exitCode)
     }
 }
 

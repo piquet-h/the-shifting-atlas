@@ -764,10 +764,10 @@ describe('BatchGenerateHandler Integration', () => {
         })
 
         it('should pick the deterministic nearest aligned candidate when multiple candidates exist at same hop count', async () => {
-            // Arrange: Two EAST-leaning candidates at the same hop-count from root; lex-smallest wins.
+            // Arrange: Two EAST-eligible candidates at the same hop-count from root; lex-smallest wins.
             //
             //   root R ──south──> Intermediary ──northeast──> L_A (2 hops, 120k ms from R)
-            //                                 ──southeast──> L_B (2 hops, 120k ms from R)
+            //                                 ──east───────> L_B (2 hops, 120k ms from R)
             //
             // BatchGenerate from R, arrivalDirection='north', batchSize=2 → directions=['south','east'].
             //   Phase 1: 'south' has direct exit → reconnect to Intermediary.
@@ -792,9 +792,9 @@ describe('BatchGenerateHandler Integration', () => {
 
             // R→south→Intermediary (Phase 1 direct hit for 'south')
             await locationRepo.ensureExitBidirectional(rootId, 'south', intermediaryId, { reciprocal: true })
-            // Intermediary→northeast→L_A and Intermediary→southeast→L_B (both 2 hops from R)
+            // Intermediary→northeast→L_A and Intermediary→east→L_B (both 2 hops from R)
             await locationRepo.ensureExitBidirectional(intermediaryId, 'northeast', idA, { reciprocal: true })
-            await locationRepo.ensureExitBidirectional(intermediaryId, 'southeast', idB, { reciprocal: true })
+            await locationRepo.ensureExitBidirectional(intermediaryId, 'east', idB, { reciprocal: true })
 
             const baselineCount = (await locationRepo.listAll()).length // 4
 
