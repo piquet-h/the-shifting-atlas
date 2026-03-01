@@ -73,10 +73,11 @@ describe('NavigationUI Component', () => {
             expect(markup).toMatch(/Out/)
         })
 
-        it('hides keyboard shortcut hint on touch/coarse-pointer devices', () => {
+        it('hides keyboard shortcut hint when pointer is not fine (default SSR/touch state)', () => {
             const onNavigate = vi.fn()
-            // In SSR (renderToString) and touch device contexts, usePointerFine returns false
-            // so the keyboard hint is intentionally hidden to save space on mobile
+            // usePointerFine starts as false (SSR / before useEffect runs, and on touch devices).
+            // This test verifies the hint is absent in that default state, which matches
+            // mobile/touch device behavior where keyboard hints are irrelevant.
             const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
 
             expect(markup).not.toMatch(/Keyboard/)

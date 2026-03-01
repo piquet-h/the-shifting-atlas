@@ -181,7 +181,8 @@ export default function NavigationUI({ availableExits, onNavigate, disabled = fa
     const isPointerFine = usePointerFine()
 
     // Only show vertical/radial row when at least one such exit is available
-    const hasVerticalOrRadialExits = [...verticals, ...radials].some((config) => exitMap.has(config.direction))
+    const hasVerticalOrRadialExits =
+        verticals.some((config) => exitMap.has(config.direction)) || radials.some((config) => exitMap.has(config.direction))
 
     return (
         <section className={['card rounded-xl p-4 sm:p-5', className].filter(Boolean).join(' ')} aria-labelledby="navigation-title">
