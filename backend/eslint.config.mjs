@@ -6,6 +6,7 @@ import cosmosGremlinRepoConstructorRule from '../eslint-rules/cosmos-gremlin-rep
 import handlersMustExtendBaseRule from '../eslint-rules/handlers-must-extend-base.mjs'
 import noDirectSecretAccessRule from '../eslint-rules/no-direct-secret-access.mjs'
 import noDirectTrackEventRule from '../eslint-rules/no-direct-track-event.mjs'
+import noInvalidStructureTagsRule from '../eslint-rules/no-invalid-structure-tags.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from '../eslint-rules/telemetry-event.mjs'
 import telemetryInjectDecoratorRule from '../eslint-rules/telemetry-inject-decorator.mjs'
@@ -27,7 +28,8 @@ export default [
                     'no-direct-secret-access': noDirectSecretAccessRule,
                     'handlers-must-extend-base': handlersMustExtendBaseRule,
                     'cosmos-gremlin-repo-constructor': cosmosGremlinRepoConstructorRule,
-                    'telemetry-inject-decorator': telemetryInjectDecoratorRule
+                    'telemetry-inject-decorator': telemetryInjectDecoratorRule,
+                    'no-invalid-structure-tags': noInvalidStructureTagsRule
                 }
             }
         },
@@ -42,7 +44,8 @@ export default [
             'internal/no-direct-secret-access': 'error',
             'internal/handlers-must-extend-base': 'error',
             'internal/cosmos-gremlin-repo-constructor': 'error',
-            'internal/telemetry-inject-decorator': 'error'
+            'internal/telemetry-inject-decorator': 'error',
+            'internal/no-invalid-structure-tags': 'error'
         }
     },
     {

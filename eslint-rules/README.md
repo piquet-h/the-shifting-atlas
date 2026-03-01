@@ -359,6 +359,45 @@ trackGameEvent(GAME_EVENT_NAMES[109], {
 
 ---
 
+### `no-invalid-structure-tags`
+
+**Purpose:** Validates `structure:<slug>` and `structureArea:<area>` tag literals in TypeScript string array expressions follow the canonical convention defined in `docs/architecture/interior-structure-conventions.md`.
+
+**Applies to:** All TypeScript string array literals in `backend/src/**` (including seed data construction and location upsert call sites).
+
+**What it checks:**
+
+- `structure:<slug>` — slug must be kebab-case (`[a-z0-9]` segments separated by hyphens).
+- `structureArea:<area>` — area must be one of the canonical keywords: `outside`, `common-room`, `hall`, `guest-rooms`, `room:<n>`, `cellar`, `upper-floor`, `kitchen`, `stable`.
+- **Co-presence**: if either tag appears in an array, both must be present.
+
+**Example — Correct:**
+
+```typescript
+const tags = ['settlement:mosswell', 'structure:lantern-and-ladle', 'structureArea:common-room']
+```
+
+**Example — Violations:**
+
+```typescript
+// ❌ Invalid slug (uppercase not allowed)
+const tags = ['structure:LanternAndLadle', 'structureArea:common-room']
+
+// ❌ Unknown area keyword
+const tags = ['structure:lantern-and-ladle', 'structureArea:lobby']
+
+// ❌ Missing co-present structureArea tag
+const tags = ['structure:lantern-and-ladle']
+
+// ❌ Missing co-present structure tag
+const tags = ['structureArea:common-room']
+```
+
+**When added:** March 2026
+**Related guidance:** `docs/architecture/interior-structure-conventions.md`
+
+---
+
 ## Adding New Rules
 
 1. Create a new `.mjs` file in this directory
