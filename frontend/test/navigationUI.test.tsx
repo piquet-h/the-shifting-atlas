@@ -73,13 +73,14 @@ describe('NavigationUI Component', () => {
             expect(markup).toMatch(/Out/)
         })
 
-        it('renders keyboard shortcut hint', () => {
+        it('hides keyboard shortcut hint on touch/coarse-pointer devices', () => {
             const onNavigate = vi.fn()
+            // In SSR (renderToString) and touch device contexts, usePointerFine returns false
+            // so the keyboard hint is intentionally hidden to save space on mobile
             const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
 
-            expect(markup).toMatch(/Keyboard/)
-            expect(markup).toMatch(/Arrow keys/)
-            expect(markup).toMatch(/WASD/)
+            expect(markup).not.toMatch(/Keyboard/)
+            expect(markup).not.toMatch(/Arrow keys/)
         })
 
         it('displays "No visible exits" message when no exits available', () => {
@@ -143,7 +144,10 @@ describe('NavigationUI Component', () => {
 
         it('uses role=group for direction button groups when exits exist', () => {
             const onNavigate = vi.fn()
-            const markup = renderToString(<NavigationUI availableExits={[{ direction: 'north' }]} onNavigate={onNavigate} />)
+            // Include a vertical exit so the vertical/radial group is also rendered
+            const markup = renderToString(
+                <NavigationUI availableExits={[{ direction: 'north' }, { direction: 'up' }]} onNavigate={onNavigate} />
+            )
 
             expect(markup).toMatch(/role="group"/)
             expect(markup).toMatch(/aria-label="Cardinal and intercardinal directions"/)

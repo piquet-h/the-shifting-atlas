@@ -40,7 +40,7 @@ export default function GameViewLayout({
     commandInterfaceRef
 }: GameViewLayoutProps): React.ReactElement {
     return (
-        <div className={['flex flex-col gap-4 sm:gap-5 h-full', className].filter(Boolean).join(' ')}>
+        <div className={['flex flex-col gap-4 sm:gap-5', isTablet || isDesktop ? 'h-full' : '', className].filter(Boolean).join(' ')}>
             {isDesktop ? (
                 <div className="grid grid-cols-12 gap-4 lg:gap-5 h-full">
                     <div className="col-span-8 flex flex-col gap-4 lg:gap-5 h-full">
@@ -95,7 +95,7 @@ export default function GameViewLayout({
                     <PlayerStatsPanel stats={playerStats} collapsible={true} />
                     <section
                         aria-labelledby="game-command-title-mobile"
-                        className="card rounded-xl flex flex-col flex-1 min-h-0 overflow-hidden"
+                        className="card rounded-xl flex flex-col flex-1 min-h-[200px] overflow-hidden"
                     >
                         <h3 id="game-command-title-mobile" className="text-responsive-base font-semibold text-white mb-3">
                             Your Atlas
