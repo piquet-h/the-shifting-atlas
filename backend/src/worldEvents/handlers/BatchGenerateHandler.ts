@@ -104,6 +104,26 @@ function narrativeAlignmentScore(direction: Direction, displacementX?: number, d
     return dot / (mag * dirMag)
 }
 
+function isAxisDominantForCardinalDirection(direction: Direction, displacementX?: number, displacementY?: number): boolean {
+    if (typeof displacementX !== 'number' || typeof displacementY !== 'number') {
+        return false
+    }
+
+    // Guardrail: for cardinal stitching, require the candidate displacement to be primarily along
+    // the requested axis. This prevents confusing links like `west` connecting to a mostly-southwest
+    // candidate (where |dy| > |dx|) while still allowing sensible diagonal-ish closures like east→NE.
+    switch (direction) {
+        case 'east':
+        case 'west':
+            return Math.abs(displacementX) >= Math.abs(displacementY)
+        case 'north':
+        case 'south':
+            return Math.abs(displacementY) >= Math.abs(displacementX)
+        default:
+            return true
+    }
+}
+
 /**
  * Payload shape for World.Location.BatchGenerate events
  */
@@ -506,6 +526,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 const candidate = candidates.find(
                     (c) =>
                         !usedCandidateIds.has(c.locationId) &&
+                        isAxisDominantForCardinalDirection(target.direction, c.displacementX, c.displacementY) &&
                         narrativeAlignmentScore(target.direction, c.displacementX, c.displacementY) >= NARRATIVE_ALIGNMENT_MIN
                 )
                 if (candidate) {
@@ -592,7 +613,9 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             locations: stubs.map((stub) => ({
                 locationId: stub.id,
                 terrain: stub.terrain,
-                arrivalDirection: stub.direction, // Direction player arrives FROM root location
+                // Contract: arrivalDirection is the direction the player arrives FROM.
+                // If the stub is reached by travelling `north` from root, the player arrives at the stub from `south`.
+                arrivalDirection: getOppositeDirection(stub.direction),
                 neighbors: [] // Onward exits TBD (future: exit inference)
             })),
             style: 'atmospheric'

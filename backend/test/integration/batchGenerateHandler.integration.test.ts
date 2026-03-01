@@ -11,7 +11,7 @@
  */
 
 import type { InvocationContext } from '@azure/functions'
-import { getOppositeDirection } from '@piquet-h/shared'
+import { getOppositeDirection, type Direction } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import assert from 'node:assert/strict'
 import { after, beforeEach, describe, it } from 'node:test'
@@ -179,6 +179,23 @@ describe('BatchGenerateHandler Integration', () => {
                 // open-plain defaultDirections are cardinal; stubs should expose the other 3 as pending.
                 const pendingKeys = Object.keys(pending!)
                 assert.equal(pendingKeys.length, 3, 'Open-plain stub should expose 3 pending exits (cardinal minus back direction)')
+            }
+
+            // Assert: base description layer prose uses correct arrival direction semantics.
+            // Contract: arrivalDirection is the direction the player arrived FROM.
+            // If the player travels `north` from root to stub, they arrive at the stub from `south`.
+            const layerRepo = await fixture.getLayerRepository()
+            for (const exitEvent of enqueuedEvents) {
+                const stubId = exitEvent.payload.toLocationId as string
+                const dirFromRoot = exitEvent.payload.direction as string
+                const backDir = getOppositeDirection(dirFromRoot as Direction)
+
+                const baseLayer = await layerRepo.getActiveLayerForLocation(stubId, 'base', 0)
+                assert.ok(baseLayer, 'Stub should have a base description layer persisted')
+                assert.ok(
+                    baseLayer.value.includes(`You arrive from ${backDir}`),
+                    `Stub base prose should say "You arrive from ${backDir}" (got: ${baseLayer.value})`
+                )
             }
         })
     })
@@ -565,6 +582,93 @@ describe('BatchGenerateHandler Integration', () => {
             assert.equal(enqueuedEvents.length, 1, 'Should enqueue one exit creation event for the stub')
             assert.equal(enqueuedEvents[0].type, 'World.Exit.Create')
             assert.equal(enqueuedEvents[0].payload.direction, 'north')
+        })
+
+        it('should not reconnect a cardinal direction to a primarily diagonal (e.g. southwest) candidate', async () => {
+            // Regression (2026-03-01): A generated stub north of North Gate gained a `west` exit
+            // that stitched to Stone Circle Shrine, even though the shrine is reached by travelling
+            // south then southwest (i.e. primarily southwest from the stub, not west).
+            //
+            // Expectation: Wilderness fuzzy stitching should only use a candidate when the candidate's
+            // displacement is best-aligned with the requested direction, not merely above a permissive
+            // cosine threshold.
+            const stubId = uuidv4()
+            const gateId = uuidv4()
+            const shrineId = uuidv4()
+
+            await locationRepo.upsert({
+                id: stubId,
+                name: 'Unexplored Open Plain',
+                description: '',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: gateId,
+                name: 'North Gate',
+                description: 'A rough gate at the edge of town',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: shrineId,
+                name: 'Stone Circle Shrine',
+                description: 'Standing stones in a ring',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+
+            // Stub is north of gate; shrine is southwest of gate.
+            await locationRepo.ensureExitBidirectional(stubId, 'south', gateId, { reciprocal: true })
+            await locationRepo.ensureExitBidirectional(gateId, 'southwest', shrineId, { reciprocal: true })
+
+            const baselineCount = (await locationRepo.listAll()).length // 3
+
+            // open-plain default directions: [north, south, east, west]
+            // arrivalDirection='south' filtered → [north, east, west]
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: stubId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 3
+                }
+            }
+
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            const stubAfter = await locationRepo.get(stubId)
+            assert.ok(stubAfter)
+
+            const westExit = stubAfter.exits?.find((e) => e.direction === 'west')
+            assert.ok(!westExit || westExit.to !== shrineId, "Stub 'west' must not stitch to a primarily southwest candidate")
+
+            // With no valid reconnection candidates for cardinal directions, all 3 directions should become stubs.
+            const allLocations = await locationRepo.listAll()
+            assert.equal(allLocations.length - baselineCount, 3, 'Should create 3 stub locations (north/east/west)')
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
+            assert.equal(enqueuedEvents.length, 3, 'Should enqueue 3 exit creation events (one per stub)')
+            assert.ok(
+                enqueuedEvents.every((e) => e.type === 'World.Exit.Create'),
+                'All enqueued events should be World.Exit.Create'
+            )
         })
 
         it('should stitch to nearest reachable candidate within travel budget', async () => {

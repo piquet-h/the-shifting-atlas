@@ -47,6 +47,13 @@ describe('worldMapPositions', () => {
             expect(positions.get(EAST_ID)!.x).toBe(BASE_DISTANCE_PX)
         })
 
+        it('supports distanceScale to broaden the layout spacing', () => {
+            const nodes = [{ id: ROOT_ID }, { id: EAST_ID }]
+            const edges = [{ fromId: ROOT_ID, toId: EAST_ID, direction: 'east' }]
+            const positions = computePositions(nodes, edges, ROOT_ID, { distanceScale: 2 })
+            expect(positions.get(EAST_ID)!.x).toBe(BASE_DISTANCE_PX * 2)
+        })
+
         it('falls back to first node when rootId is not found', () => {
             const nodes = [{ id: NORTH_ID }, { id: EAST_ID }]
             const edges = [{ fromId: NORTH_ID, toId: EAST_ID, direction: 'east' }]
@@ -79,6 +86,57 @@ describe('worldMapPositions', () => {
             const positions = computePositions(nodes, edges, ROOT_ID)
             expect(positions.size).toBe(2)
             expect(positions.get(A)).toEqual({ x: 0, y: 0 })
+        })
+
+        it('avoids placing multiple nodes at the exact same coordinates (overlap guard)', () => {
+            const A = ROOT_ID
+            const B = 'node-00000000-0000-0000-0000-000000000010'
+            const C = 'node-00000000-0000-0000-0000-000000000011'
+            const nodes = [{ id: A }, { id: B }, { id: C }]
+
+            // Unknown direction currently resolves to (0,0) vector → both would overlap at (0,0)
+            // unless we add collision/unknown-direction mitigation.
+            const edges = [
+                { fromId: A, toId: B, direction: 'inside' },
+                { fromId: A, toId: C, direction: 'inside' }
+            ]
+
+            const positions = computePositions(nodes, edges, A)
+            expect(positions.get(B)).toBeDefined()
+            expect(positions.get(C)).toBeDefined()
+
+            const pb = positions.get(B)!
+            const pc = positions.get(C)!
+            expect(pb).not.toEqual(pc)
+        })
+
+        it('relaxes positions to reduce directional contradictions in small cycles', () => {
+            // Scenario: C is reached via two constraints:
+            //   R --north--> C   (wants C at x=0)
+            //   R --east--> B, B --north--> C (wants C at x=BASE_DISTANCE_PX)
+            // A pure BFS spanning-tree placement picks the first route it sees (R->north),
+            // which makes the B->north edge visually misleading.
+            // We expect computePositions to compromise so C shifts partway toward x=BASE_DISTANCE_PX.
+            const R = ROOT_ID
+            const B = 'node-00000000-0000-0000-0000-000000000020'
+            const C = 'node-00000000-0000-0000-0000-000000000021'
+
+            const nodes = [{ id: R }, { id: B }, { id: C }]
+            const edges = [
+                { fromId: R, toId: C, direction: 'north' },
+                { fromId: R, toId: B, direction: 'east' },
+                { fromId: B, toId: C, direction: 'north' }
+            ]
+
+            const positions = computePositions(nodes, edges, R)
+            const posC = positions.get(C)!
+
+            // Both constraints agree on y; x should be pulled away from 0.
+            expect(posC.y).toBe(-BASE_DISTANCE_PX)
+            expect(posC.x).toBeGreaterThan(0)
+
+            // In a symmetric least-squares compromise, x should converge near half-way.
+            expect(posC.x).toBeCloseTo(BASE_DISTANCE_PX / 2, 0)
         })
     })
 

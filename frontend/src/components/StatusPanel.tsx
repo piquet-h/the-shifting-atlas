@@ -73,7 +73,7 @@ export default function StatusPanel({ health, maxHealth, locationName, inventory
             className={[
                 'bg-slate-800/95 backdrop-blur-sm ring-1 ring-white/10 rounded-xl shadow-xl',
                 'transition-all duration-300',
-                isMobile ? 'fixed top-4 right-4 left-4 z-50' : 'fixed top-4 right-4 z-50 w-80',
+                isMobile ? 'fixed top-4 right-4 left-4 z-30' : 'fixed top-4 right-4 z-30 w-80',
                 className
             ]
                 .filter(Boolean)

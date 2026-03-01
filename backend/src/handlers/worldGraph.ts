@@ -10,8 +10,10 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
+import type { IPersistenceConfig } from '../persistenceConfig.js'
+import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { internalErrorResponse, okResponse } from './utils/responseBuilder.js'
@@ -45,13 +47,55 @@ const TRAVEL_DURATION_ABSENT = -1
 export class WorldGraphHandler extends BaseHandler {
     constructor(
         @inject('ITelemetryClient') telemetry: ITelemetryClient,
-        @inject('GremlinClient') private gremlinClient: IGremlinClient
+        @inject('PersistenceConfig') private readonly persistence: IPersistenceConfig,
+        @inject('ILocationRepository') private readonly locationRepository: ILocationRepository,
+        @inject('GremlinClient') @optional() private readonly gremlinClient?: IGremlinClient
     ) {
         super(telemetry)
     }
 
     protected async execute(): Promise<HttpResponseInit> {
         try {
+            // Memory mode: build graph from the repository contract (seeded locations + exits).
+            // Cosmos mode: prefer Gremlin fast-path to avoid N+1 listAll() calls and keep the endpoint snappy.
+            if (this.persistence.mode !== 'cosmos') {
+                const locations = await this.locationRepository.listAll()
+
+                const nodes: WorldGraphNode[] = locations.map((loc) => ({
+                    id: loc.id,
+                    name: loc.name || 'Unknown',
+                    tags: loc.tags
+                }))
+
+                const edges: WorldGraphEdge[] = locations.flatMap((loc) => {
+                    const exits = loc.exits || []
+                    return exits
+                        .filter((e) => Boolean(e.to) && Boolean(e.direction))
+                        .map((e) => ({
+                            fromId: loc.id,
+                            toId: String(e.to),
+                            direction: String(e.direction),
+                            travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined
+                        }))
+                })
+
+                // TODO: Remove cast once @piquet-h/shared is republished with 'World.Map.Fetched'.
+                this.track('World.Map.Fetched' as GameEventName, {
+                    nodeCount: nodes.length,
+                    edgeCount: edges.length,
+                    latencyMs: this.latencyMs,
+                    persistenceMode: this.persistence.mode
+                })
+
+                return okResponse({ nodes, edges } satisfies WorldGraphResponse, {
+                    correlationId: this.correlationId
+                })
+            }
+
+            if (!this.gremlinClient) {
+                throw new Error('World graph requires GremlinClient in cosmos mode, but it was not registered')
+            }
+
             const [rawNodes, rawEdges] = await Promise.all([
                 this.gremlinClient.submit<Record<string, unknown>>("g.V().hasLabel('location').valueMap(true)"),
                 this.gremlinClient.submit<Record<string, unknown>>(

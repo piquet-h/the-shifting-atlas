@@ -11,7 +11,6 @@
  * - Accessibility compliance
  */
 import { render, screen } from '@testing-library/react'
-import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import StatusPanel from '../src/components/StatusPanel'
 
@@ -181,6 +180,15 @@ describe('StatusPanel Component', () => {
             const panel = container.querySelector('aside')
             expect(panel).toHaveAttribute('aria-live', 'polite')
             expect(panel).toHaveAttribute('aria-atomic', 'false')
+        })
+
+        it('does not sit above the global nav (z-index regression)', () => {
+            const { container } = render(<StatusPanel health={75} maxHealth={100} locationName="Test Location" inventoryCount={5} />)
+
+            const panel = container.querySelector('aside')
+            expect(panel).toBeTruthy()
+            // Nav uses z-40; StatusPanel must not be z-50 or it can cover the menu bar.
+            expect(panel?.getAttribute('class') ?? '').not.toContain('z-50')
         })
 
         it('has proper title attributes for truncated content', () => {
