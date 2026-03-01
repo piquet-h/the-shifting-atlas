@@ -39,6 +39,30 @@ test('seedUniqueDirections: no duplicate direction tokens per location', () => {
     assert.equal(dupDiagnostics.length, 0, 'Seed contains duplicate exit directions in one or more locations')
 })
 
+// Guard against two different directions pointing to the same target within the same location.
+test('seedUniqueDirections: no two directions lead to the same target location', () => {
+    const seed = loadSeed()
+    const dupDiagnostics: string[] = []
+    for (const loc of seed) {
+        if (!loc.exits || loc.exits.length === 0) continue
+        const seenTargets = new Map<string, string>()
+        for (const ex of loc.exits) {
+            if (!ex.to) continue
+            const existing = seenTargets.get(ex.to)
+            if (existing) {
+                dupDiagnostics.push(`${loc.name}: both '${existing}' and '${ex.direction}' lead to ${ex.to}`)
+            } else {
+                seenTargets.set(ex.to, ex.direction)
+            }
+        }
+    }
+    if (dupDiagnostics.length) {
+        console.error('\nDuplicate target exits discovered:')
+        for (const line of dupDiagnostics) console.error(' - ' + line)
+    }
+    assert.equal(dupDiagnostics.length, 0, 'Seed contains exits where two directions lead to the same location')
+})
+
 // Soft sanity: Extremely high exit counts can overwhelm players (pub test cognitive load). Allow hub up to 10.
 // Adjust threshold if design expands. Currently highest is Mosswell River Jetty (9) and Junction (8).
 test('seedUniqueDirections: exit count sane (<=10)', () => {

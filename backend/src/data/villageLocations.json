@@ -352,17 +352,12 @@
                 "description": "Out to market row."
             },
             {
-                "direction": "southeast",
-                "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
-                "description": "Reciprocal path."
-            },
-            {
                 "direction": "south",
                 "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
                 "description": "Alley toward the tailor."
             }
         ],
-        "version": 1
+        "version": 2
     },
     {
         "id": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
@@ -387,14 +382,9 @@
                 "direction": "west",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
                 "description": "Walk toward tavern."
-            },
-            {
-                "direction": "northwest",
-                "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a",
-                "description": "Alley to general goods."
             }
         ],
-        "version": 1
+        "version": 2
     },
     {
         "id": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
