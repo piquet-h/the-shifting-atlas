@@ -44,6 +44,8 @@ export const GAME_EVENT_NAMES = [
     'Navigation.Look.Issued',
     // Exit generation fallback (Issue #35 - N4)
     'Navigation.Exit.GenerationRequested',
+    // Cottage interior on-demand materialization
+    'Navigation.Interior.Materialized', // Interior location created on first entry - properties: { cottageLocationId, interiorLocationId, alreadyExisted, correlationId }
     // Soft-denial UX telemetry (Issue #595 - Frontend response to generate status)
     'Navigation.SoftDenial.Displayed',
     'Navigation.SoftDenial.Retry',

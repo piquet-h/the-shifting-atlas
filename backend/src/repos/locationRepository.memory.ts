@@ -15,7 +15,9 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     private exitTravelDurations: Map<string, number> = new Map()
     constructor() {
         const locs = starterLocationsData as Location[]
-        this.locations = new Map(locs.map((r) => [r.id, r]))
+        // Deep-clone each seed location so that tests running in the same process
+        // cannot cross-contaminate each other via shared JSON module references.
+        this.locations = new Map(locs.map((r) => [r.id, structuredClone(r)]))
     }
 
     private exitKey(locationId: string, direction: string): string {
