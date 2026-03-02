@@ -1,11 +1,12 @@
 /**
- * Integration tests for on-demand cottage interior materialization
+ * Integration tests for on-demand structure interior materialization
  *
  * Tests cover:
  * - No-op when location has no pending 'in' exit (returns generate error)
  * - Materialize interior on first entry: creates node, wires in/out exits, returns success
  * - Idempotency: second entry reuses the same interior (no duplicate nodes/edges)
- * - Navigation.Interior.Materialized telemetry emitted on first and repeated entry
+ * - Navigation.Interior.Materialized telemetry emitted on first entry
+ * - Works for any structure type (not limited to residential:cottages)
  */
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { resetExitGenerationHintStore } from '@piquet-h/shared'
@@ -21,8 +22,10 @@ import { makeMoveRequest } from '../helpers/testUtils.js'
 const SW_COTTAGE_WEST_ID = '0a6c11dc-2cfd-439b-9b0d-3fd8a882ae2d'
 // East Cottage North - NO exitAvailability.pending.in (used for no-op test)
 const EAST_COTTAGE_NORTH_ID = '0f9efc31-4f15-4c6f-b014-31d4c1c7ec52'
+// Smithy ID (seeded shop:smithy, no pending.in) used as a non-cottage control
+const SMITHY_ID = '2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f'
 
-describe('Cottage Interior On-Demand Materialization', () => {
+describe('Structure Interior On-Demand Materialization', () => {
     let fixture: IntegrationTestFixture
     let locationRepo: ILocationRepository
 
@@ -161,7 +164,7 @@ describe('Cottage Interior On-Demand Materialization', () => {
 
         const event = telemetry.events.find((e) => e.name === 'Navigation.Interior.Materialized')
         assert.ok(event, 'Should emit Navigation.Interior.Materialized')
-        assert.equal(event?.properties?.cottageLocationId, SW_COTTAGE_WEST_ID)
+        assert.equal(event?.properties?.structureLocationId, SW_COTTAGE_WEST_ID)
         assert.equal(event?.properties?.alreadyExisted, false)
     })
 
@@ -208,6 +211,35 @@ describe('Cottage Interior On-Demand Materialization', () => {
         const allLocations = await locationRepo.listAll()
         const found = allLocations.find((l) => l.id === interiorId)
         assert.ok(found, 'Interior location should appear in world graph after materialization')
-        assert.ok(found?.tags?.includes('residential:cottage-interior'), 'Interior should have cottage-interior tag')
+        assert.ok(found?.tags?.includes('interior:auto'), 'Interior should have interior:auto tag')
+    })
+
+    test('works for any structure type with pending.in — not limited to residential:cottages', async () => {
+        // Upsert a shop-type location with pending.in to verify structure-agnostic behavior
+        const shopId = 'aabbccdd-0011-2233-4455-667788990011'
+        await locationRepo.upsert({
+            id: shopId,
+            name: 'The Crooked Anvil',
+            description: 'A smithy with a low door beside the forge.',
+            tags: ['settlement:mosswell', 'shop:smithy'],
+            exits: [{ direction: 'east', to: SMITHY_ID }],
+            exitAvailability: { pending: { in: 'A low door beside the forge.' } },
+            version: 1
+        })
+
+        const ctx = await createMockContext()
+        const req = makeMoveRequest({ dir: 'in', from: shopId }) as HttpRequest
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
+        assert.equal(res.success, true, 'Should materialize interior for non-cottage shop structure')
+        assert.ok(res.location?.name?.includes('Interior'), 'Destination should be the interior')
+
+        const interior = await locationRepo.get(res.location!.id)
+        assert.ok(interior?.tags?.includes('interior:auto'), 'Shop interior should use interior:auto tag')
+        assert.ok(interior?.tags?.includes('settlement:mosswell'), 'Shop interior should inherit settlement tag from parent')
     })
 })

@@ -37,8 +37,8 @@ import { isValidGuid } from './utils/validation.js'
 const DEFAULT_TRAVEL_DURATION_MS = 60_000
 
 /**
- * Derive a stable interior location ID from a cottage location ID.
- * Uses SHA-256 so the same cottage always produces the same interior UUID,
+ * Derive a stable interior location ID from a structure location ID.
+ * Uses SHA-256 so the same structure always produces the same interior UUID,
  * enabling idempotent on-demand materialization even under concurrent entry.
  *
  * Note: the resulting string follows the UUID hex-group layout (8-4-4-4-12)
@@ -46,8 +46,8 @@ const DEFAULT_TRAVEL_DURATION_MS = 60_000
  * UUID (no version/variant nibbles are set). The stable derivation is more
  * important here than strict RFC conformance.
  */
-function deriveInteriorId(cottageId: string): string {
-    const hash = createHash('sha256').update(`cottage-interior:${cottageId}`).digest('hex')
+function deriveInteriorId(structureId: string): string {
+    const hash = createHash('sha256').update(`structure-interior:${structureId}`).digest('hex')
     return [hash.slice(0, 8), hash.slice(8, 12), hash.slice(12, 16), hash.slice(16, 20), hash.slice(20, 32)].join('-')
 }
 
@@ -249,17 +249,13 @@ export class MoveHandler extends BaseHandler {
         // Verify exit
         let exit = from.exits?.find((e) => e.direction === dir)
 
-        // On-demand cottage interior materialization:
-        // If direction is 'in' and the location advertises a pending 'in' exit with the
-        // residential:cottages tag, synchronously create the interior node and wire exits
-        // before falling through to the normal move path.
-        if (
-            !exit?.to &&
-            dir === 'in' &&
-            from.exitAvailability?.pending &&
-            'in' in from.exitAvailability.pending &&
-            from.tags?.includes('residential:cottages')
-        ) {
+        // On-demand structure interior materialization:
+        // If direction is 'in' and the location advertises a pending 'in' exit,
+        // synchronously create the interior node and wire exits before falling
+        // through to the normal move path. Works for any structure type — shops,
+        // taverns, cottages, shrines, etc. — as long as the location carries
+        // exitAvailability.pending.in in its seed or persisted data.
+        if (!exit?.to && dir === 'in' && from.exitAvailability?.pending && 'in' in from.exitAvailability.pending) {
             const interiorId = deriveInteriorId(fromId)
             const alreadyExisted = !!(await this.locationRepo.get(interiorId))
             if (!alreadyExisted) {
@@ -268,7 +264,7 @@ export class MoveHandler extends BaseHandler {
                     id: interiorId,
                     name: `${from.name} — Interior`,
                     description: 'Low rafters and worn flagstones; pale light filters through a single shuttered window.',
-                    tags: [...settlementTags, 'residential:cottage-interior'],
+                    tags: [...settlementTags, 'interior:auto'],
                     exits: [{ direction: 'out', to: fromId, description: 'The door back outside.' }],
                     version: 1
                 }
@@ -282,7 +278,7 @@ export class MoveHandler extends BaseHandler {
             this.telemetry.trackEvent({
                 name: 'Navigation.Interior.Materialized',
                 properties: {
-                    cottageLocationId: fromId,
+                    structureLocationId: fromId,
                     interiorLocationId: interiorId,
                     alreadyExisted,
                     correlationId: this.correlationId
