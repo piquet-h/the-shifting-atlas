@@ -52,7 +52,7 @@ function deriveInteriorId(structureId: string): string {
 }
 
 export interface MoveValidationError {
-    type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
+    type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate' | 'locked'
     statusCode: number
     clarification?: string
     reason?: string
@@ -285,6 +285,35 @@ export class MoveHandler extends BaseHandler {
                 }
             })
             exit = { direction: 'in', to: interiorId }
+        }
+
+        // Soft denial: exit exists but is currently locked.
+        // This is a policy check — the exit edge is wired but entry is denied.
+        // Returns 400 (not 5xx); no generation hint is emitted.
+        if (exit?.to && exit.lockState === 'locked') {
+            const props = {
+                from: fromId,
+                direction: dir,
+                status: 400,
+                reason: 'entrance-locked',
+                latencyMs: Date.now() - started
+            }
+            enrichMovementAttributes(props, {
+                playerId: this.playerGuid,
+                fromLocationId: fromId,
+                exitDirection: dir
+            })
+            this.track('Navigation.Move.Locked', props)
+            return {
+                success: false,
+                error: {
+                    type: 'locked',
+                    statusCode: 400,
+                    reason: 'entrance-locked',
+                    clarification: 'This entrance is locked'
+                },
+                latencyMs: Date.now() - started
+            }
         }
 
         if (!exit || !exit.to) {

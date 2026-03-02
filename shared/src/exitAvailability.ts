@@ -79,6 +79,12 @@ export interface ExitInfo {
     motif?: ForbiddenExitMotif
     /** When to reveal the barrier in narration (defaults to 'onTryMove'). */
     reveal?: ForbiddenExitReveal
+    /**
+     * When true, this hard exit is currently locked.
+     * Movement will return a soft denial (400). Future UI can show a lock icon.
+     * Only present on hard exits with lockState='locked'.
+     */
+    locked?: boolean
 }
 
 /**

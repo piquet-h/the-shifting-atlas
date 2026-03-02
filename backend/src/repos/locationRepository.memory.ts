@@ -1,4 +1,4 @@
-import { Direction, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import { Direction, getOppositeDirection, isDirection, Location, LocationExit } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { ExitEdgeResult, generateExitsSummaryCache, IExitRepository, sortExits } from './exitRepository.js'
@@ -39,20 +39,18 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
         location.exitsSummaryCache = generateExitsSummaryCache(exits)
     }
 
-    private sortLocationExits(
-        exits: Array<{ direction: string; to?: string; description?: string }>
-    ): Array<{ direction: string; to?: string; description?: string }> {
+    private sortLocationExits(exits: LocationExit[]): LocationExit[] {
+        // Sort using canonical exit order while preserving all LocationExit fields
+        // (including lockState, travelDurationMs, etc.).
         const exitResults: ExitEdgeResult[] = exits.map((e) => ({
             direction: e.direction as Direction,
             toLocationId: e.to || '',
             description: e.description
         }))
         const sorted = sortExits(exitResults)
-        return sorted.map((e) => ({
-            direction: e.direction,
-            to: e.toLocationId,
-            description: e.description
-        }))
+        // Map back by direction (each direction appears at most once per location)
+        const byDirection = new Map<string, LocationExit>(exits.map((e) => [e.direction, e]))
+        return sorted.map((s) => byDirection.get(s.direction)!)
     }
 
     async get(id: string): Promise<Location | undefined> {

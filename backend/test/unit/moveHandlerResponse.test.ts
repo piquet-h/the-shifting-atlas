@@ -58,6 +58,24 @@ describe('Move Handler Response', () => {
             assert.equal(body.error.code, 'MoveFailed')
             assert.equal(body.error.message, 'target-missing')
         })
+
+        test('maps locked error with default message', () => {
+            const res = buildMoveResponse(makeErrorResult('locked', 400), 'corr-6')
+            assert.equal(res.status, 400)
+            const body: any = res.jsonBody
+            assert.equal(body.success, false)
+            assert.equal(body.error.code, 'EntranceLocked')
+            assert.equal(body.error.message, 'This entrance is locked')
+        })
+
+        test('maps locked error with custom clarification', () => {
+            const res = buildMoveResponse(makeErrorResult('locked', 400, 'The cottage door is barred from within.'), 'corr-7')
+            assert.equal(res.status, 400)
+            const body: any = res.jsonBody
+            assert.equal(body.success, false)
+            assert.equal(body.error.code, 'EntranceLocked')
+            assert.equal(body.error.message, 'The cottage door is barred from within.')
+        })
     })
 
     describe('Success Path', () => {

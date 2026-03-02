@@ -41,6 +41,7 @@ export const GAME_EVENT_NAMES = [
     // Movement outcome events (added M2 Observability)
     'Navigation.Move.Success',
     'Navigation.Move.Blocked',
+    'Navigation.Move.Locked', // Soft denial: exit exists but is locked - properties: { fromLocationId, direction, playerId? }
     'Navigation.Look.Issued',
     // Exit generation fallback (Issue #35 - N4)
     'Navigation.Exit.GenerationRequested',
