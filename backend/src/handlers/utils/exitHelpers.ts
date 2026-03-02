@@ -13,6 +13,7 @@ import { buildExitInfoArray, type Direction, type ExitInfo, type LocationExit } 
  * ExitInfo requires map format: Partial<Record<Direction, string>>
  *
  * This helper performs the conversion and calls buildExitInfoArray.
+ * Lock state (lockState='locked') is propagated to ExitInfo.locked for UI consumption.
  *
  * @param exits - Location exits array
  * @returns ExitInfo array with availability states
@@ -36,5 +37,13 @@ export function convertLocationExitsToExitInfo(exits: LocationExit[] | undefined
           }
         : undefined
 
-    return buildExitInfoArray(exitsMap, safeMetadata)
+    const infoArray = buildExitInfoArray(exitsMap, safeMetadata)
+
+    // Propagate lock state from LocationExit to ExitInfo so the UI can show a lock icon.
+    const lockedDirs = new Set<Direction>(
+        (exits ?? []).filter((e) => e.lockState === 'locked' && e.to).map((e) => e.direction as Direction)
+    )
+    if (lockedDirs.size === 0) return infoArray
+
+    return infoArray.map((info) => (lockedDirs.has(info.direction) ? { ...info, locked: true } : info))
 }

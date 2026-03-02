@@ -29,6 +29,8 @@ export interface WorldGraphEdge {
     toId: string
     direction: string
     travelDurationMs?: number
+    /** When true, this exit is currently locked. Movement through it returns a soft denial. Future UI can show a lock icon. */
+    locked?: boolean
 }
 
 export interface WorldGraphResponse {
@@ -75,7 +77,8 @@ export class WorldGraphHandler extends BaseHandler {
                             fromId: loc.id,
                             toId: String(e.to),
                             direction: String(e.direction),
-                            travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined
+                            travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined,
+                            locked: e.lockState === 'locked' ? true : undefined
                         }))
                 })
 

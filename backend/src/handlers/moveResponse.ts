@@ -13,7 +13,8 @@ export function buildMoveResponse(moveResult: MoveResult, correlationId: string)
             'from-missing': 'FromNotFound',
             'no-exit': 'NoExit',
             generate: 'ExitGenerationRequested',
-            'move-failed': 'MoveFailed'
+            'move-failed': 'MoveFailed',
+            locked: 'EntranceLocked'
         }
         const errorCode = errorCodeMap[errorType] || 'MoveFailed'
         let errorMessage: string
@@ -32,6 +33,9 @@ export function buildMoveResponse(moveResult: MoveResult, correlationId: string)
                 break
             case 'generate':
                 errorMessage = moveResult.error?.clarification || 'Exit generation requested'
+                break
+            case 'locked':
+                errorMessage = moveResult.error?.clarification || 'This entrance is locked'
                 break
             default:
                 errorMessage = moveResult.error?.reason || 'Movement failed'
