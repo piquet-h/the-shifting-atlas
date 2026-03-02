@@ -11,11 +11,13 @@ import {
     normalizeDirection,
     STARTER_LOCATION_ID,
     type Direction,
+    type Location,
     type TerrainType
 } from '@piquet-h/shared'
 import { type ExitGenerationHintPayload } from '@piquet-h/shared/events'
 import type { IPlayerRepository } from '@piquet-h/shared/types/playerRepository'
 import { inject, injectable } from 'inversify'
+import { createHash } from 'node:crypto'
 import { TOKENS } from '../di/tokens.js'
 import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
@@ -33,6 +35,21 @@ import { isValidGuid } from './utils/validation.js'
 // Fallback used when an exit edge has no explicit travelDurationMs.
 // Kept consistent with other temporal traversal utilities.
 const DEFAULT_TRAVEL_DURATION_MS = 60_000
+
+/**
+ * Derive a stable interior location ID from a structure location ID.
+ * Uses SHA-256 so the same structure always produces the same interior UUID,
+ * enabling idempotent on-demand materialization even under concurrent entry.
+ *
+ * Note: the resulting string follows the UUID hex-group layout (8-4-4-4-12)
+ * for compatibility with repository ID conventions, but it is NOT an RFC 4122
+ * UUID (no version/variant nibbles are set). The stable derivation is more
+ * important here than strict RFC conformance.
+ */
+function deriveInteriorId(structureId: string): string {
+    const hash = createHash('sha256').update(`structure-interior:${structureId}`).digest('hex')
+    return [hash.slice(0, 8), hash.slice(8, 12), hash.slice(12, 16), hash.slice(16, 20), hash.slice(20, 32)].join('-')
+}
 
 export interface MoveValidationError {
     type: 'ambiguous' | 'invalid-direction' | 'from-missing' | 'no-exit' | 'move-failed' | 'generate'
@@ -230,7 +247,46 @@ export class MoveHandler extends BaseHandler {
         }
 
         // Verify exit
-        const exit = from.exits?.find((e) => e.direction === dir)
+        let exit = from.exits?.find((e) => e.direction === dir)
+
+        // On-demand structure interior materialization:
+        // If direction is 'in' and the location advertises a pending 'in' exit,
+        // synchronously create the interior node and wire exits before falling
+        // through to the normal move path. Works for any structure type — shops,
+        // taverns, cottages, shrines, etc. — as long as the location carries
+        // exitAvailability.pending.in in its seed or persisted data.
+        if (!exit?.to && dir === 'in' && from.exitAvailability?.pending && 'in' in from.exitAvailability.pending) {
+            const interiorId = deriveInteriorId(fromId)
+            const alreadyExisted = !!(await this.locationRepo.get(interiorId))
+            if (!alreadyExisted) {
+                const settlementTags = from.tags?.filter((t) => t.startsWith('settlement:')) ?? []
+                const interior: Location = {
+                    id: interiorId,
+                    name: `${from.name} — Interior`,
+                    description: 'Low rafters and worn flagstones; pale light filters through a single shuttered window.',
+                    tags: [...settlementTags, 'interior:auto'],
+                    exits: [{ direction: 'out', to: fromId, description: 'The door back outside.' }],
+                    version: 1
+                }
+                await this.locationRepo.upsert(interior)
+            }
+            await this.locationRepo.ensureExitBidirectional(fromId, 'in', interiorId, {
+                reciprocal: true,
+                description: 'Step through the low doorway.',
+                reciprocalDescription: 'The door back outside.'
+            })
+            this.telemetry.trackEvent({
+                name: 'Navigation.Interior.Materialized',
+                properties: {
+                    structureLocationId: fromId,
+                    interiorLocationId: interiorId,
+                    alreadyExisted,
+                    correlationId: this.correlationId
+                }
+            })
+            exit = { direction: 'in', to: interiorId }
+        }
+
         if (!exit || !exit.to) {
             // TODO: Check if direction is forbidden before emitting generation hint
             // When Location/LocationNode exitAvailability is wired from persistence:
