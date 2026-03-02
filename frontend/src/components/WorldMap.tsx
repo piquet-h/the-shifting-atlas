@@ -10,7 +10,7 @@ import cytoscape, { type ElementDefinition } from 'cytoscape'
 import React, { useEffect, useRef, useState } from 'react'
 import { unwrapEnvelope } from '../utils/envelope'
 import { computeVisibleNodeIds } from '../utils/mapDrill'
-import { computeInsideNodeIds, getEdgeClassName } from '../utils/mapSemantics'
+import { classifyInsideNodeIds, getEdgeClassName } from '../utils/mapSemantics'
 import { computePositions, URBAN_MS } from '../utils/worldMapPositions'
 
 // ---------------------------------------------------------------------------
@@ -293,7 +293,7 @@ export default function WorldMap(): React.ReactElement {
         const graph = graphRef.current
         if (!graph) return
 
-        const insideIds = computeInsideNodeIds(graph.edges)
+        const insideIds = classifyInsideNodeIds(graph.nodes, graph.edges)
         if (!insideIds.has(focusId)) return
 
         setFocusId(null)
@@ -321,7 +321,7 @@ export default function WorldMap(): React.ReactElement {
         })
 
         if (!showInsideNodes) {
-            const insideIds = computeInsideNodeIds(graph.edges)
+            const insideIds = classifyInsideNodeIds(graph.nodes, graph.edges)
             for (const id of insideIds) visibleNodeIds.delete(id)
         }
 
@@ -395,7 +395,7 @@ export default function WorldMap(): React.ReactElement {
                     <div className="flex items-start justify-between gap-2">
                         <div>
                             <p className="text-xs font-semibold text-slate-200">Drill view</p>
-                            <p className="text-[11px] text-slate-400">Filter by exit semantics (in/out, up/down) and focus a location.</p>
+                            <p className="text-[11px] text-slate-400">Filter by exit semantics and focus a location.</p>
                         </div>
                         <button
                             type="button"
@@ -449,7 +449,7 @@ export default function WorldMap(): React.ReactElement {
                                 checked={showInsideNodes}
                                 onChange={(e) => setShowInsideNodes(e.target.checked)}
                             />
-                            <span>Inside nodes (targets of “in”)</span>
+                            <span>Inside nodes (interiors)</span>
                         </label>
                     </div>
 
