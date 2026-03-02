@@ -40,6 +40,11 @@ const DEFAULT_TRAVEL_DURATION_MS = 60_000
  * Derive a stable interior location ID from a cottage location ID.
  * Uses SHA-256 so the same cottage always produces the same interior UUID,
  * enabling idempotent on-demand materialization even under concurrent entry.
+ *
+ * Note: the resulting string follows the UUID hex-group layout (8-4-4-4-12)
+ * for compatibility with repository ID conventions, but it is NOT an RFC 4122
+ * UUID (no version/variant nibbles are set). The stable derivation is more
+ * important here than strict RFC conformance.
  */
 function deriveInteriorId(cottageId: string): string {
     const hash = createHash('sha256').update(`cottage-interior:${cottageId}`).digest('hex')

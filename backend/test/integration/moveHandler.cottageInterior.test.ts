@@ -1,5 +1,5 @@
 /**
- * Integration tests for on-demand cottage interior materialization (Issue #XXX)
+ * Integration tests for on-demand cottage interior materialization
  *
  * Tests cover:
  * - No-op when location has no pending 'in' exit (returns generate error)
