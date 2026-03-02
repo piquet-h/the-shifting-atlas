@@ -98,4 +98,4 @@ Fixes #77.
 
 > Keep it **succinct**, **actionable**, and **just enough context**—the issue and code diff carry the rest.
 
-_Last reviewed: 2025-10-29_
+_Last reviewed: 2026-03-02_
