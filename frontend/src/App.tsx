@@ -43,7 +43,7 @@ export default function App(): React.ReactElement {
                 >
                     Skip to main content.
                 </a>
-                <div className="app-root h-screen flex flex-col lg:gap-4 overflow-hidden">
+                <div className="app-root h-dvh flex flex-col overflow-hidden">
                     <Nav />
                     {/* Global main landmark wraps all routed content */}
                     <main

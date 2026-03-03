@@ -39,7 +39,7 @@ export default function Game(): React.ReactElement | null {
 
     if (loading || guidLoading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
+            <div className="min-h-full flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
                 <div className="h-8 w-8 sm:h-10 sm:w-10 animate-spin rounded-full border-2 border-atlas-accent border-t-transparent" />
                 <p className="mt-4 text-responsive-sm text-slate-400">Loading game...</p>
             </div>
@@ -48,7 +48,7 @@ export default function Game(): React.ReactElement | null {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
+            <div className="min-h-full flex flex-col items-center justify-center py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100">
                 <p className="text-responsive-sm text-slate-400">Redirecting...</p>
             </div>
         )

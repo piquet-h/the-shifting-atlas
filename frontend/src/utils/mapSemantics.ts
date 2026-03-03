@@ -6,6 +6,11 @@ export interface EdgeLike {
     direction: string
 }
 
+export interface NodeLike {
+    id: string
+    tags?: string[]
+}
+
 /**
  * Returns true when a location's tags indicate it is inside a named structure
  * (i.e. carries a `structure:<slug>` tag and is NOT the outside threshold node).
@@ -57,4 +62,25 @@ export function computeInsideNodeIds<E extends EdgeLike>(edges: E[]): Set<string
         else if (e.direction === 'out') inside.add(e.fromId)
     }
     return inside
+}
+
+/**
+ * Compute interior node IDs using preferred tag-based detection, with
+ * `in`/`out` edge heuristics as a backward-compatible fallback.
+ */
+export function computeInteriorNodeIds<N extends NodeLike, E extends EdgeLike>(nodes: N[], edges: E[]): Set<string> {
+    const interior = new Set<string>()
+
+    for (const node of nodes) {
+        if (isInteriorNode(node.tags)) {
+            interior.add(node.id)
+        }
+    }
+
+    const heuristicInside = computeInsideNodeIds(edges)
+    for (const id of heuristicInside) {
+        interior.add(id)
+    }
+
+    return interior
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeInsideNodeIds, getEdgeClassName, getEdgeKind, isInteriorNode } from '../src/utils/mapSemantics'
+import { computeInsideNodeIds, computeInteriorNodeIds, getEdgeClassName, getEdgeKind, isInteriorNode } from '../src/utils/mapSemantics'
 
 describe('mapSemantics', () => {
     describe('getEdgeKind', () => {
@@ -85,6 +85,36 @@ describe('mapSemantics', () => {
                 { fromId: 'outside', toId: 'inside', direction: 'in' }
             ]
             expect(Array.from(computeInsideNodeIds(edges)).sort()).toEqual(['inside'])
+        })
+    })
+
+    describe('computeInteriorNodeIds', () => {
+        it('prefers interior tags even when edge directions are only vertical', () => {
+            const nodes = [
+                { id: 'outside', tags: ['structure:lantern-and-ladle', 'structureArea:outside'] },
+                { id: 'upstairs', tags: ['structure:lantern-and-ladle', 'structureArea:guest-room'] }
+            ]
+            const edges = [{ fromId: 'outside', toId: 'upstairs', direction: 'up' }]
+
+            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['upstairs'])
+        })
+
+        it('falls back to in/out edge heuristic for legacy untagged nodes', () => {
+            const nodes = [{ id: 'outside' }, { id: 'inside' }]
+            const edges = [{ fromId: 'outside', toId: 'inside', direction: 'in' }]
+
+            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['inside'])
+        })
+
+        it('unions tag-based and edge-based detection', () => {
+            const nodes = [
+                { id: 'tagged', tags: ['structure:clocktower', 'structureArea:machinery'] },
+                { id: 'legacyOutside' },
+                { id: 'legacyInside' }
+            ]
+            const edges = [{ fromId: 'legacyOutside', toId: 'legacyInside', direction: 'in' }]
+
+            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['legacyInside', 'tagged'])
         })
     })
 })

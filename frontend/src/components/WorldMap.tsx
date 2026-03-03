@@ -10,8 +10,10 @@ import cytoscape, { type ElementDefinition } from 'cytoscape'
 import React, { useEffect, useRef, useState } from 'react'
 import { unwrapEnvelope } from '../utils/envelope'
 import { computeVisibleNodeIds } from '../utils/mapDrill'
-import { computeInsideNodeIds, getEdgeClassName } from '../utils/mapSemantics'
+import { applySameLevelSlice } from '../utils/mapSameLevel'
+import { computeInteriorNodeIds, getEdgeClassName, type EdgeKind } from '../utils/mapSemantics'
 import { computePositions, URBAN_MS } from '../utils/worldMapPositions'
+import WorldMapSidebar from './WorldMapSidebar'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -160,20 +162,31 @@ export default function WorldMap(): React.ReactElement {
     const [selectedId, setSelectedId] = useState<string | null>(null)
 
     // Sidebar controls
-    const [showSurface, setShowSurface] = useState(true)
-    const [showInterior, setShowInterior] = useState(true)
-    const [showVertical, setShowVertical] = useState(true)
+    const [showOutsideNodes, setShowOutsideNodes] = useState(true)
     const [showInsideNodes, setShowInsideNodes] = useState(true)
-    const [viewMode, setViewMode] = useState<'all' | 'focus'>('all')
+    const [sameLevelOnly, setSameLevelOnly] = useState(false)
     const [focusId, setFocusId] = useState<string | null>(null)
     const [focusName, setFocusName] = useState<string | null>(null)
     const [focusDepth, setFocusDepth] = useState<0 | 1 | 2 | 3>(1)
+    const focusIdRef = useRef<string | null>(null)
+    const lastNodeTapRef = useRef<{ id: string; timestamp: number } | null>(null)
 
     // Layout spacing: scales the underlying coordinate system (not the viewport zoom).
     const [distanceScale, setDistanceScale] = useState(DEFAULT_DISTANCE_SCALE)
 
     // Keep graph data around so we can compute focus visibility sets.
     const graphRef = useRef<WorldGraphResponse | null>(null)
+
+    useEffect(() => {
+        focusIdRef.current = focusId
+    }, [focusId])
+
+    // UX guard: "Same floor" slice requires focus; clear it if focus is removed.
+    useEffect(() => {
+        if (!focusId && sameLevelOnly) {
+            setSameLevelOnly(false)
+        }
+    }, [focusId, sameLevelOnly])
 
     useEffect(() => {
         let cancelled = false
@@ -236,8 +249,28 @@ export default function WorldMap(): React.ReactElement {
                 // Show location name on node tap
                 cy.on('tap', 'node', (evt) => {
                     const node = evt.target as cytoscape.NodeSingular
-                    setSelectedName(node.data('name') as string)
-                    setSelectedId(node.data('id') as string)
+                    const id = node.data('id') as string
+                    const name = node.data('name') as string
+                    setSelectedName(name)
+                    setSelectedId(id)
+
+                    const now = Date.now()
+                    const lastTap = lastNodeTapRef.current
+                    const isDoubleTap = !!lastTap && lastTap.id === id && now - lastTap.timestamp <= 350
+
+                    if (isDoubleTap) {
+                        if (focusIdRef.current === id) {
+                            setFocusId(null)
+                            setFocusName(null)
+                        } else {
+                            setFocusId(id)
+                            setFocusName(name)
+                        }
+                        lastNodeTapRef.current = null
+                        return
+                    }
+
+                    lastNodeTapRef.current = { id, timestamp: now }
                 })
                 cy.on('tap', (evt) => {
                     if (evt.target === cy) {
@@ -285,21 +318,23 @@ export default function WorldMap(): React.ReactElement {
         cy.fit(cy.elements(':visible'), 60)
     }, [distanceScale])
 
-    // If the user hides inside nodes, ensure we are not focusing an inside node.
+    // If the user hides the currently focused node category, clear focus.
     useEffect(() => {
-        if (showInsideNodes) return
-        if (viewMode !== 'focus' || !focusId) return
+        if (!focusId) return
 
         const graph = graphRef.current
         if (!graph) return
 
-        const insideIds = computeInsideNodeIds(graph.edges)
-        if (!insideIds.has(focusId)) return
+        const interiorIds = computeInteriorNodeIds(graph.nodes, graph.edges)
+        const focusIsInside = interiorIds.has(focusId)
+
+        if ((focusIsInside && showInsideNodes) || (!focusIsInside && showOutsideNodes)) {
+            return
+        }
 
         setFocusId(null)
         setFocusName(null)
-        setViewMode('all')
-    }, [focusId, showInsideNodes, viewMode])
+    }, [focusId, showInsideNodes, showOutsideNodes])
 
     // Apply visibility filters whenever sidebar state changes.
     useEffect(() => {
@@ -307,12 +342,9 @@ export default function WorldMap(): React.ReactElement {
         const graph = graphRef.current
         if (!cy || !graph) return
 
-        const allowedKinds = new Set<import('../utils/mapSemantics').EdgeKind>()
-        if (showSurface) allowedKinds.add('surface')
-        if (showInterior) allowedKinds.add('interior')
-        if (showVertical) allowedKinds.add('vertical')
+        const allowedKinds = new Set<EdgeKind>(['surface', 'interior', 'vertical'])
 
-        const effectiveMode = viewMode === 'focus' && focusId ? 'focus' : 'all'
+        const effectiveMode = focusId ? 'focus' : 'all'
         const visibleNodeIds = computeVisibleNodeIds(graph.nodes, graph.edges, {
             mode: effectiveMode,
             focusId: focusId ?? undefined,
@@ -320,9 +352,27 @@ export default function WorldMap(): React.ReactElement {
             allowedKinds
         })
 
+        const sameLevelResult = applySameLevelSlice({
+            nodes: graph.nodes,
+            edges: graph.edges,
+            visibleNodeIds,
+            focusId,
+            sameLevelOnly
+        })
+
+        const interiorIds = computeInteriorNodeIds(graph.nodes, graph.edges)
         if (!showInsideNodes) {
-            const insideIds = computeInsideNodeIds(graph.edges)
-            for (const id of insideIds) visibleNodeIds.delete(id)
+            for (const id of interiorIds) {
+                visibleNodeIds.delete(id)
+            }
+        }
+
+        if (!showOutsideNodes) {
+            for (const id of Array.from(visibleNodeIds)) {
+                if (!interiorIds.has(id)) {
+                    visibleNodeIds.delete(id)
+                }
+            }
         }
 
         // Node visibility
@@ -339,7 +389,7 @@ export default function WorldMap(): React.ReactElement {
 
             const kind = e.hasClass('edge--interior') ? 'interior' : e.hasClass('edge--vertical') ? 'vertical' : 'surface'
 
-            const kindAllowed = allowedKinds.has(kind)
+            const kindAllowed = allowedKinds.has(kind) && !(sameLevelResult.hideVerticalEdges && kind === 'vertical')
             const endpointsVisible = visibleNodeIds.has(source) && visibleNodeIds.has(target)
             e.style('display', kindAllowed && endpointsVisible ? 'element' : 'none')
         })
@@ -352,7 +402,7 @@ export default function WorldMap(): React.ReactElement {
 
         // Keep viewport comfortable.
         cy.fit(cy.elements(':visible'), 60)
-    }, [focusDepth, focusId, selectedId, showInsideNodes, showInterior, showSurface, showVertical, viewMode])
+    }, [focusDepth, focusId, selectedId, showInsideNodes, showOutsideNodes, sameLevelOnly])
 
     // Destroy on unmount
     useEffect(() => {
@@ -382,168 +432,50 @@ export default function WorldMap(): React.ReactElement {
                         {selectedName}
                     </span>
                 )}
-                <p className="text-xs text-slate-500 hidden sm:block">Scroll to zoom · Drag to pan · Click a node to inspect</p>
+                <p className="text-xs text-slate-500 hidden sm:block">
+                    Scroll to zoom · Drag to pan · Click to inspect · Double-click to focus
+                </p>
             </div>
 
             {/* Map canvas */}
             <div className="relative flex-1 min-h-0">
-                {/* Sidebar controls */}
-                <aside
-                    className="absolute left-3 top-3 z-20 w-[260px] max-w-[calc(100%-1.5rem)] rounded-lg border border-white/10 bg-atlas-card/90 backdrop-blur px-3 py-3 text-sm text-slate-200 shadow-lg"
-                    aria-label="Map filters"
-                >
-                    <div className="flex items-start justify-between gap-2">
-                        <div>
-                            <p className="text-xs font-semibold text-slate-200">Drill view</p>
-                            <p className="text-[11px] text-slate-400">Filter by exit semantics (in/out, up/down) and focus a location.</p>
-                        </div>
-                        <button
-                            type="button"
-                            className="text-[11px] text-slate-300 hover:text-white underline underline-offset-2"
-                            onClick={() => {
-                                setShowSurface(true)
-                                setShowInterior(true)
-                                setShowVertical(true)
-                                setViewMode('all')
-                                setFocusId(null)
-                                setFocusName(null)
-                                setFocusDepth(1)
-                            }}
-                        >
-                            Reset
-                        </button>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 accent-emerald-300"
-                                checked={showSurface}
-                                onChange={(e) => setShowSurface(e.target.checked)}
-                            />
-                            <span>Surface (north/east/…)</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 accent-sky-300"
-                                checked={showInterior}
-                                onChange={(e) => setShowInterior(e.target.checked)}
-                            />
-                            <span>Interior (in/out)</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 accent-amber-300"
-                                checked={showVertical}
-                                onChange={(e) => setShowVertical(e.target.checked)}
-                            />
-                            <span>Vertical (up/down)</span>
-                        </label>
-                        <label className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 accent-violet-300"
-                                checked={showInsideNodes}
-                                onChange={(e) => setShowInsideNodes(e.target.checked)}
-                            />
-                            <span>Inside nodes (targets of “in”)</span>
-                        </label>
-                    </div>
-
-                    <div className="mt-3 border-t border-white/10 pt-3">
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between gap-2">
-                                <label className="text-xs text-slate-300" htmlFor="map-distance-scale">
-                                    Layout scale
-                                </label>
-                                <span className="text-[11px] tabular-nums text-slate-400">{distanceScale.toFixed(1)}×</span>
-                            </div>
-                            <input
-                                id="map-distance-scale"
-                                type="range"
-                                min={0.8}
-                                max={3.2}
-                                step={0.1}
-                                value={distanceScale}
-                                onChange={(e) => setDistanceScale(Number(e.target.value))}
-                                className="w-full accent-emerald-300"
-                            />
-                            <p className="text-[11px] text-slate-400">
-                                Spreads nodes out without changing travel times. (Zoom/pan still works.)
-                            </p>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2">
-                            <label className="text-xs text-slate-300" htmlFor="map-view-mode">
-                                Mode
-                            </label>
-                            <select
-                                id="map-view-mode"
-                                className="bg-atlas-bg/40 border border-white/10 rounded px-2 py-1 text-xs"
-                                value={viewMode}
-                                onChange={(e) => setViewMode(e.target.value as 'all' | 'focus')}
-                            >
-                                <option value="all">Whole atlas</option>
-                                <option value="focus">Focus</option>
-                            </select>
-                        </div>
-
-                        {viewMode === 'focus' && (
-                            <div className="mt-2 space-y-2">
-                                <div className="text-[11px] text-slate-400">
-                                    Focus: <span className="text-slate-200">{focusName ?? '—'}</span>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        className="text-[11px] px-2 py-1 rounded border border-white/10 bg-atlas-bg/40 hover:bg-atlas-bg/60 disabled:opacity-40"
-                                        disabled={!selectedId || !selectedName}
-                                        onClick={() => {
-                                            if (!selectedId || !selectedName) return
-                                            setFocusId(selectedId)
-                                            setFocusName(selectedName)
-                                        }}
-                                    >
-                                        Focus selected
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="text-[11px] px-2 py-1 rounded border border-white/10 bg-atlas-bg/40 hover:bg-atlas-bg/60 disabled:opacity-40"
-                                        disabled={!focusId}
-                                        onClick={() => {
-                                            setFocusId(null)
-                                            setFocusName(null)
-                                            setViewMode('all')
-                                        }}
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <label className="text-xs text-slate-300" htmlFor="map-focus-depth">
-                                        Depth
-                                    </label>
-                                    <select
-                                        id="map-focus-depth"
-                                        className="bg-atlas-bg/40 border border-white/10 rounded px-2 py-1 text-xs"
-                                        value={focusDepth}
-                                        onChange={(e) => setFocusDepth(Number(e.target.value) as 0 | 1 | 2 | 3)}
-                                    >
-                                        <option value={0}>0 (just focus)</option>
-                                        <option value={1}>1</option>
-                                        <option value={2}>2</option>
-                                        <option value={3}>3</option>
-                                    </select>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </aside>
+                <WorldMapSidebar
+                    showOutsideNodes={showOutsideNodes}
+                    setShowOutsideNodes={setShowOutsideNodes}
+                    showInsideNodes={showInsideNodes}
+                    setShowInsideNodes={setShowInsideNodes}
+                    sameLevelOnly={sameLevelOnly}
+                    setSameLevelOnly={setSameLevelOnly}
+                    distanceScale={distanceScale}
+                    setDistanceScale={setDistanceScale}
+                    selectedName={selectedName}
+                    selectedId={selectedId}
+                    focusName={focusName}
+                    focusId={focusId}
+                    focusDepth={focusDepth}
+                    setFocusDepth={setFocusDepth}
+                    onFocusSelected={() => {
+                        if (!selectedId || !selectedName) return
+                        setFocusId(selectedId)
+                        setFocusName(selectedName)
+                    }}
+                    onClearFocus={() => {
+                        setFocusId(null)
+                        setFocusName(null)
+                        setSameLevelOnly(false)
+                    }}
+                    onReset={() => {
+                        setShowOutsideNodes(true)
+                        setShowInsideNodes(true)
+                        setSameLevelOnly(false)
+                        setFocusId(null)
+                        setFocusName(null)
+                        setFocusDepth(1)
+                        setDistanceScale(DEFAULT_DISTANCE_SCALE)
+                        setSelectedId(null)
+                        setSelectedName(null)
+                    }}
+                />
 
                 {loading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 bg-atlas-bg/80">

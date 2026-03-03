@@ -53,7 +53,7 @@ export default function Homepage(): React.ReactElement {
     return (
         // <main> landmark is global (App.tsx); this only renders content.
         <div
-            className="min-h-screen flex flex-col gap-4 sm:gap-5 md:gap-6 py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100"
+            className="min-h-full flex flex-col gap-4 sm:gap-5 md:gap-6 py-4 sm:py-5 md:py-6 lg:py-8 text-slate-100"
             aria-labelledby="page-title"
         >
             <h1 id="page-title" tabIndex={-1} className="sr-only">

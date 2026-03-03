@@ -25,7 +25,7 @@
 
     /* Page container with gradient background - used across all page layouts */
     .page-container {
-        @apply min-h-screen p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bgDark;
+        @apply min-h-full p-5 text-slate-100 bg-gradient-to-b from-atlas-bg to-atlas-bgDark;
     }
 
     /* Card/section component with glass morphism effect - used for content sections */
@@ -81,5 +81,33 @@
     /* Constrain max content width on ultra-wide screens */
     .max-w-readable {
         max-width: min(100%, 75ch);
+    }
+
+    /* Opt-in custom scrollbar styling (use on scrollable panels only). */
+    .scrollbar-atlas {
+        /* Ensure browser-native UI (including scrollbars) prefers a dark palette for this panel only. */
+        color-scheme: dark;
+        scrollbar-width: thin; /* Firefox */
+        scrollbar-color: rgba(148, 163, 184, 0.45) transparent; /* thumb | track */
+    }
+
+    .scrollbar-atlas::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    .scrollbar-atlas::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-atlas::-webkit-scrollbar-thumb {
+        background-color: rgba(148, 163, 184, 0.28);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    .scrollbar-atlas::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(148, 163, 184, 0.45);
     }
 }
