@@ -177,6 +177,10 @@ describe('World Seeding', () => {
         assert.ok(commonRoom, 'Tavern common room location should exist')
         assert.ok(guestRooms, 'Tavern guest rooms location should exist')
 
+        // Naming convention: structureArea:outside threshold uses just the structure name (no "— Outside" suffix).
+        // See docs/architecture/interior-structure-conventions.md § 2.
+        assert.equal(outside.name, 'The Lantern & Ladle', 'Tavern outside threshold should use structure name only (no — Outside suffix)')
+
         assert.ok(
             (outside.exits || []).some((e) => e.direction === 'in' && e.to === TAVERN_COMMON_ROOM_ID),
             'Tavern outside should have an in-exit to the common room'
