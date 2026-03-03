@@ -14,47 +14,56 @@
             {
                 "direction": "north",
                 "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
-                "description": "Packed lane rising toward the north road."
+                "description": "A hard-packed lane climbs toward the north road.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northeast",
                 "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
-                "description": "Slope up to the manor overlook."
+                "description": "Slope up to the manor overlook.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "east",
                 "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41",
-                "description": "Canvas stalls of Market Row."
+                "description": "Canvas stalls of Market Row.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "southeast",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-                "description": "Lantern glow of the tavern."
+                "description": "Lantern glow of the tavern.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1",
-                "description": "Road bending inland toward farms."
+                "description": "Road bending inland toward farms.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "southwest",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Foot path toward cottages and fields."
+                "description": "Foot path toward cottages and fields.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "west",
                 "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f",
-                "description": "Hammer clangs at the smithy."
+                "description": "Hammer clangs at the smithy.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northwest",
                 "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f",
-                "description": "Low wall of the herb garden."
+                "description": "Up the bank toward the herb garden’s low stone wall.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "down",
                 "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
-                "description": "Steps descending to the lower jetty."
+                "description": "Steps descend to the lower jetty.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 3
@@ -71,17 +80,20 @@
             {
                 "direction": "north",
                 "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-                "description": "Toward the north gate."
+                "description": "Up the lane toward the north gate.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Back to the square."
+                "description": "Back down toward the jetty plaza.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "west",
                 "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
-                "description": "Path west to the stone circle shrine."
+                "description": "A worn track leads west, skirting the herb garden toward the standing stones.",
+                "travelDurationMs": 180000
             }
         ],
         "version": 2
@@ -99,12 +111,14 @@
             {
                 "direction": "southwest",
                 "to": "ac0f5ad1-5d5d-4b24-8e24-18e9cf52d4d7",
-                "description": "Cut across to the shrine."
+                "description": "A beaten shortcut cuts across to the shrine.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
-                "description": "Back down the lane."
+                "description": "Back down the lane toward town.",
+                "travelDurationMs": 300000
             }
         ],
         "exitAvailability": {
@@ -128,12 +142,14 @@
             {
                 "direction": "east",
                 "to": "f7c9b2ad-1e34-4c6f-8d5a-2b7e9c4f1a53",
-                "description": "Slope east back to the road."
+                "description": "A gentle slope returns east to the road.",
+                "travelDurationMs": 180000
             },
             {
                 "direction": "northeast",
                 "to": "d0b2a7ea-9f4c-41d5-9b2d-7b4a0e6f1c3a",
-                "description": "Path toward the north gate."
+                "description": "A narrow path rises toward the north gate.",
+                "travelDurationMs": 300000
             }
         ],
         "version": 2
@@ -151,17 +167,20 @@
             {
                 "direction": "north",
                 "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b",
-                "description": "Path toward a small west cottage."
+                "description": "A narrow path runs north toward the cottages.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "southeast",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Back to the square."
+                "description": "A short path bends back down to the jetty plaza.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "in",
                 "to": "c5e8d2bc-0f42-4a31-93d6-734c347b19e7",
-                "description": "Gate to the herbalist cottage."
+                "description": "Through the garden gate into the herbalist’s cottage.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -178,7 +197,8 @@
             {
                 "direction": "out",
                 "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f",
-                "description": "Out to the herb garden wall."
+                "description": "Back out through the gate to the garden wall.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -195,12 +215,14 @@
             {
                 "direction": "east",
                 "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d",
-                "description": "Path between the two northern cottages."
+                "description": "Path between the two northern cottages.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "5e4d3c2b-1a0f-4b9e-8c7d-6a5b4c3d2e1f",
-                "description": "Down to the herb garden wall."
+                "description": "Down to the herb garden wall.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -217,12 +239,14 @@
             {
                 "direction": "south",
                 "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
-                "description": "Steps down to the manor overlook."
+                "description": "Steps down to the manor overlook.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "west",
                 "to": "6a1f9c12-0d4d-4b2a-9f8a-2c3d4e5f6a7b",
-                "description": "Between the northern cottages."
+                "description": "Between the northern cottages.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -239,12 +263,14 @@
             {
                 "direction": "east",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Back to the square."
+                "description": "Back to the square.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb",
-                "description": "Toward the carpenter & fletcher."
+                "description": "Toward the carpenter & fletcher.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -262,12 +288,14 @@
             {
                 "direction": "north",
                 "to": "2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f",
-                "description": "Back to the forge."
+                "description": "Back to the forge.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Toward the southwest path junction."
+                "description": "Toward the southwest path junction.",
+                "travelDurationMs": 300000
             }
         ],
         "version": 1
@@ -284,22 +312,26 @@
             {
                 "direction": "north",
                 "to": "7b2e0a13-1e5c-41bd-8c2d-3f4e5a6b7c8d",
-                "description": "Up toward an east cottage."
+                "description": "Up toward an east cottage.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41",
-                "description": "Steps to market row."
+                "description": "Steps to market row.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "southwest",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Down to the square."
+                "description": "Down to the square.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northwest",
                 "to": "bf9a9f54-4408-4ad7-b4cf-a993eaca0fb1",
-                "description": "Stairs to manor office."
+                "description": "Stairs to manor office.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -317,22 +349,26 @@
             {
                 "direction": "north",
                 "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
-                "description": "Steps up to the manor."
+                "description": "Steps up to the manor.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "east",
                 "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52",
-                "description": "Lane by a northern east cottage."
+                "description": "Lane by a northern east cottage.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a",
-                "description": "Toward the general goods store."
+                "description": "Toward the general goods store.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "west",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Back to fountain square."
+                "description": "Back to fountain square.",
+                "travelDurationMs": 300000
             }
         ],
         "version": 1
@@ -349,12 +385,14 @@
             {
                 "direction": "north",
                 "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41",
-                "description": "Out to market row."
+                "description": "Out to market row.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
-                "description": "Alley toward the tailor."
+                "description": "Alley toward the tailor.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 2
@@ -371,17 +409,20 @@
             {
                 "direction": "north",
                 "to": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a",
-                "description": "Return north to general goods."
+                "description": "Return north to general goods.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "east",
                 "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c",
-                "description": "Lane between east cottages."
+                "description": "Lane between east cottages.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "west",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-                "description": "Walk toward tavern."
+                "description": "Walk toward tavern.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 2
@@ -401,27 +442,32 @@
             {
                 "direction": "east",
                 "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
-                "description": "Toward tailor & weaver."
+                "description": "Toward tailor & weaver.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "southwest",
                 "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1",
-                "description": "Reciprocal path."
+                "description": "Reciprocal path.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "west",
                 "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42",
-                "description": "Door to the stables courtyard."
+                "description": "Door to the stables courtyard.",
+                "travelDurationMs": 120000
             },
             {
                 "direction": "northwest",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Back to the square."
+                "description": "Back to the square.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "in",
                 "to": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
-                "description": "Step inside the tavern."
+                "description": "Step inside the tavern.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -441,12 +487,14 @@
             {
                 "direction": "out",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-                "description": "Back out to the lane."
+                "description": "Back out to the lane.",
+                "travelDurationMs": 60000
             },
             {
                 "direction": "up",
                 "to": "f62cb3bc-5521-4c63-9ef4-0cdf7e33a360",
-                "description": "Stairs to guest rooms."
+                "description": "Stairs to guest rooms.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -463,12 +511,14 @@
             {
                 "direction": "east",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-                "description": "Back to the tavern."
+                "description": "Back to the tavern.",
+                "travelDurationMs": 120000
             },
             {
                 "direction": "southwest",
                 "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5",
-                "description": "Track toward the granary."
+                "description": "Track toward the granary.",
+                "travelDurationMs": 300000
             }
         ],
         "version": 1
@@ -485,22 +535,26 @@
             {
                 "direction": "north",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Rise back to the jetty square."
+                "description": "Rise back to the jetty square.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northeast",
                 "to": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-                "description": "Slope toward the tavern."
+                "description": "Slope toward the tavern.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
-                "description": "Deeper into southern farms."
+                "description": "Deeper into southern farms.",
+                "travelDurationMs": 420000
             },
             {
                 "direction": "west",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Path to junction and cottages."
+                "description": "Path to junction and cottages.",
+                "travelDurationMs": 300000
             }
         ],
         "version": 1
@@ -518,12 +572,14 @@
             {
                 "direction": "north",
                 "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1",
-                "description": "Toward the village."
+                "description": "Toward the village.",
+                "travelDurationMs": 420000
             },
             {
                 "direction": "southwest",
                 "to": "e82c9f17-ffc0-4b27-bcfe-5b8e3b2ea5f3",
-                "description": "Skirting fields along the outer track."
+                "description": "Skirting fields along the outer track.",
+                "travelDurationMs": 420000
             }
         ],
         "exitAvailability": {
@@ -547,37 +603,44 @@
             {
                 "direction": "north",
                 "to": "a2a1c4be-33f3-4a3b-8f51-91bc5a6395fb",
-                "description": "Path toward carpenter & fletcher."
+                "description": "Path toward carpenter & fletcher.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northeast",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Up to the square."
+                "description": "Up to the square.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "east",
                 "to": "4f6f1cb5-7e2d-4b5f-8e79-4c5ce0b3d5f1",
-                "description": "Toward the south road."
+                "description": "Toward the south road.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "southeast",
                 "to": "5fbf477a-bbd3-44f0-9034-6d781da8d2e0",
-                "description": "Toward a south cottage by the pens."
+                "description": "Toward a south cottage by the pens.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "south",
                 "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5",
-                "description": "Track to granary."
+                "description": "Track to granary.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "southwest",
                 "to": "0a6c11dc-2cfd-439b-9b0d-3fd8a882ae2d",
-                "description": "Toward a low west cottage."
+                "description": "Toward a low west cottage.",
+                "travelDurationMs": 240000
             },
             {
                 "direction": "northwest",
                 "to": "a0d8f2ad-5fd0-4e1e-8b5e-7f8ef9be58ba",
-                "description": "Toward a north cottage near hedgerow."
+                "description": "Toward a north cottage near hedgerow.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -594,17 +657,20 @@
             {
                 "direction": "north",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Back to junction."
+                "description": "Back to junction.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "northeast",
                 "to": "e29af6b7-8a31-4df3-a6c8-4dcc31ff5c42",
-                "description": "Track to stables courtyard."
+                "description": "Track to stables courtyard.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "west",
                 "to": "0db0b64d-bba2-4e2d-b9f5-25a9f818ad1f",
-                "description": "Toward drying shed."
+                "description": "Toward drying shed.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -621,7 +687,8 @@
             {
                 "direction": "east",
                 "to": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5",
-                "description": "Back to granary."
+                "description": "Back to granary.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -638,7 +705,8 @@
             {
                 "direction": "northeast",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Path back to junction."
+                "description": "Path back to junction.",
+                "travelDurationMs": 240000
             }
         ],
         "exitAvailability": {
@@ -660,7 +728,8 @@
             {
                 "direction": "southeast",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Toward the junction."
+                "description": "Toward the junction.",
+                "travelDurationMs": 240000
             }
         ],
         "exitAvailability": {
@@ -682,7 +751,8 @@
             {
                 "direction": "northwest",
                 "to": "4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c",
-                "description": "Reciprocal path."
+                "description": "Reciprocal path.",
+                "travelDurationMs": 240000
             }
         ],
         "exitAvailability": {
@@ -704,12 +774,14 @@
             {
                 "direction": "south",
                 "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c",
-                "description": "Narrow gap to middle cottage."
+                "description": "Narrow gap to middle cottage.",
+                "travelDurationMs": 180000
             },
             {
                 "direction": "west",
                 "to": "5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41",
-                "description": "Lane back to market row."
+                "description": "Lane back to market row.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -726,17 +798,20 @@
             {
                 "direction": "north",
                 "to": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52",
-                "description": "Gap to north cottage."
+                "description": "Gap to north cottage.",
+                "travelDurationMs": 180000
             },
             {
                 "direction": "south",
                 "to": "2d85f5ae-cf69-4b80-9b80-3fcd447ddb5e",
-                "description": "Gap to south cottage."
+                "description": "Gap to south cottage.",
+                "travelDurationMs": 180000
             },
             {
                 "direction": "west",
                 "to": "e517b0d1-9af3-4f6a-9df4-7e43e2a93df9",
-                "description": "Toward the tailor."
+                "description": "Toward the tailor.",
+                "travelDurationMs": 240000
             }
         ],
         "version": 1
@@ -753,7 +828,8 @@
             {
                 "direction": "north",
                 "to": "3c6a0bd9-ec52-4d3e-94aa-7d96fc983c0c",
-                "description": "Gap to middle cottage."
+                "description": "Gap to middle cottage.",
+                "travelDurationMs": 180000
             }
         ],
         "version": 1
@@ -772,7 +848,8 @@
             {
                 "direction": "down",
                 "to": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
-                "description": "Stairs to common room."
+                "description": "Stairs to common room.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -789,7 +866,8 @@
             {
                 "direction": "southeast",
                 "to": "8b7c6d5e-4f3a-42b1-9c8d-7e6f5a4b3c2d",
-                "description": "Reciprocal path."
+                "description": "Reciprocal path.",
+                "travelDurationMs": 60000
             }
         ],
         "version": 1
@@ -807,7 +885,8 @@
             {
                 "direction": "northeast",
                 "to": "ec88e970-9d2b-4a34-9804-6b2afd5adb9e",
-                "description": "Toward central south farms."
+                "description": "Toward central south farms.",
+                "travelDurationMs": 420000
             }
         ],
         "exitAvailability": {
@@ -832,22 +911,26 @@
             {
                 "direction": "east",
                 "to": "3c4d5e6f-7081-4932-8d7c-2b3c4d5e6f70",
-                "description": "Along the quay to a low warehouse."
+                "description": "Along the quay to a low warehouse.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "south",
                 "to": "2b3c4d5e-6f70-4821-9c8b-1a2b3c4d5e6f",
-                "description": "Sand track toward the river mouth dunes."
+                "description": "Sand track toward the river mouth dunes.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "west",
                 "to": "4d5e6f70-8192-4a43-9e8d-3c4d5e6f7081",
-                "description": "Planks toward a fish market wharf."
+                "description": "Planks toward a fish market wharf.",
+                "travelDurationMs": 300000
             },
             {
                 "direction": "up",
                 "to": "a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21",
-                "description": "Stairs up to the main jetty plaza."
+                "description": "Stairs up to the main jetty plaza.",
+                "travelDurationMs": 240000
             }
         ],
         "exitAvailability": {
@@ -875,7 +958,8 @@
             {
                 "direction": "north",
                 "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
-                "description": "Trail back to the lower jetty."
+                "description": "Trail back to the lower jetty.",
+                "travelDurationMs": 300000
             }
         ],
         "exitAvailability": {
@@ -912,7 +996,8 @@
             {
                 "direction": "west",
                 "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
-                "description": "Return along the quay."
+                "description": "Return along the quay.",
+                "travelDurationMs": 300000
             }
         ],
         "exitAvailability": {
@@ -949,7 +1034,8 @@
             {
                 "direction": "east",
                 "to": "1e2d3c4b-5a6f-4712-9b8c-0d1e2f3a4b5c",
-                "description": "Planks back to the landing."
+                "description": "Planks back to the landing.",
+                "travelDurationMs": 300000
             }
         ],
         "exitAvailability": {

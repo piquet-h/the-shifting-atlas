@@ -33,6 +33,13 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
     const locRepo = opts.locationRepository
     const bulkMode = opts.bulkMode ?? false
 
+    const applyExitTravelDuration = async (fromId: string, direction: string, travelDurationMs: unknown) => {
+        if (typeof travelDurationMs !== 'number' || !Number.isFinite(travelDurationMs) || travelDurationMs <= 0) {
+            return
+        }
+        await locRepo.setExitTravelDuration(fromId, direction, travelDurationMs)
+    }
+
     let locationVerticesCreated = 0
     let exitsCreated = 0
     let exitsRemoved = 0
@@ -78,6 +85,7 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
                     skipVertexCheck: true,
                     deferCacheRegen: true
                 })
+                await applyExitTravelDuration(loc.id, ex.direction, (ex as { travelDurationMs?: unknown }).travelDurationMs)
                 if (ec.created) {
                     exitsCreated++
                     locationsWithExits.add(loc.id)
@@ -125,6 +133,7 @@ export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult
                     skipVertexCheck: false,
                     deferCacheRegen: false
                 })
+                await applyExitTravelDuration(loc.id, ex.direction, (ex as { travelDurationMs?: unknown }).travelDurationMs)
                 if (ec.created) {
                     exitsCreated++
                     locationsWithExits.add(loc.id)
