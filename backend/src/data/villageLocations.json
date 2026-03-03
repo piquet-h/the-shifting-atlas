@@ -429,7 +429,7 @@
     },
     {
         "id": "9c4b1f2e-5d6a-4e3b-8a7c-1d2f3e4a5b6c",
-        "name": "The Lantern & Ladle — Outside",
+        "name": "The Lantern & Ladle",
         "description": "Lantern sign and warm windowlight at a broad timber door; laughter and stew-scent leak into the lane.",
         "tags": [
             "settlement:mosswell",
@@ -470,7 +470,7 @@
                 "travelDurationMs": 60000
             }
         ],
-        "version": 1
+        "version": 2
     },
     {
         "id": "c6fd8e59-3d3f-4eaf-9d0c-7ef3f4d2a8c1",
