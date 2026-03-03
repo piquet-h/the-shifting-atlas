@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { computeInsideNodeIds, computeInteriorNodeIds, getEdgeClassName, getEdgeKind, isInteriorNode } from '../src/utils/mapSemantics'
+import {
+    classifyInsideNodeIds,
+    computeInsideNodeIds,
+    getEdgeClassName,
+    getEdgeKind,
+    isInteriorNode,
+    type EdgeLike
+} from '../src/utils/mapSemantics'
 
 describe('mapSemantics', () => {
     describe('getEdgeKind', () => {
@@ -88,33 +95,56 @@ describe('mapSemantics', () => {
         })
     })
 
-    describe('computeInteriorNodeIds', () => {
-        it('prefers interior tags even when edge directions are only vertical', () => {
+    describe('classifyInsideNodeIds', () => {
+        it('uses tag-based classification for nodes with structure tags', () => {
             const nodes = [
-                { id: 'outside', tags: ['structure:lantern-and-ladle', 'structureArea:outside'] },
-                { id: 'upstairs', tags: ['structure:lantern-and-ladle', 'structureArea:guest-room'] }
+                { id: 'room', tags: ['structure:inn', 'structureArea:common-room'] },
+                { id: 'outside', tags: ['structure:inn', 'structureArea:outside'] }
             ]
-            const edges = [{ fromId: 'outside', toId: 'upstairs', direction: 'up' }]
-
-            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['upstairs'])
+            const edges: EdgeLike[] = []
+            expect(Array.from(classifyInsideNodeIds(nodes, edges)).sort()).toEqual(['room'])
         })
 
-        it('falls back to in/out edge heuristic for legacy untagged nodes', () => {
-            const nodes = [{ id: 'outside' }, { id: 'inside' }]
-            const edges = [{ fromId: 'outside', toId: 'inside', direction: 'in' }]
-
-            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['inside'])
+        it('classifies a guest room connected via up/down only (no in/out edge)', () => {
+            const nodes = [
+                { id: 'landing', tags: ['structure:inn', 'structureArea:landing'] },
+                { id: 'guest-room-1', tags: ['structure:inn', 'structureArea:room:1'] }
+            ]
+            const edges = [{ fromId: 'landing', toId: 'guest-room-1', direction: 'up' }]
+            const inside = classifyInsideNodeIds(nodes, edges)
+            expect(inside.has('landing')).toBe(true)
+            expect(inside.has('guest-room-1')).toBe(true)
         })
 
-        it('unions tag-based and edge-based detection', () => {
-            const nodes = [
-                { id: 'tagged', tags: ['structure:clocktower', 'structureArea:machinery'] },
-                { id: 'legacyOutside' },
-                { id: 'legacyInside' }
-            ]
-            const edges = [{ fromId: 'legacyOutside', toId: 'legacyInside', direction: 'in' }]
+        it('falls back to edge-based heuristic for nodes without structure tags', () => {
+            const nodes = [{ id: 'A' }, { id: 'B' }]
+            const edges = [{ fromId: 'A', toId: 'B', direction: 'in' }]
+            expect(Array.from(classifyInsideNodeIds(nodes, edges)).sort()).toEqual(['B'])
+        })
 
-            expect(Array.from(computeInteriorNodeIds(nodes, edges)).sort()).toEqual(['legacyInside', 'tagged'])
+        it('does not apply edge fallback to nodes already classified by tags', () => {
+            // 'B' has a structure tag and is the outside threshold, so it should NOT be marked
+            // inside even though 'A' has an "out" edge to it.
+            const nodes = [
+                { id: 'A', tags: ['structure:inn', 'structureArea:lobby'] },
+                { id: 'B', tags: ['structure:inn', 'structureArea:outside'] }
+            ]
+            const edges = [{ fromId: 'A', toId: 'B', direction: 'out' }]
+            const inside = classifyInsideNodeIds(nodes, edges)
+            expect(inside.has('A')).toBe(true)
+            expect(inside.has('B')).toBe(false)
+        })
+
+        it('returns empty set when no nodes are inside', () => {
+            const nodes = [{ id: 'square' }, { id: 'north-gate' }]
+            const edges = [{ fromId: 'square', toId: 'north-gate', direction: 'north' }]
+            expect(classifyInsideNodeIds(nodes, edges).size).toBe(0)
+        })
+
+        it('handles nodes with no tags and no in/out edges (all outside)', () => {
+            const nodes = [{ id: 'A' }, { id: 'B' }]
+            const edges = [{ fromId: 'A', toId: 'B', direction: 'north' }]
+            expect(classifyInsideNodeIds(nodes, edges).size).toBe(0)
         })
     })
 })

@@ -11,6 +11,8 @@ export interface NodeLike {
     tags?: string[]
 }
 
+/** Matches a `structure:<slug>` tag where slug is lowercase-alphanumeric with hyphens. */
+const STRUCTURE_TAG_PATTERN = /^structure:[a-z0-9]+(-[a-z0-9]+)*$/
 /**
  * Returns true when a location's tags indicate it is inside a named structure
  * (i.e. carries a `structure:<slug>` tag and is NOT the outside threshold node).
@@ -20,7 +22,7 @@ export interface NodeLike {
  */
 export function isInteriorNode(tags: string[] | undefined): boolean {
     if (!tags) return false
-    const hasStructureTag = tags.some((t) => /^structure:[a-z0-9]+(-[a-z0-9]+)*$/.test(t))
+    const hasStructureTag = tags.some((t) => STRUCTURE_TAG_PATTERN.test(t))
     const hasOutsideArea = tags.some((t) => t === 'structureArea:outside')
     return hasStructureTag && !hasOutsideArea
 }
@@ -65,22 +67,40 @@ export function computeInsideNodeIds<E extends EdgeLike>(edges: E[]): Set<string
 }
 
 /**
- * Compute interior node IDs using preferred tag-based detection, with
- * `in`/`out` edge heuristics as a backward-compatible fallback.
+ * Classify the set of node IDs that are "inside" a structure using a two-tier approach:
+ *
+ * 1. **Tag-based (primary)**: nodes that carry a `structure:<slug>` tag are classified
+ *    using `isInteriorNode()` — inside when the tag is present and `structureArea:outside`
+ *    is absent. This catches interiors reached via `up/down` (e.g. guest rooms) where no
+ *    `in/out` edge exists.
+ * 2. **Edge-based fallback**: for nodes that have no `structure:*` tag at all, the
+ *    legacy heuristic applies — targets of `in` edges and sources of `out` edges are inside.
  */
-export function computeInteriorNodeIds<N extends NodeLike, E extends EdgeLike>(nodes: N[], edges: E[]): Set<string> {
-    const interior = new Set<string>()
+export function classifyInsideNodeIds<N extends NodeLike, E extends EdgeLike>(nodes: N[], edges: E[]): Set<string> {
+    const inside = new Set<string>()
 
-    for (const node of nodes) {
-        if (isInteriorNode(node.tags)) {
-            interior.add(node.id)
+    // Tag-based pass: record which node IDs have been classified by tags so that
+    // the edge fallback does not override them.
+    const tagClassifiedIds = new Set<string>()
+    for (const n of nodes) {
+        if (n.tags?.some((t) => STRUCTURE_TAG_PATTERN.test(t))) {
+            tagClassifiedIds.add(n.id)
+            if (isInteriorNode(n.tags)) {
+                inside.add(n.id)
+            }
         }
     }
 
-    const heuristicInside = computeInsideNodeIds(edges)
-    for (const id of heuristicInside) {
-        interior.add(id)
+    // Edge-based fallback: only for nodes not already classified via tags.
+    for (const e of edges) {
+        if (e.direction === 'in' && !tagClassifiedIds.has(e.toId)) inside.add(e.toId)
+        else if (e.direction === 'out' && !tagClassifiedIds.has(e.fromId)) inside.add(e.fromId)
     }
 
-    return interior
+    return inside
+}
+
+/** @deprecated Use `classifyInsideNodeIds` instead. */
+export function computeInteriorNodeIds<N extends NodeLike, E extends EdgeLike>(nodes: N[], edges: E[]): Set<string> {
+    return classifyInsideNodeIds(nodes, edges)
 }

@@ -1,12 +1,28 @@
 import type { ExitAvailabilityMetadata } from './exitAvailability.js'
 import type { TerrainType } from './domainModels.js'
 
+/**
+ * Lock state for an exit edge.
+ *
+ * - `locked`   — Exit exists and is wired, but movement is denied with a soft denial (400).
+ *                The entrance narration should indicate it is locked. State can change via world events.
+ * - `unlocked` — Exit is open for traversal (equivalent to absent/undefined).
+ */
+export type LockState = 'locked' | 'unlocked'
+
 export interface LocationExit {
     direction: string
     to?: string
     description?: string
     /** Travel duration in milliseconds for this exit. Absent when not specified. */
     travelDurationMs?: number
+    /**
+     * Optional lock state for this exit.
+     * When `'locked'`, movement through this exit returns a soft denial (400) instead of succeeding.
+     * Absent or `'unlocked'` means the exit is open for traversal.
+     * Lock state may be changed by world events.
+     */
+    lockState?: LockState
 }
 
 /** Default travel duration for exits within urban/settlement areas (5 minutes). */

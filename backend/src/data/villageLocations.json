@@ -641,7 +641,12 @@
                 "description": "Path back to junction."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "in": "A low door, slightly ajar."
+            }
+        },
+        "version": 2
     },
     {
         "id": "a0d8f2ad-5fd0-4e1e-8b5e-7f8ef9be58ba",
@@ -658,7 +663,12 @@
                 "description": "Toward the junction."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "in": "A low door, slightly ajar."
+            }
+        },
+        "version": 2
     },
     {
         "id": "5fbf477a-bbd3-44f0-9034-6d781da8d2e0",
@@ -675,7 +685,12 @@
                 "description": "Reciprocal path."
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "in": "A low door, slightly ajar."
+            }
+        },
+        "version": 2
     },
     {
         "id": "0f9efc31-4f15-4c6f-b014-31d4c1c7ec52",

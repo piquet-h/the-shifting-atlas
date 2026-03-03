@@ -11,7 +11,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { unwrapEnvelope } from '../utils/envelope'
 import { computeVisibleNodeIds } from '../utils/mapDrill'
 import { applySameLevelSlice } from '../utils/mapSameLevel'
-import { computeInteriorNodeIds, getEdgeClassName, type EdgeKind } from '../utils/mapSemantics'
+import { classifyInsideNodeIds, getEdgeClassName, type EdgeKind } from '../utils/mapSemantics'
 import { computePositions, URBAN_MS } from '../utils/worldMapPositions'
 import WorldMapSidebar from './WorldMapSidebar'
 
@@ -325,8 +325,8 @@ export default function WorldMap(): React.ReactElement {
         const graph = graphRef.current
         if (!graph) return
 
-        const interiorIds = computeInteriorNodeIds(graph.nodes, graph.edges)
-        const focusIsInside = interiorIds.has(focusId)
+        const insideIds = classifyInsideNodeIds(graph.nodes, graph.edges)
+        const focusIsInside = insideIds.has(focusId)
 
         if ((focusIsInside && showInsideNodes) || (!focusIsInside && showOutsideNodes)) {
             return
@@ -360,16 +360,14 @@ export default function WorldMap(): React.ReactElement {
             sameLevelOnly
         })
 
-        const interiorIds = computeInteriorNodeIds(graph.nodes, graph.edges)
+        const insideIds = classifyInsideNodeIds(graph.nodes, graph.edges)
         if (!showInsideNodes) {
-            for (const id of interiorIds) {
-                visibleNodeIds.delete(id)
-            }
+            for (const id of insideIds) visibleNodeIds.delete(id)
         }
 
         if (!showOutsideNodes) {
             for (const id of Array.from(visibleNodeIds)) {
-                if (!interiorIds.has(id)) {
+                if (!insideIds.has(id)) {
                     visibleNodeIds.delete(id)
                 }
             }
