@@ -60,6 +60,7 @@ The exit edge data model is intentionally small and oriented around traversal:
 - [Location Version Policy](../architecture/location-version-policy.md) – Exit changes do not increment location version
 - [Navigation & Traversal](../design-modules/navigation-and-traversal.md) – Movement semantics and graph traversal
 - [Architecture Overview](../architecture/overview.md) – Design mapping reference
+- [Exit Language Contract](../architecture/exit-language-contract.md) – Duration buckets, language hints, description rules, and validator checks
 
 ---
 
