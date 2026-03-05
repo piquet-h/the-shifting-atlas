@@ -14,16 +14,27 @@ import {
     __resetExitHintIdempotencyCacheForTests,
     queueProcessExitGenerationHint
 } from '../../src/handlers/queueProcessExitGenerationHint.js'
+import {
+    ASCENT_TRAVEL_DURATION_MS,
+    DEFAULT_TRAVEL_DURATION_MS,
+    DESCENT_TRAVEL_DURATION_MS,
+    INTERIOR_TRAVEL_DURATION_MS
+} from '../../src/handlers/utils/travelDurationHeuristics.js'
+import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
+import { TOKENS } from '../../src/di/tokens.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Exit Generation Hint Integration', () => {
     let fixture: IntegrationTestFixture
     let locationRepo: ILocationRepository
+    let exitRepo: IExitRepository
 
     beforeEach(async () => {
         fixture = new IntegrationTestFixture('memory')
         locationRepo = await fixture.getLocationRepository()
+        const container = await fixture.getContainer()
+        exitRepo = container.get<IExitRepository>(TOKENS.ExitRepository)
         __resetExitHintIdempotencyCacheForTests()
     })
 
@@ -214,5 +225,102 @@ describe('Exit Generation Hint Integration', () => {
         // Assert: DLQ record created
         const dlqLog = ctx.getLogs().find((l) => l[0] === 'Dead-letter record created for exit hint')
         assert.ok(dlqLog, 'Should create a DLQ record for missing origin')
+    })
+
+    it('should persist travelDurationMs on forward and reciprocal exits after materialization (north → DEFAULT)', async () => {
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Meadow Edge',
+            description: '',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [],
+            exitAvailability: { pending: { north: '' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'north', uuidv4()), ctx as unknown as InvocationContext)
+
+        // Forward exit: origin → north
+        const originExits = await exitRepo.getExits(originId)
+        const northExit = originExits.find((e) => e.direction === 'north')
+        assert.ok(northExit, 'North exit should exist')
+        assert.equal(northExit!.travelDurationMs, DEFAULT_TRAVEL_DURATION_MS, 'North exit should have default travel duration')
+
+        // Reciprocal: stub → south
+        const northExitTarget = northExit!.toLocationId
+        const stubExits = await exitRepo.getExits(northExitTarget)
+        const southExit = stubExits.find((e) => e.direction === 'south')
+        assert.ok(southExit, 'Reciprocal south exit should exist on stub')
+        assert.equal(southExit!.travelDurationMs, DEFAULT_TRAVEL_DURATION_MS, 'Reciprocal south exit should have default travel duration')
+    })
+
+    it('should persist short INTERIOR_TRAVEL_DURATION_MS for in/out exits', async () => {
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Doorway',
+            description: '',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [],
+            exitAvailability: { pending: { in: '' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'in', uuidv4()), ctx as unknown as InvocationContext)
+
+        const originExits = await exitRepo.getExits(originId)
+        const inExit = originExits.find((e) => e.direction === 'in')
+        assert.ok(inExit, 'in exit should exist')
+        assert.equal(inExit!.travelDurationMs, INTERIOR_TRAVEL_DURATION_MS, 'in exit should have interior travel duration')
+
+        const stubExits = await exitRepo.getExits(inExit!.toLocationId)
+        const outExit = stubExits.find((e) => e.direction === 'out')
+        assert.ok(outExit, 'Reciprocal out exit should exist')
+        assert.equal(outExit!.travelDurationMs, INTERIOR_TRAVEL_DURATION_MS, 'out exit should have interior travel duration')
+    })
+
+    it('should persist ASCENT_TRAVEL_DURATION_MS for up exits and DESCENT_TRAVEL_DURATION_MS for down exits', async () => {
+        const originUpId = uuidv4()
+        const originDownId = uuidv4()
+        await locationRepo.upsert({
+            id: originUpId,
+            name: 'Cliff Base',
+            description: '',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [],
+            exitAvailability: { pending: { up: '' } },
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: originDownId,
+            name: 'Cliff Top',
+            description: '',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [],
+            exitAvailability: { pending: { down: '' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originUpId, 'up', uuidv4()), ctx as unknown as InvocationContext)
+        __resetExitHintIdempotencyCacheForTests()
+        await queueProcessExitGenerationHint(buildHintMessage(originDownId, 'down', uuidv4()), ctx as unknown as InvocationContext)
+
+        const upExits = await exitRepo.getExits(originUpId)
+        const upExit = upExits.find((e) => e.direction === 'up')
+        assert.ok(upExit, 'up exit should exist')
+        assert.equal(upExit!.travelDurationMs, ASCENT_TRAVEL_DURATION_MS, 'up exit should be slow (ascent)')
+
+        const downExits = await exitRepo.getExits(originDownId)
+        const downExit = downExits.find((e) => e.direction === 'down')
+        assert.ok(downExit, 'down exit should exist')
+        assert.equal(downExit!.travelDurationMs, DESCENT_TRAVEL_DURATION_MS, 'down exit should be fast (descent)')
     })
 })

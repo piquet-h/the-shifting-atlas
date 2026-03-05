@@ -1,9 +1,11 @@
 import type { InvocationContext } from '@azure/functions'
-import { isDirection } from '@piquet-h/shared'
+import { getOppositeDirection, isDirection } from '@piquet-h/shared'
+import type { Direction } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
+import { defaultTravelDurationForDirection } from '../../handlers/utils/travelDurationHeuristics.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { WorldEventHandlerResult } from '../types.js'
 import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEventHandler.js'
@@ -52,21 +54,31 @@ export class ExitCreateHandler extends BaseWorldEventHandler {
      * Execute bidirectional exit creation
      */
     protected async executeHandler(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult> {
-        const { fromLocationId, toLocationId, direction } = event.payload as Record<string, unknown>
+        const { fromLocationId, toLocationId, direction, travelDurationMs } = event.payload as Record<string, unknown>
+        const dir = direction as Direction
 
-        const result = await this.locationRepo.ensureExitBidirectional(
-            fromLocationId as string,
-            direction as string,
-            toLocationId as string,
-            { reciprocal: true }
-        )
+        const result = await this.locationRepo.ensureExitBidirectional(fromLocationId as string, dir, toLocationId as string, {
+            reciprocal: true
+        })
 
         const created = result.created || result.reciprocalCreated
+
+        // Determine the duration to apply: use payload value if valid, else derive from direction heuristic.
+        const duration =
+            typeof travelDurationMs === 'number' && travelDurationMs > 0 ? travelDurationMs : defaultTravelDurationForDirection(dir)
+
+        if (result.created) {
+            await this.locationRepo.setExitTravelDuration(fromLocationId as string, dir, duration)
+        }
+        if (result.reciprocalCreated) {
+            await this.locationRepo.setExitTravelDuration(toLocationId as string, getOppositeDirection(dir), duration)
+        }
 
         context.log('ExitCreateHandler applied', {
             fromLocationId,
             toLocationId,
             direction,
+            travelDurationMs: duration,
             created
         })
 

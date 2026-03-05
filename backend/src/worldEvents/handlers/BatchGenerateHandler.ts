@@ -24,18 +24,13 @@ import { TOKENS } from '../../di/tokens.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
+import { DEFAULT_TRAVEL_DURATION_MS } from '../../handlers/utils/travelDurationHeuristics.js'
 import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
 import type { ITemporalProximityService } from '../../services/temporalProximityService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { WorldEventHandlerResult } from '../types.js'
 import type { IWorldEventPublisher } from '../worldEventPublisher.js'
 import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEventHandler.js'
-
-/**
- * Default travel step duration when travelDurationMs is absent from the event payload.
- * Matches ActionRegistry 'move' base duration (1 minute) and the TemporalProximityService default.
- */
-const DEFAULT_TRAVEL_DURATION_MS = 60_000
 
 /**
  * Tolerance multiplier for wilderness fuzzy reconnection.
@@ -369,12 +364,21 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             const stubDirections = stubTargets.map((t) => t.direction)
 
             // 3. Process reconnections: ensure bidirectional exits to existing locations.
-            //    ensureExitBidirectional is idempotent; calling it on an existing exit is safe
-            //    and preserves travelDurationMs and other edge metadata unchanged.
+            //    Set travelDurationMs (stepMs) on newly created reconnection edges only;
+            //    existing edges keep their persisted duration unchanged.
             for (const target of reconnectionTargets) {
-                await this.locationRepo.ensureExitBidirectional(payload.rootLocationId, target.direction, target.targetId, {
-                    reciprocal: true
-                })
+                const reconnResult = await this.locationRepo.ensureExitBidirectional(
+                    payload.rootLocationId,
+                    target.direction,
+                    target.targetId,
+                    { reciprocal: true }
+                )
+                if (reconnResult.created) {
+                    await this.locationRepo.setExitTravelDuration(payload.rootLocationId, target.direction, stepMs)
+                }
+                if (reconnResult.reciprocalCreated) {
+                    await this.locationRepo.setExitTravelDuration(target.targetId, getOppositeDirection(target.direction), stepMs)
+                }
                 context.log('Reconnected to existing location', { direction: target.direction, targetId: target.targetId })
             }
 
@@ -400,8 +404,9 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             // 7. Update location descriptions (already handled by AIDescriptionService layer persistence)
             // Note: AIDescriptionService persists base layers automatically
 
-            // 8. Enqueue exit creation events for stubs (bidirectional)
-            await this.enqueueExitEvents(payload.rootLocationId, stubs, stubDirections, event.correlationId, context)
+            // 8. Enqueue exit creation events for stubs (bidirectional), carrying stepMs so
+            //    ExitCreateHandler can persist travelDurationMs on the new edges.
+            await this.enqueueExitEvents(payload.rootLocationId, stubs, stubDirections, stepMs, event.correlationId, context)
 
             context.log('Enqueued exit events', { count: stubs.length })
 
@@ -629,11 +634,13 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
     /**
      * Enqueue World.Exit.Create events for bidirectional exit creation.
      * Each event creates an exit FROM root TO stub and reciprocal.
+     * travelDurationMs is forwarded so ExitCreateHandler persists it on the new edges.
      */
     private async enqueueExitEvents(
         rootLocationId: string,
         stubs: StubLocation[],
         directions: Direction[],
+        travelDurationMs: number,
         parentCorrelationId: string,
         context: InvocationContext
     ): Promise<void> {
@@ -649,7 +656,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 fromLocationId: rootLocationId,
                 toLocationId: stub.id,
                 direction: directions[idx],
-                reciprocal: true
+                reciprocal: true,
+                travelDurationMs
             }
         }))
 

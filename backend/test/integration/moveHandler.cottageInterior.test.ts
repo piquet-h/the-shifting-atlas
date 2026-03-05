@@ -7,13 +7,17 @@
  * - Idempotency: second entry reuses the same interior (no duplicate nodes/edges)
  * - Navigation.Interior.Materialized telemetry emitted on first entry
  * - Works for any structure type (not limited to residential:cottages)
+ * - travelDurationMs is set to INTERIOR_TRAVEL_DURATION_MS for in/out exits
  */
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { resetExitGenerationHintStore } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { MoveHandler } from '../../src/handlers/moveCore.js'
+import { INTERIOR_TRAVEL_DURATION_MS } from '../../src/handlers/utils/travelDurationHeuristics.js'
+import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
+import { TOKENS } from '../../src/di/tokens.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 import { makeMoveRequest } from '../helpers/testUtils.js'
@@ -28,11 +32,14 @@ const SMITHY_ID = '2f1d7c9e-3b4a-45d8-9e6f-7a1c2b3d4e5f'
 describe('Structure Interior On-Demand Materialization', () => {
     let fixture: IntegrationTestFixture
     let locationRepo: ILocationRepository
+    let exitRepo: IExitRepository
 
     beforeEach(async () => {
         fixture = new IntegrationTestFixture('memory')
         await fixture.setup()
         locationRepo = await fixture.getLocationRepository()
+        const container = await fixture.getContainer()
+        exitRepo = container.get<IExitRepository>(TOKENS.ExitRepository)
         resetExitGenerationHintStore()
     })
 
@@ -241,5 +248,31 @@ describe('Structure Interior On-Demand Materialization', () => {
         const interior = await locationRepo.get(res.location!.id)
         assert.ok(interior?.tags?.includes('interior:auto'), 'Shop interior should use interior:auto tag')
         assert.ok(interior?.tags?.includes('settlement:mosswell'), 'Shop interior should inherit settlement tag from parent')
+    })
+
+    test('interior in/out exits have INTERIOR_TRAVEL_DURATION_MS after materialization', async () => {
+        const ctx = await createMockContext()
+        const req = makeMoveRequest({ dir: 'in', from: SW_COTTAGE_WEST_ID }) as HttpRequest
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
+        assert.equal(res.success, true)
+        const interiorId = res.location?.id
+        assert.ok(interiorId, 'Interior location ID must be present')
+
+        // Forward exit: cottage → in
+        const cottageExits = await exitRepo.getExits(SW_COTTAGE_WEST_ID)
+        const inExit = cottageExits.find((e) => e.direction === 'in')
+        assert.ok(inExit, 'Cottage should have a hard in exit after materialization')
+        assert.equal(inExit!.travelDurationMs, INTERIOR_TRAVEL_DURATION_MS, 'in exit should have interior travel duration')
+
+        // Reciprocal: interior → out
+        const interiorExits = await exitRepo.getExits(interiorId)
+        const outExit = interiorExits.find((e) => e.direction === 'out')
+        assert.ok(outExit, 'Interior should have an out exit')
+        assert.equal(outExit!.travelDurationMs, INTERIOR_TRAVEL_DURATION_MS, 'out exit should have interior travel duration')
     })
 })

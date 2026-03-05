@@ -138,6 +138,73 @@ describe('worldMapPositions', () => {
             // In a symmetric least-squares compromise, x should converge near half-way.
             expect(posC.x).toBeCloseTo(BASE_DISTANCE_PX / 2, 0)
         })
+
+        it('normalises asymmetric up/down pair to average duration for consistent placement', () => {
+            // up:   A→B = 120 000 ms  (climbing is slow)
+            // down: B→A = 30 000 ms   (descending is fast)
+            // Without normalisation BFS would place B using 120 000 ms and the relaxation
+            // would receive a contradictory 30 000 ms constraint from the reverse edge.
+            // After normalisation both directions use avg = 75 000 ms so the gap is coherent.
+            const A = ROOT_ID
+            const B = 'node-00000000-0000-0000-0000-000000000030'
+
+            const ASCENT_MS = 120_000
+            const DESCENT_MS = 30_000
+            const AVG_MS = (ASCENT_MS + DESCENT_MS) / 2 // 75 000
+
+            const nodes = [{ id: A }, { id: B }]
+            const edges = [
+                { fromId: A, toId: B, direction: 'up', travelDurationMs: ASCENT_MS },
+                { fromId: B, toId: A, direction: 'down', travelDurationMs: DESCENT_MS }
+            ]
+
+            const positions = computePositions(nodes, edges, A)
+            const posB = positions.get(B)!
+
+            // With the `up` direction vector [0.4, -1] and average duration:
+            const upVec = DIRECTION_VECTORS['up']!
+            const expectedScale = (AVG_MS / URBAN_MS) * BASE_DISTANCE_PX
+            // Relaxation will converge to the average, so values should match after
+            // enough iterations – approximate to 1px tolerance.
+            expect(posB.x).toBeCloseTo(upVec[0] * expectedScale, 0)
+            expect(posB.y).toBeCloseTo(upVec[1] * expectedScale, 0)
+        })
+
+        it('leaves unmatched edges (no reverse) unchanged', () => {
+            // A single east edge with no west return should still use its own travelDurationMs
+            const A = ROOT_ID
+            const B = EAST_ID
+
+            const nodes = [{ id: A }, { id: B }]
+            const edges = [{ fromId: A, toId: B, direction: 'east', travelDurationMs: URBAN_MS * 3 }]
+
+            const positions = computePositions(nodes, edges, A)
+            const posB = positions.get(B)!
+
+            // Should use travelDurationMs directly (no reverse to average with)
+            expect(posB.x).toBe(BASE_DISTANCE_PX * 3)
+            expect(posB.y).toBe(0)
+        })
+
+        it('symmetric pairs (same duration both ways) are unaffected by normalisation', () => {
+            // north=60 000, south=60 000 → avg still 60 000
+            const A = ROOT_ID
+            const B = NORTH_ID
+
+            const nodes = [{ id: A }, { id: B }]
+            const edges = [
+                { fromId: A, toId: B, direction: 'north', travelDurationMs: 60_000 },
+                { fromId: B, toId: A, direction: 'south', travelDurationMs: 60_000 }
+            ]
+
+            const positions = computePositions(nodes, edges, A)
+            const posB = positions.get(B)!
+
+            const expectedScale = (60_000 / URBAN_MS) * BASE_DISTANCE_PX
+            // north vector is (0, -1)
+            expect(posB.x).toBeCloseTo(0, 1)
+            expect(posB.y).toBeCloseTo(-expectedScale, 0)
+        })
     })
 
     describe('DIRECTION_VECTORS', () => {
