@@ -23,6 +23,7 @@
  */
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, ExitAvailabilityMetadata } from '@piquet-h/shared'
+import { getOppositeDirection } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import { buildExitHintIdempotencyKey, isExitHintExpired, safeValidateExitGenerationHintPayload } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
@@ -33,6 +34,7 @@ import type { ILocationRepository } from '../repos/locationRepository.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { getContainer } from './utils/contextHelpers.js'
+import { defaultTravelDurationForDirection } from './utils/travelDurationHeuristics.js'
 
 // --- Configuration -----------------------------------------------------------
 
@@ -391,6 +393,7 @@ export class QueueProcessExitGenerationHintHandler {
         // 12. Materialize: create stub neighbor location and bidirectional exit
         const stubId = uuidv4()
         const stubTerrain = origin.terrain ?? 'open-plain'
+        const dir = payload.dir as Direction
 
         await this.locationRepository.upsert({
             id: stubId,
@@ -402,7 +405,18 @@ export class QueueProcessExitGenerationHintHandler {
             version: 1
         })
 
-        await this.locationRepository.ensureExitBidirectional(payload.originLocationId, payload.dir, stubId, { reciprocal: true })
+        const exitResult = await this.locationRepository.ensureExitBidirectional(payload.originLocationId, dir, stubId, {
+            reciprocal: true
+        })
+
+        // Persist deterministic travel duration on newly created edges.
+        const travelDurationMs = defaultTravelDurationForDirection(dir)
+        if (exitResult.created) {
+            await this.locationRepository.setExitTravelDuration(payload.originLocationId, dir, travelDurationMs)
+        }
+        if (exitResult.reciprocalCreated) {
+            await this.locationRepository.setExitTravelDuration(stubId, getOppositeDirection(dir), travelDurationMs)
+        }
 
         // 13. Clear pending availability for this direction
         const existingPending = origin.exitAvailability?.pending

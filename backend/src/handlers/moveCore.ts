@@ -30,11 +30,8 @@ import type { IWorldEventPublisher } from '../worldEvents/worldEventPublisher.js
 import { BaseHandler } from './base/BaseHandler.js'
 import { buildMoveResponse } from './moveResponse.js'
 import { convertLocationExitsToExitInfo } from './utils/exitHelpers.js'
+import { DEFAULT_TRAVEL_DURATION_MS, INTERIOR_TRAVEL_DURATION_MS } from './utils/travelDurationHeuristics.js'
 import { isValidGuid } from './utils/validation.js'
-
-// Fallback used when an exit edge has no explicit travelDurationMs.
-// Kept consistent with other temporal traversal utilities.
-const DEFAULT_TRAVEL_DURATION_MS = 60_000
 
 /**
  * Derive a stable interior location ID from a structure location ID.
@@ -270,11 +267,21 @@ export class MoveHandler extends BaseHandler {
                 }
                 await this.locationRepo.upsert(interior)
             }
-            await this.locationRepo.ensureExitBidirectional(fromId, 'in', interiorId, {
+            const interiorExitResult = await this.locationRepo.ensureExitBidirectional(fromId, 'in', interiorId, {
                 reciprocal: true,
                 description: 'Step through the low doorway.',
                 reciprocalDescription: 'The door back outside.'
             })
+            // Persist short interior travel durations on newly created edges.
+            // When !alreadyExisted the 'out' exit is embedded in the upsert above so
+            // reciprocalCreated will be false even though the edge is brand new — set it
+            // unconditionally in that case.
+            if (interiorExitResult.created) {
+                await this.locationRepo.setExitTravelDuration(fromId, 'in', INTERIOR_TRAVEL_DURATION_MS)
+            }
+            if (interiorExitResult.reciprocalCreated || !alreadyExisted) {
+                await this.locationRepo.setExitTravelDuration(interiorId, 'out', INTERIOR_TRAVEL_DURATION_MS)
+            }
             this.telemetry.trackEvent({
                 name: 'Navigation.Interior.Materialized',
                 properties: {

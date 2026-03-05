@@ -3,6 +3,10 @@
  *
  * Uses BFS starting from the known starter location, assigning each node a
  * pixel coordinate derived from its connecting exit direction and travelDurationMs.
+ *
+ * Asymmetric edge pairs (e.g. up=120 000 ms, down=30 000 ms) are normalised to
+ * their average before layout so the visual gap between two nodes is always
+ * coherent regardless of which direction you look at the edge from.
  */
 
 /** Minimal graph node shape required for position calculation. */
@@ -77,6 +81,38 @@ function keyForPosition(x: number, y: number): string {
 }
 
 /**
+ * Build a lookup of "effective travel duration" per directed edge, normalising
+ * asymmetric opposing pairs to their average.
+ *
+ * When two edges connect the same pair of nodes in opposite directions (e.g.
+ * `up` A→B at 120 000 ms and `down` B→A at 30 000 ms), using each edge's raw
+ * duration produces contradictory placement constraints on the map.  Averaging
+ * the pair (75 000 ms each) yields a stable, symmetric visual distance that
+ * represents the traversal cost without bias toward either direction.
+ *
+ * Edges with no opposing partner keep their own `travelDurationMs` unchanged.
+ */
+function buildEffectiveDurations<E extends GraphEdgeLike>(edges: E[]): Map<string, number> {
+    const pairKey = (from: string, to: string) => `${from}::${to}`
+
+    // First pass: collect raw durations per directed edge
+    const rawDurations = new Map<string, number>()
+    for (const e of edges) {
+        rawDurations.set(pairKey(e.fromId, e.toId), e.travelDurationMs ?? URBAN_MS)
+    }
+
+    // Second pass: for each directed edge, average with its reverse if present
+    const effective = new Map<string, number>()
+    for (const e of edges) {
+        const forward = e.travelDurationMs ?? URBAN_MS
+        const reverseMs = rawDurations.get(pairKey(e.toId, e.fromId))
+        effective.set(pairKey(e.fromId, e.toId), reverseMs !== undefined ? (forward + reverseMs) / 2 : forward)
+    }
+
+    return effective
+}
+
+/**
  * Compute a `{x, y}` position for every node in the graph.
  *
  * @param nodes    - Array of graph nodes (only `id` is used here)
@@ -101,6 +137,10 @@ export function computePositions<N extends GraphNodeLike, E extends GraphEdgeLik
     const root = nodes.find((n) => n.id === rootId) ?? nodes[0]
     if (!root) return positions
 
+    // Normalise asymmetric edge pairs so opposing edges use an averaged duration.
+    const effectiveDurations = buildEffectiveDurations(edges)
+    const pairKey = (from: string, to: string) => `${from}::${to}`
+
     // Build adjacency list (fromId → edges)
     const adj = new Map<string, E[]>()
     for (const e of edges) {
@@ -122,7 +162,8 @@ export function computePositions<N extends GraphNodeLike, E extends GraphEdgeLik
         for (const edge of outEdges) {
             if (visited.has(edge.toId)) continue
             const vec = DIRECTION_VECTORS[edge.direction] ?? getUnknownDirectionVector(`${edge.direction}:${edge.toId}`)
-            const scale = ((edge.travelDurationMs ?? URBAN_MS) / URBAN_MS) * baseDistancePx
+            const durationMs = effectiveDurations.get(pairKey(edge.fromId, edge.toId)) ?? URBAN_MS
+            const scale = (durationMs / URBAN_MS) * baseDistancePx
             let nx = current.x + vec[0] * scale
             let ny = current.y + vec[1] * scale
 
@@ -192,7 +233,8 @@ export function computePositions<N extends GraphNodeLike, E extends GraphEdgeLik
                 const from = positions.get(e.fromId)
                 if (!from) continue
                 const vec = DIRECTION_VECTORS[e.direction] ?? getUnknownDirectionVector(`${e.direction}:${e.toId}`)
-                const scale = ((e.travelDurationMs ?? URBAN_MS) / URBAN_MS) * baseDistancePx
+                const durationMs = effectiveDurations.get(pairKey(e.fromId, e.toId)) ?? URBAN_MS
+                const scale = (durationMs / URBAN_MS) * baseDistancePx
                 sumX += from.x + vec[0] * scale
                 sumY += from.y + vec[1] * scale
                 count++

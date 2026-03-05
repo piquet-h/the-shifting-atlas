@@ -17,6 +17,8 @@ import assert from 'node:assert/strict'
 import { after, beforeEach, describe, it } from 'node:test'
 import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../../src/di/tokens.js'
+import { DEFAULT_TRAVEL_DURATION_MS } from '../../src/handlers/utils/travelDurationHeuristics.js'
+import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { BatchGenerateHandler } from '../../src/worldEvents/handlers/BatchGenerateHandler.js'
 import type { IWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
@@ -43,6 +45,7 @@ describe('BatchGenerateHandler Integration', () => {
     let fixture: IntegrationTestFixture
     let handler: BatchGenerateHandler
     let locationRepo: ILocationRepository
+    let exitRepo: IExitRepository
     let eventPublisher: IWorldEventPublisher
     let mockTelemetry: MockTelemetryClient
     let mockContext: InvocationContext
@@ -53,6 +56,7 @@ describe('BatchGenerateHandler Integration', () => {
 
         handler = container.get(BatchGenerateHandler)
         locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
+        exitRepo = container.get<IExitRepository>(TOKENS.ExitRepository)
         eventPublisher = container.get<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
         mockTelemetry = container.get<MockTelemetryClient>(TOKENS.TelemetryClient) as MockTelemetryClient
         mockContext = createMockContext()
@@ -156,6 +160,11 @@ describe('BatchGenerateHandler Integration', () => {
                 assert.ok(exitEvent.payload.direction, 'Exit should have direction')
                 assert.equal(exitEvent.payload.reciprocal, true, 'Exit should be bidirectional')
                 assert.equal(exitEvent.correlationId, event.correlationId, 'Exit event should inherit correlation ID')
+                // travelDurationMs must be present on all generated exit events (issue #880)
+                assert.ok(
+                    typeof exitEvent.payload.travelDurationMs === 'number' && exitEvent.payload.travelDurationMs > 0,
+                    `Exit event payload must carry positive travelDurationMs (got: ${exitEvent.payload.travelDurationMs})`
+                )
             }
 
             // Assert: stub locations are frontier-expandable by default (pending exits)
@@ -197,6 +206,93 @@ describe('BatchGenerateHandler Integration', () => {
                     `Stub base prose should say "You arrive from ${backDir}" (got: ${baseLayer.value})`
                 )
             }
+        })
+
+        it('should include travelDurationMs in exit events when travelDurationMs is provided in payload', async () => {
+            const rootLocationId = uuidv4()
+            await locationRepo.upsert({
+                id: rootLocationId,
+                name: 'Test Root',
+                description: '',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+
+            const customDuration = 300_000
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 1,
+                    travelDurationMs: customDuration
+                }
+            }
+
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
+            assert.equal(enqueuedEvents.length, 1, 'Should enqueue 1 exit event for batchSize=1')
+
+            const exitEvent = enqueuedEvents[0]
+            assert.equal(exitEvent.payload.travelDurationMs, customDuration, 'Exit event must carry the provided travelDurationMs')
+        })
+
+        it('should use DEFAULT_TRAVEL_DURATION_MS in exit events when travelDurationMs is absent from payload', async () => {
+            const rootLocationId = uuidv4()
+            await locationRepo.upsert({
+                id: rootLocationId,
+                name: 'No Duration Root',
+                description: '',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 1
+                    // travelDurationMs absent → should default
+                }
+            }
+
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enqueuedEvents = (eventPublisher as any).enqueuedEvents || []
+            assert.equal(enqueuedEvents.length, 1)
+
+            const exitEvent = enqueuedEvents[0]
+            assert.equal(
+                exitEvent.payload.travelDurationMs,
+                DEFAULT_TRAVEL_DURATION_MS,
+                'Exit event must carry DEFAULT_TRAVEL_DURATION_MS when not provided in BatchGenerate payload'
+            )
         })
     })
 
@@ -320,6 +416,66 @@ describe('BatchGenerateHandler Integration', () => {
             for (const exitEvent of enqueuedEvents) {
                 assert.notEqual(exitEvent.payload.direction, 'north', 'north direction should not get a new exit event')
             }
+        })
+
+        it('should set travelDurationMs on newly created reconnection exits using stepMs from payload', async () => {
+            const rootId = uuidv4()
+            const existingNeighbourId = uuidv4()
+
+            await locationRepo.upsert({
+                id: rootId,
+                name: 'Junction',
+                description: '',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            await locationRepo.upsert({
+                id: existingNeighbourId,
+                name: 'Distant Hill',
+                description: '',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [],
+                version: 1
+            })
+            // Pre-wire ONLY the forward north exit (no reciprocal south).
+            // BatchGenerateHandler will create the missing reciprocal and should set travelDurationMs on it.
+            await locationRepo.ensureExitBidirectional(rootId, 'north', existingNeighbourId)
+
+            const customStepMs = 90_000
+            const event: WorldEventEnvelope = {
+                eventId: uuidv4(),
+                type: 'World.Location.BatchGenerate',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: uuidv4(),
+                idempotencyKey: `batch:${uuidv4()}`,
+                version: 1,
+                payload: {
+                    rootLocationId: rootId,
+                    terrain: 'open-plain',
+                    arrivalDirection: 'south',
+                    expansionDepth: 1,
+                    batchSize: 1, // only north requested (already a reconnection candidate)
+                    travelDurationMs: customStepMs
+                }
+            }
+
+            // Run the handler (north reconnects; no stubs → 0 exit events enqueued)
+            const result = await handler.handle(event, mockContext)
+            assert.equal(result.outcome, 'success')
+
+            // The reciprocal south exit (newly created by the reconnection) must carry stepMs.
+            const southExits = await exitRepo.getExits(existingNeighbourId)
+            const southExit = southExits.find((e) => e.direction === 'south')
+            assert.ok(southExit, 'Reciprocal south exit must exist after reconnection')
+            assert.equal(
+                southExit!.travelDurationMs,
+                customStepMs,
+                'Newly created reciprocal reconnection exit should carry travelDurationMs from event stepMs'
+            )
         })
     })
 
