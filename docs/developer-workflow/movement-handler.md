@@ -16,6 +16,12 @@ Steps:
     - Emit `Navigation.Exit.GenerationRequested` (with `debounceHit`).
     - Return `{ status: 'generate', canonical, generationHint }` to caller.
 
+Auto-prefetch rule (arrival-driven batch generation):
+
+- Trigger prefetch only when the arrival location is explicitly tagged `frontier:boundary`.
+- Do **not** auto-prefetch from generic newly materialized stubs (for example, `Unexplored Open Plain`) even if they expose pending exits.
+- Rationale: preserve deterministic frontier pacing and avoid runaway fan-out that over-materializes the local map before player intent confirms direction.
+
 Testing:
 
 - Unit: debounce logic and handler return path.

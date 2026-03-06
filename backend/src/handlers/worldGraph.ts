@@ -29,6 +29,8 @@ export interface WorldGraphEdge {
     toId: string
     direction: string
     travelDurationMs?: number
+    /** When true, this edge represents a pending (not-yet-materialized) exit intent. */
+    pending?: boolean
     /** When true, this exit is currently locked. Movement through it returns a soft denial. Future UI can show a lock icon. */
     locked?: boolean
 }
@@ -40,6 +42,11 @@ export interface WorldGraphResponse {
 
 /** Sentinel used in Gremlin coalesce() when travelDurationMs is absent on an edge. */
 const TRAVEL_DURATION_ABSENT = -1
+const PENDING_NODE_NAME = 'Unexplored Open Plain'
+
+function pendingNodeId(fromId: string, direction: string): string {
+    return `pending:${fromId}:${direction}`
+}
 
 /**
  * Handler that returns all location nodes and exit edges as a graph.
@@ -63,15 +70,24 @@ export class WorldGraphHandler extends BaseHandler {
             if (this.persistence.mode !== 'cosmos') {
                 const locations = await this.locationRepository.listAll()
 
-                const nodes: WorldGraphNode[] = locations.map((loc) => ({
-                    id: loc.id,
-                    name: loc.name || 'Unknown',
-                    tags: loc.tags
-                }))
+                const nodeById = new Map<string, WorldGraphNode>(
+                    locations.map((loc) => [
+                        loc.id,
+                        {
+                            id: loc.id,
+                            name: loc.name || 'Unknown',
+                            tags: loc.tags
+                        }
+                    ])
+                )
 
-                const edges: WorldGraphEdge[] = locations.flatMap((loc) => {
+                const edges: WorldGraphEdge[] = []
+                const hardExitDirectionsBySource = new Map<string, Set<string>>()
+
+                for (const loc of locations) {
                     const exits = loc.exits || []
-                    return exits
+                    const hardDirections = new Set<string>()
+                    const hardEdges = exits
                         .filter((e) => Boolean(e.to) && Boolean(e.direction))
                         .map((e) => ({
                             fromId: loc.id,
@@ -80,7 +96,45 @@ export class WorldGraphHandler extends BaseHandler {
                             travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined,
                             locked: e.lockState === 'locked' ? true : undefined
                         }))
-                })
+
+                    for (const edge of hardEdges) {
+                        hardDirections.add(edge.direction)
+                        edges.push(edge)
+                    }
+                    hardExitDirectionsBySource.set(loc.id, hardDirections)
+                }
+
+                // Pending exits are valid traversal intent even before an edge is materialized.
+                // Represent them as synthetic graph edges to synthetic placeholder nodes so the map
+                // can display player-visible frontier directions (aligned with Exit Intent Capture).
+                for (const loc of locations) {
+                    const pending = loc.exitAvailability?.pending
+                    if (!pending) continue
+
+                    const hardDirections = hardExitDirectionsBySource.get(loc.id) ?? new Set<string>()
+
+                    for (const [direction, reason] of Object.entries(pending)) {
+                        if (!reason || hardDirections.has(direction)) continue
+
+                        const syntheticId = pendingNodeId(loc.id, direction)
+                        if (!nodeById.has(syntheticId)) {
+                            nodeById.set(syntheticId, {
+                                id: syntheticId,
+                                name: PENDING_NODE_NAME,
+                                tags: ['pending:synthetic']
+                            })
+                        }
+
+                        edges.push({
+                            fromId: loc.id,
+                            toId: syntheticId,
+                            direction,
+                            pending: true
+                        })
+                    }
+                }
+
+                const nodes = Array.from(nodeById.values())
 
                 // TODO: Remove cast once @piquet-h/shared is republished with 'World.Map.Fetched'.
                 this.track('World.Map.Fetched' as GameEventName, {
@@ -111,11 +165,29 @@ export class WorldGraphHandler extends BaseHandler {
                 )
             ])
 
-            const nodes: WorldGraphNode[] = (rawNodes || []).map((v) => ({
-                id: String(v.id || v['id']),
-                name: Array.isArray(v.name) ? String((v.name as unknown[])[0]) : String(v.name || 'Unknown'),
-                tags: Array.isArray(v.tags) ? (v.tags as string[]) : undefined
-            }))
+            const locationPendingById = new Map<string, Record<string, string>>()
+
+            const nodesById = new Map<string, WorldGraphNode>()
+            for (const v of rawNodes || []) {
+                const id = String(v.id || v['id'])
+                const name = Array.isArray(v.name) ? String((v.name as unknown[])[0]) : String(v.name || 'Unknown')
+                const tags = Array.isArray(v.tags) ? (v.tags as string[]) : undefined
+
+                nodesById.set(id, { id, name, tags })
+
+                const pendingRaw = Array.isArray(v.exitAvailabilityPendingJson)
+                    ? v.exitAvailabilityPendingJson[0]
+                    : v.exitAvailabilityPendingJson
+
+                if (typeof pendingRaw === 'string' && pendingRaw.length > 0) {
+                    try {
+                        const parsed = JSON.parse(pendingRaw) as Record<string, string>
+                        locationPendingById.set(id, parsed)
+                    } catch {
+                        // ignore malformed JSON for map payload resilience; hydration path emits diagnostics
+                    }
+                }
+            }
 
             const edges: WorldGraphEdge[] = (rawEdges || []).map((e) => ({
                 fromId: String(e.fromId),
@@ -123,6 +195,39 @@ export class WorldGraphHandler extends BaseHandler {
                 direction: String(e.direction),
                 travelDurationMs: Number(e.travelDurationMs) > 0 ? Number(e.travelDurationMs) : undefined
             }))
+
+            const hardDirectionsBySource = new Map<string, Set<string>>()
+            for (const edge of edges) {
+                const set = hardDirectionsBySource.get(edge.fromId) ?? new Set<string>()
+                set.add(edge.direction)
+                hardDirectionsBySource.set(edge.fromId, set)
+            }
+
+            for (const [fromId, pending] of locationPendingById.entries()) {
+                const hardDirections = hardDirectionsBySource.get(fromId) ?? new Set<string>()
+
+                for (const [direction, reason] of Object.entries(pending)) {
+                    if (!reason || hardDirections.has(direction)) continue
+
+                    const syntheticId = pendingNodeId(fromId, direction)
+                    if (!nodesById.has(syntheticId)) {
+                        nodesById.set(syntheticId, {
+                            id: syntheticId,
+                            name: PENDING_NODE_NAME,
+                            tags: ['pending:synthetic']
+                        })
+                    }
+
+                    edges.push({
+                        fromId,
+                        toId: syntheticId,
+                        direction,
+                        pending: true
+                    })
+                }
+            }
+
+            const nodes = Array.from(nodesById.values())
 
             // TODO: Remove cast once @piquet-h/shared is republished with 'World.Map.Fetched'.
             this.track('World.Map.Fetched' as GameEventName, {

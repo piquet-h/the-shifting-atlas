@@ -60,7 +60,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
                 name: 'Frontier Outpost',
                 description: 'A lonely outpost at the edge of civilization',
                 terrain: 'open-plain',
-                tags: [],
+                tags: ['frontier:boundary'],
                 exits: [
                     { direction: 'south', to: STARTER_LOCATION_ID } // Return path
                 ],
@@ -142,7 +142,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
                 name: 'Crossroads',
                 description: 'A central hub with paths in all directions',
                 terrain: 'open-plain',
-                tags: [],
+                tags: ['frontier:boundary'],
                 exits: [{ direction: 'south', to: startLocationId }],
                 exitAvailability: {
                     pending: {
@@ -238,6 +238,38 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
             const batchEvent = enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
             assert.equal(batchEvent, undefined, 'Should NOT trigger prefetch for forbidden exits')
         })
+
+        test('pending exits on non-frontier locations do not trigger auto-prefetch', async () => {
+            // Arrange: pending exits without frontier:boundary tag
+            const locationId = uuidv4()
+            const location: Location = {
+                id: locationId,
+                name: 'Freshly Materialized Plain',
+                description: 'An unexplored plain with many possible onward paths.',
+                terrain: 'open-plain',
+                tags: [],
+                exits: [{ direction: 'south', to: STARTER_LOCATION_ID }],
+                exitAvailability: {
+                    pending: {
+                        north: 'Open country stretches onward',
+                        east: 'A faint track veers right',
+                        west: 'Grassland dips toward low hills'
+                    }
+                },
+                version: 1
+            }
+            await locationRepo.upsert(location)
+            await locationRepo.ensureExit(STARTER_LOCATION_ID, 'north', locationId)
+
+            // Act: Move to non-frontier pending location
+            const req = makeMoveRequest({ dir: 'north' }) as HttpRequest
+            const result = await moveHandler.performMove(req)
+
+            // Assert: move succeeds, but prefetch is not auto-triggered
+            assert.equal(result.success, true)
+            const batchEvent = eventPublisher.enqueuedEvents.find((e) => e.type === 'World.Location.BatchGenerate')
+            assert.equal(batchEvent, undefined, 'Should NOT auto-prefetch on non-frontier pending locations')
+        })
     })
 
     describe('Idempotency and debouncing', () => {
@@ -249,7 +281,7 @@ describe('MoveHandler - Prefetch Batch Generation on Arrival', () => {
                 name: 'Frontier Outpost',
                 description: 'A lonely outpost at the edge of civilization',
                 terrain: 'open-plain',
-                tags: [],
+                tags: ['frontier:boundary'],
                 exits: [{ direction: 'south', to: STARTER_LOCATION_ID }],
                 exitAvailability: {
                     pending: {
@@ -381,6 +413,7 @@ describeForBothModes('MoveHandler prefetch - Cosmos repository wiring contract',
             name: 'Cosmos-Wired Frontier',
             description: 'Testing exitAvailability round-trip with real repo',
             terrain: 'open-plain',
+            tags: ['frontier:boundary'],
             exits: [{ direction: 'out', to: startId }],
             exitAvailability: {
                 pending: {

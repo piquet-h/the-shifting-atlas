@@ -30,11 +30,16 @@ interface WorldGraphEdge {
     toId: string
     direction: string
     travelDurationMs?: number
+    pending?: boolean
 }
 
 interface WorldGraphResponse {
     nodes: WorldGraphNode[]
     edges: WorldGraphEdge[]
+}
+
+function isPendingSyntheticNode(node: WorldGraphNode): boolean {
+    return node.id.startsWith('pending:') || (node.tags?.includes('pending:synthetic') ?? false)
 }
 
 // ---------------------------------------------------------------------------
@@ -57,7 +62,7 @@ const CYTOSCAPE_STYLE: cytoscape.StylesheetStyle[] = [
             'border-color': ATLAS_ACCENT,
             'border-width': 1.5,
             'border-opacity': 0.7,
-            label: 'data(name)',
+            label: 'data(displayName)',
             color: '#e2e8f0',
             'font-size': 10,
             'text-valign': 'center',
@@ -68,6 +73,15 @@ const CYTOSCAPE_STYLE: cytoscape.StylesheetStyle[] = [
             height: 40,
             'text-outline-color': ATLAS_BG,
             'text-outline-width': 2
+        }
+    },
+    {
+        selector: 'node.node--pending',
+        style: {
+            'border-color': '#60a5fa',
+            'border-opacity': 0.9,
+            'border-style': 'dashed',
+            'background-color': '#0b1730'
         }
     },
     {
@@ -117,6 +131,15 @@ const CYTOSCAPE_STYLE: cytoscape.StylesheetStyle[] = [
             'line-color': 'rgba(251,191,36,0.3)',
             'target-arrow-color': 'rgba(251,191,36,0.6)',
             color: 'rgba(251,191,36,0.9)'
+        }
+    },
+    {
+        selector: 'edge.edge--pending',
+        style: {
+            'line-style': 'dashed',
+            'line-color': 'rgba(59,130,246,0.45)',
+            'target-arrow-color': 'rgba(59,130,246,0.75)',
+            color: 'rgba(125,211,252,0.95)'
         }
     },
     {
@@ -207,12 +230,18 @@ export default function WorldMap(): React.ReactElement {
                 const elements: ElementDefinition[] = [
                     ...graph.nodes.map((n) => ({
                         group: 'nodes' as const,
-                        data: { id: n.id, name: n.name, tags: n.tags?.join(',') ?? '' },
+                        classes: isPendingSyntheticNode(n) ? 'node--pending' : '',
+                        data: {
+                            id: n.id,
+                            name: n.name,
+                            displayName: isPendingSyntheticNode(n) ? `${n.name} (pending)` : n.name,
+                            tags: n.tags?.join(',') ?? ''
+                        },
                         position: positions.get(n.id) ?? { x: 0, y: 0 }
                     })),
                     ...graph.edges.map((e, i) => ({
                         group: 'edges' as const,
-                        classes: getEdgeClassName(e.direction),
+                        classes: [getEdgeClassName(e.direction), e.pending ? 'edge--pending' : ''].filter(Boolean).join(' '),
                         data: {
                             id: `edge-${i}`,
                             source: e.fromId,

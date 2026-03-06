@@ -23,6 +23,7 @@ import { checkRateLimit } from '../middleware/rateLimitMiddleware.js'
 import { rateLimiters } from '../middleware/rateLimiter.js'
 import type { IExitGenerationHintPublisher } from '../queues/exitGenerationHintPublisher.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
+import { FRONTIER_BOUNDARY_TAG } from '../seeding/frontierSelectionPolicy.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
 import { tryCreatePrefetchEvent } from '../services/prefetchBatchGeneration.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
@@ -475,8 +476,10 @@ export class MoveHandler extends BaseHandler {
         const exitInfoArray = convertLocationExitsToExitInfo(result.location.exits, result.location.exitAvailability)
 
         // Prefetch batch generation for pending exits (Issue #811)
-        // Only trigger on successful arrival, not on look operations
-        if (result.location.exitAvailability) {
+        // Only trigger on successful arrival at explicitly tagged frontier boundaries.
+        // This prevents chain-reaction fanout from newly materialized generic stubs
+        // while preserving proactive expansion from curated boundary anchors.
+        if (result.location.exitAvailability && result.location.tags?.includes(FRONTIER_BOUNDARY_TAG)) {
             try {
                 const prefetchResult = tryCreatePrefetchEvent(
                     result.location.id,

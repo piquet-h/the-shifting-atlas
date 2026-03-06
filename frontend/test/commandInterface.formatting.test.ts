@@ -20,4 +20,24 @@ describe('CommandInterface output formatting', () => {
         expect(text).toContain('(Exits: north, south)')
         expect(text).not.toContain('\nExits:')
     })
+
+    it('includes pending exits when availability metadata is present', () => {
+        const text = formatMoveResponse('east', {
+            id: '22222222-2222-2222-2222-222222222222',
+            name: 'North Gate',
+            description: {
+                text: 'A broad gate facing open roads.',
+                html: '<p>A broad gate facing open roads.</p>',
+                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+            },
+            exits: [
+                { direction: 'north', availability: 'hard', toLocationId: 'loc-n' },
+                { direction: 'east', availability: 'hard', toLocationId: 'loc-e' },
+                { direction: 'northeast', availability: 'pending' },
+                { direction: 'northwest', availability: 'pending' }
+            ]
+        } as never)
+
+        expect(text).toContain('(Exits: north, east, northeast, northwest)')
+    })
 })
