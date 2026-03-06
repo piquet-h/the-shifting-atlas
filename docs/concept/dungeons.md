@@ -91,7 +91,7 @@ Remain single partition until RU pressure substantiates separation (see `../adr/
 
 Per-instance graph cloning, mutable run state on edges, premature partitioning, lore dumps in code, uncontrolled edge duplication.
 
-## Open Questions (Pre-M6)
+## Open Questions
 
 TTL granularity, checkpointing, abandoned vs timeout semantics, persistence of clear stats.
 

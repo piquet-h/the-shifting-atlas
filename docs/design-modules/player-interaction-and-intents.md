@@ -1,6 +1,6 @@
 # Design Document: Player Interaction & Intent Parsing
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-10-02, updated 2025-10-07). No intent schema, parser, or backend ingestion is implemented yet. This document is a specification only. Implementation is intentionally deferred until traversal + baseline telemetry are stable.
+> STATUS: PARTIALLY IMPLEMENTED. Basic move/look commands and intent inference for directions are operational. Full intent schema, parser pipeline, and multi-step action resolution remain in progress.
 >
 > Related: [Navigation & Traversal](navigation-and-traversal.md) · [AI Prompt Engineering](ai-prompt-engineering.md) · [Multiplayer Mechanics](multiplayer-mechanics.md) · [Quest & Dialogue Trees](quest-and-dialogue-trees.md) · [World Rules & Lore](world-rules-and-lore.md)
 

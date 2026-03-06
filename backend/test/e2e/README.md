@@ -25,7 +25,7 @@ Follow the **test pyramid**:
 - **Integration tests (25%):** Medium speed, service layer, in-memory repositories
 - **E2E tests (5%):** Slow, expensive, production-readiness only
 
-**See:** `docs/testing/test-strategy.md` for complete test strategy guidelines.
+**See:** `docs/developer-workflow/test-strategy.md` for complete test strategy guidelines.
 
 ## Architecture
 
@@ -104,7 +104,6 @@ The following tests were **moved to integration tests** for faster, more reliabl
 
 **Result:** E2E suite reduced from 13 to 8 focused tests, ~5.5 seconds faster, same coverage maintained.
 
-**See:** `docs/testing/test-inventory-analysis.md` for detailed migration analysis.
 
 ## Environment Variables
 

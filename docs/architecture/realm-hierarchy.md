@@ -331,7 +331,7 @@ Deferred (M6+): Conceptual realms (trade networks, alliances, cultural regions)
 
 - Design Module overview: `../design-modules/README.md` (World Structure module)
 - Temporal framework: `../design-modules/world-time-temporal-reconciliation.md`
-- SQL containers: `./cosmos-sql-containers.md`
+- SQL containers: `./cosmos-sql-reference.md`
 - Implementation: `backend/src/repos/realmRepository.ts`, `backend/src/repos/realmRepository.cosmos.ts`
 - Tests: `backend/test/integration/realmRepository.test.ts`, `shared/test/realmEdges.test.ts`
 

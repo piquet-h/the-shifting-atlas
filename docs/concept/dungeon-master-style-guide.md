@@ -93,7 +93,7 @@ When players experience waiting, idle drift, or temporal reconciliation (see [Wo
 - ✅ Rotate template variations for diversity
 - ✅ Acknowledge player actions before time passage ("You settle in to wait...")
 
-**Implementation Note**: NarrativeLayer (World Time system) uses template buckets with random selection. AI-generated temporal narration (Phase 2, M6+) will replace templates while maintaining these tonal guidelines.
+**Implementation Note**: NarrativeLayer (World Time system) uses template buckets with random selection. AI-generated temporal narration may eventually replace templates while maintaining these tonal guidelines.
 
 ---
 
