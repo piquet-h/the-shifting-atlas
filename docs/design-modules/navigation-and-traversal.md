@@ -29,7 +29,7 @@ Initial implementation uses only `Location`; `Structure` and `Zone` are design p
 
 | Label               | Direction               | Purpose                                                                       | Key Properties                                                                           |
 | ------------------- | ----------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `EXIT`              | `Location -> Location`  | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelMs`, `state`, `gating`, `genSource`, `version` |
+| `EXIT`              | `Location -> Location`  | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelDurationMs`, `state`, `gating`, `genSource`, `version` |
 | `CONTAINS`          | `Structure -> Location` | Hierarchical membership (arena owns inner ring locations).                    | `role` (e.g., `outer_concourse`, `inner_stage`)                                          |
 | `CONNECTS` (future) | `Zone <-> Zone`         | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                           |
 | `LINKS` (future)    | `Location -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                             |
@@ -58,7 +58,7 @@ Exit Edge (`EXIT`):
 - `name` (player-facing label; e.g. `North Gate`, `Archway`, `Tunnel`)
 - `kind` (`cardinal` | `vertical` | `radial` | `semantic` | `portal`)
 - `distance` (relative units or abstract difficulty metric)
-- `travelMs` (approx movement time; default null initially; semantics: see `../adr/ADR-006-exit-edge-traversal-time.md`)
+- `travelDurationMs` (traversal cost in WorldClock milliseconds; optional — absent on legacy edges; direction-asymmetric values supported; see `../adr/ADR-006-exit-edge-traversal-time.md`)
 - `state` (`open` | `closed` | `locked` | `concealed`)
 - `gating` (optional expression: e.g. `requires:item:bronze_key` or `skill:athletics>=12`)
 - `accessibility` (object: `{ mobility: boolean, lowVision: boolean }` future)
@@ -256,7 +256,7 @@ Dir Stage 4 (optional): High precision bearings – store `bearingDeg` (0–359)
 Exit Edge (future extension fields):
 
 ```
-dir, kind, name?, state, gating?, distance?, travelMs?, synonyms?: string[], landmarkRefs?: string[], bearingDeg?, genSource
+dir, kind, name?, state, gating?, distance?, travelDurationMs?, synonyms?: string[], landmarkRefs?: string[], bearingDeg?, genSource
 ```
 
 Location (future): `landmarkAliases: string[]`, `vector`, `exitsSummaryCache`.
@@ -528,7 +528,7 @@ No timers or loops live inside a Function host—progress is entirely message‑
 | Stage | Strategy                           | Notes                                                                 |
 | ----- | ---------------------------------- | --------------------------------------------------------------------- |
 | 1     | BFS (unweighted)                   | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
-| 2     | Weighted (travelMs / distance)     | Client-side Dijkstra/A\* after pulling bounded neighborhood.          |
+| 2     | Weighted (travelDurationMs / distance)     | Client-side Dijkstra/A\* after pulling bounded neighborhood.          |
 | 3     | Landmark overlay / hub contraction | Precompute hub <-> hub macro paths; expand only near endpoints.       |
 | 4     | Generation fallback integration    | Missing edge triggers controlled expansion (ties to N4).              |
 

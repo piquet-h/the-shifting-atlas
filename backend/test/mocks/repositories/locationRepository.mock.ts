@@ -146,4 +146,14 @@ export class MockLocationRepository implements ILocationRepository {
         const existed = this.mockLocations.delete(id)
         return { deleted: existed }
     }
+
+    async setExitTravelDuration(fromId: string, direction: string, travelDurationMs: number): Promise<{ updated: boolean }> {
+        if (!isDirection(direction)) return { updated: false }
+        const from = this.mockLocations.get(fromId)
+        if (!from || !from.exits) return { updated: false }
+        const exit = from.exits.find((e) => e.direction === direction)
+        if (!exit) return { updated: false }
+        exit.travelDurationMs = travelDurationMs
+        return { updated: true }
+    }
 }
