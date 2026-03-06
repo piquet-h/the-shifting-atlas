@@ -1,43 +1,45 @@
 ---
-status: Proposed
+status: Accepted
 date: 2026-01-05
+updated: 2026-03-06
 ---
 
 # ADR-006: Exit traversal time as optional EXIT edge property
 
 ## Context
 
-Movement and temporal reconciliation need a consistent, inspectable source for “how long does it take to traverse this exit?”
+Movement and temporal reconciliation need a consistent, inspectable source for "how long does it take to traverse this exit?"
 
 Today:
 
 - Temporal PI-0 established clocks, reconciliation policies, and action durations (Epic #497).
-- The traversal model already reserves an `EXIT.travelMs` edge property (see `docs/design-modules/navigation-and-traversal.md`).
-- The temporal system currently expresses durations in milliseconds in multiple places, but the design intent is closer to a _generic tick_ concept (D&D-style “ticks” / discrete time units).
+- The traversal model already reserves an exit traversal-time property (see `docs/design-modules/navigation-and-traversal.md`).
+- The temporal system expresses durations in milliseconds aligned to the WorldClock (Epic #822).
 
 We need a durable contract for:
 
 1. Where traversal time lives (edge vs derived vs registry-only)
 2. How it composes with action-duration modifiers (encumbrance, injuries, etc.)
-3. How we avoid locking ourselves to “milliseconds” as a semantic unit
+3. What property name carries this value
 
-## Decision (Proposed)
+## Decision (Accepted)
 
-1. **Source of truth**: Per-exit traversal time MAY be stored as an optional property on the Gremlin `EXIT` edge.
-2. **Property name (transitional)**: Use `travelMs` for now to align with existing documentation and schema placeholders.
-3. **Semantic unit**: Treat the value as a **generic tick duration** (a discrete time-cost unit), not a promise of real-world milliseconds.
-    - A future migration may rename the property to a unit-agnostic name (e.g., `travelTicks` or `travelCost`) once tick semantics are formalized.
+1. **Source of truth**: Per-exit traversal time MAY be stored as an optional property on the Gremlin `EXIT` edge and mirrored in the in-memory/SQL location model.
+2. **Property name**: `travelDurationMs` — aligned to WorldClock milliseconds. This supersedes the earlier placeholder name `travelMs`.
+3. **Semantic unit**: World-clock milliseconds. Values are positive integers representing traversal cost as ms-aligned ticks.
+   - Directional asymmetry is explicitly supported (e.g., `up`=120,000ms, `down`=30,000ms between the same two nodes). See `backend/src/worldEvents/travelDurationHeuristics.ts` for the canonical default table.
 4. **Resolution rule**:
-    - If an `EXIT` edge has `travelMs`, it provides the **base** duration/cost for `move` across that edge.
-    - If absent/null, fall back to `ActionRegistry`’s base duration for `move`.
+    - If an `EXIT` edge has `travelDurationMs`, it provides the **base** duration/cost for `move` across that edge.
+    - If absent/null, fall back to `ActionRegistry`'s base duration for `move` (backward compatible — existing edges without the property remain readable).
     - Modifiers (encumbrance, wounds, terrain, etc.) apply **multiplicatively** on top of the base duration, regardless of which source provided it.
+5. **Repository API**: `ILocationRepository.setExitTravelDuration(fromId, direction, travelDurationMs)` — idempotent; returns `{ updated: boolean }`.
 
 ## Rationale
 
 - **World structure belongs in the graph**: Exit-to-exit variability is a property of the world topology (a bridge is faster than a bog).
 - **Inspectability**: Edge properties are easy to inspect and reason about during debugging and content authoring.
 - **Separation of concerns**: `ActionRegistry` defines the default action cost model; edges optionally override movement cost for specific traversals.
-- **Future-proofing**: Declaring the unit as “ticks” (semantic) avoids baking in ms as a design constraint.
+- **Deterministic generation**: Reconnection algorithms (see `docs/design-modules/world-time-temporal-reconciliation.md`) rely on deterministic `travelDurationMs` values on exit edges; the property name is now stable.
 
 ## Consequences
 
@@ -46,6 +48,7 @@ We need a durable contract for:
 - Supports uneven traversal cost without proliferating action types.
 - Enables future weighted pathfinding experiments (bounded neighborhood) without changing schemas.
 - Keeps the default simple (registry-only) for early content.
+- Asymmetric up/down durations are explicitly modeled and averaged during layout (see `worldMapPositions.ts`).
 
 ### Negative
 
@@ -59,7 +62,7 @@ We need a durable contract for:
 2. **Derived cost from vectors / spatial geometry**
     - Promising long-term, but requires stable vector semantics and introduces implicit coupling.
 3. **Separate SQL container for traversal costs**
-    - More flexible, but splits “world structure” across stores and complicates debugging.
+    - More flexible, but splits "world structure" across stores and complicates debugging.
 
 ## Revisit triggers
 
@@ -73,8 +76,10 @@ Revisit this ADR when any of the following becomes true:
 ## References
 
 - Epic #497 (closed): World Time & Temporal Reconciliation Framework (PI-0 scaffolding)
-- Epic #696: Temporal PI-1 Integration (Clocks, Ledger, Narrative)
-- Epic #697: Temporal Presence & Occupancy (Extensibility)
-- `docs/design-modules/navigation-and-traversal.md` (EXIT edge schema includes `travelMs`)
-- `docs/design-modules/world-time-temporal-reconciliation.md` (temporal framework overview; partly aspirational)
+- Epic #822 (closed): Narrative-time area generation + graph reconnection (world-clock aligned)
+- Child #828 (closed): Persist travelDurationMs on exits (world-clock aligned)
+- Child #880 (closed): Backend: Require travelDurationMs for generated exits
+- `docs/design-modules/navigation-and-traversal.md` (EXIT edge schema)
+- `docs/design-modules/world-time-temporal-reconciliation.md` (temporal framework; reconnection rules)
 - `docs/architecture/location-clock-storage-decision.md` (temporal storage separation rationale)
+- `backend/src/worldEvents/travelDurationHeuristics.ts` (canonical default duration table)
