@@ -20,6 +20,7 @@ import {
 } from '../queues/locationAnchorSyncPublisher.js'
 import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
 import { AreaGenerationOrchestrator } from '../services/AreaGenerationOrchestrator.js'
+import { ExitDescriptionService, type IExitDescriptionService } from '../services/ExitDescriptionService.js'
 import {
     AzureOpenAIClient,
     NullAzureOpenAIClient,
@@ -88,6 +89,9 @@ export function registerCoreServices(container: Container): void {
 
     // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
+
+    // Exit Description Service (scaffold + optional AI garnish)
+    container.bind<IExitDescriptionService>(TOKENS.ExitDescriptionService).to(ExitDescriptionService).inSingletonScope()
 
     // World Event Publisher: use Service Bus when configured, in-memory otherwise
     container
