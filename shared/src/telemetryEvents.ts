@@ -45,6 +45,10 @@ export const GAME_EVENT_NAMES = [
     'Navigation.Look.Issued',
     // Exit generation fallback (Issue #35 - N4)
     'Navigation.Exit.GenerationRequested',
+    // Exit description tailoring (Exit Language Contract - ai-prompt-engineering.md)
+    'Navigation.Exit.DescriptionGenerated', // New exit description accepted by validator - properties: { durationBucket, pathKind?, grade?, charLength }
+    'Navigation.Exit.DescriptionRejected', // Validator rejected a candidate description - properties: { checkId, attemptNumber }
+    'Navigation.Exit.DescriptionAuditFailed', // Nightly audit found anomaly in persisted exit description - properties: { checkId, exitId }
     // Cottage interior on-demand materialization
     'Navigation.Interior.Materialized', // Interior location created on first entry - properties: { cottageLocationId, interiorLocationId, alreadyExisted, correlationId }
     // Soft-denial UX telemetry (Issue #595 - Frontend response to generate status)

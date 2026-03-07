@@ -1,0 +1,149 @@
+{
+    "metadata": {
+        "id": "exit-description-tailor",
+        "version": "1.0.0",
+        "name": "Exit Description Tailor",
+        "description": "Generates a pair of short, conservative exit descriptions (forward and backward) for a single exit edge. Output is narration — spatial glue on the graph edge, not canonical state. Strictly bounded by the Exit Language Contract (docs/architecture/exit-language-contract.md).",
+        "tags": ["exit", "navigation", "narration", "spatial", "generation"],
+        "author": "system",
+        "createdAt": "2026-03-07T00:00:00.000Z",
+        "usage": {
+            "platform": "Azure AI Foundry",
+            "responseFormat": "JSON object with 'forward' and 'backward' string fields",
+            "validatorModule": "shared/src/exitDescriptionValidator.ts (validateExitDescription, EL-01–EL-09)",
+            "mcpToolsNeeded": [],
+            "interpolation": "Variables replaced before sending to LLM; absent optional variables default to '[none]'"
+        }
+    },
+    "template": "You are generating a single-sentence exit description pair for a fantasy text adventure.\n\nThis output is **narration** (spatial flavor text on a graph edge), not canonical world state. It must remain accurate across all ambient-layer overlays — day, night, fog, or sun.\n\n---\n\n## Inputs\n\nEXIT DIRECTION: [direction]\nDURATION BUCKET: [duration_bucket]\nORIGIN SNIPPET: [origin_snippet]\nDESTINATION SNIPPET: [destination_snippet]\nDESTINATION NAME: [destination_name]\nPATH KIND: [path_kind]\nGRADE: [grade]\nTRANSITION KIND: [transition_kind]\nOCCLUSION: [occlusion]\n\n---\n\n## Rules (all mandatory)\n\n### 1. Length\nEach description must be **40–90 characters** (hard maximum: 120, hard minimum: 15).\n\n### 2. Single sentence\nExactly one sentence per field. No coordinate conjunctions that add a second clause.\n\n### 3. No numeric durations\nNever write \"five minutes\", \"two hours\", \"a day's walk\", or any clock or calendar unit.\n\n### 4. No weather or time-of-day\nNo fog, mist, rain, snow, storm, wind, cloud, ice, frost — those belong in ambient layers.\nNo morning, evening, dusk, dawn, sunset, twilight, moonlit, sunlit, starlit, etc.\n\n### 5. No proper nouns unless explicitly provided\nDo not introduce any named location, settlement, NPC, faction, or deity unless DESTINATION NAME is explicitly set (not \"[none]\"). Do not infer names from surrounding context.\n\n### 6. No destination spoilers\nNever describe what lies at the destination unless DESTINATION NAME is provided.\n\n### 7. No conditional or event-dependent wording\nNo \"the road that was blocked\", no references to recent events, no faction banners.\n\n### 8. Conservative by design\nThis text must be true when ambient layers vary from \"bright noon\" to \"dense midnight fog\". Write accordingly.\n\n---\n\n## Duration Bucket Language Register\n\nUse verbs and phrases that match the duration bucket:\n\n- `threshold` (< 15 s — immediate transition): \"opens into\", \"leads through\", \"steps down into\", \"descends into\"\n- `near` (a few paces): \"leads across to\", \"a short path connects\", \"a passage runs\", \"cuts across\"\n- `moderate` (brief walk): \"continues toward\", \"a road heads\", \"the lane runs\", \"winds toward\"\n- `far` (significant leg): \"winds far toward\", \"a track leads\", \"stretches toward\", \"extends toward\"\n- `distant` (long journey, horizon scale): \"disappears toward\", \"the way extends far\", \"reaches far toward\"\n\n---\n\n## Direction Coherence\n\n- **`in` / `out` exits**: NEVER use road, trail, track, journey, walk, or ride language. These are threshold transitions (doorways, archways, hatches).\n- **Cardinal/diagonal exits** (`north`, `south`, `east`, `west`, `northeast`, etc.): No climbing or descending verbs UNLESS GRADE is `ascending` or `descending`.\n- **`up` exit**: Use stair, ladder, or slope register (e.g., \"A ladder ascends\", \"Stone steps climb\").\n- **`down` exit**: Mirror of `up` (e.g., \"Steps descend\", \"A ladder drops\").\n- **Diagonal exits**: Apply the same rules as the nearest cardinal direction; do not use just \"north\" in text for a \"northeast\" exit.\n\n---\n\n## Path Kind Hints\n\nWhen PATH KIND is provided (not \"[none]\"), let it inform the noun:\n- `road`, `track`, `trail`, `ford` → defer to duration bucket register for verbs; noun can reflect path kind\n- `door`, `gate`, `passage`, `gap` → always use threshold register regardless of duration\n- `stair`, `ladder` → use vertical register (ascend/descend)\n\n---\n\n## Grade Hints\n\n- `ascending`: may use \"climbs\", \"rises\", \"ascends\" for cardinal/diagonal directions\n- `descending`: may use \"descends\", \"drops\", \"falls away\" for cardinal/diagonal directions\n- `level` or absent: no climbing/descending language\n\n---\n\n## Transition Kind Hints\n\n- `outdoor-to-indoor` / `indoor-to-outdoor`: always threshold register regardless of duration\n- `above-to-below` / `below-to-above`: use appropriate vertical register\n- `water-crossing`: noun may reference ford, bridge, or crossing\n- `open-air`: open-path register\n\n---\n\n## Stub / Missing Destination\n\nIf DESTINATION SNIPPET is \"[none]\" or DESTINATION NAME is \"[none]\":\n- Use only the safest bucket-appropriate phrase.\n- Do NOT infer toponym, biome, or building type from any context.\n- Example (near, north): \"A path leads north.\"\n- Example (threshold, in): \"A door leads inside.\"\n\n---\n\n## Output Format\n\nRespond with **valid JSON only** — no markdown fences, no explanation, no trailing text:\n\n{\"forward\": \"<exit as seen from origin, looking toward destination>\", \"backward\": \"<return exit as seen from destination, looking back toward origin>\"}\n\n`forward`: single sentence, direction matches EXIT DIRECTION, 40–90 chars.\n`backward`: single sentence, opposite perspective (player at destination looking back), 40–90 chars.",
+    "variables": [
+        {
+            "name": "direction",
+            "description": "The exit direction (e.g., north, south, east, west, up, down, in, out, northeast, etc.)",
+            "required": true
+        },
+        {
+            "name": "duration_bucket",
+            "description": "Travel duration bucket derived from travelDurationMs: threshold | near | moderate | far | distant",
+            "required": true
+        },
+        {
+            "name": "origin_snippet",
+            "description": "Short (1–2 sentence) description of the origin location. Provides spatial and terrain context.",
+            "required": true
+        },
+        {
+            "name": "destination_snippet",
+            "description": "Short (1–2 sentence) description of the destination location, if available. Use '[none]' when the destination is a stub or not yet generated.",
+            "required": false,
+            "defaultValue": "[none]"
+        },
+        {
+            "name": "destination_name",
+            "description": "Canonical name of the destination location, if known. When provided, this name (and its constituent tokens) may appear in the forward description. Use '[none]' when the destination is a stub.",
+            "required": false,
+            "defaultValue": "[none]"
+        },
+        {
+            "name": "path_kind",
+            "description": "Stable structural fact about the physical surface or crossing type: road | track | trail | door | gate | stair | ladder | gap | ford | passage. Use '[none]' when absent.",
+            "required": false,
+            "defaultValue": "[none]"
+        },
+        {
+            "name": "grade",
+            "description": "Topographic elevation change: ascending | descending | level. When absent or level, climbing/descending verbs are forbidden on cardinal/diagonal exits.",
+            "required": false,
+            "defaultValue": "level"
+        },
+        {
+            "name": "transition_kind",
+            "description": "Spatial transition type that governs threshold vs journey language: outdoor-to-indoor | indoor-to-outdoor | above-to-below | below-to-above | water-crossing | open-air. Use '[none]' when absent.",
+            "required": false,
+            "defaultValue": "[none]"
+        },
+        {
+            "name": "occlusion",
+            "description": "Ephemeral visibility / access state (NOT persisted on edge): open | dim | obscured | sealed. Generation context only — use to modulate language conservatively. Use '[none]' when absent.",
+            "required": false,
+            "defaultValue": "[none]"
+        }
+    ],
+    "examples": [
+        {
+            "input": {
+                "direction": "north",
+                "duration_bucket": "moderate",
+                "origin_snippet": "A cobbled market square lined with low merchant stalls. Voices echo off stone.",
+                "destination_snippet": "A narrow gatehouse arch marks the edge of the settlement.",
+                "destination_name": "[none]",
+                "path_kind": "road",
+                "grade": "level",
+                "transition_kind": "[none]",
+                "occlusion": "[none]"
+            },
+            "output": "{\"forward\": \"A cobbled road continues north toward open ground.\", \"backward\": \"The cobbled road runs south back into the square.\"}",
+            "description": "Moderate bucket, cardinal direction, road path kind, no destination name — safe generic forward phrase."
+        },
+        {
+            "input": {
+                "direction": "in",
+                "duration_bucket": "threshold",
+                "origin_snippet": "A timber-framed inn stands at the crossroads, its sign creaking.",
+                "destination_snippet": "The common room is low-ceilinged and lamp-lit.",
+                "destination_name": "The Crooked Wheel Inn",
+                "path_kind": "door",
+                "grade": "level",
+                "transition_kind": "outdoor-to-indoor",
+                "occlusion": "[none]"
+            },
+            "output": "{\"forward\": \"A low door opens into the Crooked Wheel Inn.\", \"backward\": \"A door leads back outside.\"}",
+            "description": "Threshold bucket, in direction, door path kind, named destination allowed in forward only."
+        },
+        {
+            "input": {
+                "direction": "west",
+                "duration_bucket": "far",
+                "origin_snippet": "Rolling farmland gives way to patches of scrub at the field's edge.",
+                "destination_snippet": "[none]",
+                "destination_name": "[none]",
+                "path_kind": "track",
+                "grade": "level",
+                "transition_kind": "[none]",
+                "occlusion": "[none]"
+            },
+            "output": "{\"forward\": \"A worn track stretches west toward distant ground.\", \"backward\": \"A worn track leads east back toward the fields.\"}",
+            "description": "Far bucket, no destination (stub) — safest generic phrase; no toponym or biome inference."
+        },
+        {
+            "input": {
+                "direction": "up",
+                "duration_bucket": "threshold",
+                "origin_snippet": "A stone guardhouse with a trapdoor set into the floor beside the hearth.",
+                "destination_snippet": "The battlements offer a wide view of the surrounding rooftops.",
+                "destination_name": "[none]",
+                "path_kind": "stair",
+                "grade": "ascending",
+                "transition_kind": "below-to-above",
+                "occlusion": "[none]"
+            },
+            "output": "{\"forward\": \"Stone steps ascend to the battlements above.\", \"backward\": \"Stone steps descend back to the guardhouse below.\"}",
+            "description": "Threshold + up direction + stair path kind + ascending grade — vertical register."
+        },
+        {
+            "input": {
+                "direction": "northeast",
+                "duration_bucket": "distant",
+                "origin_snippet": "The harbour road widens into a broad coastal track heading out of the village.",
+                "destination_snippet": "[none]",
+                "destination_name": "[none]",
+                "path_kind": "trail",
+                "grade": "level",
+                "transition_kind": "[none]",
+                "occlusion": "[none]"
+            },
+            "output": "{\"forward\": \"A coastal trail disappears northeast into the distance.\", \"backward\": \"A coastal trail leads southwest back toward the village.\"}",
+            "description": "Distant bucket, diagonal direction, stub destination — no proper nouns, horizon-scale language."
+        }
+    ]
+}
