@@ -45,6 +45,7 @@ export const TOKENS = {
     AzureOpenAIClient: 'IAzureOpenAIClient',
     AzureOpenAIConfig: 'AzureOpenAIConfig',
     AIDescriptionService: 'IAIDescriptionService',
+    ExitDescriptionService: 'IExitDescriptionService',
     WorldEventPublisher: 'IWorldEventPublisher',
     ExitGenerationHintPublisher: 'IExitGenerationHintPublisher',
     LocationAnchorSyncPublisher: 'ILocationAnchorSyncPublisher',
