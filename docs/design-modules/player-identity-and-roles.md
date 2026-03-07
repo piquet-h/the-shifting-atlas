@@ -1,6 +1,6 @@
 ## 🎭 Player Identity & Roles
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-09-21). No authentication, player GUID issuance, reputation, alignment, or role mechanics exist yet. This document outlines long-term aspirations; first identity milestone will simply allocate a GUID per session.
+> STATUS: PARTIALLY IMPLEMENTED. Guest GUID identity issuance and session persistence are operational. Reputation, alignment, and role mechanics are aspirational — see `docs/concept/` for concept-level invariants.
 
 ### **Vision**
 

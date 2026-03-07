@@ -66,4 +66,4 @@ Specifications / planned components referenced by these examples:
 
 - Intent parsing → structured actions (ActionFrame / Intent IR): `docs/design-modules/player-interaction-and-intents.md` and `docs/architecture/intent-parser-agent-framework.md`
 - Validator pipeline for narration/layer outputs (classification → invariants → acceptance/rejection telemetry): `docs/architecture/narration-governance.md`
-- Combat agent orchestration patterns (agent routing, policy validation concepts): `docs/architecture/intent-parser-agent-framework.md` and `docs/architecture/dnd-5e-agent-framework-integration.md`
+- Combat agent orchestration patterns (agent routing, policy validation concepts): `docs/architecture/intent-parser-agent-framework.md`

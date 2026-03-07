@@ -2,7 +2,7 @@
 
 **Status**: Implemented (M3c Temporal PI-0)  
 **Risk**: DATA-MODEL  
-**Related**: `docs/architecture/cosmos-sql-containers.md`, `docs/architecture/realm-hierarchy.md`
+**Related**: `docs/architecture/cosmos-sql-reference.md`, `docs/architecture/realm-hierarchy.md`
 
 ---
 
@@ -206,7 +206,7 @@ For richer descriptions ("rainy" + "foggy" → "rainy fog"):
 
 ## Related Documentation
 
-- `docs/architecture/cosmos-sql-containers.md` - Container schema
+- `docs/architecture/cosmos-sql-reference.md` - Container schema
 - `docs/architecture/realm-hierarchy.md` - Scope inheritance model
 - `docs/design-modules/world-time-temporal-reconciliation.md` - Temporal framework
 - `backend/src/repos/layerRepository.ts` - Implementation

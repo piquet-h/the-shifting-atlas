@@ -50,7 +50,7 @@ AI DM Response: "Your sailor's instincts serve you well. You spot a weathered se
 
 ### Background as Capability
 
-Character backgrounds (see `explorer-creation-future.md`) grant narrative authority rather than numerical bonuses:
+Character backgrounds (see `explorer-creation.md`) grant narrative authority rather than numerical bonuses:
 
 -   **Former Cartographer's Apprentice**: Can interpret maps, recognize cartographic conventions, navigate by landmarks
 -   **Ex-Mercenary**: Understands combat tactics, weapon maintenance, military hierarchy
@@ -133,7 +133,7 @@ The Shifting Atlas **does not implement**:
 
 -   **DM Style Guide**: `dungeon-master-style-guide.md` (narrative voice)
 -   **Player Interaction**: `player-interaction-and-intents.md` (command parsing)
--   **Explorer Creation**: `explorer-creation-future.md` (background system)
+-   **Explorer Creation**: `explorer-creation.md` (background system)
 -   **AI Prompt Engineering**: `ai-prompt-engineering.md` (adjudication prompts)
 -   **Narrative Governance**: `narration-governance.md` (bounded creativity)
 

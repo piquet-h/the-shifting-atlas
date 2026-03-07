@@ -1,4 +1,9 @@
-# Key Vault Decision: New Vault Provisioned
+---
+status: Accepted
+date: 2025-01-01
+---
+
+# ADR-008: Dedicated Key Vault Provisioned
 
 **Date**: 2025 (Implementation)  
 **Status**: Implemented  

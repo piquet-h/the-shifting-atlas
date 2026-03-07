@@ -75,13 +75,13 @@ scripts/          Automation (seed data, validation, deployment helpers)
 - `frontend/src/contexts/*` – React contexts (PlayerContext for state management)
 - `docs/design-modules/` – Design Modules (gameplay contracts and invariants)
 - `docs/examples/` – Practical code walkthroughs (function endpoints, Gremlin queries, seed scripts)
-- `docs/frontend/` – Frontend component architecture, style guide, accessibility patterns
+- `docs/architecture/frontend-components.md` – Frontend component architecture, style guide, accessibility patterns
 - `docs/ux/` – UX documentation, wireframes, accessibility guidelines
 
 **Learn more**:
 
 - [Local Development Setup](docs/developer-workflow/local-dev-setup.md)
-- [Frontend Component Architecture](docs/frontend/components.md)
+- [Frontend Component Architecture](docs/architecture/frontend-components.md)
 - [Accessibility Guidelines](docs/ux/accessibility-guidelines.md)
 
 ---
@@ -334,7 +334,7 @@ Current gaps:
 - Temporal mechanics are still in progress (see `docs/roadmap.md` → M3c).
 - AI orchestration remains runtime-agnostic by design; hosted runtime wiring may vary by tenant/product surface (see `docs/architecture/agentic-ai-and-mcp.md`).
 - World generation + layering depth is intentionally staged (prompt registry/MCP read precede any write/proposal surfaces; see `docs/roadmap.md` → M4/M5).
-- More integration/E2E coverage is still desirable (see `docs/testing/` and `frontend/e2e/`).
+- More integration/E2E coverage is still desirable (see `docs/developer-workflow/test-strategy.md` and `frontend/e2e/`).
 - Backend authorization posture beyond SWA Easy Auth should be validated/expanded as new mutation surfaces are introduced.
 
 **Read more**: [Roadmap](docs/roadmap.md) (milestones M2–M6 address these gaps)

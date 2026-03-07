@@ -1,6 +1,6 @@
 # Design Document: Description Layering & Variation (Tokenless Model)
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-10-02). No layer composition engine, snippet registry, or structural event validators exist yet. This file defines the cross‑cutting narrative stability + variation model used by Navigation, AI Prompt Engineering, Factions, Events, Weather, and Geospatial context.
+> STATUS: PARTIALLY IMPLEMENTED. Layer storage and basic composition are operational (Cosmos SQL `descriptionLayers` container, ADR-005). Full composition engine, snippet registry, and structural event validators are still in progress. See `docs/architecture/` for current contracts.
 >
 > Related: [AI Prompt Engineering](ai-prompt-engineering.md) · [Navigation & Traversal](navigation-and-traversal.md) · [World Rules & Lore](world-rules-and-lore.md) · [Factions & Governance](factions-and-governance.md) · [Geospatial & Hydrology](geospatial-and-hydrology.md)
 

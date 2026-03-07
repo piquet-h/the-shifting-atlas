@@ -10,8 +10,7 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 
 ## World model & persistence
 
-- `cosmos-sql-containers.md` — container catalog and operational notes.
-- `cosmos-sql-api-schema.md` — document schema guidance (field-level expectations).
+- `cosmos-sql-reference.md` — container catalog, environment variables, and operational notes (merged reference).
 - `sql-repository-pattern.md` — repository abstraction patterns for Cosmos SQL.
 - `cosmos-database-naming.md` — naming conventions and consistency rules.
 
@@ -33,9 +32,8 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 
 ## AI / Agents / MCP
 
-- `agentic-ai-and-mcp.md` — canonical architecture for MCP tool surfaces and agent runtimes.
+- `agentic-ai-and-mcp.md` — canonical architecture for MCP tool surfaces, agent runtimes, and D&D 5e integration wiring.
 - `intent-parser-agent-framework.md` — intent parsing architecture (IR, gating, evolution path).
-- `dnd-5e-agent-framework-integration.md` — D&D 5e integration wiring and boundaries.
 - `ab-testing-implementation.md` — deterministic prompt/behavior A/B testing patterns.
 
 For **runtime sequencing** (workflows, multi-agent orchestration, validation gates), see `../workflows/README.md`.
