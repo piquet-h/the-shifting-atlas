@@ -34,6 +34,9 @@ Useful concept entrypoints:
 - Architecture index (curated): `architecture/README.md`
 - Runtime workflows / orchestration (sequencing + enforcement): `workflows/README.md`
 - Developer workflow (local dev, CI/CD, conventions): `developer-workflow/`
+  - Test strategy (unit/integration/E2E tiers): `developer-workflow/test-strategy.md`
+  - Frontend component architecture: `architecture/frontend-components.md`
+  - Troubleshooting SWA ↔ Function 404: `developer-workflow/troubleshooting-swa-404.md`
 - Examples (walkthroughs and templates): `examples/README.md`
 
 ### I’m working on AI/agents/MCP
@@ -62,23 +65,28 @@ If you are an LLM (or a human doing “repo ingestion”), read in this order to
 
 Then branch based on the question:
 
-- **Data model / persistence** → `architecture/mvp-azure-architecture.md`, `architecture/cosmos-sql-containers.md`, `architecture/sql-repository-pattern.md`
+- **Data model / persistence** → `architecture/mvp-azure-architecture.md`, `architecture/cosmos-sql-reference.md`, `architecture/sql-repository-pattern.md`
 - **Events / async** → `architecture/world-event-contract.md`, `architecture/event-classification-matrix.md`
 - **Frontend ↔ backend contract** → `architecture/frontend-api-contract.md`
 
 ## Documentation hierarchy (MECE by altitude)
 
-| Layer          | Altitude      | Location                                              | Purpose                                     |
-| -------------- | ------------- | ----------------------------------------------------- | ------------------------------------------- |
-| Vision         | 60,000 ft     | `../README.md`                                        | Why this exists                             |
-| Tenets         | 50,000 ft     | `tenets.md`                                           | Non-negotiable constraints                  |
-| Concepts       | 45,000 ft (↯) | `concept/`                                            | Immutable semantics & vocabulary            |
-| Design Modules | 40,000 ft     | `design-modules/`                                     | Gameplay systems and invariants             |
-| Architecture   | 30,000 ft     | `architecture/`                                       | Technical design and contracts              |
-| Workflows      | 25,000 ft     | `workflows/`                                          | Runtime orchestration & validation gates    |
-| Roadmap        | 20,000 ft     | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
-| Examples       | 10,000 ft     | `examples/`                                           | Walkthroughs and templates                  |
-| Code           | Ground        | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                     |
+| Layer                  | Altitude      | Location                                              | Purpose                                     |
+| ---------------------- | ------------- | ----------------------------------------------------- | ------------------------------------------- |
+| Vision                 | 60,000 ft     | `../README.md`                                        | Why this exists                             |
+| Tenets                 | 50,000 ft     | `tenets.md`                                           | Non-negotiable constraints                  |
+| Concepts               | 45,000 ft (↯) | `concept/`                                            | Immutable semantics & vocabulary            |
+| Design Modules         | 40,000 ft     | `design-modules/`                                     | Gameplay systems and invariants             |
+| Architecture           | 30,000 ft     | `architecture/`                                       | Technical design and contracts              |
+| Arch. Decisions (ADRs) | 35,000 ft     | `adr/`                                                | Rationale for lasting architectural choices |
+| Workflows              | 25,000 ft     | `workflows/`                                          | Runtime orchestration & validation gates    |
+| Roadmap                | 20,000 ft     | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
+| Developer Workflow     | 15,000 ft     | `developer-workflow/`                                 | Local dev, CI/CD, testing, conventions      |
+| Deployment             | 15,000 ft     | `deployment/`                                         | Infrastructure setup, agent configuration   |
+| Observability          | 15,000 ft     | `observability.md` + `observability/`                 | Telemetry, dashboards, alerts               |
+| UX                     | 15,000 ft     | `ux/`                                                 | User flows, accessibility, wireframes       |
+| Examples               | 10,000 ft     | `examples/`                                           | Walkthroughs and templates                  |
+| Code                   | Ground        | `backend/`, `frontend/`, `shared/`, `infrastructure/` | Runnable implementation                     |
 
 (↯) `concept/` is a **facet** of Design Modules: use it for stable definitions/invariants that multiple gameplay systems depend on.
 

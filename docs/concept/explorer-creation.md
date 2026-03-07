@@ -1,6 +1,6 @@
-## 🎒 Explorer Creation: Future Vision
+## 🎒 Explorer Creation
 
-> STATUS: FUTURE / NOT IMPLEMENTED (2025-10-19). This document outlines the planned D&D-style character creation experience that will expand beyond the current simple GUID allocation. Referenced by bootstrap regression tests (backend/test/playerBootstrap.flow.test.ts).
+> STATUS: ASPIRATIONAL — not yet implemented. This document outlines the planned D&D-style character creation experience that will expand beyond the current simple GUID allocation.
 
 ### **Vision**
 

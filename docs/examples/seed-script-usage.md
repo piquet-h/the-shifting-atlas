@@ -276,7 +276,6 @@ The seed script can be integrated into deployment pipelines:
 
 | Topic                  | Document                                          |
 | ---------------------- | ------------------------------------------------- |
-| Seed Script Acceptance | `../developer-workflow/seed-script-acceptance.md` |
 | Exit Invariants        | `../concept/exits.md`                             |
 | Navigation Module      | `../design-modules/navigation-and-traversal.md`   |
 | Partition Strategy     | `../adr/ADR-002-graph-partition-strategy.md`      |

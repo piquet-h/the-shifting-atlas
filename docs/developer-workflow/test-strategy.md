@@ -387,7 +387,6 @@ When reviewing test PRs, check:
 
 - `backend/test/TEST_FIXTURE_GUIDE.md` - Detailed fixture usage
 - `backend/test/e2e/README.md` - E2E test setup and configuration
-- `docs/testing/test-inventory-analysis.md` - Complete test inventory
 
 ---
 

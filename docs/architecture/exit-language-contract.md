@@ -7,7 +7,7 @@ description: Bounded specification for generated exit descriptions — duration 
 
 > STATUS: DEFINED (2026-03-03). Spec-only; no generation engine implemented yet. Aligns with tokenless layering model and narration governance constraints.
 >
-> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `../DESIGN_CLARIFICATION_intent_vs_narrative.md`
+> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `action-intent-persistence.md`
 
 ## Purpose
 
@@ -207,7 +207,7 @@ The following are reference outputs at each duration bucket. They do not embed l
 - [Exit Generation Hints – Architecture](./exit-generation-hints.md) — queue handler, debounce, and privacy
 - [Description Layering & Variation](../design-modules/description-layering-and-variation.md) — tokenless layering model
 - [Narration Governance](./narration-governance.md) — output classification, validator pipeline, drift audit
-- [Design Clarification: State vs Narration](../DESIGN_CLARIFICATION_intent_vs_narrative.md) — why narration is ephemeral
+- [Action Intent Persistence](./action-intent-persistence.md) — why narration is ephemeral, intent contract
 
 ---
 

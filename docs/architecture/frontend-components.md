@@ -9,7 +9,7 @@
 
 - [Accessibility Guidelines](../ux/accessibility-guidelines.md)
 - [UX Documentation](../ux/README.md)
-- [Frontend API Contract](../architecture/frontend-api-contract.md)
+- [Frontend API Contract](./frontend-api-contract.md)
 
 ---
 
@@ -370,7 +370,7 @@ See `frontend/e2e/` and `frontend/scripts/` for canonical a11y scans and Playwri
 
 - [Accessibility Guidelines](../ux/accessibility-guidelines.md) — WCAG 2.2 AA compliance patterns
 - [UX Documentation](../ux/README.md) — Wireframes, user flows, templates
-- [Frontend API Contract](../architecture/frontend-api-contract.md) — Backend API schemas
+- [Frontend API Contract](./frontend-api-contract.md) — Backend API schemas
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs) — Official Tailwind docs
 - [React Testing Library](https://testing-library.com/react) — Testing best practices
 - [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) — ARIA patterns guide

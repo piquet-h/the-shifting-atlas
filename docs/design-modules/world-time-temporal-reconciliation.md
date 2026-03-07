@@ -738,7 +738,7 @@ if (Math.abs(offsetMs) <= config.epsilonMs) {
 | ------------------------------- | ------------------------------------------------- |
 | Design Module (40k ft)          | `../design-modules/README.md` (World Time module) |
 | World Event Contract            | `../architecture/world-event-contract.md`         |
-| Player State (SQL API)          | `../architecture/cosmos-sql-containers.md`        |
+| Player State (SQL API)          | `../architecture/cosmos-sql-reference.md`        |
 | Realm Hierarchy (zones)         | `../architecture/realm-hierarchy.md`              |
 | Telemetry Standards             | `../observability.md`                             |
 | Multiplayer Mechanics (future)  | `multiplayer-mechanics.md`                        |

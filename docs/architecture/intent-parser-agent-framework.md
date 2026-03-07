@@ -1,6 +1,6 @@
 # Intent Parser + Agent Framework Integration
 
-**Related**: `dnd-5e-agent-framework-integration.md` | `docs/design-modules/player-interaction-and-intents.md` | `docs/design-modules/entity-promotion.md`
+**Related**: `agentic-ai-and-mcp.md` | `docs/design-modules/player-interaction-and-intents.md` | `docs/design-modules/entity-promotion.md`
 
 ## Executive Summary
 
@@ -1410,7 +1410,7 @@ rateLimiters.intentParsing = new RateLimiter({
 **Related**:
 
 - Design Modules: `docs/design-modules/player-interaction-and-intents.md`, `docs/design-modules/entity-promotion.md`
-- Architecture: `docs/architecture/dnd-5e-agent-framework-integration.md`
+- Architecture: `docs/architecture/agentic-ai-and-mcp.md`
 - Tenets: `docs/tenets.md` (Explicit over implicit, Build for observability)
 
 **Key Technologies**:

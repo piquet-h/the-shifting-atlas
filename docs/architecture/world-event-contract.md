@@ -393,7 +393,7 @@ Dead-letter payloads MUST include original envelope plus validation error summar
 
 ### Dead-Letter Queue Overview
 
-Failed world events are persisted to Cosmos SQL `deadLetters` container with automatic redaction of sensitive player data. For complete DLQ architecture, querying, and operational procedures, see [`docs/dead-letter-storage.md`](../dead-letter-storage.md).
+Failed world events are persisted to Cosmos SQL `deadLetters` container with automatic redaction of sensitive player data. For complete DLQ architecture, querying, and operational procedures, see [`dead-letter-storage.md`](./dead-letter-storage.md).
 
 ### Quick Reference: DLQ Operations
 
@@ -436,7 +436,7 @@ npm run query:deadletters -- --start "2025-10-31T12:00:00Z" --end "2025-10-31T13
 | `json-parse`        | Malformed message (encoding issue) | Check Service Bus message producer        |
 | `storage-failure`   | Cosmos DB unavailable              | Check infrastructure health, retry policy |
 
-See [`docs/dead-letter-storage.md`](../dead-letter-storage.md) for:
+See [`dead-letter-storage.md`](./dead-letter-storage.md) for:
 
 - Redaction strategy (player ID masking, payload summarization)
 - Query interface (programmatic + CLI)
@@ -1054,7 +1054,7 @@ customEvents
 - [ADR-001: Mosswell Persistence & Layering](../adr/ADR-001-mosswell-persistence-layering.md) – Base persistence model
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) – Dual persistence (graph vs SQL)
 - [Observability](../observability.md) – Telemetry framework and event tracking
-- [Dead-Letter Storage](../dead-letter-storage.md) – DLQ operations, redaction, and monitoring
+- [Dead-Letter Storage](./dead-letter-storage.md) – DLQ operations, redaction, and monitoring
 
 ---
 

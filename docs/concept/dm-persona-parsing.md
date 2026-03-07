@@ -80,17 +80,6 @@ Conditional phrases, advanced coreference, complex DAG planning, high‑fidelity
 | Ambiguity frustration        | RUNTIME-BEHAVIOR | Offer clarify prompt path               |
 | Locale drift                 | DATA-MODEL       | Explicit locale flag; fallback English  |
 
-## Success Criteria (Initial)
-
-- ≥80% inputs parse without clarification.
-- Humor fallback <40% of ambiguous cases.
-- No irreversible state from misfires.
-- Telemetry schema error rate <5%.
-
-## Next Concept Steps
-
-Define `ActionFrame` type in shared package; baseline lexicon list; seed humor line examples (see `./dungeon-master-style-guide.md`).
-
 ## Related
 
 - `./dungeon-master-style-guide.md` – tone & persona

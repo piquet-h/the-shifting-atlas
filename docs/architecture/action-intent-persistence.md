@@ -168,15 +168,57 @@ Sequencing and rollout details live in GitHub issues/milestones (source of truth
 
 ---
 
+## Design Rationale
+
+### Why Not Store Narrative Text?
+
+**Problem with the old approach:**
+
+- Thousands of ways to phrase an action → thousands of message templates, or generic boring fallbacks
+- HTTP response blocked on AI generation (800–2000ms latency)
+- Disputes are unresolvable ("I had 5 charges, you said I succeeded")
+
+**Solution:**
+
+1. **Store intent** (small, fast, deterministic): `{ verb: "ignite", method: "tinderbox", targets: [...] }`
+2. **Generate narrative** (AI, on demand): "You strike the tinderbox. Flames lick hungrily at the dry undergrowth."
+3. **Replay produces identical state** — narrative may differ, but the outcome is always the same
+
+**Latency decoupling:**
+
+- Intent + state write: 100–300ms (quick DB write)
+- Narrative generation: async, bounded by timeout + fallback
+- HTTP response returns immediately after state is persisted
+
+### Three Valid Narratives for the Same State
+
+```
+State: { event: "Location.Fire.Started", intensity: "moderate", cause: "player-tinderbox" }
+
+Narrative A: "You strike the tinderbox. Flames lick hungrily at the dry undergrowth."
+Narrative B: "Sparks leap from your tinderbox. The forest erupts in orange flames."
+Narrative C: "Your tinderbox catches. Fire spreads across the forest floor."
+```
+
+All three are correct. State is ground truth; narration is ephemeral rendering.
+
+---
+
+## FAQ
+
+| Question | Answer |
+| -------- | ------ |
+| "Why not just use templates?" | Storing intent (small) + generating narrative (AI) handles infinite variation without templates |
+| "Does replay show same message?" | No — narrative regenerates (may differ), but state is identical. Both correct. |
+| "Does this break existing producers/tests?" | Yes — this is a deliberate contract change. Update producers/tests emitting player actions to include `actionIntent`. |
+| "How does this affect latency?" | Narrative gen doesn't block state save; bounded timeout prevents cascading delays |
+| "What if AI generation fails?" | Fall back to base template; queue enrichment for async retry. |
+
+---
+
 ## Related Documents
 
 - `docs/architecture/event-classification-matrix.md` (Rule 2.5)
 - `docs/architecture/world-event-contract.md` (WorldEventEnvelope shape)
-- `docs/architecture/description-layering-and-variation.md` (Narrative layers)
+- `docs/architecture/action-intent-migration-shape.md` (migration shape)
 - `docs/design-modules/ai-prompt-engineering.md` (AI narrative generation)
-
----
-
-## Next Steps
-
-Implementation work is tracked in GitHub issues/milestones.

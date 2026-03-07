@@ -374,7 +374,7 @@ onClick={() => {
 
 **See Full Documentation**: For complete details on the planned D&D-style explorer creation system, including class selection, attributes, backgrounds, equipment, and phased rollout plan, refer to:
 
-- **`docs/design-modules/explorer-creation-future.md`** - Comprehensive future vision for explorer creation
+- **`docs/concept/explorer-creation.md`** - Comprehensive future vision for explorer creation
 
 **Quick Summary** (see full doc for details):
 

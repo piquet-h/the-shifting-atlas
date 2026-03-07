@@ -48,7 +48,7 @@ Reference:
 
 Partition keys must support access patterns and avoid hot partitions. The current `loreFacts` design partitions by type (see the authoring doc). As lore volume grows, treat partition strategy as a _measured_ architecture constraint (RU/latency telemetry), not an ideological one.
 
-(Details belong in the container catalog; see `./cosmos-sql-containers.md`.)
+(Details belong in the container catalog; see `./cosmos-sql-reference.md`.)
 
 ## Layer 2: Narrative Lore Corpus (Text + Retrieval)
 

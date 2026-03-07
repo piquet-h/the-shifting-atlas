@@ -1,4 +1,9 @@
-# Azure Monitor Alerts vs Custom Timer Function: Analysis
+---
+status: Accepted
+date: 2025-11-09
+---
+
+# ADR-009: Azure Monitor Alerts over Custom Timer Function
 
 ## User Request
 @piquet-h suggested exploring Azure Monitor alerts as an alternative to the custom timer function, noting it would reduce complexity and move operations out of direct game code.
