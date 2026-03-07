@@ -10,6 +10,7 @@ import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert/strict'
 import { after, beforeEach, describe, it } from 'node:test'
 import { v4 as uuidv4 } from 'uuid'
+import { TOKENS } from '../../src/di/tokens.js'
 import {
     __resetExitHintIdempotencyCacheForTests,
     queueProcessExitGenerationHint
@@ -22,7 +23,6 @@ import {
 } from '../../src/handlers/utils/travelDurationHeuristics.js'
 import type { IExitRepository } from '../../src/repos/exitRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import { TOKENS } from '../../src/di/tokens.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 
 describe('Exit Generation Hint Integration', () => {
@@ -93,7 +93,7 @@ describe('Exit Generation Hint Integration', () => {
         // Assert: stub location was created
         const stubLocation = await locationRepo.get(northExit!.to!)
         assert.ok(stubLocation, 'Stub location should have been created')
-        assert.equal(stubLocation?.name, 'Unexplored Region', 'Stub should have placeholder name')
+        assert.equal(stubLocation?.name, 'Unexplored Open Plain', 'Stub should use terrain-aware fallback naming')
         assert.equal(stubLocation?.terrain, 'open-plain', 'Stub should inherit origin terrain')
 
         // Assert: reciprocal exit exists on the stub
@@ -103,6 +103,45 @@ describe('Exit Generation Hint Integration', () => {
 
         // Assert: no errors in processing context
         assert.equal(ctx.getErrors().length, 0, 'Should have no processing errors')
+    })
+
+    it('should materialize atlas-aware stubs when origin carries macro frontier context', async () => {
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'North Gate',
+            description: 'A structured frontier anchor',
+            terrain: 'open-plain',
+            tags: [
+                'settlement:mosswell',
+                'frontier:boundary',
+                'macro:area:lr-area-mosswell-fiordhead',
+                'macro:route:mw-route-harbor-to-northgate',
+                'macro:water:fjord-sound-head'
+            ],
+            exits: [],
+            exitAvailability: { pending: { north: 'Open wilderness awaiting exploration' } },
+            version: 1
+        })
+
+        const ctx = await fixture.createInvocationContext()
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'north', uuidv4()), ctx as unknown as InvocationContext)
+
+        const updatedOrigin = await locationRepo.get(originId)
+        const northExit = updatedOrigin?.exits?.find((e) => e.direction === 'north')
+        assert.ok(northExit?.to, 'North exit should point to a materialized stub')
+
+        const stubLocation = await locationRepo.get(northExit!.to!)
+        assert.ok(stubLocation, 'Atlas-aware stub should exist')
+        assert.notEqual(
+            stubLocation?.name,
+            'Unexplored Region',
+            'Hint path should not fall back to generic stub naming when atlas context exists'
+        )
+        assert.ok(stubLocation?.tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
+        assert.ok(stubLocation?.tags?.includes('macro:route:mw-route-harbor-to-northgate'))
+        assert.ok(stubLocation?.tags?.includes('macro:water:fjord-sound-head'))
+        assert.ok(stubLocation?.exitAvailability?.pending, 'Atlas-aware stub should remain frontier-expandable')
     })
 
     it('should clear pending availability for the materialized direction', async () => {

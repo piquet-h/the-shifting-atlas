@@ -1,6 +1,7 @@
 import { Direction, getOppositeDirection, isDirection, Location, LocationExit } from '@piquet-h/shared'
 import { injectable } from 'inversify'
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
+import { applyMacroAtlasBindings } from '../seeding/macroAtlasBindings.js'
 import { ExitEdgeResult, generateExitsSummaryCache, IExitRepository, sortExits } from './exitRepository.js'
 import { ILocationRepository } from './locationRepository.js'
 import { computeContentHash } from './utils/index.js'
@@ -14,7 +15,7 @@ export class InMemoryLocationRepository implements ILocationRepository, IExitRep
     private locations: Map<string, Location>
     private exitTravelDurations: Map<string, number> = new Map()
     constructor() {
-        const locs = starterLocationsData as Location[]
+        const locs = applyMacroAtlasBindings(starterLocationsData as Location[])
         // Deep-clone each seed location so that tests running in the same process
         // cannot cross-contaminate each other via shared JSON module references.
         this.locations = new Map(locs.map((r) => [r.id, structuredClone(r)]))

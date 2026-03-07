@@ -1,4 +1,11 @@
-import { getTerrainGuidance, type Direction, type ForbiddenExitEntry, type TerrainType } from '@piquet-h/shared'
+import {
+    getOppositeDirection,
+    getTerrainGuidance,
+    type Direction,
+    type ExitAvailabilityMetadata,
+    type ForbiddenExitEntry,
+    type TerrainType
+} from '@piquet-h/shared'
 import mosswellMacroAtlas from '../data/mosswellMacroAtlas.json' with { type: 'json' }
 import theLongReachMacroAtlas from '../data/theLongReachMacroAtlas.json' with { type: 'json' }
 
@@ -52,6 +59,14 @@ export interface MacroGenerationContext {
 export interface AtlasConstrainedExitAvailability {
     pending?: Partial<Record<Direction, string>>
     forbidden?: Partial<Record<Direction, ForbiddenExitEntry>>
+}
+
+export interface AtlasAwareFutureLocationPlan {
+    terrain: TerrainType
+    name: string
+    tags: string[]
+    exitAvailability?: ExitAvailabilityMetadata
+    macroContext: MacroGenerationContext
 }
 
 const ALL_ATLASES = [mosswellMacroAtlas as MacroAtlasLike, theLongReachMacroAtlas as MacroAtlasLike]
@@ -413,4 +428,26 @@ export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: s
     }
 
     return unique(propagated)
+}
+
+export function planAtlasAwareFutureLocation(
+    baseTerrain: TerrainType,
+    expansionDirection: Direction,
+    sourceTags: string[] | undefined,
+    realmKey?: string
+): AtlasAwareFutureLocationPlan {
+    const propagatedTags = getMacroPropagationTags(sourceTags, realmKey)
+    const macroContext = resolveMacroGenerationContext(propagatedTags, expansionDirection)
+    const selectedTerrain = selectAtlasAwareTerrain(baseTerrain, macroContext)
+    const name = suggestFutureNodeName(selectedTerrain, macroContext)
+    const backDirection = getOppositeDirection(expansionDirection)
+    const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, macroContext, backDirection, propagatedTags)
+
+    return {
+        terrain: selectedTerrain,
+        name,
+        tags: propagatedTags,
+        exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
+        macroContext
+    }
 }

@@ -22,7 +22,7 @@
  * See docs/architecture/exit-generation-hints.md for specification.
  */
 import type { InvocationContext } from '@azure/functions'
-import type { Direction, ExitAvailabilityMetadata } from '@piquet-h/shared'
+import type { Direction, ExitAvailabilityMetadata, TerrainType } from '@piquet-h/shared'
 import { getOppositeDirection } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import { buildExitHintIdempotencyKey, isExitHintExpired, safeValidateExitGenerationHintPayload } from '@piquet-h/shared/events'
@@ -31,6 +31,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../di/tokens.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
+import { planAtlasAwareFutureLocation } from '../services/macroGenerationContext.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { getContainer } from './utils/contextHelpers.js'
@@ -392,16 +393,17 @@ export class QueueProcessExitGenerationHintHandler {
 
         // 12. Materialize: create stub neighbor location and bidirectional exit
         const stubId = uuidv4()
-        const stubTerrain = origin.terrain ?? 'open-plain'
         const dir = payload.dir as Direction
+        const futureLocationPlan = planAtlasAwareFutureLocation((origin.terrain ?? 'open-plain') as TerrainType, dir, origin.tags)
 
         await this.locationRepository.upsert({
             id: stubId,
-            name: 'Unexplored Region',
+            name: futureLocationPlan.name,
             description: '',
-            terrain: stubTerrain,
-            tags: [],
+            terrain: futureLocationPlan.terrain,
+            tags: futureLocationPlan.tags,
             exits: [],
+            exitAvailability: futureLocationPlan.exitAvailability,
             version: 1
         })
 

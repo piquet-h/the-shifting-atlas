@@ -27,13 +27,10 @@ import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
 import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
 import {
-    buildAtlasConstrainedExitAvailability,
-    getMacroPropagationTags,
+    planAtlasAwareFutureLocation,
     resolveMacroGenerationContext,
     scoreAtlasAwareReconnectionCandidate,
-    selectAtlasAwareExpansionDirections,
-    selectAtlasAwareTerrain,
-    suggestFutureNodeName
+    selectAtlasAwareExpansionDirections
 } from '../../services/macroGenerationContext.js'
 import type { ITemporalProximityService } from '../../services/temporalProximityService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
@@ -608,31 +605,21 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         for (const direction of directions) {
             const id = uuidv4()
-            const propagatedTags = getMacroPropagationTags(rootTags, realmKey)
-            const stubContext = resolveMacroGenerationContext(propagatedTags, direction)
-            const selectedTerrain = selectAtlasAwareTerrain(terrain, stubContext)
-            const name = suggestFutureNodeName(selectedTerrain, stubContext)
-
-            // New stubs should be frontier-expandable immediately.
-            // Mark all terrain-default directions (except the reciprocal/back direction to root)
-            // as pending generation so look/prefetch can surface them, unless atlas
-            // barrier/trend rules constrain them into forbidden directions up front.
-            const backDirection = getOppositeDirection(direction)
-            const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, stubContext, backDirection, propagatedTags)
+            const futureLocationPlan = planAtlasAwareFutureLocation(terrain, direction, rootTags, realmKey)
 
             // Create location entity
             await this.locationRepo.upsert({
                 id,
-                name,
+                name: futureLocationPlan.name,
                 description: '', // Will be filled by AI-generated layer
-                terrain: selectedTerrain,
-                tags: propagatedTags,
+                terrain: futureLocationPlan.terrain,
+                tags: futureLocationPlan.tags,
                 exits: [], // Will be populated by ExitCreateHandler
-                exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
+                exitAvailability: futureLocationPlan.exitAvailability,
                 version: 1
             })
 
-            stubs.push({ id, direction, terrain: selectedTerrain, tags: propagatedTags })
+            stubs.push({ id, direction, terrain: futureLocationPlan.terrain, tags: futureLocationPlan.tags })
 
             context.log('Created stub location', { id, direction, terrain })
         }
