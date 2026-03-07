@@ -58,3 +58,30 @@ test('computeUpdatedDescription: is idempotent for the auto-generated block', ()
 
     assert.equal(second.updatedDescription, first.updatedDescription)
 })
+
+test('computeUpdatedDescription: recognizes delivery-slices template without injecting Slice 0 when no infra gaps exist', () => {
+    const repo = 'piquet-h/the-shifting-atlas'
+    const milestone = {
+        number: 22,
+        title: 'M4d Macro Geography & Frontier Coherence',
+        state: 'open',
+        description: [
+            'Intro line.',
+            '',
+            '## Delivery slices',
+            '',
+            '### Slice 1 — Runtime',
+            '',
+            'Order:',
+            '1. #895 Runtime epic'
+        ].join('\n')
+    }
+
+    const issues = [makeIssue({ number: 895, title: 'Runtime epic', state: 'open', labels: ['scope:world', 'epic'] })]
+
+    const { updatedDescription, summary } = computeUpdatedDescription({ repo, milestone, issues })
+
+    assert.equal(summary.usedSliceTemplate, true)
+    assert.equal(updatedDescription.includes('### Slice 0 — Prerequisites (infra)'), false)
+    assert.ok(updatedDescription.includes('### Slice 1 — Runtime'))
+})

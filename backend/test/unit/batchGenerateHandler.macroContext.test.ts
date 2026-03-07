@@ -259,4 +259,155 @@ describe('BatchGenerateHandler - macro context propagation', () => {
 
         assert.deepEqual(directions, ['north', 'west'])
     })
+
+    test('fuzzy reconnection prefers atlas-compatible candidate over generic candidate at equal travel distance', async () => {
+        const rootLocationId = '10000000-0000-4000-8000-000000000001'
+        const southPivotId = '10000000-0000-4000-8000-000000000002'
+        const northPivotId = '10000000-0000-4000-8000-000000000003'
+        const genericCandidateId = '10000000-0000-4000-8000-000000000004'
+        const compatibleCandidateId = '10000000-0000-4000-8000-000000000099'
+
+        await locationRepo.upsert({
+            id: rootLocationId,
+            name: 'Mosswell River Jetty',
+            description: 'The inner harbor approach.',
+            terrain: 'open-plain',
+            tags: [
+                'settlement:mosswell',
+                'macro:area:lr-area-mosswell-fiordhead',
+                'macro:route:mw-route-harbor-to-delta',
+                'macro:water:fjord-sound-head'
+            ],
+            exits: [],
+            version: 1
+        })
+
+        await locationRepo.upsert({
+            id: southPivotId,
+            name: 'South Pivot',
+            description: '',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: northPivotId,
+            name: 'North Pivot',
+            description: '',
+            terrain: 'open-plain',
+            tags: ['macro:area:lr-area-mosswell-fiordhead'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: genericCandidateId,
+            name: 'Generic West Candidate',
+            description: '',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: compatibleCandidateId,
+            name: 'Compatible West Candidate',
+            description: '',
+            terrain: 'narrow-corridor',
+            tags: [
+                'settlement:mosswell',
+                'macro:area:lr-area-mosswell-fiordhead',
+                'macro:route:mw-route-harbor-to-delta',
+                'macro:water:fjord-sound-head'
+            ],
+            exits: [],
+            version: 1
+        })
+
+        await locationRepo.ensureExitBidirectional(rootLocationId, 'south', southPivotId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(rootLocationId, 'north', northPivotId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(southPivotId, 'west', genericCandidateId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(northPivotId, 'west', compatibleCandidateId, { reciprocal: true })
+
+        await locationRepo.setExitTravelDuration(rootLocationId, 'south', 60_000)
+        await locationRepo.setExitTravelDuration(southPivotId, 'west', 60_000)
+        await locationRepo.setExitTravelDuration(rootLocationId, 'north', 60_000)
+        await locationRepo.setExitTravelDuration(northPivotId, 'west', 60_000)
+
+        const event: WorldEventEnvelope = {
+            eventId: uuidv4(),
+            type: 'World.Location.BatchGenerate',
+            occurredUtc: new Date().toISOString(),
+            actor: { kind: 'system' },
+            correlationId: uuidv4(),
+            idempotencyKey: `batch:${uuidv4()}`,
+            version: 1,
+            payload: {
+                rootLocationId,
+                terrain: 'open-plain',
+                arrivalDirection: 'east',
+                expansionDepth: 1,
+                batchSize: 3,
+                realmKey: 'macro:area:lr-area-mosswell-fiordhead'
+            }
+        }
+
+        const result = await handler.handle(event, { log() {} } as never)
+        assert.equal(result.outcome, 'success')
+
+        const rootAfter = await locationRepo.get(rootLocationId)
+        const westExit = rootAfter?.exits?.find((exit) => exit.direction === 'west')
+
+        assert.ok(westExit)
+        assert.equal(westExit?.to, compatibleCandidateId)
+        assert.notEqual(westExit?.to, genericCandidateId)
+    })
+
+    test('generated waterfront stub marks atlas-blocked direction as forbidden before any further generation occurs', async () => {
+        const rootLocationId = uuidv4()
+        await locationRepo.upsert({
+            id: rootLocationId,
+            name: 'Mosswell River Jetty',
+            description: 'The inner harbor approach.',
+            terrain: 'open-plain',
+            tags: [
+                'settlement:mosswell',
+                'macro:area:lr-area-mosswell-fiordhead',
+                'macro:route:mw-route-harbor-to-delta',
+                'macro:water:fjord-sound-head'
+            ],
+            exits: [],
+            version: 1
+        })
+
+        const event: WorldEventEnvelope = {
+            eventId: uuidv4(),
+            type: 'World.Location.BatchGenerate',
+            occurredUtc: new Date().toISOString(),
+            actor: { kind: 'system' },
+            correlationId: uuidv4(),
+            idempotencyKey: `batch:${uuidv4()}`,
+            version: 1,
+            payload: {
+                rootLocationId,
+                terrain: 'open-plain',
+                arrivalDirection: 'north',
+                expansionDepth: 1,
+                batchSize: 3,
+                realmKey: 'macro:area:lr-area-mosswell-fiordhead'
+            }
+        }
+
+        const result = await handler.handle(event, { log() {} } as never)
+        assert.equal(result.outcome, 'success')
+
+        const allLocations = await locationRepo.listAll()
+        const westwardGenerated = allLocations.find((location) => location.id !== rootLocationId && location.name.includes('Westward'))
+
+        assert.ok(westwardGenerated?.exitAvailability)
+        assert.ok(westwardGenerated?.exitAvailability?.forbidden?.west)
+        assert.ok(!westwardGenerated?.exitAvailability?.pending?.west)
+        assert.ok(westwardGenerated?.exitAvailability?.pending?.north)
+        assert.ok(westwardGenerated?.exitAvailability?.pending?.south)
+    })
 })

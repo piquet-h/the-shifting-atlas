@@ -23,7 +23,8 @@ Template:
 
 Automation:
 
-- `scripts/ensure-milestone-has-delivery-slices.mjs` ensures the section exists and keeps issue titles in sync.
+- `scripts/ensure-milestone-has-delivery-slices.mjs` bootstraps the `Delivery slices` section and keeps issue titles in sync.
+- `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it preserves the slice structure and refreshes the impact block deterministically.
 
 ## How to answer common questions
 

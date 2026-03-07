@@ -269,6 +269,11 @@ These scripts maintain the milestone description “delivery slices” format.
 - `ensure-milestone-has-delivery-slices.mjs`
 - `reanalyze-milestone.mjs`
 
+Recommended usage:
+
+- Use `ensure-milestone-has-delivery-slices.mjs` to bootstrap a milestone that has no `## Delivery slices` section yet.
+- Use `reanalyze-milestone.mjs` after issue CRUD within an existing milestone to preserve slice ordering, refresh the impact report, and surface gaps conservatively.
+
 Drift control note: milestone descriptions are kept in sync deterministically on issue changes (milestoned/demilestoned/edited/closed/reopened).
 
 They are designed primarily for CI usage; see workflow files under `.github/workflows/`.

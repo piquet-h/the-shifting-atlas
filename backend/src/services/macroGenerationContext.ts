@@ -1,4 +1,4 @@
-import { getTerrainGuidance, type Direction, type TerrainType } from '@piquet-h/shared'
+import { getTerrainGuidance, type Direction, type ForbiddenExitEntry, type TerrainType } from '@piquet-h/shared'
 import mosswellMacroAtlas from '../data/mosswellMacroAtlas.json' with { type: 'json' }
 import theLongReachMacroAtlas from '../data/theLongReachMacroAtlas.json' with { type: 'json' }
 
@@ -47,6 +47,11 @@ export interface MacroGenerationContext {
     routeContinuityHint?: string
     preferredFutureNodePrefix?: string
     barrierSemantics: string[]
+}
+
+export interface AtlasConstrainedExitAvailability {
+    pending?: Partial<Record<Direction, string>>
+    forbidden?: Partial<Record<Direction, ForbiddenExitEntry>>
 }
 
 const ALL_ATLASES = [mosswellMacroAtlas as MacroAtlasLike, theLongReachMacroAtlas as MacroAtlasLike]
@@ -285,6 +290,89 @@ export function selectAtlasAwareTerrain(baseTerrain: TerrainType, context: Macro
     }
 
     return baseTerrain
+}
+
+export function scoreAtlasAwareReconnectionCandidate(
+    targetContext: MacroGenerationContext,
+    baseTerrain: TerrainType,
+    candidateTerrain: TerrainType,
+    candidateTags: string[] | undefined
+): number {
+    const candidateContext = resolveMacroGenerationContext(candidateTags, targetContext.expansionDirection)
+    const expectedTerrain = selectAtlasAwareTerrain(baseTerrain, targetContext)
+    let score = 0
+
+    const sharedRoutes = targetContext.routeRefs.filter((routeRef) => candidateContext.routeRefs.includes(routeRef)).length
+    score += sharedRoutes * 200
+
+    if (targetContext.areaRef && candidateContext.areaRef === targetContext.areaRef) {
+        score += 120
+    }
+
+    if (targetContext.preferredFutureNodePrefix && candidateContext.preferredFutureNodePrefix === targetContext.preferredFutureNodePrefix) {
+        score += 80
+    }
+
+    if (targetContext.waterContext && candidateContext.waterContext === targetContext.waterContext) {
+        score += 60
+    }
+
+    const sharedBarriers = targetContext.barrierSemantics.filter((barrier) => candidateContext.barrierSemantics.includes(barrier)).length
+    score += sharedBarriers * 30
+
+    if (candidateTerrain === expectedTerrain) {
+        score += 40
+    }
+
+    return score
+}
+
+export function buildAtlasConstrainedExitAvailability(
+    terrain: TerrainType,
+    context: MacroGenerationContext,
+    backDirection: Direction,
+    tags?: string[]
+): AtlasConstrainedExitAvailability {
+    const guidance = getTerrainGuidance(terrain)
+    const candidateDirections =
+        guidance.defaultDirections && guidance.defaultDirections.length > 0
+            ? guidance.defaultDirections
+            : (['north', 'south', 'east', 'west'] as Direction[])
+
+    const pendingDirections = candidateDirections.filter((direction) => direction !== backDirection)
+    const forbidden: Partial<Record<Direction, ForbiddenExitEntry>> = {}
+
+    const lowerTrend = context.directionTerrainTrend?.toLowerCase() || ''
+    const barrierText = context.barrierSemantics.join(' ').toLowerCase()
+
+    if (
+        context.waterContext === 'fjord-sound-head' &&
+        terrain === 'narrow-corridor' &&
+        context.expansionDirection === 'west' &&
+        pendingDirections.includes('west') &&
+        (lowerTrend.includes('fiord') || lowerTrend.includes('cliff') || barrierText.includes('fiord') || barrierText.includes('cliff'))
+    ) {
+        forbidden.west = {
+            reason: 'blocked by fiord walls and cliff-limited ledges',
+            motif: 'cliff',
+            reveal: 'onTryMove'
+        }
+    }
+
+    const pending = pendingDirections.reduce<Partial<Record<Direction, string>>>((acc, direction) => {
+        if (forbidden[direction]) {
+            return acc
+        }
+
+        const directionContext = tags ? resolveMacroGenerationContext(tags, direction) : { ...context, expansionDirection: direction }
+        acc[direction] = buildAtlasAwarePendingDescription(terrain, directionContext)
+        return acc
+    }, {})
+
+    return {
+        pending: Object.keys(pending).length > 0 ? pending : undefined,
+        forbidden: Object.keys(forbidden).length > 0 ? forbidden : undefined
+    }
 }
 
 export function buildAtlasAwarePendingDescription(terrain: TerrainType, context: MacroGenerationContext): string {

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+    buildAtlasConstrainedExitAvailability,
     resolveMacroGenerationContext,
+    scoreAtlasAwareReconnectionCandidate,
     selectAtlasAwareExpansionDirections,
     selectAtlasAwareTerrain
 } from '../../src/services/macroGenerationContext.js'
@@ -68,4 +70,47 @@ test('selectAtlasAwareExpansionDirections: prioritizes trend-bearing atlas direc
     ])
 
     assert.deepEqual(directions, ['north', 'west'])
+})
+
+test('scoreAtlasAwareReconnectionCandidate: prefers route/area-compatible candidate over generic tie', () => {
+    const targetContext = resolveMacroGenerationContext(
+        [
+            'settlement:mosswell',
+            'macro:area:lr-area-mosswell-fiordhead',
+            'macro:route:mw-route-harbor-to-delta',
+            'macro:water:fjord-sound-head'
+        ],
+        'west'
+    )
+
+    const compatibleScore = scoreAtlasAwareReconnectionCandidate(targetContext, 'open-plain', 'narrow-corridor', [
+        'settlement:mosswell',
+        'macro:area:lr-area-mosswell-fiordhead',
+        'macro:route:mw-route-harbor-to-delta',
+        'macro:water:fjord-sound-head'
+    ])
+
+    const genericScore = scoreAtlasAwareReconnectionCandidate(targetContext, 'open-plain', 'open-plain', ['settlement:mosswell'])
+
+    assert.ok(compatibleScore > genericScore)
+})
+
+test('buildAtlasConstrainedExitAvailability: converts impossible waterfront continuation into forbidden direction before generation', () => {
+    const context = resolveMacroGenerationContext(
+        [
+            'settlement:mosswell',
+            'macro:area:lr-area-mosswell-fiordhead',
+            'macro:route:mw-route-harbor-to-delta',
+            'macro:water:fjord-sound-head'
+        ],
+        'west'
+    )
+
+    const availability = buildAtlasConstrainedExitAvailability('narrow-corridor', context, 'east')
+
+    assert.ok(!availability.pending?.west)
+    assert.ok(availability.forbidden?.west)
+    assert.ok(availability.forbidden?.west?.reason.includes('fiord') || availability.forbidden?.west?.reason.includes('cliff'))
+    assert.ok(availability.pending?.north)
+    assert.ok(availability.pending?.south)
 })

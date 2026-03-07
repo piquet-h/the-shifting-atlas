@@ -16,7 +16,7 @@
 
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, TerrainType } from '@piquet-h/shared'
-import { DIRECTIONS, TERRAIN_TYPES, getOppositeDirection, getTerrainGuidance } from '@piquet-h/shared'
+import { DIRECTIONS, TERRAIN_TYPES, getOppositeDirection } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
@@ -27,9 +27,10 @@ import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
 import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
 import {
-    buildAtlasAwarePendingDescription,
+    buildAtlasConstrainedExitAvailability,
     getMacroPropagationTags,
     resolveMacroGenerationContext,
+    scoreAtlasAwareReconnectionCandidate,
     selectAtlasAwareExpansionDirections,
     selectAtlasAwareTerrain,
     suggestFutureNodeName
@@ -537,6 +538,14 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         if (!SETTLEMENT_TERRAIN_TYPES.has(terrain)) {
             const budget = WILDERNESS_RECONNECT_TOLERANCE * stepMs
             const candidates = await this.temporalProximitySvc.findWithinTravelTime(rootId, budget, realmKey)
+            const candidateProfiles = new Map(
+                await Promise.all(
+                    candidates.map(async (candidate) => {
+                        const location = await this.locationRepo.get(candidate.locationId)
+                        return [candidate.locationId, location] as const
+                    })
+                )
+            )
 
             // Deterministic sort per design: hops ASC, accumulatedTravelMs ASC, locationId ASC.
             candidates.sort(byProximityPriority)
@@ -545,12 +554,32 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             // (directions iterate in the canonical order returned by determineNeighborDirections).
             for (const target of results) {
                 if (target.type !== 'stub') continue
-                const candidate = candidates.find(
-                    (c) =>
-                        !usedCandidateIds.has(c.locationId) &&
-                        isAxisDominantForCardinalDirection(target.direction, c.displacementX, c.displacementY) &&
-                        narrativeAlignmentScore(target.direction, c.displacementX, c.displacementY) >= NARRATIVE_ALIGNMENT_MIN
-                )
+                const targetContext = resolveMacroGenerationContext(root?.tags, target.direction)
+                const candidate = candidates
+                    .filter(
+                        (c) =>
+                            !usedCandidateIds.has(c.locationId) &&
+                            isAxisDominantForCardinalDirection(target.direction, c.displacementX, c.displacementY) &&
+                            narrativeAlignmentScore(target.direction, c.displacementX, c.displacementY) >= NARRATIVE_ALIGNMENT_MIN
+                    )
+                    .sort((a, b) => {
+                        const aProfile = candidateProfiles.get(a.locationId)
+                        const bProfile = candidateProfiles.get(b.locationId)
+                        const aAtlasScore = scoreAtlasAwareReconnectionCandidate(
+                            targetContext,
+                            terrain,
+                            aProfile?.terrain ?? terrain,
+                            aProfile?.tags
+                        )
+                        const bAtlasScore = scoreAtlasAwareReconnectionCandidate(
+                            targetContext,
+                            terrain,
+                            bProfile?.terrain ?? terrain,
+                            bProfile?.tags
+                        )
+
+                        return bAtlasScore - aAtlasScore || byProximityPriority(a, b)
+                    })[0]
                 if (candidate) {
                     target.type = 'reconnect'
                     target.targetId = candidate.locationId
@@ -577,12 +606,6 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
     ): Promise<StubLocation[]> {
         const stubs: StubLocation[] = []
 
-        const guidance = getTerrainGuidance(terrain)
-        const terrainDirections =
-            guidance.defaultDirections && guidance.defaultDirections.length > 0
-                ? guidance.defaultDirections
-                : (['north', 'south', 'east', 'west'] as Direction[])
-
         for (const direction of directions) {
             const id = uuidv4()
             const propagatedTags = getMacroPropagationTags(rootTags, realmKey)
@@ -592,23 +615,10 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
             // New stubs should be frontier-expandable immediately.
             // Mark all terrain-default directions (except the reciprocal/back direction to root)
-            // as pending generation so look/prefetch can surface them.
+            // as pending generation so look/prefetch can surface them, unless atlas
+            // barrier/trend rules constrain them into forbidden directions up front.
             const backDirection = getOppositeDirection(direction)
-            const selectedGuidance = getTerrainGuidance(selectedTerrain)
-            const selectedTerrainDirections =
-                selectedGuidance.defaultDirections && selectedGuidance.defaultDirections.length > 0
-                    ? selectedGuidance.defaultDirections
-                    : terrainDirections
-            const pendingDirections = selectedTerrainDirections.filter((d) => d !== backDirection)
-            const pending =
-                pendingDirections.length > 0
-                    ? pendingDirections.reduce<Partial<Record<Direction, string>>>((acc, d) => {
-                          const pendingContext = resolveMacroGenerationContext(propagatedTags, d)
-                          const pendingTerrain = selectAtlasAwareTerrain(selectedTerrain, pendingContext)
-                          acc[d] = buildAtlasAwarePendingDescription(pendingTerrain, pendingContext)
-                          return acc
-                      }, {})
-                    : undefined
+            const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, stubContext, backDirection, propagatedTags)
 
             // Create location entity
             await this.locationRepo.upsert({
@@ -618,7 +628,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 terrain: selectedTerrain,
                 tags: propagatedTags,
                 exits: [], // Will be populated by ExitCreateHandler
-                exitAvailability: pending ? { pending } : undefined,
+                exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
                 version: 1
             })
 
