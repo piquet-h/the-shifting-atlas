@@ -8,7 +8,7 @@
 
 **A MMORPG implemented as a text adventure like Zork, but with Generative AI as the dungeon master in a fully open and immersive world.**
 
-Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, and humorous guidance. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
+Create a living text-first MMO-style world where player actions, NPC behaviors, factions, trade, and narrative arcs evolve via queued world events rather than real-time tick loops. **Generative AI acts as the Dungeon Master**, orchestrating narrative depth, spatial storytelling, humorous guidance and helps drive world expansion. Players traverse a graph-based world enriched by additive description layers, engage with deterministic AI assistance, and influence evolving world history through validated events.
 
 **D&D 5e integration (northstar, optional specialization)**: The long-term direction is a D&D-flavored rules overlay driven by SRD-derived reference data and tool-surface contracts (mechanics lookup → validated outcomes → narration). This is intentionally **not required for the playable MVP loop** (movement/look/interact should remain fun even when AI is unavailable or throttled). See [D&D 5e API Integration](docs/design-modules/dnd5e-foundry-agent-architecture.md).
 

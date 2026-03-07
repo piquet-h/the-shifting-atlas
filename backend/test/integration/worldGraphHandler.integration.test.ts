@@ -131,4 +131,68 @@ describe('WorldGraphHandler Integration', () => {
             assert.ok(node.name.toLowerCase().includes('unexplored'), 'Expected synthetic node to be marked unexplored')
         }
     })
+
+    it('uses direction-aware synthetic node names for pending in/out/up/down exits', async () => {
+        const sourceId = '99990000-1111-2222-3333-666666666666'
+
+        await locationRepo.upsert({
+            id: sourceId,
+            name: 'Vertical Pending Source',
+            description: 'A structure with vertical and radial pending exits.',
+            exits: [],
+            exitAvailability: {
+                pending: {
+                    in: 'A doorway leads inside.',
+                    out: 'A threshold leads back out.',
+                    up: 'A stair rises to an upper level.',
+                    down: 'A hatch descends below.'
+                }
+            },
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(WorldGraphHandler)
+
+        const req = TestMocks.createHttpRequest({
+            method: 'GET',
+            url: 'http://localhost/api/world/graph'
+        }) as HttpRequest
+
+        const context = TestMocks.createInvocationContext({
+            invocationId: 'test-world-graph-pending-direction-aware-names'
+        }) as unknown as InvocationContext
+        ;(context.extraInputs as unknown as Map<string, unknown>).set('container', container)
+
+        const response = await handler.handle(req, context)
+        assert.equal(response.status, 200)
+
+        const body = response.jsonBody as {
+            success: boolean
+            data?: {
+                nodes: Array<{ id: string; name: string }>
+                edges: Array<{ fromId: string; toId: string; direction: string; pending?: boolean }>
+            }
+        }
+
+        assert.equal(body.success, true)
+        assert.ok(body.data)
+
+        const expectedNamesByDirection = {
+            in: 'Unexplored Interior',
+            out: 'Unexplored Exterior Approach',
+            up: 'Unexplored Upper Level',
+            down: 'Unexplored Lower Level'
+        } as const
+
+        for (const [direction, expectedName] of Object.entries(expectedNamesByDirection)) {
+            const pendingEdge = body.data!.edges.find((e) => e.fromId === sourceId && e.direction === direction)
+            assert.ok(pendingEdge, `Expected pending ${direction} edge`)
+            assert.equal(pendingEdge?.pending, true, `Expected pending ${direction} edge to be marked pending=true`)
+
+            const targetNode = body.data!.nodes.find((n) => n.id === pendingEdge?.toId)
+            assert.ok(targetNode, `Expected synthetic node for pending ${direction}`)
+            assert.equal(targetNode?.name, expectedName, `Expected pending ${direction} node name to be direction-aware`)
+        }
+    })
 })

@@ -44,6 +44,21 @@ export interface WorldGraphResponse {
 const TRAVEL_DURATION_ABSENT = -1
 const PENDING_NODE_NAME = 'Unexplored Open Plain'
 
+function pendingNodeName(direction: string): string {
+    switch (direction) {
+        case 'in':
+            return 'Unexplored Interior'
+        case 'out':
+            return 'Unexplored Exterior Approach'
+        case 'up':
+            return 'Unexplored Upper Level'
+        case 'down':
+            return 'Unexplored Lower Level'
+        default:
+            return PENDING_NODE_NAME
+    }
+}
+
 function pendingNodeId(fromId: string, direction: string): string {
     return `pending:${fromId}:${direction}`
 }
@@ -120,7 +135,7 @@ export class WorldGraphHandler extends BaseHandler {
                         if (!nodeById.has(syntheticId)) {
                             nodeById.set(syntheticId, {
                                 id: syntheticId,
-                                name: PENDING_NODE_NAME,
+                                name: pendingNodeName(direction),
                                 tags: ['pending:synthetic']
                             })
                         }
@@ -213,7 +228,7 @@ export class WorldGraphHandler extends BaseHandler {
                     if (!nodesById.has(syntheticId)) {
                         nodesById.set(syntheticId, {
                             id: syntheticId,
-                            name: PENDING_NODE_NAME,
+                            name: pendingNodeName(direction),
                             tags: ['pending:synthetic']
                         })
                     }
