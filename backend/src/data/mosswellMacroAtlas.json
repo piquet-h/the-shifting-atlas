@@ -1,0 +1,374 @@
+{
+    "schemaVersion": 1,
+    "settlement": {
+        "id": "mosswell-macro-atlas-v1",
+        "slug": "mosswell",
+        "name": "Mosswell",
+        "worldSlug": "eridun",
+        "landmassSlug": "the-long-reach",
+        "kind": "settlement-macro-atlas",
+        "status": "first-pass",
+        "placement": {
+            "macroAreaRef": "lr-area-mosswell-fiordhead",
+            "regionalSummary": "Mosswell sits at the head of a fjord/sound system where sheltered deep water narrows into river-fed basin ground.",
+            "waterContext": {
+                "primary": "fjord-sound-head",
+                "navigability": "watercraft-favored",
+                "shoreCharacter": [
+                    "steep-sidewalls",
+                    "sheltered-inner-water",
+                    "tidal-river-mouth"
+                ]
+            }
+        },
+        "references": {
+            "worldShell": "backend/src/data/eridunAtlas.json",
+            "landmassMacroAtlas": "backend/src/data/theLongReachMacroAtlas.json",
+            "localLocations": "backend/src/data/villageLocations.json",
+            "documentation": [
+                "docs/architecture/macro-atlas-and-seed-redesign.md"
+            ]
+        }
+    },
+    "taxonomy": {
+        "areaNodeTypes": [
+            "harbor-basin",
+            "fiord-wall",
+            "delta-edge",
+            "valley-mouth",
+            "upland-approach"
+        ],
+        "corridorNodeTypes": [
+            "harbor-road",
+            "north-road",
+            "farm-road",
+            "quay-walk",
+            "valley-route"
+        ],
+        "barrierTypes": [
+            "deep-water",
+            "cliff-wall",
+            "marsh-break"
+        ]
+    },
+    "macroGraph": {
+        "nodes": [
+            {
+                "id": "mw-area-fjord-sound-head",
+                "name": "Mosswell Fjord/Sound Head",
+                "nodeClass": "area",
+                "areaType": "harbor-basin",
+                "terrainIdentity": [
+                    "sheltered deepwater inlet",
+                    "tidal-turn basin",
+                    "harbor edge flats"
+                ],
+                "tags": [
+                    "mosswell-core",
+                    "waterfront"
+                ]
+            },
+            {
+                "id": "mw-area-river-delta-edge",
+                "name": "River Delta Edge",
+                "nodeClass": "area",
+                "areaType": "delta-edge",
+                "terrainIdentity": [
+                    "silt fans",
+                    "dune tongues",
+                    "brackish creeks"
+                ],
+                "tags": [
+                    "harbor-outflow",
+                    "soft-ground"
+                ]
+            },
+            {
+                "id": "mw-area-north-valley-mouth",
+                "name": "North Valley Mouth",
+                "nodeClass": "area",
+                "areaType": "valley-mouth",
+                "terrainIdentity": [
+                    "river-cut approach",
+                    "broadening valley floor",
+                    "track convergence"
+                ],
+                "tags": [
+                    "north-approach",
+                    "frontier-anchor"
+                ]
+            },
+            {
+                "id": "mw-area-west-fiord-wall",
+                "name": "West Fiord Wall",
+                "nodeClass": "area",
+                "areaType": "fiord-wall",
+                "terrainIdentity": [
+                    "near-vertical stone",
+                    "wet cliff faces",
+                    "narrow ledge runs"
+                ],
+                "tags": [
+                    "westward-relief",
+                    "movement-constrained"
+                ]
+            },
+            {
+                "id": "mw-area-east-shelf-foots",
+                "name": "East Shelf Foots",
+                "nodeClass": "area",
+                "areaType": "upland-approach",
+                "terrainIdentity": [
+                    "gentler shelf rise",
+                    "terraced footslopes",
+                    "trackable uplands"
+                ],
+                "tags": [
+                    "east-approach",
+                    "lower-relief"
+                ]
+            },
+            {
+                "id": "mw-corridor-harbor-road",
+                "name": "Harbor Road Spine",
+                "nodeClass": "corridor",
+                "corridorType": "harbor-road",
+                "terrainIdentity": [
+                    "quay-to-gate connector",
+                    "settlement backbone"
+                ],
+                "tags": [
+                    "route-continuity",
+                    "primary-mosswell-line"
+                ]
+            },
+            {
+                "id": "mw-corridor-north-road",
+                "name": "North Road Line",
+                "nodeClass": "corridor",
+                "corridorType": "north-road",
+                "terrainIdentity": [
+                    "valley-guided road",
+                    "gate-linked frontier line"
+                ],
+                "tags": [
+                    "north-road",
+                    "north-gate"
+                ]
+            },
+            {
+                "id": "mw-corridor-south-farm-road",
+                "name": "South Farm Road",
+                "nodeClass": "corridor",
+                "corridorType": "farm-road",
+                "terrainIdentity": [
+                    "fence-lined lane",
+                    "field-edge continuation"
+                ],
+                "tags": [
+                    "south-route",
+                    "agricultural-edge"
+                ]
+            },
+            {
+                "id": "mw-corridor-lower-quay-walk",
+                "name": "Lower Quay Walk",
+                "nodeClass": "corridor",
+                "corridorType": "quay-walk",
+                "terrainIdentity": [
+                    "tidal boardwalk",
+                    "warehouse-wharf path"
+                ],
+                "tags": [
+                    "waterfront-route",
+                    "harbor-operations"
+                ]
+            },
+            {
+                "id": "mw-corridor-west-ledge-way",
+                "name": "West Ledge Way",
+                "nodeClass": "corridor",
+                "corridorType": "valley-route",
+                "terrainIdentity": [
+                    "cliff-foot ledge",
+                    "single-file traverses"
+                ],
+                "tags": [
+                    "westward-constrained",
+                    "hazard-route"
+                ]
+            },
+            {
+                "id": "mw-barrier-sound-deeps",
+                "name": "Sound Deeps",
+                "nodeClass": "barrier",
+                "barrierType": "deep-water",
+                "terrainIdentity": [
+                    "steep drop-off water",
+                    "tidal pull"
+                ],
+                "tags": [
+                    "blocks-foot-crossing",
+                    "boat-required"
+                ]
+            },
+            {
+                "id": "mw-barrier-west-cliffwall",
+                "name": "West Cliffwall",
+                "nodeClass": "barrier",
+                "barrierType": "cliff-wall",
+                "terrainIdentity": [
+                    "vertical escarpment",
+                    "rockfall bands"
+                ],
+                "tags": [
+                    "hard-terrain-limit",
+                    "route-funnel"
+                ]
+            },
+            {
+                "id": "mw-barrier-delta-marsh-break",
+                "name": "Delta Marsh Break",
+                "nodeClass": "barrier",
+                "barrierType": "marsh-break",
+                "terrainIdentity": [
+                    "waterlogged split channels",
+                    "unstable silt footing"
+                ],
+                "tags": [
+                    "soft-ground-limit",
+                    "seasonal-detour"
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "from": "mw-area-fjord-sound-head",
+                "to": "mw-corridor-harbor-road",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
+                "from": "mw-corridor-harbor-road",
+                "to": "mw-corridor-north-road",
+                "relation": "continues-into",
+                "traversal": "open",
+                "lineage": "north-road-continuity"
+            },
+            {
+                "from": "mw-corridor-harbor-road",
+                "to": "mw-corridor-south-farm-road",
+                "relation": "continues-into",
+                "traversal": "open",
+                "lineage": "south-road-continuity"
+            },
+            {
+                "from": "mw-area-fjord-sound-head",
+                "to": "mw-corridor-lower-quay-walk",
+                "relation": "contains-corridor",
+                "traversal": "open"
+            },
+            {
+                "from": "mw-corridor-lower-quay-walk",
+                "to": "mw-area-river-delta-edge",
+                "relation": "connects-to",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "mw-barrier-sound-deeps",
+                    "mw-barrier-delta-marsh-break"
+                ]
+            },
+            {
+                "from": "mw-area-fjord-sound-head",
+                "to": "mw-area-west-fiord-wall",
+                "relation": "adjacent",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "mw-barrier-west-cliffwall",
+                    "mw-barrier-sound-deeps"
+                ]
+            },
+            {
+                "from": "mw-area-west-fiord-wall",
+                "to": "mw-corridor-west-ledge-way",
+                "relation": "contains-corridor",
+                "traversal": "hazardous"
+            },
+            {
+                "from": "mw-corridor-north-road",
+                "to": "mw-area-north-valley-mouth",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
+                "from": "mw-area-fjord-sound-head",
+                "to": "mw-area-east-shelf-foots",
+                "relation": "adjacent",
+                "traversal": "open"
+            }
+        ],
+        "directionalTrendProfiles": [
+            {
+                "anchorNode": "mw-area-fjord-sound-head",
+                "trends": {
+                    "west": "terrain quickly steepens into fiord walls and cliff-limited ledges",
+                    "north": "road continuity follows valley mouth and gate-linked route",
+                    "south": "routes flatten into farm-road and marsh-edge transitions",
+                    "east": "terrain opens onto gentler shelf footslopes"
+                }
+            },
+            {
+                "anchorNode": "mw-corridor-north-road",
+                "trends": {
+                    "north": "maintain north-road route identity across frontier generation",
+                    "west": "retain hill/escarpment pressure; avoid abrupt broad-plain substitutions",
+                    "east": "allow wider side routes only after valley-floor context is preserved"
+                }
+            }
+        ],
+        "continuityRoutes": [
+            {
+                "id": "mw-route-harbor-to-northgate",
+                "name": "Harbor-to-Northgate Route",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "mw-area-fjord-sound-head",
+                    "mw-corridor-harbor-road",
+                    "mw-corridor-north-road",
+                    "mw-area-north-valley-mouth"
+                ],
+                "localAnchors": [
+                    "Mosswell River Jetty",
+                    "North Road",
+                    "North Gate"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "preferredFutureNodePrefix": "North Road",
+                    "avoidGenericOpenPlainFallback": true
+                }
+            },
+            {
+                "id": "mw-route-harbor-to-delta",
+                "name": "Harbor-to-Delta Waterfront Route",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "mw-area-fjord-sound-head",
+                    "mw-corridor-lower-quay-walk",
+                    "mw-area-river-delta-edge"
+                ],
+                "localAnchors": [
+                    "Lower Jetty Landing",
+                    "Harbor Warehouse",
+                    "Fish Market Wharf",
+                    "River Mouth Dunes"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "respectWaterBarriers": true,
+                    "preferWaterfrontNaming": true
+                }
+            }
+        ]
+    }
+}

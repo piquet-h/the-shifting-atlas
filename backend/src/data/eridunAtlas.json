@@ -1,0 +1,87 @@
+{
+    "schemaVersion": 1,
+    "world": {
+        "id": "f4f61bd2-2c59-4abf-9d91-e4db2f95b9d1",
+        "slug": "eridun",
+        "name": "Eridun",
+        "kind": "world",
+        "status": "working-canon",
+        "description": "Eridun is the world shell that contains Mosswell, The Long Reach, and any future mapped landmasses. At first pass it is defined lightly: enough to anchor macro geography, preserve canon, and leave room for later expansion.",
+        "canonAuthority": {
+            "documentation": [
+                "docs/architecture/macro-atlas-and-seed-redesign.md"
+            ],
+            "seedFiles": [
+                "backend/src/data/eridunAtlas.json",
+                "backend/src/data/theLongReachMacroAtlas.json",
+                "backend/src/data/mosswellMacroAtlas.json"
+            ]
+        },
+        "majorWaters": [
+            {
+                "id": "1c7f46e3-3c15-44c3-91b2-9851d5c35995",
+                "slug": "greyward-expanse",
+                "name": "Greyward Expanse",
+                "kind": "sea",
+                "position": "west-of-the-long-reach",
+                "description": "A cold western sea of slate water, storms, and hard horizons. It defines the outer weather and surf character of the Reach's western coast."
+            },
+            {
+                "id": "ad498985-c093-4b9c-b36f-85b5bd679f4c",
+                "slug": "glasswake-ocean",
+                "name": "Glasswake Ocean",
+                "kind": "ocean",
+                "position": "east-of-the-long-reach",
+                "description": "The broader eastern ocean, brighter in weather and wider in trade possibility than the Greyward Expanse."
+            },
+            {
+                "id": "a5997d32-4db2-4378-b956-17f3948b9dd6",
+                "slug": "sunderdeep",
+                "name": "The Sunderdeep",
+                "kind": "southern-ocean",
+                "position": "south-of-the-long-reach",
+                "description": "A harsher southern reach of deep water and broken weather. It establishes the colder, rougher southern maritime edge of the known atlas."
+            }
+        ],
+        "landmasses": [
+            {
+                "id": "5b3d1f95-4f1a-4e2d-8d40-4a49d74d89bc",
+                "slug": "the-long-reach",
+                "name": "The Long Reach",
+                "kind": "landmass",
+                "role": "first-mapped-landmass",
+                "macroAtlasFile": "backend/src/data/theLongReachMacroAtlas.json",
+                "referenceModel": {
+                    "inspiration": "South Island of New Zealand",
+                    "usage": "geographic logic only",
+                    "constraints": [
+                        "Do not treat the reference map as a literal in-world replica.",
+                        "Preserve fantasy naming and gameplay-first traversal over real-world fidelity.",
+                        "Use the reference primarily to guide directional landform coherence, coastal logic, fiord structure, and inland transitions."
+                    ]
+                },
+                "seedIntent": {
+                    "macroGeographyFirst": true,
+                    "localExpansionFitsAtlas": true,
+                    "freshProductionReseedAccepted": true
+                },
+                "notes": [
+                    "Mosswell belongs to The Long Reach, not directly to an undifferentiated world map.",
+                    "The Long Reach should be the first concrete macro-geography artifact beneath the Eridun world shell.",
+                    "Later landmasses may be added without redefining Eridun."
+                ]
+            }
+        ],
+        "canonRules": [
+            "Eridun names the world, not a continent, kingdom, or realm subtype.",
+            "The Long Reach is the first mapped major landmass within Eridun.",
+            "Runtime prose may reflect Eridun canon and may propose candidate hints, but it must not silently redefine world structure.",
+            "Atlas seed artifacts are the authoritative machine-readable expression of world geography once they exist."
+        ],
+        "futureExpansionGuidance": {
+            "allowAdditionalLandmasses": true,
+            "requireNamedIntermediateLayerBetweenWorldAndSettlement": true,
+            "preferMacroAtlasBeforeBroadLocalExpansion": true
+        }
+    }
+}

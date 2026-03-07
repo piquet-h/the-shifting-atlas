@@ -119,10 +119,13 @@ export function createBatchGenerationEvent(
     arrivalDirection: Direction,
     pendingExitCount: number,
     correlationId: string,
-    config: PrefetchConfig = DEFAULT_PREFETCH_CONFIG
+    config: PrefetchConfig = DEFAULT_PREFETCH_CONFIG,
+    locationTags?: string[]
 ): WorldEventEnvelope {
     // Cap batch size at configuration limit
     const batchSize = Math.min(pendingExitCount, config.maxBatchSize)
+
+    const realmKey = pickRealmKey(locationTags)
 
     const event: WorldEventEnvelope = {
         eventId: uuidv4(),
@@ -139,7 +142,8 @@ export function createBatchGenerationEvent(
             terrain,
             arrivalDirection,
             expansionDepth: 1, // Prefetch only generates immediate neighbors
-            batchSize
+            batchSize,
+            ...(realmKey ? { realmKey } : {})
         }
     }
 
@@ -162,7 +166,8 @@ export function tryCreatePrefetchEvent(
     arrivalDirection: Direction,
     exitAvailability: ExitAvailabilityMetadata | undefined,
     correlationId: string,
-    config: PrefetchConfig = DEFAULT_PREFETCH_CONFIG
+    config: PrefetchConfig = DEFAULT_PREFETCH_CONFIG,
+    locationTags?: string[]
 ): { event?: WorldEventEnvelope; debounced: boolean; pendingExitCount: number } {
     // Check if location has pending exits
     const pendingExits = extractPendingExits(exitAvailability)
@@ -176,9 +181,42 @@ export function tryCreatePrefetchEvent(
     }
 
     // Create event and record debounce
-    const event = createBatchGenerationEvent(locationId, terrain, arrivalDirection, pendingExits.length, correlationId, config)
+    const event = createBatchGenerationEvent(
+        locationId,
+        terrain,
+        arrivalDirection,
+        pendingExits.length,
+        correlationId,
+        config,
+        locationTags
+    )
 
     debounceTracker.recordPrefetch(locationId)
 
     return { event, debounced: false, pendingExitCount: pendingExits.length }
+}
+
+function pickRealmKey(locationTags: string[] | undefined): string | undefined {
+    if (!locationTags || locationTags.length === 0) {
+        return undefined
+    }
+
+    // Prefer macro area constraints first (strongest spatial coherence), then settlement,
+    // then fallback to macro route lineage.
+    const macroArea = locationTags.find((tag) => tag.startsWith('macro:area:'))
+    if (macroArea) {
+        return macroArea
+    }
+
+    const settlement = locationTags.find((tag) => tag.startsWith('settlement:'))
+    if (settlement) {
+        return settlement
+    }
+
+    const macroRoute = locationTags.find((tag) => tag.startsWith('macro:route:'))
+    if (macroRoute) {
+        return macroRoute
+    }
+
+    return undefined
 }

@@ -21,6 +21,7 @@ This folder contains the _technical_ design of The Shifting Atlas. Prefer this i
 ## World traversal, exits, and spatial structure
 
 - `world-spatial-generation-architecture.md` — how the spatial world is generated/expanded.
+- `macro-atlas-and-seed-redesign.md` — atlas-first spatial direction, world name, and seed redesign contract for macro geography + frontier coherence.
 - `exit-generation-hints.md` — guidance and invariants for exit creation.
 - `location-version-policy.md` — versioning rules when locations/exits change.
 - `realm-hierarchy.md` — scope inheritance model used across world features.

@@ -21,11 +21,19 @@ import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../../di/tokens.js'
+import { DEFAULT_TRAVEL_DURATION_MS } from '../../handlers/utils/travelDurationHeuristics.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
-import { DEFAULT_TRAVEL_DURATION_MS } from '../../handlers/utils/travelDurationHeuristics.js'
 import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
+import {
+    buildAtlasAwarePendingDescription,
+    getMacroPropagationTags,
+    resolveMacroGenerationContext,
+    selectAtlasAwareExpansionDirections,
+    selectAtlasAwareTerrain,
+    suggestFutureNodeName
+} from '../../services/macroGenerationContext.js'
 import type { ITemporalProximityService } from '../../services/temporalProximityService.js'
 import { TelemetryService } from '../../telemetry/TelemetryService.js'
 import type { WorldEventHandlerResult } from '../types.js'
@@ -190,6 +198,7 @@ interface StubLocation {
     id: string
     direction: Direction
     terrain: TerrainType
+    tags: string[]
 }
 
 @injectable()
@@ -335,8 +344,15 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         )
 
         try {
+            const rootLocation = await this.locationRepo.get(payload.rootLocationId)
+
             // 1. Determine neighbor directions from terrain guidance
-            const neighborDirections = this.determineNeighborDirections(payload.terrain, payload.arrivalDirection, payload.batchSize)
+            const neighborDirections = this.determineNeighborDirections(
+                payload.terrain,
+                payload.arrivalDirection,
+                payload.batchSize,
+                rootLocation?.tags
+            )
 
             context.log('Determined neighbor directions', {
                 terrain: payload.terrain,
@@ -387,6 +403,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 payload.rootLocationId,
                 stubDirections,
                 payload.terrain,
+                payload.realmKey,
+                rootLocation?.tags,
                 event.correlationId,
                 context
             )
@@ -456,18 +474,13 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
      * IMPORTANT: This method provides spatial hints to AI, not rigid constraints.
      * The AI may choose to mention exits differently in descriptions.
      */
-    private determineNeighborDirections(terrain: TerrainType, arrivalDirection: Direction, batchSize: number): Direction[] {
-        const guidance = getTerrainGuidance(terrain)
-        const candidateDirections =
-            guidance.defaultDirections && guidance.defaultDirections.length > 0
-                ? guidance.defaultDirections
-                : (['north', 'south', 'east', 'west'] as Direction[]) // Default to cardinal
-
-        // Filter out arrival direction (player came from that direction, location already exists there)
-        const available = candidateDirections.filter((d) => d !== arrivalDirection)
-
-        // Take min(batchSize, available.length)
-        return available.slice(0, Math.min(batchSize, available.length))
+    private determineNeighborDirections(
+        terrain: TerrainType,
+        arrivalDirection: Direction,
+        batchSize: number,
+        rootTags?: string[]
+    ): Direction[] {
+        return selectAtlasAwareExpansionDirections(terrain, arrivalDirection, batchSize, rootTags)
     }
 
     /**
@@ -557,6 +570,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         rootLocationId: string,
         directions: Direction[],
         terrain: TerrainType,
+        realmKey: string | undefined,
+        rootTags: string[] | undefined,
         correlationId: string,
         context: InvocationContext
     ): Promise<StubLocation[]> {
@@ -570,20 +585,27 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
 
         for (const direction of directions) {
             const id = uuidv4()
-            // Placeholder name (title-cased terrain)
-            const terrainWords = terrain.split('-')
-            const titleCasedTerrain = terrainWords.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
-            const name = `Unexplored ${titleCasedTerrain}`
+            const propagatedTags = getMacroPropagationTags(rootTags, realmKey)
+            const stubContext = resolveMacroGenerationContext(propagatedTags, direction)
+            const selectedTerrain = selectAtlasAwareTerrain(terrain, stubContext)
+            const name = suggestFutureNodeName(selectedTerrain, stubContext)
 
             // New stubs should be frontier-expandable immediately.
             // Mark all terrain-default directions (except the reciprocal/back direction to root)
             // as pending generation so look/prefetch can surface them.
             const backDirection = getOppositeDirection(direction)
-            const pendingDirections = terrainDirections.filter((d) => d !== backDirection)
+            const selectedGuidance = getTerrainGuidance(selectedTerrain)
+            const selectedTerrainDirections =
+                selectedGuidance.defaultDirections && selectedGuidance.defaultDirections.length > 0
+                    ? selectedGuidance.defaultDirections
+                    : terrainDirections
+            const pendingDirections = selectedTerrainDirections.filter((d) => d !== backDirection)
             const pending =
                 pendingDirections.length > 0
                     ? pendingDirections.reduce<Partial<Record<Direction, string>>>((acc, d) => {
-                          acc[d] = 'Open wilderness awaiting exploration'
+                          const pendingContext = resolveMacroGenerationContext(propagatedTags, d)
+                          const pendingTerrain = selectAtlasAwareTerrain(selectedTerrain, pendingContext)
+                          acc[d] = buildAtlasAwarePendingDescription(pendingTerrain, pendingContext)
                           return acc
                       }, {})
                     : undefined
@@ -593,14 +615,14 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 id,
                 name,
                 description: '', // Will be filled by AI-generated layer
-                terrain,
-                tags: [],
+                terrain: selectedTerrain,
+                tags: propagatedTags,
                 exits: [], // Will be populated by ExitCreateHandler
                 exitAvailability: pending ? { pending } : undefined,
                 version: 1
             })
 
-            stubs.push({ id, direction, terrain })
+            stubs.push({ id, direction, terrain: selectedTerrain, tags: propagatedTags })
 
             context.log('Created stub location', { id, direction, terrain })
         }
@@ -625,7 +647,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 // Contract: arrivalDirection is the direction the player arrives FROM.
                 // If the stub is reached by travelling `north` from root, the player arrives at the stub from `south`.
                 arrivalDirection: getOppositeDirection(stub.direction),
-                neighbors: [] // Onward exits TBD (future: exit inference)
+                neighbors: [], // Onward exits TBD (future: exit inference)
+                macroContext: resolveMacroGenerationContext(stub.tags, stub.direction)
             })),
             style: 'atmospheric'
         }

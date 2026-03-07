@@ -488,7 +488,9 @@ export class MoveHandler extends BaseHandler {
                     // If the player moved "north", they arrived from "south".
                     getOppositeDirection(dir as Direction),
                     result.location.exitAvailability,
-                    this.correlationId
+                    this.correlationId,
+                    undefined,
+                    result.location.tags
                 )
 
                 if (prefetchResult.event) {

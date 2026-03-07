@@ -12,14 +12,14 @@
  * See: Issue - AI Description Batch Generation Service
  */
 
+import type { Direction, TerrainType } from '@piquet-h/shared'
+import type { Contracts } from 'applicationinsights'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import type { Contracts } from 'applicationinsights'
-import type { Direction, TerrainType } from '@piquet-h/shared'
+import { AIDescriptionService, type BatchDescriptionRequest } from '../../src/services/AIDescriptionService.js'
 import type { IAzureOpenAIClient, OpenAIGenerateResult } from '../../src/services/azureOpenAIClient.js'
 import type { ITelemetryClient } from '../../src/telemetry/ITelemetryClient.js'
 import { TelemetryService } from '../../src/telemetry/TelemetryService.js'
-import { AIDescriptionService, type BatchDescriptionRequest } from '../../src/services/AIDescriptionService.js'
 
 // Mock telemetry client
 class MockTelemetryClient implements ITelemetryClient {
@@ -271,6 +271,48 @@ describe('AIDescriptionService - Prompt Construction', () => {
         assert.ok(!capturedPrompt.toLowerCase().includes('at sunset'), 'Prompt should not describe time of day')
         assert.ok(!capturedPrompt.toLowerCase().includes('during rain'), 'Prompt should not describe weather conditions')
         assert.ok(!capturedPrompt.toLowerCase().includes('in fog'), 'Prompt should not describe atmospheric conditions')
+    })
+
+    test('should include macro atlas constraints in prompt when provided', async () => {
+        let capturedPrompt = ''
+        const mockClient = new MockAzureOpenAIClient(async (prompt: string) => {
+            capturedPrompt = prompt
+            return {
+                content: 'A road clings to the valley mouth above the sound.',
+                tokenUsage: { prompt: 200, completion: 50, total: 250 }
+            }
+        })
+
+        const mockTelemetry = new MockTelemetryClient()
+        const telemetryService = new TelemetryService(mockTelemetry)
+        const service = new AIDescriptionService(mockClient, telemetryService)
+
+        const request: BatchDescriptionRequest = {
+            locations: [
+                {
+                    locationId: 'loc-1',
+                    terrain: 'open-plain' as TerrainType,
+                    arrivalDirection: 'south' as Direction,
+                    neighbors: ['north' as Direction, 'east' as Direction],
+                    macroContext: {
+                        expansionDirection: 'north' as Direction,
+                        areaRef: 'lr-area-mosswell-fiordhead',
+                        waterContext: 'fjord-sound-head',
+                        directionTerrainTrend: 'terrain trends into valley-route continuity and approach ranges',
+                        routeContinuityHint: 'Preserve North Road lineage and prefer future names that continue North Road.',
+                        barrierSemantics: ['Fiord Deeps restrict direct shoreline crossing', 'Rainward Cliffwall funnels westward travel']
+                    }
+                }
+            ],
+            style: 'concise'
+        }
+
+        await service.batchGenerateDescriptions(request)
+
+        assert.ok(capturedPrompt.includes('Regional atlas constraints'))
+        assert.ok(capturedPrompt.includes('fjord-sound-head'))
+        assert.ok(capturedPrompt.includes('North Road lineage'))
+        assert.ok(capturedPrompt.includes('Fiord Deeps'))
     })
 })
 

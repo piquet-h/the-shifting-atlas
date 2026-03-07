@@ -20,14 +20,14 @@
  * See: docs/architecture/world-spatial-generation-architecture.md (Section 2)
  */
 
-import { injectable, inject, optional } from 'inversify'
 import type { Direction, TerrainType } from '@piquet-h/shared'
-import { getTerrainGuidance } from '@piquet-h/shared'
-import { prepareAICostTelemetry } from '@piquet-h/shared'
-import type { ILayerRepository } from '../repos/layerRepository.js'
-import type { IAzureOpenAIClient } from './azureOpenAIClient.js'
+import { getTerrainGuidance, prepareAICostTelemetry } from '@piquet-h/shared'
+import { inject, injectable, optional } from 'inversify'
 import { TOKENS } from '../di/tokens.js'
+import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
+import type { IAzureOpenAIClient } from './azureOpenAIClient.js'
+import type { MacroGenerationContext } from './macroGenerationContext.js'
 
 /** Maximum number of locations allowed in a single batch request */
 const MAX_BATCH_SIZE = 20
@@ -69,6 +69,8 @@ export interface LocationDescriptionRequest {
         time?: string
         recentEvents?: string
     }
+    /** Optional atlas-derived macro geography constraints for autonomous expansion. */
+    macroContext?: MacroGenerationContext
 }
 
 /**
@@ -251,12 +253,15 @@ export class AIDescriptionService implements IAIDescriptionService {
                 break
         }
 
+        const macroContextBlock = this.buildMacroContextBlock(location.macroContext)
+
         // Construct prompt (objective, no temporal/weather elements per agent instructions)
         return `Describe a ${location.terrain} location in a fantasy world.
 Player arrives from ${location.arrivalDirection}.
 Exits should exist toward: ${exitList}.
 
 Terrain guidance: ${guidance.promptHint}
+    ${macroContextBlock}
 
 Requirements:
 - ${styleInstructions}
@@ -267,6 +272,33 @@ Requirements:
 - Focus on permanent physical features and spatial relationships
 
 Example: "Windswept moorland stretches endlessly beneath vast sky. To the south, timber gates are visible. Eastward, a creek cuts through the heath. West, dark forest marks the wilderness edge."`
+    }
+
+    private buildMacroContextBlock(macroContext: MacroGenerationContext | undefined): string {
+        if (!macroContext) {
+            return ''
+        }
+
+        const lines = ['Regional atlas constraints:']
+        lines.push(`- This location expands the atlas toward ${macroContext.expansionDirection}.`)
+
+        if (macroContext.areaRef) {
+            lines.push(`- Anchor macro area: ${macroContext.areaRef}.`)
+        }
+        if (macroContext.waterContext) {
+            lines.push(`- Water context: ${macroContext.waterContext}.`)
+        }
+        if (macroContext.directionTerrainTrend) {
+            lines.push(`- Directional terrain trend: ${macroContext.directionTerrainTrend}.`)
+        }
+        if (macroContext.routeContinuityHint) {
+            lines.push(`- Route continuity: ${macroContext.routeContinuityHint}`)
+        }
+        if (macroContext.barrierSemantics.length > 0) {
+            lines.push(`- Nearby barriers to respect: ${macroContext.barrierSemantics.join('; ')}.`)
+        }
+
+        return `${lines.join('\n')}\n`
     }
 
     /**

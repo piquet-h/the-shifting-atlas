@@ -2,6 +2,7 @@ import { Location } from '@piquet-h/shared'
 // Using local backend seed copy (shared consolidation deferred until shared package export is published)
 import starterLocationsData from '../data/villageLocations.json' with { type: 'json' }
 import { ILocationRepository } from '../repos/locationRepository.js'
+import { applyMacroAtlasBindings } from './macroAtlasBindings.js'
 
 export interface SeedWorldOptions {
     blueprint?: Location[]
@@ -28,7 +29,8 @@ export interface SeedWorldResult {
  * Use bulkMode=true for faster initial seeding (skips redundant vertex checks and defers cache regen).
  */
 export async function seedWorld(opts: SeedWorldOptions): Promise<SeedWorldResult> {
-    const blueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({ ...l }))
+    const rawBlueprint: Location[] = (opts.blueprint || (starterLocationsData as Location[])).map((l) => ({ ...l }))
+    const blueprint: Location[] = applyMacroAtlasBindings(rawBlueprint)
     const log = opts.log || (() => {})
     const locRepo = opts.locationRepository
     const bulkMode = opts.bulkMode ?? false

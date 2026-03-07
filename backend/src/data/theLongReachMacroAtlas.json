@@ -1,0 +1,680 @@
+{
+    "schemaVersion": 1,
+    "landmass": {
+        "id": "5b3d1f95-4f1a-4e2d-8d40-4a49d74d89bc",
+        "slug": "the-long-reach",
+        "name": "The Long Reach",
+        "worldSlug": "eridun",
+        "kind": "landmass-macro-atlas",
+        "status": "first-pass",
+        "description": "First-pass macro atlas for The Long Reach. This atlas encodes landform systems, movement corridors, and barrier semantics before broad frontier expansion.",
+        "designContract": {
+            "atlasFirst": true,
+            "deterministic": true,
+            "handAuthorable": true,
+            "literalRealWorldReplica": false,
+            "freshProductionReseedAccepted": true
+        },
+        "references": {
+            "documentation": [
+                "docs/architecture/macro-atlas-and-seed-redesign.md"
+            ],
+            "worldShell": "backend/src/data/eridunAtlas.json",
+            "localSeed": "backend/src/data/villageLocations.json",
+            "settlementMacroAtlas": "backend/src/data/mosswellMacroAtlas.json"
+        }
+    },
+    "taxonomy": {
+        "areaNodeTypes": [
+            "basin",
+            "coast",
+            "slope",
+            "plain",
+            "range",
+            "upland"
+        ],
+        "corridorNodeTypes": [
+            "valley-route",
+            "pass",
+            "shelf-road",
+            "gorge-crossing",
+            "river-corridor"
+        ],
+        "barrierTypes": [
+            "cliff-wall",
+            "open-water",
+            "ridge",
+            "scree",
+            "marsh-break"
+        ]
+    },
+    "macroGraph": {
+        "nodes": [
+            {
+                "id": "lr-area-fiordmarch-west",
+                "name": "Fiordmarch West",
+                "nodeClass": "area",
+                "areaType": "coast",
+                "terrainIdentity": [
+                    "fiord-walls",
+                    "sea-cut-inlets",
+                    "rain-dark cliffs"
+                ],
+                "tags": [
+                    "west-coast",
+                    "high-relief"
+                ]
+            },
+            {
+                "id": "lr-area-mosswell-fiordhead",
+                "name": "Mosswell Fiordhead Basin",
+                "nodeClass": "area",
+                "areaType": "basin",
+                "terrainIdentity": [
+                    "fiord-head flats",
+                    "river-mouth silt",
+                    "sheltered harbor edge"
+                ],
+                "tags": [
+                    "mosswell-region",
+                    "settlement-anchor"
+                ]
+            },
+            {
+                "id": "lr-area-rainward-escarpments",
+                "name": "Rainward Escarpments",
+                "nodeClass": "area",
+                "areaType": "slope",
+                "terrainIdentity": [
+                    "cliff-step terraces",
+                    "waterfall faces",
+                    "broken ledges"
+                ],
+                "tags": [
+                    "west-flank",
+                    "steep"
+                ]
+            },
+            {
+                "id": "lr-area-crownspine-divide",
+                "name": "Crownspine Divide",
+                "nodeClass": "area",
+                "areaType": "range",
+                "terrainIdentity": [
+                    "alpine spine",
+                    "knifeback ridges",
+                    "snowline shoulders"
+                ],
+                "tags": [
+                    "major-barrier",
+                    "north-south-spine"
+                ]
+            },
+            {
+                "id": "lr-area-northwatch-ranges",
+                "name": "Northwatch Ranges",
+                "nodeClass": "area",
+                "areaType": "range",
+                "terrainIdentity": [
+                    "narrow mountain corridors",
+                    "wind-cut saddles",
+                    "cold upland scrub"
+                ],
+                "tags": [
+                    "northern-reach",
+                    "approach-highlands"
+                ]
+            },
+            {
+                "id": "lr-area-icefall-uplands",
+                "name": "Icefall Uplands",
+                "nodeClass": "area",
+                "areaType": "upland",
+                "terrainIdentity": [
+                    "glacial basins",
+                    "moraines",
+                    "high tarn shelves"
+                ],
+                "tags": [
+                    "interior-high-country"
+                ]
+            },
+            {
+                "id": "lr-area-eastfall-foothills",
+                "name": "Eastfall Foothills",
+                "nodeClass": "area",
+                "areaType": "slope",
+                "terrainIdentity": [
+                    "descending fan valleys",
+                    "dry gullies",
+                    "rolling hillbreak"
+                ],
+                "tags": [
+                    "east-of-divide",
+                    "transition-zone"
+                ]
+            },
+            {
+                "id": "lr-area-braidwater-basin",
+                "name": "Braidwater Basin",
+                "nodeClass": "area",
+                "areaType": "basin",
+                "terrainIdentity": [
+                    "wide inland basin",
+                    "braided riverbeds",
+                    "gravel floodplains"
+                ],
+                "tags": [
+                    "inland-east",
+                    "corridor-collector"
+                ]
+            },
+            {
+                "id": "lr-area-sunmere-plains",
+                "name": "Sunmere Plains",
+                "nodeClass": "area",
+                "areaType": "plain",
+                "terrainIdentity": [
+                    "broad low country",
+                    "open pasture belts",
+                    "long horizon fields"
+                ],
+                "tags": [
+                    "eastern-broad-country"
+                ]
+            },
+            {
+                "id": "lr-area-eastshelf-coast",
+                "name": "Eastshelf Coast",
+                "nodeClass": "area",
+                "areaType": "coast",
+                "terrainIdentity": [
+                    "coastal shelves",
+                    "dune-backed strand",
+                    "headland arcs"
+                ],
+                "tags": [
+                    "east-coast",
+                    "lower-relief"
+                ]
+            },
+            {
+                "id": "lr-area-southbreak-uplands",
+                "name": "Southbreak Uplands",
+                "nodeClass": "area",
+                "areaType": "upland",
+                "terrainIdentity": [
+                    "weather-cut uplands",
+                    "peaty ridges",
+                    "rocky hollows"
+                ],
+                "tags": [
+                    "southern-roughness",
+                    "cold-wind-zone"
+                ]
+            },
+            {
+                "id": "lr-area-southtangle-coast",
+                "name": "Southtangle Coast",
+                "nodeClass": "area",
+                "areaType": "coast",
+                "terrainIdentity": [
+                    "broken coves",
+                    "storm-beaten shore",
+                    "black-sand reaches"
+                ],
+                "tags": [
+                    "southern-coast",
+                    "high-surf"
+                ]
+            },
+            {
+                "id": "lr-area-emberfen-lowlands",
+                "name": "Emberfen Lowlands",
+                "nodeClass": "area",
+                "areaType": "basin",
+                "terrainIdentity": [
+                    "reed marshes",
+                    "soft ground",
+                    "tidal backflow creeks"
+                ],
+                "tags": [
+                    "southeast-lowlands",
+                    "movement-constraint"
+                ]
+            },
+            {
+                "id": "lr-corridor-mosswell-harbor-road",
+                "name": "Mosswell Harbor Road",
+                "nodeClass": "corridor",
+                "corridorType": "shelf-road",
+                "terrainIdentity": [
+                    "fiordhead road shelf",
+                    "settlement access line"
+                ],
+                "tags": [
+                    "mosswell-primary-route",
+                    "route-continuity"
+                ]
+            },
+            {
+                "id": "lr-corridor-northgate-valley",
+                "name": "Northgate Valley Route",
+                "nodeClass": "corridor",
+                "corridorType": "valley-route",
+                "terrainIdentity": [
+                    "long valley floor",
+                    "river-adjacent track"
+                ],
+                "tags": [
+                    "north-road-lineage",
+                    "frontier-launch"
+                ]
+            },
+            {
+                "id": "lr-corridor-westwall-shelf",
+                "name": "Westwall Shelf Track",
+                "nodeClass": "corridor",
+                "corridorType": "shelf-road",
+                "terrainIdentity": [
+                    "cliff-foot ledges",
+                    "intermittent coastal shelves"
+                ],
+                "tags": [
+                    "west-coast-constrained",
+                    "hazard-prone"
+                ]
+            },
+            {
+                "id": "lr-corridor-lantern-notch-pass",
+                "name": "Lantern Notch Pass",
+                "nodeClass": "corridor",
+                "corridorType": "pass",
+                "terrainIdentity": [
+                    "alpine saddle",
+                    "scree switchbacks"
+                ],
+                "tags": [
+                    "divide-crossing",
+                    "seasonal-risk"
+                ]
+            },
+            {
+                "id": "lr-corridor-ashen-step-pass",
+                "name": "Ashen Step Pass",
+                "nodeClass": "corridor",
+                "corridorType": "pass",
+                "terrainIdentity": [
+                    "high pass shelf",
+                    "wind-scoured traverse"
+                ],
+                "tags": [
+                    "divide-crossing",
+                    "southern-link"
+                ]
+            },
+            {
+                "id": "lr-corridor-braidwater-run",
+                "name": "Braidwater Run",
+                "nodeClass": "corridor",
+                "corridorType": "river-corridor",
+                "terrainIdentity": [
+                    "braided channels",
+                    "gravel ford lines"
+                ],
+                "tags": [
+                    "east-interior-route",
+                    "flood-sensitive"
+                ]
+            },
+            {
+                "id": "lr-corridor-eastshelf-road",
+                "name": "Eastshelf Road",
+                "nodeClass": "corridor",
+                "corridorType": "shelf-road",
+                "terrainIdentity": [
+                    "coastal shelf carriageway",
+                    "headland bypasses"
+                ],
+                "tags": [
+                    "east-coast-mainline",
+                    "route-continuity"
+                ]
+            },
+            {
+                "id": "lr-corridor-southfork-vale",
+                "name": "Southfork Vale Route",
+                "nodeClass": "corridor",
+                "corridorType": "valley-route",
+                "terrainIdentity": [
+                    "long southern vale",
+                    "bog-edge causeways"
+                ],
+                "tags": [
+                    "south-interior-route",
+                    "rough-country"
+                ]
+            },
+            {
+                "id": "lr-barrier-fiord-deeps",
+                "name": "Fiord Deeps",
+                "nodeClass": "barrier",
+                "barrierType": "open-water",
+                "terrainIdentity": [
+                    "deep fiord water",
+                    "sheer shore drop"
+                ],
+                "tags": [
+                    "blocks-foot-traversal",
+                    "requires-watercraft"
+                ]
+            },
+            {
+                "id": "lr-barrier-rainward-cliffwall",
+                "name": "Rainward Cliffwall",
+                "nodeClass": "barrier",
+                "barrierType": "cliff-wall",
+                "terrainIdentity": [
+                    "vertical stone faces",
+                    "fall hazard bands"
+                ],
+                "tags": [
+                    "hard-western-barrier",
+                    "route-funneling"
+                ]
+            },
+            {
+                "id": "lr-barrier-crownspine-ridge",
+                "name": "Crownspine Knifeback",
+                "nodeClass": "barrier",
+                "barrierType": "ridge",
+                "terrainIdentity": [
+                    "continuous ridge wall",
+                    "wind-exposed crest"
+                ],
+                "tags": [
+                    "major-east-west-divider",
+                    "pass-limited-crossing"
+                ]
+            },
+            {
+                "id": "lr-barrier-emberfen-break",
+                "name": "Emberfen Marsh Break",
+                "nodeClass": "barrier",
+                "barrierType": "marsh-break",
+                "terrainIdentity": [
+                    "unstable peat",
+                    "waterlogged channels"
+                ],
+                "tags": [
+                    "soft-ground-barrier",
+                    "seasonal-detours"
+                ]
+            }
+        ],
+        "edges": [
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-corridor-mosswell-harbor-road",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-corridor-mosswell-harbor-road",
+                "to": "lr-corridor-northgate-valley",
+                "relation": "continues-into",
+                "traversal": "open",
+                "lineage": "north-road-continuity"
+            },
+            {
+                "from": "lr-corridor-northgate-valley",
+                "to": "lr-area-northwatch-ranges",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-area-fiordmarch-west",
+                "relation": "adjacent",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-fiord-deeps",
+                    "lr-barrier-rainward-cliffwall"
+                ]
+            },
+            {
+                "from": "lr-area-fiordmarch-west",
+                "to": "lr-area-rainward-escarpments",
+                "relation": "adjacent",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-rainward-cliffwall"
+                ]
+            },
+            {
+                "from": "lr-area-rainward-escarpments",
+                "to": "lr-corridor-westwall-shelf",
+                "relation": "feeds",
+                "traversal": "narrow"
+            },
+            {
+                "from": "lr-corridor-westwall-shelf",
+                "to": "lr-area-fiordmarch-west",
+                "relation": "connects-to",
+                "traversal": "hazardous"
+            },
+            {
+                "from": "lr-area-rainward-escarpments",
+                "to": "lr-area-crownspine-divide",
+                "relation": "bounded-by",
+                "traversal": "blocked",
+                "barrierRefs": [
+                    "lr-barrier-crownspine-ridge"
+                ]
+            },
+            {
+                "from": "lr-area-crownspine-divide",
+                "to": "lr-corridor-lantern-notch-pass",
+                "relation": "crossed-by",
+                "traversal": "seasonal"
+            },
+            {
+                "from": "lr-area-crownspine-divide",
+                "to": "lr-corridor-ashen-step-pass",
+                "relation": "crossed-by",
+                "traversal": "seasonal"
+            },
+            {
+                "from": "lr-corridor-lantern-notch-pass",
+                "to": "lr-area-eastfall-foothills",
+                "relation": "descends-to",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-corridor-ashen-step-pass",
+                "to": "lr-area-braidwater-basin",
+                "relation": "descends-to",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-eastfall-foothills",
+                "to": "lr-area-braidwater-basin",
+                "relation": "feeds",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-braidwater-basin",
+                "to": "lr-corridor-braidwater-run",
+                "relation": "contains-corridor",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-corridor-braidwater-run",
+                "to": "lr-area-sunmere-plains",
+                "relation": "connects-to",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-sunmere-plains",
+                "to": "lr-area-eastshelf-coast",
+                "relation": "adjacent",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-eastshelf-coast",
+                "to": "lr-corridor-eastshelf-road",
+                "relation": "contains-corridor",
+                "traversal": "open"
+            },
+            {
+                "from": "lr-area-braidwater-basin",
+                "to": "lr-area-southbreak-uplands",
+                "relation": "transitions-to",
+                "traversal": "rough"
+            },
+            {
+                "from": "lr-area-southbreak-uplands",
+                "to": "lr-corridor-southfork-vale",
+                "relation": "contains-corridor",
+                "traversal": "rough"
+            },
+            {
+                "from": "lr-corridor-southfork-vale",
+                "to": "lr-area-emberfen-lowlands",
+                "relation": "connects-to",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-emberfen-break"
+                ]
+            },
+            {
+                "from": "lr-area-southbreak-uplands",
+                "to": "lr-area-southtangle-coast",
+                "relation": "descends-to",
+                "traversal": "rough"
+            },
+            {
+                "from": "lr-area-emberfen-lowlands",
+                "to": "lr-area-eastshelf-coast",
+                "relation": "adjacent",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-emberfen-break"
+                ]
+            },
+            {
+                "from": "lr-area-icefall-uplands",
+                "to": "lr-area-crownspine-divide",
+                "relation": "adjacent",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-crownspine-ridge"
+                ]
+            },
+            {
+                "from": "lr-area-icefall-uplands",
+                "to": "lr-area-rainward-escarpments",
+                "relation": "drains-to",
+                "traversal": "hazardous"
+            }
+        ],
+        "directionalTrendProfiles": [
+            {
+                "anchorNode": "lr-area-mosswell-fiordhead",
+                "trends": {
+                    "west": "terrain trends into cliff-backed fiord walls and coastal shelf constraints",
+                    "north": "terrain trends into valley-route continuity and approach ranges",
+                    "east": "terrain trends toward foothill descent and wider inland basins",
+                    "south": "terrain trends toward rougher uplands and weather-cut country"
+                }
+            },
+            {
+                "anchorNode": "lr-corridor-northgate-valley",
+                "trends": {
+                    "north": "route continuity persists as long valley-road lineage",
+                    "west": "hills and escarpment pressure increase; avoid abrupt biome flips",
+                    "east": "valley opens toward basin systems and broader travel choices"
+                }
+            },
+            {
+                "anchorNode": "lr-area-sunmere-plains",
+                "trends": {
+                    "east": "country remains lower, broader, and shelf-coast connected",
+                    "west": "land rises toward foothills then alpine divide",
+                    "south": "ground becomes rougher, wetter, and more fragmented"
+                }
+            }
+        ],
+        "continuityRoutes": [
+            {
+                "id": "lr-route-mosswell-north-road",
+                "name": "Mosswell North Road Lineage",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "lr-area-mosswell-fiordhead",
+                    "lr-corridor-mosswell-harbor-road",
+                    "lr-corridor-northgate-valley",
+                    "lr-area-northwatch-ranges"
+                ],
+                "localAnchors": [
+                    "North Road",
+                    "North Gate"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "preferredFutureNodePrefix": "North Road",
+                    "avoidGenericOpenPlainFallback": true
+                }
+            },
+            {
+                "id": "lr-route-eastshelf-mainline",
+                "name": "Eastshelf Mainline",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "lr-area-braidwater-basin",
+                    "lr-area-sunmere-plains",
+                    "lr-corridor-eastshelf-road",
+                    "lr-area-eastshelf-coast"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "coastalShelfBias": true
+                }
+            }
+        ]
+    },
+    "mosswellPlacement": {
+        "settlementName": "Mosswell",
+        "macroAreaRef": "lr-area-mosswell-fiordhead",
+        "placementSummary": "Mosswell sits at the head of a fjord/sound system where inland valley routes meet sheltered harbor ground.",
+        "adjacentMacroRefs": [
+            "lr-area-fiordmarch-west",
+            "lr-corridor-mosswell-harbor-road",
+            "lr-corridor-northgate-valley",
+            "lr-area-rainward-escarpments"
+        ],
+        "localSeedAnchorHints": {
+            "northRoadLineage": [
+                "North Road",
+                "North Gate"
+            ],
+            "harborEdgeLineage": [
+                "Mosswell River Jetty",
+                "Lower Jetty Landing",
+                "River Mouth Dunes"
+            ]
+        }
+    },
+    "frontierInheritanceRules": {
+        "regionalTrendInheritance": true,
+        "barrierAwareTraversal": true,
+        "routeContinuityRequiredWhenTagged": true,
+        "rules": [
+            "Nearby frontier-capable nodes within the same macro context inherit directional terrain trends unless explicit stronger local override exists.",
+            "Barrier-linked adjacencies must preserve traversal semantics (blocked, constrained, seasonal, hazardous) during future-node generation.",
+            "When a local frontier anchor references a continuity route, generated nodes should continue route identity before introducing branch variation.",
+            "Western-context expansions should retain west-coast cliff/fiord pressure and not abruptly flatten into unrelated broad plains.",
+            "Eastern-context expansions should remain broader and lower-relief unless crossing a pass or ridge-linked barrier edge."
+        ]
+    }
+}
