@@ -233,6 +233,34 @@ const EL09_TIMEOFDAY_TERMS = new Set([
 ])
 
 // ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Strip leading and trailing non-alpha characters from a token.
+ *
+ * Uses a forward/backward character-code scan instead of a regex to avoid
+ * polynomial backtracking on strings with many repeated non-alpha characters
+ * (ReDoS-safe: O(n) linear scan, no backtracking).
+ */
+function stripNonAlpha(s: string): string {
+    let start = 0
+    while (start < s.length) {
+        const code = s.charCodeAt(start)
+        if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) break
+        start++
+    }
+    if (start === s.length) return ''
+    let end = s.length - 1
+    while (end > start) {
+        const code = s.charCodeAt(end)
+        if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) break
+        end--
+    }
+    return s.slice(start, end + 1)
+}
+
+// ---------------------------------------------------------------------------
 // Individual check implementations
 // ---------------------------------------------------------------------------
 
@@ -316,8 +344,8 @@ function extractMidSentenceProperNouns(text: string): string[] {
     const found: string[] = []
     let isFirst = true
     for (const raw of tokens) {
-        // Strip leading/trailing non-alpha characters to get the bare word.
-        const token = raw.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, '')
+        // Strip leading/trailing non-alpha characters to get the bare word (ReDoS-safe scan).
+        const token = stripNonAlpha(raw)
         if (!token) continue
         if (isFirst) {
             isFirst = false
