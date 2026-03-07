@@ -371,7 +371,12 @@
                 "travelDurationMs": 300000
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "northeast": "A trade road climbs beyond the stalls toward open country"
+            }
+        },
+        "version": 2
     },
     {
         "id": "b3c9ec98-3dfe-4251-a59d-a6acd7f88c6a",
@@ -643,7 +648,12 @@
                 "travelDurationMs": 240000
             }
         ],
-        "version": 1
+        "exitAvailability": {
+            "pending": {
+                "west": "A worn lane bends west beyond the last cottages"
+            }
+        },
+        "version": 2
     },
     {
         "id": "6d5af0a2-1b84-4f53-9cd5-1b6e7604b8f5",

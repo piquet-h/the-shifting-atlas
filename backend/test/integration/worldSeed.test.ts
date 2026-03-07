@@ -286,4 +286,38 @@ describe('World Seeding', () => {
             }
         }
     })
+
+    test('seed includes curated urban frontier pending exits at Market Row and Southwest Path Junction', async () => {
+        const locationRepository = await fixture.getLocationRepository()
+
+        await seedWorld({
+            locationRepository,
+            blueprint: starterLocationsData as Location[],
+            bulkMode: true
+        })
+
+        const MARKET_ROW_ID = '5a6b2d1c-4e8f-4ad3-9c1b-7d9e3f2b6c41'
+        const SOUTHWEST_JUNCTION_ID = '4c3b2a1f-0e9d-48c7-b6a5-5d4e3f2a1b0c'
+
+        const marketRow = await locationRepository.get(MARKET_ROW_ID)
+        const southwestJunction = await locationRepository.get(SOUTHWEST_JUNCTION_ID)
+
+        assert.ok(marketRow, 'Market Row should exist in seed data')
+        assert.ok(southwestJunction, 'Southwest Path Junction should exist in seed data')
+
+        assert.ok(marketRow.exitAvailability?.pending?.northeast, 'Market Row should expose pending northeast frontier direction')
+        assert.ok(
+            !(marketRow.exits || []).some((e) => e.direction === 'northeast'),
+            'Market Row northeast should be pending only (no hard exit yet)'
+        )
+
+        assert.ok(
+            southwestJunction.exitAvailability?.pending?.west,
+            'Southwest Path Junction should expose pending west frontier direction'
+        )
+        assert.ok(
+            !(southwestJunction.exits || []).some((e) => e.direction === 'west'),
+            'Southwest Path Junction west should be pending only (no hard exit yet)'
+        )
+    })
 })

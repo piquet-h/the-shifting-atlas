@@ -131,20 +131,20 @@ node scripts/apply-implicit-exits.mjs [--data=path] [--additions=path] [--dry-ru
 
 ```json
 [
-  {
-    "locationId": "<uuid>",
-    "direction": "north",
-    "availability": "pending",
-    "reason": "Open countryside awaiting exploration"
-  },
-  {
-    "locationId": "<uuid>",
-    "direction": "west",
-    "availability": "forbidden",
-    "reason": "Sheer cliffs block passage",
-    "motif": "cliff",
-    "reveal": "onLook"
-  }
+    {
+        "locationId": "<uuid>",
+        "direction": "north",
+        "availability": "pending",
+        "reason": "Open countryside awaiting exploration"
+    },
+    {
+        "locationId": "<uuid>",
+        "direction": "west",
+        "availability": "forbidden",
+        "reason": "Sheer cliffs block passage",
+        "motif": "cliff",
+        "reveal": "onLook"
+    }
 ]
 ```
 
@@ -174,6 +174,38 @@ Detects structural anomalies in the location graph (dangling exits, orphan locat
 ```bash
 node scripts/scan-exits-consistency.mjs [--output=report.json] [--seed-locations=loc1,loc2]
 ```
+
+---
+
+### `render-boundary-map.mjs`
+
+Renders an internal Mermaid map (similar mental model to `/api/world/graph`) focused on frontier boundaries, and flags pending directions that may point inward toward town using a geometric heuristic.
+
+**Usage:**
+
+```bash
+node scripts/render-boundary-map.mjs [--data=path] [--scope=boundary|full] [--output=map.mmd] [--json=report.json]
+```
+
+**Options:**
+
+- `--data=<path>` — Seed data JSON file (default: `backend/src/data/villageLocations.json`)
+- `--scope=boundary|full` — Boundary-focused view (default: `boundary`) or full graph
+- `--output=<path>` — Write Mermaid diagram to file (stdout if omitted)
+- `--json=<path>` — Write structured finding report to file
+
+**Example:**
+
+```bash
+# Generate boundary-focused mermaid + JSON findings
+node scripts/render-boundary-map.mjs --scope=boundary --output=/tmp/mosswell-boundaries.mmd --json=/tmp/mosswell-boundaries.json
+```
+
+**Notes:**
+
+- This is an **internal review aid**; it does not modify seed data.
+- Pending directions are tagged as `outward`, `borderline`, or `suspect-inward` for human curation.
+- Great pre-flight step before editing frontier `exitAvailability.pending` or running production reseed.
 
 ---
 
