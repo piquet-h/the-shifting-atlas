@@ -480,26 +480,11 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 
 ## 12. Anti‑Patterns
 
-Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry)**; **long-running timers without `.unref()`**; **HTTP handlers blocking on queue event processing**; **synchronous AI generation in HTTP response path**.
+Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry; `verify:invariants`)**; **long-running timers without `.unref()` (lint: `timer-unref-required`)**; **HTTP handlers blocking on queue event processing**; **synchronous AI generation in HTTP response path**.
 
 ### Timer/Interval Anti-Pattern
 
-Any `setTimeout` or `setInterval` in production code with TTL > 1 minute MUST use `.unref()` unless explicitly required to keep process alive.
-
-**Why**: Unreferenced timers prevent Node.js from exiting even after all meaningful work is done. This causes tests to hang and prevents clean process shutdown.
-
-**Pattern**:
-
-```typescript
-const timer = setTimeout(() => {
-    // cleanup logic
-}, longDelayMs)
-timer.unref() // REQUIRED for background cleanup timers
-```
-
-**Common culprits**: Memory repository implementations with hour/day TTL cleanup timers.
-
-**Test symptom**: Tests pass but `npm test` never returns to prompt (requires Ctrl+C).
+Any retained `setTimeout` or `setInterval` in production code with TTL > 1 minute MUST use `.unref()` unless explicitly required to keep the process alive. This is now surfaced by the `timer-unref-required` lint rule; keep the doc here as policy/rationale rather than duplicating implementation detail.
 
 ---
 
@@ -518,7 +503,7 @@ If a task requires modifying BOTH `shared/` AND (`backend/` OR `frontend/`):
 
 **Why:** Shared package must publish to GitHub Packages registry before backend/frontend can consume it. GitHub.com agents cannot execute multi-stage sequential PRs.
 
-**Local agents:** Can use `file:../shared` temporarily during development, but must restore registry reference (`^0.3.x`) before committing.
+**Local agents:** Can use `file:../shared` temporarily during development, but must restore a published registry reference before committing; `verify:invariants` warns if this slips through.
 
 ---
 

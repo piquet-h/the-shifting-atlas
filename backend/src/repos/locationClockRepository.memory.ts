@@ -71,11 +71,12 @@ export class MemoryLocationClockRepository implements ILocationClockRepository {
      */
     async batchUpdateAll(worldClockTick: number): Promise<number> {
         const allClocks = Array.from(this.store.values())
+        const clocksNeedingUpdate = allClocks.filter((clock) => clock.clockAnchor !== worldClockTick)
 
         // Update all in parallel (simulated)
-        await Promise.all(allClocks.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
+        await Promise.all(clocksNeedingUpdate.map((clock) => this.update(clock.id, worldClockTick, clock._etag)))
 
-        return allClocks.length
+        return clocksNeedingUpdate.length
     }
 
     /**

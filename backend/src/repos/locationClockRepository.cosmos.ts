@@ -73,13 +73,14 @@ export class LocationClockRepositoryCosmos extends CosmosDbSqlRepository<Locatio
      */
     async batchUpdateAll(worldClockTick: number): Promise<number> {
         const allClocks = await this.listAll()
+        const clocksNeedingUpdate = allClocks.filter((clock) => clock.clockAnchor !== worldClockTick)
 
         // Group into batches
         const BATCH_SIZE = 50
         const batches: LocationClock[][] = []
 
-        for (let i = 0; i < allClocks.length; i += BATCH_SIZE) {
-            batches.push(allClocks.slice(i, i + BATCH_SIZE))
+        for (let i = 0; i < clocksNeedingUpdate.length; i += BATCH_SIZE) {
+            batches.push(clocksNeedingUpdate.slice(i, i + BATCH_SIZE))
         }
 
         // Process all batches in parallel

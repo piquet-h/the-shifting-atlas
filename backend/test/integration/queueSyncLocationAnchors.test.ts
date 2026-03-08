@@ -3,9 +3,9 @@
  * Tests handler with real repository implementations in both memory and cosmos modes
  */
 
+import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { InvocationContext } from '@azure/functions'
 import { QueueSyncLocationAnchorsHandler } from '../../src/handlers/queueSyncLocationAnchors.js'
 import type { ILocationClockManager } from '../../src/services/types.js'
 import { describeForBothModes } from '../helpers/describeForBothModes.js'
@@ -129,9 +129,9 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             const result1 = await handler.handle(payload, mockContext)
             const result2 = await handler.handle(payload, mockContext)
 
-            // Then: Both succeed, second updates all locations (not currently optimized for skip)
+            // Then: Both succeed, second updates 0 locations because the target tick is already applied
             assert.strictEqual(result1.locationsUpdated, 3)
-            assert.strictEqual(result2.locationsUpdated, 3)
+            assert.strictEqual(result2.locationsUpdated, 0)
 
             // Locations still at correct tick
             for (const locationId of locationIds) {

@@ -39,7 +39,7 @@ If you need Azure dependencies or runtime behavior, it belongs in `backend/` (or
 ## Versioning + cross-package workflow
 
 - If you change `shared` exports or behavior consumed by `backend/` or `frontend/`, bump `shared/package.json` version.
-- Backend/frontend must depend on published versions from GitHub Packages (never `file:` references).
-- If a change requires coordinated backend/frontend updates, follow the repo’s “split into sequential PRs” rule (shared PR first, then backend/frontend once the package publishes).
+- Backend/frontend consumers must stay on published GitHub Packages versions; `file:` references are warn-checked by `verify:invariants`.
+- If a change requires coordinated backend/frontend updates, follow the repo’s sequential PR workflow (shared PR first, then backend/frontend once the package publishes).
 
 (See `../.github/copilot-instructions.md` for the cross-package PR split policy.)

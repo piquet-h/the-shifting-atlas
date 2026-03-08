@@ -7,6 +7,7 @@ import noInlineHumorEventsRule from '../eslint-rules/no-inline-humor-events.mjs'
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from '../eslint-rules/telemetry-event.mjs'
 import telemetryRegistryPatternRule from '../eslint-rules/telemetry-registry-pattern.mjs'
+import timerUnrefRequiredRule from '../eslint-rules/timer-unref-required.mjs'
 
 export default [
     {
@@ -25,7 +26,8 @@ export default [
                     'no-direct-track-event': noDirectTrackEventRule,
                     'no-room-telemetry': noRoomTelemetryRule,
                     'no-inline-humor-events': noInlineHumorEventsRule,
-                    'no-direct-secret-access': noDirectSecretAccessRule
+                    'no-direct-secret-access': noDirectSecretAccessRule,
+                    'timer-unref-required': timerUnrefRequiredRule
                 }
             }
         },
@@ -38,7 +40,8 @@ export default [
             'internal/no-direct-track-event': 'error',
             'internal/no-room-telemetry': 'error',
             'internal/no-inline-humor-events': 'error',
-            'internal/no-direct-secret-access': 'error'
+            'internal/no-direct-secret-access': 'error',
+            'internal/timer-unref-required': 'warn'
         }
     },
     {

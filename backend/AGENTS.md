@@ -84,5 +84,5 @@ Configure Service Bus via:
 
 - Do not block HTTP handlers on long-running work; enqueue async events instead.
 - Do not create Cosmos/Service Bus clients per invocation; reuse module-scope singletons.
-- Never switch backend dependency `@piquet-h/shared` to a `file:` reference.
-- Avoid adding new long-running timers unless they are `.unref()`’d (tests must exit cleanly).
+- Keep `@piquet-h/shared` on published registry versions, not `file:` references (warned by `verify:invariants`).
+- Long-lived retained timers should call `.unref()`; lint now warns via `timer-unref-required`.

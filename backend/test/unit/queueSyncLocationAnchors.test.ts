@@ -5,9 +5,9 @@
  * Per copilot guide Section 10.1: Write failing tests FIRST, then implement.
  */
 
+import type { InvocationContext } from '@azure/functions'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
-import type { InvocationContext } from '@azure/functions'
 import type { ILocationClockManager } from '../../src/services/types.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
@@ -181,13 +181,11 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             const handler = container.get(QueueSyncLocationAnchorsHandler)
 
             const result1 = await handler.handle(payload, mockContext)
-            await handler.handle(payload, mockContext) // result2 ignored - idempotent call should succeed
+            const result2 = await handler.handle(payload, mockContext)
 
             // Then: Both should succeed, second should update 0 locations (already at tick)
             assert.strictEqual(result1.locationsUpdated, 2)
-            // Note: Current implementation doesn't have idempotent fast-path yet
-            // This test defines the expected behavior
-            // assert.strictEqual(result2.locationsUpdated, 0)
+            assert.strictEqual(result2.locationsUpdated, 0)
         })
     })
 

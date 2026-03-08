@@ -311,9 +311,49 @@ jobs:
           path: docs-policy.json
           if-no-files-found: warn
 
+  runtime-invariants:
+    name: Runtime Invariants (warn-only)
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            shared/package-lock.json
+            backend/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
+
+      - name: Install shared dependencies
+        run: cd shared && npm ci
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Verify runtime invariants (warn-only)
+        run: npm run verify:invariants
+
+      - name: Verify runtime invariants (json report)
+        run: npm run verify:invariants:json > runtime-invariants.json
+
+      - name: Upload runtime invariants artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-invariants-report
+          path: runtime-invariants.json
+          if-no-files-found: warn
+
   summary:
     name: CI Summary
-    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy]
+    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy, runtime-invariants]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -325,3 +365,4 @@ jobs:
           if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
           if [ "${{ needs.validate-prompts.result }}" != "" ]; then echo '* Prompt Validation: ${{ needs.validate-prompts.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Prompt Validation: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
           if [ "${{ needs.docs-policy.result }}" != "" ]; then echo '* Docs Policy (warn-only): ${{ needs.docs-policy.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Docs Policy (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          if [ "${{ needs.runtime-invariants.result }}" != "" ]; then echo '* Runtime Invariants (warn-only): ${{ needs.runtime-invariants.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Runtime Invariants (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi

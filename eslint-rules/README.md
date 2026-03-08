@@ -398,6 +398,39 @@ const tags = ['structureArea:common-room']
 
 ---
 
+### `timer-unref-required`
+
+**Purpose:** Warns when retained long-lived Node.js timers are created without a matching `.unref()` call, which can keep tests and short-lived processes from exiting cleanly.
+
+**Applies to:** Node-targeted TypeScript in `backend/src/**` and `shared/src/**` via package ESLint configs.
+
+**What it checks:**
+
+- `setInterval(...)` handles should call `.unref()` when the handle is retained.
+- `setTimeout(...)` handles should call `.unref()` when the delay is statically resolvable to `>= 60000` ms.
+- Ignores timer calls where the handle is not retained or the timeout cannot be safely evaluated.
+
+**Example — Correct:**
+
+```typescript
+const timer = setTimeout(() => cleanup(), 60_000)
+timer.unref()
+
+this.cleanupInterval = setInterval(() => sweep(), cleanupIntervalMs)
+this.cleanupInterval.unref()
+```
+
+**Example — Warning:**
+
+```typescript
+const timer = setInterval(() => sweep(), 60_000)
+```
+
+**When added:** March 2026
+**Related guidance:** `copilot-instructions.md` timer/interval anti-pattern section
+
+---
+
 ## Adding New Rules
 
 1. Create a new `.mjs` file in this directory

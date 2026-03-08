@@ -10,6 +10,7 @@ import noInvalidStructureTagsRule from '../eslint-rules/no-invalid-structure-tag
 import noRoomTelemetryRule from '../eslint-rules/no-room-telemetry.mjs'
 import telemetryEventRule from '../eslint-rules/telemetry-event.mjs'
 import telemetryInjectDecoratorRule from '../eslint-rules/telemetry-inject-decorator.mjs'
+import timerUnrefRequiredRule from '../eslint-rules/timer-unref-required.mjs'
 
 export default [
     { ignores: ['dist', '**/dist/**', 'node_modules', '**/coverage/**'] },
@@ -29,7 +30,8 @@ export default [
                     'handlers-must-extend-base': handlersMustExtendBaseRule,
                     'cosmos-gremlin-repo-constructor': cosmosGremlinRepoConstructorRule,
                     'telemetry-inject-decorator': telemetryInjectDecoratorRule,
-                    'no-invalid-structure-tags': noInvalidStructureTagsRule
+                    'no-invalid-structure-tags': noInvalidStructureTagsRule,
+                    'timer-unref-required': timerUnrefRequiredRule
                 }
             }
         },
@@ -45,7 +47,8 @@ export default [
             'internal/handlers-must-extend-base': 'error',
             'internal/cosmos-gremlin-repo-constructor': 'error',
             'internal/telemetry-inject-decorator': 'error',
-            'internal/no-invalid-structure-tags': 'error'
+            'internal/no-invalid-structure-tags': 'error',
+            'internal/timer-unref-required': 'warn'
         }
     },
     {
