@@ -115,6 +115,38 @@ describe('WorldClockService (unit)', () => {
             }
             assert.strictEqual(message.worldClockTick, 1200)
             assert.strictEqual(message.advancementReason, 'queue-sync-test')
+            assert.ok(message.correlationId, 'Queue sync message should include correlationId')
+        })
+
+        test('uses the same correlationId for queue sync message and enqueue telemetry', async () => {
+            const container = await fixture.getContainer()
+            const syncPublisher = container.get<InMemoryLocationAnchorSyncPublisher>(
+                TOKENS.LocationAnchorSyncPublisher
+            ) as InMemoryLocationAnchorSyncPublisher
+            const telemetry = await fixture.getTelemetryClient()
+
+            await service.advanceTick(2400, 'queue-correlation-test')
+
+            assert.equal(syncPublisher.enqueuedMessages.length, 1)
+            const message = syncPublisher.enqueuedMessages[0] as {
+                worldClockTick: number
+                advancementReason?: string
+                correlationId: string
+            }
+
+            const enqueuedEvents = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncEnqueued')
+            assert.equal(enqueuedEvents.length, 1)
+            assert.strictEqual(
+                enqueuedEvents[0].properties?.correlationId,
+                message.correlationId,
+                'Enqueue telemetry should carry the same correlationId as the queued message'
+            )
+
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+            assert.ok(
+                uuidRegex.test(message.correlationId),
+                `Expected queue sync correlationId to be UUID-like, got ${message.correlationId}`
+            )
         })
     })
 

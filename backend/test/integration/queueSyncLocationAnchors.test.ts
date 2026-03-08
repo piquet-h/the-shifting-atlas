@@ -169,6 +169,25 @@ describeForBothModes('QueueSyncLocationAnchors Integration', (mode) => {
             assert.ok(typeof completedEvents[0].properties?.durationMs === 'number')
             assert.ok(completedEvents[0].properties?.durationMs >= 0)
         })
+
+        test('uses queue payload correlationId in telemetry when present', async () => {
+            const payload = {
+                worldClockTick: 8100,
+                advancementReason: 'telemetry correlation test',
+                correlationId: '22222222-2222-4222-8222-222222222222'
+            }
+            const telemetry = await fixture.getTelemetryClient()
+
+            await handler.handle(payload, mockContext)
+
+            const triggeredEvents = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncTriggered')
+            const completedEvents = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncCompleted')
+
+            assert.strictEqual(triggeredEvents.length, 1)
+            assert.strictEqual(triggeredEvents[0].properties?.correlationId, payload.correlationId)
+            assert.strictEqual(completedEvents.length, 1)
+            assert.strictEqual(completedEvents[0].properties?.correlationId, payload.correlationId)
+        })
     })
 
     describe('error scenarios', () => {

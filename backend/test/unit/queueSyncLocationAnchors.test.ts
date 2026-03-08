@@ -207,6 +207,26 @@ describe('QueueSyncLocationAnchors (unit)', () => {
             assert.strictEqual(events[0].properties?.worldClockTick, 5000)
         })
 
+        test('preserves queue correlationId in telemetry when provided', async () => {
+            const payload = {
+                worldClockTick: 5000,
+                advancementReason: 'test',
+                correlationId: '11111111-1111-4111-8111-111111111111'
+            }
+            const telemetry = await fixture.getTelemetryClient()
+
+            const { QueueSyncLocationAnchorsHandler } = await import('../../src/handlers/queueSyncLocationAnchors.js')
+            const container = await fixture.getContainer()
+            const handler = container.get(QueueSyncLocationAnchorsHandler)
+            await handler.handle(payload, mockContext)
+
+            const triggered = telemetry.events.find((e) => e.name === 'Location.Clock.QueueSyncTriggered')
+            const completed = telemetry.events.find((e) => e.name === 'Location.Clock.QueueSyncCompleted')
+
+            assert.strictEqual(triggered?.properties?.correlationId, payload.correlationId)
+            assert.strictEqual(completed?.properties?.correlationId, payload.correlationId)
+        })
+
         test('emits Location.Clock.QueueSyncCompleted on success with duration', async () => {
             // Given: Valid payload
             const payload = { worldClockTick: 5000, advancementReason: 'test sync' }

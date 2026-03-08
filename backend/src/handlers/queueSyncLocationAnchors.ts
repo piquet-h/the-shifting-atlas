@@ -28,6 +28,7 @@ import { getContainer } from './utils/contextHelpers.js'
 interface SyncLocationAnchorsPayload {
     worldClockTick: number
     advancementReason?: string
+    correlationId?: string
 }
 
 interface SyncLocationAnchorsResult {
@@ -57,9 +58,14 @@ function validatePayload(payload: unknown): SyncLocationAnchorsPayload {
         throw new Error('advancementReason must be a string if provided')
     }
 
+    if (p.correlationId !== undefined && typeof p.correlationId !== 'string') {
+        throw new Error('correlationId must be a string if provided')
+    }
+
     return {
         worldClockTick: p.worldClockTick,
-        advancementReason: p.advancementReason as string | undefined
+        advancementReason: p.advancementReason as string | undefined,
+        correlationId: p.correlationId as string | undefined
     }
 }
 
@@ -78,17 +84,19 @@ export class QueueSyncLocationAnchorsHandler {
         // 1. Validate payload
         const payload = validatePayload(message)
         const { worldClockTick, advancementReason } = payload
+        const correlationId = payload.correlationId || context.invocationId
 
         context.log('Queue sync location anchors triggered', {
             worldClockTick,
-            advancementReason: advancementReason || 'none'
+            advancementReason: advancementReason || 'none',
+            correlationId
         })
 
         // 2. Emit telemetry: sync triggered
         this.telemetry.trackGameEvent('Location.Clock.QueueSyncTriggered', {
             worldClockTick,
             advancementReason: advancementReason || 'none',
-            correlationId: context.invocationId
+            correlationId
         })
 
         // 3. Invoke LocationClockManager.syncAllLocations()
@@ -99,14 +107,15 @@ export class QueueSyncLocationAnchorsHandler {
             // Log error and re-throw for Service Bus retry
             context.error('Failed to sync location anchors', {
                 error: error instanceof Error ? error.message : String(error),
-                worldClockTick
+                worldClockTick,
+                correlationId
             })
 
             // Emit error telemetry
             this.telemetry.trackGameEvent('Location.Clock.QueueSyncFailed', {
                 worldClockTick,
                 error: error instanceof Error ? error.message : String(error),
-                correlationId: context.invocationId
+                correlationId
             })
 
             throw error // Allow Service Bus retry for transient failures
@@ -120,13 +129,14 @@ export class QueueSyncLocationAnchorsHandler {
             locationsUpdated,
             durationMs,
             advancementReason: advancementReason || 'none',
-            correlationId: context.invocationId
+            correlationId
         })
 
         context.log('Queue sync location anchors completed', {
             worldClockTick,
             locationsUpdated,
-            durationMs
+            durationMs,
+            correlationId
         })
 
         return {

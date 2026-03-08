@@ -6,6 +6,7 @@
  */
 
 import { inject, injectable, optional } from 'inversify'
+import { randomUUID } from 'node:crypto'
 import { TOKENS } from '../di/tokens.js'
 import type { ILocationAnchorSyncPublisher } from '../queues/locationAnchorSyncPublisher.js'
 import type { IWorldClockRepository } from '../repos/worldClockRepository.js'
@@ -66,18 +67,27 @@ export class WorldClockService implements IWorldClockService {
         // Preferred path: enqueue location-anchor-sync queue message (production parity).
         // Fallback path: direct sync for environments/tests without a publisher binding.
         if (this.locationAnchorSyncPublisher) {
+            const correlationId = randomUUID()
             try {
-                await this.locationAnchorSyncPublisher.enqueueSync(updated.currentTick, reason, `world-clock-${updated.currentTick}`)
-                this.telemetry.trackGameEvent('Location.Clock.QueueSyncEnqueued', {
-                    worldClockTick: updated.currentTick,
-                    advancementReason: reason
-                })
+                await this.locationAnchorSyncPublisher.enqueueSync(updated.currentTick, reason, correlationId)
+                this.telemetry.trackGameEvent(
+                    'Location.Clock.QueueSyncEnqueued',
+                    {
+                        worldClockTick: updated.currentTick,
+                        advancementReason: reason
+                    },
+                    { correlationId }
+                )
             } catch (error) {
                 // Log but don't fail world clock advancement if queue enqueue fails.
-                this.telemetry.trackGameEvent('Location.Clock.QueueSyncEnqueueFailed', {
-                    error: error instanceof Error ? error.message : String(error),
-                    worldClockTick: updated.currentTick
-                })
+                this.telemetry.trackGameEvent(
+                    'Location.Clock.QueueSyncEnqueueFailed',
+                    {
+                        error: error instanceof Error ? error.message : String(error),
+                        worldClockTick: updated.currentTick
+                    },
+                    { correlationId }
+                )
             }
         } else if (this.locationClockManager) {
             try {
