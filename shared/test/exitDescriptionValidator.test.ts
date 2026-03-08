@@ -539,3 +539,76 @@ test('travelDurationMsToBucket: 60000 → near (DEFAULT_TRAVEL_DURATION_MS)', ()
     // DEFAULT_TRAVEL_DURATION_MS = 60_000 falls in the 'near' band
     assert.equal(travelDurationMsToBucket(60_000), 'near')
 })
+
+test('travelDurationMsToBucket: in/out interior duration (10000ms) → threshold', () => {
+    // INTERIOR_TRAVEL_DURATION_MS = 10_000 (threshold transition — stepping through a door)
+    assert.equal(travelDurationMsToBucket(10_000), 'threshold')
+})
+
+test('travelDurationMsToBucket: 1ms → threshold', () => {
+    assert.equal(travelDurationMsToBucket(1), 'threshold')
+})
+
+// ---------------------------------------------------------------------------
+// Edge cases: Non-ASCII punctuation/quotes (EL-03 guard)
+// ---------------------------------------------------------------------------
+
+test('EL-03: accepts text with Unicode curly double-quotes (not sentence terminals)', () => {
+    // Curly quotes \u201C \u201D are not ASCII [.!?] so they are not counted as sentence terminals
+    const text = '\u201CA path leads north toward the fields.\u201D'
+    const result = validateExitDescription({ text, direction: 'north' })
+    assert.notEqual(result.failingCheck?.checkId, 'EL-03')
+})
+
+test('EL-03: accepts text with Unicode ellipsis \u2026 (not an ASCII terminal)', () => {
+    // U+2026 is a single character and is not ASCII [.!?]; guard against it being double-counted
+    const text = 'A path leads north\u2026'
+    const result = validateExitDescription({ text, direction: 'north' })
+    assert.notEqual(result.failingCheck?.checkId, 'EL-03')
+})
+
+test('EL-03: accepts text with em-dash mid-sentence', () => {
+    // Em-dash \u2014 is punctuation but not a sentence terminal; exactly one terminal at end
+    const text = 'A narrow path\u2014winding east\u2014leads north.'
+    const result = validateExitDescription({ text, direction: 'north' })
+    assert.notEqual(result.failingCheck?.checkId, 'EL-03')
+})
+
+test('EL-03: rejects two ASCII terminals in plain text (baseline for non-ASCII comparisons)', () => {
+    // Plain multi-sentence text: EL-03 fires at the first ASCII period followed by space
+    // This establishes the baseline that EL-03 works before the non-ASCII edge cases below
+    const result = validateExitDescription({
+        text: 'A cobbled lane leads north. A short track continues east.',
+        direction: 'north'
+    })
+    assert.equal(result.valid, false)
+    assert.equal(result.failingCheck?.checkId, 'EL-03')
+})
+
+// ---------------------------------------------------------------------------
+// Edge cases: Empty destination metadata
+// ---------------------------------------------------------------------------
+
+test('EL-07: empty destinationName string provides no allowed tokens — proper noun still rejected', () => {
+    // destinationName='' is not undefined so EL-08 is exempt, but EL-07 still enforces
+    // that no proper nouns outside the (empty) allowed set appear mid-sentence.
+    const result = validateExitDescription({
+        text: 'A cobbled road continues north toward Millhaven.',
+        direction: 'north',
+        destinationName: ''
+    })
+    assert.equal(result.valid, false)
+    assert.equal(result.failingCheck?.checkId, 'EL-07')
+})
+
+test('EL-08: empty destinationName string bypasses stub-destination rule', () => {
+    // destinationName='' is !== undefined so EL-08 does not fire.
+    // (Empty string means "name provided but blank"; EL-07 handles unknown proper nouns.)
+    const result = validateExitDescription({
+        text: 'A track continues east toward open ground.',
+        direction: 'east',
+        destinationName: ''
+    })
+    assert.notEqual(result.failingCheck?.checkId, 'EL-08')
+    assert.equal(result.valid, true)
+})
