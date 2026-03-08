@@ -64,6 +64,7 @@ export interface AtlasConstrainedExitAvailability {
 export interface AtlasAwareFutureLocationPlan {
     terrain: TerrainType
     name: string
+    description: string
     tags: string[]
     exitAvailability?: ExitAvailabilityMetadata
     macroContext: MacroGenerationContext
@@ -81,6 +82,35 @@ function extractFirstTag(tags: string[] | undefined, prefix: string): string | u
 
 function extractAllTags(tags: string[] | undefined, prefix: string): string[] {
     return (tags || []).filter((tag) => tag.startsWith(prefix)).map((tag) => tag.slice(prefix.length))
+}
+
+function extractFrontierDepth(tags: string[] | undefined): number {
+    const raw = extractFirstTag(tags, 'frontier:depth:')
+    if (!raw) return 0
+
+    const parsed = Number.parseInt(raw, 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
+}
+
+function toRomanNumeral(value: number): string {
+    const numerals: Array<[number, string]> = [
+        [10, 'X'],
+        [9, 'IX'],
+        [5, 'V'],
+        [4, 'IV'],
+        [1, 'I']
+    ]
+    let remainder = value
+    let result = ''
+
+    for (const [amount, glyph] of numerals) {
+        while (remainder >= amount) {
+            result += glyph
+            remainder -= amount
+        }
+    }
+
+    return result || 'I'
 }
 
 function findDirectionalTrend(areaRef: string | undefined, direction: Direction): string | undefined {
@@ -254,24 +284,51 @@ export function selectAtlasAwareExpansionDirections(
     return ranked.slice(0, Math.min(batchSize, ranked.length)).map((entry) => entry.direction)
 }
 
-export function suggestFutureNodeName(terrain: TerrainType, context: MacroGenerationContext): string {
+export function suggestFutureNodeName(terrain: TerrainType, context: MacroGenerationContext, frontierDepth: number = 1): string {
+    let baseName: string
+
     if (context.preferredFutureNodePrefix) {
-        return `${context.preferredFutureNodePrefix} ${directionLabel(context.expansionDirection)}`
+        baseName = `${context.preferredFutureNodePrefix} ${directionLabel(context.expansionDirection)}`
+    } else if (context.directionTerrainTrend?.includes('valley')) {
+        baseName = `Valley Reach ${directionLabel(context.expansionDirection)}`
+    } else if (context.directionTerrainTrend?.includes('shelf')) {
+        baseName = `Shelf Reach ${directionLabel(context.expansionDirection)}`
+    } else if (context.waterContext === 'fjord-sound-head') {
+        baseName = `Soundside ${directionLabel(context.expansionDirection)}`
+    } else {
+        baseName = `Unexplored ${titleCaseTerrain(terrain)}`
     }
 
-    if (context.directionTerrainTrend?.includes('valley')) {
-        return `Valley Reach ${directionLabel(context.expansionDirection)}`
-    }
+    return frontierDepth > 1 ? `${baseName} ${toRomanNumeral(frontierDepth)}` : baseName
+}
 
-    if (context.directionTerrainTrend?.includes('shelf')) {
-        return `Shelf Reach ${directionLabel(context.expansionDirection)}`
+function buildFutureLocationDescription(
+    name: string,
+    terrain: TerrainType,
+    context: MacroGenerationContext,
+    frontierDepth: number
+): string {
+    const parts: string[] = [
+        `${name} lies ${context.expansionDirection}, where ${titleCaseTerrain(terrain).toLowerCase()} terrain continues beyond the last confirmed landmarks.`
+    ]
+
+    if (context.directionTerrainTrend) {
+        parts.push(context.directionTerrainTrend.charAt(0).toUpperCase() + context.directionTerrainTrend.slice(1) + '.')
     }
 
     if (context.waterContext === 'fjord-sound-head') {
-        return `Soundside ${directionLabel(context.expansionDirection)}`
+        parts.push('The nearby sound still shapes the air and the line of travel.')
     }
 
-    return `Unexplored ${titleCaseTerrain(terrain)}`
+    if (context.barrierSemantics.length > 0) {
+        parts.push(`Nearby constraints include ${context.barrierSemantics.join(' and ')}.`)
+    }
+
+    if (frontierDepth > 1) {
+        parts.push('This stretch feels farther from Mosswell and less settled underfoot.')
+    }
+
+    return parts.join(' ')
 }
 
 export function selectAtlasAwareTerrain(baseTerrain: TerrainType, context: MacroGenerationContext): TerrainType {
@@ -420,7 +477,8 @@ export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: s
             tag.startsWith('settlement:') ||
             tag.startsWith('macro:area:') ||
             tag.startsWith('macro:route:') ||
-            tag.startsWith('macro:water:')
+            tag.startsWith('macro:water:') ||
+            tag.startsWith('frontier:depth:')
     )
 
     if (realmKey) {
@@ -437,16 +495,20 @@ export function planAtlasAwareFutureLocation(
     realmKey?: string
 ): AtlasAwareFutureLocationPlan {
     const propagatedTags = getMacroPropagationTags(sourceTags, realmKey)
-    const macroContext = resolveMacroGenerationContext(propagatedTags, expansionDirection)
+    const nextFrontierDepth = Math.max(extractFrontierDepth(propagatedTags) + 1, 1)
+    const tags = unique([...propagatedTags.filter((tag) => !tag.startsWith('frontier:depth:')), `frontier:depth:${nextFrontierDepth}`])
+    const macroContext = resolveMacroGenerationContext(tags, expansionDirection)
     const selectedTerrain = selectAtlasAwareTerrain(baseTerrain, macroContext)
-    const name = suggestFutureNodeName(selectedTerrain, macroContext)
+    const name = suggestFutureNodeName(selectedTerrain, macroContext, nextFrontierDepth)
+    const description = buildFutureLocationDescription(name, selectedTerrain, macroContext, nextFrontierDepth)
     const backDirection = getOppositeDirection(expansionDirection)
-    const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, macroContext, backDirection, propagatedTags)
+    const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, macroContext, backDirection, tags)
 
     return {
         terrain: selectedTerrain,
         name,
-        tags: propagatedTags,
+        description,
+        tags,
         exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
         macroContext
     }

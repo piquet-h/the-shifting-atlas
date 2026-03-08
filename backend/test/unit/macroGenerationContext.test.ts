@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
     buildAtlasConstrainedExitAvailability,
+    planAtlasAwareFutureLocation,
     resolveMacroGenerationContext,
     scoreAtlasAwareReconnectionCandidate,
     selectAtlasAwareExpansionDirections,
@@ -113,4 +114,18 @@ test('buildAtlasConstrainedExitAvailability: converts impossible waterfront cont
     assert.ok(availability.forbidden?.west?.reason.includes('fiord') || availability.forbidden?.west?.reason.includes('cliff'))
     assert.ok(availability.pending?.north)
     assert.ok(availability.pending?.south)
+})
+
+test('planAtlasAwareFutureLocation: carries frontier depth forward, avoids exact repeated names, and provides fallback prose', () => {
+    const plan = planAtlasAwareFutureLocation('narrow-corridor', 'south', [
+        'settlement:mosswell',
+        'macro:area:lr-area-mosswell-fiordhead',
+        'macro:water:fjord-sound-head',
+        'frontier:depth:1'
+    ])
+
+    assert.equal(plan.tags.includes('frontier:depth:2'), true)
+    assert.notEqual(plan.name, 'Soundside Southward Reach')
+    assert.ok(plan.description.trim().length > 0)
+    assert.ok(plan.description.includes('south') || plan.description.includes('Soundside'))
 })

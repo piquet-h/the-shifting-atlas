@@ -63,6 +63,14 @@ describe('Exit Generation Hint Integration', () => {
         }
     }
 
+    async function snapshotLocationCount(): Promise<number> {
+        return (await locationRepo.listAll()).length
+    }
+
+    async function assertLocationCountUnchanged(expectedCount: number, message: string): Promise<void> {
+        assert.equal(await snapshotLocationCount(), expectedCount, message)
+    }
+
     it('should materialize a hard exit and stub location when hint is processed', async () => {
         // Arrange: create origin location with a pending north exit
         const originId = uuidv4()
@@ -95,6 +103,7 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(stubLocation, 'Stub location should have been created')
         assert.equal(stubLocation?.name, 'Unexplored Open Plain', 'Stub should use terrain-aware fallback naming')
         assert.equal(stubLocation?.terrain, 'open-plain', 'Stub should inherit origin terrain')
+        assert.ok(stubLocation?.description.trim().length, 'Stub should have non-empty fallback description')
 
         // Assert: reciprocal exit exists on the stub
         const reciprocalExit = stubLocation?.exits?.find((e) => e.direction === 'south')
@@ -169,6 +178,93 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok('east' in (updatedOrigin?.exitAvailability?.pending ?? {}), 'East should still be pending')
     })
 
+    it('should reconnect to an existing nearby location when a bounded aligned candidate exists', async () => {
+        const originId = uuidv4()
+        const northId = uuidv4()
+        const eastMidId = uuidv4()
+        const eastFarId = uuidv4()
+        const reconnectId = uuidv4()
+
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Origin Spur',
+            description: 'A spur at the edge of settled ground.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell'],
+            exits: [],
+            exitAvailability: { pending: { east: 'A path might connect back into the settled grid.' } },
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: northId,
+            name: 'North Link',
+            description: 'A short rise north.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: eastMidId,
+            name: 'East Mid',
+            description: 'A dogleg east.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: eastFarId,
+            name: 'East Far',
+            description: 'A longer run east.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell'],
+            exits: [],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: reconnectId,
+            name: 'Town Back Lane',
+            description: 'A narrow lane reconnecting toward Mosswell.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell'],
+            exits: [],
+            version: 1
+        })
+
+        await locationRepo.ensureExitBidirectional(originId, 'north', northId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(northId, 'east', eastMidId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(eastMidId, 'east', eastFarId, { reciprocal: true })
+        await locationRepo.ensureExitBidirectional(eastFarId, 'north', reconnectId, { reciprocal: true })
+
+        await locationRepo.setExitTravelDuration(originId, 'north', 30_000)
+        await locationRepo.setExitTravelDuration(northId, 'south', 30_000)
+        await locationRepo.setExitTravelDuration(northId, 'east', 30_000)
+        await locationRepo.setExitTravelDuration(eastMidId, 'west', 30_000)
+        await locationRepo.setExitTravelDuration(eastMidId, 'east', 30_000)
+        await locationRepo.setExitTravelDuration(eastFarId, 'west', 30_000)
+        await locationRepo.setExitTravelDuration(eastFarId, 'north', 30_000)
+        await locationRepo.setExitTravelDuration(reconnectId, 'south', 30_000)
+
+        const beforeCount = await snapshotLocationCount()
+        const ctx = await fixture.createInvocationContext()
+
+        await queueProcessExitGenerationHint(buildHintMessage(originId, 'east', uuidv4()), ctx as unknown as InvocationContext)
+
+        const updatedOrigin = await locationRepo.get(originId)
+        const eastExit = updatedOrigin?.exits?.find((e) => e.direction === 'east')
+        assert.ok(eastExit, 'Origin should now have an east exit')
+        assert.equal(eastExit?.to, reconnectId, 'Hint path should reconnect to the existing nearby location')
+
+        const reconnectLocation = await locationRepo.get(reconnectId)
+        assert.ok(
+            reconnectLocation?.exits?.some((e) => e.direction === 'west' && e.to === originId),
+            'Reconnected location should gain reciprocal west exit back to origin'
+        )
+
+        await assertLocationCountUnchanged(beforeCount, 'Reconnection should not create a brand new stub location')
+    })
+
     it('should be idempotent: skip when hard exit already exists (skipped-idempotent)', async () => {
         // Arrange: origin with a hard north exit already
         const originId = uuidv4()
@@ -226,8 +322,7 @@ describe('Exit Generation Hint Integration', () => {
         })
 
         // Count locations before to verify no new one is created
-        const beforeLocations = await locationRepo.listAll()
-        const beforeCount = beforeLocations.length
+        const beforeCount = await snapshotLocationCount()
 
         const ctx = await fixture.createInvocationContext()
         const message = buildHintMessage(originId, 'north', uuidv4())
@@ -240,8 +335,7 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(!northExit, 'No north exit should be created for forbidden direction')
 
         // Assert: no new location created
-        const afterLocations = await locationRepo.listAll()
-        assert.equal(afterLocations.length, beforeCount, 'No new locations should be created for forbidden direction')
+        await assertLocationCountUnchanged(beforeCount, 'No new locations should be created for forbidden direction')
 
         // Assert: forbidden-policy log
         const forbiddenLog = ctx.getLogs().find((l) => l[0] === 'Exit generation hint: direction is forbidden by policy')

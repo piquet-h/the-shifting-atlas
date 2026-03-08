@@ -31,7 +31,12 @@ import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../di/tokens.js'
 import type { IDeadLetterRepository } from '../repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
-import { planAtlasAwareFutureLocation } from '../services/macroGenerationContext.js'
+import {
+    planAtlasAwareFutureLocation,
+    resolveMacroGenerationContext,
+    scoreAtlasAwareReconnectionCandidate
+} from '../services/macroGenerationContext.js'
+import type { ITemporalProximityService } from '../services/temporalProximityService.js'
 import { enrichNormalizedErrorAttributes } from '../telemetry/errorTelemetry.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { getContainer } from './utils/contextHelpers.js'
@@ -47,6 +52,75 @@ const EXIT_HINT_DUPE_TTL_MS = parseInt(process.env.EXIT_HINT_DUPE_TTL_MS || '600
 
 /** Max entries in idempotency cache before eviction */
 const EXIT_HINT_CACHE_MAX_SIZE = parseInt(process.env.EXIT_HINT_CACHE_MAX_SIZE || '10000', 10)
+
+/** Match batch generation's bounded wilderness reconnection budget. */
+const WILDERNESS_RECONNECT_TOLERANCE = 2
+
+/** Minimum directional alignment to consider a fuzzy reconnection narratively sensible. */
+const NARRATIVE_ALIGNMENT_MIN = 0.4
+
+const DIRECTION_VECTORS: Readonly<Record<Direction, { x: number; y: number }>> = {
+    north: { x: 0, y: 1 },
+    south: { x: 0, y: -1 },
+    east: { x: 1, y: 0 },
+    west: { x: -1, y: 0 },
+    northeast: { x: 1, y: 1 },
+    northwest: { x: -1, y: 1 },
+    southeast: { x: 1, y: -1 },
+    southwest: { x: -1, y: -1 },
+    up: { x: 0, y: 0 },
+    down: { x: 0, y: 0 },
+    in: { x: 0, y: 0 },
+    out: { x: 0, y: 0 }
+}
+
+function byProximityPriority(
+    a: { hops: number; accumulatedTravelMs: number; locationId: string },
+    b: { hops: number; accumulatedTravelMs: number; locationId: string }
+): number {
+    if (a.hops !== b.hops) return a.hops - b.hops
+    if (a.accumulatedTravelMs !== b.accumulatedTravelMs) return a.accumulatedTravelMs - b.accumulatedTravelMs
+    if (a.locationId < b.locationId) return -1
+    if (a.locationId > b.locationId) return 1
+    return 0
+}
+
+function narrativeAlignmentScore(direction: Direction, displacementX?: number, displacementY?: number): number {
+    if (typeof displacementX !== 'number' || typeof displacementY !== 'number') {
+        return 0
+    }
+
+    const dir = DIRECTION_VECTORS[direction]
+    const mag = Math.hypot(displacementX, displacementY)
+    const dirMag = Math.hypot(dir.x, dir.y)
+    if (mag === 0 || dirMag === 0) {
+        return 0
+    }
+
+    const dot = displacementX * dir.x + displacementY * dir.y
+    return dot / (mag * dirMag)
+}
+
+function isAxisDominantForCardinalDirection(direction: Direction, displacementX?: number, displacementY?: number): boolean {
+    if (typeof displacementX !== 'number' || typeof displacementY !== 'number') {
+        return false
+    }
+
+    switch (direction) {
+        case 'east':
+        case 'west':
+            return Math.abs(displacementX) >= Math.abs(displacementY)
+        case 'north':
+        case 'south':
+            return Math.abs(displacementY) >= Math.abs(displacementX)
+        default:
+            return true
+    }
+}
+
+function extractRealmKey(tags: string[] | undefined): string | undefined {
+    return tags?.find((tag) => tag.startsWith('settlement:'))
+}
 
 // --- Error Message Truncation Limits -----------------------------------------
 
@@ -150,7 +224,8 @@ export class QueueProcessExitGenerationHintHandler {
     constructor(
         @inject('IDeadLetterRepository') private deadLetterRepository: IDeadLetterRepository,
         @inject(TelemetryService) private telemetryService: TelemetryService,
-        @inject(TOKENS.LocationRepository) private locationRepository: ILocationRepository
+        @inject(TOKENS.LocationRepository) private locationRepository: ILocationRepository,
+        @inject(TOKENS.TemporalProximityService) private temporalProximityService: ITemporalProximityService
     ) {}
 
     async handle(message: unknown, context: InvocationContext): Promise<void> {
@@ -391,33 +466,92 @@ export class QueueProcessExitGenerationHintHandler {
             return
         }
 
-        // 12. Materialize: create stub neighbor location and bidirectional exit
-        const stubId = uuidv4()
         const dir = payload.dir as Direction
-        const futureLocationPlan = planAtlasAwareFutureLocation((origin.terrain ?? 'open-plain') as TerrainType, dir, origin.tags)
+        const travelDurationMs = defaultTravelDurationForDirection(dir)
+        const usedCandidateIds = new Set((origin.exits || []).flatMap((exit) => (exit.to ? [exit.to] : [])))
+        const budget = WILDERNESS_RECONNECT_TOLERANCE * travelDurationMs
+        const realmKey = extractRealmKey(origin.tags)
+        const candidates = await this.temporalProximityService.findWithinTravelTime(payload.originLocationId, budget, realmKey)
+        const candidateProfiles = new Map(
+            await Promise.all(
+                candidates.map(async (candidate) => {
+                    const location = await this.locationRepository.get(candidate.locationId)
+                    return [candidate.locationId, location] as const
+                })
+            )
+        )
+        const targetContext = resolveMacroGenerationContext(origin.tags, dir)
+        const reciprocalDirection = getOppositeDirection(dir)
 
-        await this.locationRepository.upsert({
-            id: stubId,
-            name: futureLocationPlan.name,
-            description: '',
-            terrain: futureLocationPlan.terrain,
-            tags: futureLocationPlan.tags,
-            exits: [],
-            exitAvailability: futureLocationPlan.exitAvailability,
-            version: 1
-        })
+        const reconnectCandidate = candidates
+            .filter((candidate) => {
+                if (usedCandidateIds.has(candidate.locationId)) return false
+                if (!isAxisDominantForCardinalDirection(dir, candidate.displacementX, candidate.displacementY)) return false
+                if (narrativeAlignmentScore(dir, candidate.displacementX, candidate.displacementY) < NARRATIVE_ALIGNMENT_MIN) return false
 
-        const exitResult = await this.locationRepository.ensureExitBidirectional(payload.originLocationId, dir, stubId, {
+                const location = candidateProfiles.get(candidate.locationId)
+                const reciprocalExit = location?.exits?.find((exit) => exit.direction === reciprocalDirection)
+                return !reciprocalExit || reciprocalExit.to === payload.originLocationId
+            })
+            .sort((a, b) => {
+                const aProfile = candidateProfiles.get(a.locationId)
+                const bProfile = candidateProfiles.get(b.locationId)
+                const aAtlasScore = scoreAtlasAwareReconnectionCandidate(
+                    targetContext,
+                    (origin.terrain ?? 'open-plain') as TerrainType,
+                    aProfile?.terrain ?? ((origin.terrain ?? 'open-plain') as TerrainType),
+                    aProfile?.tags
+                )
+                const bAtlasScore = scoreAtlasAwareReconnectionCandidate(
+                    targetContext,
+                    (origin.terrain ?? 'open-plain') as TerrainType,
+                    bProfile?.terrain ?? ((origin.terrain ?? 'open-plain') as TerrainType),
+                    bProfile?.tags
+                )
+
+                return bAtlasScore - aAtlasScore || byProximityPriority(a, b)
+            })[0]
+
+        let targetLocationId: string
+        let createdStub = false
+
+        if (reconnectCandidate) {
+            targetLocationId = reconnectCandidate.locationId
+            context.log('Exit generation hint reconnected to existing location', {
+                dir: payload.dir,
+                originLocationIdHash: hashPrefix(payload.originLocationId),
+                targetLocationId: targetLocationId,
+                correlationId
+            })
+        } else {
+            // 12. Materialize: create stub neighbor location and bidirectional exit
+            const stubId = uuidv4()
+            const futureLocationPlan = planAtlasAwareFutureLocation((origin.terrain ?? 'open-plain') as TerrainType, dir, origin.tags)
+
+            await this.locationRepository.upsert({
+                id: stubId,
+                name: futureLocationPlan.name,
+                description: futureLocationPlan.description,
+                terrain: futureLocationPlan.terrain,
+                tags: futureLocationPlan.tags,
+                exits: [],
+                exitAvailability: futureLocationPlan.exitAvailability,
+                version: 1
+            })
+            targetLocationId = stubId
+            createdStub = true
+        }
+
+        const exitResult = await this.locationRepository.ensureExitBidirectional(payload.originLocationId, dir, targetLocationId, {
             reciprocal: true
         })
 
         // Persist deterministic travel duration on newly created edges.
-        const travelDurationMs = defaultTravelDurationForDirection(dir)
         if (exitResult.created) {
             await this.locationRepository.setExitTravelDuration(payload.originLocationId, dir, travelDurationMs)
         }
         if (exitResult.reciprocalCreated) {
-            await this.locationRepository.setExitTravelDuration(stubId, getOppositeDirection(dir), travelDurationMs)
+            await this.locationRepository.setExitTravelDuration(targetLocationId, reciprocalDirection, travelDurationMs)
         }
 
         // 13. Clear pending availability for this direction
@@ -443,7 +577,8 @@ export class QueueProcessExitGenerationHintHandler {
         context.log('Exit generation hint materialized', {
             dir: payload.dir,
             originLocationIdHash: hashPrefix(payload.originLocationId),
-            newLocationId: stubId,
+            newLocationId: targetLocationId,
+            createdStub,
             correlationId
         })
 
@@ -455,7 +590,7 @@ export class QueueProcessExitGenerationHintHandler {
                 originLocationIdHash: hashPrefix(payload.originLocationId),
                 playerIdHash: hashPrefix(payload.playerId),
                 debounced: payload.debounced,
-                outcome: 'materialized',
+                outcome: createdStub ? 'materialized' : 'reconnected',
                 correlationId
             },
             { correlationId }

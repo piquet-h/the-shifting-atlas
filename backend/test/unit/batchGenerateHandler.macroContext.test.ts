@@ -22,8 +22,20 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         eventPublisher = container.get<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
     })
 
+    const snapshotLocationIds = async (): Promise<Set<string>> => new Set((await locationRepo.listAll()).map((location) => location.id))
+
+    const selectGeneratedLocations = <T extends { id: string }>(allLocations: T[], beforeIds: Set<string>, rootLocationId: string): T[] =>
+        allLocations.filter((location) => location.id !== rootLocationId && !beforeIds.has(location.id))
+
+    const selectSingleGeneratedLocation = <T extends { id: string }>(
+        allLocations: T[],
+        beforeIds: Set<string>,
+        rootLocationId: string
+    ): T | undefined => selectGeneratedLocations(allLocations, beforeIds, rootLocationId)[0]
+
     test('generated stubs inherit root macro tags beyond realmKey', async () => {
         const rootLocationId = uuidv4()
+        const beforeIds = await snapshotLocationIds()
         await locationRepo.upsert({
             id: rootLocationId,
             name: 'North Gate',
@@ -62,9 +74,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.equal(result.outcome, 'success')
 
         const allLocations = await locationRepo.listAll()
-        const generated = allLocations.filter(
-            (location) => location.id !== rootLocationId && location.tags?.includes('macro:route:mw-route-harbor-to-northgate')
-        )
+        const generated = selectGeneratedLocations(allLocations, beforeIds, rootLocationId)
         assert.equal(generated.length, 1)
         assert.ok(generated[0].tags?.includes('macro:area:lr-area-mosswell-fiordhead'))
         assert.ok(generated[0].tags?.includes('macro:route:mw-route-harbor-to-northgate'))
@@ -73,6 +83,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
 
     test('generated stub names preserve route continuity when atlas provides a preferred prefix', async () => {
         const rootLocationId = uuidv4()
+        const beforeIds = await snapshotLocationIds()
         await locationRepo.upsert({
             id: rootLocationId,
             name: 'North Gate',
@@ -111,9 +122,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.equal(result.outcome, 'success')
 
         const allLocations = await locationRepo.listAll()
-        const generated = allLocations.find(
-            (location) => location.id !== rootLocationId && location.tags?.includes('macro:route:mw-route-harbor-to-northgate')
-        )
+        const generated = selectSingleGeneratedLocation(allLocations, beforeIds, rootLocationId)
         assert.ok(generated)
         assert.ok(generated?.name.includes('North Road'))
         assert.ok(!generated?.name.includes('Unexplored Open Plain'))
@@ -121,6 +130,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
 
     test('generated stub pending exits use atlas-aware barrier and water hints instead of generic wilderness text', async () => {
         const rootLocationId = uuidv4()
+        const beforeIds = await snapshotLocationIds()
         await locationRepo.upsert({
             id: rootLocationId,
             name: 'Mosswell River Jetty',
@@ -158,9 +168,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.equal(result.outcome, 'success')
 
         const allLocations = await locationRepo.listAll()
-        const generated = allLocations.find(
-            (location) => location.id !== rootLocationId && location.tags?.includes('macro:water:fjord-sound-head')
-        )
+        const generated = selectSingleGeneratedLocation(allLocations, beforeIds, rootLocationId)
         assert.ok(generated?.exitAvailability?.pending)
 
         const pendingDescriptions = Object.values(generated!.exitAvailability!.pending!)

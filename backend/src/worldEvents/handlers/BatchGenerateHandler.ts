@@ -611,7 +611,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             await this.locationRepo.upsert({
                 id,
                 name: futureLocationPlan.name,
-                description: '', // Will be filled by AI-generated layer
+                description: futureLocationPlan.description,
                 terrain: futureLocationPlan.terrain,
                 tags: futureLocationPlan.tags,
                 exits: [], // Will be populated by ExitCreateHandler
