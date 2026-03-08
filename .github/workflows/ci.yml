@@ -286,9 +286,34 @@ jobs:
           path: shared/dist/prompts/prompts.bundle.json
           if-no-files-found: warn
 
+  docs-policy:
+    name: Docs Policy (warn-only)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify docs policy (warn-only)
+        run: npm run verify:docs-policy
+
+      - name: Verify docs policy (json report)
+        run: npm run verify:docs-policy:json > docs-policy.json
+
+      - name: Upload docs policy artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-policy-report
+          path: docs-policy.json
+          if-no-files-found: warn
+
   summary:
     name: CI Summary
-    needs: [lint-typecheck, tests, accessibility, validate-prompts]
+    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -299,3 +324,4 @@ jobs:
           echo '* Tests: ${{ needs.tests.result }}' >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
           if [ "${{ needs.validate-prompts.result }}" != "" ]; then echo '* Prompt Validation: ${{ needs.validate-prompts.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Prompt Validation: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          if [ "${{ needs.docs-policy.result }}" != "" ]; then echo '* Docs Policy (warn-only): ${{ needs.docs-policy.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Docs Policy (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi

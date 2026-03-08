@@ -20,21 +20,21 @@ The Shifting Atlas embraces **character-driven roleplaying** over skill-based me
 
 ### Instead of Universal Skills (5e-style)
 
--   ❌ "Roll Investigation to search the room"
--   ❌ Proficiency bonuses in Athletics, Persuasion, Arcana
+- ❌ "Roll Investigation to search the room"
+- ❌ Proficiency bonuses in Athletics, Persuasion, Arcana
 
 ### Character-Driven Approach
 
--   ✅ "As a former thief, I know where merchants hide valuables—I check the false bottom of the strongbox"
--   ✅ "My time as a ship's navigator taught me to read star charts—I examine the constellation map for clues"
--   ✅ "Having grown up in noble courts, I recognize the subtle power dynamics and address the duchess with proper deference"
+- ✅ "As a former thief, I know where merchants hide valuables—I check the false bottom of the strongbox"
+- ✅ "My time as a ship's navigator taught me to read star charts—I examine the constellation map for clues"
+- ✅ "Having grown up in noble courts, I recognize the subtle power dynamics and address the duchess with proper deference"
 
 The AI DM evaluates these declarations against:
 
--   **Character background** (established in creation or play)
--   **Narrative coherence** (does this fit their story?)
--   **Situational plausibility** (is this reasonable here?)
--   **World consistency** (does this align with established facts?)
+- **Character background** (established in creation or play)
+- **Narrative coherence** (does this fit their story?)
+- **Situational plausibility** (is this reasonable here?)
+- **World consistency** (does this align with established facts?)
 
 ## Integration with The Shifting Atlas
 
@@ -52,9 +52,9 @@ AI DM Response: "Your sailor's instincts serve you well. You spot a weathered se
 
 Character backgrounds (see `explorer-creation.md`) grant narrative authority rather than numerical bonuses:
 
--   **Former Cartographer's Apprentice**: Can interpret maps, recognize cartographic conventions, navigate by landmarks
--   **Ex-Mercenary**: Understands combat tactics, weapon maintenance, military hierarchy
--   **Temple Initiate**: Knows religious symbolism, ritual protocols, theological history
+- **Former Cartographer's Apprentice**: Can interpret maps, recognize cartographic conventions, navigate by landmarks
+- **Ex-Mercenary**: Understands combat tactics, weapon maintenance, military hierarchy
+- **Temple Initiate**: Knows religious symbolism, ritual protocols, theological history
 
 ### AI Interpretation
 
@@ -67,19 +67,19 @@ The AI Dungeon Master (governed by `dungeon-master-style-guide.md`) interprets d
 
 ### No Mechanical Skill System
 
-The Shifting Atlas **does not implement**:
+The Shifting Atlas **does not use as core gameplay**:
 
--   Universal skill lists (Persuasion, Investigation, Athletics)
--   Skill proficiency bonuses or numerical ratings
--   Ability score modifiers for skill checks
--   Skill point allocation or leveling systems
+- Universal skill lists (Persuasion, Investigation, Athletics)
+- Skill proficiency bonuses or numerical ratings
+- Ability score modifiers for skill checks
+- Skill point allocation or leveling systems
 
 ### What We Do Instead
 
--   **Freeform narrative declarations** parsed for intent (see `player-interaction-and-intents.md`)
--   **Background tags** stored as character metadata
--   **AI adjudication** based on contextual plausibility
--   **Emergent recognition** through gameplay ("You've proven yourself a skilled climber through repeated demonstrations")
+- **Freeform narrative declarations** parsed for intent (see `player-interaction-and-intents.md`)
+- **Background tags** stored as character metadata
+- **AI adjudication** based on contextual plausibility
+- **Emergent recognition** through gameplay ("You've proven yourself a skilled climber through repeated demonstrations")
 
 ## Contrast with D&D 5e Approach
 
@@ -93,23 +93,23 @@ The Shifting Atlas **does not implement**:
 
 ## Design Implications
 
-### Character Creation (M5+)
+### Character Creation
 
--   Background selection grants **narrative authorities** not **skill points**
--   Players write **capability statements**: "I can... because I used to..."
--   No standardized skill selections
+- Background selection grants **narrative authorities** not **skill points**
+- Players write **capability statements**: "I can... because I used to..."
+- No standardized skill selections
 
-### Command Parsing (PI-0 through PI-5)
+### Command Parsing
 
--   Intent parser focuses on **action description** not **skill invocation**
--   Extract **reasoning/justification** from player text
--   Pass context to AI for plausibility evaluation
+- Intent parser focuses on **action description** not **skill invocation**
+- Extract **reasoning/justification** from player text
+- Pass context to AI for plausibility evaluation
 
 ### AI Prompt Engineering
 
--   DM prompts include **character background summary**
--   Adjudication instructions emphasize **fiction consistency**
--   Avoid "skill check" language in favor of "character capability assessment"
+- DM prompts include **character background summary**
+- Adjudication instructions emphasize **fiction consistency**
+- Avoid "skill check" language in favor of "character capability assessment"
 
 ## Benefits
 
@@ -131,11 +131,11 @@ The Shifting Atlas **does not implement**:
 
 ## Related Documentation
 
--   **DM Style Guide**: `dungeon-master-style-guide.md` (narrative voice)
--   **Player Interaction**: `player-interaction-and-intents.md` (command parsing)
--   **Explorer Creation**: `explorer-creation.md` (background system)
--   **AI Prompt Engineering**: `ai-prompt-engineering.md` (adjudication prompts)
--   **Narrative Governance**: `narration-governance.md` (bounded creativity)
+- **DM Style Guide**: `dungeon-master-style-guide.md` (narrative voice)
+- **Player Interaction**: `player-interaction-and-intents.md` (command parsing)
+- **Explorer Creation**: `explorer-creation.md` (background system)
+- **AI Prompt Engineering**: `ai-prompt-engineering.md` (adjudication prompts)
+- **Narrative Governance**: `narration-governance.md` (bounded creativity)
 
 ## Change Log
 

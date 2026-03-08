@@ -287,7 +287,7 @@ const duration = registry.getDuration('encumbered_move', {
 
 ### 5. ReconcileEngine
 
-**Purpose**: Implement reconciliation policies and narrative compression
+**Purpose**: Define reconciliation policies and narrative compression
 
 **Algorithm**:
 
@@ -423,7 +423,7 @@ interface TemporalLedgerEntry {
 **Storage**:
 
 - Cosmos SQL API container: `temporalLedger`
-- Partition key: `/scopeKey` (pattern: `wc` for world clock, `player:<id>` for player events)
+- Scope grouping distinguishes world-clock entries from player-scoped entries
 - TTL: Configurable (default: 90 days for audit, then archive or delete)
 
 **Queries**:
@@ -434,7 +434,7 @@ interface TemporalLedgerEntry {
 
 **Telemetry Integration**:
 
-- Emit Application Insights events for real-time monitoring
+- Emit real-time monitoring events for operational visibility
 - TemporalLedger provides durable audit trail (telemetry may have sampling/retention limits)
 
 ---
@@ -534,7 +534,7 @@ async function onPlayerReconnect(playerId: string) {
 
 ## Telemetry Events
 
-Telemetry events are centrally defined in `shared/src/telemetryEvents.ts`.
+Telemetry events are centrally defined in the shared telemetry registry.
 
 ```typescript
 export enum TelemetryEvent {
@@ -703,7 +703,7 @@ if (Math.abs(offsetMs) <= config.epsilonMs) {
 - **World Events**: Temporal events may emit world events (e.g., "season changed")
 - **Player State**: Extends existing player documents with clock fields
 - **Location Model**: Adds clockAnchor property to location vertices
-- **Telemetry**: Uses existing Application Insights infrastructure
+- **Telemetry**: Uses the existing monitoring pipeline
 
 ### New Infrastructure
 
@@ -738,7 +738,7 @@ if (Math.abs(offsetMs) <= config.epsilonMs) {
 | ------------------------------- | ------------------------------------------------- |
 | Design Module (40k ft)          | `../design-modules/README.md` (World Time module) |
 | World Event Contract            | `../architecture/world-event-contract.md`         |
-| Player State (SQL API)          | `../architecture/cosmos-sql-reference.md`        |
+| Player State (SQL API)          | `../architecture/cosmos-sql-reference.md`         |
 | Realm Hierarchy (zones)         | `../architecture/realm-hierarchy.md`              |
 | Telemetry Standards             | `../observability.md`                             |
 | Multiplayer Mechanics (future)  | `multiplayer-mechanics.md`                        |

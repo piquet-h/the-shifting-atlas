@@ -117,7 +117,7 @@ They can:
 
 ### Auditing & Telemetry
 
-Events emitted (canonical list in `shared/src/telemetryEvents.ts`; all via `trackGameEventStrict`):
+Events emitted (from the canonical telemetry registry; all via `trackGameEventStrict`):
 
 - `Extension.Hook.Invoked` (hook, extensionName, durationMs, success)
 - `Extension.Hook.Veto` (hook, reasonCode)

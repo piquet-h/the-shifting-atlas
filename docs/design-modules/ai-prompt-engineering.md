@@ -420,7 +420,7 @@ Security: Hooks operate on sanitized objects; must be pure (no external network)
 
 ### Telemetry Events
 
-Canonical event names (defined in `shared/src/telemetryEvents.ts`) use `Domain.[Subject].Action` PascalCase form and are emitted exclusively via `trackGameEventStrict`:
+Canonical event names use the shared telemetry registry's `Domain.[Subject].Action` PascalCase form and are emitted exclusively via `trackGameEventStrict`:
 
 - `Prompt.Genesis.Issued` (promptTokens, completionTokens?, latencyMs, cacheHit)
 - `Prompt.Genesis.Rejected` (failureCode, retryCount)
@@ -536,7 +536,7 @@ _AI-first genesis pipeline section added 2025-09-25 to align with crystallizatio
 [Azure OpenAI] ↓  
 [AI Response Parsing] → Filters rare items, adjusts NPC tone, restricts quest access ↓  
 [Location Generation or Tailoring] + [Item Placement] + [Dialogue Tree Population] ↓  
-[Graph Persistence] → [Cosmos DB] ↓  
+[Graph Persistence] → [Persistent World Store] ↓
 [Temporal Tagging] → [World Evolution] ↓  
 [Narrative Stitching] → Reflects diminished rewards and social consequences
 

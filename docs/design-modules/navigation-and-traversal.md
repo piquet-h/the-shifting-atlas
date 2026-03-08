@@ -8,7 +8,7 @@
 
 The system powers a persistent, MMO-scale text adventure blending D&D mechanics with generative AI. Players can drop in/out, form guilds, influence factions, and co-create the world through play.
 
-Locations are represented as nodes in a 3D graph, with exits as edges storing directional vectors and rich metadata. The system ensures intuitive, context-aware navigation and dynamic location generation using Azure OpenAI and Cosmos DB.
+Locations are represented as nodes in a 3D graph, with exits as edges storing directional vectors and rich metadata. The system ensures intuitive, context-aware navigation and dynamic location generation using generative models plus persistent world storage.
 
 ## Graph Schema (Initial Implementation Target)
 
@@ -27,15 +27,15 @@ Initial implementation uses only `Location`; `Structure` and `Zone` are design p
 
 ### Edge Types
 
-| Label               | Direction               | Purpose                                                                       | Key Properties                                                                           |
-| ------------------- | ----------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Label               | Direction               | Purpose                                                                       | Key Properties                                                                                   |
+| ------------------- | ----------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `EXIT`              | `Location -> Location`  | Player movement; canonical traversable connection.                            | `dir`, `name`, `kind`, `distance`, `travelDurationMs`, `state`, `gating`, `genSource`, `version` |
-| `CONTAINS`          | `Structure -> Location` | Hierarchical membership (arena owns inner ring locations).                    | `role` (e.g., `outer_concourse`, `inner_stage`)                                          |
-| `CONNECTS` (future) | `Zone <-> Zone`         | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                           |
-| `LINKS` (future)    | `Location -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                             |
-| `VANTAGE` (future)  | `Location -> Location`  | One-way descriptive visibility (you can see the arena floor from the stands). | `visibilityTier`, `obstruction`                                                          |
+| `CONTAINS`          | `Structure -> Location` | Hierarchical membership (arena owns inner ring locations).                    | `role` (e.g., `outer_concourse`, `inner_stage`)                                                  |
+| `CONNECTS` (future) | `Zone <-> Zone`         | Region adjacency for procedural expansion.                                    | `boundaryType`                                                                                   |
+| `LINKS` (future)    | `Location -> Portal`    | Association to special mechanics (fast travel).                               | `activation`                                                                                     |
+| `VANTAGE` (future)  | `Location -> Location`  | One-way descriptive visibility (you can see the arena floor from the stands). | `visibilityTier`, `obstruction`                                                                  |
 
-Only `EXIT` is required for the MVP. Others provide a roadmap (do not implement prematurely).
+Only `EXIT` is required in the minimal canonical model. The other edge types remain optional placeholders and should not be treated as mandatory schema.
 
 ### Core Properties
 
@@ -85,7 +85,7 @@ Approach Options:
 1. **Flat Locations Only (MVP)** – Each concourse segment and the arena floor are `Location` vertices; gates are `EXIT` edges. Pros: simplest now. Cons: analytics across the entire coliseum require grouping logic later.
 2. **Introduce `Structure` Vertex (Later)** – A single `Structure` vertex (`Coliseum`) with `CONTAINS` edges to its internal `Location`s. Enables aggregated metrics (players inside, events broadcast scope) and AI prompts referencing parent context.
 
-MVP Recommendation: Implement the coliseum using only `Location` + `EXIT`, _but_ name/tag locations with a consistent scheme:
+Minimal-model recommendation: represent the coliseum using only `Location` + `EXIT`, _but_ name/tag locations with a consistent scheme:
 
 - `Coliseum Concourse NW`
 - `Coliseum Concourse North`
@@ -278,13 +278,13 @@ These feed confusion / friction dashboards and drive iterative lexicon tuning.
 
 ### Implementation Milestones (Normalization Sub-Phases)
 
-| N-Phase | Goal                           | Deliverables                                                         |
-| ------- | ------------------------------ | -------------------------------------------------------------------- |
-| N1      | Basic lexical normalization    | Utility + tests: shortcut & typo mapping; seed validator.            |
-| N2      | Landmark + semantic exit names | Extend seed with `name` / `synonyms`; landmark alias resolution.     |
-| N3      | Relative directions            | Track `lastHeading` per player; implement `left/right/forward/back`. |
-| N4      | Generation fallback            | Emit generation events when direction has no edge.                   |
-| N5      | Bearing precision (optional)   | Add `bearingDeg` + snapping; analytics for path smoothness.          |
+| N-Phase | Goal                           | Deliverables                                                       |
+| ------- | ------------------------------ | ------------------------------------------------------------------ |
+| N1      | Basic lexical normalization    | Utility + tests: shortcut & typo mapping; seed validator.          |
+| N2      | Landmark + semantic exit names | Extend seed with `name` / `synonyms`; landmark alias resolution.   |
+| N3      | Relative directions            | Track `lastHeading` per player; support `left/right/forward/back`. |
+| N4      | Generation fallback            | Emit generation events when direction has no edge.                 |
+| N5      | Bearing precision (optional)   | Add `bearingDeg` + snapping; analytics for path smoothness.        |
 
 ### Open Design Decisions (Normalization)
 
@@ -363,7 +363,7 @@ Even AI-first strategy benefits from 5–8 curated anchor locations to establish
 
 ### Telemetry (Key Events)
 
-Canonical event names follow the `Domain.[Subject].Action` PascalCase pattern (2–3 segments) and are centrally defined in `shared/src/telemetryEvents.ts`. Do not introduce ad‑hoc names here—extend the canonical list first if a new event is required.
+Canonical event names follow the `Domain.[Subject].Action` PascalCase pattern (2–3 segments) and are centrally defined in the shared telemetry registry. Do not introduce ad‑hoc names here—extend the canonical list first if a new event is required.
 
 - `World.Location.Generated` (tokens, latencyMs, safetyResult, similarityScore)
 - `World.Location.Rejected` (failureCode)
@@ -388,17 +388,9 @@ Refer to: `ai-prompt-engineering.md` for prompt schemas; `extension-framework.md
 - Should exit edge contain inverse reference metadata for summary optimization? (Likely unnecessary early; can query reverse.)
 - Do we cache direction synonyms per locale? (Internationalization deferred.)
 
-## Next Actions
-
-1. Implement `Location` + `EXIT` TypeScript interfaces (shared module).
-2. Create `HttpCreateRoom`, `HttpLinkRooms`, `HttpGetRoom` Functions.
-3. Implement direction normalization utility (string → { dir, kind }).
-4. Add seed script for small coliseum slice (outer concourse + arena + 2 gates).
-5. Defer AI integration until baseline traversal & tests pass.
-
 ---
 
-_This schema section was added (2025-09-25) to prevent rework before coding the traversal layer._
+_This schema section was added (2025-09-25) to capture the traversal model before implementation details were split into architecture and workflow documentation._
 
 ## Location Generation
 
@@ -421,7 +413,7 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
 
 5. **Graph Persistence**
     - Adds the new location as a vertex and the connection as an `exit_to` edge.
-    - All metadata is stored in Cosmos DB.
+    - Resulting metadata is stored in the persistent world model.
 
 6. **Tailoring for Existing Destinations**
     - When an exit leads to an existing location, the origin’s exit description is tailored to reflect the destination’s biome, mood, elevation, and other metadata.
@@ -435,7 +427,7 @@ _This schema section was added (2025-09-25) to prevent rework before coding the 
     - The system checks for existing edges:
         - If `exit_to`: Moves to the connected location.
         - If none: Generates a new location and connection immediately.
-    - New locations and edges are persisted in Cosmos DB.
+        - New locations and edges are persisted in the world graph.
 
 2. **Procedural Navigation in 3D Space**
     - Locations are stored as 3D vectors relative to a global origin.
@@ -525,12 +517,12 @@ No timers or loops live inside a Function host—progress is entirely message‑
 
 ### Path Resolution Strategies (Progressive)
 
-| Stage | Strategy                           | Notes                                                                 |
-| ----- | ---------------------------------- | --------------------------------------------------------------------- |
-| 1     | BFS (unweighted)                   | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
-| 2     | Weighted (travelDurationMs / distance)     | Client-side Dijkstra/A\* after pulling bounded neighborhood.          |
-| 3     | Landmark overlay / hub contraction | Precompute hub <-> hub macro paths; expand only near endpoints.       |
-| 4     | Generation fallback integration    | Missing edge triggers controlled expansion (ties to N4).              |
+| Stage | Strategy                               | Notes                                                                 |
+| ----- | -------------------------------------- | --------------------------------------------------------------------- |
+| 1     | BFS (unweighted)                       | Depth + node cap to avoid runaway; sufficient for early sparse graph. |
+| 2     | Weighted (travelDurationMs / distance) | Client-side Dijkstra/A\* after pulling bounded neighborhood.          |
+| 3     | Landmark overlay / hub contraction     | Precompute hub <-> hub macro paths; expand only near endpoints.       |
+| 4     | Generation fallback integration        | Missing edge triggers controlled expansion (ties to N4).              |
 
 Route cache (key: origin+target+graphVersionHash) reduces repeat compute; cache invalidated on topology change.
 

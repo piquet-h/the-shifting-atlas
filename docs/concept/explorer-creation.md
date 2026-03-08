@@ -224,12 +224,12 @@ All classes are narratively equal; choice reflects **how you approach challenges
 }
 ```
 
-### Storage
+### Persistence Considerations
 
-- Creation choices stored in Player document (Cosmos DB SQL API)
+- Creation choices live with the player profile record
 - Narrative capabilities and qualities provide context for AI adjudication (not mechanical modifiers)
 - Background seeds initial quest generation via AI prompts
-- Character history and capabilities referenced in DM prompt context
+- Character history and capabilities are available as DM context
 
 ### Integration Points
 

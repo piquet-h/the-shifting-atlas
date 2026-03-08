@@ -6,7 +6,7 @@
 
 ## Summary
 
-This module defines how free‑form player text commands ("Defend myself from the dragon while I back out of the cavern and throw a gold coin behind it") are transformed into a structured, ordered, and partially validated set of atomic **Intents**. These intents drive authoritative world actions via the **Backend Function App** (optionally fronted by API Management) with minimal latency suitable for real‑time, conversational play reminiscent of a human Dungeon Master.
+This module defines how free‑form player text commands ("Defend myself from the dragon while I back out of the cavern and throw a gold coin behind it") are transformed into a structured, ordered, and partially validated set of atomic **Intents**. These intents drive authoritative world actions via the backend command-processing layer with minimal latency suitable for real‑time, conversational play reminiscent of a human Dungeon Master.
 
 This module assumes the cross-cutting vocabulary defined in:
 
@@ -286,7 +286,7 @@ Escalation triggers: zero valid intents, more than the configured maximum number
 
 ## Telemetry Events (Canonical Names)
 
-All events added centrally (extend `telemetryEvents.ts` before implementation; no inline literals):
+All events added centrally through the canonical telemetry registry before implementation; no inline literals:
 
 | Event                                 | Key Fields                                               |
 | ------------------------------------- | -------------------------------------------------------- |

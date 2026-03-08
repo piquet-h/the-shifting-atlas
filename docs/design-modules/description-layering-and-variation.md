@@ -10,12 +10,12 @@ A **tokenless layered description system** preserves world continuity (no retcon
 
 ## Goals
 
--   Immutable **Base Description** for each Location
--   Additive **Structural Event Layers** (burned gate, collapsed bridge) without rewriting base
--   Reusable **Ambient / Weather / Time** snippets (short, ephemeral, cheap to generate)
--   Optional **Enhancement** layers (sensory flourish) and **Personalization** overlays (player‑specific) without polluting shared canon
--   Deterministic assembly order → reproducible view snapshots (auditable & testable)
--   Retain _machine understanding_ (attribute map) without embedding `{TOKENS}` in prose
+- Immutable **Base Description** for each Location
+- Additive **Structural Event Layers** (burned gate, collapsed bridge) without rewriting base
+- Reusable **Ambient / Weather / Time** snippets (short, ephemeral, cheap to generate)
+- Optional **Enhancement** layers (sensory flourish) and **Personalization** overlays (player‑specific) without polluting shared canon
+- Deterministic assembly order → reproducible view snapshots (auditable & testable)
+- Retain _machine understanding_ (attribute map) without embedding `{TOKENS}` in prose
 
 ## Validator Summary (Quick Reference)
 
@@ -65,9 +65,9 @@ attributes: {
 
 Uses:
 
--   Validator: Reject ambient layer turning dirt road into cobbled without a Structural Event layer first.
--   Faction / Event logic: Upgrading integrity, adding banners, etc.
--   Future analytics & search: find all wooden palisades for decay event.
+- Validator: Reject ambient layer turning dirt road into cobbled without a Structural Event layer first.
+- Faction / Event logic: Upgrading integrity, adding banners, etc.
+- Future analytics & search: find all wooden palisades for decay event.
 
 ## Layer Validation Pipeline
 
@@ -86,9 +86,9 @@ Deterministic hash of each accepted layer (`sha256(minifiedText + sortedFields)`
 
 Keyed by `(biome, weatherType, timeBucket)` and possibly `variantIndex`.
 
--   On first miss → AI generates **K** variants (default 3) under strict prompt: _"Return <=25 word ambient snippets; no structural changes; ephemeral effects only."_
--   Deterministic variant pick: `variant = hash(locationId + weatherType + timeBucket) % K`.
--   Reuse across Locations sharing biome & feature archetype (optional filter).
+- On first miss → AI generates **K** variants (default 3) under strict prompt: _"Return <=25 word ambient snippets; no structural changes; ephemeral effects only."_
+- Deterministic variant pick: `variant = hash(locationId + weatherType + timeBucket) % K`.
+- Reuse across Locations sharing biome & feature archetype (optional filter).
 
 ## Structural Events & Faction Signals
 
@@ -104,10 +104,10 @@ Removal (banner taken down) is a new event layer marking banner inactive; histor
 
 Runtime context selects at most one active ambient layer per category:
 
--   `weather`: derived from world state (rain, clear, snow)
--   `time`: coarse buckets (dawn, day, dusk, night)
--   `season`: optional additive
-    Conflict resolution: priority order `structural > weather > season > time > enhancement` for conflicting semantic claims.
+- `weather`: derived from world state (rain, clear, snow)
+- `time`: coarse buckets (dawn, day, dusk, night)
+- `season`: optional additive
+  Conflict resolution: priority order `structural > weather > season > time > enhancement` for conflicting semantic claims.
 
 ## Personalization Layer
 
@@ -136,20 +136,20 @@ A nightly integrity job re-hashes base + layers; mismatches raise alerts.
 
 ## Testing (Planned)
 
--   Unit: Composition order & supersede masking
--   Unit: Validator rejects contradictions (dirt→cobbled w/o structure layer)
--   Property: Idempotent render given same active context
--   Hash Integrity: Tampering simulation
--   Snapshot: Golden expected composite for fixed context/time
+- Unit: Composition order & supersede masking
+- Unit: Validator rejects contradictions (dirt→cobbled w/o structure layer)
+- Property: Idempotent render given same active context
+- Hash Integrity: Tampering simulation
+- Snapshot: Golden expected composite for fixed context/time
 
 ## Telemetry (Planned Events)
 
 (All centralized—no inline literals.)
 
--   `Description.Layer.Generated` (layerType, kind?, latencyMs, model, length, rejectedReason?)
--   `Description.Composite.Rendered` (locationId, layersApplied, weatherType, timeBucket)
--   `Description.Structure.ContradictionRejected` (reason)
--   `Description.Registry.Miss` (category, biome)
+- `Description.Layer.Generated` (layerType, kind?, latencyMs, model, length, rejectedReason?)
+- `Description.Composite.Rendered` (locationId, layersApplied, weatherType, timeBucket)
+- `Description.Structure.ContradictionRejected` (reason)
+- `Description.Registry.Miss` (category, biome)
 
 ## Interactions With Other Modules
 
@@ -219,9 +219,9 @@ An idempotency key is computed over `(locationId + normalized structural text + 
 
 ### Supersede Behavior
 
--   Sentences not present → collected in `warnings` (non-fatal).
--   If **all** provided supersedes are missing, the layer can still apply (it may be an additive banner / display); masking count simply equals zero.
--   Normalization: trim, collapse internal whitespace, exact sentence match (case sensitive except trailing punctuation trimmed). Future fuzzy match is an explicitly deferred enhancement.
+- Sentences not present → collected in `warnings` (non-fatal).
+- If **all** provided supersedes are missing, the layer can still apply (it may be an additive banner / display); masking count simply equals zero.
+- Normalization: trim, collapse internal whitespace, exact sentence match (case sensitive except trailing punctuation trimmed). Future fuzzy match is an explicitly deferred enhancement.
 
 ### Provenance Block
 
@@ -251,7 +251,7 @@ Telemetry emission for structural simulation is intentionally deferred until the
 
 ### Documentation Scope
 
-This section satisfies the help/usage documentation acceptance criteria for the structural event simulation related issues (see #190 and child follow‑ups). Examples intentionally avoid embedding lore prose to prevent duplication; test fixtures carry concrete samples.
+This section documents the intended help/usage surface for structural event simulation. Examples intentionally avoid embedding lore prose to prevent duplication; test fixtures carry concrete samples.
 
 ---
 
