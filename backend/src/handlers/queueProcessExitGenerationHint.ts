@@ -367,10 +367,7 @@ export class QueueProcessExitGenerationHintHandler {
             return
         }
 
-        // 7. Mark as processed in cache
-        markProcessed(idempotencyKey, correlationId)
-
-        // 8. Log hint received
+        // 7. Log hint received
         context.log('Exit generation hint received', {
             eventId: rawMessage.eventId,
             dir: payload.dir,
@@ -381,7 +378,7 @@ export class QueueProcessExitGenerationHintHandler {
             correlationId
         })
 
-        // 9. Look up origin location
+        // 8. Look up origin location
         const origin = await this.locationRepository.get(payload.originLocationId)
         if (!origin) {
             context.error('Exit generation hint: origin location not found', {
@@ -413,7 +410,7 @@ export class QueueProcessExitGenerationHintHandler {
             return
         }
 
-        // 10. Check if hard exit already exists for this direction (idempotent path)
+        // 9. Check if hard exit already exists for this direction (idempotent path)
         const existingExit = origin.exits?.find((e) => e.direction === payload.dir)
         if (existingExit) {
             context.log('Exit generation hint: hard exit already exists, skipping (idempotent)', {
@@ -436,7 +433,7 @@ export class QueueProcessExitGenerationHintHandler {
             return
         }
 
-        // 11. Check if direction is forbidden by generation policy
+        // 10. Check if direction is forbidden by generation policy
         const forbiddenEntry = origin.exitAvailability?.forbidden?.[payload.dir as Direction]
         if (forbiddenEntry !== undefined) {
             // Inline format detection mirrors normalizeForbiddenEntry() in shared/src/exitAvailability.ts.
@@ -524,7 +521,7 @@ export class QueueProcessExitGenerationHintHandler {
                 correlationId
             })
         } else {
-            // 12. Materialize: create stub neighbor location and bidirectional exit
+            // 11. Materialize: create stub neighbor location and bidirectional exit
             const stubId = uuidv4()
             const futureLocationPlan = planAtlasAwareFutureLocation((origin.terrain ?? 'open-plain') as TerrainType, dir, origin.tags)
 
@@ -554,7 +551,7 @@ export class QueueProcessExitGenerationHintHandler {
             await this.locationRepository.setExitTravelDuration(targetLocationId, reciprocalDirection, travelDurationMs)
         }
 
-        // 13. Clear pending availability for this direction
+        // 12. Clear pending availability for this direction
         const existingPending = origin.exitAvailability?.pending
         if (existingPending && payload.dir in existingPending) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -573,6 +570,9 @@ export class QueueProcessExitGenerationHintHandler {
                 })
             }
         }
+
+        // 13. Mark as processed in cache only after successful materialization/reconnection work
+        markProcessed(idempotencyKey, correlationId)
 
         context.log('Exit generation hint materialized', {
             dir: payload.dir,

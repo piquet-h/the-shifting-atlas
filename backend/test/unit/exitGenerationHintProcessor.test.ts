@@ -11,8 +11,8 @@ import {
 } from '../../src/handlers/queueProcessExitGenerationHint.js'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
 import type { ILocationRepository } from '../../src/repos/locationRepository.js'
-import { MockLocationRepository } from '../mocks/repositories/locationRepository.mock.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
+import { MockLocationRepository } from '../mocks/repositories/locationRepository.mock.js'
 
 const ORIGIN_LOCATION_ID = '00000000-0000-4000-8000-000000000004'
 const PLAYER_ID = '00000000-0000-4000-8000-000000000002'
@@ -328,6 +328,39 @@ describe('Exit Generation Hint Queue Processor', () => {
     })
 
     describe('Idempotency', () => {
+        test('should allow retry after transient materialization failure', async () => {
+            await setupOriginLocation({ hasPendingExit: true })
+            const ctx1 = await fixture.createInvocationContext()
+            const ctx2 = await fixture.createInvocationContext()
+
+            const locationRepo = (await fixture.getLocationRepository()) as MockLocationRepository
+            const originalEnsureExitBidirectional = locationRepo.ensureExitBidirectional.bind(locationRepo)
+            let invocationCount = 0
+
+            locationRepo.ensureExitBidirectional = async (...args) => {
+                invocationCount += 1
+                if (invocationCount === 1) {
+                    throw new Error('transient exit write failure')
+                }
+                return originalEnsureExitBidirectional(...args)
+            }
+
+            const message = createValidHintMessage({ eventId: '40000000-0000-4000-8000-000000000001' })
+
+            await assert.rejects(() => queueProcessExitGenerationHint(message, ctx1 as any), /transient exit write failure/)
+            await assert.doesNotReject(() => queueProcessExitGenerationHint(message, ctx2 as any))
+
+            assert.strictEqual(invocationCount, 2, 'Retry should invoke materialization again after transient failure')
+
+            const logs2 = ctx2.getLogs()
+            const materializedLog = logs2.find((l) => l[0] === 'Exit generation hint materialized')
+            assert.ok(materializedLog, 'Retry should eventually materialize the exit instead of being skipped as duplicate')
+
+            const updated = await locationRepo.get(ORIGIN_LOCATION_ID)
+            const northExit = updated?.exits?.find((e) => e.direction === 'north')
+            assert.ok(northExit, 'Retry should leave the origin with a hard exit')
+        })
+
         test('should detect duplicate hints with same originLocationId:dir', async () => {
             await setupOriginLocation({ hasPendingExit: true })
             const ctx1 = await fixture.createInvocationContext()
