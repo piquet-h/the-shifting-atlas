@@ -311,8 +311,10 @@ jobs:
           path: docs-policy.json
           if-no-files-found: warn
 
+  # Static/package invariant lane.
+  # This is intentionally warn-only and does NOT enforce runtime behavior regressions.
   runtime-invariants:
-    name: Runtime Invariants (warn-only)
+    name: Package & Static Invariants (warn-only)
     runs-on: ubuntu-latest
     env:
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -338,10 +340,10 @@ jobs:
       - name: Install backend dependencies
         run: cd backend && npm ci
 
-      - name: Verify runtime invariants (warn-only)
+      - name: Verify package/static invariants (warn-only)
         run: npm run verify:invariants
 
-      - name: Verify runtime invariants (json report)
+      - name: Verify package/static invariants (json report)
         run: npm run verify:invariants:json > runtime-invariants.json
 
       - name: Upload runtime invariants artifact
@@ -351,9 +353,36 @@ jobs:
           path: runtime-invariants.json
           if-no-files-found: warn
 
+  # Focused behavioral regression lane for queue/replay/correlation/runtime guarantees.
+  runtime-behavior:
+    name: Runtime Behavior (required)
+    runs-on: ubuntu-latest
+    needs: lint-typecheck
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@piquet-h'
+          always-auth: true
+
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+
+      - name: Verify runtime behavior (required)
+        run: npm run verify:runtime-behavior
+
   summary:
     name: CI Summary
-    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy, runtime-invariants]
+    needs: [lint-typecheck, tests, accessibility, validate-prompts, docs-policy, runtime-invariants, runtime-behavior]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -365,4 +394,5 @@ jobs:
           if [ "${{ needs.accessibility.result }}" != "" ]; then echo '* Accessibility: ${{ needs.accessibility.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Accessibility: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
           if [ "${{ needs.validate-prompts.result }}" != "" ]; then echo '* Prompt Validation: ${{ needs.validate-prompts.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Prompt Validation: (skipped)' >> $GITHUB_STEP_SUMMARY; fi
           if [ "${{ needs.docs-policy.result }}" != "" ]; then echo '* Docs Policy (warn-only): ${{ needs.docs-policy.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Docs Policy (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
-          if [ "${{ needs.runtime-invariants.result }}" != "" ]; then echo '* Runtime Invariants (warn-only): ${{ needs.runtime-invariants.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Runtime Invariants (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          if [ "${{ needs.runtime-invariants.result }}" != "" ]; then echo '* Package & Static Invariants (warn-only): ${{ needs.runtime-invariants.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Package & Static Invariants (warn-only): (skipped)' >> $GITHUB_STEP_SUMMARY; fi
+          if [ "${{ needs.runtime-behavior.result }}" != "" ]; then echo '* Runtime Behavior (required): ${{ needs.runtime-behavior.result }}' >> $GITHUB_STEP_SUMMARY; else echo '* Runtime Behavior (required): (skipped)' >> $GITHUB_STEP_SUMMARY; fi

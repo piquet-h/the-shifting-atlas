@@ -307,6 +307,53 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(skipLog, 'Should log idempotent skip')
     })
 
+    it('should allow retry after transient materialization failure using integration container wiring', async () => {
+        const originId = uuidv4()
+        await locationRepo.upsert({
+            id: originId,
+            name: 'Retry Ridge',
+            description: 'A location used to verify replay after transient failure.',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [],
+            exitAvailability: { pending: { north: '' } },
+            version: 1
+        })
+
+        const originalEnsureExitBidirectional = locationRepo.ensureExitBidirectional.bind(locationRepo)
+        let invocationCount = 0
+        locationRepo.ensureExitBidirectional = async (...args) => {
+            invocationCount += 1
+            if (invocationCount === 1) {
+                throw new Error('integration transient exit materialization failure')
+            }
+            return originalEnsureExitBidirectional(...args)
+        }
+
+        const message = buildHintMessage(originId, 'north', uuidv4())
+        const ctx1 = await fixture.createInvocationContext()
+        const ctx2 = await fixture.createInvocationContext()
+
+        await assert.rejects(
+            () => queueProcessExitGenerationHint(message, ctx1 as unknown as InvocationContext),
+            /integration transient exit materialization failure/
+        )
+
+        const afterFailure = await locationRepo.get(originId)
+        assert.ok(!afterFailure?.exits?.some((e) => e.direction === 'north'), 'Failed first attempt should not leave a hard exit behind')
+
+        await assert.doesNotReject(() => queueProcessExitGenerationHint(message, ctx2 as unknown as InvocationContext))
+
+        assert.equal(invocationCount, 2, 'Retry should invoke materialization a second time')
+
+        const updatedOrigin = await locationRepo.get(originId)
+        const northExit = updatedOrigin?.exits?.find((e) => e.direction === 'north')
+        assert.ok(northExit?.to, 'Successful retry should materialize the hard north exit')
+
+        const successLog = ctx2.getLogs().find((l) => l[0] === 'Exit generation hint materialized')
+        assert.ok(successLog, 'Retry should eventually log successful materialization')
+    })
+
     it('should not create exit when direction is forbidden by policy', async () => {
         // Arrange: origin with a forbidden north direction
         const originId = uuidv4()

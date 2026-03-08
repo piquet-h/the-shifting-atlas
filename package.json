@@ -24,6 +24,7 @@
         "verify:invariants": "npm run lint:backend && npm run lint:shared && node scripts/verify-runtime-invariants.mjs",
         "verify:invariants:json": "node scripts/verify-runtime-invariants.mjs --json",
         "verify:invariants:strict": "npm run lint:backend && npm run lint:shared && node scripts/verify-runtime-invariants.mjs --strict",
+        "verify:runtime-behavior": "npm run test:runtime-invariants --prefix backend",
         "verify:crosspkg": "node scripts/verify-shared-version-bump.mjs",
         "map:boundaries": "node scripts/render-boundary-map.mjs",
         "concept:issues:dry": "node scripts/generate-concept-issues.mjs",

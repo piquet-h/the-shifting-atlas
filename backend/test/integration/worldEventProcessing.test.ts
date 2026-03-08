@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test'
 import { v4 as uuidv4 } from 'uuid'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
 import type { IProcessedEventRepository } from '../../src/repos/processedEventRepository.js'
+import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
 import type { InvocationContextMockResult } from '../helpers/TestFixture.js'
@@ -346,6 +347,52 @@ describe('World Event Processing Integration', () => {
     })
 
     describe('Transient Failure → Verify Retry with Backoff', () => {
+        test('should allow retry after transient type-specific handler failure using integration container wiring', async () => {
+            const ctx1 = await fixture.createInvocationContext()
+            const ctx2 = await fixture.createInvocationContext()
+            const container = ctx1.extraInputs.get('container') as Container
+
+            let invocationCount = 0
+            const flakyHandler = {
+                type: 'NPC.Tick',
+                async handle() {
+                    invocationCount += 1
+                    if (invocationCount === 1) {
+                        throw new Error('integration transient npc tick failure')
+                    }
+                    return { outcome: 'success' as const, details: 'retried successfully' }
+                }
+            }
+
+            container.unbind(NPCTickHandler)
+            container.bind(NPCTickHandler).toConstantValue(flakyHandler as unknown as NPCTickHandler)
+
+            const event = createValidEvent({
+                type: 'NPC.Tick',
+                idempotencyKey: `integration-retry-${uuidv4()}`,
+                payload: {
+                    npcId: uuidv4(),
+                    locationId: uuidv4()
+                }
+            })
+
+            await assert.rejects(() => queueProcessWorldEvent(event, asInvocationContext(ctx1)), /integration transient npc tick failure/)
+
+            const processedRepo = container.get<IProcessedEventRepository>('IProcessedEventRepository')
+            const processedAfterFailure = await processedRepo.checkProcessed(String(event.idempotencyKey))
+            assert.equal(processedAfterFailure, null, 'Failed first attempt should not be marked processed in durable registry')
+
+            await assert.doesNotReject(() => queueProcessWorldEvent(event, asInvocationContext(ctx2)))
+
+            assert.equal(invocationCount, 2, 'Retry should invoke the type-specific handler a second time')
+
+            const processedAfterRetry = await processedRepo.checkProcessed(String(event.idempotencyKey))
+            assert.ok(processedAfterRetry, 'Successful retry should mark the event as processed')
+
+            const successLog = ctx2.getLogs().find((l) => l[0] === 'World event processed successfully')
+            assert.ok(successLog, 'Retry should eventually complete successfully')
+        })
+
         test('should identify retryable errors via isRetryableError helper', () => {
             const retryableError = new ServiceBusUnavailableError('Service Bus is temporarily unavailable')
             assert.strictEqual(isRetryableError(retryableError), true, 'Should identify ServiceBusUnavailableError as retryable')
