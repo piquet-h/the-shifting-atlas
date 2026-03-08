@@ -96,6 +96,49 @@ describeForBothModes('WorldClockService Integration', (mode) => {
             assert.strictEqual(clock.advancementHistory[1].reason, 'second')
             assert.strictEqual(clock.advancementHistory[1].tickAfter, 1500)
         })
+
+        test('memory autodrain preserves correlationId through queue sync telemetry', async () => {
+            if (mode !== 'memory') {
+                return
+            }
+
+            const previousAutoDrain = process.env.MEMORY_QUEUE_AUTODRAIN
+            process.env.MEMORY_QUEUE_AUTODRAIN = 'true'
+
+            try {
+                const service = await fixture.getWorldClockService()
+                const manager = await fixture.getLocationClockManager()
+                const telemetry = await fixture.getTelemetryClient()
+
+                await manager.getLocationAnchor('autodrain-loc-1')
+
+                const newTick = await service.advanceTick(3200, 'autodrain-correlation-test')
+                assert.strictEqual(newTick, 3200)
+
+                const updatedAnchor = await manager.getLocationAnchor('autodrain-loc-1')
+                assert.strictEqual(updatedAnchor, 3200, 'autodrain should process queue sync immediately in memory mode')
+
+                const enqueuedEvent = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncEnqueued').at(-1)
+                const triggeredEvent = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncTriggered').at(-1)
+                const completedEvent = telemetry.events.filter((e) => e.name === 'Location.Clock.QueueSyncCompleted').at(-1)
+
+                assert.ok(enqueuedEvent, 'Should emit enqueue telemetry')
+                assert.ok(triggeredEvent, 'Should emit triggered telemetry via autodrain handler')
+                assert.ok(completedEvent, 'Should emit completed telemetry via autodrain handler')
+
+                const correlationId = enqueuedEvent?.properties?.correlationId
+                assert.ok(correlationId, 'Enqueue telemetry should include correlationId')
+                assert.strictEqual(triggeredEvent?.properties?.correlationId, correlationId)
+                assert.strictEqual(completedEvent?.properties?.correlationId, correlationId)
+                assert.strictEqual(completedEvent?.properties?.worldClockTick, 3200)
+            } finally {
+                if (previousAutoDrain === undefined) {
+                    delete process.env.MEMORY_QUEUE_AUTODRAIN
+                } else {
+                    process.env.MEMORY_QUEUE_AUTODRAIN = previousAutoDrain
+                }
+            }
+        })
     })
 
     describe('getTickAt', () => {

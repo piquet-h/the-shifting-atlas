@@ -16,7 +16,9 @@
 import { emitWorldEvent, prepareEnqueueMessage } from '@piquet-h/shared/events'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
+import { TOKENS } from '../../src/di/tokens.js'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent.js'
+import { InMemoryWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
 describe('CorrelationId Flow Integration', () => {
@@ -200,6 +202,43 @@ describe('CorrelationId Flow Integration', () => {
                     l[0] === 'Duplicate world event detected (durable registry)'
             )
             assert.ok(duplicateLog, 'Should detect duplicate')
+        })
+
+        test('memory autodrain world-event publisher preserves correlationId through processing telemetry', async () => {
+            const previousAutoDrain = process.env.MEMORY_QUEUE_AUTODRAIN
+            process.env.MEMORY_QUEUE_AUTODRAIN = 'true'
+
+            try {
+                const container = await fixture.getContainer()
+                const telemetry = await fixture.getTelemetryClient()
+                telemetry.clear()
+
+                const publisher = container.get<InMemoryWorldEventPublisher>(TOKENS.WorldEventPublisher) as InMemoryWorldEventPublisher
+
+                const correlationId = '66666666-6666-4666-8666-666666666666'
+                const emitResult = emitWorldEvent({
+                    eventType: 'Player.Look',
+                    scopeKey: `loc:${TEST_LOCATION_ID}`,
+                    payload: { locationId: TEST_LOCATION_ID },
+                    actor: { kind: 'player', id: '12345678-1234-4234-8234-123456789abc' },
+                    correlationId,
+                    idempotencyKey: 'autodrain-world-event-correlation'
+                })
+
+                await publisher.enqueueEvents([emitResult.envelope])
+
+                assert.equal(publisher.enqueuedEvents.length, 0, 'Autodrain should fully process and clear the in-memory queue')
+
+                const processedEvent = telemetry.events.find((e) => e.name === 'World.Event.Processed')
+                assert.ok(processedEvent, 'Autodrain should emit World.Event.Processed telemetry')
+                assert.strictEqual(processedEvent.properties?.correlationId, correlationId)
+            } finally {
+                if (previousAutoDrain === undefined) {
+                    delete process.env.MEMORY_QUEUE_AUTODRAIN
+                } else {
+                    process.env.MEMORY_QUEUE_AUTODRAIN = previousAutoDrain
+                }
+            }
         })
     })
 

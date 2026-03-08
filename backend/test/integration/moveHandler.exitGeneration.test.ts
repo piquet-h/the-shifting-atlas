@@ -8,7 +8,7 @@
  * - Debounce effectiveness (identical requests within window)
  */
 import type { HttpRequest, InvocationContext } from '@azure/functions'
-import { resetExitGenerationHintStore } from '@piquet-h/shared'
+import { resetExitGenerationHintStore, STARTER_LOCATION_ID } from '@piquet-h/shared'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import { TOKENS } from '../../src/di/tokens.js'
@@ -223,5 +223,58 @@ describe('Exit Generation Hint Integration', () => {
         assert.ok(publisher.enqueuedMessages.length > 0, 'Should enqueue hint message for authenticated player')
         assert.equal(publisher.enqueuedMessages[0].type, 'Navigation.Exit.GenerationHint')
         assert.equal(publisher.enqueuedMessages[0].actor.id, playerId)
+    })
+
+    test('memory autodrain materializes exit hint and preserves correlationId through handler telemetry', async () => {
+        const previousAutoDrain = process.env.MEMORY_QUEUE_AUTODRAIN
+        process.env.MEMORY_QUEUE_AUTODRAIN = 'true'
+
+        const localFixture = new IntegrationTestFixture('memory')
+
+        try {
+            await localFixture.setup()
+            resetExitGenerationHintStore()
+
+            const ctx = await createMockContext(localFixture)
+            const playerId = '00000000-0000-4000-8000-000000000778'
+            const req = makeMoveRequest(
+                { dir: 'out' },
+                { 'x-player-guid': playerId },
+                {
+                    playerId
+                }
+            ) as HttpRequest
+
+            const container = await localFixture.getContainer()
+            const handler = container.get(MoveHandler)
+            const telemetry = container.get<MockTelemetryClient>('ITelemetryClient')
+            const locationRepo = await localFixture.getLocationRepository()
+            telemetry.clear()
+
+            await handler.handle(req, ctx)
+
+            const requestEvent = telemetry.events.find(
+                (e) => e.name === 'Navigation.Exit.GenerationRequested' && e.properties?.outcome === undefined
+            )
+            const materializedEvent = telemetry.events.find(
+                (e) => e.name === 'Navigation.Exit.GenerationRequested' && e.properties?.outcome === 'materialized'
+            )
+
+            assert.ok(requestEvent, 'Move request should emit generation-requested telemetry')
+            assert.ok(materializedEvent, 'Autodrain handler should emit materialized telemetry')
+            assert.strictEqual(materializedEvent.properties?.correlationId, requestEvent.properties?.correlationId)
+
+            const updatedOrigin = await locationRepo.get(STARTER_LOCATION_ID)
+            const outExit = updatedOrigin?.exits?.find((e) => e.direction === 'out')
+            assert.ok(outExit, 'Autodrain should materialize the requested out exit immediately in memory mode')
+        } finally {
+            await localFixture.teardown()
+            resetExitGenerationHintStore()
+            if (previousAutoDrain === undefined) {
+                delete process.env.MEMORY_QUEUE_AUTODRAIN
+            } else {
+                process.env.MEMORY_QUEUE_AUTODRAIN = previousAutoDrain
+            }
+        }
     })
 })

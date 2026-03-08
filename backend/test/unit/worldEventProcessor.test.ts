@@ -6,6 +6,7 @@ import type { Container } from 'inversify'
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
 import type { IDeadLetterRepository } from '../../src/repos/deadLetterRepository.js'
+import { NPCTickHandler } from '../../src/worldEvents/handlers/NPCTickHandler.js'
 import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../src/worldEvents/queueProcessWorldEvent'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
@@ -155,6 +156,43 @@ describe('World Event Queue Processor', () => {
     describe('Idempotency', () => {
         beforeEach(() => {
             __resetIdempotencyCacheForTests()
+        })
+
+        test('should allow retry after transient type-specific handler failure', async () => {
+            const firstCtx = await fixture.createInvocationContext()
+            const secondCtx = await fixture.createInvocationContext()
+            const container = firstCtx.extraInputs.get('container') as Container
+
+            let invocationCount = 0
+            const flakyHandler = {
+                type: 'NPC.Tick',
+                async handle() {
+                    invocationCount += 1
+                    if (invocationCount === 1) {
+                        throw new Error('transient handler failure')
+                    }
+                    return { outcome: 'success' as const, details: 'retried successfully' }
+                }
+            }
+
+            container.unbind(NPCTickHandler)
+            container.bind(NPCTickHandler).toConstantValue(flakyHandler as unknown as NPCTickHandler)
+
+            const event = createValidEvent({
+                type: 'NPC.Tick',
+                idempotencyKey: 'npc-tick-retry-key',
+                eventId: '30000000-0000-4000-8000-000000000001'
+            })
+
+            await assert.rejects(() => queueProcessWorldEvent(event, firstCtx as any), /transient handler failure/)
+
+            await assert.doesNotReject(() => queueProcessWorldEvent(event, secondCtx as any))
+
+            assert.strictEqual(invocationCount, 2, 'Retry should invoke the type-specific handler again after transient failure')
+
+            const secondLogs = secondCtx.getLogs()
+            const successLog = secondLogs.find((l) => l[0] === 'World event processed successfully')
+            assert.ok(successLog, 'Retry should eventually process successfully instead of being skipped as duplicate')
         })
 
         test('should detect duplicate events with same idempotencyKey', async () => {

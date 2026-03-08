@@ -366,69 +366,7 @@ export class QueueProcessWorldEventHandler {
         // 6. Calculate latency (occurred -> ingested)
         const latencyMs = event.ingestedUtc ? new Date(event.ingestedUtc).getTime() - new Date(event.occurredUtc).getTime() : undefined
 
-        // 7. Mark as processed in durable registry + in-memory cache
-        const processedUtc = new Date().toISOString()
-
-        try {
-            await this.processedEventRepository.markProcessed({
-                id: uuidv4(),
-                idempotencyKey: event.idempotencyKey,
-                eventId: event.eventId,
-                eventType: event.type,
-                correlationId: event.correlationId,
-                processedUtc,
-                actorKind: event.actor.kind,
-                actorId: event.actor.id,
-                version: 1
-            })
-
-            // Also cache in memory for fast-path checks
-            markProcessed(event.idempotencyKey, event.eventId)
-
-            context.log('Event marked as processed in registry', {
-                eventId: event.eventId,
-                idempotencyKeyHash: hashPrefix(event.idempotencyKey)
-            })
-        } catch (registryError) {
-            // Availability over consistency: continue processing even if registry write fails
-            context.warn('Failed to mark event as processed in registry (continuing)', {
-                eventId: event.eventId,
-                idempotencyKeyHash: hashPrefix(event.idempotencyKey),
-                error: String(registryError)
-            })
-
-            // Cache in memory as fallback
-            markProcessed(event.idempotencyKey, event.eventId)
-
-            // Emit telemetry for registry failure
-            this.telemetryService.trackGameEventStrict(
-                'World.Event.RegistryWriteFailed',
-                {
-                    eventType: event.type,
-                    eventId: event.eventId,
-                    correlationId: event.correlationId,
-                    errorMessage: String(registryError)
-                },
-                { correlationId: event.correlationId }
-            )
-        }
-
-        // 8. Emit telemetry with enriched attributes
-        const props = {
-            eventType: event.type,
-            actorKind: event.actor.kind,
-            latencyMs,
-            duplicate: false,
-            correlationId: event.correlationId,
-            causationId: event.causationId
-        }
-        enrichWorldEventAttributes(props, {
-            eventType: event.type,
-            actorKind: event.actor.kind
-        })
-        this.telemetryService.trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId })
-
-        // Type-specific handler dispatch (Issue #258)
+        // 7. Type-specific handler dispatch (Issue #258)
         try {
             const container = getContainer(context)
             let handler: IWorldEventHandler | undefined
@@ -466,6 +404,68 @@ export class QueueProcessWorldEventHandler {
             // Re-throw to allow Service Bus retry semantics for transient failures in handler stage
             throw handlerError
         }
+
+        // 8. Mark as processed in durable registry + in-memory cache only after handler success
+        const processedUtc = new Date().toISOString()
+
+        try {
+            await this.processedEventRepository.markProcessed({
+                id: uuidv4(),
+                idempotencyKey: event.idempotencyKey,
+                eventId: event.eventId,
+                eventType: event.type,
+                correlationId: event.correlationId,
+                processedUtc,
+                actorKind: event.actor.kind,
+                actorId: event.actor.id,
+                version: 1
+            })
+
+            // Also cache in memory for fast-path checks
+            markProcessed(event.idempotencyKey, event.eventId)
+
+            context.log('Event marked as processed in registry', {
+                eventId: event.eventId,
+                idempotencyKeyHash: hashPrefix(event.idempotencyKey)
+            })
+        } catch (registryError) {
+            // Availability over consistency: continue processing even if registry write fails
+            context.warn('Failed to mark event as processed in registry (continuing)', {
+                eventId: event.eventId,
+                idempotencyKeyHash: hashPrefix(event.idempotencyKey),
+                error: String(registryError)
+            })
+
+            // Cache in memory as fallback after successful handler execution
+            markProcessed(event.idempotencyKey, event.eventId)
+
+            // Emit telemetry for registry failure
+            this.telemetryService.trackGameEventStrict(
+                'World.Event.RegistryWriteFailed',
+                {
+                    eventType: event.type,
+                    eventId: event.eventId,
+                    correlationId: event.correlationId,
+                    errorMessage: String(registryError)
+                },
+                { correlationId: event.correlationId }
+            )
+        }
+
+        // 9. Emit telemetry with enriched attributes
+        const props = {
+            eventType: event.type,
+            actorKind: event.actor.kind,
+            latencyMs,
+            duplicate: false,
+            correlationId: event.correlationId,
+            causationId: event.causationId
+        }
+        enrichWorldEventAttributes(props, {
+            eventType: event.type,
+            actorKind: event.actor.kind
+        })
+        this.telemetryService.trackGameEventStrict('World.Event.Processed', props, { correlationId: event.correlationId })
 
         context.log('World event processed successfully', { eventId: event.eventId, type: event.type, latencyMs })
     }
