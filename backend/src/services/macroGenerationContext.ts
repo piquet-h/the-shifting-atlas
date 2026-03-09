@@ -15,6 +15,7 @@ interface DirectionalTrendProfile {
 }
 
 interface ContinuityRoute {
+    /** Atlas route reference key (semantic ID, not a runtime GUID). */
     id: string
     name: string
     frontierPolicy?: {
@@ -25,13 +26,16 @@ interface ContinuityRoute {
 }
 
 interface MacroNode {
+    /** Atlas node reference key (semantic ID, not a runtime location GUID). */
     id: string
     name: string
     nodeClass?: string
 }
 
 interface MacroEdge {
+    /** Source atlas node reference key. */
     from: string
+    /** Destination atlas node reference key. */
     to: string
     barrierRefs?: string[]
 }
@@ -47,7 +51,9 @@ interface MacroAtlasLike {
 
 export interface MacroGenerationContext {
     expansionDirection: Direction
+    /** Atlas area reference key carried in tags like `macro:area:<ref>`. */
     areaRef?: string
+    /** Atlas route reference keys carried in tags like `macro:route:<ref>`. */
     routeRefs: string[]
     waterContext?: string
     directionTerrainTrend?: string

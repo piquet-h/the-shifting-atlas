@@ -171,6 +171,16 @@ The exact schema is implementation detail, but the high-level invariant is stabl
 
 > local nodes fit into a pre-existing atlas; they do not invent macro geography from scratch during frontier expansion.
 
+## Identity and Reference Conventions
+
+The atlas/runtime ID split is intentional and is now enforced by `scripts/verify-runtime-invariants.mjs`.
+
+Rule of thumb:
+
+> Runtime world entities use GUIDs; atlas topology references use semantic keys.
+
+Keep the architecture doc at that altitude; the script and tests are the authoritative enforcement point.
+
 ## Frontier Coherence Rules
 
 ### Shared directional trend inheritance
