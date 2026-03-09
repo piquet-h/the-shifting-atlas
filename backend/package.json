@@ -15,7 +15,7 @@
         "test": "npm run test:unit && npm run test:integration",
         "test:unit": "NODE_ENV=test node --test --import=tsx test/unit/*.test.ts",
         "test:integration": "NODE_ENV=test node --test --import=tsx test/integration/*.test.ts",
-        "test:runtime-invariants": "NODE_ENV=test node --test --import=tsx test/unit/worldEventProcessor.test.ts test/unit/exitGenerationHintProcessor.test.ts test/unit/queueSyncLocationAnchors.test.ts test/unit/worldClockService.test.ts test/integration/correlationIdFlow.test.ts test/integration/worldClockService.test.ts test/integration/moveHandler.exitGeneration.test.ts test/integration/queueSyncLocationAnchors.test.ts",
+        "test:runtime-invariants": "NODE_ENV=test node --test --import=tsx test/unit/worldEventProcessor.test.ts test/unit/exitGenerationHintProcessor.test.ts test/unit/queueSyncLocationAnchors.test.ts test/unit/worldClockService.test.ts test/integration/correlationIdFlow.test.ts test/integration/worldClockService.test.ts test/integration/moveHandler.exitGeneration.test.ts test/integration/queueSyncLocationAnchors.test.ts test/integration/worldEventProcessing.test.ts test/integration/exitGenerationHint.integration.test.ts",
         "test:e2e": "NODE_ENV=test PERSISTENCE_MODE=cosmos node --test --test-timeout=300000 --import=tsx test/e2e/*.e2e.test.ts",
         "test:cov": "NODE_ENV=test c8 --reporter=text --reporter=lcov node --test --import=tsx --import=./test/setup.ts test/**/*.test.ts || true",
         "seed:production": "npm run use:cosmos && PERSISTENCE_MODE=cosmos tsx scripts/seed-production.ts",
