@@ -46,8 +46,10 @@ export const GAME_EVENT_NAMES = [
     // Exit generation fallback (Issue #35 - N4)
     'Navigation.Exit.GenerationRequested',
     // Exit description tailoring (Exit Language Contract - ai-prompt-engineering.md)
-    'Navigation.Exit.DescriptionGenerated', // New exit description accepted by validator - properties: { durationBucket, pathKind?, grade?, charLength }
-    'Navigation.Exit.DescriptionRejected', // Validator rejected a candidate description - properties: { checkId, attemptNumber }
+    'Navigation.Exit.TailoringStarted', // AI garnish tailoring started (conditions met, AI about to be called) - properties: { direction, durationBucket, hasDestination }
+    'Navigation.Exit.TailoringSkipped', // AI garnish tailoring skipped before attempt - properties: { direction, durationBucket, hasDestination, reason: 'no_ai'|'no_destination'|'threshold_direction' }
+    'Navigation.Exit.DescriptionGenerated', // New exit description accepted by validator - properties: { direction, durationBucket, hasDestination, validatorOutcome, pathKind?, grade?, charLength }
+    'Navigation.Exit.DescriptionRejected', // Validator rejected a candidate description - properties: { direction, durationBucket, hasDestination, validatorOutcome, checkId, rejectionReason, attemptNumber }
     'Navigation.Exit.DescriptionAuditFailed', // Nightly audit found anomaly in persisted exit description - properties: { checkId, exitId }
     // Cottage interior on-demand materialization
     'Navigation.Interior.Materialized', // Interior location created on first entry - properties: { cottageLocationId, interiorLocationId, alreadyExisted, correlationId }
