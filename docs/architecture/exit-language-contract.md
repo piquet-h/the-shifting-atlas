@@ -5,9 +5,9 @@ description: Bounded specification for generated exit descriptions — duration 
 
 # Exit Language Contract
 
-> STATUS: DEFINED (2026-03-03). Spec-only; no generation engine implemented yet. Aligns with tokenless layering model and narration governance constraints.
+> STATUS: IMPLEMENTED (2026-03-09). Contract fully specified and all checks implemented in `shared/src/exitDescriptionValidator.ts` (EL-01–EL-09). Scaffold generator (`backend/src/services/exitDescriptionScaffold.ts`) and two-stage description service (`backend/src/services/ExitDescriptionService.ts`) are operational. Aligns with tokenless layering model and narration governance constraints.
 >
-> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `action-intent-persistence.md`
+> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `action-intent-persistence.md` · `../DESIGN_CLARIFICATION_intent_vs_narrative.md`
 
 ## Purpose
 
@@ -166,7 +166,7 @@ A nightly audit job re-runs checks EL-04, EL-07, EL-08, and EL-09 against all pe
 
 ## 6. Telemetry Events
 
-_(All names are illustrative; add to `shared/src/telemetryEvents.ts` before first use.)_
+_(All names are registered in `shared/src/telemetryEvents.ts`. See `docs/observability.md` for authoring guidelines.)_
 
 | Event                                      | Trigger                                    | Key Dimensions                             |
 | ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |
@@ -195,8 +195,8 @@ The following are reference outputs at each duration bucket. They do not embed l
 
 - Full layering engine implementation (tracked in `description-layering-and-variation.md`).
 - Exit inference from location prose (tracked separately).
-- AI prompt templates for exit generation (tracked in `ai-prompt-engineering.md`).
-- Runtime enforcement machinery (validators described here are specifications, not implemented code).
+- AI prompt templates for exit generation (see `shared/src/prompts/templates/exit-description-tailor.json`).
+- Nightly audit job execution (validators are specified here and implemented in `shared/src/exitDescriptionValidator.ts`; the audit scheduler is a separate concern).
 
 ---
 
