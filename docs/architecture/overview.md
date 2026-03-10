@@ -34,7 +34,7 @@ Implemented (thin slice – see repo for exact handlers):
 - Canonical telemetry framework (`trackGameEventStrict`, event name governance)
 - Direction normalization (shortcuts, typos, relative directions)
 - **Description composition** via `DescriptionComposer` service – unified location endpoint returns compiled descriptions with layers, HTML, and provenance metadata (ADR-005)
-- Read-only MCP tools for agent context (implemented): `World-*`, `WorldContext-*`, and `Lore-*` via Azure Functions `app.mcpTool(...)` (not called directly by the website; intended for agent runtimes behind the external gateway)
+- Read-only MCP tools for agent context (implemented): `WorldContext-*` and `Lore-*` via Azure Functions `app.mcpTool(...)` (not called directly by the website; intended for agent runtimes behind the external gateway)
 
 Still evolving:
 

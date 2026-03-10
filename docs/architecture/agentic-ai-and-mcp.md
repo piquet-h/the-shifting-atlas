@@ -1,6 +1,6 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> **Status** (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `World-*`, `WorldContext-*`, and `Lore-*`). The orchestration layer (agent runner) and any write/proposal MCP surfaces remain planned.
+> **Status** (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `WorldContext-*` and `Lore-*`). The orchestration layer (agent runner) and any write/proposal MCP surfaces remain planned.
 
 > **Important**: This architecture is intentionally **agent-runtime-agnostic at the contract level**, but this repo’s execution posture is **Foundry-first**.
 >
@@ -137,13 +137,13 @@ This separation keeps canonical mutations auditable and prevents bypassing cross
 
 The legacy numeric "Phase 0–4" roadmap is collapsed into milestone stages aligned with the unified issue taxonomy.
 
-| Stage (Milestone)   | Focus                        | Key MCP Servers / Additions                                                                                                                                              | Exit Criteria                                        |
-| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| M4a (AI Read)       | Foundations (Read-Only)      | World MCP tools (`get-location`, `list-exits`) + World Context scaffold (expands in #515/#516). Prompts & telemetry are implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
-| M6 AI Enrich\*      | Flavor & Dialogue Seed       | +`classification`, `lore-memory`                                                                                                                                         | Safe ambience & NPC one-liners in playtest           |
-| M7 Systems\*        | Structured Proposals         | +`world-mutation` (proposal endpoints)                                                                                                                                   | Validator rejects unsafe / incoherent >90% precision |
-| (Optional) Planning | Narrative Planning (offline) | +`simulation-planner` (optional; offline tooling, not live gameplay)                                                                                                     | Quest seed generation gated & logged                 |
-| (Future) Advisory   | Systemic / Economy Lens      | +`economy-analytics`, further domain-specific tools                                                                                                                      | Cost & token budgets within defined thresholds       |
+| Stage (Milestone)   | Focus                        | Key MCP Servers / Additions                                                                                                  | Exit Criteria                                        |
+| ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| M4a (AI Read)       | Foundations (Read-Only)      | `WorldContext-*` + `Lore-*` read-only MCP tools, with prompts and telemetry implemented in shared/backend (see notes below). | Stable JSON contracts; initial telemetry dashboard   |
+| M6 AI Enrich\*      | Flavor & Dialogue Seed       | +`classification`, `lore-memory`                                                                                             | Safe ambience & NPC one-liners in playtest           |
+| M7 Systems\*        | Structured Proposals         | +`world-mutation` (proposal endpoints)                                                                                       | Validator rejects unsafe / incoherent >90% precision |
+| (Optional) Planning | Narrative Planning (offline) | +`simulation-planner` (optional; offline tooling, not live gameplay)                                                         | Quest seed generation gated & logged                 |
+| (Future) Advisory   | Systemic / Economy Lens      | +`economy-analytics`, further domain-specific tools                                                                          | Cost & token budgets within defined thresholds       |
 
 \*AI enrich/proposal work aligns with roadmap milestones **M6 Systems** and beyond; assign milestone per roadmap scope (e.g., humor/dungeons/entity promotion).
 
@@ -385,11 +385,11 @@ The following examples show the MCP `tools/call` request shape (tool name + JSON
 }
 ```
 
-##### World: starter location (implicit default)
+##### WorldContext: starter location (implicit default)
 
 ```json
 {
-    "name": "get-location",
+    "name": "get-location-context",
     "arguments": {}
 }
 ```
