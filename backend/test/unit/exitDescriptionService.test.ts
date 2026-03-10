@@ -326,10 +326,13 @@ describe('ExitDescriptionService — telemetry', () => {
             assert.ok(event, 'Navigation.Exit.DescriptionGenerated should be emitted on success')
             assert.equal(event.properties['durationBucket'], 'moderate')
             assert.ok(typeof event.properties['charLength'] === 'number')
+            assert.equal(event.properties['direction'], 'north', 'DescriptionGenerated should include direction')
+            assert.equal(event.properties['hasDestination'], true, 'DescriptionGenerated should include hasDestination')
+            assert.equal(event.properties['validatorOutcome'], 'accepted', 'DescriptionGenerated validatorOutcome should be accepted')
         }
     })
 
-    test('No telemetry emitted for scaffold-only result', async () => {
+    test('No telemetry emitted for scaffold-only result (no garnish events)', async () => {
         const telemetryClient = new MockTelemetryClient()
         const svc = new ExitDescriptionService(undefined, makeTelemetry(telemetryClient))
 
@@ -339,6 +342,115 @@ describe('ExitDescriptionService — telemetry', () => {
         const rejectedEvent = telemetryClient.findEvent('Navigation.Exit.DescriptionRejected')
         assert.equal(generatedEvent, undefined, 'No DescriptionGenerated event for scaffold-only')
         assert.equal(rejectedEvent, undefined, 'No DescriptionRejected event for scaffold-only')
+    })
+
+    test('Navigation.Exit.TailoringSkipped emitted when no AI client (reason: no_ai)', async () => {
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(undefined, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'north', durationBucket: 'moderate', destinationSnippet: 'Open farmland.' })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.TailoringSkipped')
+        assert.ok(event, 'Navigation.Exit.TailoringSkipped should be emitted when no AI client')
+        assert.equal(event.properties['reason'], 'no_ai')
+        assert.equal(event.properties['direction'], 'north')
+        assert.equal(event.properties['durationBucket'], 'moderate')
+        assert.equal(event.properties['hasDestination'], true)
+    })
+
+    test('Navigation.Exit.TailoringSkipped emitted when no destination context (reason: no_destination)', async () => {
+        const ai = new MockAzureOpenAIClient({ content: ' toward the fields', tokenUsage: { prompt: 5, completion: 5, total: 10 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'east', durationBucket: 'far' })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.TailoringSkipped')
+        assert.ok(event, 'Navigation.Exit.TailoringSkipped should be emitted when no destination context')
+        assert.equal(event.properties['reason'], 'no_destination')
+        assert.equal(event.properties['direction'], 'east')
+        assert.equal(event.properties['hasDestination'], false)
+    })
+
+    test('Navigation.Exit.TailoringSkipped emitted for in direction (reason: threshold_direction)', async () => {
+        const ai = new MockAzureOpenAIClient({ content: ' toward the inn', tokenUsage: { prompt: 5, completion: 5, total: 10 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'in', durationBucket: 'threshold', destinationSnippet: 'A warm inn.' })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.TailoringSkipped')
+        assert.ok(event, 'Navigation.Exit.TailoringSkipped should be emitted for in direction')
+        assert.equal(event.properties['reason'], 'threshold_direction')
+        assert.equal(event.properties['direction'], 'in')
+        assert.equal(event.properties['hasDestination'], true)
+    })
+
+    test('Navigation.Exit.TailoringSkipped emitted for out direction (reason: threshold_direction)', async () => {
+        const ai = new MockAzureOpenAIClient({ content: ' into the yard', tokenUsage: { prompt: 5, completion: 5, total: 10 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'out', durationBucket: 'threshold', destinationSnippet: 'Open courtyard.' })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.TailoringSkipped')
+        assert.ok(event, 'Navigation.Exit.TailoringSkipped should be emitted for out direction')
+        assert.equal(event.properties['reason'], 'threshold_direction')
+        assert.equal(event.properties['direction'], 'out')
+        assert.equal(event.properties['hasDestination'], true)
+    })
+
+    test('Navigation.Exit.TailoringStarted emitted before AI call', async () => {
+        const clause = ' toward the fields'
+        const ai = new MockAzureOpenAIClient({ content: clause, tokenUsage: { prompt: 5, completion: 5, total: 10 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'south', durationBucket: 'near', destinationSnippet: 'Rolling fields.' })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.TailoringStarted')
+        assert.ok(event, 'Navigation.Exit.TailoringStarted should be emitted when AI garnish is attempted')
+        assert.equal(event.properties['direction'], 'south')
+        assert.equal(event.properties['durationBucket'], 'near')
+        assert.equal(event.properties['hasDestination'], true)
+    })
+
+    test('Navigation.Exit.DescriptionRejected includes direction, hasDestination, validatorOutcome, rejectionReason', async () => {
+        const clause = ' toward Thornwick Keep'
+        const ai = new MockAzureOpenAIClient({ content: clause, tokenUsage: { prompt: 10, completion: 5, total: 15 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({
+            direction: 'north',
+            durationBucket: 'moderate',
+            destinationSnippet: 'A fortified settlement.'
+        })
+
+        const event = telemetryClient.findEvent('Navigation.Exit.DescriptionRejected')
+        assert.ok(event, 'Navigation.Exit.DescriptionRejected should be emitted on validation failure')
+        assert.equal(event.properties['direction'], 'north', 'DescriptionRejected should include direction')
+        assert.equal(event.properties['hasDestination'], true, 'DescriptionRejected should include hasDestination')
+        assert.equal(event.properties['validatorOutcome'], 'rejected', 'DescriptionRejected validatorOutcome should be rejected')
+        assert.ok(event.properties['checkId'], 'DescriptionRejected should include checkId')
+        assert.ok(event.properties['rejectionReason'], 'DescriptionRejected should include rejectionReason')
+        assert.equal(event.properties['attemptNumber'], 1)
+    })
+
+    test('TailoringSkipped not emitted when AI succeeds (TailoringStarted emitted instead)', async () => {
+        const clause = ' toward the old mill'
+        const ai = new MockAzureOpenAIClient({ content: clause, tokenUsage: { prompt: 5, completion: 5, total: 10 } })
+        const telemetryClient = new MockTelemetryClient()
+        const svc = new ExitDescriptionService(ai, makeTelemetry(telemetryClient))
+
+        await svc.generateDescription({ direction: 'west', durationBucket: 'moderate', destinationSnippet: 'An old mill.' })
+
+        assert.equal(
+            telemetryClient.findEvent('Navigation.Exit.TailoringSkipped'),
+            undefined,
+            'TailoringSkipped must not be emitted when conditions allow AI garnish'
+        )
+        assert.ok(telemetryClient.findEvent('Navigation.Exit.TailoringStarted'), 'TailoringStarted should be emitted instead')
     })
 })
 

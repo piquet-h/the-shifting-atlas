@@ -11,71 +11,17 @@
  * - Conservative by default: suitable for stub destinations with no context.
  * - Output passes all Exit Language Contract checks when used correctly.
  *
- * Types here mirror shared/src/exitDescriptionValidator.ts. They are defined locally
- * because the published @piquet-h/shared package does not yet export them.
- * When shared is bumped and republished with exitDescriptionValidator, these local
- * definitions should be removed in favour of the shared imports.
- *
  * See:
  * - docs/architecture/exit-language-contract.md (authoritative spec)
  * - shared/src/exitDescriptionValidator.ts (types + validator)
  */
 
-import { getOppositeDirection } from '@piquet-h/shared'
-import type { Direction } from '@piquet-h/shared'
+import { getOppositeDirection, travelDurationMsToBucket } from '@piquet-h/shared'
+import type { Direction, DurationBucket, Grade, PathKind, TransitionKind } from '@piquet-h/shared'
 
-// ---------------------------------------------------------------------------
-// Local type definitions (mirror shared/src/exitDescriptionValidator.ts)
-// Remove when shared bumps version and exports these.
-// ---------------------------------------------------------------------------
-
-/**
- * Travel duration bucket — derived from travelDurationMs via travelDurationMsToBucket().
- *
- * | Bucket     | travelDurationMs range     |
- * |------------|---------------------------|
- * | threshold  | < 15 000 ms               |
- * | near       | 15 000 – 299 999 ms       |
- * | moderate   | 300 000 – 1 799 999 ms    |
- * | far        | 1 800 000 – 14 399 999 ms |
- * | distant    | ≥ 14 400 000 ms           |
- */
-export type DurationBucket = 'threshold' | 'near' | 'moderate' | 'far' | 'distant'
-
-/** Structural path kind hint (persisted on edge). */
-export type PathKind = 'road' | 'track' | 'trail' | 'door' | 'gate' | 'stair' | 'ladder' | 'gap' | 'ford' | 'passage'
-
-/** Topographic elevation change hint (persisted on edge). */
-export type Grade = 'ascending' | 'descending' | 'level'
-
-/** Spatial transition type hint (persisted on edge). */
-export type TransitionKind = 'outdoor-to-indoor' | 'indoor-to-outdoor' | 'above-to-below' | 'below-to-above' | 'water-crossing' | 'open-air'
-
-// ---------------------------------------------------------------------------
-// travelDurationMsToBucket  (mirror of shared/src/exitDescriptionValidator.ts)
-// ---------------------------------------------------------------------------
-
-/** Default travel duration (ms) used when edge has no stored travelDurationMs. */
-const DEFAULT_TRAVEL_DURATION_MS = 300_000 // 5 minutes → moderate
-
-/** Threshold ranges (all in ms). */
-const BUCKET_NEAR_LOWER = 15_000
-const BUCKET_MODERATE_LOWER = 300_000
-const BUCKET_FAR_LOWER = 1_800_000
-const BUCKET_DISTANT_LOWER = 14_400_000
-
-/**
- * Convert a raw travelDurationMs value to a DurationBucket.
- * Absent value (undefined/null/0) falls back to `moderate`.
- */
-export function travelDurationMsToBucket(ms: number | undefined | null): DurationBucket {
-    const n = ms != null && ms > 0 ? ms : DEFAULT_TRAVEL_DURATION_MS
-    if (n < BUCKET_NEAR_LOWER) return 'threshold'
-    if (n < BUCKET_MODERATE_LOWER) return 'near'
-    if (n < BUCKET_FAR_LOWER) return 'moderate'
-    if (n < BUCKET_DISTANT_LOWER) return 'far'
-    return 'distant'
-}
+// Re-export for consumers that import these via this module
+export type { DurationBucket, Grade, PathKind, TransitionKind }
+export { travelDurationMsToBucket }
 
 // ---------------------------------------------------------------------------
 // Public scaffold types

@@ -344,8 +344,7 @@ describe('exitDescriptionScaffold — grade hints', () => {
 
 describe('travelDurationMsToBucket', () => {
     test('undefined → moderate', () => assert.equal(travelDurationMsToBucket(undefined), 'moderate'))
-    test('null → moderate', () => assert.equal(travelDurationMsToBucket(null), 'moderate'))
-    test('0 → moderate', () => assert.equal(travelDurationMsToBucket(0), 'moderate'))
+    test('0 → threshold', () => assert.equal(travelDurationMsToBucket(0), 'threshold'))
     test('5 000 ms → threshold', () => assert.equal(travelDurationMsToBucket(5_000), 'threshold'))
     test('14 999 ms → threshold', () => assert.equal(travelDurationMsToBucket(14_999), 'threshold'))
     test('15 000 ms → near', () => assert.equal(travelDurationMsToBucket(15_000), 'near'))

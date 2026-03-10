@@ -167,6 +167,41 @@ test('Navigation.Exit.GenerationRequested is registered', () => {
     assert.ok(isGameEventName('Navigation.Exit.GenerationRequested'), 'Navigation.Exit.GenerationRequested should be recognized')
 })
 
+test('Navigation.Exit.TailoringStarted is registered', () => {
+    assert.ok(isGameEventName('Navigation.Exit.TailoringStarted'), 'Navigation.Exit.TailoringStarted should be recognized')
+})
+
+test('Navigation.Exit.TailoringSkipped is registered', () => {
+    assert.ok(isGameEventName('Navigation.Exit.TailoringSkipped'), 'Navigation.Exit.TailoringSkipped should be recognized')
+})
+
+test('Navigation.Exit.DescriptionGenerated is registered', () => {
+    assert.ok(isGameEventName('Navigation.Exit.DescriptionGenerated'), 'Navigation.Exit.DescriptionGenerated should be recognized')
+})
+
+test('Navigation.Exit.DescriptionRejected is registered', () => {
+    assert.ok(isGameEventName('Navigation.Exit.DescriptionRejected'), 'Navigation.Exit.DescriptionRejected should be recognized')
+})
+
+test('Navigation.Exit tailoring events match telemetry pattern', () => {
+    const tailoringEvents = [
+        'Navigation.Exit.TailoringStarted',
+        'Navigation.Exit.TailoringSkipped',
+        'Navigation.Exit.DescriptionGenerated',
+        'Navigation.Exit.DescriptionRejected',
+        'Navigation.Exit.DescriptionAuditFailed'
+    ]
+    for (const event of tailoringEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match telemetry pattern`)
+        assert.ok(isGameEventName(event), `${event} should be registered`)
+    }
+})
+
+test('unknown Navigation.Exit.Tailoring* variant rejected', () => {
+    assert.equal(isGameEventName('Navigation.Exit.TailoringFailed'), false, 'Unregistered tailoring variant should be rejected')
+    assert.equal(isGameEventName('Navigation.Exit.TailoringCompleted'), false, 'Unregistered tailoring variant should be rejected')
+})
+
 test('Navigation.SoftDenial.Displayed is registered', () => {
     assert.ok(isGameEventName('Navigation.SoftDenial.Displayed'), 'Navigation.SoftDenial.Displayed should be recognized')
 })

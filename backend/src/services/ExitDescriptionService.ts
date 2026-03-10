@@ -15,8 +15,14 @@
  *   - `in`/`out` directions never receive a garnish
  *
  * Telemetry:
- *   - Navigation.Exit.DescriptionGenerated — garnish accepted, with durationBucket/charLength
- *   - Navigation.Exit.DescriptionRejected  — garnish failed safety checks, with checkId
+ *   - Navigation.Exit.TailoringStarted — AI garnish about to be attempted; direction/durationBucket/hasDestination
+ *   - Navigation.Exit.TailoringSkipped — tailoring bypassed (no AI, no destination, or in/out direction); includes reason
+ *   - Navigation.Exit.DescriptionGenerated — garnish accepted; direction/durationBucket/hasDestination/validatorOutcome/charLength
+ *   - Navigation.Exit.DescriptionRejected — garnish failed safety checks; direction/hasDestination/checkId/rejectionReason
+ *
+ * Skipped-tailoring policy:
+ *   When AI is unavailable, no destination context is present, or the direction is `in`/`out`,
+ *   a TailoringSkipped event is emitted with an explicit `reason` dimension. No garnish is attempted.
  *
  * See also:
  *   - docs/architecture/exit-language-contract.md (authoritative spec)
@@ -225,6 +231,12 @@ export class ExitDescriptionService implements IExitDescriptionService {
     /**
      * Attempt to append an AI garnish clause to the forward description.
      * Returns scaffold-only on any failure condition.
+     *
+     * Telemetry emitted:
+     * - Navigation.Exit.TailoringSkipped  — when conditions prevent any attempt (no AI / no dest / threshold dir)
+     * - Navigation.Exit.TailoringStarted  — when AI call is about to be made
+     * - Navigation.Exit.DescriptionRejected — when validator rejects the garnished text
+     * - Navigation.Exit.DescriptionGenerated — when garnish is accepted
      */
     private async tryApplyGarnish(
         input: ExitDescriptionServiceInput,
@@ -234,10 +246,42 @@ export class ExitDescriptionService implements IExitDescriptionService {
         // 1. No AI client
         // 2. No destination context (garnish is destination-facing — needs something to reference)
         // 3. in/out — threshold transitions use "through/into" framing, no journey clause
-        const hasDestContext = !!(input.destinationSnippet || input.destinationName)
-        if (!this.aiClient || !hasDestContext || input.direction === 'in' || input.direction === 'out') {
+        const hasDestination = !!(input.destinationSnippet || input.destinationName)
+
+        if (!this.aiClient) {
+            this.telemetry.trackGameEvent('Navigation.Exit.TailoringSkipped', {
+                direction: input.direction,
+                durationBucket: input.durationBucket,
+                hasDestination,
+                reason: 'no_ai'
+            })
             return { ...scaffold, garnishApplied: false }
         }
+        if (!hasDestination) {
+            this.telemetry.trackGameEvent('Navigation.Exit.TailoringSkipped', {
+                direction: input.direction,
+                durationBucket: input.durationBucket,
+                hasDestination,
+                reason: 'no_destination'
+            })
+            return { ...scaffold, garnishApplied: false }
+        }
+        if (input.direction === 'in' || input.direction === 'out') {
+            this.telemetry.trackGameEvent('Navigation.Exit.TailoringSkipped', {
+                direction: input.direction,
+                durationBucket: input.durationBucket,
+                hasDestination,
+                reason: 'threshold_direction'
+            })
+            return { ...scaffold, garnishApplied: false }
+        }
+
+        // All conditions met — AI garnish is about to be attempted
+        this.telemetry.trackGameEvent('Navigation.Exit.TailoringStarted', {
+            direction: input.direction,
+            durationBucket: input.durationBucket,
+            hasDestination
+        })
 
         const clause = await this.callAIGarnish(input, scaffold.forward)
         if (!clause) {
@@ -252,14 +296,22 @@ export class ExitDescriptionService implements IExitDescriptionService {
         const check = checkGarnishedDescription(garnished, input.destinationName)
         if (!check.ok) {
             this.telemetry.trackGameEvent('Navigation.Exit.DescriptionRejected', {
+                direction: input.direction,
+                durationBucket: input.durationBucket,
+                hasDestination,
+                validatorOutcome: 'rejected',
                 checkId: check.checkId,
+                rejectionReason: check.reason,
                 attemptNumber: 1
             })
             return { ...scaffold, garnishApplied: false }
         }
 
         this.telemetry.trackGameEvent('Navigation.Exit.DescriptionGenerated', {
+            direction: input.direction,
             durationBucket: input.durationBucket,
+            hasDestination,
+            validatorOutcome: 'accepted',
             pathKind: input.pathKind,
             grade: input.grade,
             charLength: garnished.length
