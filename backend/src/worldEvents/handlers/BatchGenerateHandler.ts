@@ -18,14 +18,15 @@ import type { InvocationContext } from '@azure/functions'
 import type { Direction, TerrainType } from '@piquet-h/shared'
 import { DIRECTIONS, TERRAIN_TYPES, getOppositeDirection } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
 import { v4 as uuidv4 } from 'uuid'
 import { TOKENS } from '../../di/tokens.js'
 import { DEFAULT_TRAVEL_DURATION_MS } from '../../handlers/utils/travelDurationHeuristics.js'
 import type { IDeadLetterRepository } from '../../repos/deadLetterRepository.js'
 import type { ILayerRepository } from '../../repos/layerRepository.js'
 import type { ILocationRepository } from '../../repos/locationRepository.js'
-import type { BatchDescriptionRequest, IAIDescriptionService } from '../../services/AIDescriptionService.js'
+import type { BatchDescriptionRequest, GeneratedDescription, IAIDescriptionService } from '../../services/AIDescriptionService.js'
+import { buildExitDescriptionInput, type IExitDescriptionService } from '../../services/ExitDescriptionService.js'
 import {
     planAtlasAwareFutureLocation,
     resolveMacroGenerationContext,
@@ -194,6 +195,7 @@ function isUUID(value: string): boolean {
  */
 interface StubLocation {
     id: string
+    name: string
     direction: Direction
     terrain: TerrainType
     tags: string[]
@@ -210,7 +212,8 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
         @inject(TOKENS.AIDescriptionService) private aiService: IAIDescriptionService,
         @inject(TOKENS.LayerRepository) private layerRepo: ILayerRepository,
         @inject(TOKENS.WorldEventPublisher) private eventPublisher: IWorldEventPublisher,
-        @inject(TOKENS.TemporalProximityService) private temporalProximitySvc: ITemporalProximityService
+        @inject(TOKENS.TemporalProximityService) private temporalProximitySvc: ITemporalProximityService,
+        @inject(TOKENS.ExitDescriptionService) @optional() private exitDescriptionService: IExitDescriptionService | undefined
     ) {
         super(deadLetterRepo, telemetry)
     }
@@ -420,13 +423,25 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
             // 7. Update location descriptions (already handled by AIDescriptionService layer persistence)
             // Note: AIDescriptionService persists base layers automatically
 
-            // 8. Enqueue exit creation events for stubs (bidirectional), carrying stepMs so
-            //    ExitCreateHandler can persist travelDurationMs on the new edges.
-            await this.enqueueExitEvents(payload.rootLocationId, stubs, stubDirections, stepMs, event.correlationId, context)
+            // 8. Generate exit descriptions (scaffold + optional AI garnish) using the just-generated
+            //    location descriptions as destination context. Runs in the same batch as location AI.
+            const exitDescriptions = await this.generateExitDescriptions(stubs, descriptions, stepMs)
+
+            // 9. Enqueue exit creation events for stubs (bidirectional), carrying stepMs and the
+            //    pre-generated exit description text so ExitCreateHandler can persist it on the edges.
+            await this.enqueueExitEvents(
+                payload.rootLocationId,
+                stubs,
+                stubDirections,
+                stepMs,
+                exitDescriptions,
+                event.correlationId,
+                context
+            )
 
             context.log('Enqueued exit events', { count: stubs.length })
 
-            // 9. Emit completion telemetry with metrics
+            // 10. Emit completion telemetry with metrics
             const durationMs = Date.now() - startTime
             const totalCost = descriptions.reduce((sum, d) => sum + d.cost, 0)
 
@@ -619,7 +634,7 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
                 version: 1
             })
 
-            stubs.push({ id, direction, terrain: futureLocationPlan.terrain, tags: futureLocationPlan.tags })
+            stubs.push({ id, name: futureLocationPlan.name, direction, terrain: futureLocationPlan.terrain, tags: futureLocationPlan.tags })
 
             context.log('Created stub location', { id, direction, terrain })
         }
@@ -654,35 +669,84 @@ export class BatchGenerateHandler extends BaseWorldEventHandler {
     /**
      * Enqueue World.Exit.Create events for bidirectional exit creation.
      * Each event creates an exit FROM root TO stub and reciprocal.
-     * travelDurationMs is forwarded so ExitCreateHandler persists it on the new edges.
+     * travelDurationMs and pre-generated exit description text are forwarded so
+     * ExitCreateHandler can persist them on the new edges.
      */
     private async enqueueExitEvents(
         rootLocationId: string,
         stubs: StubLocation[],
         directions: Direction[],
         travelDurationMs: number,
+        exitDescriptions: Map<string, { forward: string; backward: string }>,
         parentCorrelationId: string,
         context: InvocationContext
     ): Promise<void> {
-        const events: WorldEventEnvelope[] = stubs.map((stub, idx) => ({
-            eventId: uuidv4(),
-            type: 'World.Exit.Create',
-            occurredUtc: new Date().toISOString(),
-            actor: { kind: 'system' },
-            correlationId: parentCorrelationId, // Inherit from BatchGenerate
-            idempotencyKey: `exit:${rootLocationId}:${directions[idx]}`,
-            version: 1,
-            payload: {
-                fromLocationId: rootLocationId,
-                toLocationId: stub.id,
-                direction: directions[idx],
-                reciprocal: true,
-                travelDurationMs
+        const events: WorldEventEnvelope[] = stubs.map((stub, idx) => {
+            const desc = exitDescriptions.get(stub.id)
+            return {
+                eventId: uuidv4(),
+                type: 'World.Exit.Create',
+                occurredUtc: new Date().toISOString(),
+                actor: { kind: 'system' },
+                correlationId: parentCorrelationId, // Inherit from BatchGenerate
+                idempotencyKey: `exit:${rootLocationId}:${directions[idx]}`,
+                version: 1,
+                payload: {
+                    fromLocationId: rootLocationId,
+                    toLocationId: stub.id,
+                    direction: directions[idx],
+                    reciprocal: true,
+                    travelDurationMs,
+                    ...(desc ? { forwardDescription: desc.forward, backwardDescription: desc.backward } : {})
+                }
             }
-        }))
+        })
 
         await this.eventPublisher.enqueueEvents(events)
 
         context.log('Enqueued exit creation events', { count: events.length })
+    }
+
+    /**
+     * Generate exit descriptions (scaffold + optional AI garnish) for each stub.
+     *
+     * Uses the just-generated location description as `destinationSnippet` so the
+     * AI garnish has real destination context. Falls back to scaffold-only when the
+     * service is absent, AI is unavailable, or the direction is `in`/`out`.
+     *
+     * Telemetry emitted by ExitDescriptionService per stub:
+     *   - Navigation.Exit.TailoringStarted  — AI garnish attempted
+     *   - Navigation.Exit.TailoringSkipped  — garnish skipped (no AI / no dest / threshold dir)
+     *   - Navigation.Exit.DescriptionGenerated — garnish accepted
+     *   - Navigation.Exit.DescriptionRejected  — garnish failed safety checks
+     *
+     * @returns Map from stubId → { forward, backward } description pair
+     */
+    private async generateExitDescriptions(
+        stubs: StubLocation[],
+        descriptions: GeneratedDescription[],
+        travelDurationMs: number
+    ): Promise<Map<string, { forward: string; backward: string }>> {
+        const result = new Map<string, { forward: string; backward: string }>()
+
+        if (!this.exitDescriptionService) {
+            // Service not bound (unexpected in production; guard for safety).
+            // Fall back: empty map so enqueueExitEvents sends payload without description.
+            return result
+        }
+
+        const descriptionByStubId = new Map(descriptions.map((d) => [d.locationId, d.description]))
+
+        for (const stub of stubs) {
+            const destinationSnippet = descriptionByStubId.get(stub.id)
+            const input = buildExitDescriptionInput(stub.direction, travelDurationMs, {
+                destinationSnippet,
+                destinationName: stub.name
+            })
+            const generated = await this.exitDescriptionService.generateDescription(input)
+            result.set(stub.id, { forward: generated.forward, backward: generated.backward })
+        }
+
+        return result
     }
 }

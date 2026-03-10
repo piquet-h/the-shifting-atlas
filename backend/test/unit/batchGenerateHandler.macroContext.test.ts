@@ -7,12 +7,14 @@ import type { ILocationRepository } from '../../src/repos/locationRepository.js'
 import { BatchGenerateHandler } from '../../src/worldEvents/handlers/BatchGenerateHandler.js'
 import type { IWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
 import { IntegrationTestFixture } from '../helpers/IntegrationTestFixture.js'
+import type { MockTelemetryClient } from '../mocks/MockTelemetryClient.js'
 
 describe('BatchGenerateHandler - macro context propagation', () => {
     let fixture: IntegrationTestFixture
     let handler: BatchGenerateHandler
     let locationRepo: ILocationRepository
     let eventPublisher: IWorldEventPublisher
+    let telemetry: MockTelemetryClient
 
     beforeEach(async () => {
         fixture = new IntegrationTestFixture('memory')
@@ -20,6 +22,7 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         handler = container.get(BatchGenerateHandler)
         locationRepo = container.get<ILocationRepository>(TOKENS.LocationRepository)
         eventPublisher = container.get<IWorldEventPublisher>(TOKENS.WorldEventPublisher)
+        telemetry = (await fixture.getTelemetryClient()) as MockTelemetryClient
     })
 
     const snapshotLocationIds = async (): Promise<Set<string>> => new Set((await locationRepo.listAll()).map((location) => location.id))
@@ -417,5 +420,56 @@ describe('BatchGenerateHandler - macro context propagation', () => {
         assert.ok(!westwardGenerated?.exitAvailability?.pending?.west)
         assert.ok(westwardGenerated?.exitAvailability?.pending?.north)
         assert.ok(westwardGenerated?.exitAvailability?.pending?.south)
+    })
+
+    test('exit tailoring telemetry emitted once per generated stub during batch generation', async () => {
+        const rootLocationId = uuidv4()
+        await locationRepo.upsert({
+            id: rootLocationId,
+            name: 'North Gate',
+            description: 'A frontier gate above the harbor road.',
+            terrain: 'open-plain',
+            tags: ['settlement:mosswell', 'frontier:boundary'],
+            exits: [],
+            version: 1
+        })
+
+        const event: WorldEventEnvelope = {
+            eventId: uuidv4(),
+            type: 'World.Location.BatchGenerate',
+            occurredUtc: new Date().toISOString(),
+            actor: { kind: 'system' },
+            correlationId: uuidv4(),
+            idempotencyKey: `batch:${uuidv4()}`,
+            version: 1,
+            payload: {
+                rootLocationId,
+                terrain: 'open-plain',
+                arrivalDirection: 'south',
+                expansionDepth: 1,
+                batchSize: 2
+            }
+        }
+
+        const result = await handler.handle(event, { log() {} } as never)
+        assert.equal(result.outcome, 'success')
+
+        // With no real AI endpoint in tests, NullAzureOpenAIClient returns null for generate().
+        // ExitDescriptionService proceeds past the no-ai check (client IS bound, not undefined),
+        // reaches TailoringStarted, calls generate(), gets null, falls back to scaffold.
+        // So we expect exactly one TailoringStarted per stub (batchSize=2 -> 2 stubs).
+        const tailoringStarted = telemetry.events.filter((e) => e.name === 'Navigation.Exit.TailoringStarted')
+        assert.equal(tailoringStarted.length, 2, 'TailoringStarted should be emitted once per generated stub')
+
+        // All events must carry direction and durationBucket
+        for (const event of tailoringStarted) {
+            assert.ok(event.properties['direction'], 'TailoringStarted must include direction')
+            assert.ok(event.properties['durationBucket'], 'TailoringStarted must include durationBucket')
+            assert.equal(
+                event.properties['hasDestination'],
+                true,
+                'TailoringStarted must have hasDestination=true (destination snippet from AI location description)'
+            )
+        }
     })
 })
