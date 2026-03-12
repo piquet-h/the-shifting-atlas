@@ -193,9 +193,9 @@ function buildIntent(surfaceVerb: string, order: number, nouns: string[]): Inten
         intent.tacticalRole = 'pursuit'
     }
 
-    // Assign first noun as the surface item (for object-verb intents) and
-    // second noun as surface target. For "move" verbs, check if the first noun
-    // is a direction.
+    // For 'move' verbs, check if the first noun is a direction and assign it accordingly.
+    // For item-verb intents ('throw', 'use_item'), the first noun is the item and the second is the target.
+    // For all other verbs, the first noun is the surface target.
     const [first, second] = nouns
 
     if (verb === 'move' && first && isDirection(first)) {
@@ -332,12 +332,11 @@ export class IntentParserHandler {
             return JSON.stringify(ambiguous)
         }
 
-        // Build intents in sequence order
-        // For sequential commands we split on connector words; for parallel all verbs share order 0.
-        const verbsForIntents = sequenceType === 'sequential' ? surfaceVerbs : surfaceVerbs.filter((v) => !MODIFIER_VERBS.has(v))
-
-        // Re-include pure modifier verbs (e.g. "chase") in sequential mode so they get their own intent.
-        const allVerbs = sequenceType === 'sequential' ? surfaceVerbs : [...verbsForIntents]
+        // Build intents in sequence order.
+        // In sequential mode each verb becomes a separate ordered intent (order = index).
+        // In parallel mode, modifier-only verbs (e.g. "chase") are merged as modifiers rather than
+        // creating separate intents, so they are filtered out before building.
+        const allVerbs = sequenceType === 'sequential' ? surfaceVerbs : surfaceVerbs.filter((v) => !MODIFIER_VERBS.has(v))
 
         for (let i = 0; i < allVerbs.length; i++) {
             const verb = allVerbs[i]

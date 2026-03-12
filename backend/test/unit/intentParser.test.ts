@@ -65,8 +65,9 @@ describe('extractVerbs', () => {
         assert.ok(verbs.includes('flee'), 'should include flee')
     })
 
-    it('maps synonyms to canonical verbs', () => {
-        // "go" is a synonym for "move"
+    it('returns surface verb form (synonym keys, not canonical verbs)', () => {
+        // extractVerbs returns the surface form (key in VERB_MAP).
+        // Canonical IntentVerb mapping ('go' → 'move') happens inside buildIntent/parseCommand.
         const verbs = extractVerbs('go north')
         assert.deepStrictEqual(verbs, ['go'])
     })
@@ -307,5 +308,14 @@ describe('IntentParserHandler.parseCommand', () => {
         const ids = parsed.intents.map((i: { id: string }) => i.id)
         const unique = new Set(ids)
         assert.equal(unique.size, ids.length, 'all intent IDs should be unique')
+    })
+
+    it('maps surface synonym verb to canonical IntentVerb in parsed output', async () => {
+        // "go" is a surface synonym that should map to canonical verb "move"
+        const handler = makeHandler()
+        const result = await handler.parseCommand({ arguments: { text: 'go north' } }, makeContext())
+        const parsed = JSON.parse(result)
+        assert.equal(parsed.intents.length, 1)
+        assert.equal(parsed.intents[0].verb, 'move', '"go" should be canonicalised to "move"')
     })
 })
