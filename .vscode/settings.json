@@ -136,5 +136,7 @@
         "servicebus",
         "workbooks",
         "storage"
-    ]
+    ],
+    "chat.autopilot.enabled": true,
+    "chat.useCustomAgentHooks": true
 }
