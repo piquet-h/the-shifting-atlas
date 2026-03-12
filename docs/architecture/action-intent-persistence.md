@@ -44,10 +44,12 @@ Key Invariant: Same intent + same world state → same state changes (narrative 
 
 ## Data Model: ActionIntent
 
+Authoritative implementation source of truth: `shared/src/actionIntent.ts`.
+
 ### Schema Definition
 
 ```typescript
-// shared/src/domainModels/actionIntent.ts
+// shared/src/actionIntent.ts
 
 export interface ActionIntent {
     // Raw Input
@@ -86,6 +88,8 @@ export interface ActionIntent {
     }
 }
 ```
+
+The code sample below is illustrative; when documentation and code differ, the exported shared contract in `shared/src/actionIntent.ts` wins.
 
 ### Why These Fields?
 
@@ -206,13 +210,13 @@ All three are correct. State is ground truth; narration is ephemeral rendering.
 
 ## FAQ
 
-| Question | Answer |
-| -------- | ------ |
-| "Why not just use templates?" | Storing intent (small) + generating narrative (AI) handles infinite variation without templates |
-| "Does replay show same message?" | No — narrative regenerates (may differ), but state is identical. Both correct. |
+| Question                                    | Answer                                                                                                                |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| "Why not just use templates?"               | Storing intent (small) + generating narrative (AI) handles infinite variation without templates                       |
+| "Does replay show same message?"            | No — narrative regenerates (may differ), but state is identical. Both correct.                                        |
 | "Does this break existing producers/tests?" | Yes — this is a deliberate contract change. Update producers/tests emitting player actions to include `actionIntent`. |
-| "How does this affect latency?" | Narrative gen doesn't block state save; bounded timeout prevents cascading delays |
-| "What if AI generation fails?" | Fall back to base template; queue enrichment for async retry. |
+| "How does this affect latency?"             | Narrative gen doesn't block state save; bounded timeout prevents cascading delays                                     |
+| "What if AI generation fails?"              | Fall back to base template; queue enrichment for async retry.                                                         |
 
 ---
 

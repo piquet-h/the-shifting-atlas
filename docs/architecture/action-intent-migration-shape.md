@@ -15,7 +15,7 @@ See `docs/architecture/action-intent-persistence.md`. Summary:
 ## Migration shape (non-normative)
 
 1. **Shared contract + validation**
-    - Define `ActionIntent` (type + schema)
+    - Define `ActionIntent` (type + schema) in `shared/src/actionIntent.ts`
     - Enforce: `actor.kind === 'player'` ⇒ `payload.actionIntent` required
 
 2. **Producers updated together (breaking change)**
