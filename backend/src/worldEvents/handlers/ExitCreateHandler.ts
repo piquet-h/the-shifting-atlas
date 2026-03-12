@@ -54,11 +54,14 @@ export class ExitCreateHandler extends BaseWorldEventHandler {
      * Execute bidirectional exit creation
      */
     protected async executeHandler(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult> {
-        const { fromLocationId, toLocationId, direction, travelDurationMs } = event.payload as Record<string, unknown>
+        const { fromLocationId, toLocationId, direction, travelDurationMs, forwardDescription, backwardDescription } =
+            event.payload as Record<string, unknown>
         const dir = direction as Direction
 
         const result = await this.locationRepo.ensureExitBidirectional(fromLocationId as string, dir, toLocationId as string, {
-            reciprocal: true
+            reciprocal: true,
+            description: typeof forwardDescription === 'string' ? forwardDescription : undefined,
+            reciprocalDescription: typeof backwardDescription === 'string' ? backwardDescription : undefined
         })
 
         const created = result.created || result.reciprocalCreated
