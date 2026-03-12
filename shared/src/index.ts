@@ -2,6 +2,7 @@
 // Grouped re-exports delegate to per-directory barrels to keep exports close to implementation.
 
 export * from './actionIntent.js'
+export * from './agentProposal.js'
 export * from './aiCostAggregator.js'
 export * from './aiCostCalculator.js'
 export * from './aiCostGuardrails.js'
