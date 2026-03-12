@@ -49,7 +49,23 @@ Authoritative implementation source of truth: `shared/src/actionIntent.ts`.
 ### Schema Definition
 
 ```typescript
-// shared/src/actionIntent.ts
+// shared/src/actionIntent.ts — illustrative; shared contract is authoritative
+
+export type ActionIntentTargetKind =
+    | 'location'
+    | 'player'
+    | 'npc'
+    | 'item'
+    | 'direction'
+    | 'latent-reference' // unresolved but bounded surface reference
+
+export type ActionIntentResourceKind =
+    | 'item'
+    | 'currency'
+    | 'offer'    // social-contract: something offered in a bargain
+    | 'proof'    // social-contract: evidence presented in negotiation
+    | 'service'  // social-contract: labour/action pledged
+    | 'ability'  // social-contract: capability/skill offered
 
 export interface ActionIntent {
     // Raw Input
@@ -57,27 +73,28 @@ export interface ActionIntent {
 
     // Parsed Intent (produced by intent parser / rules engine)
     parsedIntent: {
-        verb: string // "ignite", "move", "examine", "cast", etc.
-
-        // Modifiers/methods
+        verb: string   // "ignite", "move", "examine", "cast", etc.
         method?: string // How they're doing it: "tinderbox", "spell", "friction"
 
-        // Targets
         targets?: {
-            kind: 'location' | 'player' | 'npc' | 'item' | 'direction'
-            id?: string // For location/player/npc/item
-            name?: string // For human readability
+            kind: ActionIntentTargetKind
+            id?: string              // Canonical entity ID (resolved)
+            name?: string            // Human-readable label
+            surfaceText?: string     // Unresolved surface mention from raw input
+            canonicalDirection?: string // For direction-kind targets
         }[]
 
-        // Resources consumed/offered
         resources?: {
-            itemId: string
-            quantity: number
-            charges?: number // For rechargeable items
+            kind: ActionIntentResourceKind
+            id?: string              // Canonical entity ID (resolved)
+            itemId?: string          // Inventory item reference
+            name?: string            // Human-readable label
+            quantity?: number        // Positive integer
+            charges?: number         // Non-negative; for rechargeable items
+            details?: Record<string, unknown> // Extensible metadata
         }[]
 
-        // Context about the intent (optional, bounded)
-        context?: Record<string, unknown>
+        context?: Record<string, unknown> // Bounded intent context
     }
 
     // Validation result
@@ -89,7 +106,7 @@ export interface ActionIntent {
 }
 ```
 
-The code sample below is illustrative; when documentation and code differ, the exported shared contract in `shared/src/actionIntent.ts` wins.
+The illustrative interface above is kept in sync with the exported shared contract; when they diverge, `shared/src/actionIntent.ts` is authoritative.
 
 ### Why These Fields?
 
@@ -100,8 +117,35 @@ The code sample below is illustrative; when documentation and code differ, the e
 | `method`    | Enable flexible narrative ("struck tinderbox" vs "spell") | ✅ Yes      | ❌ No   |
 | `targets`   | Identify what was acted upon                              | ✅ Yes      | ❌ No   |
 | `resources` | Establish what was consumed (reproducibility)             | ✅ Yes      | ❌ No   |
+| `context`   | Bounded intent metadata (urgency, weather, etc.)          | ✅ Yes      | ❌ No   |
 
 **Note:** `correlationId`, `timestamp`, and `actor` already exist on `WorldEventEnvelope` and should not be duplicated inside `ActionIntent`.
+
+### Target Kinds
+
+| Kind               | Meaning                                                                    |
+| ------------------ | -------------------------------------------------------------------------- |
+| `location`         | A named map location with a canonical ID                                   |
+| `player`           | A player character                                                         |
+| `npc`              | A non-player character                                                     |
+| `item`             | An inventory or world item                                                 |
+| `direction`        | A traversal direction (north/south/etc.); `canonicalDirection` is preferred for determinism; `surfaceText` / `name` for ambiguous surface mentions needing AI resolution |
+| `latent-reference` | Unresolved surface mention ("the suspicious stranger") — no canonical ID yet |
+
+`latent-reference` enables non-mutating command resolution: the resolver knows a surface name was mentioned but does not require a canonical entity ID until resolution time.
+
+### Resource Kinds (Social-Contract Ready)
+
+| Kind       | Meaning                                                       |
+| ---------- | ------------------------------------------------------------- |
+| `item`     | Physical inventory item                                       |
+| `currency` | In-game currency                                              |
+| `offer`    | Something offered in a bargain (social-contract)              |
+| `proof`    | Evidence or attestation presented in negotiation              |
+| `service`  | Labour or action pledged as part of a deal                    |
+| `ability`  | A capability or skill offered or invoked                      |
+
+The `offer`, `proof`, `service`, and `ability` kinds are present now so that social-contract and bargain actions can use the same `ActionIntent` shape without a schema revision.
 
 ### What We Don't Store
 
