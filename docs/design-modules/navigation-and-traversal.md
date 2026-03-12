@@ -1,6 +1,6 @@
 # Design Document: Navigation and Location Generation System
 
-> STATUS: PARTIALLY IMPLEMENTED. Move/look traversal, exit edges, graph persistence (Gremlin + SQL), and frontier expansion are operational. Procedural location generation, AI-driven expansion, and multiplayer mechanics are still in progress. See `docs/architecture/overview.md` for current state.
+> STATUS: PARTIALLY IMPLEMENTED. Move/look traversal, exit edges, graph persistence (Gremlin + SQL), frontier expansion, and bounded procedural area generation are operational. Multiplayer mechanics and broader long-range world systems are still in progress. See `docs/architecture/overview.md` for current state.
 
 > Related: [World Rules & Lore](world-rules-and-lore.md) · [AI Prompt Engineering](ai-prompt-engineering.md) · [Multiplayer Mechanics](multiplayer-mechanics.md) · [Extension Framework](extension-framework.md)
 

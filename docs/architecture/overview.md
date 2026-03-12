@@ -45,7 +45,7 @@ Not yet implemented (planned):
 
 - Service Bus queue integration (processor currently triggered via HTTP)
 - Managed identity graph access (replace key‑based secret)
-- AI prompt integration & dynamic content (advisory then genesis)
+- Broader AI prompt integration & dynamic content beyond the current first-look prose and bounded world generation flows
 - External narrative access gateway (Entra ID/APIM) for VS Code/Teams/agent runners
 - D&D 5e agent integration: Azure AI Foundry agents with hybrid HTTP (read-only) + MCP (stateful) tool architecture for combat, spells, and NPC behaviors (see [D&D 5e API Integration](../design-modules/dnd5e-foundry-agent-architecture.md))
 
@@ -229,4 +229,4 @@ Other documents (like `mvp-azure-architecture.md`) dive into concrete resource d
 
 ---
 
-_Last updated: 2026-02-23 (clarified synchronous Foundry turn orchestration pointer)_
+_Last updated: 2026-03-11 (status audit: clarify current world generation AI coverage)_

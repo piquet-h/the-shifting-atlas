@@ -3,7 +3,7 @@
 Technical implementation of AI-driven world expansion with batched description generation and deterministic exit inference.
 
 **Parent Design Module**: [World Spatial Generation](../design-modules/world-spatial-generation.md)  
-**Status**: Planned (M4b World Generation)
+**Status**: Implemented (M4b World Generation)
 
 ---
 
@@ -575,19 +575,19 @@ New optional property on every Gremlin exit edge:
 
 Settlement terrain uses a discrete **urban step** so that loops close exactly.
 
-| Config key        | Default value | Unit | Description                                        |
-| ----------------- | ------------- | ---- | -------------------------------------------------- |
-| `URBAN_STEP_MS`   | `300_000`     | ms   | Default walk step for settlement terrain (5 min)   |
+| Config key      | Default value | Unit | Description                                      |
+| --------------- | ------------- | ---- | ------------------------------------------------ |
+| `URBAN_STEP_MS` | `300_000`     | ms   | Default walk step for settlement terrain (5 min) |
 
 Per-terrain/realm overrides are expressed via the `TERRAIN_GUIDANCE` config (see Terrain Guidance Configuration section). Examples:
 
-| Terrain                    | Suggested `travelDurationMs` | Rationale                                |
-| -------------------------- | ---------------------------- | ---------------------------------------- |
-| Town street / district     | 300 000 ms (5 min)           | Default urban step                       |
-| Road between settlements   | 60 000 ms (1 min)            | Fast road matches ActionRegistry `move`  |
-| Wilderness trail           | 600 000 ms (10 min)          | Slow footpath                            |
-| Dense forest path          | 1 200 000 ms (20 min)        | Difficult terrain                        |
-| Overland                   | 3 600 000 ms (1 hr)          | Matches ActionRegistry `move_overland`   |
+| Terrain                  | Suggested `travelDurationMs` | Rationale                               |
+| ------------------------ | ---------------------------- | --------------------------------------- |
+| Town street / district   | 300 000 ms (5 min)           | Default urban step                      |
+| Road between settlements | 60 000 ms (1 min)            | Fast road matches ActionRegistry `move` |
+| Wilderness trail         | 600 000 ms (10 min)          | Slow footpath                           |
+| Dense forest path        | 1 200 000 ms (20 min)        | Difficult terrain                       |
+| Overland                 | 3 600 000 ms (1 hr)          | Matches ActionRegistry `move_overland`  |
 
 New environment variable:
 
@@ -756,4 +756,4 @@ If the traversal reaches a location that belongs to a different realm scope than
 
 ---
 
-_Last updated: 2026-02-24 (expand reconnection contract: URBAN_STEP_MS, urban/wilderness algorithms, idempotency strategy, realm scope, edge cases)_
+_Last updated: 2026-03-11 (status audit: mark M4b world generation architecture as implemented)_
