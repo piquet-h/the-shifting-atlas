@@ -200,7 +200,12 @@ export const GAME_EVENT_NAMES = [
     'MCP.Throttled', // MCP request throttled/rate-limited - properties: { toolName, clientAppId, throttleReason, retryAfterMs }
     'MCP.Failed', // MCP unexpected failure - properties: { toolName, clientAppId, failureReason, errorCode }
     // World map graph telemetry (WorldMap UI)
-    'World.Map.Fetched' // World graph fetched for map view - properties: { nodeCount, edgeCount, latencyMs }
+    'World.Map.Fetched', // World graph fetched for map view - properties: { nodeCount, edgeCount, latencyMs }
+    // Intent parser (PI-0 heuristic baseline - no AI)
+    'PlayerCommand.Received', // Raw command received for parsing - properties: { rawLength, playerId?, locationId?, traceId? }
+    'PlayerCommand.ParseSucceeded', // Command parsed successfully - properties: { intentCount, ambiguityCount, sequenceType, latencyMs }
+    'PlayerCommand.ParseFailed', // Command parse failed - properties: { failurePhase, reasonCode }
+    'PlayerCommand.AmbiguityDetected' // Ambiguities flagged during parse - properties: { ambiguityCount, criticalCount }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:

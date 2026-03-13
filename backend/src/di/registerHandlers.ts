@@ -9,6 +9,7 @@ import { GremlinHealthHandler } from '../handlers/gremlinHealth.js'
 import { HealthHandler } from '../handlers/health.js'
 import { LinkRoomsHandler } from '../handlers/linkRooms.js'
 import { LocationLookHandler } from '../handlers/locationLook.js'
+import { IntentParserHandler } from '../handlers/mcp/intent-parser/intent-parser.js'
 import { LoreMemoryHandler } from '../handlers/mcp/lore-memory/lore-memory.js'
 import { WorldContextHandler } from '../handlers/mcp/world-context/world-context.js'
 import { WorldOperationsHandler } from '../handlers/mcp/world-operations/world-operations.js'
@@ -32,6 +33,7 @@ export const HANDLER_CLASSES = [
     WorldContextHandler,
     LoreMemoryHandler,
     WorldOperationsHandler,
+    IntentParserHandler,
 
     PlayerLinkHandler,
     PlayerMoveHandler,
