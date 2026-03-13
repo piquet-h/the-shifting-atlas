@@ -205,7 +205,12 @@ export const GAME_EVENT_NAMES = [
     'PlayerCommand.Received', // Raw command received for parsing - properties: { rawLength, playerId?, locationId?, traceId? }
     'PlayerCommand.ParseSucceeded', // Command parsed successfully - properties: { intentCount, ambiguityCount, sequenceType, latencyMs }
     'PlayerCommand.ParseFailed', // Command parse failed - properties: { failurePhase, reasonCode }
-    'PlayerCommand.AmbiguityDetected' // Ambiguities flagged during parse - properties: { ambiguityCount, criticalCount }
+    'PlayerCommand.AmbiguityDetected', // Ambiguities flagged during parse - properties: { ambiguityCount, criticalCount }
+    // Agent proposal lifecycle (minimal agent runtime - sense→decide→propose loop)
+    'Agent.Proposal.Received', // Proposal submission received - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId, causationId? }
+    'Agent.Proposal.Accepted', // Proposal passed all validation checks - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId }
+    'Agent.Proposal.Rejected', // Proposal failed deterministic validation - properties: { proposalId, actorKind, actionCount, rejectionCount, decisionLatencyMs, proposalCorrelationId }
+    'Agent.Proposal.SchemaInvalid' // Proposal body failed schema parse (malformed agent output) - properties: { correlationId, issueCount }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
