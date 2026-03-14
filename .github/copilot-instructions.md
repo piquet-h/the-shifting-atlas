@@ -791,6 +791,24 @@ Each generated issue must:
 - Not contain the words “Phase”, “Stage”, “Groundwork”, “Follow-up Task Checklist”
 - Not define more than one new function trigger or script
 
+### 17.12 Player-Facing Endpoint Pairing Rule
+
+When creating or reviewing a backend issue that adds or changes an endpoint **reachable by a player** (move, look, command resolution, dungeon entry/exit, narration display):
+
+1. **Ask explicitly**: does a corresponding `scope:ui` or `scope:ai`+frontend issue already exist that wires this endpoint into the player UI?
+2. If **no paired issue** exists and the endpoint produces state or output the player is expected to see:
+    - Create a paired atomic frontend issue in the **same milestone**.
+    - OR add an explicit `Out of Scope: frontend wiring tracked separately` note to the backend issue body, linking the future gap issue.
+3. Epics that span backend + frontend **must** list both backend and frontend child issues in their sub-issue list before the epic is considered plannable.
+
+**Trigger phrases** (apply this check when the issue body contains):
+
+- "endpoint", "HTTP handler", "POST /api/", "GET /api/"
+- "player can", "player sees", "player input", "player command"
+- "returns narration", "returns description", "generates ambience"
+
+**This rule caught the gap**: `#926` (frontend wiring for `ResolvePlayerCommand`) was missed when `#781` was planned because no pairing check was applied. Do not repeat this.
+
 ### 17.13 Rationale
 
 Consistent small slices shorten review cycles, reduce merge conflict surface, and keep telemetry noise isolated without any predictive or numeric ordering automation.
