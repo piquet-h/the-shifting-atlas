@@ -1,5 +1,6 @@
 import type { Container } from 'inversify'
 
+import { AgentProposeHandler } from '../handlers/agentPropose.js'
 import { BootstrapPlayerHandler } from '../handlers/bootstrapPlayer.js'
 import { ContainerHealthHandler } from '../handlers/containerHealth.js'
 import { GenerateAreaHandler } from '../handlers/generateArea.js'
@@ -28,6 +29,7 @@ import { QueueProcessWorldEventHandler } from '../worldEvents/queueProcessWorldE
 export const HANDLER_CLASSES = [
     MoveHandler,
     BootstrapPlayerHandler,
+    AgentProposeHandler,
 
     // MCP handlers (resolved by wrapper functions)
     WorldContextHandler,
