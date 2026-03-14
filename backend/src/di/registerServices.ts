@@ -19,6 +19,7 @@ import {
     type ILocationAnchorSyncPublisher
 } from '../queues/locationAnchorSyncPublisher.js'
 import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
+import { AgentProposalApplicator } from '../services/AgentProposalApplicator.js'
 import { AreaGenerationOrchestrator } from '../services/AreaGenerationOrchestrator.js'
 import { ExitDescriptionService, type IExitDescriptionService } from '../services/ExitDescriptionService.js'
 import {
@@ -86,6 +87,7 @@ export function registerCoreServices(container: Container): void {
     container.bind(RealmService).toSelf().inSingletonScope()
     container.bind(HeroProseGenerator).toSelf().inSingletonScope()
     container.bind(AreaGenerationOrchestrator).toSelf().inSingletonScope()
+    container.bind(AgentProposalApplicator).toSelf().inSingletonScope()
 
     // AI Description Service (depends on AzureOpenAIClient and LayerRepository)
     container.bind<IAIDescriptionService>(TOKENS.AIDescriptionService).to(AIDescriptionService).inSingletonScope()
