@@ -214,6 +214,8 @@ export const GAME_EVENT_NAMES = [
     // Agent step lifecycle (queue-only autonomous agent hook - sense→decide→act)
     'Agent.Step.Processed', // Step handler completed (success or noop) - properties: { entityId, entityKind, locationId, stepSequence, outcome, latencyMs, correlationId, causationId? }
     'Agent.Step.LatencyExceeded', // Step exceeded latency budget - properties: { entityId, entityKind, latencyMs, budgetMs, correlationId }
+    // TODO(#703): Agent.Step.EntityNotFound is reserved for when AgentStepHandler gains an entity
+    // repository lookup. Not yet emitted; registered here so the telemetry name is valid once used.
     'Agent.Step.EntityNotFound' // Entity no longer exists at step time (noop) - properties: { entityId, entityKind, correlationId }
 ] as const
 

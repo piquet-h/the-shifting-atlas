@@ -147,18 +147,19 @@ describe('AgentStepHandler', () => {
 
     // --- Entity not found edge case -------------------------------------------
 
-    test('should emit validation-failed when locationId is missing (ensures DLQ for malformed steps)', async () => {
-        // The entity-not-found edge case (entity deleted after step was scheduled) will be
-        // handled by an entity repository lookup in a future implementation (issue #703).
-        // Until then, a missing/empty locationId is treated as a validation failure → DLQ,
-        // since the caller must always supply a valid location context when scheduling a step.
+    test('should emit validation-failed for missing locationId', async () => {
+        // locationId is a required payload field. A step scheduled for an entity
+        // that no longer exists would typically still have a valid locationId in
+        // the envelope (the entity existed when the step was scheduled). Future
+        // entity existence checks (issue #703) will be added in AgentStepHandler
+        // when an entity repository is available.
         const ctx = await fixture.createInvocationContext()
         const event = createAgentStepEvent({
             idempotencyKey: 'agent-step:missing-location',
             payload: {
                 entityId: 'npc-deleted',
                 entityKind: 'npc',
-                // locationId intentionally omitted
+                // locationId intentionally omitted — required field
                 stepSequence: 10
             }
         })
