@@ -1,11 +1,18 @@
 import type { Container } from 'inversify'
 
+import { AgentStepHandler } from '../worldEvents/handlers/AgentStepHandler.js'
 import { BatchGenerateHandler } from '../worldEvents/handlers/BatchGenerateHandler.js'
 import { EnvironmentChangeHandler } from '../worldEvents/handlers/EnvironmentChangeHandler.js'
 import { ExitCreateHandler } from '../worldEvents/handlers/ExitCreateHandler.js'
 import { NPCTickHandler } from '../worldEvents/handlers/NPCTickHandler.js'
 
-export const WORLD_EVENT_HANDLER_CLASSES = [ExitCreateHandler, NPCTickHandler, EnvironmentChangeHandler, BatchGenerateHandler] as const
+export const WORLD_EVENT_HANDLER_CLASSES = [
+    ExitCreateHandler,
+    NPCTickHandler,
+    EnvironmentChangeHandler,
+    BatchGenerateHandler,
+    AgentStepHandler
+] as const
 
 /**
  * Registers world-event handler classes used by the world event processor.
