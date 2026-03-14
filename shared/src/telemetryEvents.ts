@@ -216,7 +216,13 @@ export const GAME_EVENT_NAMES = [
     'Agent.Step.LatencyExceeded', // Step exceeded latency budget - properties: { entityId, entityKind, latencyMs, budgetMs, correlationId }
     // TODO(#703): Agent.Step.EntityNotFound is reserved for when AgentStepHandler gains an entity
     // repository lookup. Not yet emitted; registered here so the telemetry name is valid once used.
-    'Agent.Step.EntityNotFound' // Entity no longer exists at step time (noop) - properties: { entityId, entityKind, correlationId }
+    'Agent.Step.EntityNotFound', // Entity no longer exists at step time (noop) - properties: { entityId, entityKind, correlationId }
+    // Agent loop observability (sense→decide→act phases — issue #706)
+    'Agent.Step.SenseCompleted', // Sense phase done - properties: { entityId, locationId, hasAmbientLayer, tick, correlationId }
+    'Agent.Step.DecisionMade', // Decision made - properties: { entityId, locationId, actionType, reason, correlationId }
+    'Agent.Step.ActionApplied', // Action applied successfully - properties: { entityId, locationId, actionType, scopeKey, layerId?, proposalId, correlationId }
+    'Agent.Step.ActionRejected', // Action rejected by validator - properties: { entityId, locationId, proposalId, rejectionCount, firstRejectionCode, correlationId }
+    'Agent.Step.Skipped' // Step skipped (cooldown guard or no-op decision) - properties: { entityId, locationId, reason, correlationId }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
