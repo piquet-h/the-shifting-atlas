@@ -1,5 +1,5 @@
 import type { InvocationContext } from '@azure/functions'
-import type { WorldEventEnvelope, WorldEventType } from '@piquet-h/shared/events'
+import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 
 /** Outcome classifications for type-specific world event handlers */
 export type WorldEventHandlerOutcome =
@@ -15,7 +15,10 @@ export interface WorldEventHandlerResult {
 
 /** Interface for type-specific world event handlers */
 export interface IWorldEventHandler {
-    readonly type: WorldEventType
+    /** Event type string this handler handles (e.g. 'World.Agent.Step'). Using string
+     *  instead of WorldEventType allows new types to be added to shared and handled here
+     *  before the shared package is re-published. */
+    readonly type: string
     /** Validate payload & perform side effects. Throw to signal transient failure (retry). */
     handle(event: WorldEventEnvelope, context: InvocationContext): Promise<WorldEventHandlerResult>
 }

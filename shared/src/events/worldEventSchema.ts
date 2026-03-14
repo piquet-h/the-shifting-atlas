@@ -60,6 +60,17 @@ export type Actor = z.infer<typeof ActorSchema>
  *     expansionDepth: number - How many layers deep to expand (range: 1-3)
  *     batchSize: number - Target number of locations to generate (range: 1-20)
  *   }
+ *
+ * 'World.Agent.Step' - Autonomous agent sense→decide→act step for an entity (queue-only hook)
+ *   Payload: {
+ *     entityId: UUID (string) - Entity running the step (NPC, AI agent)
+ *     entityKind: string - 'npc' | 'ai-agent' | 'player'
+ *     locationId: UUID (string) - Current location context
+ *     stepSequence: number - Monotonic step counter for ordering / idempotency
+ *     reason?: string - Why this step was triggered (optional, for diagnostics)
+ *   }
+ *   Idempotency key: 'agent-step:{entityId}:{stepSequence}'
+ *   Version: 1
  */
 export const WorldEventTypeSchema = z.enum([
     'Player.Move',
@@ -70,7 +81,8 @@ export const WorldEventTypeSchema = z.enum([
     'World.Location.BatchGenerate',
     'Location.Environment.Changed',
     'Quest.Proposed',
-    'Navigation.Exit.GenerationHint' // Exit generation hint queued for processing
+    'Navigation.Exit.GenerationHint', // Exit generation hint queued for processing
+    'World.Agent.Step' // Autonomous agent step (sense→decide→act) - queue-only runtime hook
 ])
 export type WorldEventType = z.infer<typeof WorldEventTypeSchema>
 

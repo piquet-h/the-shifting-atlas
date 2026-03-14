@@ -210,7 +210,11 @@ export const GAME_EVENT_NAMES = [
     'Agent.Proposal.Received', // Proposal submission received - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId, causationId? }
     'Agent.Proposal.Accepted', // Proposal passed all validation checks - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId }
     'Agent.Proposal.Rejected', // Proposal failed deterministic validation - properties: { proposalId, actorKind, actionCount, rejectionCount, decisionLatencyMs, proposalCorrelationId }
-    'Agent.Proposal.SchemaInvalid' // Proposal body failed schema parse (malformed agent output) - properties: { correlationId, issueCount }
+    'Agent.Proposal.SchemaInvalid', // Proposal body failed schema parse (malformed agent output) - properties: { correlationId, issueCount }
+    // Agent step lifecycle (queue-only autonomous agent hook - sense→decide→act)
+    'Agent.Step.Processed', // Step handler completed (success or noop) - properties: { entityId, entityKind, locationId, stepSequence, outcome, latencyMs, correlationId, causationId? }
+    'Agent.Step.LatencyExceeded', // Step exceeded latency budget - properties: { entityId, entityKind, latencyMs, budgetMs, correlationId }
+    'Agent.Step.EntityNotFound' // Entity no longer exists at step time (noop) - properties: { entityId, entityKind, correlationId }
 ] as const
 
 // Future deprecations or renames should follow the pattern above:
