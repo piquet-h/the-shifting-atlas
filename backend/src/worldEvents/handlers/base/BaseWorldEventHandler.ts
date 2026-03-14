@@ -15,7 +15,7 @@
 
 import type { InvocationContext } from '@azure/functions'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
-import type { WorldEventEnvelope, WorldEventType } from '@piquet-h/shared/events'
+import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
 import type { IDeadLetterRepository } from '../../../repos/deadLetterRepository.js'
 import { TelemetryService } from '../../../telemetry/TelemetryService.js'
@@ -36,7 +36,7 @@ export interface ValidationResult {
  */
 @injectable()
 export abstract class BaseWorldEventHandler implements IWorldEventHandler {
-    abstract readonly type: WorldEventType
+    abstract readonly type: string
 
     constructor(
         @inject('IDeadLetterRepository') protected deadLetterRepo: IDeadLetterRepository,
