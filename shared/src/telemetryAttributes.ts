@@ -31,6 +31,8 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     EVENT_SCOPE_KEY: 'game.event.scope.key',
     /** Event correlation ID (UUID) */
     EVENT_CORRELATION_ID: 'game.event.correlation.id',
+    /** Event causation ID — links this event to the event that triggered it */
+    EVENT_CAUSATION_ID: 'game.event.causation.id',
     /** Operation ID from Azure Functions invocation */
     EVENT_OPERATION_ID: 'game.event.operation.id',
     /** Processing latency in milliseconds */
@@ -582,7 +584,7 @@ export function enrichAgentPipelineAttributes(
         properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = attrs.correlationId
     }
     if (attrs.causationId) {
-        properties['causationId'] = attrs.causationId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CAUSATION_ID] = attrs.causationId
     }
     return properties
 }
