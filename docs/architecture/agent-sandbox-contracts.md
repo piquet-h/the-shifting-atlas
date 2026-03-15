@@ -91,6 +91,69 @@ Event properties (dimensions) are documented with each entry in `shared/src/tele
 2. For **HTTP**: the response body contains a `RejectedProposalAuditRecord` with the full `rejectionReasons` array; each reason includes `code`, `message`, and `actionType`.
 3. For **queue steps**: the Function invocation log includes the full `reasons` array via `context.warn(...)`.
 
+### Replay harness
+
+`AgentReplayHarness` (in `backend/src/services/AgentReplayHarness.ts`) re-runs a stored sequence of proposals through the same validation+apply pipeline without live infrastructure. It is available in any DI container (including test containers) via `container.get(AgentReplayHarness)`.
+
+**Usage**
+
+```typescript
+import { AgentReplayHarness, type ProposalRecord } from '../services/AgentReplayHarness.js'
+
+const harness = container.get(AgentReplayHarness)
+
+const records: ProposalRecord[] = [
+    {
+        // raw proposal — may be unknown/malformed; the harness validates it
+        proposal: storedEnvelope,
+        // world-clock tick to use when applying
+        tick: 42,
+        // optional: declare what you expected to happen for diff analysis
+        expectedEffects: [
+            { actionType: 'Layer.Add', scopeKey: 'loc:<uuid>', applied: true }
+        ]
+    }
+]
+
+const report = await harness.replaySequence(records)
+```
+
+**`ReplayReport` shape**
+
+| Field | Description |
+|-------|-------------|
+| `totalSteps` | Number of records in the input sequence |
+| `successCount` | Steps accepted and applied |
+| `rejectedCount` | Steps that passed schema validation but failed business rules |
+| `schemaErrorCount` | Steps where the proposal was missing or schema-invalid |
+| `duplicateDeliveries` | Records sharing an idempotency key with a prior record |
+| `steps` | `StepReplayResult[]` — one entry per input record |
+| `correlationChain` | All `correlationId` / `causationId` pairs, in step order |
+| `failureReasons` | Human-readable strings, one per rejected / schema-invalid step |
+
+Each `StepReplayResult` includes:
+- `validationOutcome` — `'accepted'`, `'rejected'`, or `'schema-invalid'`
+- `appliedEffects` — `ActionApplicationResult[]` (empty when not applied)
+- `diffs` — `EffectDiff[]` comparing `expectedEffects` against actuals (`match: true/false`)
+- `rejectionReasons` — `ProposalRejectionReason[]` (when rejected)
+- `failureReason` — plain-text summary (when rejected or schema-invalid)
+- `correlationId` / `causationId` — from the envelope (undefined for schema-invalid steps)
+
+**Edge cases handled automatically**
+
+| Scenario | Outcome |
+|----------|---------|
+| `null` / missing record in sequence | `schema-invalid` step; `failureReason` set |
+| Proposal fails Zod schema | `schema-invalid` step; no apply attempted |
+| Proposal fails business rules (e.g. missing `locationId`) | `rejected` step; `rejectionReasons` populated |
+| Duplicate `idempotencyKey` across records | Both steps still attempt apply; `duplicateDeliveries` incremented |
+| No `expectedEffects` provided | `diffs` field is `undefined` (no diff computed) |
+| Empty sequence | Returns a zeroed `ReplayReport` without error |
+
+**Relationship to live production flow**
+
+The harness calls the same `AgentProposalApplicator.apply()` that the live queue handler uses, so replaying against a fresh in-memory repository produces identical layer writes to what the original run produced. The only difference is the repository starts empty (or whatever state you seed it with) rather than reflecting production data.
+
 ### Prompt version / hash changes and replay
 
 The autonomous step loop is unaffected by prompt template changes — it selects content deterministically from `AMBIENT_POOL` with no external model call. For Foundry-hosted agents that produce proposals via LLM, a prompt change may yield different `layerContent`; since the idempotency key is based on `proposalId` (a UUID per Foundry invocation), each call is treated as a distinct proposal regardless of prompt version.
@@ -115,5 +178,6 @@ There is no write-capable MCP server. All agent-sourced mutations flow through `
 - `shared/src/agentProposal.ts` — envelope schema, allow-list, param rules, rejection codes, validator
 - `backend/src/worldEvents/handlers/AgentStepHandler.ts` — autonomous step loop
 - `backend/src/services/AgentProposalApplicator.ts` — write gate
+- `backend/src/services/AgentReplayHarness.ts` — replay harness (debug / test tooling)
 - `backend/src/handlers/agentPropose.ts` — HTTP endpoint
 - `shared/src/telemetryEvents.ts` — canonical event names and dimension docs
