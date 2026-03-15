@@ -445,6 +445,7 @@ Clients must handle HTTP 429 with `Retry-After` and should back off aggressively
 - `overview.md` – High-level architecture; this doc elaborates the AI layer.
 - `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
 - `location-version-policy.md` – Exit changes do not affect location version
+- `agent-sandbox-contracts.md` – Concrete proposal envelope schema, allow-listed action types, validator rules, telemetry events, and debugging workflow for the write-lite sandbox.
 - `../design-modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
 - `../design-modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 
