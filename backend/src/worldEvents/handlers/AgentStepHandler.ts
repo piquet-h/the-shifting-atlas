@@ -109,6 +109,19 @@ export class AgentStepHandler extends BaseWorldEventHandler {
 
         context.log('AgentStepHandler: step initiated', { entityId, entityKind, locationId, stepSequence, reason })
 
+        this.telemetry.trackGameEvent(
+            'Agent.Step.Start',
+            {
+                agentId: String(entityId),
+                agentType: String(entityKind),
+                locationId: String(locationId),
+                stepSequence,
+                correlationId,
+                ...(event.causationId ? { causationId: event.causationId } : {})
+            },
+            { correlationId }
+        )
+
         // ----------------------------------------------------------------
         // 1. SENSE — load world clock tick and current ambient layer
         // ----------------------------------------------------------------
@@ -211,6 +224,21 @@ export class AgentStepHandler extends BaseWorldEventHandler {
             return this.finishStep(event, startMs, budgetMs, 'rejected')
         }
 
+        // Proposal passed validation — emit validated event
+        this.telemetry.trackGameEvent(
+            'Agent.Proposal.Validated',
+            {
+                proposalId: validationResult.proposalId,
+                agentId: String(entityId),
+                agentType: String(entityKind),
+                validationOutcome: 'accepted',
+                decisionLatencyMs: Date.now() - startMs,
+                correlationId,
+                ...(event.causationId ? { causationId: event.causationId } : {})
+            },
+            { correlationId }
+        )
+
         // ----------------------------------------------------------------
         // 4. APPLY — write to the world via AgentProposalApplicator
         // ----------------------------------------------------------------
@@ -226,6 +254,20 @@ export class AgentStepHandler extends BaseWorldEventHandler {
                 ...(applyResult.layerId ? { layerId: applyResult.layerId } : {}),
                 proposalId: validationResult.proposalId,
                 correlationId
+            },
+            { correlationId }
+        )
+
+        this.telemetry.trackGameEvent(
+            'Agent.Effect.Applied',
+            {
+                agentId: String(entityId),
+                agentType: String(entityKind),
+                actionType: applyResult.actionType,
+                scopeKey: applyResult.scopeKey,
+                ...(applyResult.layerId ? { layerId: applyResult.layerId } : {}),
+                correlationId,
+                ...(event.causationId ? { causationId: event.causationId } : {})
             },
             { correlationId }
         )
@@ -269,6 +311,19 @@ export class AgentStepHandler extends BaseWorldEventHandler {
                 { correlationId: event.correlationId }
             )
         }
+
+        this.telemetry.trackGameEvent(
+            'Agent.Step.Completed',
+            {
+                agentId: String(entityId),
+                agentType: String(entityKind),
+                decisionLatencyMs: latencyMs,
+                validationOutcome: outcome,
+                correlationId: event.correlationId,
+                ...(event.causationId ? { causationId: event.causationId } : {})
+            },
+            { correlationId: event.correlationId }
+        )
 
         this.telemetry.trackGameEvent(
             'Agent.Step.Processed',

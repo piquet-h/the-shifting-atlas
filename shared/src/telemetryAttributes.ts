@@ -67,6 +67,19 @@ export const TELEMETRY_ATTRIBUTE_KEYS = {
     HERO_MODEL: 'game.description.hero.model',
     /** Token usage for hero prose generation */
     HERO_TOKEN_USAGE: 'game.description.hero.token.usage',
+    // Agent pipeline attributes (issue #907 — agent run telemetry)
+    /** Agent identity (GUID or stable entity ID) */
+    AGENT_ID: 'game.agent.id',
+    /** Agent type — low-cardinality enumeration (npc | ai-agent | player | system) */
+    AGENT_TYPE: 'game.agent.type',
+    /** Semantic version of the prompt template used by the agent (e.g. 'v1.2'), if applicable */
+    AGENT_PROMPT_VERSION: 'game.agent.prompt.version',
+    /** SHA-256 hash of the prompt template content — NOT the raw prompt text */
+    AGENT_PROMPT_HASH: 'game.agent.prompt.hash',
+    /** Elapsed time (ms) from step initiation to decision or completion */
+    AGENT_DECISION_LATENCY_MS: 'game.agent.decision.latency.ms',
+    /** Validation outcome — low-cardinality: 'accepted' | 'rejected' | 'skipped' | 'applied' */
+    AGENT_VALIDATION_OUTCOME: 'game.agent.validation.outcome',
     // MCP (Model Context Protocol) attributes (M4 AI Read - Issue #428)
     /** MCP tool name being invoked */
     MCP_TOOL_NAME: 'game.mcp.tool.name',
@@ -499,6 +512,77 @@ export function enrichMCPAttributes(properties: Record<string, unknown>, attrs: 
     }
     if (attrs.latencyMs !== null && attrs.latencyMs !== undefined) {
         properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = attrs.latencyMs
+    }
+    return properties
+}
+
+/**
+ * Options for enriching agent pipeline telemetry events (issue #907).
+ * Used for Agent.Step.Start, Agent.Step.Completed, Agent.Proposal.Validated,
+ * Agent.Proposal.Rejected, Agent.Effect.Applied.
+ *
+ * Redaction rules:
+ * - NEVER include raw prompt text or generated content.
+ * - agentType must be a low-cardinality enumeration value.
+ * - promptHash must be a hash of the template, NOT the raw prompt string.
+ */
+export interface AgentPipelineEventAttributes {
+    /** Agent identity (GUID or stable entity ID) */
+    agentId?: string | null
+    /** Agent type — low-cardinality: 'npc' | 'ai-agent' | 'player' | 'system' */
+    agentType?: string | null
+    /** Semantic version of the prompt template used (e.g. 'v1.2'), if applicable */
+    promptVersion?: string | null
+    /** SHA-256 hash of the prompt template — NOT the raw prompt content */
+    promptHash?: string | null
+    /** Elapsed ms from step initiation to decision or completion */
+    decisionLatencyMs?: number | null
+    /** Validation outcome — low-cardinality: 'accepted' | 'rejected' | 'skipped' | 'applied' */
+    validationOutcome?: string | null
+    /** Correlation ID for cross-event tracing */
+    correlationId?: string | null
+    /** Causation ID linking this event to its trigger */
+    causationId?: string | null
+}
+
+/**
+ * Enrich telemetry properties with agent pipeline attributes.
+ * Used for Agent.Step.Start, Agent.Step.Completed, Agent.Proposal.Validated,
+ * Agent.Proposal.Rejected, and Agent.Effect.Applied events.
+ *
+ * Omits attributes if values are null/undefined (conditional presence).
+ *
+ * @param properties - Base telemetry properties object (will be mutated)
+ * @param attrs - Agent pipeline attribute values
+ * @returns The mutated properties object for chaining
+ */
+export function enrichAgentPipelineAttributes(
+    properties: Record<string, unknown>,
+    attrs: AgentPipelineEventAttributes
+): Record<string, unknown> {
+    if (attrs.agentId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_ID] = attrs.agentId
+    }
+    if (attrs.agentType) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_TYPE] = attrs.agentType
+    }
+    if (attrs.promptVersion) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_PROMPT_VERSION] = attrs.promptVersion
+    }
+    if (attrs.promptHash) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_PROMPT_HASH] = attrs.promptHash
+    }
+    if (attrs.decisionLatencyMs !== null && attrs.decisionLatencyMs !== undefined) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_DECISION_LATENCY_MS] = attrs.decisionLatencyMs
+    }
+    if (attrs.validationOutcome) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.AGENT_VALIDATION_OUTCOME] = attrs.validationOutcome
+    }
+    if (attrs.correlationId) {
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = attrs.correlationId
+    }
+    if (attrs.causationId) {
+        properties['causationId'] = attrs.causationId
     }
     return properties
 }
