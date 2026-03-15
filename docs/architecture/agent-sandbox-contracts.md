@@ -1,278 +1,119 @@
-# Agent Sandbox Contracts and Safety Gates
+# Agent Sandbox: Contracts and Safety Gates
 
-Concrete implementation reference for the write-lite agent sandbox.
-High-level design is in [`agentic-ai-and-mcp.md`](./agentic-ai-and-mcp.md); this document covers the specific schemas, rules, telemetry events, and debugging workflow that are already running in code.
+## What is the sandbox?
+
+The **write-lite agent sandbox** is the controlled surface through which agents may affect world state. Agents are never trusted to write directly — they propose, the backend validates deterministically, and only accepted proposals become canonical. The "sandbox" name reflects its deliberate scope restriction: at this milestone, agents may only add or replace description layers and signal NPC dialogue. Structural mutations (exits, location topology, player inventory) are outside the allow-list entirely.
+
+This is an **expanding surface**, not a permanent constraint. The allow-list (`PROPOSAL_ALLOWED_ACTION_TYPES` in `shared/src/agentProposal.ts`) grows as each new action type earns its safety gates. `NPC.Dialogue` is currently telemetry-only pending a persistence layer. Structural writes are deferred to a later milestone.
+
+High-level design principles are in [`agentic-ai-and-mcp.md`](./agentic-ai-and-mcp.md). This document covers what is needed to understand, trace, and debug the sandbox in its current running state.
 
 ---
 
-## 1. Pipeline Overview
+## Pipeline
 
 ```
-SENSE (read via MCP tools)
+SENSE (read via MCP tools or direct repo)
   ↓
-DECIDE (agent or step loop)
+DECIDE (agent or autonomous step loop)
   ↓
 PROPOSE (AgentProposalEnvelope)
   ↓
-VALIDATE (safeValidateAgentProposal)
+VALIDATE (safeValidateAgentProposal — two phases: Zod schema, then deterministic rules)
   ├─ schema invalid → 400 SchemaInvalid (HTTP) / telemetry + early return (queue)
-  ├─ rules rejected → 200 rejected + RejectedProposalAuditRecord
+  ├─ rules rejected → 200 rejected + RejectedProposalAuditRecord (never mutates state)
   └─ accepted
         ↓
      APPLY (AgentProposalApplicator → ILayerRepository write)
 ```
 
-Two entry paths share the same validator but differ in how they enter:
+Two entry paths share the same validator and the same write gate:
 
-| Path | Entry point | Who calls it |
-|------|------------|--------------|
+| Path | Entry point | Caller |
+|------|------------|--------|
 | **HTTP** | `POST /api/agent/propose` | External agents (Azure AI Foundry, etc.) |
-| **Queue** | `World.Agent.Step` event → `AgentStepHandler` | Autonomous internal step loop |
+| **Queue** | `World.Agent.Step` → `AgentStepHandler` | Autonomous internal step loop |
 
-Both paths call `safeValidateAgentProposal()` (shared package) and delegate writes to `AgentProposalApplicator`.
-
----
-
-## 2. Proposal Envelope Schema
-
-Source: `shared/src/agentProposal.ts` (`AgentProposalEnvelopeSchema`).
-
-| Field | Type | Required | Notes |
-|-------|------|----------|-------|
-| `proposalId` | UUID string | ✅ | Unique per proposal; used in idempotency key |
-| `version` | positive integer | ✅ | Schema version; currently `1` |
-| `issuedUtc` | ISO 8601 datetime | ✅ | When the agent issued the proposal; used for decision-latency telemetry |
-| `actor.kind` | `'ai' \| 'npc' \| 'system'` | ✅ | Players submit commands; agents use `ai` or `npc` |
-| `actor.id` | UUID string | ❌ | Optional actor identifier |
-| `intent` | ActionIntent | ❌ | Carried for traceability; not re-validated |
-| `correlationId` | UUID string | ✅ | Propagated through telemetry chain |
-| `causationId` | UUID string | ❌ | ID of the world event or request that triggered this proposal |
-| `idempotencyKey` | non-empty string | ✅ | Use `buildProposalIdempotencyKey(proposalId, actionType, scopeKey)` |
-| `proposedActions` | non-empty array of ProposedAction | ✅ | At least one action required |
-
-### ProposedAction schema
-
-| Field | Type | Constraint |
-|-------|------|------------|
-| `actionType` | string | Must be one of `PROPOSAL_ALLOWED_ACTION_TYPES` |
-| `scopeKey` | string | Must match `/^(loc|player):/` — `global:` writes are not permitted |
-| `params` | `Record<string, unknown>` | Action-specific; see Section 3 |
-
-### Idempotency key format
-
-```
-proposal:<proposalId>:<actionType>:<scopeKey>
-```
-
-Compose using `buildProposalIdempotencyKey(proposalId, actionType, scopeKey)` from `@piquet-h/shared`.
-
-For autonomous steps the key follows: `agent-step:<entityId>:<stepSequence>` (set in the `WorldEventEnvelope.idempotencyKey`).
+Schema and rule validation are both in `shared/src/agentProposal.ts`. The complete field shapes and rejection codes are readable there directly — the Zod schema, `PROPOSAL_ALLOWED_ACTION_TYPES` constant, `PARAM_RULES` record, and `ProposalRejectionCode` enum are the authoritative definitions and are not duplicated here.
 
 ---
 
-## 3. Allow-listed Action Types and Parameter Rules
+## Key design decisions (not obvious from the code)
 
-Source: `PROPOSAL_ALLOWED_ACTION_TYPES` and `PARAM_RULES` in `shared/src/agentProposal.ts`.
+**Rejected proposals return HTTP 200, not 4xx.** Schema failures return 400 because the agent produced structurally broken output. Rule failures (scope, missing params) return 200 with `outcome: 'rejected'` because the envelope was valid — the agent understood the contract but its proposal was denied. Both outcomes are non-mutating.
 
-Structural world mutations (exits, locations) are excluded until a later milestone.
+**Scope is bounded to `loc:` and `player:` prefixes.** `global:` writes are reserved for system/timer events. This is enforced in both the Zod schema (refine) and the rules validator, so it fails at the earliest possible gate.
 
-### `Layer.Add`
+**The internal step loop does not call MCP tools for its sense phase.** `AgentStepHandler` reads `ILayerRepository` and `WorldClockService` directly via DI injection. Using MCP tools for internal reads would add JSON-RPC overhead with no benefit; the queue handler operates within the trust boundary where direct repository access is appropriate.
 
-Adds or replaces a description layer on a location.
-
-| Param | Required | Notes |
-|-------|----------|-------|
-| `locationId` | ✅ | Target location UUID |
-| `layerContent` | ✅ | Text content for the layer |
-| `layerType` | ❌ | Defaults to `'ambient'` |
-
-Applied by: `AgentProposalApplicator.applyLayerAdd()` → `ILayerRepository.setLayerForLocation()`.
-Layer metadata: `authoredBy: 'agent'`, `proposalScope: action.scopeKey`.
-
-### `Ambience.Generate`
-
-Creates an ambient description layer using deterministic content selection.
-
-| Param | Required | Notes |
-|-------|----------|-------|
-| `locationId` | ✅ | Target location UUID |
-| `content` | ❌ | Override text; if absent, content is selected deterministically from `AMBIENT_POOL` via djb2 hash of `${locationId}:${salt}` |
-
-Determinism guarantee: for any fixed `(locationId, salt)` pair, `pickAmbientContent()` always returns the same phrase from the pool. This makes the action idempotency-friendly under replay.
-
-### `NPC.Dialogue`
-
-Records that dialogue was triggered. Persistence is deferred to a later milestone.
-
-| Param | Required | Notes |
-|-------|----------|-------|
-| `npcId` | ✅ | UUID of the NPC |
-| `line` | ❌ | Dialogue text (carried in telemetry only) |
-
-Applied by: `AgentProposalApplicator.applyNpcDialogue()` → emits `World.Event.Processed` telemetry; no durable write.
+**`Ambience.Generate` content is deterministic by design.** `pickAmbientContent(locationId, salt)` uses a djb2 hash so the same `(locationId, salt)` always yields the same phrase. This makes the action safe to replay without producing divergent world state.
 
 ---
 
-## 4. Validator Rules and Rejection Codes
+## Autonomous step loop (`World.Agent.Step`)
 
-Source: `validateAgentProposal()` and `safeValidateAgentProposal()` in `shared/src/agentProposal.ts`.
+The loop runs SENSE → DECIDE → VALIDATE → APPLY per queue message. The oscillation guard (checking for an existing ambient layer before proposing) prevents the loop from overwriting its own output across successive steps.
 
-Two-phase validation:
-1. **Schema phase** (`AgentProposalEnvelopeSchema.safeParse`) — Zod; rejects unknown action types, missing fields, malformed UUIDs.
-2. **Rules phase** (`validateAgentProposal`) — deterministic; checks scope and required params per action.
-
-The rules phase iterates `proposedActions`; scope is checked first per action. If scope fails, param rules for that action are skipped.
-
-### Rejection codes
-
-| Code | Meaning |
-|------|---------|
-| `SCHEMA_INVALID` | Body does not parse as `AgentProposalEnvelope` (schema phase only) |
-| `OUT_OF_SCOPE` | `scopeKey` does not match `/^(loc|player):/` |
-| `DISALLOWED_ACTION_TYPE` | `actionType` is not in `PROPOSAL_ALLOWED_ACTION_TYPES` |
-| `MISSING_REQUIRED_PARAM` | A required `params` field is absent or falsy |
-
-### HTTP response codes
-
-| Outcome | HTTP status | Body |
-|---------|-------------|------|
-| Schema invalid | 400 | `{ error: 'SchemaInvalid', message: '...' }` |
-| Rules rejected | 200 | `{ outcome: 'rejected', proposalId, rejectionReasons, auditRecord }` |
-| Accepted | 200 | `{ outcome: 'accepted', proposalId, rejectionReasons: [] }` |
-
-Rejected proposals are recorded as `RejectedProposalAuditRecord` (`shared/src/agentProposal.ts`):
-
-```ts
-{
-  proposalId: string
-  proposal: AgentProposalEnvelope
-  validationResult: ProposalValidationResult
-  auditedUtc: string
-}
-```
-
-Rejected proposals **never mutate world state**.
+The payload schema, idempotency key format, and latency budget configuration are documented in the file-level JSDoc of `backend/src/worldEvents/handlers/AgentStepHandler.ts`.
 
 ---
 
-## 5. Autonomous Step Loop (`World.Agent.Step`)
+## Tracing and debugging
 
-Source: `backend/src/worldEvents/handlers/AgentStepHandler.ts`.
+All sandbox events carry `correlationId`. To reconstruct a step end-to-end, query Application Insights by `correlationId`.
 
-The loop follows SENSE → DECIDE → VALIDATE → APPLY per queue message. Oscillation is prevented by checking for an existing ambient layer before proposing.
-
-### Payload schema
-
-| Field | Type | Required |
-|-------|------|----------|
-| `entityId` | UUID string | ✅ |
-| `entityKind` | `'npc' \| 'ai-agent' \| 'player'` | ✅ |
-| `locationId` | UUID string | ✅ |
-| `stepSequence` | number | ✅ |
-| `reason` | string | ❌ |
-
-Missing any required field → `validation-failed` → DLQ.
-
-### Phase description
-
-| Phase | What happens |
-|-------|-------------|
-| **Sense** | Load current world tick + active `ambient` layer for `locationId` |
-| **Decide** | Ambient layer exists → skip (oscillation guard). No layer → propose `Layer.Add` with deterministic content |
-| **Validate** | Call `validateAgentProposal()`; rejection emits `Agent.Step.ActionRejected` and returns without writing |
-| **Apply** | Delegate to `AgentProposalApplicator.apply()` → durable layer write |
-
-### Latency budget
-
-Configurable via `AGENT_STEP_LATENCY_BUDGET_MS` environment variable (default: 5000 ms). Exceeding the budget emits `Agent.Step.LatencyExceeded` but the step still completes — agent logic must remain idempotent.
-
----
-
-## 6. Replay and Debugging
-
-### Idempotency
-
-Both paths are idempotency-safe:
-- Duplicate queue deliveries use `WorldEventEnvelope.idempotencyKey` (`agent-step:<entityId>:<stepSequence>`) to return `noop`.
-- Duplicate HTTP proposals with the same `proposalId` + `actionType` + `scopeKey` produce the same idempotency key; the layer repository uses `setLayerForLocation` which overwrites rather than duplicates.
-- `Ambience.Generate` content is deterministic: the same `(locationId, salt)` always returns the same phrase from `AMBIENT_POOL`.
-
-### Tracing a step through telemetry
-
-All events carry `correlationId` (and `causationId` where applicable). To reconstruct a full step, query Application Insights by `correlationId`.
-
-#### Queue path telemetry sequence
-
-| Event | Properties | Emitted when |
-|-------|-----------|--------------|
-| `Agent.Step.SenseCompleted` | `entityId`, `locationId`, `hasAmbientLayer`, `tick` | Always after sense |
-| `Agent.Step.Skipped` | `entityId`, `locationId`, `reason: 'ambient-layer-exists'` | Ambient layer found |
-| `Agent.Step.DecisionMade` | `entityId`, `locationId`, `actionType`, `reason: 'no-ambient-layer'` | New action proposed |
-| `Agent.Step.ActionRejected` | `entityId`, `locationId`, `proposalId`, `rejectionCount`, `firstRejectionCode` | Proposal rejected |
-| `Agent.Step.ActionApplied` | `entityId`, `locationId`, `actionType`, `scopeKey`, `layerId?`, `proposalId` | Action applied |
-| `Agent.Step.LatencyExceeded` | `entityId`, `entityKind`, `latencyMs`, `budgetMs` | Step exceeded budget |
-| `Agent.Step.Processed` | `entityId`, `entityKind`, `locationId`, `stepSequence`, `outcome`, `latencyMs` | Always (final summary) |
-
-#### HTTP path telemetry sequence
+### Queue path event sequence
 
 | Event | Emitted when |
 |-------|-------------|
-| `Agent.Proposal.SchemaInvalid` | 400 response — body not parseable |
+| `Agent.Step.SenseCompleted` | Always — after loading ambient layer and tick |
+| `Agent.Step.Skipped` | Ambient layer already exists (oscillation guard) |
+| `Agent.Step.DecisionMade` | New action proposed |
+| `Agent.Step.ActionRejected` | Proposal rejected by validator |
+| `Agent.Step.ActionApplied` | Action written to world |
+| `Agent.Step.LatencyExceeded` | Step took longer than budget (non-fatal) |
+| `Agent.Step.Processed` | Always — final summary with outcome and latency |
+
+### HTTP path event sequence
+
+| Event | Emitted when |
+|-------|-------------|
+| `Agent.Proposal.SchemaInvalid` | 400 — body failed Zod parse |
 | `Agent.Proposal.Received` | Always after schema passes |
 | `Agent.Proposal.Accepted` | Validation passed |
 | `Agent.Proposal.Rejected` | Rules rejected |
 
-### Debugging a rejected proposal
+Event properties (dimensions) are documented with each entry in `shared/src/telemetryEvents.ts`.
+
+### Debugging a rejection
 
 1. Find `Agent.Proposal.Rejected` or `Agent.Step.ActionRejected` by `correlationId`.
-2. Inspect `rejectionCount` and `firstRejectionCode` dimensions.
-3. For HTTP proposals: the response body includes a `RejectedProposalAuditRecord` with the full `rejectionReasons` array — each entry has `code`, `message`, and `actionType`.
-4. For queue steps: `context.warn(...)` includes the full `reasons` array in the Function's invocation logs.
+2. For **HTTP**: the response body contains a `RejectedProposalAuditRecord` with the full `rejectionReasons` array; each reason includes `code`, `message`, and `actionType`.
+3. For **queue steps**: the Function invocation log includes the full `reasons` array via `context.warn(...)`.
 
-### How prompt version / hash changes affect replay
+### Prompt version / hash changes and replay
 
-If a prompt template changes (new hash), the autonomous step loop is unaffected — `AgentStepHandler` selects ambient content deterministically from `AMBIENT_POOL` (no external model call). For external agent paths (Azure AI Foundry) that produce proposals via LLM, a changed prompt template may yield different `layerContent` values; the idempotency key is based on `proposalId` (a UUID per invocation), so each unique Foundry call is treated as a distinct proposal regardless of prompt version.
-
----
-
-## 7. MCP Tool Usage by Agents
-
-### Read path (tools agents call to sense)
-
-MCP tools are **read-only**. Agents call them to gather context before deciding what to propose.
-
-| Tool | Purpose in agent loop |
-|------|-----------------------|
-| `WorldContext-getLocationContext` | Primary sense: location state, exits, realms, current layers |
-| `WorldContext-getAtmosphere` | Check current atmospheric/ambient layer content |
-| `WorldContext-getRecentEvents` | Recent events in scope; helps avoid redundant proposals |
-| `WorldContext-getPlayerContext` | Player state when proposal concerns a player scope |
-| `WorldContext-getSpatialContext` | Spatial neighbourhood for area-aware proposals |
-| `Lore-getCanonicalFact` / `Lore-searchLore` | Lore facts for narrative coherence |
-
-### Write path (NOT via MCP)
-
-Agents **do not write world state via MCP tools**. There is no write-capable MCP server.
-All durable writes go through the proposal pipeline:
-
-```
-Agent (Foundry)   →   POST /api/agent/propose   →   AgentProposalApplicator
-Internal step loop →  World.Agent.Step (queue)   →   AgentProposalApplicator
-```
-
-`AgentProposalApplicator` is the sole write gate for agent-sourced mutations. It writes only to `ILayerRepository`; direct graph mutations (exits, locations) are excluded from the current allow-list.
-
-### What the autonomous step loop does NOT use MCP for
-
-`AgentStepHandler` calls `ILayerRepository` and `WorldClockService` directly via dependency injection — it does not call MCP tools. The sense phase is an internal repository read, not an external tool call. This keeps queue handler latency predictable and avoids the overhead of JSON-RPC round-trips for internal reads.
+The autonomous step loop is unaffected by prompt template changes — it selects content deterministically from `AMBIENT_POOL` with no external model call. For Foundry-hosted agents that produce proposals via LLM, a prompt change may yield different `layerContent`; since the idempotency key is based on `proposalId` (a UUID per Foundry invocation), each call is treated as a distinct proposal regardless of prompt version.
 
 ---
 
-## Cross-References
+## MCP tool boundary
 
-- [`agentic-ai-and-mcp.md`](./agentic-ai-and-mcp.md) — High-level architecture, MCP tool catalog, mutation admission gates, guiding principles
-- `shared/src/agentProposal.ts` — Authoritative schema + validator source
-- `backend/src/worldEvents/handlers/AgentStepHandler.ts` — Queue step loop implementation
-- `backend/src/services/AgentProposalApplicator.ts` — Write-gate implementation
-- `backend/src/handlers/agentPropose.ts` — HTTP proposal endpoint
-- `shared/src/telemetryEvents.ts` — Canonical telemetry event names
+MCP tools are **read-only**. The full tool catalog is in [`agentic-ai-and-mcp.md`](./agentic-ai-and-mcp.md#mcp-tool-catalog-implemented-today). Relevant tools for the sense phase:
+
+- `WorldContext-getLocationContext` — location state, exits, realms, active layers
+- `WorldContext-getAtmosphere` — current ambient layer content
+- `WorldContext-getRecentEvents` — recent scope events (helps avoid redundant proposals)
+- `Lore-*` — canonical lore facts for narrative coherence
+
+There is no write-capable MCP server. All agent-sourced mutations flow through `AgentProposalApplicator`, which writes only to `ILayerRepository`. Direct graph mutations (exits, locations) are outside the current allow-list.
+
+---
+
+## Source files
+
+- `shared/src/agentProposal.ts` — envelope schema, allow-list, param rules, rejection codes, validator
+- `backend/src/worldEvents/handlers/AgentStepHandler.ts` — autonomous step loop
+- `backend/src/services/AgentProposalApplicator.ts` — write gate
+- `backend/src/handlers/agentPropose.ts` — HTTP endpoint
+- `shared/src/telemetryEvents.ts` — canonical event names and dimension docs
