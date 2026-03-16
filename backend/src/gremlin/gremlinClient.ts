@@ -1,7 +1,8 @@
-import { DefaultAzureCredential } from '@azure/identity'
 import gremlin from 'gremlin'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
 import 'reflect-metadata'
+import { AzureCredentialFactory, type IAzureCredentialFactory } from '../auth/azureCredentialFactory.js'
+import { TOKENS } from '../di/tokens.js'
 
 // Gremlin is CommonJS, extract what we need
 const driver = gremlin.driver
@@ -88,10 +89,15 @@ export class GremlinClient implements IGremlinClient {
     private connection: DriverRemoteConnection | undefined
     private readonly operationTimeoutMs: number
     private readonly connectionTimeoutMs: number
+    private readonly credentialFactory: IAzureCredentialFactory
 
-    constructor(@inject('GremlinConfig') private config: GremlinClientConfig) {
+    constructor(
+        @inject('GremlinConfig') private config: GremlinClientConfig,
+        @inject(TOKENS.AzureCredentialFactory) @optional() credentialFactory?: IAzureCredentialFactory
+    ) {
         this.operationTimeoutMs = config.operationTimeoutMs ?? 30000
         this.connectionTimeoutMs = config.connectionTimeoutMs ?? 10000
+        this.credentialFactory = credentialFactory ?? new AzureCredentialFactory()
     }
 
     async submit<T = unknown>(query: string, bindings?: Record<string, unknown>): Promise<T[]> {
@@ -218,7 +224,7 @@ export class GremlinClient implements IGremlinClient {
 
     private async getAzureADToken(): Promise<string> {
         console.log('[GremlinClient] Acquiring Azure AD token...')
-        const credential = new DefaultAzureCredential()
+        const credential = this.credentialFactory.createCredential()
         const scope = 'https://cosmos.azure.com/.default'
 
         try {

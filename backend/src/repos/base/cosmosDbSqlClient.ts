@@ -7,8 +7,10 @@
  */
 
 import { Container, CosmosClient, Database } from '@azure/cosmos'
-import { DefaultAzureCredential } from '@azure/identity'
-import { inject, injectable } from 'inversify'
+import { inject, injectable, optional } from 'inversify'
+import type { IAzureCredentialFactory } from '../../auth/azureCredentialFactory.js'
+import { AzureCredentialFactory } from '../../auth/azureCredentialFactory.js'
+import { TOKENS } from '../../di/tokens.js'
 
 /**
  * Configuration for Cosmos SQL client
@@ -47,7 +49,10 @@ export class CosmosDbSqlClient implements ICosmosDbSqlClient {
     private database: Database
     private databaseName: string
 
-    constructor(@inject('CosmosDbSqlConfig') config: CosmosDbSqlClientConfig) {
+    constructor(
+        @inject('CosmosDbSqlConfig') config: CosmosDbSqlClientConfig,
+        @inject(TOKENS.AzureCredentialFactory) @optional() credentialFactory?: IAzureCredentialFactory
+    ) {
         // Azure AD only (Managed Identity in Azure, developer identity locally via DefaultAzureCredential)
         // Reject legacy key-based auth explicitly so local dev stays aligned with production.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,7 +63,7 @@ export class CosmosDbSqlClient implements ICosmosDbSqlClient {
             )
         }
 
-        const credential = new DefaultAzureCredential()
+        const credential = (credentialFactory ?? new AzureCredentialFactory()).createCredential()
         this.client = new CosmosClient({ endpoint: config.endpoint, aadCredentials: credential })
 
         this.databaseName = config.database

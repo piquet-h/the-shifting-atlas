@@ -11,6 +11,7 @@ export const TOKENS = {
     TelemetryClient: 'ITelemetryClient',
     Clock: 'IClock',
     PromptTemplateRepository: 'IPromptTemplateRepository',
+    AzureCredentialFactory: 'IAzureCredentialFactory',
 
     // Gremlin
     GremlinConfig: 'GremlinConfig',

@@ -1,9 +1,9 @@
 import type { InvocationContext } from '@azure/functions'
-import { DefaultAzureCredential } from '@azure/identity'
 import { ServiceBusClient } from '@azure/service-bus'
 import { PromptTemplateRepository, type IClock, type IPromptTemplateRepository } from '@piquet-h/shared'
 import type { WorldEventEnvelope } from '@piquet-h/shared/events'
 import type { Container } from 'inversify'
+import { AzureCredentialFactory, type IAzureCredentialFactory } from '../auth/azureCredentialFactory.js'
 
 import { getPromptTemplateCacheConfig } from '../config/promptTemplateCacheConfig.js'
 import { QueueProcessExitGenerationHintHandler } from '../handlers/queueProcessExitGenerationHint.js'
@@ -18,11 +18,10 @@ import {
     ServiceBusLocationAnchorSyncPublisher,
     type ILocationAnchorSyncPublisher
 } from '../queues/locationAnchorSyncPublisher.js'
-import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
 import { AgentProposalApplicator } from '../services/AgentProposalApplicator.js'
 import { AgentReplayHarness } from '../services/AgentReplayHarness.js'
+import { AIDescriptionService, type IAIDescriptionService } from '../services/AIDescriptionService.js'
 import { AreaGenerationOrchestrator } from '../services/AreaGenerationOrchestrator.js'
-import { ExitDescriptionService, type IExitDescriptionService } from '../services/ExitDescriptionService.js'
 import {
     AzureOpenAIClient,
     NullAzureOpenAIClient,
@@ -30,6 +29,7 @@ import {
     type IAzureOpenAIClient
 } from '../services/azureOpenAIClient.js'
 import { DescriptionComposer } from '../services/descriptionComposer.js'
+import { ExitDescriptionService, type IExitDescriptionService } from '../services/ExitDescriptionService.js'
 import { HeroProseGenerator } from '../services/heroProseGenerator.js'
 import { LocationClockManager } from '../services/LocationClockManager.js'
 import { PlayerClockService } from '../services/PlayerClockService.js'
@@ -79,6 +79,8 @@ export function registerCoreServices(container: Container): void {
     const defaultAutoDrain = process.env.NODE_ENV !== 'test'
     const autoDrainEnabled = autoDrainDisabledFromEnv ? false : autoDrainFromEnv || defaultAutoDrain
 
+    container.bind<IAzureCredentialFactory>(TOKENS.AzureCredentialFactory).to(AzureCredentialFactory).inSingletonScope()
+
     // TelemetryService wraps ITelemetryClient with enrichment logic.
     // Consistency policy: class-based injection only (no string token binding).
     container.bind<TelemetryService>(TelemetryService).toSelf().inSingletonScope()
@@ -103,9 +105,10 @@ export function registerCoreServices(container: Container): void {
         .toDynamicValue(() => {
             const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
             const connectionString = process.env.ServiceBusAtlas
+            const credentialFactory = container.get<IAzureCredentialFactory>(TOKENS.AzureCredentialFactory)
             if (namespace || connectionString) {
                 const client = namespace
-                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    ? new ServiceBusClient(namespace, credentialFactory.createCredential())
                     : new ServiceBusClient(connectionString!)
                 return new ServiceBusWorldEventPublisher(client)
             }
@@ -135,9 +138,10 @@ export function registerCoreServices(container: Container): void {
         .toDynamicValue(() => {
             const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
             const connectionString = process.env.ServiceBusAtlas
+            const credentialFactory = container.get<IAzureCredentialFactory>(TOKENS.AzureCredentialFactory)
             if (namespace || connectionString) {
                 const client = namespace
-                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    ? new ServiceBusClient(namespace, credentialFactory.createCredential())
                     : new ServiceBusClient(connectionString!)
                 return new ServiceBusExitGenerationHintPublisher(client)
             }
@@ -167,9 +171,10 @@ export function registerCoreServices(container: Container): void {
         .toDynamicValue(() => {
             const namespace = process.env.ServiceBusAtlas__fullyQualifiedNamespace
             const connectionString = process.env.ServiceBusAtlas
+            const credentialFactory = container.get<IAzureCredentialFactory>(TOKENS.AzureCredentialFactory)
             if (namespace || connectionString) {
                 const client = namespace
-                    ? new ServiceBusClient(namespace, new DefaultAzureCredential())
+                    ? new ServiceBusClient(namespace, credentialFactory.createCredential())
                     : new ServiceBusClient(connectionString!)
                 return new ServiceBusLocationAnchorSyncPublisher(client)
             }
@@ -238,6 +243,7 @@ export function registerAzureOpenAI(container: Container): void {
     }
 
     container.bind<AzureOpenAIClientConfig>(TOKENS.AzureOpenAIConfig).toConstantValue(config)
+    const credentialFactory = container.get<IAzureCredentialFactory>(TOKENS.AzureCredentialFactory)
 
     // In tests/local dev we often don't have an Azure OpenAI endpoint configured.
     // Bind a no-op client so DI remains stable and the feature gracefully no-ops.
@@ -248,6 +254,6 @@ export function registerAzureOpenAI(container: Container): void {
 
     container
         .bind<IAzureOpenAIClient>(TOKENS.AzureOpenAIClient)
-        .toDynamicValue(() => new AzureOpenAIClient(config))
+        .toDynamicValue(() => new AzureOpenAIClient(config, credentialFactory))
         .inSingletonScope()
 }

@@ -1,7 +1,7 @@
 /** Secret retrieval helper with lazy caching, retry logic, and telemetry */
 
-import { DefaultAzureCredential } from '@azure/identity'
 import { SecretClient } from '@azure/keyvault-secrets'
+import { AzureCredentialFactory } from '../auth/azureCredentialFactory.js'
 import type { TelemetryService } from '../telemetry/TelemetryService.js'
 
 /** Allowlisted secret keys that can be retrieved */
@@ -41,6 +41,7 @@ const secretCache = new Map<string, CachedSecret>()
 
 /** Lazy-initialized Secret Client */
 let secretClient: SecretClient | null = null
+const credentialFactory = new AzureCredentialFactory()
 
 /**
  * Get or create the Secret Client using Managed Identity (DefaultAzureCredential)
@@ -56,7 +57,7 @@ function getSecretClient(): SecretClient | null {
 
     if (!secretClient) {
         const vaultUrl = `https://${keyVaultName}.vault.azure.net`
-        const credential = new DefaultAzureCredential()
+        const credential = credentialFactory.createCredential()
         secretClient = new SecretClient(vaultUrl, credential)
     }
 

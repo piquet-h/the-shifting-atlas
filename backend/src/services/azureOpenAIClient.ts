@@ -14,9 +14,10 @@
  * - Local dev: Uses DefaultAzureCredential (respects az login credentials)
  */
 
-import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity'
+import { getBearerTokenProvider } from '@azure/identity'
 import { injectable } from 'inversify'
 import { AzureOpenAI } from 'openai'
+import { AzureCredentialFactory, type IAzureCredentialFactory } from '../auth/azureCredentialFactory.js'
 
 export interface AzureOpenAIClientConfig {
     endpoint: string
@@ -117,7 +118,7 @@ export class AzureOpenAIClient implements IAzureOpenAIClient {
     private client: AzureOpenAI
     private config: AzureOpenAIClientConfig
 
-    constructor(config: AzureOpenAIClientConfig) {
+    constructor(config: AzureOpenAIClientConfig, credentialFactory: IAzureCredentialFactory = new AzureCredentialFactory()) {
         if (!config.endpoint) {
             throw new Error('AZURE_OPENAI_ENDPOINT is required')
         }
@@ -129,7 +130,7 @@ export class AzureOpenAIClient implements IAzureOpenAIClient {
 
         // Use Managed Identity (DefaultAzureCredential) for authentication
         // Automatically handles: System-assigned MI (prod), az login (local), OIDC (CI/CD)
-        const credential = new DefaultAzureCredential()
+        const credential = credentialFactory.createCredential()
         const scope = 'https://cognitiveservices.azure.com/.default'
         const azureADTokenProvider = getBearerTokenProvider(credential, scope)
 
