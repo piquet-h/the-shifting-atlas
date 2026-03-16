@@ -11,6 +11,13 @@
         {
             "type": 1,
             "content": {
+                "json": "### Triage Quickstart\n\n1. **Check movement health first** (Success/Blocked + Movement P95) to confirm player-facing impact.\n2. **Check Gremlin stress next** (Top Operations, RU vs P95 trend, Reliability) to isolate backend cause.\n3. **Escalate path**: if partition skew/throttling is suspected, open SQL API Partition Monitoring workbook and follow its troubleshooting guide.\n\n**Interpretation tips:**\n- Rising `FailureRate` with rising `P95` = likely active incident.\n- High RU with stable latency = capacity watch (optimize/scale plan), not always incident.\n- Empty or sparse results can be normal for low traffic windows; validate against a broader time range."
+            },
+            "name": "triage-quickstart"
+        },
+        {
+            "type": 1,
+            "content": {
                 "json": "## Movement Success & Blocked Reasons"
             },
             "name": "movement-section"
@@ -61,6 +68,13 @@
                 "json": "## Gremlin Operation Performance"
             },
             "name": "gremlin-section"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "**Runbook links**\n\n- [Sustained High RU Utilization](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/alerts-catalog.md#sustained-high-ru-utilization)\n- [Consolidated Operation Latency Monitoring](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/alerts-catalog.md#consolidated-operation-latency-monitoring)\n- [SQL API Hot Partition Detection](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/alerts-catalog.md#sql-api-hot-partition-detection)\n- If partition skew is suspected, open the SQL API Partition Monitoring workbook for detailed triage."
+            },
+            "name": "gremlin-runbook-links"
         },
         // Performance items (subset): top operations table + RU vs Latency trend + partition pressure chart + reliability table
         {

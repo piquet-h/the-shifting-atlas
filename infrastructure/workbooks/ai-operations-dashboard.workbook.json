@@ -40,7 +40,7 @@
         {
             "type": 1,
             "content": {
-                "json": "# AI Operations Dashboard\n\nOperational overview for LLM-backed features and MCP: hero prose generation, failure reasons, latency, and token usage.\n\n**Included Telemetry:**\n- `Description.Hero.*` (cache + generation)\n- `Timing.Op` (hero-prose slow warnings)\n- `MCP.*` (tool usage + auth + throttling)\n\n**Notes:**\n- Hero prose uses structured `game.*` customDimensions (e.g. `game.latency.ms`).\n- Outcome reasons are low-cardinality: `timeout|error|config-missing|invalid-response`.\n"
+                "json": "# AI Operations Dashboard\n\nOperational overview for LLM-backed features and MCP: hero prose generation, failure reasons, latency, and token usage.\n\n**Included Telemetry:**\n- `Description.Hero.*` (cache + generation)\n- `Timing.Op` (hero-prose slow warnings)\n- `MCP.*` (tool usage + auth + throttling)\n\n**Triage order:**\n1. Check **Hero Prose Failures by Reason** (what is failing and how often).\n2. Check **Hero Prose Latency Percentiles** and **Slow Warnings** (is this degradation vs outage).\n3. Check **MCP Throttles & Failures** and **Auth Decisions** (platform/permission bottleneck).\n\n**Interpretation tips:**\n- `config-missing` and `invalid-response` are usually configuration/contract issues.\n- `timeout` spikes with stable failure mix often indicate dependency saturation.\n- Empty results can be expected in low-traffic windows; validate with a wider time range.\n\n**Notes:**\n- Hero prose uses structured `game.*` customDimensions (e.g. `game.latency.ms`).\n- Outcome reasons are low-cardinality: `timeout|error|config-missing|invalid-response`.\n"
             },
             "name": "header"
         },

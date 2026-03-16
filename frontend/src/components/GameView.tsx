@@ -65,6 +65,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
      * to unify command tracking across components.
      */
     const [commandHistory, setCommandHistory] = useState<CommandHistoryItem[]>([])
+    const hasPreloadedInitialContext = React.useRef(false)
 
     const commandInterfaceRef = React.useRef<CommandInterfaceHandle | null>(null)
 
@@ -92,6 +93,19 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
         },
         []
     )
+
+    React.useEffect(() => {
+        if (!location || hasPreloadedInitialContext.current) return
+
+        const exits = Array.isArray(location.exits) ? location.exits.map((e) => e.direction).join(', ') : ''
+        const response = `${location.name}: ${location.description.text}${exits ? ` (Exits: ${exits})` : ''}`
+
+        appendCommandLog({
+            command: 'look',
+            response
+        })
+        hasPreloadedInitialContext.current = true
+    }, [location, appendCommandLog])
 
     const {
         isNavigating,

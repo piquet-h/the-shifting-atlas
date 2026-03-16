@@ -54,6 +54,50 @@ describe('GameView navigation narratives', () => {
         expect(screen.getAllByText(/move north/i).length).toBeGreaterThan(0)
     }, 15000)
 
+    it('preloads command output with current location context on initial load', async () => {
+        // Valid GUIDs
+        const playerGuid = '550e8400-e29b-41d4-a716-446655440001'
+        const starterLocationId = 'a7e3f8c0-1234-4abc-9def-1234567890ab'
+
+        server.use(
+            http.get('/api/player', () => {
+                return HttpResponse.json({
+                    success: true,
+                    data: {
+                        playerGuid,
+                        created: false,
+                        currentLocationId: starterLocationId
+                    }
+                })
+            }),
+            http.get('/api/location/:locationId', ({ params }) => {
+                if (params.locationId === starterLocationId) {
+                    return HttpResponse.json({
+                        success: true,
+                        data: {
+                            id: starterLocationId,
+                            name: 'Mosswell River Jetty',
+                            description: {
+                                text: 'Timbered jetty where river current meets brackish tide.',
+                                html: '<p>Timbered jetty where river current meets brackish tide.</p>',
+                                provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                            },
+                            exits: []
+                        }
+                    })
+                }
+
+                return HttpResponse.json({ success: false }, { status: 404 })
+            })
+        )
+
+        renderGameView()
+
+        await waitFor(() => expect(screen.getAllByText(/Mosswell River Jetty:/i).length).toBeGreaterThan(0), { timeout: 5000 })
+
+        expect(screen.queryByText(/No commands issued yet\./i)).not.toBeInTheDocument()
+    }, 15000)
+
     it('does not refetch old+new location after button move (move response is authoritative)', async () => {
         const user = userEvent.setup()
 

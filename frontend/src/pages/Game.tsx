@@ -3,7 +3,7 @@
  * This is intentionally a placeholder until location-hint behavior is implemented.
  */
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import GameView from '../components/GameView'
 import StatusPanel from '../components/StatusPanel'
 import { usePlayer } from '../contexts/PlayerContext'
@@ -16,9 +16,8 @@ const PLACEHOLDER_MAX_HEALTH = 100
 const PLACEHOLDER_INVENTORY_COUNT = 0
 
 export default function Game(): React.ReactElement | null {
-    const { isAuthenticated, loading } = useAuth()
+    const { isAuthenticated, loading, signIn } = useAuth()
     const { loading: guidLoading, currentLocationId } = usePlayer()
-    const navigate = useNavigate()
     const [searchParams] = useSearchParams()
     const [showLocationInfo, setShowLocationInfo] = useState(false)
 
@@ -33,9 +32,9 @@ export default function Game(): React.ReactElement | null {
 
     useEffect(() => {
         if (!loading && !isAuthenticated) {
-            navigate('/', { replace: true })
+            signIn('msa', '/game')
         }
-    }, [isAuthenticated, loading, navigate])
+    }, [isAuthenticated, loading, signIn])
 
     if (loading || guidLoading) {
         return (

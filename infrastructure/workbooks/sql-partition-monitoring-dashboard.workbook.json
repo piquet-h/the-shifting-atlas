@@ -4,7 +4,7 @@
         {
             "type": 1,
             "content": {
-                "json": "# SQL API Partition Monitoring Dashboard\n\nDedicated workbook for monitoring partition key distribution and detecting hot partitions in Cosmos DB SQL API containers.\n\n**Telemetry Events:** `SQL.Query.Executed`, `SQL.Query.Failed`\n\n**Objective:** Detect partition skew, hot partitions, and uneven distribution before they cause throttling or performance degradation.\n\n**Related Alert:** `alert-sql-hot-partition` (fires when single partition >80% of container RU)\n\n**Related Issues:** #387 (Partition Key Strategy Validation & Monitoring)\n\n**References:** docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)\n"
+                "json": "# SQL API Partition Monitoring Dashboard\n\nDedicated workbook for monitoring partition key distribution and detecting hot partitions in Cosmos DB SQL API containers.\n\n**Telemetry Events:** `SQL.Query.Executed`, `SQL.Query.Failed`\n\n**Objective:** Detect partition skew, hot partitions, and uneven distribution before they cause throttling or performance degradation.\n\n**When to open this workbook:**\n- Hot partition alert fired\n- Investigating sustained 429s or latency regressions\n- Weekly partition health review / pre-migration checks\n\n**Related Alert:** `alert-sql-hot-partition` (fires when single partition >80% of container RU)\n\n**RBAC note:** Dashboard visibility does not guarantee all tile data visibility. Users need access to underlying resources queried by each tile.\n\n**Related Issues:** #387 (Partition Key Strategy Validation & Monitoring)\n\n**References:** docs/observability/partition-key-monitoring.md, ADR-002 (partition strategy principles)\n"
             },
             "name": "header"
         },
@@ -404,6 +404,13 @@
                 "json": "---\n\n## Alert Troubleshooting Guide\n\n**When Hot Partition Alert Fires:**\n\n1. **Identify Hot Partition**: Check alert payload for `partitionKey` and `containerName`\n2. **Assess Impact**: Review \"Partitions with 429 Throttling\" table above\n3. **Analyze Operations**: Check \"Top Hot Partitions\" table for operation patterns\n4. **Review Trend**: Use \"RU Consumption Trend\" chart to determine if sustained or spike\n5. **Check Latency**: Review \"Latency Percentiles\" to assess performance impact\n\n**Immediate Actions:**\n- If player-based partition: Check for bot activity or load testing\n- If location-based partition: Verify if starter location or popular destination\n- If sustained (>1 hour): Consider caching popular entities\n- If spike: Monitor for resolution; may be legitimate burst\n\n**Long-term Solutions:**\n- Run validation script: `npm run validate:partitions -- --container <name>`\n- Review partition key strategy in `docs/observability/partition-key-monitoring.md`\n- Consider partition key migration if structural issue confirmed\n\n**Thresholds:**\n- 🟢 **Healthy**: No partition >15% operations, cardinality >10\n- 🟡 **Warning**: Any partition >15% OR cardinality <5\n- 🔴 **Critical**: Any partition >25% OR sustained >80% RU for 1+ hour"
             },
             "name": "troubleshooting-guide"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "**Runbook links**\n\n- [SQL API Hot Partition Detection](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/alerts-catalog.md#sql-api-hot-partition-detection)\n- [Partition Key Monitoring Guide](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/partition-key-monitoring.md)\n- [Observability Alerts Catalog](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/alerts-catalog.md)\n\nUse this workbook for live triage; use the alerts catalog as the canonical source for alert definitions, thresholds, and deployment status."
+            },
+            "name": "runbook-links"
         }
     ],
     "fallbackResourceIds": [

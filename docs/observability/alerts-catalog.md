@@ -8,6 +8,8 @@
 
 Central registry documenting all configured Azure Monitor alerts, including trigger conditions, severity levels, auto-resolution behavior, and operational response guidance.
 
+> Deployment truth source: `infrastructure/main.bicep`. Alert modules may exist in `infrastructure/` without being currently wired for deployment.
+
 ## Alert Categories
 
 ### SQL API Operations / Hot Partitions
@@ -23,72 +25,72 @@ Detect hot partitions in Cosmos DB SQL API containers when a single partition ke
 
 **Trigger Conditions:**
 
--   **Error Severity**: Single partition consuming `>80%` of total container RU in 5-minute window
--   **Minimum Operations**: Container must have `>=1000` operations in window (suppresses new container false positives)
--   **Evaluation**: Every 5 minutes (rolling window)
+- **Error Severity**: Single partition consuming `>80%` of total container RU in 5-minute window
+- **Minimum Operations**: Container must have `>=1000` operations in window (suppresses new container false positives)
+- **Evaluation**: Every 5 minutes (rolling window)
 
 **Evaluation:**
 
--   **Frequency**: Every 5 minutes
--   **Window Size**: 5 minutes (rolling)
--   **Auto-Resolve**: When partition RU consumption drops below 70% threshold
-    -   Azure Monitor auto-mitigate enabled: alert resolves when firing condition no longer met
+- **Frequency**: Every 5 minutes
+- **Window Size**: 5 minutes (rolling)
+- **Auto-Resolve**: When partition RU consumption drops below 70% threshold
+    - Azure Monitor auto-mitigate enabled: alert resolves when firing condition no longer met
 
 **Alert Payload Context:**
 
--   `containerName`: Affected SQL container (`players`, `inventory`, `descriptionLayers`, `worldEvents`)
--   `partitionKey`: Hot partition key value (player GUID, location GUID, etc.)
--   `ruPercent`: Percentage of total container RU consumed by this partition
--   `partitionRU`: Total RU consumed by partition in window
--   `totalContainerRU`: Total RU consumed by container in window
--   `operationCount`: Number of operations on partition
--   `avgLatency`: Average latency for partition operations (ms)
--   `p95Latency`: 95th percentile latency (ms)
--   `topOperations`: Top 5 operations by RU consumption (operation name + RU)
--   `alertThreshold`: Configured threshold percentage (default: 80)
+- `containerName`: Affected SQL container (`players`, `inventory`, `descriptionLayers`, `worldEvents`)
+- `partitionKey`: Hot partition key value (player GUID, location GUID, etc.)
+- `ruPercent`: Percentage of total container RU consumed by this partition
+- `partitionRU`: Total RU consumed by partition in window
+- `totalContainerRU`: Total RU consumed by container in window
+- `operationCount`: Number of operations on partition
+- `avgLatency`: Average latency for partition operations (ms)
+- `p95Latency`: 95th percentile latency (ms)
+- `topOperations`: Top 5 operations by RU consumption (operation name + RU)
+- `alertThreshold`: Configured threshold percentage (default: 80)
 
 **Configuration:**
 
--   **Main Parameters** (in `infrastructure/main.bicep`):
-    -   `hotPartitionThreshold`: RU percentage threshold for alert (default: 80)
-    -   `resolutionThreshold`: Percentage below which alert auto-resolves (default: 70)
-    -   `minDocumentCount`: Minimum operations to enable alert (default: 1000)
+- **Main Parameters** (in `infrastructure/main.bicep`):
+    - `hotPartitionThreshold`: RU percentage threshold for alert (default: 80)
+    - `resolutionThreshold`: Percentage below which alert auto-resolves (default: 70)
+    - `minDocumentCount`: Minimum operations to enable alert (default: 1000)
 
--   **Module Parameters** (in `infrastructure/alert-sql-hot-partition.bicep`):
-    -   `evaluationFrequencyMinutes`: How often to evaluate condition (default: 5)
-    -   `severity`: Alert severity level - 0=Critical, 1=Error, 2=Warning, 3=Informational (default: 1 Error)
+- **Module Parameters** (in `infrastructure/alert-sql-hot-partition.bicep`):
+    - `evaluationFrequencyMinutes`: How often to evaluate condition (default: 5)
+    - `severity`: Alert severity level - 0=Critical, 1=Error, 2=Warning, 3=Informational (default: 1 Error)
 
 **Parameter Tuning Table:**
 
-| Parameter | Default | Purpose | Tuning Guidance |
-|-----------|---------|---------|----------------|
-| `hotPartitionThreshold` | 80 | RU% to trigger alert | Increase if acceptable concentration pattern |
-| `resolutionThreshold` | 70 | RU% for auto-resolution | Should be <hotPartitionThreshold, ~10% buffer |
-| `minDocumentCount` | 1000 | Min operations to enable | Increase for high-volume containers |
-| `evaluationFrequencyMinutes` | 5 | Evaluation window size | Match to typical response time |
+| Parameter                    | Default | Purpose                  | Tuning Guidance                               |
+| ---------------------------- | ------- | ------------------------ | --------------------------------------------- |
+| `hotPartitionThreshold`      | 80      | RU% to trigger alert     | Increase if acceptable concentration pattern  |
+| `resolutionThreshold`        | 70      | RU% for auto-resolution  | Should be <hotPartitionThreshold, ~10% buffer |
+| `minDocumentCount`           | 1000    | Min operations to enable | Increase for high-volume containers           |
+| `evaluationFrequencyMinutes` | 5       | Evaluation window size   | Match to typical response time                |
 
 **Edge Cases Handled:**
 
--   **New Containers**: Alert suppressed until container reaches minimum operation count (avoids bootstrap false positives)
--   **Cross-Partition Queries**: Excluded from calculation (flagged with `crossPartitionQuery: true` dimension)
--   **Player Activity Spikes**: Expected for player-centric partitions during login storms; review `operationName` distribution
--   **Starter Location Hotspot**: Known for location-based partitions; consider caching or partition strategy adjustment
+- **New Containers**: Alert suppressed until container reaches minimum operation count (avoids bootstrap false positives)
+- **Cross-Partition Queries**: Excluded from calculation (flagged with `crossPartitionQuery: true` dimension)
+- **Player Activity Spikes**: Expected for player-centric partitions during login storms; review `operationName` distribution
+- **Starter Location Hotspot**: Known for location-based partitions; consider caching or partition strategy adjustment
 
 **Data Source:**
 
--   `SQL.Query.Executed` events with `containerName` and `partitionKey` dimensions (added Issue #387)
--   `SQL.Query.Failed` events for failure correlation (429 throttling)
+- `SQL.Query.Executed` events with `containerName` and `partitionKey` dimensions (added Issue #387)
+- `SQL.Query.Failed` events for failure correlation (429 throttling)
 
 **Related Telemetry Events:**
 
--   [`SQL.Query.Executed`](./telemetry-catalog.md#sqlqueryexecuted)
--   [`SQL.Query.Failed`](./telemetry-catalog.md#sqlqueryfailed)
+- [`SQL.Query.Executed`](./telemetry-catalog.md#sqlqueryexecuted)
+- [`SQL.Query.Failed`](./telemetry-catalog.md#sqlqueryfailed)
 
 **Related Documentation:**
 
--   [Partition Key Monitoring](./partition-key-monitoring.md) — Comprehensive partition monitoring guide
--   [SQL API Partition Monitoring Dashboard](#workbook-troubleshooting) — Dedicated workbook for troubleshooting
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition strategy principles (Gremlin-focused, applies to SQL API)
+- [Partition Key Monitoring](./partition-key-monitoring.md) — Comprehensive partition monitoring guide
+- [SQL API Partition Monitoring Dashboard](#workbook-troubleshooting) — Dedicated workbook for troubleshooting
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition strategy principles (Gremlin-focused, applies to SQL API)
 
 **Workbook Troubleshooting:**
 
@@ -98,11 +100,11 @@ When this alert fires, open the **SQL API Partition Monitoring Dashboard** in Ap
 2. Set time range to alert window (default: last 24h)
 3. Filter to affected container using "Container Filter" parameter
 4. Review panels in order:
-   - **Partition Key Cardinality**: Assess overall distribution health
-   - **Top Hot Partitions**: Identify concentration patterns and operation percentages
-   - **Partition Distribution Chart**: Visualize RU consumption split
-   - **429 Throttling Table**: Check for active throttling on hot partition
-   - **Latency Percentiles**: Assess performance impact
+    - **Partition Key Cardinality**: Assess overall distribution health
+    - **Top Hot Partitions**: Identify concentration patterns and operation percentages
+    - **Partition Distribution Chart**: Visualize RU consumption split
+    - **429 Throttling Table**: Check for active throttling on hot partition
+    - **Latency Percentiles**: Assess performance impact
 5. Follow **Alert Troubleshooting Guide** section at bottom of workbook
 
 **Response Guidance:**
@@ -139,75 +141,75 @@ When this alert fires, open the **SQL API Partition Monitoring Dashboard** in Ap
 
 **Alert ID:** `gremlin-429-spike-{name}`  
 **Bicep Module:** `infrastructure/alert-gremlin-429-spike.bicep`  
-**Status:** Active (M2 Observability)
+**Status:** Planned (module exists, not currently wired in `infrastructure/main.bicep`)
 
 **Purpose:**  
 Detect abnormal Cosmos DB Gremlin throttling (HTTP 429 responses) below expected RPS baseline, correlating with ADR-002 partition saturation thresholds. Fires when throttling occurs despite low query volume, indicating potential partition hot-spotting or misconfigured RU provisioning.
 
 **Trigger Conditions:**
 
--   **Normal Severity (Warning)**: `>=5` HTTP 429 responses in 5-minute window AND total `Graph.Query.Executed` calls `< BASELINE_RPS * 300` (5 min in seconds)
--   **High Severity (Error)**: `>=10` HTTP 429 responses in 5-minute window AND same RPS condition
+- **Normal Severity (Warning)**: `>=5` HTTP 429 responses in 5-minute window AND total `Graph.Query.Executed` calls `< BASELINE_RPS * 300` (5 min in seconds)
+- **High Severity (Error)**: `>=10` HTTP 429 responses in 5-minute window AND same RPS condition
 
 **Evaluation:**
 
--   **Frequency**: Every 5 minutes
--   **Window Size**: 5 minutes (rolling)
--   **Auto-Resolve**: When alert condition no longer met (Count429 < 5 or query volume at/above baseline)
-    -   Note: Azure Monitor scheduled query rules use the same threshold for firing and resolution. The issue requirement specifies "<2 429s per window" for resolution, but this is not directly supported. Alert resolves when the firing condition is no longer true.
+- **Frequency**: Every 5 minutes
+- **Window Size**: 5 minutes (rolling)
+- **Auto-Resolve**: When alert condition no longer met (Count429 < 5 or query volume at/above baseline)
+    - Note: Azure Monitor scheduled query rules use the same threshold for firing and resolution. The issue requirement specifies "<2 429s per window" for resolution, but this is not directly supported. Alert resolves when the firing condition is no longer true.
 
 **Alert Payload Context:**
 
--   `Count429`: Number of 429 responses in window
--   `TotalQueries`: Total Graph.Query.Executed calls in window
--   `ExpectedQueries`: Baseline RPS × window duration (baseline threshold)
--   `BelowBaseline`: Boolean indicating if query volume is below expected
--   `AlertSeverity`: "Normal" or "High"
--   `AvgRU`: Average RU charge per query in window
--   `P95Latency`: 95th percentile query latency (ms)
--   `TotalRU`: Total RU consumption in window
+- `Count429`: Number of 429 responses in window
+- `TotalQueries`: Total Graph.Query.Executed calls in window
+- `ExpectedQueries`: Baseline RPS × window duration (baseline threshold)
+- `BelowBaseline`: Boolean indicating if query volume is below expected
+- `AlertSeverity`: "Normal" or "High"
+- `AvgRU`: Average RU charge per query in window
+- `P95Latency`: 95th percentile query latency (ms)
+- `TotalRU`: Total RU consumption in window
 
 **Configuration:**
 
--   **Main Parameters** (in `infrastructure/main.bicep`):
-    -   `gremlinBaselineRps`: Expected baseline RPS for Gremlin queries (default: 50)
-    -   Set to 0 to disable alert entirely (diagnostic/development mode)
+- **Main Parameters** (in `infrastructure/main.bicep`):
+    - `gremlinBaselineRps`: Expected baseline RPS for Gremlin queries (default: 50)
+    - Set to 0 to disable alert entirely (diagnostic/development mode)
 
--   **Module Parameters** (in `infrastructure/alert-gremlin-429-spike.bicep`):
-    -   `normalThreshold429Count`: Minimum 429 count to trigger normal severity alert (default: 5)
-    -   `highThreshold429Count`: Minimum 429 count to trigger high severity alert (default: 10)
-    -   `evaluationFrequencyMinutes`: How often to evaluate the alert condition (default: 5)
-    -   `severity`: Alert severity level - 0=Critical, 1=Error, 2=Warning, 3=Informational (default: 2)
+- **Module Parameters** (in `infrastructure/alert-gremlin-429-spike.bicep`):
+    - `normalThreshold429Count`: Minimum 429 count to trigger normal severity alert (default: 5)
+    - `highThreshold429Count`: Minimum 429 count to trigger high severity alert (default: 10)
+    - `evaluationFrequencyMinutes`: How often to evaluate the alert condition (default: 5)
+    - `severity`: Alert severity level - 0=Critical, 1=Error, 2=Warning, 3=Informational (default: 2)
 
 **Parameter Tuning Table:**
 
-| Parameter | Default | Purpose | Tuning Guidance |
-|-----------|---------|---------|----------------|
-| `baselineRps` | 50 | Expected query rate (RPS) | Set based on normal traffic patterns; higher = less sensitive |
-| `normalThreshold429Count` | 5 | 429s to trigger warning | Increase if transient throttling is acceptable |
-| `highThreshold429Count` | 10 | 429s to trigger high severity | Should be ~2x normal threshold |
-| `evaluationFrequencyMinutes` | 5 | Evaluation window size | Match to typical incident response time |
+| Parameter                    | Default | Purpose                       | Tuning Guidance                                               |
+| ---------------------------- | ------- | ----------------------------- | ------------------------------------------------------------- |
+| `baselineRps`                | 50      | Expected query rate (RPS)     | Set based on normal traffic patterns; higher = less sensitive |
+| `normalThreshold429Count`    | 5       | 429s to trigger warning       | Increase if transient throttling is acceptable                |
+| `highThreshold429Count`      | 10      | 429s to trigger high severity | Should be ~2x normal threshold                                |
+| `evaluationFrequencyMinutes` | 5       | Evaluation window size        | Match to typical incident response time                       |
 
 See [Threshold Tuning Report](./threshold-tuning.md) for baseline metrics and tuning methodology.
 
 **Edge Cases Handled:**
 
--   **Transient Network Glitch**: Single-window burst of 429s does not trigger alert if query volume is at/above baseline (indicates external factors, not partition saturation)
--   **Mixed Success/Failure Events**: Correctly counts only HTTP 429 failures by filtering `Graph.Query.Failed` events with `httpStatusCode == "429"` dimension
+- **Transient Network Glitch**: Single-window burst of 429s does not trigger alert if query volume is at/above baseline (indicates external factors, not partition saturation)
+- **Mixed Success/Failure Events**: Correctly counts only HTTP 429 failures by filtering `Graph.Query.Failed` events with `httpStatusCode == "429"` dimension
 
 **Data Source:**
 
--   `Graph.Query.Failed` events with `httpStatusCode` dimension (added M2 Observability)
--   `Graph.Query.Executed` events for RU and latency context
+- `Graph.Query.Failed` events with `httpStatusCode` dimension (added M2 Observability)
+- `Graph.Query.Executed` events for RU and latency context
 
 **Related Telemetry Events:**
 
--   [`Graph.Query.Failed`](./telemetry-catalog.md#graphqueryfailed)
--   [`Graph.Query.Executed`](./telemetry-catalog.md#graphqueryexecuted)
+- [`Graph.Query.Failed`](./telemetry-catalog.md#graphqueryfailed)
+- [`Graph.Query.Executed`](./telemetry-catalog.md#graphqueryexecuted)
 
 **Related ADRs:**
 
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Defines thresholds: "> 50k vertices OR sustained RU >70% OR repeated 429s at <50 RPS"
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Defines thresholds: "> 50k vertices OR sustained RU >70% OR repeated 429s at <50 RPS"
 
 **Response Guidance:**
 
@@ -223,8 +225,8 @@ See [Threshold Tuning Report](./threshold-tuning.md) for baseline metrics and tu
 
 **Escalation Path:**
 
--   **Normal Severity**: Monitor for 15 minutes; investigate if not auto-resolved
--   **High Severity**: Immediate investigation; may indicate critical partition saturation
+- **Normal Severity**: Monitor for 15 minutes; investigate if not auto-resolved
+- **High Severity**: Immediate investigation; may indicate critical partition saturation
 
 **Deployment:**
 
@@ -260,17 +262,17 @@ To verify alert configuration without triggering production incidents, simulate 
 
 **Dashboard Integration:**
 
-This alert complements the **Performance Operations Dashboard** (`workbook-performance-operations-dashboard.bicep`), which visualizes:
+This alert complements the **Player Operations Dashboard** (`workbook-player-operations-dashboard.bicep`), which visualizes:
 
--   RU consumption trends
--   Query latency percentiles (P50, P95, P99)
--   Throttling event frequency
+- RU consumption trends
+- Query latency percentiles (P50, P95, P99)
+- Throttling event frequency
 
 **Issue Tracking:**
 
--   **Original Issue**: [#TBD - Configure 429 Spike Alert]
--   **Telemetry Dependency**: [#79 - Graph RU/Latency Telemetry](https://github.com/piquet-h/the-shifting-atlas/issues/79)
--   **Related**: [#10 - Movement Success Rate Dashboard](https://github.com/piquet-h/the-shifting-atlas/issues/10)
+- **Original Issue**: [#TBD - Configure 429 Spike Alert]
+- **Telemetry Dependency**: [#79 - Graph RU/Latency Telemetry](https://github.com/piquet-h/the-shifting-atlas/issues/79)
+- **Related**: [#10 - Movement Success Rate Dashboard](https://github.com/piquet-h/the-shifting-atlas/issues/10)
 
 ---
 
@@ -285,49 +287,49 @@ Detect sustained high RU consumption (>70%) over multiple consecutive 5-minute w
 
 **Trigger Conditions:**
 
--   **Fire Threshold**: RU% >70% for 3 consecutive 5-minute windows (15 minutes sustained)
--   **Resolve Threshold**: RU% <65% for 2 consecutive windows (10 minutes)
--   **Evaluation Frequency**: Every 5 minutes
--   **Window Size**: 15 minutes (rolling)
--   **Data Quality Requirement**: ≥70% of events must have RU data (suppresses alert if insufficient telemetry)
+- **Fire Threshold**: RU% >70% for 3 consecutive 5-minute windows (15 minutes sustained)
+- **Resolve Threshold**: RU% <65% for 2 consecutive windows (10 minutes)
+- **Evaluation Frequency**: Every 5 minutes
+- **Window Size**: 15 minutes (rolling)
+- **Data Quality Requirement**: ≥70% of events must have RU data (suppresses alert if insufficient telemetry)
 
 **Alert Payload Context:**
 
--   `RUPercent`: Current RU utilization percentage
--   `Interval`: Number of consecutive high-RU intervals
--   `TopOperations`: Top operations by RU consumption
--   `DataQuality`: Percentage of events with RU data
+- `RUPercent`: Current RU utilization percentage
+- `Interval`: Number of consecutive high-RU intervals
+- `TopOperations`: Top operations by RU consumption
+- `DataQuality`: Percentage of events with RU data
 
 **Configuration:**
 
--   **Main Parameters** (in `infrastructure/main.bicep`):
-    -   `provisionedRuPerSecond`: Provisioned RU/s throughput (default: 400)
-    -   `enabled`: Enable/disable alert (default: true)
+- **Main Parameters** (in `infrastructure/main.bicep`):
+    - `provisionedRuPerSecond`: Provisioned RU/s throughput (default: 400)
+    - `enabled`: Enable/disable alert (default: true)
 
--   **Module Parameters** (in `infrastructure/alert-ru-utilization.bicep`):
-    -   `fireRuPercentThreshold`: RU% to trigger alert (default: 70)
-    -   `resolveRuPercentThreshold`: RU% to auto-resolve (default: 65)
-    -   `consecutiveFireWindows`: Consecutive windows above fire threshold (default: 3)
-    -   `consecutiveResolveWindows`: Consecutive windows below resolve threshold (default: 2)
-    -   `minDataQualityPercent`: Minimum % of events with RU data (default: 70)
+- **Module Parameters** (in `infrastructure/alert-ru-utilization.bicep`):
+    - `fireRuPercentThreshold`: RU% to trigger alert (default: 70)
+    - `resolveRuPercentThreshold`: RU% to auto-resolve (default: 65)
+    - `consecutiveFireWindows`: Consecutive windows above fire threshold (default: 3)
+    - `consecutiveResolveWindows`: Consecutive windows below resolve threshold (default: 2)
+    - `minDataQualityPercent`: Minimum % of events with RU data (default: 70)
 
 **Parameter Tuning Table:**
 
-| Parameter | Default | Purpose | Tuning Guidance |
-|-----------|---------|---------|----------------|
-| `fireRuPercentThreshold` | 70 | RU% to fire alert | Lower for early warning; higher to reduce false positives |
-| `resolveRuPercentThreshold` | 65 | RU% to auto-resolve | Should be 5-10% below fire threshold to avoid flapping |
-| `consecutiveFireWindows` | 3 | Sustained high required | Increase to filter transient spikes |
-| `consecutiveResolveWindows` | 2 | Sustained recovery required | Should be < consecutiveFireWindows |
-| `minDataQualityPercent` | 70 | Telemetry quality gate | Increase if RU tracking is reliable |
+| Parameter                   | Default | Purpose                     | Tuning Guidance                                           |
+| --------------------------- | ------- | --------------------------- | --------------------------------------------------------- |
+| `fireRuPercentThreshold`    | 70      | RU% to fire alert           | Lower for early warning; higher to reduce false positives |
+| `resolveRuPercentThreshold` | 65      | RU% to auto-resolve         | Should be 5-10% below fire threshold to avoid flapping    |
+| `consecutiveFireWindows`    | 3       | Sustained high required     | Increase to filter transient spikes                       |
+| `consecutiveResolveWindows` | 2       | Sustained recovery required | Should be < consecutiveFireWindows                        |
+| `minDataQualityPercent`     | 70      | Telemetry quality gate      | Increase if RU tracking is reliable                       |
 
 **Data Source:**
 
--   `Graph.Query.Executed` events with `ruCharge` dimension
+- `Graph.Query.Executed` events with `ruCharge` dimension
 
 **Related ADRs:**
 
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — 70% RU threshold
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — 70% RU threshold
 
 **Response Guidance:**
 
@@ -338,7 +340,44 @@ Detect sustained high RU consumption (>70%) over multiple consecutive 5-minute w
 
 **Issue Tracking:**
 
--   **Original Issue**: [#292 - Sustained High RU Utilization Alert]
+- **Original Issue**: [#292 - Sustained High RU Utilization Alert]
+
+---
+
+#### Consolidated Operation Latency Monitoring
+
+**Alert IDs:** `alert-latency-consolidated-critical`, `alert-latency-consolidated-warning`  
+**Bicep Module:** `infrastructure/alerts-operation-latency-consolidated.bicep`  
+**Status:** Active (wired in `infrastructure/main.bicep`)
+
+**Purpose:**  
+Detect high P95 latency across monitored Gremlin operations using two consolidated rules (critical + warning) instead of many per-operation rules.
+
+**Trigger Conditions:**
+
+- **Critical**: P95 latency `>600ms`
+- **Warning**: P95 latency `>500ms`
+- **Evaluation Frequency**: Every 10 minutes
+- **Window Size**: 10 minutes
+- **Sample Gate**: Minimum 20 calls per operation per window
+
+**Configuration:**
+
+- **Module Parameters** (in `infrastructure/alerts-operation-latency-consolidated.bicep`):
+    - `criticalThresholdMs` (default: 600)
+    - `warningThresholdMs` (default: 500)
+    - `minSampleSize` (default: 20)
+
+**Data Source:**
+
+- `Graph.Query.Executed` events with `operationName` and `latencyMs`
+
+**Response Guidance:**
+
+1. Identify affected operations in alert payload.
+2. Compare with RU/utilization trends in Player Operations dashboard.
+3. Prioritize high-call operations with persistent high P95.
+4. Optimize query shape or scale RU where appropriate.
 
 ---
 
@@ -346,7 +385,7 @@ Detect sustained high RU consumption (>70%) over multiple consecutive 5-minute w
 
 **Alert ID:** `alert-composite-partition-pressure-{name}`  
 **Bicep Module:** `infrastructure/alert-composite-partition-pressure.bicep`  
-**Status:** Active (M2 Observability)
+**Status:** Planned (module exists, not currently wired in `infrastructure/main.bicep`)
 
 **Purpose:**  
 Multi-signal critical alert combining RU%, throttling (429), and latency degradation to reduce false positives and signal urgent partition pressure requiring immediate intervention. Fires only when all three conditions are met simultaneously.
@@ -361,48 +400,48 @@ All three conditions must be met in the same 5-minute window:
 
 **Baseline Requirements:**
 
--   **Baseline Window**: Rolling 24 hours (excluding current hour to avoid skew)
--   **Minimum Samples**: ≥100 `Graph.Query.Executed` events in baseline window
--   **Suppression**: Alert suppressed if baseline sample count <100 (diagnostic event logged instead)
+- **Baseline Window**: Rolling 24 hours (excluding current hour to avoid skew)
+- **Minimum Samples**: ≥100 `Graph.Query.Executed` events in baseline window
+- **Suppression**: Alert suppressed if baseline sample count <100 (diagnostic event logged instead)
 
 **Alert Payload Context:**
 
--   `ruPercent`: Current RU utilization percentage
--   `count429`: Number of 429 throttling responses
--   `currentP95Latency`: Current P95 latency (ms)
--   `baselineP95Latency`: 24-hour baseline P95 latency (ms)
--   `latencyIncreasePct`: Percentage increase from baseline
--   `sampleCount`: Current window sample count
--   `baselineSampleCount`: Baseline window sample count
--   `top2Operations`: Top 2 operations by RU consumption
+- `ruPercent`: Current RU utilization percentage
+- `count429`: Number of 429 throttling responses
+- `currentP95Latency`: Current P95 latency (ms)
+- `baselineP95Latency`: 24-hour baseline P95 latency (ms)
+- `latencyIncreasePct`: Percentage increase from baseline
+- `sampleCount`: Current window sample count
+- `baselineSampleCount`: Baseline window sample count
+- `top2Operations`: Top 2 operations by RU consumption
 
 **Configuration:**
 
--   **Main Parameters** (in `infrastructure/main.bicep`):
-    -   `maxRuPerInterval`: Maximum RU per 5-minute interval (default: 120000 for 400 RU/s × 300s)
+- **Main Parameters** (in `infrastructure/main.bicep`):
+    - `maxRuPerInterval`: Maximum RU per 5-minute interval (default: 120000 for 400 RU/s × 300s)
 
--   **Module Parameters** (in `infrastructure/alert-composite-partition-pressure.bicep`):
-    -   `ruPercentThreshold`: RU% threshold (default: 70)
-    -   `throttlingCountThreshold`: Minimum 429 count (default: 3)
-    -   `latencyIncreasePercentThreshold`: Latency increase % vs baseline (default: 25)
-    -   `minBaselineSamples`: Minimum baseline samples required (default: 100)
+- **Module Parameters** (in `infrastructure/alert-composite-partition-pressure.bicep`):
+    - `ruPercentThreshold`: RU% threshold (default: 70)
+    - `throttlingCountThreshold`: Minimum 429 count (default: 3)
+    - `latencyIncreasePercentThreshold`: Latency increase % vs baseline (default: 25)
+    - `minBaselineSamples`: Minimum baseline samples required (default: 100)
 
 **Parameter Tuning Table:**
 
-| Parameter | Default | Purpose | Tuning Guidance |
-|-----------|---------|---------|----------------|
-| `ruPercentThreshold` | 70 | RU% component | Align with RU utilization alert |
-| `throttlingCountThreshold` | 3 | 429 count component | Lower = more sensitive to throttling |
-| `latencyIncreasePercentThreshold` | 25 | Latency degradation % | Lower = more sensitive to latency impact |
-| `minBaselineSamples` | 100 | Baseline quality gate | Higher = more reliable baseline comparison |
+| Parameter                         | Default | Purpose               | Tuning Guidance                            |
+| --------------------------------- | ------- | --------------------- | ------------------------------------------ |
+| `ruPercentThreshold`              | 70      | RU% component         | Align with RU utilization alert            |
+| `throttlingCountThreshold`        | 3       | 429 count component   | Lower = more sensitive to throttling       |
+| `latencyIncreasePercentThreshold` | 25      | Latency degradation % | Lower = more sensitive to latency impact   |
+| `minBaselineSamples`              | 100     | Baseline quality gate | Higher = more reliable baseline comparison |
 
 **Data Source:**
 
--   `Graph.Query.Executed` events with `ruCharge`, `latencyMs`/`durationMs`, `statusCode`/`httpStatusCode` dimensions
+- `Graph.Query.Executed` events with `ruCharge`, `latencyMs`/`durationMs`, `statusCode`/`httpStatusCode` dimensions
 
 **Related ADRs:**
 
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Multi-signal thresholds
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Multi-signal thresholds
 
 **Response Guidance:**
 
@@ -414,12 +453,12 @@ All three conditions must be met in the same 5-minute window:
 
 **Escalation Path:**
 
--   **Critical Severity**: Immediate escalation; may indicate imminent service degradation
+- **Critical Severity**: Immediate escalation; may indicate imminent service degradation
 
 **Issue Tracking:**
 
--   **Original Issue**: [#294 - Composite Partition Pressure Alert]
--   **Dependencies**: [#292 - RU Alert], [#293 - 429 Spike Alert]
+- **Original Issue**: [#294 - Composite Partition Pressure Alert]
+- **Dependencies**: [#292 - RU Alert], [#293 - 429 Spike Alert]
 
 ---
 
@@ -448,9 +487,9 @@ All three conditions must be met in the same 5-minute window:
 
 **Trigger Conditions:**
 
--   **Threshold**: {metric} {operator} {value} over {window}
--   **Evaluation Frequency**: {minutes}
--   **Auto-Resolve**: {conditions}
+- **Threshold**: {metric} {operator} {value} over {window}
+- **Evaluation Frequency**: {minutes}
+- **Auto-Resolve**: {conditions}
 
 **Alert Payload Context:**  
 {Key dimensions/metrics included in alert}
@@ -472,13 +511,13 @@ All three conditions must be met in the same 5-minute window:
 
 ## Related Documentation
 
--   [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
--   [Threshold Tuning Report](./threshold-tuning.md) — Baseline metrics and threshold calibration methodology (Issue #297)
--   [Infrastructure README](../../infrastructure/README.md) — Bicep deployment parameters
--   [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition thresholds
--   [Observability Overview](../observability.md) — High-level monitoring strategy
+- [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
+- [Threshold Tuning Report](./threshold-tuning.md) — Baseline metrics and threshold calibration methodology (Issue #297)
+- [Infrastructure README](../../infrastructure/README.md) — Bicep deployment parameters
+- [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition thresholds
+- [Observability Overview](../observability.md) — High-level monitoring strategy
 
 ---
 
 **Last Updated:** 2025-11-08  
-**Alert Count:** 3 active alerts (429 Spike, RU Utilization, Composite Partition Pressure)
+**Alert Count:** 3 active alerts (SQL Hot Partition, RU Utilization, Consolidated Operation Latency)
