@@ -464,6 +464,48 @@ describe('Exit Generation Hint Integration', () => {
         assert.equal(outExit!.travelDurationMs, INTERIOR_TRAVEL_DURATION_MS, 'out exit should have interior travel duration')
     })
 
+    it('should drop in-direction hint from an interior location without creating any exit', async () => {
+        // Regression guard for the "Common Room → Unexplored Open Plain" bug:
+        // when a queued hint requests dir=in from a location that already has an 'out' exit
+        // (i.e. is an interior), the processor must silently drop it.
+        const interiorId = uuidv4()
+        const exteriorId = uuidv4()
+        await locationRepo.upsert({
+            id: exteriorId,
+            name: 'Tavern Exterior',
+            description: 'A door to a common room.',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [{ direction: 'in', to: interiorId }],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: interiorId,
+            name: 'Common Room',
+            description: 'Low rafters and warm light.',
+            terrain: 'open-plain',
+            tags: [],
+            exits: [{ direction: 'out', to: exteriorId }],
+            exitAvailability: { pending: {} },
+            version: 1
+        })
+
+        const beforeCount = await snapshotLocationCount()
+        const ctx = await fixture.createInvocationContext()
+        const message = buildHintMessage(interiorId, 'in', uuidv4())
+
+        // Should complete without throwing
+        await queueProcessExitGenerationHint(message, ctx as unknown as InvocationContext)
+
+        // No new location should have been created
+        await assertLocationCountUnchanged(beforeCount, 'Interior in-exit hint must not create a stub location')
+
+        // The interior's exit list must still only contain 'out' (no new 'in' wired)
+        const interior = await locationRepo.get(interiorId)
+        const inExit = interior?.exits?.find((e) => e.direction === 'in')
+        assert.equal(inExit, undefined, 'Interior must not gain an in exit via hint processing')
+    })
+
     it('should persist ASCENT_TRAVEL_DURATION_MS for up exits and DESCENT_TRAVEL_DURATION_MS for down exits', async () => {
         const originUpId = uuidv4()
         const originDownId = uuidv4()

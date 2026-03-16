@@ -331,6 +331,22 @@ export class MoveHandler extends BaseHandler {
             //     return no-exit error without generation hint
             // }
 
+            // Interior locations (those with an 'out' exit) must never generate an 'in' exit.
+            // Allowing it would wire an open-world frontier stub into an enclosed interior,
+            // e.g. a tavern common room opening into an Unexplored Open Plain.
+            if (dir === 'in' && from.exits?.some((e) => e.direction === 'out')) {
+                return {
+                    success: false,
+                    error: {
+                        type: 'generate',
+                        statusCode: 400,
+                        reason: 'no-exit',
+                        clarification: `No exit ${dir} from here yet. Your interest has been noted.`
+                    },
+                    latencyMs: Date.now() - started
+                }
+            }
+
             // Valid canonical direction but no exit - emit generation hint
             const hintStore = getExitGenerationHintStore()
             const playerId = this.playerGuid || 'anonymous'

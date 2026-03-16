@@ -433,6 +433,31 @@ export class QueueProcessExitGenerationHintHandler {
             return
         }
 
+        // 10a. Suppress 'in' generation from interior locations.
+        // A location is treated as an interior when it already has an 'out' exit (it's inside
+        // something else). Wiring a further 'in' from there would create nonsensical topology,
+        // e.g. a tavern common-room opening onto an Unexplored Open Plain.
+        if (payload.dir === 'in' && origin.exits?.some((e) => e.direction === 'out')) {
+            context.log('Exit generation hint: suppressed in-exit from interior location', {
+                dir: payload.dir,
+                originLocationIdHash: hashPrefix(payload.originLocationId),
+                correlationId
+            })
+            this.telemetryService.trackGameEventStrict(
+                'Navigation.Exit.GenerationRequested',
+                {
+                    dir: payload.dir,
+                    originLocationIdHash: hashPrefix(payload.originLocationId),
+                    playerIdHash: hashPrefix(payload.playerId),
+                    debounced: payload.debounced,
+                    outcome: 'forbidden-interior',
+                    correlationId
+                },
+                { correlationId }
+            )
+            return
+        }
+
         // 10. Check if direction is forbidden by generation policy
         const forbiddenEntry = origin.exitAvailability?.forbidden?.[payload.dir as Direction]
         if (forbiddenEntry !== undefined) {

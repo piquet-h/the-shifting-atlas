@@ -6,6 +6,7 @@
  * - Emits Navigation.Exit.GenerationRequested with hashed identifiers and debounceHit flag
  * - No event when EXIT exists (normal movement)
  * - Debounce effectiveness (identical requests within window)
+ * - Interior locations (those with an 'out' exit) must NOT emit hints for 'in' direction
  */
 import type { HttpRequest, InvocationContext } from '@azure/functions'
 import { resetExitGenerationHintStore, STARTER_LOCATION_ID } from '@piquet-h/shared'
@@ -139,6 +140,88 @@ describe('Exit Generation Hint Integration', () => {
         // Should only emit one event (first request), second should be debounced
         assert.equal(generationEvents.length, 1, 'Should only emit one event due to debounce')
         assert.equal(generationEvents[0].properties.debounceHit, false, 'First event should not be debounced')
+    })
+
+    test('interior location: move in suppresses hint emission and does not enqueue message', async () => {
+        // Arrange: materialize an interior room by seeding a location with an 'out' exit
+        // (the Common Room bug: interior had an 'out' exit back to the street but also
+        // accidentally gained an 'in' exit via hint processing).
+        const ctx = await createMockContext(fixture)
+        const locationRepo = await fixture.getLocationRepository()
+        const interiorId = 'aaaaaaaa-0000-4000-8000-000000000001'
+        const exteriorId = 'aaaaaaaa-0000-4000-8000-000000000002'
+        await locationRepo.upsert({
+            id: exteriorId,
+            name: 'Lantern and Ladle',
+            description: 'A tavern exterior.',
+            exits: [{ direction: 'in', to: interiorId }],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: interiorId,
+            name: 'Lantern and Ladle — Common Room',
+            description: 'Stew steam and low songs.',
+            exits: [{ direction: 'out', to: exteriorId }],
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        const telemetry = container.get<MockTelemetryClient>('ITelemetryClient')
+        const publisher = container.get<InMemoryExitGenerationHintPublisher>(
+            TOKENS.ExitGenerationHintPublisher
+        ) as InMemoryExitGenerationHintPublisher
+        telemetry.clear()
+
+        // Player is inside the Common Room and tries 'move in'
+        const playerId = '00000000-0000-4000-8000-000000000042'
+        const req = makeMoveRequest({ dir: 'in', from: interiorId }, { 'x-player-guid': playerId }, { playerId }) as HttpRequest
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
+        // Should fail with no-exit (not a crash)
+        assert.equal(res.success, false)
+        assert.equal(res.error?.statusCode, 400)
+
+        // Must NOT emit a generation-requested telemetry event for the 'in' direction
+        const genEvent = telemetry.events.find((e) => e.name === 'Navigation.Exit.GenerationRequested')
+        assert.equal(genEvent, undefined, 'Interior location must not emit generation hint for in direction')
+
+        // Must NOT enqueue any hint message
+        const enqueued = publisher.enqueuedMessages.filter((m) => m.payload?.dir === 'in')
+        assert.equal(enqueued.length, 0, 'Interior location must not enqueue in-direction hint')
+    })
+
+    test('interior location: move in response has no generationHint payload', async () => {
+        // Regression: generationHint must be absent so the frontend cannot trigger
+        // world expansion from inside a structure.
+        const ctx = await createMockContext(fixture)
+        const locationRepo = await fixture.getLocationRepository()
+        const interiorId = 'bbbbbbbb-0000-4000-8000-000000000001'
+        const exteriorId = 'bbbbbbbb-0000-4000-8000-000000000002'
+        await locationRepo.upsert({
+            id: exteriorId,
+            name: 'Exterior',
+            description: 'Outside.',
+            exits: [{ direction: 'in', to: interiorId }],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: interiorId,
+            name: 'Interior',
+            description: 'Inside.',
+            exits: [{ direction: 'out', to: exteriorId }],
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(MoveHandler)
+        const req = makeMoveRequest({ dir: 'in', from: interiorId }) as HttpRequest
+        await handler.handle(req, ctx)
+        const res = await handler.performMove(req)
+
+        assert.equal(res.success, false)
+        assert.equal(res.error?.generationHint, undefined, 'generationHint must not be present for interior in-exit attempt')
     })
 
     test('different directions at same location are not debounced', async () => {
