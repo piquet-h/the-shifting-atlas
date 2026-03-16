@@ -423,3 +423,44 @@ test('unknown World.Reconnection.* variant rejected', () => {
     assert.equal(isGameEventName('World.Reconnection.Unknown'), false, 'Unknown World.Reconnection.* variant should be rejected')
     assert.equal(isGameEventName('World.Reconnection.Retried'), false, 'Unregistered World.Reconnection.* variant should be rejected')
 })
+
+// Agent pipeline telemetry events (issue #907 — agent run observability)
+test('Agent.Step.Start is registered', () => {
+    assert.ok(isGameEventName('Agent.Step.Start'), 'Agent.Step.Start should be recognized')
+})
+
+test('Agent.Step.Completed is registered', () => {
+    assert.ok(isGameEventName('Agent.Step.Completed'), 'Agent.Step.Completed should be recognized')
+})
+
+test('Agent.Proposal.Validated is registered', () => {
+    assert.ok(isGameEventName('Agent.Proposal.Validated'), 'Agent.Proposal.Validated should be recognized')
+})
+
+test('Agent.Proposal.Rejected is registered', () => {
+    assert.ok(isGameEventName('Agent.Proposal.Rejected'), 'Agent.Proposal.Rejected should be recognized')
+})
+
+test('Agent.Effect.Applied is registered', () => {
+    assert.ok(isGameEventName('Agent.Effect.Applied'), 'Agent.Effect.Applied should be recognized')
+})
+
+test('Agent pipeline events all match telemetry pattern', () => {
+    const pipelineEvents = [
+        'Agent.Step.Start',
+        'Agent.Step.Completed',
+        'Agent.Proposal.Validated',
+        'Agent.Proposal.Rejected',
+        'Agent.Effect.Applied'
+    ]
+    for (const event of pipelineEvents) {
+        assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match Domain.Subject.Action pattern`)
+        assert.ok(isGameEventName(event), `${event} should be in GAME_EVENT_NAMES registry`)
+    }
+})
+
+test('unknown Agent.Step.* and Agent.Proposal.* variants are rejected', () => {
+    assert.equal(isGameEventName('Agent.Step.Unknown'), false, 'Unknown Agent.Step.* variant should be rejected')
+    assert.equal(isGameEventName('Agent.Proposal.Unknown'), false, 'Unknown Agent.Proposal.* variant should be rejected')
+    assert.equal(isGameEventName('Agent.Effect.Unknown'), false, 'Unknown Agent.Effect.* variant should be rejected')
+})
