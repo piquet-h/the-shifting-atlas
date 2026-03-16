@@ -1,6 +1,6 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> **Status** (2026-01-13): PARTIALLY IMPLEMENTED. Read-only MCP tools exist in the backend (Azure Functions `app.mcpTool(...)` registrations under `backend/src/mcp/` for `WorldContext-*` and `Lore-*`). The orchestration layer (agent runner) and any write/proposal MCP surfaces remain planned.
+> **Status** (2026-03-15): IMPLEMENTED (M4c complete). Read-only MCP tools are live (`WorldContext-*`, `Lore-*`). The write-lite agent sandbox is implemented: `AgentStepHandler` (autonomous queue loop), `AgentProposalApplicator` (write gate), and `POST /api/agent/propose` (external agent entry point) are all in production. See [`agent-sandbox-contracts.md`](./agent-sandbox-contracts.md) for the full pipeline and safety gates. Write-capable MCP surfaces remain intentionally deferred — all agent-sourced mutations flow through the HTTP/queue proposal+validate+apply pipeline, not via MCP tools.
 
 > **Important**: This architecture is intentionally **agent-runtime-agnostic at the contract level**, but this repo’s execution posture is **Foundry-first**.
 >
@@ -445,6 +445,7 @@ Clients must handle HTTP 429 with `Retry-After` and should back off aggressively
 - `overview.md` – High-level architecture; this doc elaborates the AI layer.
 - `mvp-azure-architecture.md` – Incorporates Stage M3 insertion points.
 - `location-version-policy.md` – Exit changes do not affect location version
+- `agent-sandbox-contracts.md` – Concrete proposal envelope schema, allow-listed action types, validator rules, telemetry events, and debugging workflow for the write-lite sandbox.
 - `../design-modules/ai-prompt-engineering.md` – Prompt lifecycle & genesis, enhanced by MCP tool abstraction.
 - `../design-modules/world-rules-and-lore.md` – Lore retrieval & layered descriptions feeding retrieval tools.
 
