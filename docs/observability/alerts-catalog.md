@@ -509,9 +509,54 @@ All three conditions must be met in the same 5-minute window:
 
 ---
 
+### Agent Sandbox DLQ Spike
+
+**Alert ID:** `alert-agent-dlq-spike-{name}`  
+**Bicep Module:** `infrastructure/alert-agent-dlq-spike.bicep`  
+**Status:** Active
+
+**Purpose:**  
+Fires when `World.Agent.*` events exceed the dead-letter threshold in a 5-minute window, indicating agent step failures that exhausted Service Bus retries. The alert does not distinguish failure cause — use the **Agent Sandbox Dashboard → Failure Category Breakdown** section to determine whether the failures are permanent (schema/json-parse) or transient (handler-error) before taking action.
+
+**Trigger Conditions:**
+
+- **Fire**: ≥ `dlqCountThreshold` (default 5) dead-lettered `World.Agent.*` events in a 5-minute window
+- **Auto-resolve**: When the next evaluation window has fewer dead-letter entries than the threshold
+
+**Alert Payload Context:**
+
+- **DLQCount**: Number of `World.Agent.*` dead-letter entries in the window
+
+**Configuration:**
+
+| Parameter | Default | Purpose |
+|---|---|---|
+| `dlqCountThreshold` | 5 | Minimum DLQ entries to trigger |
+| `evaluationFrequencyMinutes` | 5 | Evaluation window size |
+| `severity` | 2 (Warning) | Alert severity level |
+
+**Data Source:**
+
+- `World.Event.DeadLettered` events with `eventType startswith 'World.Agent.'`
+
+**Response Guidance:**
+
+1. Open **Agent Sandbox Dashboard → Failure Category Breakdown → DLQ Entries by Error Code** to classify the failure.
+2. If `errorCode == 'schema-validation'` or `'json-parse'`: permanent failure — fix schema/prompt before replaying; do not replay old records.
+3. If `errorCode == 'handler-error'`: transient — verify dependency (Cosmos DB) has recovered, then replay via `AgentReplayHarness`.
+4. Full triage steps: [agent-failure-taxonomy.md](./agent-failure-taxonomy.md#dlq-triage-runbook).
+
+**Escalation Path:**
+
+- Alert auto-resolves when DLQ volume drops below threshold.
+- If DLQ volume persists for >30 minutes, escalate to on-call.
+
+---
+
 ## Related Documentation
 
 - [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
+- [Agent Failure Taxonomy & DLQ/Replay Runbook](./agent-failure-taxonomy.md) — Agent sandbox triage steps
 - [Threshold Tuning Report](./threshold-tuning.md) — Baseline metrics and threshold calibration methodology (Issue #297)
 - [Infrastructure README](../../infrastructure/README.md) — Bicep deployment parameters
 - [ADR-002: Graph Partition Strategy](../adr/ADR-002-graph-partition-strategy.md) — Partition thresholds
@@ -519,5 +564,5 @@ All three conditions must be met in the same 5-minute window:
 
 ---
 
-**Last Updated:** 2025-11-08  
-**Alert Count:** 3 active alerts (SQL Hot Partition, RU Utilization, Consolidated Operation Latency)
+**Last Updated:** 2026-03-16  
+**Alert Count:** 4 active alerts (SQL Hot Partition, RU Utilization, Consolidated Operation Latency, Agent DLQ Spike)
