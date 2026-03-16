@@ -209,9 +209,13 @@ export const GAME_EVENT_NAMES = [
     // Agent proposal lifecycle (minimal agent runtime - sense→decide→propose loop)
     'Agent.Proposal.Received', // Proposal submission received - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId, causationId? }
     'Agent.Proposal.Accepted', // Proposal passed all validation checks - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId }
+    'Agent.Proposal.Validated', // Proposal passed deterministic validation (issue #907) - properties: { proposalId, agentId, agentType, validationOutcome, decisionLatencyMs, correlationId, causationId? }
     'Agent.Proposal.Rejected', // Proposal failed deterministic validation - properties: { proposalId, actorKind, actionCount, rejectionCount, decisionLatencyMs, proposalCorrelationId }
     'Agent.Proposal.SchemaInvalid', // Proposal body failed schema parse (malformed agent output) - properties: { correlationId, issueCount }
     // Agent step lifecycle (queue-only autonomous agent hook - sense→decide→act)
+    'Agent.Step.Start', // Step handler initiated (issue #907) - properties: { agentId, agentType, locationId, stepSequence, correlationId, causationId? }
+    'Agent.Step.Completed', // Step handler finished — bookend for Agent.Step.Start (issue #907) - properties: { agentId, agentType, decisionLatencyMs, validationOutcome, correlationId, causationId? }
+    'Agent.Effect.Applied', // Effect durably applied to the world (issue #907) - properties: { agentId, agentType, actionType, scopeKey, layerId?, correlationId, causationId? }
     'Agent.Step.Processed', // Step handler completed (success or noop) - properties: { entityId, entityKind, locationId, stepSequence, outcome, latencyMs, correlationId, causationId? }
     'Agent.Step.LatencyExceeded', // Step exceeded latency budget - properties: { entityId, entityKind, latencyMs, budgetMs, correlationId }
     // TODO(#703): Agent.Step.EntityNotFound is reserved for when AgentStepHandler gains an entity

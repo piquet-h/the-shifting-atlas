@@ -132,6 +132,102 @@ describe('AgentStepHandler', () => {
         assert.ok(appliedEvent?.properties?.layerId, 'layerId should be present in applied event')
     })
 
+    // --- Agent pipeline telemetry (issue #907) --------------------------------
+
+    test('should emit Agent.Step.Start at step initiation', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:start' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const startEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Start')
+        assert.ok(startEvent, 'Agent.Step.Start should be emitted')
+        assert.strictEqual(startEvent?.properties?.agentId, 'npc-001')
+        assert.strictEqual(startEvent?.properties?.agentType, 'npc')
+        assert.strictEqual(startEvent?.properties?.locationId, 'loc-forest')
+        assert.strictEqual(startEvent?.properties?.correlationId, 'b0000000-0000-4000-8000-000000000001')
+    })
+
+    test('should emit Agent.Step.Completed with decisionLatencyMs and validationOutcome', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:completed' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const completedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Completed')
+        assert.ok(completedEvent, 'Agent.Step.Completed should be emitted')
+        assert.strictEqual(completedEvent?.properties?.agentId, 'npc-001')
+        assert.strictEqual(completedEvent?.properties?.agentType, 'npc')
+        assert.ok(typeof completedEvent?.properties?.decisionLatencyMs === 'number', 'decisionLatencyMs should be a number')
+        assert.ok(
+            ['applied', 'skipped', 'rejected'].includes(String(completedEvent?.properties?.validationOutcome)),
+            'validationOutcome should be applied, skipped, or rejected'
+        )
+    })
+
+    test('should emit Agent.Proposal.Validated when proposal passes validation', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:validated' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const validatedEvent = telemetry.events.find((e) => e.name === 'Agent.Proposal.Validated')
+        assert.ok(validatedEvent, 'Agent.Proposal.Validated should be emitted when proposal passes')
+        assert.strictEqual(validatedEvent?.properties?.agentId, 'npc-001')
+        assert.strictEqual(validatedEvent?.properties?.agentType, 'npc')
+        assert.strictEqual(validatedEvent?.properties?.validationOutcome, 'accepted')
+        assert.ok(typeof validatedEvent?.properties?.decisionLatencyMs === 'number', 'decisionLatencyMs should be a number')
+    })
+
+    test('should emit Agent.Effect.Applied when effect is applied to world', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:effect' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const effectEvent = telemetry.events.find((e) => e.name === 'Agent.Effect.Applied')
+        assert.ok(effectEvent, 'Agent.Effect.Applied should be emitted when effect is applied')
+        assert.strictEqual(effectEvent?.properties?.agentId, 'npc-001')
+        assert.strictEqual(effectEvent?.properties?.agentType, 'npc')
+        assert.strictEqual(effectEvent?.properties?.actionType, 'Layer.Add')
+        assert.ok(effectEvent?.properties?.scopeKey, 'scopeKey should be present')
+    })
+
+    test('should NOT emit Agent.Proposal.Validated when step is skipped (no validation needed)', async () => {
+        const layerRepo = await fixture.getLayerRepository()
+        await layerRepo.setLayerForLocation('loc-skip-test', 'ambient', 0, null, 'Existing ambient content.', { authoredBy: 'agent' })
+
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({
+            idempotencyKey: 'agent-step:npc-skip:1',
+            payload: { entityId: 'npc-skip', entityKind: 'npc', locationId: 'loc-skip-test', stepSequence: 1 }
+        })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const validatedEvent = telemetry.events.find((e) => e.name === 'Agent.Proposal.Validated')
+        assert.ok(!validatedEvent, 'Agent.Proposal.Validated should NOT be emitted when step is skipped')
+
+        const completedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Completed')
+        assert.ok(completedEvent, 'Agent.Step.Completed should still be emitted for skipped steps')
+        assert.strictEqual(completedEvent?.properties?.validationOutcome, 'skipped')
+    })
+
+    test('Agent.Step.Start and Agent.Step.Completed should have matching correlationId', async () => {
+        const correlationId = 'd0000000-0000-4000-8000-000000000042'
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:corr-pair', correlationId })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const startEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Start')
+        const completedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Completed')
+        assert.ok(startEvent, 'Agent.Step.Start should be emitted')
+        assert.ok(completedEvent, 'Agent.Step.Completed should be emitted')
+        assert.strictEqual(startEvent?.properties?.correlationId, correlationId)
+        assert.strictEqual(completedEvent?.properties?.correlationId, correlationId)
+    })
+
     test('should add an ambient layer to the location when none exists', async () => {
         const ctx = await fixture.createInvocationContext()
         const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:layer-add' })
