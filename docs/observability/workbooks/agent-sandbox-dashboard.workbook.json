@@ -1,0 +1,478 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Agent Sandbox Dashboard\n\nOperational view of autonomous agent behavior: decision latency, proposal outcomes, applied effects, and DLQ activity.\n\n**Included Telemetry:**\n- `Agent.Step.*` (step lifecycle: start, completed, skipped, latency exceeded)\n- `Agent.Proposal.*` (proposal validation: validated, rejected, schema invalid)\n- `Agent.Effect.Applied` (durable world writes by effect type)\n- `World.Event.DeadLettered` (DLQ entries for agent events)\n\n**Triage order:**\n1. Check **Step Latency Percentiles** — is latency trending up or exceeding the 5s budget?\n2. Check **Proposal Outcomes** and **Top Rejection Reasons** — are proposals being accepted or blocked by the validator?\n3. Check **Applied Effects by Type** — is the agent producing the expected variety of world writes?\n4. Check **DLQ Volume** — are agent step events failing to process and landing in the dead-letter queue?\n\n**Interpretation tips:**\n- `Agent.Step.Skipped` indicates the oscillation guard fired (ambient layer already exists) — a high skip rate is normal during active sessions.\n- High `Agent.Step.ActionRejected` with `firstRejectionCode` = `action-not-allowed` may indicate the agent is proposing disallowed action types.\n- Empty results are expected during low-traffic or seeded-world periods. Expand the time range before escalating.\n\n**Notes:**\n- Decision latency is measured from event dequeue to `Agent.Step.Completed`; it includes sense, decide, and apply phases.\n- Effect type cardinality is intentionally low: `Layer.Add`, `Ambience.Generate`, `NPC.Dialogue`.\n"
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "timerange-control",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "label": "Time Range",
+            "description": "Time window used by all queries in this workbook.",
+            "value": {
+              "durationMs": 86400000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 604800000
+                }
+              ]
+            }
+          },
+          {
+            "id": "agenttype-control",
+            "version": "KqlParameterItem/1.0",
+            "name": "AgentType",
+            "type": 2,
+            "label": "Agent Type (optional)",
+            "description": "Filter panels to a specific agent type. Use All for no filter.",
+            "query": "customEvents\n| where timestamp > ago(7d)\n| where name in ('Agent.Step.Completed', 'Agent.Effect.Applied')\n| extend agentType = tostring(customDimensions['agentType'])\n| where isnotempty(agentType)\n| distinct agentType\n| order by agentType asc",
+            "value": "All",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 604800000
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.insights/components"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step Latency"
+      },
+      "name": "latency-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.Completed'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    latencyMs = todouble(customDimensions['decisionLatencyMs']),\n    agentType = tostring(customDimensions['agentType']),\n    outcome = tostring(customDimensions['validationOutcome'])\n| where isnotnull(latencyMs) and latencyMs >= 0\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Steps = sum(ic),\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0),\n    AvgMs = round(avg(latencyMs), 0),\n    MaxMs = round(max(latencyMs), 0)\n  by AgentType = agentType\n| order by P95 desc",
+        "size": 0,
+        "title": "Step Latency Percentiles by Agent Type",
+        "noDataMessage": "No Agent.Step.Completed events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "P95",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen",
+                "customColumnWidthSetting": "120px"
+              },
+              "numberFormat": {
+                "unit": 23,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 0
+                }
+              }
+            },
+            {
+              "columnMatch": "P50",
+              "formatter": 0,
+              "numberFormat": {
+                "unit": 23,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 0
+                }
+              }
+            },
+            {
+              "columnMatch": "AvgMs",
+              "formatter": 0,
+              "numberFormat": {
+                "unit": 23,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 0
+                }
+              }
+            },
+            {
+              "columnMatch": "MaxMs",
+              "formatter": 0,
+              "numberFormat": {
+                "unit": 23,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 0
+                }
+              }
+            }
+          ]
+        }
+      },
+      "name": "latency-summary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.Completed'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    latencyMs = todouble(customDimensions['decisionLatencyMs']),\n    agentType = tostring(customDimensions['agentType'])\n| where isnotnull(latencyMs) and latencyMs >= 0\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    P50 = round(percentile(latencyMs, 50), 0),\n    P95 = round(percentile(latencyMs, 95), 0)\n  by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Step Latency Trend (p50 / p95, 1h buckets)",
+        "noDataMessage": "No Agent.Step.Completed events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart",
+        "chartSettings": {
+          "xAxis": "timestamp",
+          "yAxis": [
+            "P50",
+            "P95"
+          ],
+          "ySettings": {
+            "unit": 23,
+            "min": 0
+          }
+        }
+      },
+      "customWidth": "50",
+      "name": "latency-trend"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.LatencyExceeded'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    latencyMs = todouble(customDimensions['latencyMs']),\n    budgetMs = todouble(customDimensions['budgetMs']),\n    agentType = tostring(customDimensions['entityKind'])\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Exceeded = sum(ic),\n    AvgOverageMs = round(avg(latencyMs - budgetMs), 0),\n    MaxLatencyMs = round(max(latencyMs), 0)\n  by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Latency Budget Exceeded (1h buckets)",
+        "noDataMessage": "No Agent.Step.LatencyExceeded events in the selected time range. Budget is not being exceeded.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart",
+        "chartSettings": {
+          "xAxis": "timestamp",
+          "yAxis": [
+            "Exceeded"
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "latency-exceeded-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Proposals"
+      },
+      "name": "proposals-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name in ('Agent.Proposal.Validated', 'Agent.Step.ActionRejected', 'Agent.Step.Skipped', 'Agent.Step.ActionApplied')\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend agentType = tostring(coalesce(customDimensions['agentType'], customDimensions['entityKind']))\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Validated = sumif(ic, name == 'Agent.Proposal.Validated'),\n    Applied = sumif(ic, name == 'Agent.Step.ActionApplied'),\n    Rejected = sumif(ic, name == 'Agent.Step.ActionRejected'),\n    Skipped = sumif(ic, name == 'Agent.Step.Skipped')\n| extend Total = Validated + Applied + Rejected + Skipped\n| extend ValidatedPct = round(100.0 * Validated / iff(Total == 0, 1, Total), 1)\n| extend RejectedPct = round(100.0 * Rejected / iff(Total == 0, 1, Total), 1)\n| extend SkippedPct = round(100.0 * Skipped / iff(Total == 0, 1, Total), 1)\n| project Validated, ValidatedPct, Applied, Rejected, RejectedPct, Skipped, SkippedPct, Total",
+        "size": 4,
+        "title": "Proposal Outcomes Summary",
+        "noDataMessage": "No proposal or step events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "RejectedPct",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen",
+                "customColumnWidthSetting": "110px"
+              },
+              "numberFormat": {
+                "unit": 1,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 1
+                }
+              }
+            },
+            {
+              "columnMatch": "ValidatedPct",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "greenRed",
+                "customColumnWidthSetting": "110px"
+              },
+              "numberFormat": {
+                "unit": 1,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "name": "proposal-outcomes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.ActionRejected'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend firstRejectionCode = tostring(customDimensions['firstRejectionCode'])\n| where isnotempty(firstRejectionCode)\n| summarize Count = sum(ic) by RejectionCode = firstRejectionCode\n| order by Count desc\n| take 20",
+        "size": 0,
+        "title": "Top Rejection Reason Codes",
+        "noDataMessage": "No Agent.Step.ActionRejected events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Count",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "red",
+                "customColumnWidthSetting": "120px"
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "rejection-reasons"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name in ('Agent.Proposal.Validated', 'Agent.Step.ActionRejected')\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend agentType = tostring(coalesce(customDimensions['agentType'], customDimensions['entityKind']))\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Validated = sumif(ic, name == 'Agent.Proposal.Validated'),\n    Rejected = sumif(ic, name == 'Agent.Step.ActionRejected')\n  by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Proposal Validated vs Rejected Trend (1h buckets)",
+        "noDataMessage": "No proposal events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart",
+        "chartSettings": {
+          "xAxis": "timestamp",
+          "yAxis": [
+            "Validated",
+            "Rejected"
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "proposal-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Applied Effects"
+      },
+      "name": "effects-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Effect.Applied'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    actionType = tostring(customDimensions['actionType']),\n    agentType = tostring(customDimensions['agentType'])\n| where isnotempty(actionType)\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize Count = sum(ic) by ActionType = actionType, AgentType = agentType\n| order by Count desc",
+        "size": 0,
+        "title": "Applied Effects by Type",
+        "noDataMessage": "No Agent.Effect.Applied events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Count",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "blue",
+                "customColumnWidthSetting": "120px"
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "effects-by-type"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Effect.Applied'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    actionType = tostring(customDimensions['actionType']),\n    agentType = tostring(customDimensions['agentType'])\n| where isnotempty(actionType)\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize Count = sum(ic) by ActionType = actionType, bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Applied Effects Trend (1h buckets)",
+        "noDataMessage": "No Agent.Effect.Applied events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart",
+        "chartSettings": {
+          "xAxis": "timestamp",
+          "seriesLabelSettings": [
+            {
+              "seriesName": "Layer.Add",
+              "color": "blue"
+            },
+            {
+              "seriesName": "Ambience.Generate",
+              "color": "green"
+            },
+            {
+              "seriesName": "NPC.Dialogue",
+              "color": "purple"
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "effects-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## DLQ & Replay"
+      },
+      "name": "dlq-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'World.Event.DeadLettered'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    eventType = tostring(customDimensions['eventType']),\n    reason = tostring(customDimensions['reason'])\n| where eventType startswith 'World.Agent.'\n| summarize\n    Count = sum(ic),\n    FirstSeen = min(timestamp),\n    LastSeen = max(timestamp)\n  by EventType = eventType, Reason = reason\n| order by Count desc",
+        "size": 0,
+        "title": "DLQ Entries for Agent Events",
+        "noDataMessage": "No World.Event.DeadLettered entries for World.Agent.* events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Count",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen",
+                "customColumnWidthSetting": "120px"
+              }
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "dlq-volume"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'World.Event.DeadLettered'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend eventType = tostring(customDimensions['eventType'])\n| where eventType startswith 'World.Agent.'\n| summarize DLQCount = sum(ic) by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "DLQ Volume Trend for Agent Events (1h buckets)",
+        "noDataMessage": "No World.Event.DeadLettered entries for World.Agent.* events in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart",
+        "chartSettings": {
+          "xAxis": "timestamp",
+          "yAxis": [
+            "DLQCount"
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "dlq-trend"
+    }
+  ],
+  "_exportMetadata": {
+    "slug": "agent-sandbox-dashboard",
+    "exportedAt": "2026-03-16",
+    "note": "This file is auto-generated from Azure Application Insights workbook. Do not edit directly. Use scripts/observability/export-workbooks.mjs to update."
+  }
+}

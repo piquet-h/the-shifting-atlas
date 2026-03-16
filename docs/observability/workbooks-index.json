@@ -53,6 +53,43 @@
         "Graph.Query.Executed",
         "Graph.Query.Failed"
       ]
+    },
+    {
+      "id": "local-agent-sandbox-dashboard",
+      "name": "Agent Sandbox Dashboard",
+      "slug": "agent-sandbox-dashboard",
+      "description": "Operational view of autonomous agent behavior: decision latency percentiles (p50/p95), proposal acceptance and rejection rates, applied effect counts by type, and DLQ/replay activity for agent events.",
+      "owners": [
+        "observability"
+      ],
+      "consolidated": true,
+      "panels": [
+        "Step Latency Percentiles by Agent Type",
+        "Step Latency Trend (p50 / p95, 1h buckets)",
+        "Latency Budget Exceeded (1h buckets)",
+        "Proposal Outcomes Summary",
+        "Top Rejection Reason Codes",
+        "Proposal Validated vs Rejected Trend (1h buckets)",
+        "Applied Effects by Type",
+        "Applied Effects Trend (1h buckets)",
+        "DLQ Entries for Agent Events",
+        "DLQ Volume Trend for Agent Events (1h buckets)"
+      ],
+      "relatedIssues": [
+        700,
+        907
+      ],
+      "telemetryEvents": [
+        "Agent.Step.Start",
+        "Agent.Step.Completed",
+        "Agent.Step.Skipped",
+        "Agent.Step.ActionApplied",
+        "Agent.Step.ActionRejected",
+        "Agent.Step.LatencyExceeded",
+        "Agent.Proposal.Validated",
+        "Agent.Effect.Applied",
+        "World.Event.DeadLettered"
+      ]
     }
   ],
   "notes": {

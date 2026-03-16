@@ -1073,6 +1073,16 @@ module workbookAiOperations 'workbook-ai-operations-dashboard.bicep' = {
   }
 }
 
+// Workbook: Agent Sandbox Dashboard (latency, proposals, effects, DLQ — issues #700, #907)
+module workbookAgentSandbox 'workbook-agent-sandbox-dashboard.bicep' = {
+  name: 'workbook-agent-sandbox-dashboard'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
+
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
 // Replaced complex KQL query with Action Group correlation (alert processing rule)
