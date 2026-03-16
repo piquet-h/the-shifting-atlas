@@ -102,18 +102,20 @@ export class LocationLookHandler extends BaseHandler {
         // Attempt hero prose generation ONLY when no canonical writes are planned
         // Bounded blocking is allowed only for perception actions with no pending canonical writes.
         // When canonical writes are planned, skip generation and use safe fallback (baseline description).
+        let heroProseObtained = false
         if (!canonicalWritesPlanned) {
             try {
                 const generationStartTime = Date.now()
                 // Keep default aligned with HeroProseGenerator.DEFAULT_TIMEOUT_MS (code is source of truth).
                 const configuredTimeoutMs = Number.parseInt(process.env.HERO_PROSE_TIMEOUT_MS ?? '2500', 10)
                 const timeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0 ? configuredTimeoutMs : 2500
-                await this.heroProseGenerator.generateHeroProse({
+                const heroResult = await this.heroProseGenerator.generateHeroProse({
                     locationId: id,
                     locationName: loc.name,
                     baseDescription: loc.description,
                     timeoutMs
                 })
+                heroProseObtained = heroResult.success
                 const generationLatency = Date.now() - generationStartTime
                 if (generationLatency > 500) {
                     this.track('Timing.Op', {
@@ -127,6 +129,23 @@ export class LocationLookHandler extends BaseHandler {
                 // Generation errors don't block the response - fall back to base description
                 // Telemetry already emitted by HeroProseGenerator
             }
+        }
+
+        // Stale-while-revalidate: fire a background generation whenever the synchronous
+        // attempt was skipped (canonical writes planned) or did not produce prose
+        // (timeout / error). The prose is persisted to the layer repository; the next
+        // look call will serve the improved description.
+        // heroProseGenerator.generateHeroProse() is cache-aware and short-circuits
+        // instantly on a cache hit, so this call is idempotent.
+        if (!heroProseObtained) {
+            this.heroProseGenerator
+                .generateHeroProse({
+                    locationId: id,
+                    locationName: loc.name,
+                    baseDescription: loc.description,
+                    timeoutMs: 30_000 // No HTTP deadline pressure for background generation
+                })
+                .catch(() => void 0) // Non-blocking: errors surfaced via telemetry in HeroProseGenerator
         }
 
         try {
@@ -164,7 +183,8 @@ export class LocationLookHandler extends BaseHandler {
                 supersededSentences: supersededCount,
                 cacheHit: !!loc.exitsSummaryCache,
                 heroProseAttempted: !canonicalWritesPlanned,
-                heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined
+                heroProseSkipReason: canonicalWritesPlanned ? 'canonical-writes-planned' : undefined,
+                heroProseBackgroundFired: !heroProseObtained
             })
 
             // Build exit availability info using shared helper

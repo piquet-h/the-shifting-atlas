@@ -604,4 +604,85 @@ describe('LocationLookHandler - Hero Prose Flow (Unit Tests)', () => {
             assert.ok(text.length <= 1200 || !text.includes('AAAA'), 'Should use baseline instead of invalid hero')
         })
     })
+
+    describe('Background Generation (Stale-While-Revalidate)', () => {
+        test('fires background generation when canonical writes are planned (no exitsSummaryCache)', async () => {
+            // Do NOT set exitsSummaryCache — canonicalWritesPlanned will be true.
+            // Sync hero generation is skipped. After the handler returns, background
+            // generation should fire and persist the hero layer so the next look shows it.
+            bindAzureOpenAIConfig({
+                endpoint: 'https://test.openai.azure.com',
+                model: 'scene-phi-4-mini'
+            })
+
+            const mockAOAI: IAzureOpenAIClient = {
+                generate: async (): Promise<OpenAIGenerateResult> => ({
+                    content: 'Ancient stone halls, fire-lit and silent.',
+                    tokenUsage: { prompt: 12, completion: 18, total: 30 }
+                }),
+                healthCheck: async () => true
+            }
+            bindAzureOpenAIClient(mockAOAI)
+
+            const handler = container.get(LocationLookHandler)
+            const res = await handler.handle(createMockRequest(STARTER_LOCATION_ID), createMockContext())
+            assert.strictEqual(res.status, 200, 'Handler should return 200 immediately with baseline prose')
+
+            // Allow the fire-and-forget background generation to complete.
+            await new Promise((resolve) => setTimeout(resolve, 100))
+
+            const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+            const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
+            assert.ok(heroLayer, 'Background generation should have persisted a hero layer for next look')
+            assert.strictEqual(heroLayer?.value, 'Ancient stone halls, fire-lit and silent.')
+        })
+
+        test('fires background generation when synchronous attempt times out', async () => {
+            // Set exitsSummaryCache → canonicalWritesPlanned=false → sync attempt runs.
+            // Sync generation times out (very low budget). Background fires with a long
+            // budget and persists the prose — next look shows the improved description.
+            await locationRepo.updateExitsSummaryCache(STARTER_LOCATION_ID, 'Exits: none')
+            bindAzureOpenAIConfig({
+                endpoint: 'https://test.openai.azure.com',
+                model: 'scene-phi-4-mini'
+            })
+
+            const original = process.env.HERO_PROSE_TIMEOUT_MS
+            process.env.HERO_PROSE_TIMEOUT_MS = '1' // force sync to time out
+
+            try {
+                const mockAOAI: IAzureOpenAIClient = {
+                    generate: async (): Promise<OpenAIGenerateResult> => {
+                        // Takes longer than sync budget (1ms) but well within background budget (30s).
+                        await new Promise((resolve) => setTimeout(resolve, 15))
+                        return {
+                            content: 'Shadows dance on moss-covered walls.',
+                            tokenUsage: { prompt: 10, completion: 15, total: 25 }
+                        }
+                    },
+                    healthCheck: async () => true
+                }
+                bindAzureOpenAIClient(mockAOAI)
+
+                const handler = container.get(LocationLookHandler)
+                const res = await handler.handle(createMockRequest(STARTER_LOCATION_ID), createMockContext())
+                assert.strictEqual(res.status, 200, 'Handler should return 200 with baseline despite sync timeout')
+
+                // Wait for background to complete (mock takes 15ms per call; sync took one pass,
+                // background takes another; total ~30ms — 200ms is a safe upper bound).
+                await new Promise((resolve) => setTimeout(resolve, 200))
+
+                const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+                const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
+                assert.ok(heroLayer, 'Background generation should have persisted hero layer after sync timeout')
+                assert.strictEqual(heroLayer?.value, 'Shadows dance on moss-covered walls.')
+            } finally {
+                if (original === undefined) {
+                    delete process.env.HERO_PROSE_TIMEOUT_MS
+                } else {
+                    process.env.HERO_PROSE_TIMEOUT_MS = original
+                }
+            }
+        })
+    })
 })

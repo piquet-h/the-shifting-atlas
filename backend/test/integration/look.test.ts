@@ -278,7 +278,7 @@ describe('LOOK Command Flow', () => {
             assert.strictEqual(heroLayer?.value, heroText)
         })
 
-        test('cache miss: skips hero prose generation (canonical writes planned)', async () => {
+        test('cache miss: skips SYNCHRONOUS hero prose generation but fires background (canonical writes planned)', async () => {
             const repo = await fixture.getLocationRepository()
 
             // Get location without cache (or clear it) to simulate cache miss
@@ -294,12 +294,13 @@ describe('LOOK Command Flow', () => {
             const existingLayers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
             assert.ok(!existingLayers.some((l) => l.metadata?.role === 'hero'), 'Precondition: no hero prose should exist')
 
+            const heroText = 'Background-fired hero prose after canonical write.'
             let openaiCalled = 0
             const openaiStub: IAzureOpenAIClient = {
                 generate: async () => {
                     openaiCalled += 1
                     return {
-                        content: 'This should not be generated',
+                        content: heroText,
                         tokenUsage: { prompt: 10, completion: 20, total: 30 }
                     }
                 },
@@ -317,25 +318,27 @@ describe('LOOK Command Flow', () => {
             } as unknown as HttpRequest
 
             const res = await handler.handle(req, ctx)
-            assert.strictEqual(res.status, 200, 'Should return 200 OK')
+            assert.strictEqual(res.status, 200, 'Should return 200 OK immediately with baseline prose')
 
-            // Hero prose generation should have been SKIPPED
-            assert.strictEqual(openaiCalled, 0, 'Azure OpenAI should NOT be called when canonical writes planned')
+            // Handler returns immediately — synchronous generation was skipped.
+            // Background generation fires asynchronously; give it time to complete.
+            await new Promise((resolve) => setTimeout(resolve, 100))
 
-            // Hero layer should NOT be persisted
+            // Background generation should have fired and persisted the hero layer.
+            assert.ok(openaiCalled >= 1, 'Background generation should have called AOAI')
             const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
             const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
-            assert.ok(!heroLayer, 'Hero layer should NOT be persisted on cache miss')
+            assert.ok(heroLayer, 'Background generation should have persisted a hero layer')
 
-            // But the exitsSummaryCache should still be persisted (canonical write)
+            // Canonical write should also have happened
             const updated = await repo.get(STARTER_LOCATION_ID)
-            assert.ok(updated?.exitsSummaryCache, 'exitsSummaryCache should be persisted even when hero prose is skipped')
+            assert.ok(updated?.exitsSummaryCache, 'exitsSummaryCache should be persisted (canonical write)')
         })
 
-        test('cache miss with AOAI configured: still skips bounded blocking', async () => {
+        test('cache miss with AOAI configured: returns 200 immediately then fires background generation', async () => {
             const repo = await fixture.getLocationRepository()
 
-            // Clear cache to simulate cache miss
+            // Clear cache to simulate cache miss (canonical writes planned)
             const location = await repo.get(STARTER_LOCATION_ID)
             if (location?.exitsSummaryCache) {
                 await repo.updateExitsSummaryCache(STARTER_LOCATION_ID, '')
@@ -345,9 +348,8 @@ describe('LOOK Command Flow', () => {
             const openaiStub: IAzureOpenAIClient = {
                 generate: async () => {
                     openaiCalled += 1
-                    // Even if AOAI is available, it should not be called on cache miss
                     return {
-                        content: 'Should not be generated',
+                        content: 'Prose generated in background.',
                         tokenUsage: { prompt: 10, completion: 20, total: 30 }
                     }
                 },
@@ -365,13 +367,16 @@ describe('LOOK Command Flow', () => {
             } as unknown as HttpRequest
 
             const res = await handler.handle(req, ctx)
-            assert.strictEqual(res.status, 200, 'Should return 200 OK')
+            assert.strictEqual(res.status, 200, 'Should return 200 OK immediately')
 
-            // Hero prose generation should be skipped
-            assert.strictEqual(openaiCalled, 0, 'AOAI should not be called even when configured if canonical writes planned')
+            // Allow background generation to complete.
+            await new Promise((resolve) => setTimeout(resolve, 100))
+
+            // Background generation should have fired (stale-while-revalidate).
+            assert.ok(openaiCalled >= 1, 'AOAI should be called via background generation even when canonical writes planned')
         })
 
-        test('cache hit with AOAI timeout: falls back safely with no 5xx', async () => {
+        test('cache hit with AOAI timeout: falls back safely with no 5xx, then fires background retry', async () => {
             const repo = await fixture.getLocationRepository()
 
             // Pre-populate cache
@@ -381,36 +386,59 @@ describe('LOOK Command Flow', () => {
             const openaiStub: IAzureOpenAIClient = {
                 generate: async () => {
                     openaiCalled += 1
-                    // Simulate timeout by returning null
-                    await new Promise((resolve) => setTimeout(resolve, 100))
-                    return null
+                    // Simulate a slow response — sync call will time out, background will succeed.
+                    await new Promise((resolve) => setTimeout(resolve, 15))
+                    return {
+                        content: 'Background-recovered prose after sync timeout.',
+                        tokenUsage: { prompt: 10, completion: 15, total: 25 }
+                    }
                 },
                 healthCheck: async () => true
             }
             bindAzureOpenAI(openaiStub)
 
-            const handler = container.get(LocationLookHandler)
-            const ctx = await createMockContext()
+            const original = process.env.HERO_PROSE_TIMEOUT_MS
+            process.env.HERO_PROSE_TIMEOUT_MS = '1' // force sync to time out
 
-            const req = {
-                params: { locationId: STARTER_LOCATION_ID },
-                query: new Map(),
-                headers: new Map()
-            } as unknown as HttpRequest
+            try {
+                const handler = container.get(LocationLookHandler)
+                const ctx = await createMockContext()
 
-            const res = await handler.handle(req, ctx)
+                const req = {
+                    params: { locationId: STARTER_LOCATION_ID },
+                    query: new Map(),
+                    headers: new Map()
+                } as unknown as HttpRequest
 
-            // Should fall back gracefully - no 5xx error
-            assert.strictEqual(res.status, 200, 'Should return 200 OK even on AOAI timeout')
-            assert.strictEqual(openaiCalled, 1, 'AOAI should be called on cache hit')
+                const res = await handler.handle(req, ctx)
 
-            // Response should still contain location data (using base description)
-            // Response is wrapped in ok envelope from shared package
-            const body = res.jsonBody as { data?: { id?: string; name?: string; description?: unknown } }
-            const data = body.data || body // Handle both wrapped and unwrapped formats
-            assert.ok(data.id, 'Response should contain location ID')
-            assert.ok(data.name, 'Response should contain location name')
-            assert.ok(data.description, 'Response should contain description')
+                // Should fall back gracefully - no 5xx error
+                assert.strictEqual(res.status, 200, 'Should return 200 OK even on AOAI timeout')
+
+                // Response should still contain location data (using base description)
+                const body = res.jsonBody as { data?: { id?: string; name?: string; description?: unknown } }
+                const data = body.data || body
+                assert.ok(data.id, 'Response should contain location ID')
+                assert.ok(data.name, 'Response should contain location name')
+                assert.ok(data.description, 'Response should contain description')
+
+                // Wait for background retry to complete (mock takes 15ms per call).
+                await new Promise((resolve) => setTimeout(resolve, 200))
+
+                // Background should have fired: sync call (1) + background call (2) = at least 2
+                assert.ok(openaiCalled >= 2, `AOAI should be called by sync and background (got ${openaiCalled})`)
+
+                // Hero layer should now be persisted
+                const layers = await layerRepo.queryLayerHistory(`loc:${STARTER_LOCATION_ID}`, 'dynamic')
+                const heroLayer = layers.find((l) => l.metadata?.role === 'hero')
+                assert.ok(heroLayer, 'Background retry should have persisted hero layer')
+            } finally {
+                if (original === undefined) {
+                    delete process.env.HERO_PROSE_TIMEOUT_MS
+                } else {
+                    process.env.HERO_PROSE_TIMEOUT_MS = original
+                }
+            }
         })
     })
 })
