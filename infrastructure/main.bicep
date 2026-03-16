@@ -1139,6 +1139,21 @@ module operationLatencyAlerts 'alerts-operation-latency-consolidated.bicep' = {
   }
 }
 
+// Alert: Agent Sandbox DLQ Spike
+// Fires when World.Agent.* events exceed the dead-letter threshold in a 5-minute window.
+// Distinguishes permanent (schema-validation, json-parse) from transient (handler-error) failures.
+// See docs/observability/agent-failure-taxonomy.md for triage runbook.
+module alertAgentDlqSpike 'alert-agent-dlq-spike.bicep' = {
+  name: 'alert-agent-dlq-spike'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    dlqCountThreshold: 5
+  }
+}
+
 output cosmosSqlTestDatabaseName string = 'game-test'
 
 output foundryAccountName string = foundryAccountName

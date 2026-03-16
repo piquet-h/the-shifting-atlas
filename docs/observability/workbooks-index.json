@@ -73,7 +73,10 @@
         "Applied Effects by Type",
         "Applied Effects Trend (1h buckets)",
         "DLQ Entries for Agent Events",
-        "DLQ Volume Trend for Agent Events (1h buckets)"
+        "DLQ Volume Trend for Agent Events (1h buckets)",
+        "DLQ Entries by Error Code (Permanent vs Transient)",
+        "Oscillation Guard: Top Skipped Locations",
+        "Schema Violations Trend (1h buckets)"
       ],
       "relatedIssues": [
         700,
@@ -88,7 +91,8 @@
         "Agent.Step.LatencyExceeded",
         "Agent.Proposal.Validated",
         "Agent.Effect.Applied",
-        "World.Event.DeadLettered"
+        "World.Event.DeadLettered",
+        "Agent.Proposal.SchemaInvalid"
       ]
     }
   ],

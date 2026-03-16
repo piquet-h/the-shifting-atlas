@@ -394,8 +394,15 @@ customEvents
 | Top Rejection Reason Codes | Which `ProposalRejectionCode` is firing most |
 | DLQ Entries for Agent Events | Volume trend; filter by `eventType` |
 | DLQ Volume Trend for Agent Events | Spike pattern vs gradual rise |
+| **DLQ Entries by Error Code (Permanent vs Transient)** | First stop when alert fires — classifies failures immediately |
+| **Oscillation Guard: Top Skipped Locations** | Locations with the most no-op steps — spot scheduling bugs |
+| **Schema Violations Trend (1h buckets)** | Agent output quality over time — tracks model/prompt regressions |
 
 **Definition file**: `docs/observability/workbooks/agent-sandbox-dashboard.workbook.json`
+
+### Alert
+
+The **Agent Sandbox DLQ Spike** alert (`infrastructure/alert-agent-dlq-spike.bicep`) fires when `World.Agent.*` dead-letter entries exceed 5 in a 5-minute window. See [alerts-catalog.md § Agent Sandbox DLQ Spike](./alerts-catalog.md) for configuration parameters and escalation path.
 
 ### Key KQL queries (Application Insights)
 
@@ -483,7 +490,9 @@ npm run query:deadletters -- --start "<ISO>" --end "<ISO>" --json
 - [Dead-Letter Storage & Redaction](../architecture/dead-letter-storage.md) — DLQ schema, storage configuration, operational procedures
 - [Agentic AI & MCP Architecture](../architecture/agentic-ai-and-mcp.md) — agent entry points and MCP tool boundary
 - [Telemetry Catalog](./telemetry-catalog.md) — canonical event definitions with dimension docs
-- [Alerts Catalog](./alerts-catalog.md) — configured Azure Monitor alert conditions
+- [Alerts Catalog § Agent Sandbox DLQ Spike](./alerts-catalog.md) — alert configuration and escalation path
+- Workbook: `docs/observability/workbooks/agent-sandbox-dashboard.workbook.json` — live panels for all failure categories
+- Alert Bicep: `infrastructure/alert-agent-dlq-spike.bicep` — agent DLQ spike detection
 - Source: `shared/src/agentProposal.ts` — allow-list, param rules, rejection code enum
 - Source: `backend/src/worldEvents/handlers/AgentStepHandler.ts` — queue step loop, oscillation guard, telemetry
 - Source: `backend/src/services/AgentReplayHarness.ts` — replay harness implementation
