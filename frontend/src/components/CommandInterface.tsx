@@ -13,6 +13,10 @@ interface CommandInterfaceProps {
     className?: string
     /** Available exits for the current location (for autocomplete) */
     availableExits?: string[]
+    /** Optional external move handler used by GameView to share arrival-pause/soft-denial navigation flow. */
+    onMoveCommand?: (direction: string) => void
+    /** Optional busy flag controlled by parent navigation flow. */
+    externalBusy?: boolean
 }
 
 export interface CommandInterfaceHandle {
@@ -31,7 +35,7 @@ export function formatMoveResponse(direction: string, loc: LocationResponse): st
  * Future: parsing, suggestions, command registry, optimistic world state deltas.
  */
 const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProps>(function CommandInterface(
-    { className, availableExits = [] }: CommandInterfaceProps,
+    { className, availableExits = [], onMoveCommand, externalBusy = false }: CommandInterfaceProps,
     ref
 ): React.ReactElement {
     // Use PlayerContext for playerGuid and currentLocationId (no redundant API calls)
@@ -45,25 +49,32 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
 
     const runCommand = useCallback(
         async (raw: string) => {
-            const id = crypto.randomUUID()
-            const ts = Date.now()
-            const record: CommandRecord = { id, command: raw, ts }
-            setHistory((h) => [...h, record])
+            const lower = raw.trim().toLowerCase()
+            const delegatedMove = lower.startsWith('move ') && !!onMoveCommand
+            const delegatedDirection = delegatedMove ? lower.split(/\s+/)[1] : undefined
 
-            // Add to command history (skip 'clear' commands)
             if (raw && raw !== 'clear') {
                 setCommandHistory((prev) => {
                     const newHistory = [...prev, raw]
-                    // Keep last 50 commands
                     return newHistory.slice(-50)
                 })
             }
 
             if (!raw) return
+            const id = crypto.randomUUID()
+            const ts = Date.now()
             if (raw === 'clear') {
                 setHistory([])
                 return
             }
+
+            if (delegatedMove && delegatedDirection) {
+                onMoveCommand(delegatedDirection)
+                return
+            }
+
+            const record: CommandRecord = { id, command: raw, ts }
+            setHistory((h) => [...h, record])
             setBusy(true)
             let error: string | undefined
             let response: string | undefined
@@ -71,7 +82,6 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
             let travelMs: number | undefined
             try {
                 const start = performance.now()
-                const lower = raw.trim().toLowerCase()
                 // Only commands that mutate player state (move) require a resolved player GUID.
                 const requiresPlayer = lower.startsWith('move ')
                 if (!playerGuid && requiresPlayer) {
@@ -165,7 +175,14 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                     latencyMs = Math.round(performance.now() - start)
                     const unwrapped = unwrapEnvelope<LocationResponse & { travel?: { durationMs?: number } }>(json)
                     if (!res.ok || (unwrapped.isEnvelope && !unwrapped.success)) {
-                        error = extractErrorMessage(res, json, unwrapped)
+                        const jsonObj = json as Record<string, unknown>
+                        const errorObj = jsonObj?.error as Record<string, unknown> | undefined
+                        const errorCode = unwrapped.error?.code || errorObj?.code
+                        if (errorCode === 'ExitGenerationRequested') {
+                            response = 'The path is still being revealed. Please wait…'
+                        } else {
+                            error = extractErrorMessage(res, json, unwrapped)
+                        }
                     } else {
                         const loc = unwrapped.data
                         if (loc) {
@@ -197,7 +214,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                 })
             }
         },
-        [playerGuid, currentLocationId, updateCurrentLocationId]
+        [playerGuid, currentLocationId, updateCurrentLocationId, onMoveCommand]
     )
 
     useImperativeHandle(
@@ -240,7 +257,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
             <CommandInput
                 onSubmit={runCommand}
                 busy={busy}
-                disabled={(guidLoading && !playerGuid) || busy}
+                disabled={(guidLoading && !playerGuid) || busy || externalBusy}
                 availableExits={availableExits}
                 commandHistory={commandHistory}
             />

@@ -31,6 +31,14 @@ describe('GameView Navigation Optimization', () => {
         expect(source).toMatch(/const\s*{[\s\S]*navigatePending[\s\S]*}\s*=\s*useGameNavigationFlow\(/)
     })
 
+    it('passes typed move commands through shared navigation flow', () => {
+        const layoutPath = path.join(__dirname, '../src/components/layout/GameViewLayout.tsx')
+        const source = fs.readFileSync(layoutPath, 'utf-8')
+
+        expect(source).toMatch(/onMoveCommand={onNavigate}/)
+        expect(source).toMatch(/externalBusy={navigationDisabled}/)
+    })
+
     it('retains navigate callback flow in extracted hook', () => {
         const hookSource = fs.readFileSync(GAMEVIEW_HOOK_PATH, 'utf-8')
 

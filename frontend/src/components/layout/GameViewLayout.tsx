@@ -53,6 +53,13 @@ export default function GameViewLayout({
                             </h3>
                             <div className="flex flex-col flex-1 min-h-0">
                                 <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                                <CommandInterface
+                                    ref={commandInterfaceRef}
+                                    availableExits={availableExitDirections}
+                                    onMoveCommand={onNavigate}
+                                    externalBusy={navigationDisabled}
+                                    className="flex-1"
+                                />
                             </div>
                         </section>
                     </div>
@@ -75,7 +82,13 @@ export default function GameViewLayout({
                                 Your Atlas
                             </h3>
                             <div className="flex flex-col flex-1 min-h-0">
-                                <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                                <CommandInterface
+                                    ref={commandInterfaceRef}
+                                    availableExits={availableExitDirections}
+                                    onMoveCommand={onNavigate}
+                                    externalBusy={navigationDisabled}
+                                    className="flex-1"
+                                />
                             </div>
                         </section>
                     </div>
@@ -101,7 +114,13 @@ export default function GameViewLayout({
                             Your Atlas
                         </h3>
                         <div className="flex flex-col flex-1 min-h-0">
-                            <CommandInterface ref={commandInterfaceRef} availableExits={availableExitDirections} className="flex-1" />
+                            <CommandInterface
+                                ref={commandInterfaceRef}
+                                availableExits={availableExitDirections}
+                                onMoveCommand={onNavigate}
+                                externalBusy={navigationDisabled}
+                                className="flex-1"
+                            />
                         </div>
                     </section>
                     <CommandHistoryPanel history={commandHistory} />

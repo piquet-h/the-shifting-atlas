@@ -246,6 +246,72 @@ describe('CommandInterface - Guest Hydration', () => {
         )
     }, 15000)
 
+    it('treats ExitGenerationRequested as soft progress instead of hard error for typed move commands', async () => {
+        const user = userEvent.setup()
+        const playerGuid = '550e8400-e29b-41d4-a716-446655440001'
+
+        localStorage.setItem('tsa.playerGuid', playerGuid)
+
+        server.use(
+            http.get('/api/player', () =>
+                HttpResponse.json({
+                    success: true,
+                    data: {
+                        playerGuid,
+                        created: false,
+                        currentLocationId: STARTER_LOCATION_ID
+                    }
+                })
+            ),
+            http.get('/api/location', () =>
+                HttpResponse.json({
+                    success: true,
+                    data: {
+                        id: STARTER_LOCATION_ID,
+                        name: 'North Gate',
+                        description: {
+                            text: 'A broad gate facing open roads.',
+                            html: '<p>A broad gate facing open roads.</p>',
+                            provenance: { compiledAt: new Date().toISOString(), layersApplied: [], supersededSentences: 0 }
+                        },
+                        exits: [{ direction: 'north' }, { direction: 'south' }]
+                    }
+                })
+            ),
+            http.post('/api/player/:playerId/move', async () =>
+                HttpResponse.json(
+                    {
+                        success: false,
+                        error: {
+                            code: 'ExitGenerationRequested',
+                            message: 'No exit north from here yet. Your interest has been noted.'
+                        }
+                    },
+                    { status: 400 }
+                )
+            )
+        )
+
+        render(
+            <PlayerProvider>
+                <CommandInterface />
+            </PlayerProvider>
+        )
+
+        const commandInput = await screen.findByRole('combobox', { name: /command/i }, { timeout: 5000 })
+        await waitFor(() => expect(commandInput).not.toBeDisabled(), { timeout: 5000 })
+
+        await user.type(commandInput, 'move north')
+        await user.click(screen.getByRole('button', { name: /run/i }))
+
+        await waitFor(() => {
+            const softProgress = screen.getAllByText(/The path is still being revealed\. Please wait…/i)
+            expect(softProgress.length).toBeGreaterThan(0)
+        })
+
+        expect(screen.queryByText(/No exit north from here yet/i)).not.toBeInTheDocument()
+    }, 15000)
+
     it('executes ping command without requiring playerGuid', async () => {
         const user = userEvent.setup()
 
