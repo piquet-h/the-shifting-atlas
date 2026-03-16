@@ -53,6 +53,7 @@ Useful concept entrypoints:
 - Observability overview: `observability.md`
 - Telemetry catalog: `observability/telemetry-catalog.md`
 - Workbooks: `architecture/workbook-parameter-guidelines.md` and `../infrastructure/workbooks/`
+- Agent failure taxonomy & DLQ/replay runbook: `observability/agent-failure-taxonomy.md`
 
 ## LLM-friendly reading order (high signal first)
 

@@ -173,6 +173,10 @@ There is no write-capable MCP server. All agent-sourced mutations flow through `
 
 ---
 
+## Related runbook
+
+[Agent Failure Taxonomy & DLQ/Replay Runbook](../observability/agent-failure-taxonomy.md) — failure categories, DLQ triage steps, replay workflow, and KQL queries for incident investigation.
+
 ## Source files
 
 - `shared/src/agentProposal.ts` — envelope schema, allow-list, param rules, rejection codes, validator
