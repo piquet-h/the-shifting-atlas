@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Agent Sandbox Dashboard\n\nOperational view of autonomous agent behavior: decision latency, proposal outcomes, applied effects, and DLQ activity.\n\n**Included Telemetry:**\n- `Agent.Step.*` (step lifecycle: start, completed, skipped, latency exceeded)\n- `Agent.Proposal.*` (proposal validation: validated, rejected, schema invalid)\n- `Agent.Effect.Applied` (durable world writes by effect type)\n- `World.Event.DeadLettered` (DLQ entries for agent events)\n\n**Triage order:**\n1. Check **Step Latency Percentiles** — is latency trending up or exceeding the 5s budget?\n2. Check **Proposal Outcomes** and **Top Rejection Reasons** — are proposals being accepted or blocked by the validator?\n3. Check **Applied Effects by Type** — is the agent producing the expected variety of world writes?\n4. Check **DLQ Volume** — are agent step events failing to process and landing in the dead-letter queue?\n\n**Interpretation tips:**\n- `Agent.Step.Skipped` indicates the oscillation guard fired (ambient layer already exists) — a high skip rate is normal during active sessions.\n- High `Agent.Step.ActionRejected` with `firstRejectionCode` = `action-not-allowed` may indicate the agent is proposing disallowed action types.\n- Empty results are expected during low-traffic or seeded-world periods. Expand the time range before escalating.\n\n**Notes:**\n- Decision latency is measured from event dequeue to `Agent.Step.Completed`; it includes sense, decide, and apply phases.\n- Effect type cardinality is intentionally low: `Layer.Add`, `Ambience.Generate`, `NPC.Dialogue`.\n"
+        "json": "# Agent Sandbox Dashboard\n\nOperational view of autonomous agent behavior: decision latency, proposal acceptance/rejection rates, applied effect counts by type, and DLQ/replay entry points.\n\n**Telemetry Events:**\n- `Agent.Step.*` — step lifecycle (start, completed, skipped, latency exceeded)\n- `Agent.Proposal.Validated`, `Agent.Step.ActionRejected` — proposal gate outcomes\n- `Agent.Effect.Applied` — durable world writes by effect type\n- `World.Event.DeadLettered` — DLQ entries for agent-related events\n\n**Objective:** Detect regressions in agent step performance, track proposal acceptance rates, confirm the agent is producing the expected world effects, and surface DLQ anomalies before they cause silent world-state divergence.\n\n**When to open this workbook:**\n- Agent latency alert fired or step processing is slower than expected\n- Proposal rejection rate is high or the world is not receiving expected ambient layers\n- DLQ entries spiking for `World.Agent.*` events\n- Post-deploy regression check after changes to `AgentStepHandler`, `AgentProposalApplicator`, or the allow-list\n\n**Triage order:**\n1. Check **Step Latency Percentiles** — is p95 approaching the 5 s budget?\n2. Check **Proposal Outcomes** and **Top Rejection Reasons** — what fraction of proposals are blocked and why?\n3. Check **Applied Effects by Type** — is the agent producing the expected variety of world writes?\n4. Check **DLQ Volume** — are agent step events failing to process?\n\n**Related Issues:** #700 (Agent Sandbox epic), #907 (agent pipeline telemetry)\n\n**References:** [Agent Sandbox Contracts](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md) · [Observability](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n"
       },
       "name": "header"
     },
@@ -77,7 +77,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## Step Latency"
+        "json": "---\n\n## Step Latency\n\nMeasures end-to-end processing time per `World.Agent.Step` event: sense → decide → validate → apply. Latency is captured in `Agent.Step.Completed[decisionLatencyMs]` and bookended by `Agent.Step.Start`.\n\n**Latency budget:** 5,000 ms (default; configurable via `AGENT_STEP_LATENCY_BUDGET_MS` env var). Exceeding the budget emits `Agent.Step.LatencyExceeded` but does not abort the step.\n\n**Thresholds:**\n- 🟢 p95 < 2 000 ms — Healthy\n- 🟡 2 000 ms ≤ p95 < 4 000 ms — Warning: investigate sense or apply phase\n- 🔴 p95 ≥ 4 000 ms — Critical: approaching budget; check repository latency and AI generation calls\n"
       },
       "name": "latency-section"
     },
@@ -212,7 +212,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## Proposals"
+        "json": "---\n\n## Proposals\n\nTracks the proposal gate: how many proposals are validated and applied versus rejected by the deterministic allow-list validator (`validateAgentProposal` in `shared/src/agentProposal.ts`).\n\n**Oscillation guard:** `Agent.Step.Skipped` events indicate the step loop detected an existing ambient layer and did not re-propose. A high skip rate (>50% of steps) is **normal** during active play sessions and is not an error.\n\n**Rejection codes (low-cardinality):**\n- `action-not-allowed` — action type not in `PROPOSAL_ALLOWED_ACTION_TYPES`\n- `scope-invalid` — `scopeKey` prefix not in allowed set (`loc:`, `player:`)\n- `param-missing` — required action parameter absent\n- `param-invalid` — parameter value fails rule validation\n\n**Alert threshold:** Rejection rate >20% sustained over 30 min warrants investigation.\n"
       },
       "name": "proposals-section"
     },
@@ -331,7 +331,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## Applied Effects"
+        "json": "---\n\n## Applied Effects\n\nCounts durable world writes confirmed by `Agent.Effect.Applied`. Effect type cardinality is intentionally low — controlled by the allow-list.\n\n**Current allowed effect types:**\n- `Layer.Add` — writes an ambient description layer to a location (primary agent output)\n- `Ambience.Generate` — triggers ambient phrase selection and layer write\n- `NPC.Dialogue` — signals NPC speech (telemetry-only; persistence pending)\n\n**What to look for:** A sudden drop to zero applied effects (while steps continue) indicates the validator is blocking all proposals — cross-reference the Proposals section.\n"
       },
       "name": "effects-section"
     },
@@ -407,7 +407,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## DLQ & Replay"
+        "json": "---\n\n## DLQ & Replay\n\nSurfaces `World.Event.DeadLettered` entries scoped to `World.Agent.*` event types. These entries indicate agent step events that exhausted Service Bus retries and were moved to the dead-letter queue — meaning agent steps failed without being applied to the world.\n\n**When DLQ entries appear:**\n1. Check `Reason` column: `schema-validation` = malformed envelope; `json-parse` = upstream serialization bug; other reasons = transient infrastructure failure.\n2. Cross-reference with `Agent.Step.LatencyExceeded` — tight budgets + transient errors can accelerate DLQ fill.\n3. Use `AgentReplayHarness` (in `backend/src/services/AgentReplayHarness.ts`) to replay DLQ records after the root cause is resolved.\n\n**DLQ drain rate:** `World.Agent.Step` events have a 5-retry policy before dead-lettering. Any sustained DLQ volume (>5 entries/hour) warrants investigation.\n"
       },
       "name": "dlq-section"
     },
@@ -468,6 +468,13 @@
       },
       "customWidth": "50",
       "name": "dlq-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n\n## Troubleshooting Guide\n\n**High p95 latency (approaching 5 s budget):**\n1. Check repository call latency (Cosmos DB SQL API) — look for elevated RU or throttling.\n2. Check `Agent.Step.SenseCompleted` events: if sense phase is slow, the layer repository lookup is the bottleneck.\n3. If `Agent.Step.ActionApplied` is slow, the apply phase (`AgentProposalApplicator`) is the bottleneck.\n\n**High rejection rate (`firstRejectionCode` = `action-not-allowed`):**\n- The agent is proposing action types not in `PROPOSAL_ALLOWED_ACTION_TYPES`.\n- Check the allow-list in `shared/src/agentProposal.ts` and the agent prompt/decision logic.\n\n**All effects are `Layer.Add`, none of the others:**\n- Expected at current milestone. `Ambience.Generate` and `NPC.Dialogue` require additional scaffolding.\n\n**DLQ entries with `schema-validation` reason:**\n- The `AgentProposalEnvelope` produced by the agent does not satisfy the Zod schema.\n- Compare the live envelope shape against `AgentProposalEnvelopeSchema` in `shared/src/agentProposal.ts`.\n\n**Runbook links:**\n- [Agent Sandbox Contracts & Safety Gates](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md)\n- [Agentic AI & MCP Architecture](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agentic-ai-and-mcp.md)\n- [Observability & Telemetry](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n\nUse this workbook for live triage; consult the contracts document for allow-list definitions, rejection codes, and replay harness usage."
+      },
+      "name": "troubleshooting-guide"
     }
   ],
   "_exportMetadata": {
