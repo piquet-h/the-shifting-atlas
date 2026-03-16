@@ -324,6 +324,22 @@
                     "west": "retain hill/escarpment pressure; avoid abrupt broad-plain substitutions",
                     "east": "allow wider side routes only after valley-floor context is preserved"
                 }
+            },
+            {
+                "anchorNode": "mw-corridor-south-farm-road",
+                "trends": {
+                    "south": "maintain south-road continuity into farm-edge and marsh-transition terrain",
+                    "southeast": "irrigation tracks and low wet ground increase toward reed margins",
+                    "west": "field tracks trend toward rougher hedgerow edges before hill pressure returns"
+                }
+            },
+            {
+                "anchorNode": "mw-corridor-lower-quay-walk",
+                "trends": {
+                    "north": "quay continuity extends toward harbor operations and dock infrastructure",
+                    "east": "waterfront movement remains boardwalk and pier constrained",
+                    "south": "shoreline routes transition into dunes and tidal channel edges"
+                }
             }
         ],
         "continuityRoutes": [
@@ -367,6 +383,47 @@
                     "preserveRouteLineage": true,
                     "respectWaterBarriers": true,
                     "preferWaterfrontNaming": true
+                }
+            },
+            {
+                "id": "mw-route-harbor-to-southfarms",
+                "name": "Harbor-to-Southfarms Route",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "mw-area-fjord-sound-head",
+                    "mw-corridor-harbor-road",
+                    "mw-corridor-south-farm-road"
+                ],
+                "localAnchors": [
+                    "Mosswell River Jetty",
+                    "South Road",
+                    "South Farms",
+                    "Field Edge Track"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "preferredFutureNodePrefix": "South Road",
+                    "avoidGenericOpenPlainFallback": true
+                }
+            },
+            {
+                "id": "mw-route-westwall-ledgeway",
+                "name": "Westwall Ledgeway",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "mw-area-fjord-sound-head",
+                    "mw-area-west-fiord-wall",
+                    "mw-corridor-west-ledge-way"
+                ],
+                "localAnchors": [
+                    "North Gate",
+                    "Stone Circle Shrine",
+                    "Southwest Path Junction"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "preferredFutureNodePrefix": "West Ledge Way",
+                    "avoidGenericOpenPlainFallback": true
                 }
             }
         ]

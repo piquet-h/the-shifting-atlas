@@ -636,9 +636,36 @@
                     "lr-corridor-eastshelf-road",
                     "lr-area-eastshelf-coast"
                 ],
+                "localAnchors": [
+                    "Market Row",
+                    "East Cottage North",
+                    "East Cottage Middle",
+                    "East Cottage South"
+                ],
                 "frontierPolicy": {
                     "preserveRouteLineage": true,
                     "coastalShelfBias": true
+                }
+            },
+            {
+                "id": "lr-route-mosswell-southfork",
+                "name": "Mosswell Southfork Lineage",
+                "kind": "route-continuity",
+                "macroSegments": [
+                    "lr-area-mosswell-fiordhead",
+                    "lr-corridor-southfork-vale",
+                    "lr-area-southbreak-uplands",
+                    "lr-area-emberfen-lowlands"
+                ],
+                "localAnchors": [
+                    "South Road",
+                    "South Farms",
+                    "Field Edge Track"
+                ],
+                "frontierPolicy": {
+                    "preserveRouteLineage": true,
+                    "preferredFutureNodePrefix": "South Road",
+                    "avoidGenericOpenPlainFallback": true
                 }
             }
         ]
