@@ -446,7 +446,13 @@ test('Agent.Effect.Applied is registered', () => {
 })
 
 test('Agent pipeline events all match telemetry pattern', () => {
-    const pipelineEvents = ['Agent.Step.Start', 'Agent.Step.Completed', 'Agent.Proposal.Validated', 'Agent.Proposal.Rejected', 'Agent.Effect.Applied']
+    const pipelineEvents = [
+        'Agent.Step.Start',
+        'Agent.Step.Completed',
+        'Agent.Proposal.Validated',
+        'Agent.Proposal.Rejected',
+        'Agent.Effect.Applied'
+    ]
     for (const event of pipelineEvents) {
         assert.ok(TELEMETRY_NAME_REGEX.test(event), `${event} should match Domain.Subject.Action pattern`)
         assert.ok(isGameEventName(event), `${event} should be in GAME_EVENT_NAMES registry`)
