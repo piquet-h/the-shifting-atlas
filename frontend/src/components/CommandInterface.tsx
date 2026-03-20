@@ -1,4 +1,5 @@
-import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
+import type { Direction, LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
+import { isDirection } from '@piquet-h/shared'
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { getSessionId, trackGameEventClient } from '../services/telemetry'
@@ -14,7 +15,7 @@ interface CommandInterfaceProps {
     /** Available exits for the current location (for autocomplete) */
     availableExits?: string[]
     /** Optional external move handler used by GameView to share arrival-pause/soft-denial navigation flow. */
-    onMoveCommand?: (direction: string) => void
+    onMoveCommand?: (direction: Direction) => void
     /** Optional busy flag controlled by parent navigation flow. */
     externalBusy?: boolean
 }
@@ -68,7 +69,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                 return
             }
 
-            if (delegatedMove && delegatedDirection) {
+            if (delegatedMove && delegatedDirection && isDirection(delegatedDirection)) {
                 onMoveCommand(delegatedDirection)
                 return
             }
