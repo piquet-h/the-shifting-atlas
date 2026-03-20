@@ -492,6 +492,72 @@
     {
       "type": 1,
       "content": {
+        "json": "## Cost & Budget Guardrails\n\nPer-step estimated cost (microdollars) and budget breach counts from `Agent.Step.Completed` and `Agent.Step.CostExceeded` telemetry.\n\n- **Budget**: configured via `AGENT_STEP_COST_BUDGET_MICROS` (default 10,000 \u00b5$ = $0.01/step).\n- **0-token steps** (no LLM call): always report `estimatedCostMicros: 0` \u2014 no breaches expected.\n- **LLM-backed steps**: cost reflects real token usage; alert fires when any step exceeds budget."
+      },
+      "name": "cost-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.Completed'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    agentType = tostring(customDimensions['agentType']),\n    costMicros = tolong(customDimensions['estimatedCostMicros']),\n    budgetMicros = tolong(customDimensions['costBudgetMicros'])\n| where isnotnull(costMicros)\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Steps = sum(ic),\n    TotalCostMicros = sum(ic * costMicros),\n    AvgCostMicros = round(avg(costMicros), 0),\n    MaxCostMicros = round(max(costMicros), 0),\n    BudgetMicros = max(budgetMicros)\n  by AgentType = agentType\n| order by TotalCostMicros desc",
+        "size": 0,
+        "title": "Estimated Cost per Agent Type (microdollars)",
+        "noDataMessage": "No Agent.Step.Completed events with cost data in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "TotalCostMicros",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "yellowOrangeRed",
+                "customColumnWidthSetting": "160px"
+              }
+            },
+            {
+              "columnMatch": "MaxCostMicros",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "yellowOrangeRed",
+                "customColumnWidthSetting": "140px"
+              }
+            }
+          ]
+        }
+      },
+      "name": "cost-summary"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.CostExceeded'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    agentType = tostring(customDimensions['entityKind']),\n    costMicros = tolong(customDimensions['estimatedCostMicros']),\n    budgetMicros = tolong(customDimensions['costBudgetMicros'])\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize BreachCount = sum(ic) by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Cost Budget Breaches (Agent.Step.CostExceeded) \u2014 1h buckets",
+        "noDataMessage": "No cost budget breaches in the selected time range.",
+        "noDataMessageStyle": 1,
+        "timeContext": {
+          "durationMs": 0
+        },
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "linechart"
+      },
+      "customWidth": "50",
+      "name": "cost-exceeded-trend"
+    },
+    {
+      "type": 1,
+      "content": {
         "json": "---\n\n## Troubleshooting Guide\n\n**High p95 latency (approaching 5 s budget):**\n1. Check repository call latency (Cosmos DB SQL API) \u2014 look for elevated RU or throttling.\n2. Check `Agent.Step.SenseCompleted` events: if sense phase is slow, the layer repository lookup is the bottleneck.\n3. If `Agent.Step.ActionApplied` is slow, the apply phase (`AgentProposalApplicator`) is the bottleneck.\n\n**High rejection rate (`firstRejectionCode` = `action-not-allowed`):**\n- The agent is proposing action types not in `PROPOSAL_ALLOWED_ACTION_TYPES`.\n- Check the allow-list in `shared/src/agentProposal.ts` and the agent prompt/decision logic.\n\n**All effects are `Layer.Add`, none of the others:**\n- Expected at current milestone. `Ambience.Generate` and `NPC.Dialogue` require additional scaffolding.\n\n**DLQ entries with `schema-validation` reason:**\n- The `AgentProposalEnvelope` produced by the agent does not satisfy the Zod schema.\n- Compare the live envelope shape against `AgentProposalEnvelopeSchema` in `shared/src/agentProposal.ts`.\n\n**Runbook links:**\n- [Agent Sandbox Contracts & Safety Gates](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md)\n- [Agentic AI & MCP Architecture](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agentic-ai-and-mcp.md)\n- [Observability & Telemetry](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n\nUse this workbook for live triage; consult the contracts document for allow-list definitions, rejection codes, and replay harness usage."
       },
       "name": "troubleshooting-guide"

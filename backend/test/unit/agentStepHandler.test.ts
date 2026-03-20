@@ -9,6 +9,8 @@
  * - Validation failure: missing required payload fields → DLQ + validation-failed outcome
  * - Entity not found edge case: empty locationId → noop outcome + EntityNotFound telemetry
  * - Latency budget tracking: latencyMs present in telemetry
+ * - Cost budget tracking: estimatedCostMicros and costBudgetMicros present in telemetry;
+ *   Agent.Step.CostExceeded not emitted on 0-cost (non-LLM) path
  * - Duplicate delivery: idempotency cache returns 'noop' (tested via existing cache)
  */
 import assert from 'node:assert'
@@ -404,5 +406,63 @@ describe('AgentStepHandler', () => {
 
         const stepEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Processed')
         assert.ok(stepEvent, 'Agent.Step.Processed should be emitted even without optional reason')
+    })
+
+    // --- Cost budget tracking (issue #711) ------------------------------------
+
+    test('should include estimatedCostMicros and costBudgetMicros in Agent.Step.Completed', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:cost-completed' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const completedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Completed')
+        assert.ok(completedEvent, 'Agent.Step.Completed should be emitted')
+        assert.strictEqual(
+            typeof completedEvent?.properties?.estimatedCostMicros,
+            'number',
+            'estimatedCostMicros should be a number in Agent.Step.Completed'
+        )
+        assert.strictEqual(
+            typeof completedEvent?.properties?.costBudgetMicros,
+            'number',
+            'costBudgetMicros should be a number in Agent.Step.Completed'
+        )
+    })
+
+    test('should report estimatedCostMicros: 0 for non-LLM (0-token) path', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:zero-cost' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const completedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Completed')
+        assert.ok(completedEvent, 'Agent.Step.Completed should be emitted')
+        assert.strictEqual(completedEvent?.properties?.estimatedCostMicros, 0, 'non-LLM path must report 0 cost')
+    })
+
+    test('should NOT emit Agent.Step.CostExceeded on 0-cost (non-LLM) path', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:no-cost-exceeded' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const costExceededEvent = telemetry.events.find((e) => e.name === 'Agent.Step.CostExceeded')
+        assert.ok(!costExceededEvent, 'Agent.Step.CostExceeded should NOT be emitted for 0-cost step')
+    })
+
+    test('should include estimatedCostMicros in Agent.Step.Processed', async () => {
+        const ctx = await fixture.createInvocationContext()
+        const event = createAgentStepEvent({ idempotencyKey: 'agent-step:npc-001:cost-processed' })
+
+        await queueProcessWorldEvent(event, ctx as any)
+
+        const processedEvent = telemetry.events.find((e) => e.name === 'Agent.Step.Processed')
+        assert.ok(processedEvent, 'Agent.Step.Processed should be emitted')
+        assert.strictEqual(
+            typeof processedEvent?.properties?.estimatedCostMicros,
+            'number',
+            'estimatedCostMicros should be a number in Agent.Step.Processed'
+        )
     })
 })
