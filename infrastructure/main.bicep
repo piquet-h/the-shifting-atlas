@@ -1083,6 +1083,16 @@ module workbookAgentSandbox 'workbook-agent-sandbox-dashboard.bicep' = {
   }
 }
 
+// Workbook: AI Usage Dashboard (token consumption, cost estimates, MCP invocations, prompt-template drift)
+module workbookAiUsage 'workbook-ai-usage-dashboard.bicep' = {
+  name: 'workbook-ai-usage-dashboard'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
+
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
 // Replaced complex KQL query with Action Group correlation (alert processing rule)

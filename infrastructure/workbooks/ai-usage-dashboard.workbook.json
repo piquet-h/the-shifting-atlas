@@ -1,0 +1,306 @@
+{
+    "version": "Notebook/1.0",
+    "parameters": [
+        {
+            "id": "timerange-root",
+            "name": "TimeRange",
+            "type": 4,
+            "label": "Time Range",
+            "description": "Time window used by all queries in this workbook.",
+            "value": {
+                "durationMs": 86400000
+            }
+        },
+        {
+            "id": "model-root",
+            "name": "Model",
+            "type": 2,
+            "label": "Model (optional)",
+            "description": "Filter panels to a specific model name (e.g. gpt-4o). Use All for no filter.",
+            "value": "All"
+        }
+    ],
+    "items": [
+        {
+            "type": 1,
+            "content": {
+                "json": "# AI Usage Dashboard\n\nToken consumption, cost tracking, and narration/tool invocation counts sourced entirely from **backend-emitted telemetry** in Application Insights. No MCP-side counters are used; the backend policy and validation layers are the authoritative source.\n\n**Included telemetry constants** (defined in `shared/src/telemetryEvents.ts`):\n- `AI.Cost.*` — pre-call estimates, windowed summaries, capped inputs, budget threshold warnings\n- `Description.Hero.*` — cache outcomes and token usage from successful hero-prose generation\n- `MCP.Tool.Invoked` — narration/tool invocation counts and latency\n- `PromptTemplate.Get` — prompt-template retrieval; version and hash visible for drift detection\n\n**Non-goals:** world simulation metrics (NPC counts, realm counts). Use Agent Sandbox Dashboard for agent step telemetry.\n\n**Triage order:**\n1. Check **Cost Window Summary** — is spend within expected band?\n2. Check **Token Usage by Model** — token counts rising faster than narration volume?\n3. Check **Soft Budget Warnings** — any `AI.Cost.SoftThresholdCrossed` events?\n4. Check **MCP Tool Invocations** — latency spikes or unexpected error rate?\n\n**Prompt source of truth:** prompt templates are versioned and hashed in `shared/src/prompts/`. The `PromptTemplate.Get` panel surfaces the `templateId`, `version`, and `hash` properties to detect portal drift.\n\n**References:** [shared/src/telemetryEvents.ts](https://github.com/piquet-h/the-shifting-atlas/blob/main/shared/src/telemetryEvents.ts) · [docs/observability.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n"
+            },
+            "name": "header"
+        },
+        {
+            "type": 9,
+            "content": {
+                "version": "KqlParameterItem/1.0",
+                "parameters": [
+                    {
+                        "id": "timerange-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "TimeRange",
+                        "type": 4,
+                        "label": "Time Range",
+                        "description": "Time window used by all queries in this workbook.",
+                        "value": {
+                            "durationMs": 86400000
+                        },
+                        "typeSettings": {
+                            "selectableValues": [
+                                { "durationMs": 3600000 },
+                                { "durationMs": 14400000 },
+                                { "durationMs": 43200000 },
+                                { "durationMs": 86400000 },
+                                { "durationMs": 172800000 },
+                                { "durationMs": 604800000 }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "model-control",
+                        "version": "KqlParameterItem/1.0",
+                        "name": "Model",
+                        "type": 2,
+                        "label": "Model (optional)",
+                        "description": "Filter panels to a specific model. Use All for no filter.",
+                        "query": "customEvents\n| where timestamp > ago(7d)\n| where name in ('AI.Cost.Estimated', 'Description.Hero.GenerateSuccess')\n| extend model = tostring(customDimensions['model'])\n| where isnotempty(model)\n| distinct model\n| order by model asc",
+                        "value": "All",
+                        "typeSettings": {
+                            "additionalResourceOptions": ["value::all"],
+                            "showDefault": false
+                        },
+                        "timeContext": {
+                            "durationMs": 604800000
+                        },
+                        "queryType": 0,
+                        "resourceType": "microsoft.insights/components"
+                    }
+                ],
+                "style": "pills",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components"
+            },
+            "name": "parameters"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## AI Cost Window Summaries\n\nAggregated cost summaries emitted by the backend cost-tracking layer (`AI.Cost.WindowSummary`).\nEach event captures total estimated spend and operation count for the window. The `AI.Cost.Estimated`\nevent is emitted per call with `promptTokens`, `completionTokens`, and `estimatedUsd`.\n\n> **Note:** Estimates are computed client-side before the call; actual billed tokens may differ. Use windowed summaries for trend analysis rather than exact billing reconciliation.\n"
+            },
+            "name": "section-cost"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'AI.Cost.WindowSummary'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    model = tostring(customDimensions['model']),\n    operationCount = tolong(customDimensions['operationCount']),\n    totalUsd = todouble(customDimensions['totalEstimatedUsd'])\n| where modelFilter == '' or model == modelFilter\n| summarize\n    Windows = sum(ic),\n    TotalOperations = sum(operationCount),\n    TotalUsd = round(sum(totalUsd), 4)\n  by Model = model\n| order by TotalUsd desc",
+                "size": 0,
+                "title": "Cost Window Summary by Model",
+                "noDataMessage": "No AI.Cost.WindowSummary events in the selected time range. Cost window summaries are emitted by the backend AI cost-tracking layer; verify that backend telemetry is flowing to this Application Insights resource.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "TotalUsd",
+                            "formatter": 0,
+                            "numberFormat": {
+                                "unit": 0,
+                                "options": {
+                                    "style": "decimal",
+                                    "maximumFractionDigits": 4
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "cost-window-summary"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'AI.Cost.Estimated'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    model = tostring(customDimensions['model']),\n    promptTokens = tolong(customDimensions['promptTokens']),\n    completionTokens = tolong(customDimensions['completionTokens']),\n    estimatedUsd = todouble(customDimensions['estimatedUsd'])\n| where modelFilter == '' or model == modelFilter\n| summarize\n    Calls = sum(ic),\n    TotalPromptTokens = sum(promptTokens),\n    TotalCompletionTokens = sum(completionTokens),\n    TotalUsd = round(sum(estimatedUsd), 4)\n  by Model = model\n| order by TotalUsd desc",
+                "size": 0,
+                "title": "Token Usage by Model (per-call estimates)",
+                "noDataMessage": "No AI.Cost.Estimated events in the selected time range.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "TotalPromptTokens",
+                            "formatter": 0,
+                            "numberFormat": {
+                                "unit": 0,
+                                "options": {
+                                    "style": "decimal",
+                                    "useGrouping": true
+                                }
+                            }
+                        },
+                        {
+                            "columnMatch": "TotalCompletionTokens",
+                            "formatter": 0,
+                            "numberFormat": {
+                                "unit": 0,
+                                "options": {
+                                    "style": "decimal",
+                                    "useGrouping": true
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "token-usage-by-model"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name in ('AI.Cost.SoftThresholdCrossed', 'AI.Cost.InputCapped', 'AI.Cost.InputAdjusted', 'AI.Cost.OverrideRejected')\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    model = tostring(customDimensions['model'])\n| where modelFilter == '' or model == modelFilter\n| summarize Count = sum(ic) by EventName = name, Model = model\n| order by Count desc",
+                "size": 0,
+                "title": "Budget / Limit Events",
+                "noDataMessage": "No budget or limit events (AI.Cost.SoftThresholdCrossed, AI.Cost.InputCapped, AI.Cost.InputAdjusted, AI.Cost.OverrideRejected) in the selected time range. This is the expected state during normal operation.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "budget-limit-events"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Narration Token Usage (Hero Prose)\n\nToken consumption reported by `Description.Hero.GenerateSuccess` events. Each event carries\n`tokenUsage` from the actual Azure AI Foundry / OpenAI API response, making this panel more\naccurate than the pre-call `AI.Cost.Estimated` estimates above.\n\nCache hits (`Description.Hero.CacheHit`) produce no tokens; the **Cache Hit Rate** panel shows\nhow effectively the cache is reducing model load.\n"
+            },
+            "name": "section-hero-prose"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name in ('Description.Hero.GenerateSuccess', 'Description.Hero.CacheHit', 'Description.Hero.CacheMiss', 'Description.Hero.GenerateFailure')\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    model = tostring(customDimensions['model']),\n    event = name\n| where modelFilter == '' or model == modelFilter\n| summarize Count = sum(ic) by EventName = event\n| order by Count desc",
+                "size": 0,
+                "title": "Hero Prose Event Counts",
+                "noDataMessage": "No Description.Hero.* events in the selected time range.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "hero-prose-event-counts"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\nlet modelRaw = '{Model:escape}';\nlet modelFilter = iff(modelRaw == '' or modelRaw == '{Model:escape}' or modelRaw == 'All', '', modelRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Description.Hero.GenerateSuccess'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    model = tostring(customDimensions['model']),\n    tokenUsage = tolong(customDimensions['tokenUsage'])\n| where modelFilter == '' or model == modelFilter\n| where isnotnull(tokenUsage) and tokenUsage >= 0\n| summarize\n    Calls = sum(ic),\n    TotalTokens = sum(tokenUsage),\n    AvgTokens = round(avg(tokenUsage), 0),\n    MaxTokens = max(tokenUsage)\n  by Model = model\n| order by TotalTokens desc",
+                "size": 0,
+                "title": "Hero Prose Token Usage by Model",
+                "noDataMessage": "No Description.Hero.GenerateSuccess events with tokenUsage in the selected time range.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "hero-prose-token-usage"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## MCP Tool Invocations\n\nNarration and tool-use counts surfaced via `MCP.Tool.Invoked` events emitted by the backend\nMCP layer. Auth decisions (`MCP.Auth.Allowed` / `MCP.Auth.Denied`) and throttle/failure events\nare covered in the AI Operations Dashboard; this panel focuses on invocation volume and latency\nto track narration throughput.\n\n> **Authority note:** Only backend-emitted `MCP.*` events are used here. Counters from external\n> MCP client runtimes are not considered authoritative.\n"
+            },
+            "name": "section-mcp"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'MCP.Tool.Invoked'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    toolName = tostring(customDimensions['toolName']),\n    latencyMs = tolong(customDimensions['latencyMs'])\n| summarize\n    Invocations = sum(ic),\n    P50Ms = round(percentile(latencyMs, 50), 0),\n    P95Ms = round(percentile(latencyMs, 95), 0),\n    AvgMs = round(avg(latencyMs), 0)\n  by Tool = toolName\n| order by Invocations desc",
+                "size": 0,
+                "title": "MCP Tool Invocations by Tool",
+                "noDataMessage": "No MCP.Tool.Invoked events in the selected time range. MCP tool telemetry is emitted by the backend MCP handler layer; verify that the MCP server Function App is connected to this Application Insights resource.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table",
+                "gridSettings": {
+                    "formatters": [
+                        {
+                            "columnMatch": "P95Ms",
+                            "formatter": 8,
+                            "formatOptions": {
+                                "palette": "redGreen",
+                                "customColumnWidthSetting": "120px"
+                            },
+                            "numberFormat": {
+                                "unit": 23,
+                                "options": {
+                                    "style": "decimal",
+                                    "maximumFractionDigits": 0
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "name": "mcp-invocations"
+        },
+        {
+            "type": 1,
+            "content": {
+                "json": "---\n\n## Prompt Template Registry\n\nEach call to `PromptTemplate.Get` emits `templateId`, `version`, `hash`, and `cached` dimensions.\nUse this panel to detect version drift or unexpected template IDs in production. The canonical\nhashes are maintained in `shared/src/prompts/` and verified at build time.\n\n> **Stub note:** Query results depend on `PromptTemplate.Get` being emitted in production.\n> No data is expected in environments where template retrieval has not been exercised.\n"
+            },
+            "name": "section-prompt-templates"
+        },
+        {
+            "type": 3,
+            "content": {
+                "version": "KqlItem/1.0",
+                "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'PromptTemplate.Get'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    templateId = tostring(customDimensions['templateId']),\n    version = tostring(customDimensions['version']),\n    hash = tostring(customDimensions['hash']),\n    cached = tobool(customDimensions['cached'])\n| summarize\n    Calls = sum(ic),\n    CachedHits = sumif(ic, cached == true)\n  by TemplateId = templateId, Version = version, Hash = hash\n| order by Calls desc",
+                "size": 0,
+                "title": "Prompt Template Retrievals",
+                "noDataMessage": "No PromptTemplate.Get events in the selected time range. These events are emitted when the backend retrieves a prompt template from the registry in shared/src/prompts/.",
+                "noDataMessageStyle": 1,
+                "timeContext": {
+                    "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.insights/components",
+                "visualization": "table"
+            },
+            "name": "prompt-template-retrievals"
+        }
+    ],
+    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
