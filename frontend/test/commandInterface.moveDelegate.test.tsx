@@ -8,8 +8,8 @@
  *
  * Background: onMoveCommand was previously typed (direction: string) => void,
  * causing a TypeScript incompatibility when GameViewLayout passed a handler
- * typed (direction: Direction) => void. The fix defines Direction locally in
- * CommandInterface and guards the delegation with isDirection().
+ * typed (direction: Direction) => void. The fix reuses the shared navigation
+ * Direction type in CommandInterface and guards the delegation with isDirection().
  */
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -77,7 +77,20 @@ describe('CommandInterface – onMoveCommand delegation', () => {
     }, 15000)
 
     it('calls onMoveCommand for every valid Direction string', async () => {
-        const validDirections = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out']
+        const validDirections = [
+            'north',
+            'south',
+            'east',
+            'west',
+            'northeast',
+            'northwest',
+            'southeast',
+            'southwest',
+            'up',
+            'down',
+            'in',
+            'out'
+        ]
         const user = userEvent.setup()
         const onMoveCommand = vi.fn()
         setupPlayer()

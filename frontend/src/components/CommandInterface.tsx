@@ -10,8 +10,6 @@ import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 import type { Direction } from './hooks/useGameNavigationFlow'
 
-type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
-
 const VALID_DIRECTIONS = new Set<string>([
     'north',
     'south',
