@@ -31,6 +31,7 @@ resource workbook 'Microsoft.Insights/workbooks@2023-06-01' = {
       'Proposals'
       'Effects'
       'DLQ'
+      'Cost'
     ]
   }
 }
