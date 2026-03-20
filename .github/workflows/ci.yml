@@ -304,11 +304,21 @@ jobs:
       - name: Verify docs policy (json report)
         run: npm run verify:docs-policy:json > docs-policy.json
 
+      - name: Check telemetry catalog ↔ code sync (warn-only)
+        run: npm run catalog:check
+        continue-on-error: true
+
+      - name: Check telemetry catalog (json report)
+        run: npm run catalog:check:json > catalog-check.json
+        continue-on-error: true
+
       - name: Upload docs policy artifact
         uses: actions/upload-artifact@v4
         with:
           name: docs-policy-report
-          path: docs-policy.json
+          path: |
+            docs-policy.json
+            catalog-check.json
           if-no-files-found: warn
 
   # Static/package invariant lane.

@@ -58,7 +58,7 @@
       "id": "local-agent-sandbox-dashboard",
       "name": "Agent Sandbox Dashboard",
       "slug": "agent-sandbox-dashboard",
-      "description": "Operational view of autonomous agent behavior: decision latency percentiles (p50/p95), proposal acceptance and rejection rates, applied effect counts by type, and DLQ/replay activity for agent events.",
+      "description": "Operational view of autonomous agent behavior: decision latency percentiles (p50/p95), proposal acceptance and rejection rates, applied effect counts by type, cost budget breach tracking, and DLQ/replay activity for agent events.",
       "owners": [
         "observability"
       ],
@@ -76,11 +76,14 @@
         "DLQ Volume Trend for Agent Events (1h buckets)",
         "DLQ Entries by Error Code (Permanent vs Transient)",
         "Oscillation Guard: Top Skipped Locations",
-        "Schema Violations Trend (1h buckets)"
+        "Schema Violations Trend (1h buckets)",
+        "Cost Budget Breaches by Agent Type",
+        "Cost Budget Breaches Trend (1h buckets)"
       ],
       "relatedIssues": [
         700,
-        907
+        907,
+        711
       ],
       "telemetryEvents": [
         "Agent.Step.Start",
@@ -92,7 +95,8 @@
         "Agent.Proposal.Validated",
         "Agent.Effect.Applied",
         "World.Event.DeadLettered",
-        "Agent.Proposal.SchemaInvalid"
+        "Agent.Proposal.SchemaInvalid",
+        "Agent.Step.CostExceeded"
       ]
     },
     {
