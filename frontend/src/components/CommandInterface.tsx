@@ -1,5 +1,4 @@
-import type { Direction, LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
-import { isDirection } from '@piquet-h/shared'
+import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shared'
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { getSessionId, trackGameEventClient } from '../services/telemetry'
@@ -9,6 +8,27 @@ import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } f
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
+
+type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
+
+const VALID_DIRECTIONS = new Set<string>([
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+    'up',
+    'down',
+    'in',
+    'out'
+])
+
+function isDirection(value: string): value is Direction {
+    return VALID_DIRECTIONS.has(value)
+}
 
 interface CommandInterfaceProps {
     className?: string
