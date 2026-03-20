@@ -23,7 +23,9 @@
 - `main.bicep` – SWA + Function App + Service Bus + Cosmos + App Insights + Workbooks/Alerts + Foundry (with GPT-4o deployment)
 - `workbook-player-operations-dashboard.bicep` – Player Operations dashboard
 - `workbook-sql-partition-monitoring-dashboard.bicep` – SQL partition monitoring dashboard
-- `workbook-ai-operations-dashboard.bicep` – AI Operations dashboard (hero prose + MCP)
+- `workbook-ai-operations-dashboard.bicep` – AI Operations dashboard (hero prose failures + MCP auth/throttle)
+- `workbook-agent-sandbox-dashboard.bicep` – Agent Sandbox dashboard (agent step lifecycle + proposal outcomes)
+- `workbook-ai-usage-dashboard.bicep` – AI Usage dashboard (token consumption, cost estimates, MCP invocations, prompt-template drift); telemetry constants from `shared/src/telemetryEvents.ts`
 - `alerts-*.bicep` – query alerts
 
 ## Parameters
@@ -129,6 +131,7 @@ For API version updates and lifecycle information: https://learn.microsoft.com/a
 
 | Date       | Change                                                                                                                                                                                                                                    |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-20 | Added AI Usage workbook (`workbook-ai-usage-dashboard.bicep`) for token consumption, cost estimates, MCP invocation throughput, and prompt-template drift detection. Telemetry sourced from `AI.Cost.*`, `Description.Hero.*`, `MCP.Tool.Invoked`, and `PromptTemplate.Get` constants in `shared/src/telemetryEvents.ts`. |
 | 2026-02-17 | Added AI Operations workbook (hero prose + MCP) to track `Description.Hero.*`, `Timing.Op` and `MCP.*` telemetry.                                                                                                                         |
 | 2026-01-28 | **Consolidated architecture**: GPT-4o deployment now provisioned directly within Azure AI Foundry account (removed separate OpenAI resource). Single `kind: AIServices` account hosts MCP, agent orchestration, and model deployments.    |
 | 2026-01-28 | Updated Azure OpenAI API version to 2024-10-21 (latest stable GA). Added model specifications and API version lifecycle documentation reference.                                                                                          |

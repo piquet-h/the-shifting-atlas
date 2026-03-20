@@ -9,12 +9,33 @@ import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 
+type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
+
+const VALID_DIRECTIONS = new Set<string>([
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+    'up',
+    'down',
+    'in',
+    'out'
+])
+
+function isDirection(value: string): value is Direction {
+    return VALID_DIRECTIONS.has(value)
+}
+
 interface CommandInterfaceProps {
     className?: string
     /** Available exits for the current location (for autocomplete) */
     availableExits?: string[]
     /** Optional external move handler used by GameView to share arrival-pause/soft-denial navigation flow. */
-    onMoveCommand?: (direction: string) => void
+    onMoveCommand?: (direction: Direction) => void
     /** Optional busy flag controlled by parent navigation flow. */
     externalBusy?: boolean
 }
@@ -68,7 +89,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                 return
             }
 
-            if (delegatedMove && delegatedDirection) {
+            if (delegatedMove && delegatedDirection && isDirection(delegatedDirection)) {
                 onMoveCommand(delegatedDirection)
                 return
             }
