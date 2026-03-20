@@ -31,6 +31,8 @@
         "concept:issues:create": "cross-env CREATE_CONCEPT_ISSUES=true node scripts/generate-concept-issues.mjs",
         "workbooks:export": "node scripts/observability/export-workbooks.mjs",
         "workbooks:verify": "node scripts/observability/verify-workbooks.mjs",
+        "catalog:check": "node scripts/observability/check-catalog-events.mjs",
+        "catalog:check:json": "node scripts/observability/check-catalog-events.mjs --json",
         "lint:shared": "npm run lint --prefix shared",
         "lint:backend": "npm run lint --prefix backend",
         "lint:frontend": "npm run lint --prefix frontend",

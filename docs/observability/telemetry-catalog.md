@@ -761,9 +761,12 @@ Historical notes and rationale are captured in `docs/adr/ADR-004-player-store-cu
 
 1. Choose canonical name following `Domain.Subject.Action` pattern (2-3 PascalCase segments)
 2. Add to `GAME_EVENT_NAMES` array in `shared/src/telemetryEvents.ts`
-3. Document in this catalog (copy template below)
-4. Update tests in `shared/test/telemetryEvents.test.ts`
-5. Verify ESLint rule passes (`no-direct-track-event`)
+3. Add tests in `shared/test/telemetryEvents.test.ts`
+4. Verify ESLint rule passes (`no-direct-track-event`)
+5. **Optional but encouraged for operationally significant events:** add a catalog entry below using the template — the catalog is curated, not exhaustive; routine internal/diagnostic events need not be added
+6. If you added a catalog entry, run `npm run catalog:check` to verify the entry name matches exactly what is in `GAME_EVENT_NAMES`
+
+> **No event count to update.** The authoritative count lives in the code. `npm run catalog:check` validates that all catalog entries are present in `GAME_EVENT_NAMES`; it exits non-zero if any catalog entry becomes stale (removed from code).
 
 ### Template
 
@@ -1070,7 +1073,8 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 > - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
 **Last Updated:** 2026-03-20  
-**Event Count:** 110 canonical events (includes 6 temporal events from Issue #506, 5 MCP events from Issue #428, 17 agent pipeline events from Issues #706, #907)
+**Authoritative event registry:** [`shared/src/telemetryEvents.ts` — `GAME_EVENT_NAMES`](../../shared/src/telemetryEvents.ts) (single source of truth for all registered event names and current count)  
+**Catalog scope:** Curated — documents the most operationally significant events. Not every registered event has a catalog entry; that is intentional. Every catalog entry **must** exist in `GAME_EVENT_NAMES` (enforced by `npm run catalog:check`).
 
 ## Deprecated Events
 
