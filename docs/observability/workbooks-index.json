@@ -94,6 +94,41 @@
         "World.Event.DeadLettered",
         "Agent.Proposal.SchemaInvalid"
       ]
+    },
+    {
+      "id": "local-ai-usage-dashboard",
+      "name": "AI Usage Dashboard",
+      "slug": "ai-usage-dashboard",
+      "description": "Token consumption, cost tracking, and narration/tool invocation counts sourced from backend-emitted Application Insights telemetry. Covers AI.Cost.* (spend estimates and budget warnings), Description.Hero.* (cache and generation outcomes with actual token counts), MCP.Tool.Invoked (narration throughput and latency), and PromptTemplate.Get (version/hash drift detection). Backend policy and validation layers are the authoritative source; no MCP-client-side counters are used.",
+      "owners": [
+        "observability"
+      ],
+      "consolidated": true,
+      "stub": true,
+      "panels": [
+        "Cost Window Summary by Model",
+        "Token Usage by Model (per-call estimates)",
+        "Budget / Limit Events",
+        "Hero Prose Event Counts",
+        "Hero Prose Token Usage by Model",
+        "MCP Tool Invocations by Tool",
+        "Prompt Template Retrievals"
+      ],
+      "relatedIssues": [],
+      "telemetryEvents": [
+        "AI.Cost.WindowSummary",
+        "AI.Cost.Estimated",
+        "AI.Cost.SoftThresholdCrossed",
+        "AI.Cost.InputCapped",
+        "AI.Cost.InputAdjusted",
+        "AI.Cost.OverrideRejected",
+        "Description.Hero.CacheHit",
+        "Description.Hero.CacheMiss",
+        "Description.Hero.GenerateSuccess",
+        "Description.Hero.GenerateFailure",
+        "MCP.Tool.Invoked",
+        "PromptTemplate.Get"
+      ]
     }
   ],
   "notes": {

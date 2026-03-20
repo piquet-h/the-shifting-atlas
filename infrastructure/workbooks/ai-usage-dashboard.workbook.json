@@ -24,7 +24,7 @@
         {
             "type": 1,
             "content": {
-                "json": "# AI Usage Dashboard\n\nToken consumption, cost tracking, and narration/tool invocation counts sourced entirely from **backend-emitted telemetry** in Application Insights. No MCP-side counters are used; the backend policy and validation layers are the authoritative source.\n\n**Included telemetry constants** (defined in `shared/src/telemetryEvents.ts`):\n- `AI.Cost.*` — pre-call estimates, windowed summaries, capped inputs, budget threshold warnings\n- `Description.Hero.*` — cache outcomes and token usage from successful hero-prose generation\n- `MCP.Tool.Invoked` — narration/tool invocation counts and latency\n- `PromptTemplate.Get` — prompt-template retrieval; version and hash visible for drift detection\n\n**Non-goals:** world simulation metrics (NPC counts, realm counts). Use Agent Sandbox Dashboard for agent step telemetry.\n\n**Triage order:**\n1. Check **Cost Window Summary** — is spend within expected band?\n2. Check **Token Usage by Model** — token counts rising faster than narration volume?\n3. Check **Soft Budget Warnings** — any `AI.Cost.SoftThresholdCrossed` events?\n4. Check **MCP Tool Invocations** — latency spikes or unexpected error rate?\n\n**Prompt source of truth:** prompt templates are versioned and hashed in `shared/src/prompts/`. The `PromptTemplate.Get` panel surfaces the `templateId`, `version`, and `hash` properties to detect portal drift.\n\n**References:** [shared/src/telemetryEvents.ts](https://github.com/piquet-h/the-shifting-atlas/blob/main/shared/src/telemetryEvents.ts) · [docs/observability.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n"
+                "json": "# AI Usage Dashboard\n\n> **Stub status (as of 2026-03-20):** All KQL panels are fully wired to live Application Insights data. Results will be empty in environments where the backend has not emitted the relevant telemetry events yet (e.g., before the first AI-backed narration call). Every panel carries an info banner explaining which event to look for. No portal-only drift risk: the workbook JSON is versioned in `infrastructure/workbooks/ai-usage-dashboard.workbook.json` and deployed via Bicep.\n\nToken consumption, cost tracking, and narration/tool invocation counts sourced entirely from **backend-emitted telemetry** in Application Insights. No MCP-client-side counters are used; the backend policy and validation layers are the authoritative source per the narration-first posture.\n\n## When to open this workbook\n\n- Spend is unexpectedly high or rising and you want to identify the responsible model or operation.\n- Token counts are growing faster than narration volume \u2014 indicates prompt inflation or cache bypass.\n- `AI.Cost.SoftThresholdCrossed` alert fired \u2014 use **Budget / Limit Events** to confirm scope.\n- Reviewing whether prompt-template versions in production match the hashes in `shared/src/prompts/` \u2014 use **Prompt Template Retrievals**.\n- Assessing MCP narration throughput after a deployment or traffic change.\n- Investigating hero-prose generation failures \u2014 use **Hero Prose Event Counts** for quick triage, then switch to the AI Operations Dashboard for per-failure-reason breakdown.\n\n## Telemetry covered\n\nAll event names are from the canonical `GAME_EVENT_NAMES` registry in `shared/src/telemetryEvents.ts`:\n\n| Event | Panel | What it tells you |\n| --- | --- | --- |\n| `AI.Cost.WindowSummary` | Cost Window Summary | Aggregated spend and operation count per window, per model |\n| `AI.Cost.Estimated` | Token Usage by Model | Pre-call prompt + completion token estimates |\n| `AI.Cost.SoftThresholdCrossed` | Budget / Limit Events | Soft budget warning (does not block the call) |\n| `AI.Cost.InputCapped` | Budget / Limit Events | Input truncated to max token limit |\n| `AI.Cost.InputAdjusted` | Budget / Limit Events | Input size reduced to fit cost constraints |\n| `AI.Cost.OverrideRejected` | Budget / Limit Events | Cost override attempt rejected by policy |\n| `Description.Hero.*` | Hero Prose Event Counts | Cache hit/miss/generate/failure outcomes |\n| `Description.Hero.GenerateSuccess` | Hero Prose Token Usage | Actual token counts from Azure AI Foundry API response |\n| `MCP.Tool.Invoked` | MCP Tool Invocations | Narration/tool call counts and latency by tool name |\n| `PromptTemplate.Get` | Prompt Template Retrievals | Template id, version, hash \u2014 detect drift from `shared/src/prompts/` |\n\n## What to expect per panel\n\n**Cost Window Summary** \u2014 One row per model. In steady state expect one active model (`hero-prose`). Multiple models indicate parallel experimentation; validate intentional.\n\n**Token Usage by Model** \u2014 `TotalPromptTokens` grows with narration volume; `TotalCompletionTokens` stays proportionally smaller. If completion tokens are \u2265 prompt tokens investigate prompt truncation or generation-loop issues.\n\n**Budget / Limit Events** \u2014 In healthy operation this panel should show zero rows. Any `AI.Cost.SoftThresholdCrossed` rows are advisory. `AI.Cost.InputCapped` or `AI.Cost.OverrideRejected` rows indicate active throttling.\n\n**Hero Prose Event Counts** \u2014 Healthy: `CacheHit` count >> `GenerateSuccess` count. High `CacheMiss` + low `GenerateSuccess` may indicate cache invalidation or generation failures; cross-check with `GenerateFailure` count and switch to the AI Operations Dashboard for root-cause.\n\n**Hero Prose Token Usage** \u2014 More accurate than pre-call estimates (uses actual API response). Use `AvgTokens` as the baseline; a sustained increase usually means longer location descriptions.\n\n**MCP Tool Invocations** \u2014 p95 latency under 2 000 ms is healthy. Spikes above 5 000 ms warrant investigation in the AI Operations Dashboard (MCP Throttles section).\n\n**Prompt Template Retrievals** \u2014 In steady state a single `Version` and `Hash` per `TemplateId`. Multiple hashes for the same template id indicate version drift; verify the canonical hash in `shared/src/prompts/templates/`.\n\n## Non-goals\n\n- World simulation metrics (NPC counts, realm area counts) \u2192 use the Agent Sandbox Dashboard.\n- Hero prose failure root-cause (timeout / config-missing / invalid-response breakdown) \u2192 use the AI Operations Dashboard.\n- Agent step latency and proposal outcomes \u2192 use the Agent Sandbox Dashboard.\n\n## Related dashboards\n\n| Dashboard | What it adds |\n| --- | --- |\n| AI Operations Dashboard | Hero prose failure reasons, MCP auth decisions, throttle/failure rates |\n| Agent Sandbox Dashboard | Agent step lifecycle, proposal validation outcomes, DLQ volume |\n\n**References:** [shared/src/telemetryEvents.ts](https://github.com/piquet-h/the-shifting-atlas/blob/main/shared/src/telemetryEvents.ts) \u00b7 [docs/observability.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md) \u00b7 [infrastructure/README.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/infrastructure/README.md)\n"
             },
             "name": "header"
         },
@@ -45,12 +45,24 @@
                         },
                         "typeSettings": {
                             "selectableValues": [
-                                { "durationMs": 3600000 },
-                                { "durationMs": 14400000 },
-                                { "durationMs": 43200000 },
-                                { "durationMs": 86400000 },
-                                { "durationMs": 172800000 },
-                                { "durationMs": 604800000 }
+                                {
+                                    "durationMs": 3600000
+                                },
+                                {
+                                    "durationMs": 14400000
+                                },
+                                {
+                                    "durationMs": 43200000
+                                },
+                                {
+                                    "durationMs": 86400000
+                                },
+                                {
+                                    "durationMs": 172800000
+                                },
+                                {
+                                    "durationMs": 604800000
+                                }
                             ]
                         }
                     },
@@ -64,7 +76,9 @@
                         "query": "customEvents\n| where timestamp > ago(7d)\n| where name in ('AI.Cost.Estimated', 'Description.Hero.GenerateSuccess')\n| extend model = tostring(customDimensions['model'])\n| where isnotempty(model)\n| distinct model\n| order by model asc",
                         "value": "All",
                         "typeSettings": {
-                            "additionalResourceOptions": ["value::all"],
+                            "additionalResourceOptions": [
+                                "value::all"
+                            ],
                             "showDefault": false
                         },
                         "timeContext": {
