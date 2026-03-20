@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Agent Sandbox Dashboard\n\nOperational view of autonomous agent behavior: decision latency, proposal acceptance/rejection rates, applied effect counts by type, and DLQ/replay entry points.\n\n**Telemetry Events:**\n- `Agent.Step.*` \u2014 step lifecycle (start, completed, skipped, latency exceeded)\n- `Agent.Proposal.Validated`, `Agent.Step.ActionRejected` \u2014 proposal gate outcomes\n- `Agent.Effect.Applied` \u2014 durable world writes by effect type\n- `World.Event.DeadLettered` \u2014 DLQ entries for agent-related events\n\n**Objective:** Detect regressions in agent step performance, track proposal acceptance rates, confirm the agent is producing the expected world effects, and surface DLQ anomalies before they cause silent world-state divergence.\n\n**When to open this workbook:**\n- Agent latency alert fired or step processing is slower than expected\n- Proposal rejection rate is high or the world is not receiving expected ambient layers\n- DLQ entries spiking for `World.Agent.*` events\n- Post-deploy regression check after changes to `AgentStepHandler`, `AgentProposalApplicator`, or the allow-list\n\n**Triage order:**\n1. Check **Step Latency Percentiles** \u2014 is p95 approaching the 5 s budget?\n2. Check **Proposal Outcomes** and **Top Rejection Reasons** \u2014 what fraction of proposals are blocked and why?\n3. Check **Applied Effects by Type** \u2014 is the agent producing the expected variety of world writes?\n4. Check **DLQ Volume** \u2014 are agent step events failing to process?\n\n**Related Issues:** #700 (Agent Sandbox epic), #907 (agent pipeline telemetry)\n\n**References:** [Agent Sandbox Contracts](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md) \u00b7 [Observability](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n"
+        "json": "# Agent Sandbox Dashboard\n\nOperational view of autonomous agent behavior: decision latency, proposal acceptance/rejection rates, applied effect counts by type, cost budget breach tracking, and DLQ/replay entry points.\n\n**Telemetry Events:**\n- `Agent.Step.*` — step lifecycle (start, completed, skipped, latency/cost exceeded)\n- `Agent.Proposal.Validated`, `Agent.Step.ActionRejected` — proposal gate outcomes\n- `Agent.Effect.Applied` — durable world writes by effect type\n- `World.Event.DeadLettered` — DLQ entries for agent-related events\n\n**Objective:** Detect regressions in agent step performance, track proposal acceptance rates, confirm the agent is producing the expected world effects, and surface DLQ anomalies before they cause silent world-state divergence.\n\n**When to open this workbook:**\n- Agent latency alert fired or step processing is slower than expected\n- Proposal rejection rate is high or the world is not receiving expected ambient layers\n- DLQ entries spiking for `World.Agent.*` events\n- Post-deploy regression check after changes to `AgentStepHandler`, `AgentProposalApplicator`, or the allow-list\n\n**Triage order:**\n1. Check **Step Latency Percentiles** — is p95 approaching the 5 s budget?\n2. Check **Proposal Outcomes** and **Top Rejection Reasons** — what fraction of proposals are blocked and why?\n3. Check **Applied Effects by Type** — is the agent producing the expected variety of world writes?\n4. Check **Cost & Budget** — are any steps breaching the cost budget?\n5. Check **DLQ Volume** — are agent step events failing to process?\n\n**Related Issues:** #700 (Agent Sandbox epic), #907 (agent pipeline telemetry)\n\n**References:** [Agent Sandbox Contracts](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md) · [Observability](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n"
       },
       "name": "header"
     },
@@ -77,7 +77,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## Step Latency\n\nMeasures end-to-end processing time per `World.Agent.Step` event: sense \u2192 decide \u2192 validate \u2192 apply. Latency is captured in `Agent.Step.Completed[decisionLatencyMs]` and bookended by `Agent.Step.Start`.\n\n**Latency budget:** 5,000 ms (default; configurable via `AGENT_STEP_LATENCY_BUDGET_MS` env var). Exceeding the budget emits `Agent.Step.LatencyExceeded` but does not abort the step.\n\n**Thresholds:**\n- \ud83d\udfe2 p95 < 2 000 ms \u2014 Healthy\n- \ud83d\udfe1 2 000 ms \u2264 p95 < 4 000 ms \u2014 Warning: investigate sense or apply phase\n- \ud83d\udd34 p95 \u2265 4 000 ms \u2014 Critical: approaching budget; check repository latency and AI generation calls\n"
+        "json": "---\n\n## Step Latency\n\nMeasures end-to-end processing time per `World.Agent.Step` event: sense → decide → validate → apply. Latency is captured in `Agent.Step.Completed[decisionLatencyMs]` and bookended by `Agent.Step.Start`.\n\n**Latency budget:** 5,000 ms (default; configurable via `AGENT_STEP_LATENCY_BUDGET_MS` env var). Exceeding the budget emits `Agent.Step.LatencyExceeded` but does not abort the step.\n\n**Thresholds:**\n- 🟢 p95 < 2 000 ms — Healthy\n- 🟡 2 000 ms ≤ p95 < 4 000 ms — Warning: investigate sense or apply phase\n- 🔴 p95 ≥ 4 000 ms — Critical: approaching budget; check repository latency and AI generation calls\n"
       },
       "name": "latency-section"
     },
@@ -212,7 +212,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## Proposals\n\nTracks the proposal gate: how many proposals are validated and applied versus rejected by the deterministic allow-list validator (`validateAgentProposal` in `shared/src/agentProposal.ts`).\n\n**Oscillation guard:** `Agent.Step.Skipped` events indicate the step loop detected an existing ambient layer and did not re-propose. A high skip rate (>50% of steps) is **normal** during active play sessions and is not an error.\n\n**Rejection codes (low-cardinality):**\n- `action-not-allowed` \u2014 action type not in `PROPOSAL_ALLOWED_ACTION_TYPES`\n- `scope-invalid` \u2014 `scopeKey` prefix not in allowed set (`loc:`, `player:`)\n- `param-missing` \u2014 required action parameter absent\n- `param-invalid` \u2014 parameter value fails rule validation\n\n**Alert threshold:** Rejection rate >20% sustained over 30 min warrants investigation.\n"
+        "json": "---\n\n## Proposals\n\nTracks the proposal gate: how many proposals are validated and applied versus rejected by the deterministic allow-list validator (`validateAgentProposal` in `shared/src/agentProposal.ts`).\n\n**Oscillation guard:** `Agent.Step.Skipped` events indicate the step loop detected an existing ambient layer and did not re-propose. A high skip rate (>50% of steps) is **normal** during active play sessions and is not an error.\n\n**Rejection codes (low-cardinality):**\n- `action-not-allowed` — action type not in `PROPOSAL_ALLOWED_ACTION_TYPES`\n- `scope-invalid` — `scopeKey` prefix not in allowed set (`loc:`, `player:`)\n- `param-missing` — required action parameter absent\n- `param-invalid` — parameter value fails rule validation\n\n**Alert threshold:** Rejection rate >20% sustained over 30 min warrants investigation.\n"
       },
       "name": "proposals-section"
     },
@@ -331,7 +331,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## Applied Effects\n\nCounts durable world writes confirmed by `Agent.Effect.Applied`. Effect type cardinality is intentionally low \u2014 controlled by the allow-list.\n\n**Current allowed effect types:**\n- `Layer.Add` \u2014 writes an ambient description layer to a location (primary agent output)\n- `Ambience.Generate` \u2014 triggers ambient phrase selection and layer write\n- `NPC.Dialogue` \u2014 signals NPC speech (telemetry-only; persistence pending)\n\n**What to look for:** A sudden drop to zero applied effects (while steps continue) indicates the validator is blocking all proposals \u2014 cross-reference the Proposals section.\n"
+        "json": "---\n\n## Applied Effects\n\nCounts durable world writes confirmed by `Agent.Effect.Applied`. Effect type cardinality is intentionally low — controlled by the allow-list.\n\n**Current allowed effect types:**\n- `Layer.Add` — writes an ambient description layer to a location (primary agent output)\n- `Ambience.Generate` — triggers ambient phrase selection and layer write\n- `NPC.Dialogue` — signals NPC speech (telemetry-only; persistence pending)\n\n**What to look for:** A sudden drop to zero applied effects (while steps continue) indicates the validator is blocking all proposals — cross-reference the Proposals section.\n"
       },
       "name": "effects-section"
     },
@@ -407,7 +407,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## DLQ & Replay\n\nSurfaces `World.Event.DeadLettered` entries scoped to `World.Agent.*` event types. These entries indicate agent step events that exhausted Service Bus retries and were moved to the dead-letter queue \u2014 meaning agent steps failed without being applied to the world.\n\n**When DLQ entries appear:**\n1. Check `Reason` column: `schema-validation` = malformed envelope; `json-parse` = upstream serialization bug; other reasons = transient infrastructure failure.\n2. Cross-reference with `Agent.Step.LatencyExceeded` \u2014 tight budgets + transient errors can accelerate DLQ fill.\n3. Use `AgentReplayHarness` (in `backend/src/services/AgentReplayHarness.ts`) to replay DLQ records after the root cause is resolved.\n\n**DLQ drain rate:** `World.Agent.Step` events have a 5-retry policy before dead-lettering. Any sustained DLQ volume (>5 entries/hour) warrants investigation.\n"
+        "json": "---\n\n## DLQ & Replay\n\nSurfaces `World.Event.DeadLettered` entries scoped to `World.Agent.*` event types. These entries indicate agent step events that exhausted Service Bus retries and were moved to the dead-letter queue — meaning agent steps failed without being applied to the world.\n\n**When DLQ entries appear:**\n1. Check `Reason` column: `schema-validation` = malformed envelope; `json-parse` = upstream serialization bug; other reasons = transient infrastructure failure.\n2. Cross-reference with `Agent.Step.LatencyExceeded` — tight budgets + transient errors can accelerate DLQ fill.\n3. Use `AgentReplayHarness` (in `backend/src/services/AgentReplayHarness.ts`) to replay DLQ records after the root cause is resolved.\n\n**DLQ drain rate:** `World.Agent.Step` events have a 5-retry policy before dead-lettering. Any sustained DLQ volume (>5 entries/hour) warrants investigation.\n"
       },
       "name": "dlq-section"
     },
@@ -472,7 +472,7 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## Failure Category Breakdown\n\nSurfaces the three most-actionable failure signals not covered by the DLQ panels above: permanent failures by error-code category, oscillation guard trigger rate by location, and schema violation trends. Use these panels to distinguish **permanent** failures (schema/json-parse \u2014 replay not eligible) from **transient** ones (handler-error \u2014 replay eligible after recovery).\n\n> **Canonical error code taxonomy**: [agent-failure-taxonomy.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/agent-failure-taxonomy.md). Consult that document for the authoritative list of error codes, their permanence, and full triage steps."
+        "json": "---\n\n## Failure Category Breakdown\n\nSurfaces the three most-actionable failure signals not covered by the DLQ panels above: permanent failures by error-code category, oscillation guard trigger rate by location, and schema violation trends. Use these panels to distinguish **permanent** failures (schema/json-parse — replay not eligible) from **transient** ones (handler-error — replay eligible after recovery).\n\n> **Canonical error code taxonomy**: [agent-failure-taxonomy.md](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability/agent-failure-taxonomy.md). Consult that document for the authoritative list of error codes, their permanence, and full triage steps."
       },
       "name": "failure-category-section"
     },
@@ -480,7 +480,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'World.Event.DeadLettered'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    eventType = tostring(customDimensions['eventType']),\n    errorCode = tostring(customDimensions['errorCode'])\n| where eventType startswith 'World.Agent.'\n| summarize Count = sum(ic) by ErrorCode = errorCode\n| extend Permanent = case(\n    ErrorCode == 'schema-validation', 'Yes \u2014 fix schema before replay',\n    ErrorCode == 'json-parse', 'Yes \u2014 corrupted message, discard',\n    ErrorCode == 'handler-error', 'No \u2014 replay after dependency recovers',\n    'Unknown \u2014 inspect individual records')\n| order by Count desc",
+        "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'World.Event.DeadLettered'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    eventType = tostring(customDimensions['eventType']),\n    errorCode = tostring(customDimensions['errorCode'])\n| where eventType startswith 'World.Agent.'\n| summarize Count = sum(ic) by ErrorCode = errorCode\n| extend Permanent = case(\n    ErrorCode == 'schema-validation', 'Yes — fix schema before replay',\n    ErrorCode == 'json-parse', 'Yes — corrupted message, discard',\n    ErrorCode == 'handler-error', 'No — replay after dependency recovers',\n    'Unknown — inspect individual records')\n| order by Count desc",
         "size": 0,
         "title": "DLQ Entries by Error Code (Permanent vs Transient)",
         "noDataMessage": "No World.Event.DeadLettered entries for World.Agent.* events in the selected time range.",
@@ -518,7 +518,7 @@
         "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.Skipped'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    locationId = tostring(customDimensions['locationId']),\n    reason = tostring(customDimensions['reason'])\n| where reason == 'ambient-layer-exists'\n| summarize SkipCount = sum(ic) by LocationId = locationId\n| top 20 by SkipCount desc",
         "size": 0,
         "title": "Oscillation Guard: Top Skipped Locations",
-        "noDataMessage": "No Agent.Step.Skipped events in the selected time range \u2014 oscillation guard is quiet.",
+        "noDataMessage": "No Agent.Step.Skipped events in the selected time range — oscillation guard is quiet.",
         "noDataMessageStyle": 1,
         "timeContext": {
           "durationMs": 0
@@ -549,7 +549,7 @@
         "query": "let startTime = {TimeRange:start};\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Proposal.SchemaInvalid'\n| extend ic = tolong(coalesce(itemCount, 1))\n| summarize SchemaInvalid = sum(ic) by bin(timestamp, 1h)\n| order by timestamp asc",
         "size": 0,
         "title": "Schema Violations Trend (1h buckets)",
-        "noDataMessage": "No Agent.Proposal.SchemaInvalid events \u2014 agent output is structurally valid.",
+        "noDataMessage": "No Agent.Proposal.SchemaInvalid events — agent output is structurally valid.",
         "noDataMessageStyle": 1,
         "timeContext": {
           "durationMs": 0
@@ -564,7 +564,74 @@
     {
       "type": 1,
       "content": {
-        "json": "---\n\n## Troubleshooting Guide\n\n**High p95 latency (approaching 5 s budget):**\n1. Check repository call latency (Cosmos DB SQL API) \u2014 look for elevated RU or throttling.\n2. Check `Agent.Step.SenseCompleted` events: if sense phase is slow, the layer repository lookup is the bottleneck.\n3. If `Agent.Step.ActionApplied` is slow, the apply phase (`AgentProposalApplicator`) is the bottleneck.\n\n**High rejection rate (`firstRejectionCode` = `action-not-allowed`):**\n- The agent is proposing action types not in `PROPOSAL_ALLOWED_ACTION_TYPES`.\n- Check the allow-list in `shared/src/agentProposal.ts` and the agent prompt/decision logic.\n\n**All effects are `Layer.Add`, none of the others:**\n- Expected at current milestone. `Ambience.Generate` and `NPC.Dialogue` require additional scaffolding.\n\n**DLQ entries with `schema-validation` reason:**\n- The `AgentProposalEnvelope` produced by the agent does not satisfy the Zod schema.\n- Compare the live envelope shape against `AgentProposalEnvelopeSchema` in `shared/src/agentProposal.ts`.\n\n**Runbook links:**\n- [Agent Sandbox Contracts & Safety Gates](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md)\n- [Agentic AI & MCP Architecture](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agentic-ai-and-mcp.md)\n- [Observability & Telemetry](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n\nUse this workbook for live triage; consult the contracts document for allow-list definitions, rejection codes, and replay harness usage."
+        "json": "---\n\n## Cost & Budget\n\nTracks per-step cost budget guardrails. `Agent.Step.CostExceeded` fires when `estimatedCostMicros > costBudgetMicros` (default $0.01 = 10 000 µ$, configurable via `AGENT_STEP_COST_BUDGET_MICROS` env var). Steps using no LLM tokens always report `estimatedCostMicros = 0` and never appear here.\n\n**Alert:** The **Agent Step Cost Budget Exceeded** alert (`infrastructure/alert-agent-cost-budget.bicep`) fires on ≥1 breach in a 5-minute window. When this panel shows activity, cross-reference with the **AI Usage Dashboard → AI.Cost.Estimated** events for per-model token breakdown.\n\n**What to look for:** A sudden rise in breaches after a deploy indicates prompt changes generated longer completions. A gradual rise may indicate a model pricing change or volume increase.\n"
+      },
+      "name": "cost-section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.CostExceeded'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend\n    estimatedCostMicros = tolong(customDimensions['estimatedCostMicros']),\n    costBudgetMicros = tolong(customDimensions['costBudgetMicros']),\n    agentType = tostring(customDimensions['entityKind'])\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize\n    Breaches = sum(ic),\n    AvgCostMicros = round(avg(estimatedCostMicros), 0),\n    MaxCostMicros = round(max(estimatedCostMicros), 0),\n    BudgetMicros = max(costBudgetMicros)\n  by AgentType = agentType\n| extend AvgOveragePct = round(100.0 * (AvgCostMicros - BudgetMicros) / iff(BudgetMicros == 0, 1, BudgetMicros), 1)\n| order by Breaches desc",
+        "size": 1,
+        "title": "Cost Budget Breaches by Agent Type",
+        "noDataMessage": "No Agent.Step.CostExceeded events in the selected time range. Budget is not being exceeded.",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Breaches",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen",
+                "customColumnWidthSetting": "80px"
+              },
+              "numberFormat": {
+                "unit": 17,
+                "options": {
+                  "style": "decimal"
+                }
+              }
+            },
+            {
+              "columnMatch": "AvgOveragePct",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "redGreen"
+              },
+              "numberFormat": {
+                "unit": 1,
+                "options": {
+                  "style": "decimal",
+                  "maximumFractionDigits": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      "name": "cost-breaches-by-agent"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "query": "let startTime = {TimeRange:start};\nlet agentTypeRaw = '{AgentType:escape}';\nlet agentTypeFilter = iff(agentTypeRaw == '' or agentTypeRaw == '{AgentType:escape}' or agentTypeRaw == 'All', '', agentTypeRaw);\ncustomEvents\n| where timestamp > startTime\n| where name == 'Agent.Step.CostExceeded'\n| extend ic = tolong(coalesce(itemCount, 1))\n| extend agentType = tostring(customDimensions['entityKind'])\n| where agentTypeFilter == '' or agentType == agentTypeFilter\n| summarize Breaches = sum(ic) by bin(timestamp, 1h)\n| order by timestamp asc",
+        "size": 0,
+        "title": "Cost Budget Breaches Trend (1h buckets)",
+        "noDataMessage": "No Agent.Step.CostExceeded events in the selected time range. Budget is not being exceeded.",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "name": "cost-exceeded-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n\n## Troubleshooting Guide\n\n**High p95 latency (approaching 5 s budget):**\n1. Check repository call latency (Cosmos DB SQL API) — look for elevated RU or throttling.\n2. Check `Agent.Step.SenseCompleted` events: if sense phase is slow, the layer repository lookup is the bottleneck.\n3. If `Agent.Step.ActionApplied` is slow, the apply phase (`AgentProposalApplicator`) is the bottleneck.\n\n**High rejection rate (`firstRejectionCode` = `action-not-allowed`):**\n- The agent is proposing action types not in `PROPOSAL_ALLOWED_ACTION_TYPES`.\n- Check the allow-list in `shared/src/agentProposal.ts` and the agent prompt/decision logic.\n\n**All effects are `Layer.Add`, none of the others:**\n- Expected at current milestone. `Ambience.Generate` and `NPC.Dialogue` require additional scaffolding.\n\n**DLQ entries with `schema-validation` reason:**\n- The `AgentProposalEnvelope` produced by the agent does not satisfy the Zod schema.\n- Compare the live envelope shape against `AgentProposalEnvelopeSchema` in `shared/src/agentProposal.ts`.\n\n**Cost budget breach (`Agent.Step.CostExceeded` firing):**\n1. Check **Cost & Budget → Cost Budget Breaches by Agent Type** to see which agent is over budget.\n2. If `estimatedCostMicros` is only marginally above `costBudgetMicros`, consider raising `AGENT_STEP_COST_BUDGET_MICROS`.\n3. If the overage is large or persistent, audit prompt templates for unexpectedly long completions; cross-reference with `AI.Cost.Estimated` in the **AI Usage Dashboard**.\n\n**Runbook links:**\n- [Agent Sandbox Contracts & Safety Gates](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agent-sandbox-contracts.md)\n- [Agentic AI & MCP Architecture](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/architecture/agentic-ai-and-mcp.md)\n- [Observability & Telemetry](https://github.com/piquet-h/the-shifting-atlas/blob/main/docs/observability.md)\n\nUse this workbook for live triage; consult the contracts document for allow-list definitions, rejection codes, and replay harness usage."
       },
       "name": "troubleshooting-guide"
     }

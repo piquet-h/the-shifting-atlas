@@ -592,6 +592,156 @@ Historical notes and rationale are captured in `docs/adr/ADR-004-player-store-cu
 
 ---
 
+### Agent Pipeline (M4c — Issues #706, #907)
+
+> **Status:** Fully implemented and emitted in production.  
+> **Source files:** `backend/src/worldEvents/handlers/AgentStepHandler.ts`, `backend/src/handlers/agentPropose.ts`  
+> **Attribute helpers:** `shared/src/telemetryAttributes.ts` — `AgentPipelineEventAttributes`, `enrichAgentPipelineAttributes`  
+> **Security note:** NEVER include raw prompt text, generated content, or player PII. `agentType` must be a low-cardinality enumeration value. `promptHash` must be a SHA-256 hash of the template, NOT the raw prompt string.
+
+#### `Agent.Proposal.Received`
+
+**Trigger:** HTTP `POST /api/agent/propose` — proposal submission received and schema-validated  
+**Dimensions:** `proposalId`, `actorKind` (ai|human|system), `actionCount`, `decisionLatencyMs`, `proposalCorrelationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Entry point for the proposal funnel; every valid submission is counted here before outcome is determined  
+**Retention:** 90 days
+
+#### `Agent.Proposal.Accepted`
+
+**Trigger:** Proposal passed all validation checks (HTTP path)  
+**Dimensions:** `proposalId`, `actorKind`, `actionCount`, `decisionLatencyMs`, `proposalCorrelationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Track successful proposal acceptance rate; pair with `Agent.Proposal.Received` for funnel analysis  
+**Retention:** 90 days
+
+#### `Agent.Proposal.Validated`
+
+**Trigger:** Proposal passed deterministic allow-list validation (queue path — emitted from `AgentStepHandler`)  
+**Dimensions:** `proposalId`, `agentId`, `agentType`, `validationOutcome` (accepted), `decisionLatencyMs`, `correlationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Queue-path counterpart to `Agent.Proposal.Accepted`; makes accept/reject visible in `Agent.Step.*` traces  
+**Retention:** 90 days
+
+#### `Agent.Proposal.Rejected`
+
+**Trigger:** Proposal failed deterministic validation (HTTP or queue path)  
+**Dimensions:** `proposalId`, `actorKind`, `actionCount`, `rejectionCount`, `decisionLatencyMs`, `proposalCorrelationId`  
+**Severity:** Warning  
+**Purpose:** Track rejection rate; `rejectionCount` > 0 is the primary signal for allow-list or prompt regressions  
+**Alert:** Rejection rate >20% sustained over 30 min — check allow-list and prompt output  
+**Retention:** 90 days
+
+#### `Agent.Proposal.SchemaInvalid`
+
+**Trigger:** Proposal body failed Zod schema parse before validation (HTTP path)  
+**Dimensions:** `correlationId`, `issueCount`, `firstIssue` (sanitized, no PII)  
+**Severity:** Error  
+**Purpose:** Track schema violations caused by malformed agent output or breaking schema changes; precedes any validation  
+**Alert:** Any occurrence after a deploy may indicate a breaking schema change — check `AgentProposalEnvelopeSchema`  
+**Retention:** 180 days
+
+#### `Agent.Step.Start`
+
+**Trigger:** `World.Agent.Step` queue event picked up — step handler initiated  
+**Dimensions:** `agentId`, `agentType`, `locationId`, `stepSequence`, `correlationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Opening bookend of the sense→decide→act loop; pairs with `Agent.Step.Completed` for end-to-end duration  
+**Retention:** 90 days
+
+#### `Agent.Step.Completed`
+
+**Trigger:** `finishStep()` called — step handler finished regardless of outcome  
+**Dimensions:** `agentId`, `agentType`, `decisionLatencyMs`, `validationOutcome` (applied|rejected|skipped), `estimatedCostMicros`, `costBudgetMicros`, `correlationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Closing bookend; provides final latency and cost figures for every step; drives latency and cost workbook panels  
+**Retention:** 90 days
+
+#### `Agent.Step.Processed`
+
+**Trigger:** `finishStep()` called — emitted alongside `Agent.Step.Completed` for broader step-level summary  
+**Dimensions:** `entityId`, `entityKind`, `locationId`, `stepSequence`, `outcome`, `latencyMs`, `estimatedCostMicros`, `correlationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Provides `locationId` and `stepSequence` context for step completion that `Agent.Step.Completed` does not carry; used by latency KQL queries (`latencyMs` field)  
+**Retention:** 90 days
+
+#### `Agent.Step.LatencyExceeded`
+
+**Trigger:** `latencyMs > budgetMs` inside `finishStep()` — soft budget breach  
+**Dimensions:** `entityId`, `entityKind`, `latencyMs`, `budgetMs`, `correlationId`  
+**Severity:** Warning  
+**Purpose:** Non-aborting signal that a step exceeded the configured latency budget (`AGENT_STEP_LATENCY_BUDGET_MS`, default 5 000 ms); used by the Latency Budget Exceeded panel  
+**Alert:** Any occurrence — check Cosmos DB latency and AI generation latency  
+**Retention:** 90 days
+
+#### `Agent.Step.CostExceeded`
+
+**Trigger:** `estimatedCostMicros > costBudgetMicros` inside `finishStep()` — cost budget breach  
+**Dimensions:** `entityId`, `entityKind`, `estimatedCostMicros`, `costBudgetMicros`, `correlationId`  
+**Severity:** Warning  
+**Purpose:** Non-aborting signal that a step exceeded the per-step cost budget (`AGENT_STEP_COST_BUDGET_MICROS`, default 10 000 µ$ = $0.01); drives the **Agent Step Cost Budget Exceeded** alert  
+**Alert:** `infrastructure/alert-agent-cost-budget.bicep` — ≥1 occurrence fires the alert (severity 2 = Warning)  
+**Retention:** 90 days
+
+#### `Agent.Step.EntityNotFound`
+
+**Trigger:** (Reserved — not yet emitted) entity lookup fails at step time  
+**Dimensions:** `entityId`, `entityKind`, `correlationId`  
+**Severity:** Warning  
+**Purpose:** Noop signal for when the entity no longer exists when the step is processed; registered so the name is valid once emitted  
+**Status:** Not emitted in current implementation; reserved for when `AgentStepHandler` gains an entity repository lookup (#703)  
+**Retention:** 90 days
+
+#### `Agent.Step.SenseCompleted`
+
+**Trigger:** Sense phase done — world clock tick and ambient layer loaded  
+**Dimensions:** `entityId`, `locationId`, `hasAmbientLayer` (boolean), `tick`, `correlationId`  
+**Severity:** Informational  
+**Purpose:** Makes sense-phase cost visible; `hasAmbientLayer=true` means the oscillation guard will trigger `Agent.Step.Skipped`  
+**Retention:** 90 days
+
+#### `Agent.Step.DecisionMade`
+
+**Trigger:** Decide phase complete — action type chosen  
+**Dimensions:** `entityId`, `locationId`, `actionType` (Layer.Add|…), `reason` (no-ambient-layer|…), `correlationId`  
+**Severity:** Informational  
+**Purpose:** Records what the agent decided to do and why; low-cardinality `reason` enables regression detection  
+**Retention:** 90 days
+
+#### `Agent.Step.ActionApplied`
+
+**Trigger:** Proposal passed validation and `AgentProposalApplicator.apply()` succeeded  
+**Dimensions:** `entityId`, `locationId`, `actionType`, `scopeKey`, `layerId`(optional), `proposalId`, `correlationId`  
+**Severity:** Informational  
+**Purpose:** Confirms the durable world write; pairs with `Agent.Effect.Applied` (which uses agent-level `agentId`/`agentType` instead)  
+**Retention:** 90 days
+
+#### `Agent.Step.ActionRejected`
+
+**Trigger:** Proposal failed validation inside the queue-path step loop  
+**Dimensions:** `entityId`, `locationId`, `proposalId`, `rejectionCount`, `firstRejectionCode`, `correlationId`  
+**Severity:** Warning  
+**Purpose:** Queue-path rejection detail; `firstRejectionCode` is the primary triage field (drives "Top Rejection Reason Codes" panel)  
+**Retention:** 90 days
+
+#### `Agent.Step.Skipped`
+
+**Trigger:** Oscillation guard fires — ambient layer already exists for the location  
+**Dimensions:** `entityId`, `locationId`, `reason` (ambient-layer-exists|…), `correlationId`  
+**Severity:** Informational  
+**Purpose:** A high skip rate (>50% of steps) is normal during active play; abnormally high rates or unexpected `reason` values indicate scheduling bugs  
+**Retention:** 90 days
+
+#### `Agent.Effect.Applied`
+
+**Trigger:** Effect durably applied to the world — emitted alongside `Agent.Step.ActionApplied`  
+**Dimensions:** `agentId`, `agentType`, `actionType`, `scopeKey`, `layerId`(optional), `correlationId`, `causationId`(optional)  
+**Severity:** Informational  
+**Purpose:** Agent-identity-annotated record of every world write; drives "Applied Effects by Type" workbook panel; provides `agentType` for cross-agent comparisons  
+**Retention:** 90 days
+
+---
+
 ### Internal / Diagnostics
 
 #### `Telemetry.EventName.Invalid`
@@ -919,8 +1069,8 @@ Run this query repeatedly over 15 minutes to exceed 70% of provisioned throughpu
 > - **Blocked Reasons Breakdown**: [movement-blocked-reasons.workbook.json](workbooks/movement-blocked-reasons.workbook.json) with setup instructions in [workbooks/README.md](workbooks/README.md)
 > - **Other Workbooks**: See [docs/observability/workbooks/](workbooks/) directory for additional dashboards
 
-**Last Updated:** 2026-01-14  
-**Event Count:** 93 canonical events (includes 6 temporal events from Issue #506, 5 MCP events from Issue #428)
+**Last Updated:** 2026-03-20  
+**Event Count:** 110 canonical events (includes 6 temporal events from Issue #506, 5 MCP events from Issue #428, 17 agent pipeline events from Issues #706, #907)
 
 ## Deprecated Events
 

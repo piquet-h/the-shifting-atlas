@@ -553,6 +553,51 @@ Fires when `World.Agent.*` events exceed the dead-letter threshold in a 5-minute
 
 ---
 
+### Agent Step Cost Budget Exceeded
+
+**Alert ID:** `agent-cost-budget-{name}`  
+**Bicep Module:** `infrastructure/alert-agent-cost-budget.bicep`  
+**Status:** Active
+
+**Purpose:**  
+Fires when one or more agent steps exceed the per-step cost budget (`AGENT_STEP_COST_BUDGET_MICROS`, default $0.01 = 10 000 microdollars). Indicates an LLM-backed agent workload is burning tokens beyond the configured threshold. Steps that use no LLM (0-token path) always report `estimatedCostMicros = 0` and never trigger this alert.
+
+**Trigger Conditions:**
+
+- **Fire**: ≥ `breachCountThreshold` (default 1) `Agent.Step.CostExceeded` events in a 5-minute window
+- **Auto-resolve**: When the next evaluation window contains fewer events than the threshold
+
+**Alert Payload Context:**
+
+- **BreachCount**: Number of `Agent.Step.CostExceeded` events in the window
+- Each event carries `estimatedCostMicros` and `costBudgetMicros` for per-step cost analysis
+
+**Configuration:**
+
+| Parameter | Default | Purpose |
+|---|---|---|
+| `breachCountThreshold` | 1 | Minimum breaching steps to trigger |
+| `evaluationFrequencyMinutes` | 5 | Evaluation window size |
+| `severity` | 2 (Warning) | Alert severity level |
+
+**Data Source:**
+
+- `Agent.Step.CostExceeded` events (emitted when `estimatedCostMicros > costBudgetMicros` in `AgentStepHandler.finishStep()`)
+
+**Response Guidance:**
+
+1. Open **Agent Sandbox Dashboard → Cost & Budget → Cost Budget Breaches by Agent Type** to identify which agent type is over budget.
+2. Check `estimatedCostMicros` vs `costBudgetMicros` in the breaching events — if the overage is small and infrequent, consider raising `AGENT_STEP_COST_BUDGET_MICROS`.
+3. If the overage is large or persistent, investigate the agent decision logic: the agent may be generating unusually long prompts or completions.
+4. For LLM token details, cross-reference with `AI.Cost.Estimated` events in the **AI Usage Dashboard**.
+
+**Escalation Path:**
+
+- Alert auto-resolves when the cost breach rate drops below threshold.
+- If breaches persist for >15 minutes, escalate to the team responsible for `AgentStepHandler` and review prompt templates.
+
+---
+
 ## Related Documentation
 
 - [Telemetry Event Catalog](./telemetry-catalog.md) — Event definitions and dimensions
@@ -564,5 +609,5 @@ Fires when `World.Agent.*` events exceed the dead-letter threshold in a 5-minute
 
 ---
 
-**Last Updated:** 2026-03-16  
-**Alert Count:** 4 active alerts (SQL Hot Partition, RU Utilization, Consolidated Operation Latency, Agent DLQ Spike)
+**Last Updated:** 2026-03-20  
+**Alert Count:** 5 active alerts (SQL Hot Partition, RU Utilization, Consolidated Operation Latency, Agent DLQ Spike, Agent Step Cost Budget Exceeded)
