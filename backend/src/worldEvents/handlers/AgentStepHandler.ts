@@ -311,7 +311,13 @@ export class AgentStepHandler extends BaseWorldEventHandler {
     // Private helpers
     // ------------------------------------------------------------------
 
-    private finishStep(event: WorldEventEnvelope, startMs: number, budgetMs: number, outcome: string, estimatedCostMicros = 0): WorldEventHandlerResult {
+    private finishStep(
+        event: WorldEventEnvelope,
+        startMs: number,
+        budgetMs: number,
+        outcome: string,
+        estimatedCostMicros = 0
+    ): WorldEventHandlerResult {
         const { entityId, entityKind, locationId, stepSequence } = event.payload as Record<string, unknown>
         const latencyMs = Date.now() - startMs
         const costBudgetMicros = getCostBudgetMicros()

@@ -12,6 +12,7 @@ import { LinkRoomsHandler } from '../handlers/linkRooms.js'
 import { LocationLookHandler } from '../handlers/locationLook.js'
 import { IntentParserHandler } from '../handlers/mcp/intent-parser/intent-parser.js'
 import { LoreMemoryHandler } from '../handlers/mcp/lore-memory/lore-memory.js'
+import { NarrativeGeneratorHandler } from '../handlers/mcp/narrative-generator/narrative-generator.js'
 import { WorldContextHandler } from '../handlers/mcp/world-context/world-context.js'
 import { WorldOperationsHandler } from '../handlers/mcp/world-operations/world-operations.js'
 import { MoveHandler } from '../handlers/moveCore.js'
@@ -34,6 +35,7 @@ export const HANDLER_CLASSES = [
     // MCP handlers (resolved by wrapper functions)
     WorldContextHandler,
     LoreMemoryHandler,
+    NarrativeGeneratorHandler,
     WorldOperationsHandler,
     IntentParserHandler,
 

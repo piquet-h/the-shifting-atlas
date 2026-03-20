@@ -190,6 +190,12 @@ After running format, review the diff, stage changes, and push a follow-up commi
 
 **Verification:** After formatting, run `npm run format:check` (or package-specific variant) to confirm prettier passes before considering work done.
 
+### 0.16a Cloud-Agent PR Completion Rule (Formatting)
+
+For GitHub.com/cloud agents, a PR is **not complete** while any prettier/lint/typecheck check is red.
+If prettier fails, run the package formatter, push a follow-up commit, and repeat until required checks are green.
+Do not stop at "PR opened" when formatting checks are failing.
+
 ### 0.11 New Azure Function High‑Level Flow
 
 Use Appendix A checklist before committing: trigger chosen, validation, telemetry constant, idempotency note, tests (happy + invalid), risk tag.
