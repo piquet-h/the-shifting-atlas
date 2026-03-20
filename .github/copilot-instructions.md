@@ -130,10 +130,26 @@ Self QA: Build <PASS/FAIL> | Lint <PASS/FAIL> | Typecheck <PASS/FAIL> | Tests <x
 
 Prefer minimal Given/When/Then bullets for each acceptance criterion; at least 1 happy path + 1 edge/invalid for new logic.
 
+### 0.9a BLOCKING: TDD Skill for Runtime Code Changes
+
+**When implementing features, bug fixes, API changes, or refactors**, you MUST load and review the **`tdd-first-workflow` skill** BEFORE writing implementation code.
+
+The skill enforces:
+
+- Red → Green → Refactor ceremony (failing test FIRST)
+- Test layer decision matrix (unit/integration/e2e)
+- Happy path + edge case requirements
+- Self QA checklist
+
+See **`.github/skills/tdd-first-workflow/SKILL.md`** for the complete workflow.
+
+This is a BLOCKING REQUIREMENT. If you skip this step, TDD compliance may be missed.
+
 ### 0.10 Fast Path vs Full Workflow
 
 - Fast Path (Trivial): direct patch → run tests → summarize
-- Full Workflow (Non‑Trivial): follow Section 0.6 sequence.
+    - **But still run tests to confirm behavior**
+- Full Workflow (Non‑Trivial): load TDD skill → Red → Green → Refactor → Section 0.6 sequence
 
 ### 0.15 CI / Lint / Typecheck gate (Non‑negotiable)
 
