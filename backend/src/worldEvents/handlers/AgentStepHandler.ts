@@ -21,6 +21,11 @@
  * (default 5000 ms). Exceeding it emits Agent.Step.LatencyExceeded telemetry
  * and still completes (no hard abort — agent logic must remain idempotent).
  *
+ * Cost budget: configurable via AGENT_STEP_COST_BUDGET_MICROS env var
+ * (default 10000 microdollars = $0.01/step). Exceeding it emits Agent.Step.CostExceeded
+ * telemetry. Steps using no LLM (0-token path) always report estimatedCostMicros: 0
+ * so the alert does not fire. estimatedCostMicros is always included in Agent.Step.Completed.
+ *
  * Sense→Decide→Act loop (per issue #706):
  *  1. SENSE   — load location's current ambient layer and world clock tick
  *  2. DECIDE  — if no ambient layer exists, propose Layer.Add; otherwise skip
@@ -52,6 +57,9 @@ import { BaseWorldEventHandler, type ValidationResult } from './base/BaseWorldEv
 /** Default latency budget for a single agent step (ms). Override via env var. */
 const DEFAULT_LATENCY_BUDGET_MS = 5_000
 
+/** Default cost budget per agent step in microdollars (= $0.01). Override via AGENT_STEP_COST_BUDGET_MICROS. */
+const DEFAULT_COST_BUDGET_MICROS = 10_000
+
 function getLatencyBudgetMs(): number {
     const raw = process.env.AGENT_STEP_LATENCY_BUDGET_MS
     if (raw) {
@@ -59,6 +67,15 @@ function getLatencyBudgetMs(): number {
         if (!isNaN(parsed) && parsed > 0) return parsed
     }
     return DEFAULT_LATENCY_BUDGET_MS
+}
+
+function getCostBudgetMicros(): number {
+    const raw = process.env.AGENT_STEP_COST_BUDGET_MICROS
+    if (raw) {
+        const parsed = parseInt(raw, 10)
+        if (!isNaN(parsed) && parsed > 0) return parsed
+    }
+    return DEFAULT_COST_BUDGET_MICROS
 }
 
 /** Handler for World.Agent.Step events — autonomous sense→decide→act loop */
@@ -294,9 +311,10 @@ export class AgentStepHandler extends BaseWorldEventHandler {
     // Private helpers
     // ------------------------------------------------------------------
 
-    private finishStep(event: WorldEventEnvelope, startMs: number, budgetMs: number, outcome: string): WorldEventHandlerResult {
+    private finishStep(event: WorldEventEnvelope, startMs: number, budgetMs: number, outcome: string, estimatedCostMicros = 0): WorldEventHandlerResult {
         const { entityId, entityKind, locationId, stepSequence } = event.payload as Record<string, unknown>
         const latencyMs = Date.now() - startMs
+        const costBudgetMicros = getCostBudgetMicros()
 
         if (latencyMs > budgetMs) {
             this.telemetry.trackGameEvent(
@@ -312,6 +330,20 @@ export class AgentStepHandler extends BaseWorldEventHandler {
             )
         }
 
+        if (estimatedCostMicros > costBudgetMicros) {
+            this.telemetry.trackGameEvent(
+                'Agent.Step.CostExceeded',
+                {
+                    entityId: String(entityId),
+                    entityKind: String(entityKind),
+                    estimatedCostMicros,
+                    costBudgetMicros,
+                    correlationId: event.correlationId
+                },
+                { correlationId: event.correlationId }
+            )
+        }
+
         this.telemetry.trackGameEvent(
             'Agent.Step.Completed',
             {
@@ -319,6 +351,8 @@ export class AgentStepHandler extends BaseWorldEventHandler {
                 agentType: String(entityKind),
                 decisionLatencyMs: latencyMs,
                 validationOutcome: outcome,
+                estimatedCostMicros,
+                costBudgetMicros,
                 correlationId: event.correlationId,
                 ...(event.causationId ? { causationId: event.causationId } : {})
             },
@@ -334,6 +368,7 @@ export class AgentStepHandler extends BaseWorldEventHandler {
                 stepSequence,
                 outcome,
                 latencyMs,
+                estimatedCostMicros,
                 correlationId: event.correlationId,
                 causationId: event.causationId
             },

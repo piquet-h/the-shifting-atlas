@@ -7,7 +7,7 @@ description: Bounded specification for generated exit descriptions — duration 
 
 > STATUS: IMPLEMENTED (2026-03-09). Contract fully specified and all checks implemented in `shared/src/exitDescriptionValidator.ts` (EL-01–EL-09). Scaffold generator (`backend/src/services/exitDescriptionScaffold.ts`) and two-stage description service (`backend/src/services/ExitDescriptionService.ts`) are operational. Aligns with tokenless layering model and narration governance constraints.
 >
-> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `action-intent-persistence.md` · `../DESIGN_CLARIFICATION_intent_vs_narrative.md`
+> Related: `../design-modules/description-layering-and-variation.md` · `narration-governance.md` · `../concept/exits.md` · `exit-generation-hints.md` · `action-intent-persistence.md` · `../concept/interaction-modes-and-canonicality.md`
 
 ## Purpose
 
@@ -29,13 +29,13 @@ Generated exit language must reflect distance **qualitatively** without leaking 
 
 ### 1.1 Bucket Definitions
 
-| Bucket       | `travelDurationMs` range | Narrative register                                    | Typical verbs / phrases                             |
-| ------------ | ------------------------ | ----------------------------------------------------- | --------------------------------------------------- |
-| `threshold`  | < 15 000 (15 s)          | Immediate transition; no journey implied              | "leads through", "opens into", "steps down into"    |
-| `near`       | 15 000 – 299 999         | A few paces; same district, short cross               | "leads across to", "a short path connects"          |
-| `moderate`   | 300 000 – 1 799 999      | Brief walk; connecting areas (urban default = 5 min)  | "continues toward", "a road heads", "the lane runs" |
-| `far`        | 1 800 000 – 14 399 999   | Significant leg; traveller leaves immediate vicinity  | "winds toward", "a track leads", "stretches toward" |
-| `distant`    | ≥ 14 400 000 (4 h)       | Long journey; horizon scale                           | "disappears toward", "the way extends far"          |
+| Bucket      | `travelDurationMs` range | Narrative register                                   | Typical verbs / phrases                             |
+| ----------- | ------------------------ | ---------------------------------------------------- | --------------------------------------------------- |
+| `threshold` | < 15 000 (15 s)          | Immediate transition; no journey implied             | "leads through", "opens into", "steps down into"    |
+| `near`      | 15 000 – 299 999         | A few paces; same district, short cross              | "leads across to", "a short path connects"          |
+| `moderate`  | 300 000 – 1 799 999      | Brief walk; connecting areas (urban default = 5 min) | "continues toward", "a road heads", "the lane runs" |
+| `far`       | 1 800 000 – 14 399 999   | Significant leg; traveller leaves immediate vicinity | "winds toward", "a track leads", "stretches toward" |
+| `distant`   | ≥ 14 400 000 (4 h)       | Long journey; horizon scale                          | "disappears toward", "the way extends far"          |
 
 **Fallback**: When `travelDurationMs` is absent on an edge, treat as `moderate` (aligns with `DEFAULT_TRAVEL_DURATION_MS = 60 000` ms, which falls in the `near` band — implementers may choose either; document the choice in the generation prompt).
 
@@ -56,12 +56,12 @@ A small, low-cardinality set of optional fields may be attached to an exit edge 
 
 ### 2.1 Hint Schema
 
-| Field            | Values (enum)                                                                    | Persisted? | Purpose                                                                   |
-| ---------------- | -------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| `pathKind`       | `road` \| `track` \| `trail` \| `door` \| `gate` \| `stair` \| `ladder` \| `gap` \| `ford` \| `passage` | **Yes** | Stable structural fact about the physical surface / crossing type. |
-| `grade`          | `ascending` \| `descending` \| `level`                                           | **Yes**    | Topographic elevation change; informs vertical-motion verb selection.     |
-| `transitionKind` | `outdoor-to-indoor` \| `indoor-to-outdoor` \| `above-to-below` \| `below-to-above` \| `water-crossing` \| `open-air` | **Yes** | Spatial transition type; governs threshold vs journey language. |
-| `occlusion`      | `open` \| `dim` \| `obscured` \| `sealed`                                        | **No**     | Ephemeral visibility / access state; generation-only; not stored on edge. |
+| Field            | Values (enum)                                                                                                        | Persisted? | Purpose                                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- |
+| `pathKind`       | `road` \| `track` \| `trail` \| `door` \| `gate` \| `stair` \| `ladder` \| `gap` \| `ford` \| `passage`              | **Yes**    | Stable structural fact about the physical surface / crossing type.        |
+| `grade`          | `ascending` \| `descending` \| `level`                                                                               | **Yes**    | Topographic elevation change; informs vertical-motion verb selection.     |
+| `transitionKind` | `outdoor-to-indoor` \| `indoor-to-outdoor` \| `above-to-below` \| `below-to-above` \| `water-crossing` \| `open-air` | **Yes**    | Spatial transition type; governs threshold vs journey language.           |
+| `occlusion`      | `open` \| `dim` \| `obscured` \| `sealed`                                                                            | **No**     | Ephemeral visibility / access state; generation-only; not stored on edge. |
 
 **Why persisted vs not**: `pathKind`, `grade`, and `transitionKind` are stable spatial facts about the edge (they rarely change without a structural world event). `occlusion` is ephemeral context (time-of-day, weather, open/closed state) and must not be persisted on the exit edge — it belongs in an ambient or structural-event layer if world-state relevant.
 
@@ -79,11 +79,11 @@ A small, low-cardinality set of optional fields may be attached to an exit edge 
 
 ### 3.1 Length
 
-| Metric          | Value           |
-| --------------- | --------------- |
-| Maximum chars   | 120             |
-| Target range    | 40 – 90 chars   |
-| Sentences       | Exactly 1       |
+| Metric        | Value         |
+| ------------- | ------------- |
+| Maximum chars | 120           |
+| Target range  | 40 – 90 chars |
+| Sentences     | Exactly 1     |
 
 Rationale: Exit text is spatial glue, not prose. It must be scannable at a glance. Richer language lives in ambient and enhancement layers (see §4).
 
@@ -91,26 +91,26 @@ Rationale: Exit text is spatial glue, not prose. It must be scannable at a glanc
 
 Exit descriptions MUST NOT contain:
 
-| Category                  | Rule                                                                                         |
-| ------------------------- | -------------------------------------------------------------------------------------------- |
-| **Proper nouns**          | No new named locations, settlements, NPCs, factions, or deities unless explicitly provided in the `destinationName` generation parameter. |
-| **Faction / NPC references** | No faction banners, NPC names, quest actors, or political allegiances.                    |
-| **Mechanical durations**  | No clock times, day counts, or numeric distances (see §1.2).                                 |
-| **Weather / time-of-day** | No "foggy morning path", "sunset-lit road". Those are ambient layer content.                 |
-| **Conditional state**     | No "the road that was blocked last week", no event-dependent wording.                        |
-| **Multiple clauses**      | No coordinate conjunctions that add a second sentence-worth of information.                  |
-| **Destination spoilers**  | Never name or describe what is at the destination unless `destinationName` is provided.      |
+| Category                     | Rule                                                                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Proper nouns**             | No new named locations, settlements, NPCs, factions, or deities unless explicitly provided in the `destinationName` generation parameter. |
+| **Faction / NPC references** | No faction banners, NPC names, quest actors, or political allegiances.                                                                    |
+| **Mechanical durations**     | No clock times, day counts, or numeric distances (see §1.2).                                                                              |
+| **Weather / time-of-day**    | No "foggy morning path", "sunset-lit road". Those are ambient layer content.                                                              |
+| **Conditional state**        | No "the road that was blocked last week", no event-dependent wording.                                                                     |
+| **Multiple clauses**         | No coordinate conjunctions that add a second sentence-worth of information.                                                               |
+| **Destination spoilers**     | Never name or describe what is at the destination unless `destinationName` is provided.                                                   |
 
 ### 3.3 Direction Coherence Rules
 
-| Direction            | Required language register                                                                                       |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `north/south/east/west` | Horizontal movement implied. No climbing/descending verbs unless `grade ≠ level` hint is present.            |
-| `up`                 | Upward motion always implied. Use `stair`, `ladder`, `slope` register. No flat-road language.                    |
-| `down`               | Downward motion always implied. Mirror of `up` rules.                                                           |
-| `in`                 | Threshold transition into an interior. Use entry-register language. Never "a road leads in".                    |
-| `out`                | Threshold transition to exterior. Use exit-register language.                                                    |
-| Diagonal (`northeast`, etc.) | Same rules as cardinal with diagonal qualifier. Avoid pure cardinal in text ("north" for "northeast").  |
+| Direction                    | Required language register                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `north/south/east/west`      | Horizontal movement implied. No climbing/descending verbs unless `grade ≠ level` hint is present.      |
+| `up`                         | Upward motion always implied. Use `stair`, `ladder`, `slope` register. No flat-road language.          |
+| `down`                       | Downward motion always implied. Mirror of `up` rules.                                                  |
+| `in`                         | Threshold transition into an interior. Use entry-register language. Never "a road leads in".           |
+| `out`                        | Threshold transition to exterior. Use exit-register language.                                          |
+| Diagonal (`northeast`, etc.) | Same rules as cardinal with diagonal qualifier. Avoid pure cardinal in text ("north" for "northeast"). |
 
 **Stub / missing destination rule**: When the destination location is absent or a stub (not yet generated), exit text MUST remain fully generic. It may not infer toponym, biome, or building type from context. Use the safest bucket-appropriate phrase: e.g., "A track continues north." rather than "A track leads toward the distant hills."
 
@@ -142,17 +142,17 @@ Validators run at generation time (before persistence) and at audit time (batch 
 
 ### 5.1 Checks Table
 
-| Check ID | Check Name              | Rule                                                                                     | Failure action       |
-| -------- | ----------------------- | ---------------------------------------------------------------------------------------- | -------------------- |
-| EL-01    | Length hard limit       | `length(text) ≤ 120`                                                                     | Reject / retry       |
-| EL-02    | Length minimum          | `length(text) ≥ 15` (guards against empty/stub output)                                  | Reject / retry       |
-| EL-03    | Single sentence         | No more than one sentence-terminal punctuation mark (`[.!?]`) in the text                | Reject / retry       |
-| EL-04    | No numeric duration     | Text matches no pattern `\d+\s*(minute|hour|day|second|min|hr)s?`                        | Reject / retry       |
-| EL-05    | Direction mismatch      | If direction is `in` or `out`, text must not contain road/path/journey verbs (road, trail, track, journey, walk, ride) | Reject / retry |
-| EL-06    | Vertical coherence      | If direction is `north/south/east/west` and `grade` hint is absent or `level`, text must not contain climb/descend verbs | Reject / retry |
-| EL-07    | Canon creep — proper noun | Text must not introduce any token matching a proper-noun pattern (`[A-Z][a-z]+` preceded by neither sentence-start nor direction keyword) that is absent from the provided generation context | Reject / retry |
-| EL-08    | No destination inference | When `destinationName` is absent, text must not contain place-name tokens from any location in the world graph | Reject / retry |
-| EL-09    | Forbidden categories    | Text must not match patterns for: faction names, NPC names, weather/time-of-day adjectives (see narration governance blocklist) | Reject / quarantine |
+| Check ID | Check Name                | Rule                                                                                                                                                                                          | Failure action      |
+| -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- | --- | ------ | --- | ------ | -------------- |
+| EL-01    | Length hard limit         | `length(text) ≤ 120`                                                                                                                                                                          | Reject / retry      |
+| EL-02    | Length minimum            | `length(text) ≥ 15` (guards against empty/stub output)                                                                                                                                        | Reject / retry      |
+| EL-03    | Single sentence           | No more than one sentence-terminal punctuation mark (`[.!?]`) in the text                                                                                                                     | Reject / retry      |
+| EL-04    | No numeric duration       | Text matches no pattern `\d+\s\*(minute                                                                                                                                                       | hour                | day | second | min | hr)s?` | Reject / retry |
+| EL-05    | Direction mismatch        | If direction is `in` or `out`, text must not contain road/path/journey verbs (road, trail, track, journey, walk, ride)                                                                        | Reject / retry      |
+| EL-06    | Vertical coherence        | If direction is `north/south/east/west` and `grade` hint is absent or `level`, text must not contain climb/descend verbs                                                                      | Reject / retry      |
+| EL-07    | Canon creep — proper noun | Text must not introduce any token matching a proper-noun pattern (`[A-Z][a-z]+` preceded by neither sentence-start nor direction keyword) that is absent from the provided generation context | Reject / retry      |
+| EL-08    | No destination inference  | When `destinationName` is absent, text must not contain place-name tokens from any location in the world graph                                                                                | Reject / retry      |
+| EL-09    | Forbidden categories      | Text must not match patterns for: faction names, NPC names, weather/time-of-day adjectives (see narration governance blocklist)                                                               | Reject / quarantine |
 
 ### 5.2 Check Ordering (Fail-Fast)
 
@@ -168,11 +168,11 @@ A nightly audit job re-runs checks EL-04, EL-07, EL-08, and EL-09 against all pe
 
 _(All names are registered in `shared/src/telemetryEvents.ts`. See `docs/observability.md` for authoring guidelines.)_
 
-| Event                                      | Trigger                                    | Key Dimensions                             |
-| ------------------------------------------ | ------------------------------------------ | ------------------------------------------ |
-| `Navigation.Exit.DescriptionGenerated`     | New exit description accepted              | `durationBucket`, `pathKind?`, `grade?`, `charLength` |
-| `Navigation.Exit.DescriptionRejected`      | Validator rejects a candidate              | `checkId`, `attemptNumber`                 |
-| `Navigation.Exit.DescriptionAuditFailed`   | Nightly audit finds anomaly                | `checkId`, `exitId`                        |
+| Event                                    | Trigger                       | Key Dimensions                                        |
+| ---------------------------------------- | ----------------------------- | ----------------------------------------------------- |
+| `Navigation.Exit.DescriptionGenerated`   | New exit description accepted | `durationBucket`, `pathKind?`, `grade?`, `charLength` |
+| `Navigation.Exit.DescriptionRejected`    | Validator rejects a candidate | `checkId`, `attemptNumber`                            |
+| `Navigation.Exit.DescriptionAuditFailed` | Nightly audit finds anomaly   | `checkId`, `exitId`                                   |
 
 ---
 
@@ -180,14 +180,14 @@ _(All names are registered in `shared/src/telemetryEvents.ts`. See `docs/observa
 
 The following are reference outputs at each duration bucket. They do not embed lore; test fixtures carry concrete location-specific samples.
 
-| Bucket      | Direction | Hint(s)                    | Example text                                        |
-| ----------- | --------- | -------------------------- | --------------------------------------------------- |
-| `threshold` | `in`      | `pathKind=door`            | "A low door opens into the building."               |
-| `threshold` | `down`    | `transitionKind=above-to-below` | "A short ladder descends into the darkness below." |
-| `near`      | `north`   | —                          | "A narrow path leads north across the yard."        |
-| `moderate`  | `east`    | `pathKind=road`            | "A cobbled road continues east toward open ground." |
-| `far`       | `west`    | `pathKind=track, grade=ascending` | "A worn track climbs westward into the hills." |
-| `distant`   | `north`   | —                          | "The road disappears north into the distance."      |
+| Bucket      | Direction | Hint(s)                           | Example text                                        |
+| ----------- | --------- | --------------------------------- | --------------------------------------------------- |
+| `threshold` | `in`      | `pathKind=door`                   | "A low door opens into the building."               |
+| `threshold` | `down`    | `transitionKind=above-to-below`   | "A short ladder descends into the darkness below."  |
+| `near`      | `north`   | —                                 | "A narrow path leads north across the yard."        |
+| `moderate`  | `east`    | `pathKind=road`                   | "A cobbled road continues east toward open ground." |
+| `far`       | `west`    | `pathKind=track, grade=ascending` | "A worn track climbs westward into the hills."      |
+| `distant`   | `north`   | —                                 | "The road disappears north into the distance."      |
 
 ---
 

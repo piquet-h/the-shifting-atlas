@@ -101,6 +101,28 @@ Examples:
 - Inferred intent (until validated)
 - Summaries of simulated interaction
 
+## Intent (state) vs narration (ephemeral rendering)
+
+The system maintains a strict split between **state truth** and **prose rendering**:
+
+- **Intent/state** = canonical, persisted, deterministic inputs and outcomes.
+- **Narration** = generated framing of those outcomes; replaceable and non-authoritative.
+
+This distinction applies across both player actions and traversal labels:
+
+- Player actions persist structured `ActionIntent` plus validated state deltas.
+- Exit edges persist spatial facts (`direction`, `travelDurationMs`, structural hints), while exit prose is generated from those facts and validated.
+
+### Why this split is non-negotiable
+
+- Prose is ambiguous and can vary across regeneration.
+- Canonical systems (replay, audits, validators, map logic, pacing) require typed facts, not inferred text.
+- Ambient layering (weather, season, faction context) must change narration without mutating canonical spatial truth.
+
+### Design rule
+
+Narration may explain canonical outcomes, but must never become the source of canonical facts.
+
 ## Observable behavioral signals (non-canonical)
 
 A turn may emit **behavioral signals** describing _how_ the player tends to act. These are observations, not rules.
@@ -130,3 +152,5 @@ Additional invariant (tempo): richer tempo may add detail and pacing, but must n
 - Workflow: `../workflows/foundry/resolve-player-command.md` (single-turn orchestration)
 - Tenets: `../tenets.md` (authority boundary: canonical state vs narration)
 - Architecture: `../architecture/lore-storage-growth-and-surfacing.md` (canon vs narrative corpus)
+- Architecture: `../architecture/action-intent-persistence.md` (player intent contract)
+- Architecture: `../architecture/exit-language-contract.md` (exit narration contract)

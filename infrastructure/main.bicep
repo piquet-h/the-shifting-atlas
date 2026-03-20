@@ -1083,6 +1083,16 @@ module workbookAgentSandbox 'workbook-agent-sandbox-dashboard.bicep' = {
   }
 }
 
+// Workbook: AI Usage Dashboard (token consumption, cost estimates, MCP invocations, prompt-template drift)
+module workbookAiUsage 'workbook-ai-usage-dashboard.bicep' = {
+  name: 'workbook-ai-usage-dashboard'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+  }
+}
+
 // Alert: Composite Partition Pressure (RU + 429 + Latency)
 // Issue #294: Multi-signal alert for partition pressure escalation
 // Replaced complex KQL query with Action Group correlation (alert processing rule)
@@ -1151,6 +1161,21 @@ module alertAgentDlqSpike 'alert-agent-dlq-spike.bicep' = {
     applicationInsightsId: applicationInsights.id
     actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
     dlqCountThreshold: 5
+  }
+}
+
+// Alert: Agent Step Cost Budget Exceeded
+// Fires when an agent step reports a cost exceeding the per-step budget (default $0.01).
+// Indicates an LLM-backed agent workload is over budget. Check agent-sandbox workbook
+// Cost & Budget section for breakdown. Tune AGENT_STEP_COST_BUDGET_MICROS if needed.
+module alertAgentCostBudget 'alert-agent-cost-budget.bicep' = {
+  name: 'alert-agent-cost-budget'
+  params: {
+    name: name
+    location: location
+    applicationInsightsId: applicationInsights.id
+    actionGroupId: actionGroupPartitionPressure.outputs.actionGroupId
+    breachCountThreshold: 1
   }
 }
 
