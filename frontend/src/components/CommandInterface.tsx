@@ -8,13 +8,14 @@ import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } f
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
+import type { Direction } from './hooks/useGameNavigationFlow'
 
 interface CommandInterfaceProps {
     className?: string
     /** Available exits for the current location (for autocomplete) */
     availableExits?: string[]
     /** Optional external move handler used by GameView to share arrival-pause/soft-denial navigation flow. */
-    onMoveCommand?: (direction: string) => void
+    onMoveCommand?: (direction: Direction) => void
     /** Optional busy flag controlled by parent navigation flow. */
     externalBusy?: boolean
 }
@@ -69,7 +70,7 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
             }
 
             if (delegatedMove && delegatedDirection) {
-                onMoveCommand(delegatedDirection)
+                onMoveCommand(delegatedDirection as Direction)
                 return
             }
 
