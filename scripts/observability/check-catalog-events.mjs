@@ -43,9 +43,7 @@ function parseCodeEvents() {
     // Match PascalCase telemetry event name literals inside the GAME_EVENT_NAMES array.
     // Segments use [A-Z][a-zA-Z]* (not [a-z]*) because abbreviations like MCP, SQL, AI, DM, UI
     // are valid PascalCase in this domain. Requires two or three segments to avoid false positives.
-    const matches = [
-        ...src.matchAll(/'([A-Z][a-zA-Z]*\.[A-Z][a-zA-Z]*(?:\.[A-Z][a-zA-Z]*)?)'/g)
-    ].map((m) => m[1])
+    const matches = [...src.matchAll(/'([A-Z][a-zA-Z]*\.[A-Z][a-zA-Z]*(?:\.[A-Z][a-zA-Z]*)?)'/g)].map((m) => m[1])
     return new Set(matches)
 }
 
@@ -53,16 +51,11 @@ function parseCodeEvents() {
 // Parse documented event names from the catalog markdown
 // ---------------------------------------------------------------------------
 function parseCatalogEvents() {
-    const catalog = readFileSync(
-        join(ROOT_DIR, 'docs/observability/telemetry-catalog.md'),
-        'utf8'
-    )
+    const catalog = readFileSync(join(ROOT_DIR, 'docs/observability/telemetry-catalog.md'), 'utf8')
     // Match #### `EventName` headings with strict PascalCase structure (two or three segments).
     // Segments use [A-Z][a-zA-Z]* to handle abbreviations (MCP, SQL, AI, DM, UI).
     // Skip the template placeholder `New.Event.Name`.
-    const matches = [
-        ...catalog.matchAll(/^#### `([A-Z][a-zA-Z]*\.[A-Z][a-zA-Z]*(?:\.[A-Z][a-zA-Z]*)?)`/gm)
-    ]
+    const matches = [...catalog.matchAll(/^#### `([A-Z][a-zA-Z]*\.[A-Z][a-zA-Z]*(?:\.[A-Z][a-zA-Z]*)?)`/gm)]
         .map((m) => m[1])
         .filter((name) => name !== 'New.Event.Name')
     return new Set(matches)
