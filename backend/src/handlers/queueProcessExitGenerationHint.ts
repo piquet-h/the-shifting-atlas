@@ -23,7 +23,7 @@
  */
 import type { InvocationContext } from '@azure/functions'
 import type { Direction, ExitAvailabilityMetadata, TerrainType } from '@piquet-h/shared'
-import { getOppositeDirection } from '@piquet-h/shared'
+import { getOppositeDirection, normalizeForbiddenEntry } from '@piquet-h/shared'
 import { createDeadLetterRecord } from '@piquet-h/shared/deadLetter'
 import { buildExitHintIdempotencyKey, isExitHintExpired, safeValidateExitGenerationHintPayload } from '@piquet-h/shared/events'
 import { inject, injectable } from 'inversify'
@@ -461,12 +461,7 @@ export class QueueProcessExitGenerationHintHandler {
         // 10. Check if direction is forbidden by generation policy
         const forbiddenEntry = origin.exitAvailability?.forbidden?.[payload.dir as Direction]
         if (forbiddenEntry !== undefined) {
-            // Inline format detection mirrors normalizeForbiddenEntry() in shared/src/exitAvailability.ts.
-            // TODO: Replace with normalizeForbiddenEntry(forbiddenEntry).reason once @piquet-h/shared ≥ 0.3.134 is consumed.
-            const forbiddenReason =
-                typeof forbiddenEntry === 'object' && forbiddenEntry !== null
-                    ? (forbiddenEntry as { reason?: string }).reason
-                    : String(forbiddenEntry)
+            const forbiddenReason = normalizeForbiddenEntry(forbiddenEntry).reason
             context.log('Exit generation hint: direction is forbidden by policy', {
                 dir: payload.dir,
                 originLocationIdHash: hashPrefix(payload.originLocationId),

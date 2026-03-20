@@ -1,4 +1,4 @@
-import type { LocationResponse } from '@piquet-h/shared'
+import type { Direction, LocationResponse } from '@piquet-h/shared'
 import type { QueryClient } from '@tanstack/react-query'
 import { useMutation } from '@tanstack/react-query'
 import { useCallback, useState } from 'react'
@@ -9,19 +9,7 @@ import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } f
 import { unwrapEnvelope } from '../../utils/envelope'
 import type { GenerationHint } from '../SoftDenialOverlay'
 
-export type Direction =
-    | 'north'
-    | 'south'
-    | 'east'
-    | 'west'
-    | 'northeast'
-    | 'northwest'
-    | 'southeast'
-    | 'southwest'
-    | 'up'
-    | 'down'
-    | 'in'
-    | 'out'
+export type { Direction } from '@piquet-h/shared'
 
 interface AppendCommandLogInput {
     command: string

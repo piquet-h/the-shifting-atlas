@@ -57,7 +57,7 @@ export interface CompiledProvenance {
 /**
  * Result of compiling all description layers for a location
  */
-export interface CompiledDescription {
+export interface ComposedDescription {
     /** Plain text assembled from all active layers */
     text: string
     /** HTML version (markdown-to-HTML conversion) */

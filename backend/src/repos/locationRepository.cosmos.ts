@@ -1,4 +1,12 @@
-import { Direction, ExitAvailabilityMetadata, getOppositeDirection, isDirection, Location } from '@piquet-h/shared'
+import {
+    Direction,
+    ExitAvailabilityMetadata,
+    ForbiddenExitEntry,
+    getOppositeDirection,
+    isDirection,
+    Location,
+    normalizeForbiddenEntry
+} from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
@@ -52,10 +60,8 @@ export class CosmosLocationRepository extends CosmosGremlinRepository implements
         if (forbiddenRaw) {
             try {
                 const parsed = JSON.parse(forbiddenRaw) as Record<string, unknown>
-                // Inline normalization mirrors normalizeForbiddenEntry() in shared/src/exitAvailability.ts.
-                // TODO: Replace with normalizeForbiddenEntry() once @piquet-h/shared ≥ 0.3.134 is consumed.
                 result.forbidden = Object.fromEntries(
-                    Object.entries(parsed).map(([dir, raw]) => [dir, typeof raw === 'string' ? { reason: raw, reveal: 'onTryMove' } : raw])
+                    Object.entries(parsed).map(([dir, raw]) => [dir, normalizeForbiddenEntry(raw as string | ForbiddenExitEntry)])
                 ) as ExitAvailabilityMetadata['forbidden']
             } catch (error) {
                 this.telemetryService?.trackGameEvent('World.ExitAvailability.Malformed', {

@@ -20,7 +20,7 @@ import { marked } from 'marked'
 import type { ILayerRepository } from '../repos/layerRepository.js'
 import { TelemetryService } from '../telemetry/TelemetryService.js'
 import { isHeroProse, isValidHeroProseContent, selectHeroProse } from './heroProse.js'
-import type { CompiledDescription, CompiledProvenance, CompileOptions, LayerProvenance, ViewContext } from './types.js'
+import type { CompiledProvenance, CompileOptions, ComposedDescription, LayerProvenance, ViewContext } from './types.js'
 
 /**
  * Extended layer type with attributes support for filtering and supersedes.
@@ -75,7 +75,7 @@ export class DescriptionComposer {
      * @param options - Optional compilation options including baseDescription
      * @returns Compiled description with text, HTML, and provenance
      */
-    async compileForLocation(locationId: string, context: ViewContext, options?: CompileOptions): Promise<CompiledDescription> {
+    async compileForLocation(locationId: string, context: ViewContext, options?: CompileOptions): Promise<ComposedDescription> {
         const startTime = Date.now()
 
         // 1. Fetch all layers for location (includes base layers and overlays)

@@ -6,6 +6,7 @@
  * then positions each node using cardinal-direction vectors scaled by travelDurationMs.
  * The `preset` layout keeps nodes locked to their calculated coordinates.
  */
+import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import cytoscape, { type ElementDefinition } from 'cytoscape'
 import React, { useEffect, useRef, useState } from 'react'
 import { unwrapEnvelope } from '../utils/envelope'
@@ -45,9 +46,6 @@ function isPendingSyntheticNode(node: WorldGraphNode): boolean {
 // ---------------------------------------------------------------------------
 // Cytoscape stylesheet  (dark atlas theme)
 // ---------------------------------------------------------------------------
-
-/** Well-known starter location ID used as the graph origin (0, 0). Mirrors STARTER_LOCATION_ID in shared/src/location.ts. */
-const STARTER_LOCATION_ID = 'a4d1c3f1-5b2a-4f7d-9d4b-8f0c2a6b7e21'
 
 const ATLAS_ACCENT = '#6ee7b7'
 const ATLAS_BG = '#0f1724'

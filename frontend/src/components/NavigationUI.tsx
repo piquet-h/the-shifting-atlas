@@ -12,12 +12,10 @@
  * - Screen reader accessible with ARIA labels
  */
 
+import type { Direction } from '@piquet-h/shared'
 import React, { useCallback, useEffect } from 'react'
 import CompassRoseIcon from '../assets/compass-rose.svg?react'
 import { usePointerFine } from '../hooks/useMediaQueries'
-
-/** Direction type matching shared domain models */
-type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
 
 /** Exit information including optional hint text */
 interface ExitInfo {

@@ -8,7 +8,6 @@
  *   { nodes: WorldGraphNode[], edges: WorldGraphEdge[] }
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import { type GameEventName } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable, optional } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
@@ -151,8 +150,7 @@ export class WorldGraphHandler extends BaseHandler {
 
                 const nodes = Array.from(nodeById.values())
 
-                // TODO: Remove cast once @piquet-h/shared is republished with 'World.Map.Fetched'.
-                this.track('World.Map.Fetched' as GameEventName, {
+                this.track('World.Map.Fetched', {
                     nodeCount: nodes.length,
                     edgeCount: edges.length,
                     latencyMs: this.latencyMs,
@@ -244,8 +242,7 @@ export class WorldGraphHandler extends BaseHandler {
 
             const nodes = Array.from(nodesById.values())
 
-            // TODO: Remove cast once @piquet-h/shared is republished with 'World.Map.Fetched'.
-            this.track('World.Map.Fetched' as GameEventName, {
+            this.track('World.Map.Fetched', {
                 nodeCount: nodes.length,
                 edgeCount: edges.length,
                 latencyMs: this.latencyMs

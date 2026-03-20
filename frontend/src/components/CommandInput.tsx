@@ -1,4 +1,5 @@
-import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { DIRECTIONS } from '@piquet-h/shared'
+import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { findClosestMatch } from '../utils/fuzzyMatch'
 
 export interface CommandInputProps {
@@ -31,12 +32,9 @@ export default function CommandInput({
     const autocompleteRef = useRef<HTMLDivElement | null>(null)
     const isInvalid = error != null
 
-    const KNOWN_COMMANDS = React.useMemo(() => ['ping', 'look', 'move', 'clear'], [])
-    const DIRECTIONS = React.useMemo(
-        () => ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out'],
-        []
-    )
-    const DIRECTION_SHORTCUTS = React.useMemo(
+    const KNOWN_COMMANDS = useMemo(() => ['ping', 'look', 'move', 'clear'], [])
+    const canonicalDirections = useMemo<string[]>(() => Array.from(DIRECTIONS), [])
+    const DIRECTION_SHORTCUTS = useMemo(
         () => ({
             n: 'north',
             s: 'south',
@@ -71,8 +69,8 @@ export default function CommandInput({
                 const direction = parts[1]
                 const normalizedDir = DIRECTION_SHORTCUTS[direction as keyof typeof DIRECTION_SHORTCUTS] || direction
 
-                if (!DIRECTIONS.includes(normalizedDir)) {
-                    const closest = findClosestMatch(direction, DIRECTIONS)
+                if (!canonicalDirections.includes(normalizedDir)) {
+                    const closest = findClosestMatch(direction, canonicalDirections)
                     return {
                         valid: false,
                         error: `"${direction}" is not a valid direction`,
@@ -113,7 +111,7 @@ export default function CommandInput({
 
         if (command === 'move' || command === 'm') {
             const directionInput = parts[1] || ''
-            const matches = DIRECTIONS.filter((dir) => dir.startsWith(directionInput.toLowerCase()))
+            const matches = canonicalDirections.filter((dir) => dir.startsWith(directionInput.toLowerCase()))
 
             const sortedMatches = matches.sort((a, b) => {
                 const aAvailable = availableExits.includes(a)
@@ -127,7 +125,7 @@ export default function CommandInput({
                 setAutocompleteOptions(sortedMatches)
                 setShowAutocomplete(true)
             } else if (directionInput === '') {
-                setAutocompleteOptions(availableExits.length > 0 ? availableExits : DIRECTIONS)
+                setAutocompleteOptions(availableExits.length > 0 ? availableExits : canonicalDirections)
                 setShowAutocomplete(true)
             } else {
                 setShowAutocomplete(false)
@@ -141,7 +139,7 @@ export default function CommandInput({
                 setShowAutocomplete(false)
             }
         }
-    }, [value, availableExits, DIRECTIONS, KNOWN_COMMANDS])
+    }, [value, availableExits, canonicalDirections, KNOWN_COMMANDS])
 
     const handleHistoryNavigation = useCallback(
         (direction: 'up' | 'down') => {

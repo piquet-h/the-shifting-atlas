@@ -17,26 +17,11 @@
  */
 /* global localStorage window document navigator */
 import { ApplicationInsights } from '@microsoft/applicationinsights-web'
-import { GAME_EVENT_NAMES } from '@piquet-h/shared'
+import { GAME_EVENT_NAMES, SERVICE_FRONTEND_WEB, TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
 
 // Truncation limits for telemetry payloads
 const MAX_ERROR_STACK_LENGTH = 1000
 const MAX_COMMAND_LENGTH = 100
-
-// Telemetry attribute keys (local copy for frontend use)
-// NOTE: These align with shared/src/telemetryAttributes.ts but are defined locally
-// because the shared package on npm hasn't been republished yet with the new exports.
-// Once shared@0.3.78+ is published, this can be replaced with:
-// import { TELEMETRY_ATTRIBUTE_KEYS } from '@piquet-h/shared'
-const FRONTEND_ATTRIBUTE_KEYS = {
-    SESSION_ID: 'game.session.id',
-    USER_ID: 'game.user.id',
-    ACTION_TYPE: 'game.action.type',
-    LATENCY_MS: 'game.latency.ms',
-    CORRELATION_ID: 'game.event.correlation.id',
-    ERROR_CODE: 'game.error.code',
-    EXIT_DIRECTION: 'game.world.exit.direction'
-} as const
 
 let appInsights: ApplicationInsights | undefined
 let sessionId: string | undefined
@@ -173,15 +158,15 @@ function trackSessionStart(): void {
     if (!appInsights || !sessionId) return
 
     const properties: Record<string, unknown> = {
-        service: 'frontend-web',
+        service: SERVICE_FRONTEND_WEB,
         userAgent: navigator.userAgent,
         screenWidth: window.screen?.width,
         screenHeight: window.screen?.height,
         language: navigator.language,
-        [FRONTEND_ATTRIBUTE_KEYS.SESSION_ID]: sessionId
+        [TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID]: sessionId
     }
     if (userId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
     // Session events use direct tracking (no playerGuid context)
@@ -196,11 +181,11 @@ function trackSessionEnd(): void {
     if (!appInsights || !sessionId) return
 
     const properties: Record<string, unknown> = {
-        service: 'frontend-web',
-        [FRONTEND_ATTRIBUTE_KEYS.SESSION_ID]: sessionId
+        service: SERVICE_FRONTEND_WEB,
+        [TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID]: sessionId
     }
     if (userId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
     // Session events use direct tracking (no playerGuid context)
@@ -236,7 +221,7 @@ export function trackGameEventClient(name: string, properties?: Record<string, u
         /* ignore */
     }
     const persistenceMode = import.meta.env.VITE_PERSISTENCE_MODE || undefined
-    const service = 'frontend-web'
+    const service = SERVICE_FRONTEND_WEB
     const merged: Record<string, unknown> = {
         service,
         ...(persistenceMode ? { persistenceMode } : {}),
@@ -246,10 +231,10 @@ export function trackGameEventClient(name: string, properties?: Record<string, u
 
     // Enrich with session attributes
     if (sessionId) {
-        merged[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+        merged[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
     }
     if (userId) {
-        merged[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        merged[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
     trackEventDirect(name, merged)
@@ -264,18 +249,18 @@ export function trackUIError(error: Error, properties?: Record<string, unknown>)
 
     const errorCode = error.name || 'UnknownError'
     const merged: Record<string, unknown> = {
-        service: 'frontend-web',
+        service: SERVICE_FRONTEND_WEB,
         errorMessage: error.message,
         errorStack: error.stack?.substring(0, MAX_ERROR_STACK_LENGTH),
-        [FRONTEND_ATTRIBUTE_KEYS.ERROR_CODE]: errorCode,
+        [TELEMETRY_ATTRIBUTE_KEYS.ERROR_CODE]: errorCode,
         ...properties
     }
 
     if (sessionId) {
-        merged[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+        merged[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
     }
     if (userId) {
-        merged[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        merged[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
     // Track as UI.Error custom event (direct, no playerGuid context)
@@ -302,22 +287,22 @@ export function trackPlayerNavigate(direction: string, latencyMs?: number, corre
     if (!appInsights) return
 
     const properties: Record<string, unknown> = {
-        service: 'frontend-web',
-        [FRONTEND_ATTRIBUTE_KEYS.EXIT_DIRECTION]: direction,
-        [FRONTEND_ATTRIBUTE_KEYS.ACTION_TYPE]: 'navigate'
+        service: SERVICE_FRONTEND_WEB,
+        [TELEMETRY_ATTRIBUTE_KEYS.EXIT_DIRECTION]: direction,
+        [TELEMETRY_ATTRIBUTE_KEYS.ACTION_TYPE]: 'navigate'
     }
 
     if (sessionId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
     }
     if (userId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
     if (latencyMs !== undefined) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.LATENCY_MS] = latencyMs
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = latencyMs
     }
     if (correlationId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.CORRELATION_ID] = correlationId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = correlationId
     }
 
     trackGameEventClient('Player.Navigate', properties)
@@ -334,22 +319,22 @@ export function trackPlayerCommand(command: string, actionType: string, latencyM
     if (!appInsights) return
 
     const properties: Record<string, unknown> = {
-        service: 'frontend-web',
+        service: SERVICE_FRONTEND_WEB,
         command: command.substring(0, MAX_COMMAND_LENGTH),
-        [FRONTEND_ATTRIBUTE_KEYS.ACTION_TYPE]: actionType
+        [TELEMETRY_ATTRIBUTE_KEYS.ACTION_TYPE]: actionType
     }
 
     if (sessionId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
     }
     if (userId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
     if (latencyMs !== undefined) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.LATENCY_MS] = latencyMs
+        properties[TELEMETRY_ATTRIBUTE_KEYS.LATENCY_MS] = latencyMs
     }
     if (correlationId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.CORRELATION_ID] = correlationId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.EVENT_CORRELATION_ID] = correlationId
     }
 
     trackGameEventClient('Player.Command', properties)
@@ -388,15 +373,15 @@ export function trackPageView(pageName?: string, pageUrl?: string): void {
     if (!appInsights) return
 
     const properties: Record<string, unknown> = {
-        service: 'frontend-web'
+        service: SERVICE_FRONTEND_WEB
     }
 
     // Add session correlation
     if (sessionId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.SESSION_ID] = sessionId
     }
     if (userId) {
-        properties[FRONTEND_ATTRIBUTE_KEYS.USER_ID] = userId
+        properties[TELEMETRY_ATTRIBUTE_KEYS.USER_ID] = userId
     }
 
     // Generate operation ID for this page view
