@@ -8,6 +8,7 @@ import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } f
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
+import type { Direction } from './hooks/useGameNavigationFlow'
 
 type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest' | 'up' | 'down' | 'in' | 'out'
 
