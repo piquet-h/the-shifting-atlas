@@ -414,4 +414,270 @@ describe('NarrativeGeneratorHandler', () => {
         assert.equal(result.mode, 'template')
         assert.equal(result.fallbackReason, 'canonical_claim_blocked')
     })
+
+    // ── narrateEncounter ─────────────────────────────────────────────────────
+
+    it('narrateEncounter returns deterministic narrative for same inputs', async () => {
+        const handler = new NarrativeGeneratorHandler()
+        const args = {
+            arguments: {
+                encounterKind: 'ambush',
+                npcName: 'a hooded figure',
+                locationName: 'the narrow alley',
+                tension: 'hostile'
+            }
+        }
+
+        const first = JSON.parse(await handler.narrateEncounter(args, makeContext()))
+        const second = JSON.parse(await handler.narrateEncounter(args, makeContext()))
+
+        assert.equal(typeof first.narrative, 'string')
+        assert.ok(first.narrative.length > 0)
+        assert.equal(first.narrative, second.narrative)
+        assert.equal(first.mode, 'template')
+        assert.equal(first.inputs.encounterKind, 'ambush')
+        assert.equal(first.inputs.npcName, 'a hooded figure')
+    })
+
+    it('narrateEncounter falls back to safe defaults when inputs omitted', async () => {
+        const handler = new NarrativeGeneratorHandler()
+        const result = JSON.parse(await handler.narrateEncounter({ arguments: {} }, makeContext()))
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.inputs.encounterKind, 'unexpected')
+        assert.equal(result.inputs.npcName, 'an unknown figure')
+        assert.equal(result.inputs.locationName, 'the surrounding area')
+        assert.equal(result.inputs.tension, 'uneasy')
+        assert.ok(typeof result.narrative === 'string' && result.narrative.length > 0)
+    })
+
+    it('narrateEncounter uses ai mode when AI client returns safe output', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'A hooded figure steps from the shadows, hand resting on an unseen blade.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.narrateEncounter(
+                {
+                    arguments: {
+                        encounterKind: 'ambush',
+                        npcName: 'a hooded figure',
+                        locationName: 'the narrow alley',
+                        tension: 'hostile',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'ai')
+        assert.equal(typeof result.narrative, 'string')
+        assert.ok(result.narrative.length > 0)
+    })
+
+    it('narrateEncounter falls back to template when AI returns null', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return null
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.narrateEncounter(
+                {
+                    arguments: {
+                        encounterKind: 'ambush',
+                        npcName: 'a hooded figure',
+                        locationName: 'the narrow alley',
+                        tension: 'hostile',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.fallbackReason, 'ai_unavailable')
+    })
+
+    it('narrateEncounter blocks canonical-claim AI output and falls back to template', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'A merchant arrives with fresh goods from the northern pass.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.narrateEncounter(
+                {
+                    arguments: {
+                        encounterKind: 'trade',
+                        npcName: 'a travelling merchant',
+                        locationName: 'the market square',
+                        tension: 'curious',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.fallbackReason, 'canonical_claim_blocked')
+    })
+
+    // ── generateRumor ────────────────────────────────────────────────────────
+
+    it('generateRumor returns deterministic narrative for same inputs', async () => {
+        const handler = new NarrativeGeneratorHandler()
+        const args = {
+            arguments: {
+                subject: 'the collapsed northern bridge',
+                locationName: 'the tavern',
+                tone: 'fearful'
+            }
+        }
+
+        const first = JSON.parse(await handler.generateRumor(args, makeContext()))
+        const second = JSON.parse(await handler.generateRumor(args, makeContext()))
+
+        assert.equal(typeof first.narrative, 'string')
+        assert.ok(first.narrative.length > 0)
+        assert.equal(first.narrative, second.narrative)
+        assert.equal(first.mode, 'template')
+        assert.equal(first.advisory, true)
+        assert.equal(first.inputs.subject, 'the collapsed northern bridge')
+        assert.equal(first.inputs.locationName, 'the tavern')
+    })
+
+    it('generateRumor falls back to safe defaults when inputs omitted', async () => {
+        const handler = new NarrativeGeneratorHandler()
+        const result = JSON.parse(await handler.generateRumor({ arguments: {} }, makeContext()))
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.advisory, true)
+        assert.equal(result.inputs.subject, 'something unseen')
+        assert.equal(result.inputs.locationName, 'these parts')
+        assert.equal(result.inputs.tone, 'uncertain')
+        assert.ok(typeof result.narrative === 'string' && result.narrative.length > 0)
+    })
+
+    it('generateRumor uses ai mode when AI client returns safe output', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'They say the bridge fell on a moonless night — though no one claims to have seen it themselves.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.generateRumor(
+                {
+                    arguments: {
+                        subject: 'the collapsed northern bridge',
+                        locationName: 'the tavern',
+                        tone: 'fearful',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'ai')
+        assert.equal(result.advisory, true)
+        assert.equal(typeof result.narrative, 'string')
+        assert.ok(result.narrative.length > 0)
+    })
+
+    it('generateRumor falls back to template when AI returns null', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return null
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.generateRumor(
+                {
+                    arguments: {
+                        subject: 'the collapsed northern bridge',
+                        locationName: 'the tavern',
+                        tone: 'fearful',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.advisory, true)
+        assert.equal(result.fallbackReason, 'ai_unavailable')
+    })
+
+    it('generateRumor blocks canonical-claim AI output and falls back to template', async () => {
+        const aiClient: IAzureOpenAIClient = {
+            async generate() {
+                return {
+                    content: 'A new exit to the north opens beneath the collapsed stones.',
+                    tokenUsage: { prompt: 1, completion: 1, total: 2 }
+                }
+            },
+            async healthCheck() {
+                return true
+            }
+        }
+
+        const handler = new NarrativeGeneratorHandler(aiClient)
+        const result = JSON.parse(
+            await handler.generateRumor(
+                {
+                    arguments: {
+                        subject: 'the collapsed northern bridge',
+                        locationName: 'the tavern',
+                        tone: 'fearful',
+                        preferAi: true
+                    }
+                },
+                makeContext()
+            )
+        )
+
+        assert.equal(result.mode, 'template')
+        assert.equal(result.advisory, true)
+        assert.equal(result.fallbackReason, 'canonical_claim_blocked')
+    })
 })
