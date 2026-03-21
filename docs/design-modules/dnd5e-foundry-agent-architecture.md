@@ -1,6 +1,6 @@
 # D&D 5e API Integration (Tool-surface-driven)
 
-**Status**: Design Proposal  
+**Status**: Active design — MCP infrastructure (M4c) is implemented; D&D 5e SRD adapter tools are the next integration milestone.  
 **Created**: 2026-01-30  
 **Purpose**: Map D&D 5e SRD API endpoints to the Shifting Atlas multi-role architecture (combat, spells, NPCs, monsters) without depending on a specific hosted agent portal/runtime.
 
@@ -148,6 +148,63 @@ Player: "I use my sailor background to read these nautical charts"
     "narrative": "Beneath the toppled lectern, you find..."
 }
 ```
+
+---
+
+## WAF Alignment
+
+The five Azure Well-Architected Framework pillars as they apply to the D&D 5e tool surface.
+
+### Reliability
+
+- **D&D 5e SRD API is an external dependency**: if it is unavailable or slow, the backend tool adapters must not invent canonical facts. Return a bounded fallback narrative ("the rules oracle is temporarily unavailable") and optionally enqueue async enrichment.
+- **SRD content can be locally cached**: for Tier-1 reference data (common monsters, spells, conditions), maintain an in-process or Redis cache so agent queries survive SRD API outages.
+- **Validation gates are always enforced**: tool unavailability must never bypass the authority boundary or cause unvalidated state mutations.
+
+Reference: `docs/tenets.md#1-reliability` and `../architecture/agentic-ai-and-mcp.md` (failure posture guidance).
+
+### Security
+
+- **No browser secrets**: client-side code must not embed model credentials or SRD API keys. All D&D API access is proxied through backend adapters.
+- **Read-only SRD lookups** are served via stable adapter schemas exposed as MCP/OpenAPI/Azure Functions tools; they never receive write access to world state.
+- **Stateful operations** (NPC spawn, combat resolution, spell slot consumption) cross the backend validation boundary and require the same managed-identity authentication as all other backend writes.
+- **Principle of Least Privilege**: D&D agent roles receive only the tools their scenario requires (see Role Topology above). No role receives a global write tool.
+
+Reference: `docs/tenets.md#2-security`.
+
+### Cost Optimization
+
+- **Model tier selection**: use `gpt-4o-mini` for read-only SRD reference lookups (bestiary, spell lookup, equipment); reserve `gpt-4` / `gpt-4o` for reasoning-heavy roles (combat resolver, DM narrator).
+- **Prompt prefix caching**: system instructions are stable across turns; Foundry-hosted agents cache the prompt prefix, reducing per-request cost by ~50%.
+- **SRD cache hit rate**: a warm cache for common monsters/spells significantly reduces external HTTP calls. Track `MCP.Tool.Invoked` latency to identify caching opportunities.
+- **Token budgets**: D&D SRD tool responses are structured JSON, which is compact; avoid passing raw stat blocks verbatim into the model context when summarized outputs suffice.
+
+Reference: `docs/tenets.md#3-cost-optimization` and `../architecture/agentic-ai-and-mcp.md` (token & cost controls).
+
+### Operational Excellence
+
+- **Tool contracts are versioned**: D&D adapter tool schemas are kept stable and backward-compatible so agent configuration does not need updating on SRD API changes.
+- **Observability**: all MCP tool invocations emit `MCP.Tool.Invoked` telemetry with `toolName` and `latencyMs` dimensions. D&D tool calls appear in the AI Operations dashboard alongside world-context tool calls.
+- **Setup is reproducible**: agents and tools are configured via SDK or Bicep, not via manual portal-only steps, so configuration is auditable and redeployable.
+- **Failure modes are explicit**: see failure taxonomy in `../observability/agent-failure-taxonomy.md`.
+
+Reference: `docs/tenets.md#4-operational-excellence` and `../deployment/foundry-setup-checklist.md`.
+
+### Performance Efficiency
+
+The following targets apply to the D&D 5e tool surface (from the M4c epic closure criteria):
+
+| Operation | Latency Target (p95) |
+|-----------|---------------------|
+| SRD reference lookup (monster, spell, condition) | <100 ms (cached reads; SRD API warm) |
+| Entity state query (player, NPC, location) | <50 ms (direct Cosmos SQL read) |
+
+**Tool call success rate target**: ≥99% across basic SRD oracle queries and entity state retrieval.
+- **Caching first**: warm-cache Tier-1 SRD content (goblins, common spells, standard conditions) at startup to guarantee sub-100 ms p95 for the most frequent lookups.
+- **Asynchronous world effects**: SRD lookups are synchronous and blocking; downstream world mutations triggered by agent decisions are async (Service Bus queue) per `docs/tenets.md#5-performance-efficiency`.
+- **Telemetry gate**: if `MCP.Tool.Invoked` p95 latency for D&D tools exceeds 100 ms in the AI Operations dashboard, investigate caching coverage before scaling the backend.
+
+Reference: `docs/tenets.md#5-performance-efficiency`.
 
 ---
 
