@@ -2,7 +2,20 @@ import React, { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRe
 import { findClosestMatch } from '../utils/fuzzyMatch'
 
 // TODO: import from '@piquet-h/shared' once frontend lockfile is updated to a version that exports domainModels from the browser bundle
-const DIRECTIONS = ['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out'] as const
+const DIRECTIONS = [
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+    'up',
+    'down',
+    'in',
+    'out'
+] as const
 
 export interface CommandInputProps {
     disabled?: boolean
