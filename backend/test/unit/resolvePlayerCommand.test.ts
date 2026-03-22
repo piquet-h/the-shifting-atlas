@@ -345,6 +345,179 @@ describe('ResolvePlayerCommandHandler – response envelope', () => {
 })
 
 // ---------------------------------------------------------------------------
+// ActionIntent field
+// ---------------------------------------------------------------------------
+
+describe('ResolvePlayerCommandHandler – actionIntent', () => {
+    test('Move: actionIntent.rawInput equals the trimmed input text', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: '  go north  ' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { rawInput: string } } }
+        assert.strictEqual(body.data.actionIntent.rawInput, 'go north')
+    })
+
+    test('Move: actionIntent.parsedIntent.verb is a non-empty string', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'go north' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { parsedIntent: { verb: string } } } }
+        assert.ok(typeof body.data.actionIntent.parsedIntent.verb === 'string')
+        assert.ok(body.data.actionIntent.parsedIntent.verb.length > 0)
+    })
+
+    test('Move: actionIntent.parsedIntent.targets[0] has kind "direction" and canonicalDirection', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'go north' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as {
+            data: { actionIntent: { parsedIntent: { targets: Array<{ kind: string; canonicalDirection: string }> } } }
+        }
+        const targets = body.data.actionIntent.parsedIntent.targets
+        assert.ok(Array.isArray(targets) && targets.length > 0, 'targets should be a non-empty array')
+        assert.strictEqual(targets[0].kind, 'direction')
+        assert.strictEqual(targets[0].canonicalDirection, 'north')
+    })
+
+    test('Move: actionIntent.validationResult.success is true', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'go north' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { validationResult: { success: boolean } } } }
+        assert.strictEqual(body.data.actionIntent.validationResult.success, true)
+    })
+
+    test('Look: actionIntent.parsedIntent.targets[0] has kind "location"', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'look' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as {
+            data: { actionIntent: { parsedIntent: { targets: Array<{ kind: string }> } } }
+        }
+        const targets = body.data.actionIntent.parsedIntent.targets
+        assert.ok(Array.isArray(targets) && targets.length > 0, 'targets should be a non-empty array')
+        assert.strictEqual(targets[0].kind, 'location')
+    })
+
+    test('Look: actionIntent.validationResult.success is true', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'look' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { validationResult: { success: boolean } } } }
+        assert.strictEqual(body.data.actionIntent.validationResult.success, true)
+    })
+
+    test('Unknown: actionIntent.validationResult.success is false', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'frobnicate the widget' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { validationResult: { success: boolean } } } }
+        assert.strictEqual(body.data.actionIntent.validationResult.success, false)
+    })
+
+    test('Unknown: actionIntent.validationResult.errors is a non-empty array', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'frobnicate the widget' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { validationResult: { errors?: string[] } } } }
+        assert.ok(Array.isArray(body.data.actionIntent.validationResult.errors))
+        assert.ok((body.data.actionIntent.validationResult.errors ?? []).length > 0)
+    })
+
+    test('Ambiguous direction: actionIntent.validationResult.success is false', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'go' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        const body = response.jsonBody as { data: { actionIntent: { validationResult: { success: boolean } } } }
+        assert.strictEqual(body.data.actionIntent.validationResult.success, false)
+    })
+
+    test('Empty input returns 400 with no actionIntent in data', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: '' })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        assert.strictEqual(response.status, 400)
+        const body = response.jsonBody as { data?: unknown }
+        assert.ok(!body.data, 'error response should not contain a data field with actionIntent')
+    })
+
+    test('Overlong input returns 400 with no actionIntent in data', async () => {
+        const fixture = new UnitTestFixture()
+        const container = await fixture.getContainer()
+        const handler = container.get(ResolvePlayerCommandHandler)
+
+        const req = createMockRequest({ playerId: 'player-1', inputText: 'a'.repeat(501) })
+        const ctx = createMockContext(container)
+
+        const response = await handler.handle(req, ctx)
+
+        assert.strictEqual(response.status, 400)
+        const body = response.jsonBody as { data?: unknown }
+        assert.ok(!body.data, 'error response should not contain a data field with actionIntent')
+    })
+})
+
+// ---------------------------------------------------------------------------
 // Telemetry
 // ---------------------------------------------------------------------------
 
