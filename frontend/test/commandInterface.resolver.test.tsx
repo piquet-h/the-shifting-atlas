@@ -23,6 +23,7 @@ import { server } from './mocks/server'
 const PLAYER_GUID = '550e8400-e29b-41d4-a716-446655440099'
 const LOCATION_ID = 'a7e3f8c0-1234-4abc-9def-1234567890ab'
 const NORTH_LOCATION_ID = 'b8f4a9d1-2345-5bcd-aef1-2345678901bc'
+const RENDER_TIMEOUT_MS = 5000
 
 /**
  * Render CommandInterface inside PlayerProvider with a resolved session.
@@ -44,8 +45,8 @@ async function renderWithPlayer(props?: React.ComponentProps<typeof CommandInter
         </PlayerProvider>
     )
 
-    const input = await screen.findByRole('combobox', { name: /command/i }, { timeout: 5000 })
-    await waitFor(() => expect(input).not.toBeDisabled(), { timeout: 5000 })
+    const input = await screen.findByRole('combobox', { name: /command/i }, { timeout: RENDER_TIMEOUT_MS })
+    await waitFor(() => expect(input).not.toBeDisabled(), { timeout: RENDER_TIMEOUT_MS })
     return input
 }
 
@@ -68,6 +69,7 @@ describe('CommandInterface – free-form resolver routing', () => {
             http.post('/api/player/command', async ({ request }) => {
                 const body = (await request.json()) as { playerId: string; inputText: string }
                 expect(body.playerId).toBe(PLAYER_GUID)
+                expect(body.inputText).toBe('go north')
                 return HttpResponse.json({
                     success: true,
                     data: {

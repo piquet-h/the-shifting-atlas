@@ -157,7 +157,18 @@ export const handlers = [
     // ResolvePlayerCommand endpoint (non-mutating)
     http.post('/api/player/command', async ({ request }) => {
         const body = (await request.json()) as { playerId?: string; inputText?: string }
-        const text = body.inputText?.trim().toLowerCase() ?? ''
+
+        if (!body.playerId) {
+            return HttpResponse.json(
+                { success: false, error: { code: 'MissingPlayerId', message: 'playerId is required' } },
+                { status: 400 }
+            )
+        }
+        if (!body.inputText) {
+            return HttpResponse.json({ success: false, error: { code: 'MissingField', message: 'inputText is required' } }, { status: 400 })
+        }
+
+        const text = body.inputText.trim().toLowerCase()
 
         // Default: return Unknown for unrecognised input
         let actionKind: 'Move' | 'Look' | 'Unknown' = 'Unknown'
