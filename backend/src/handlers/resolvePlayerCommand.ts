@@ -159,22 +159,29 @@ export class ResolvePlayerCommandHandler extends BaseHandler {
 
         const resolution: CommandResolutionData = {
             actionKind,
-            ...(actionKind === 'Move' && primaryIntent?.direction ? { direction: primaryIntent.direction } : {}),
             presentationMode: 'Auto',
             responseTempo: 'Auto',
             canonicalWritesPlanned,
             parsedIntent: {
                 verb: primaryIntent?.verb ?? null,
                 confidence: primaryIntent?.confidence ?? 0,
-                needsClarification: parsed.needsClarification,
-                ...(parsed.ambiguities && parsed.ambiguities.length > 0 ? { ambiguities: parsed.ambiguities } : {})
+                needsClarification: parsed.needsClarification
             }
         }
 
+        if (actionKind === 'Move' && primaryIntent?.direction) {
+            resolution.direction = primaryIntent.direction
+        }
+
+        if (parsed.ambiguities && parsed.ambiguities.length > 0) {
+            resolution.parsedIntent.ambiguities = parsed.ambiguities
+        }
+
         // --- Emit single low-cardinality resolved event ---
-        // Note: calls this.telemetry.trackEvent() directly to avoid GameEventName type constraint
-        // until @piquet-h/shared v0.3.152 is superseded by a version that includes
-        // 'PlayerCommand.Resolved' in the GAME_EVENT_NAMES tuple.
+        // TODO: replace with this.track('PlayerCommand.Resolved', ...) once @piquet-h/shared
+        // is republished with the event added to GAME_EVENT_NAMES (see shared/src/telemetryEvents.ts).
+        // Using this.telemetry.trackEvent() directly to avoid the GameEventName type constraint
+        // in the currently installed package version.
         this.telemetry.trackEvent({
             name: 'PlayerCommand.Resolved',
             properties: {
