@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 /**
  * useVisitState
  * Lightweight client-only hook managing first-visit vs returning-user logic.
- * TODO(auth): Replace with real profile/bootstrap API once identity layer is added.
+ * TODO(#972): Replace with real profile/bootstrap API once identity layer is added.
  */
 export interface VisitState {
     isNewUser: boolean

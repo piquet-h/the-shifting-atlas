@@ -8,7 +8,7 @@ import Logo from './Logo'
  * Nav
  * Simplified after removal of demo + about pages.
  * Adds a placeholder user menu trigger for future auth/profile integration.
- * TODO(auth): Replace placeholder with real user context (Azure AD B2C / custom identity) once implemented.
+ * TODO(#972): Replace placeholder with real user context once identity layer is added.
  * Accessibility notes:
  * - Single global navigation landmark rendered once (homepage removed duplicate heading block).
  * - Placeholder user actions use <details>/<summary> for built‑in keyboard + semantics until real menu logic arrives.
