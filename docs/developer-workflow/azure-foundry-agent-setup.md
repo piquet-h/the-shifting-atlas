@@ -1,6 +1,8 @@
 # Azure AI Foundry Agent Setup Guide
 
-**Status**: Implementation Guide for M4a (AI Read Foundations) milestone  
+**Status**: Reference guide — M4c (Agent Sandbox Write-lite) is fully implemented.  
+**Deployed MCP tools**: `WorldContext-*`, `Lore-*`, `NarrativeGenerator-*`, `IntentParser-*`, `WorldOperations-*`.  
+**Scope**: Conceptual Foundry agent setup and integration architecture for the D&D 5e tool surface.  
 **Last Updated**: 2026-01-30
 
 ## Overview
@@ -126,6 +128,8 @@ Your existing Azure Functions MCP endpoints need to be registered as tools in Fo
 
 ## Step 5: Update Backend to Call Foundry Agent
 
+> **Note**: The code below is a **conceptual illustration** of the integration pattern. The actual backend uses `ResolvePlayerCommand`, `AgentStepHandler`, and `POST /api/agent/propose` (see `docs/architecture/agent-sandbox-contracts.md` for the implemented pipeline). `FoundryAgentClient` is a placeholder for the Foundry SDK client.
+
 **Before** (no agent):
 
 ```typescript
@@ -139,16 +143,15 @@ async execute(req: HttpRequest): Promise<HttpResponseInit> {
 }
 ```
 
-**After** (with Foundry agent):
+**After** (with Foundry agent — conceptual):
 
 ```typescript
 // backend/src/handlers/playerCommand.ts
-import { FoundryAgentClient } from '../services/foundryAgent.js'
-
+// FoundryAgentClient: placeholder for @azure/ai-projects AIProjectClient
 async execute(req: HttpRequest): Promise<HttpResponseInit> {
     const { playerId, command } = await req.json()
 
-    // 1. Gather context for agent
+    // 1. Gather context for agent (via MCP tools or direct repo reads)
     const context = await this.buildAgentContext(playerId)
 
     // 2. Call Foundry agent
@@ -162,7 +165,7 @@ async execute(req: HttpRequest): Promise<HttpResponseInit> {
         toolChoice: "auto"
     })
 
-    // 3. Validate agent's proposed state changes
+    // 3. Validate agent's proposed state changes via AgentProposalApplicator
     const validatedChanges = await this.validator.validate(
         agentResponse.stateChanges,
         context
@@ -212,23 +215,14 @@ private formatContext(context: any): string {
 
 **In Your Backend**:
 
-```typescript
-// Emit telemetry when calling agent
-this.track('AI.Agent.Called', {
-    agentId: 'dm-narrator',
-    agentVersion: '1.0.0',
-    playerId,
-    commandType,
-    correlationId
-})
+Use centralized telemetry event constants from `shared/src/telemetryEvents.ts` — do not use inline string literals. Relevant existing events for agent-call tracking:
 
-this.track('AI.Agent.Response', {
-    agentId: 'dm-narrator',
-    tokensUsed: agentResponse.usage.total_tokens,
-    latencyMs: agentResponse.latencyMs,
-    toolCallCount: agentResponse.toolCalls?.length || 0
-})
-```
+- `MCP.Tool.Invoked` — emitted when any MCP tool is invoked (includes `toolName` and `latencyMs`)
+- `Agent.Proposal.Received`, `Agent.Proposal.Accepted`, `Agent.Proposal.Rejected` — proposal pipeline audit trail
+- `Agent.Step.Start`, `Agent.Step.Completed` — autonomous step loop bookends
+- `AI.Cost.Estimated`, `AI.Cost.WindowSummary` — token/cost telemetry
+
+For a new Foundry agent call site, extend the existing telemetry pattern rather than inventing new event names. If a new event is needed (e.g., `Agent.FoundryCall.Completed`), add it to `GAME_EVENT_NAMES` in `shared/src/telemetryEvents.ts` first.
 
 ## Step 7: Testing
 
@@ -341,10 +335,12 @@ At 1000 player interactions/day: **~$0.50/day** with gpt-4o-mini
 ## Related Documentation
 
 - [Agentic AI & MCP Architecture](../architecture/agentic-ai-and-mcp.md)
-- [DM Narrator Prompt Template](../../shared/src/prompts/templates/dm-narrator.json)
+- [Agent Sandbox Contracts](../architecture/agent-sandbox-contracts.md) — implemented pipeline (sense → decide → propose → validate → apply)
 - [MCP Tool Catalog](../architecture/agentic-ai-and-mcp.md#mcp-tool-catalog-implemented-today)
+- [Agent System Instructions Reference](../deployment/agent-system-instructions-reference.md)
+- [Foundry Setup Checklist](../deployment/foundry-setup-checklist.md)
 - [Azure AI Foundry Docs](https://learn.microsoft.com/en-us/azure/ai-studio/)
 
 ---
 
-**Note**: This guide assumes M4 milestone MCP tools are deployed. For earlier milestones, start with read-only tools and expand gradually.
+**Note**: M4c (Agent Sandbox Write-lite) is implemented. MCP tools are deployed and the proposal pipeline is live. This guide describes the conceptual wiring for connecting a Foundry-hosted agent to the existing MCP surface.
