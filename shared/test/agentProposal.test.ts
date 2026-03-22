@@ -105,8 +105,47 @@ describe('AgentProposalEnvelope schema', () => {
         assert.equal(result.success, false)
     })
 
-    it('optional intent field can be omitted', () => {
+    it('optional intent field can be omitted (schema does not require it)', () => {
         assert.equal(AgentProposalEnvelopeSchema.safeParse(omit(BASE_PROPOSAL, 'intent')).success, true)
+    })
+
+    it('intent with missing rawInput fails schema', () => {
+        const result = AgentProposalEnvelopeSchema.safeParse({
+            ...BASE_PROPOSAL,
+            intent: {
+                parsedIntent: { verb: 'generate' },
+                validationResult: { success: true }
+            }
+        })
+        assert.equal(result.success, false)
+    })
+
+    it('intent with missing verb fails schema', () => {
+        const result = AgentProposalEnvelopeSchema.safeParse({
+            ...BASE_PROPOSAL,
+            intent: {
+                rawInput: 'generate ambient description',
+                parsedIntent: {},
+                validationResult: { success: true }
+            }
+        })
+        assert.equal(result.success, false)
+    })
+
+    it('intent with unknown target kind fails schema', () => {
+        // 'portal' is not in ActionIntentTargetKindSchema enum; the enum enforces the allowed set.
+        const result = AgentProposalEnvelopeSchema.safeParse({
+            ...BASE_PROPOSAL,
+            intent: {
+                rawInput: 'examine the portal',
+                parsedIntent: {
+                    verb: 'examine',
+                    targets: [{ kind: 'portal', name: 'mystery gate' }]
+                },
+                validationResult: { success: true }
+            }
+        })
+        assert.equal(result.success, false)
     })
 })
 
@@ -265,6 +304,44 @@ describe('validateAgentProposal', () => {
     it('safeValidateAgentProposal with invalid schema input returns false without throwing', () => {
         const result = safeValidateAgentProposal({ not: 'valid' })
         assert.equal(result.success, false)
+    })
+
+    it('ai actor proposal missing intent is rejected with MISSING_INTENT', () => {
+        // Cast required: TypeScript sees intent as optional on AgentProposalEnvelope,
+        // but we need to test the validator's runtime enforcement for ai actors.
+        const noIntent = omit(BASE_PROPOSAL, 'intent') as AgentProposalEnvelope
+        const result = validateAgentProposal(noIntent)
+        assert.equal(result.outcome, 'rejected')
+        assert.ok(result.rejectionReasons.some((r) => r.code === ProposalRejectionCode.MISSING_INTENT))
+    })
+
+    it('ai actor proposal missing intent rejection includes envelope-level actionType sentinel', () => {
+        // Cast required: testing runtime validator enforcement rather than type-level constraint.
+        const noIntent = omit(BASE_PROPOSAL, 'intent') as AgentProposalEnvelope
+        const result = validateAgentProposal(noIntent)
+        const reason = result.rejectionReasons.find((r) => r.code === ProposalRejectionCode.MISSING_INTENT)
+        assert.ok(reason)
+        assert.ok('actionType' in reason)
+    })
+
+    it('system actor proposal without intent is accepted', () => {
+        // Cast required: intent is optional at schema level; we explicitly test system actors are exempt.
+        const systemNoIntent = {
+            ...omit(BASE_PROPOSAL, 'intent'),
+            actor: { kind: 'system' as const }
+        } as AgentProposalEnvelope
+        const result = validateAgentProposal(systemNoIntent)
+        assert.equal(result.outcome, 'accepted')
+    })
+
+    it('npc actor proposal without intent is accepted', () => {
+        // Cast required: intent is optional at schema level; npc actors are exempt from intent requirement.
+        const npcNoIntent = {
+            ...omit(BASE_PROPOSAL, 'intent'),
+            actor: { kind: 'npc' as const, id: '88888888-8888-4888-8888-888888888888' }
+        } as AgentProposalEnvelope
+        const result = validateAgentProposal(npcNoIntent)
+        assert.equal(result.outcome, 'accepted')
     })
 })
 
