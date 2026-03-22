@@ -26,6 +26,11 @@
  *         confidence: number,
  *         needsClarification: boolean,
  *         ambiguities?: AmbiguityIssue[]
+ *       },
+ *       actionIntent: {              // ActionIntent-compatible; replayable + auditable
+ *         rawInput: string,
+ *         parsedIntent: { verb: string, targets?: ActionIntentTarget[] },
+ *         validationResult: { success: boolean, errors?: string[] }
  *       }
  *     }
  *   }
@@ -37,7 +42,7 @@
  */
 
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import type { AmbiguityIssue, Intent, ParsedCommand } from '@piquet-h/shared'
+import type { ActionIntent, ActionIntentTarget, AmbiguityIssue, Intent, ParsedCommand } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable } from 'inversify'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
@@ -77,6 +82,12 @@ export type CommandResolutionData = {
         /** Ambiguity issues surfaced by the parser, if any. */
         ambiguities?: AmbiguityIssue[]
     }
+    /**
+     * ActionIntent-compatible structure for downstream replayability and auditability.
+     * Contains rawInput, parsedIntent (verb + structured targets), and validationResult.
+     * validationResult.success is false for Unknown/ambiguous resolutions.
+     */
+    actionIntent: ActionIntent
 }
 
 /**
@@ -95,6 +106,58 @@ function deriveActionKind(intent: Intent | undefined): ActionKind {
     }
     if (intent.verb === 'examine') return 'Look'
     return 'Unknown'
+}
+
+/**
+ * Builds an ActionIntent-compatible structure from the resolved command.
+ *
+ * Rules:
+ * - rawInput: the trimmed player input text
+ * - parsedIntent.verb: canonical verb from PI-0, or 'unknown' as fallback
+ * - parsedIntent.targets:
+ *   - Move → [{ kind: 'direction', canonicalDirection }]
+ *   - Look → [{ kind: 'location', name: 'current location' }]
+ *   - Unknown → omitted
+ * - validationResult.success: true for Move/Look; false for Unknown
+ * - validationResult.errors: populated for Unknown with a descriptive message
+ */
+function buildActionIntent(
+    rawInput: string,
+    actionKind: ActionKind,
+    primaryIntent: Intent | undefined,
+    needsClarification: boolean
+): ActionIntent {
+    const verb = primaryIntent?.verb ?? 'unknown'
+
+    let firstTarget: ActionIntentTarget | undefined
+    if (actionKind === 'Move' && primaryIntent?.direction) {
+        firstTarget = { kind: 'direction', canonicalDirection: primaryIntent.direction }
+    } else if (actionKind === 'Look') {
+        firstTarget = { kind: 'location', name: 'current location' }
+    }
+
+    const errors: string[] = []
+    if (actionKind === 'Unknown') {
+        if (needsClarification) {
+            errors.push('Command is ambiguous and requires clarification')
+        } else if (primaryIntent?.verb === 'move' && !primaryIntent?.direction) {
+            errors.push('Direction could not be determined from the input')
+        } else {
+            errors.push('Command could not be resolved to a known action')
+        }
+    }
+
+    return {
+        rawInput,
+        parsedIntent: {
+            verb,
+            ...(firstTarget !== undefined ? { targets: [firstTarget] } : {})
+        },
+        validationResult: {
+            success: actionKind !== 'Unknown',
+            ...(errors.length > 0 ? { errors } : {})
+        }
+    }
 }
 
 @injectable()
@@ -166,7 +229,8 @@ export class ResolvePlayerCommandHandler extends BaseHandler {
                 verb: primaryIntent?.verb ?? null,
                 confidence: primaryIntent?.confidence ?? 0,
                 needsClarification: parsed.needsClarification
-            }
+            },
+            actionIntent: buildActionIntent(trimmedInput, actionKind, primaryIntent, parsed.needsClarification)
         }
 
         if (actionKind === 'Move' && primaryIntent?.direction) {
