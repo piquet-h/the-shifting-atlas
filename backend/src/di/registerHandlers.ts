@@ -22,6 +22,7 @@ import { PlayerCreateHandler } from '../handlers/playerCreate.js'
 import { PlayerGetHandler } from '../handlers/playerGet.js'
 import { PlayerLinkHandler } from '../handlers/playerLink.js'
 import { PlayerMoveHandler } from '../handlers/playerMove.js'
+import { ResolvePlayerCommandHandler } from '../handlers/resolvePlayerCommand.js'
 import { QueueProcessExitGenerationHintHandler } from '../handlers/queueProcessExitGenerationHint.js'
 import { QueueSyncLocationAnchorsHandler } from '../handlers/queueSyncLocationAnchors.js'
 import { WorldGraphHandler } from '../handlers/worldGraph.js'
@@ -41,6 +42,7 @@ export const HANDLER_CLASSES = [
 
     PlayerLinkHandler,
     PlayerMoveHandler,
+    ResolvePlayerCommandHandler,
     PingHandler,
     HealthHandler,
     GremlinHealthHandler,
