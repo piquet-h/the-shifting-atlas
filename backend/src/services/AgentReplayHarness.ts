@@ -20,7 +20,7 @@
  */
 
 import { AgentProposalEnvelopeSchema, validateAgentProposal } from '@piquet-h/shared'
-import type { AgentProposalEnvelope, ProposalRejectionReason } from '@piquet-h/shared'
+import type { ActionIntent, AgentProposalEnvelope, ProposalRejectionReason } from '@piquet-h/shared'
 import { inject, injectable } from 'inversify'
 import { AgentProposalApplicator, type ActionApplicationResult } from './AgentProposalApplicator.js'
 
@@ -71,6 +71,12 @@ export interface StepReplayResult {
     diffs?: EffectDiff[]
     /** Human-readable reason string for rejected / schema-invalid steps. */
     failureReason?: string
+    /**
+     * Concise summary of the ActionIntent for this step.
+     * Format: '<rawInput> (verb=<verb>, targets=[<key targets>])' when intent is available.
+     * 'unknown intent' when the proposal carries no intent (system/npc actors or schema-invalid steps).
+     */
+    intentSummary: string
 }
 
 /** Correlation chain entry linking correlationId to its causationId. */
@@ -95,6 +101,26 @@ export interface ReplayReport {
     correlationChain: CorrelationChainEntry[]
     /** Human-readable failure reasons, one entry per rejected / schema-invalid step. */
     failureReasons: string[]
+}
+
+// -------------------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------------------
+
+/**
+ * Build a concise one-line summary of an ActionIntent for replay reports.
+ *
+ * Format: '<rawInput> (verb=<verb>, targets=[<kind>:<identifier>, ...])'
+ * At most two targets are included to avoid high-cardinality dumps.
+ * Returns 'unknown intent' when no intent is available.
+ */
+function summarizeIntent(intent: ActionIntent | undefined): string {
+    if (!intent) return 'unknown intent'
+    const { rawInput, parsedIntent } = intent
+    const topTargets = (parsedIntent.targets ?? []).slice(0, 2)
+    const targetStr = topTargets.map((t) => `${t.kind}:${t.name ?? t.id ?? t.surfaceText ?? t.canonicalDirection ?? ''}`).join(', ')
+    const targetsClause = targetStr ? `, targets=[${targetStr}]` : ''
+    return `${rawInput} (verb=${parsedIntent.verb}${targetsClause})`
 }
 
 // -------------------------------------------------------------------------
@@ -140,7 +166,8 @@ export class AgentReplayHarness {
                     proposalId: `<missing-step-${i}>`,
                     validationOutcome: 'schema-invalid',
                     appliedEffects: [],
-                    failureReason
+                    failureReason,
+                    intentSummary: 'unknown intent'
                 }
                 steps.push(step)
                 schemaErrorCount++
@@ -162,7 +189,8 @@ export class AgentReplayHarness {
                     proposalId,
                     validationOutcome: 'schema-invalid',
                     appliedEffects: [],
-                    failureReason
+                    failureReason,
+                    intentSummary: 'unknown intent'
                 }
                 steps.push(step)
                 schemaErrorCount++
@@ -206,7 +234,8 @@ export class AgentReplayHarness {
                     rejectionReasons: validationResult.rejectionReasons,
                     appliedEffects: [],
                     diffs: record.expectedEffects ? this.computeDiffs(record.expectedEffects, []) : undefined,
-                    failureReason
+                    failureReason,
+                    intentSummary: summarizeIntent(envelope.intent)
                 }
                 steps.push(step)
                 rejectedCount++
@@ -230,7 +259,8 @@ export class AgentReplayHarness {
                 causationId: envelope.causationId,
                 validationOutcome: 'accepted',
                 appliedEffects,
-                diffs: record.expectedEffects ? this.computeDiffs(record.expectedEffects, appliedEffects) : undefined
+                diffs: record.expectedEffects ? this.computeDiffs(record.expectedEffects, appliedEffects) : undefined,
+                intentSummary: summarizeIntent(envelope.intent)
             }
             steps.push(step)
             successCount++
