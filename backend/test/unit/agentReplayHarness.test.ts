@@ -10,6 +10,7 @@
  * - Missing (null) proposal records treated as schema-invalid
  * - Duplicate idempotency key detection
  * - Empty sequence handled without error
+ * - intentSummary per step: present, missing, empty targets, schema-invalid
  */
 import assert from 'node:assert'
 import { afterEach, beforeEach, describe, test } from 'node:test'
@@ -48,6 +49,29 @@ describe('AgentReplayHarness', () => {
                     }
                 }
             ]
+        }
+    }
+
+    /** Proposal with a fully populated ActionIntent (ai actor). */
+    function makeProposalWithIntent(proposalId: string, locationId: string, correlationId: string): AgentProposalEnvelope {
+        return {
+            ...makeValidProposal(proposalId, locationId, correlationId),
+            intent: {
+                rawInput: 'go north',
+                parsedIntent: {
+                    verb: 'move',
+                    targets: [{ kind: 'direction', canonicalDirection: 'north' }]
+                },
+                validationResult: { success: true }
+            }
+        }
+    }
+
+    /** Proposal from a system actor — legitimately carries no intent. */
+    function makeSystemProposalWithoutIntent(proposalId: string, locationId: string, correlationId: string): AgentProposalEnvelope {
+        return {
+            ...makeValidProposal(proposalId, locationId, correlationId),
+            actor: { kind: 'system' }
         }
     }
 
@@ -398,5 +422,82 @@ describe('AgentReplayHarness', () => {
         assert.strictEqual(report.steps[0].validationOutcome, 'accepted')
         assert.strictEqual(report.steps[1].validationOutcome, 'schema-invalid')
         assert.strictEqual(report.steps[2].validationOutcome, 'rejected')
+    })
+
+    // -------------------------------------------------------------------------
+    // intentSummary — ActionIntent surface per step
+    // -------------------------------------------------------------------------
+
+    test('step with ActionIntent present reports rawInput, verb, and key targets in intentSummary', async () => {
+        const records: ProposalRecord[] = [{ proposal: makeProposalWithIntent(PROPOSAL_ID_1, LOCATION_ID_1, CORRELATION_ID), tick: 0 }]
+
+        const report = await harness.replaySequence(records)
+
+        assert.strictEqual(report.steps[0].validationOutcome, 'accepted')
+        assert.strictEqual(report.steps[0].intentSummary, 'go north (verb=move, targets=[direction:north])')
+    })
+
+    test('step with ActionIntent missing (system actor) reports "unknown intent" but step continues', async () => {
+        const records: ProposalRecord[] = [
+            { proposal: makeSystemProposalWithoutIntent(PROPOSAL_ID_1, LOCATION_ID_1, CORRELATION_ID), tick: 0 }
+        ]
+
+        const report = await harness.replaySequence(records)
+
+        assert.strictEqual(report.totalSteps, 1)
+        assert.strictEqual(report.successCount, 1, 'step should succeed even when intent is absent')
+        assert.strictEqual(report.steps[0].intentSummary, 'unknown intent')
+    })
+
+    test('schema-invalid step reports "unknown intent" in intentSummary', async () => {
+        const records: ProposalRecord[] = [{ proposal: { bad: 'data' } as unknown as AgentProposalEnvelope, tick: 0 }]
+
+        const report = await harness.replaySequence(records)
+
+        assert.strictEqual(report.steps[0].validationOutcome, 'schema-invalid')
+        assert.strictEqual(report.steps[0].intentSummary, 'unknown intent')
+    })
+
+    test('intent with no targets reports rawInput and verb without targets clause', async () => {
+        const proposal: AgentProposalEnvelope = {
+            ...makeValidProposal(PROPOSAL_ID_1, LOCATION_ID_1, CORRELATION_ID),
+            intent: {
+                rawInput: 'examine room',
+                parsedIntent: { verb: 'examine' },
+                validationResult: { success: true }
+            }
+        }
+
+        const report = await harness.replaySequence([{ proposal, tick: 0 }])
+
+        assert.strictEqual(report.steps[0].intentSummary, 'examine room (verb=examine)')
+    })
+
+    test('rejected step with intent present surfaces intentSummary', async () => {
+        const proposal: AgentProposalEnvelope = {
+            proposalId: PROPOSAL_ID_1,
+            version: 1,
+            issuedUtc: '2025-12-01T10:00:00.000Z',
+            actor: { kind: 'ai' },
+            correlationId: CORRELATION_ID,
+            idempotencyKey: `proposal:${PROPOSAL_ID_1}:Layer.Add:loc:${LOCATION_ID_1}`,
+            intent: {
+                rawInput: 'ignite torch',
+                parsedIntent: { verb: 'ignite' },
+                validationResult: { success: false }
+            },
+            proposedActions: [
+                {
+                    actionType: 'Layer.Add',
+                    scopeKey: `loc:${LOCATION_ID_1}`,
+                    params: {} // missing required params → rejected
+                }
+            ]
+        }
+
+        const report = await harness.replaySequence([{ proposal, tick: 0 }])
+
+        assert.strictEqual(report.steps[0].validationOutcome, 'rejected')
+        assert.strictEqual(report.steps[0].intentSummary, 'ignite torch (verb=ignite)')
     })
 })
