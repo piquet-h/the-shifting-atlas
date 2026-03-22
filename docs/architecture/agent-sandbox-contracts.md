@@ -133,6 +133,7 @@ const report = await harness.replaySequence(records)
 
 Each `StepReplayResult` includes:
 - `validationOutcome` — `'accepted'`, `'rejected'`, or `'schema-invalid'`
+- `intentSummary` — concise one-line ActionIntent description; `'unknown intent'` when the proposal carries no intent (system/npc actors, or schema-invalid steps). Format: `'<rawInput> (verb=<verb>, targets=[<kind>:<id/name>, ...])'` — at most two targets to avoid high-cardinality dumps.
 - `appliedEffects` — `ActionApplicationResult[]` (empty when not applied)
 - `diffs` — `EffectDiff[]` comparing `expectedEffects` against actuals (`match: true/false`)
 - `rejectionReasons` — `ProposalRejectionReason[]` (when rejected)
@@ -143,12 +144,14 @@ Each `StepReplayResult` includes:
 
 | Scenario | Outcome |
 |----------|---------|
-| `null` / missing record in sequence | `schema-invalid` step; `failureReason` set |
-| Proposal fails Zod schema | `schema-invalid` step; no apply attempted |
-| Proposal fails business rules (e.g. missing `locationId`) | `rejected` step; `rejectionReasons` populated |
+| `null` / missing record in sequence | `schema-invalid` step; `failureReason` set; `intentSummary` = `'unknown intent'` |
+| Proposal fails Zod schema | `schema-invalid` step; no apply attempted; `intentSummary` = `'unknown intent'` |
+| Proposal fails business rules (e.g. missing `locationId`) | `rejected` step; `rejectionReasons` populated; `intentSummary` from envelope if present |
 | Duplicate `idempotencyKey` across records | Both steps still attempt apply; `duplicateDeliveries` incremented |
 | No `expectedEffects` provided | `diffs` field is `undefined` (no diff computed) |
 | Empty sequence | Returns a zeroed `ReplayReport` without error |
+| system/npc actor without `intent` | Step proceeds normally; `intentSummary` = `'unknown intent'` |
+| `intent` present but no targets | `intentSummary` format omits targets clause: `'<rawInput> (verb=<verb>)'` |
 
 **Relationship to live production flow**
 
