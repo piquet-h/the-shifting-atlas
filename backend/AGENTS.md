@@ -44,20 +44,7 @@ Required (Cosmos mode):
 
 - `COSMOS_SQL_ENDPOINT`
 - `COSMOS_SQL_DATABASE`
-- `COSMOS_SQL_CONTAINER_PLAYERS`
-- `COSMOS_SQL_CONTAINER_INVENTORY`
-- `COSMOS_SQL_CONTAINER_LAYERS`
-- `COSMOS_SQL_CONTAINER_EVENTS`
-
-Common additional containers (may have defaults in code, but set explicitly in `local.settings*.json` when available):
-
-- `COSMOS_SQL_CONTAINER_PROCESSED_EVENTS`
-- `COSMOS_SQL_CONTAINER_DEADLETTERS`
-- `COSMOS_SQL_CONTAINER_EXIT_HINT_DEBOUNCE`
-- `COSMOS_SQL_CONTAINER_TEMPORAL_LEDGER`
-- `COSMOS_SQL_CONTAINER_WORLD_CLOCK`
-- `COSMOS_SQL_CONTAINER_LOCATION_CLOCKS`
-- `COSMOS_SQL_CONTAINER_LORE_FACTS`
+- All `COSMOS_SQL_CONTAINER_*` variables — see `backend/src/persistenceConfig.ts` for the authoritative list (do not duplicate here)
 
 ### Cosmos DB (Gremlin)
 

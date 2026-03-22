@@ -287,7 +287,7 @@ IDs: GUID always.
 Graph vertex types: Locations, NPCs (edges for spatial relations).
 Document types: Players, Inventory items, Description layers, World events.
 Edges: semantic (e.g., `exit_north`, `owns_item`).
-Exits: allowed directions set (north,south,east,west,up,down,in,out).
+Exits: allowed directions set — see `DIRECTIONS` in `shared/src/domainModels.ts` (includes cardinal, diagonal, vertical, and portal directions).
 Player action flow: ALL HTTP responses return immediately (<500ms p95). Personal state changes (move, get item, inventory) are synchronous SQL/Graph writes within HTTP handler. Shared world effects (fire spreads, NPC spawns, location transforms) enqueue async events to Service Bus for eventual processing. See `docs/architecture/event-classification-matrix.md` for decision tree.
 World evolution: queue triggers only (never blocks HTTP response).
 Dual persistence (ADR-002 → superseded for player storage by ADR-004): Immutable world structure in Gremlin graph; mutable player/inventory/events data authoritative in SQL API (player vertices removed).
