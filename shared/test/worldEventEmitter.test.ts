@@ -22,11 +22,20 @@ import {
     isValidationError,
     prepareBatchEnqueueMessages,
     prepareEnqueueMessage,
+    safeValidateWorldEventEnvelope,
     ServiceBusUnavailableError,
+    validateWorldEventEnvelope,
     WorldEventTypeSchema,
     WorldEventValidationError,
     type EmitWorldEventOptions
 } from '../src/events/index.js'
+
+/** Minimal valid ActionIntent fixture for tests that use player-actor envelopes. */
+const VALID_ACTION_INTENT = {
+    rawInput: 'go north',
+    parsedIntent: { verb: 'move' },
+    validationResult: { success: true }
+}
 
 describe('World Event Emitter', () => {
     describe('emitWorldEvent', () => {
@@ -38,7 +47,8 @@ describe('World Event Emitter', () => {
                     playerId: 'player-1',
                     fromLocationId: 'loc-1',
                     toLocationId: 'loc-2',
-                    direction: 'north'
+                    direction: 'north',
+                    actionIntent: VALID_ACTION_INTENT
                 },
                 actor: {
                     kind: 'player',
@@ -73,7 +83,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'player:12345678-1234-4234-8234-123456789abc',
-                payload: { locationId: 'loc-1' },
+                payload: { locationId: 'loc-1', actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' }
                 // correlationId intentionally omitted
             }
@@ -232,7 +242,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -245,7 +255,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'player:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -391,7 +401,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -408,7 +418,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111',
                 occurredUtc: customTimestamp
@@ -442,10 +452,12 @@ describe('World Event Emitter', () => {
             const actorKinds = ActorKindSchema.options
 
             for (const kind of actorKinds) {
+                // Player-actor envelopes require actionIntent; other kinds do not
+                const payload = kind === 'player' ? { actionIntent: VALID_ACTION_INTENT } : {}
                 const options: EmitWorldEventOptions = {
                     eventType: 'Player.Move',
                     scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                    payload: {},
+                    payload,
                     actor: { kind: kind },
                     correlationId: '11111111-1111-4111-8111-111111111111'
                 }
@@ -474,7 +486,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
                 // operationId intentionally omitted
@@ -530,12 +542,13 @@ describe('World Event Emitter', () => {
     })
 
     describe('Edge Cases', () => {
-        it('should handle empty payload', () => {
+        it('should handle empty payload for non-player actor', () => {
+            // Empty payload is valid for non-player actors (no actionIntent required)
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
                 payload: {},
-                actor: { kind: 'player' },
+                actor: { kind: 'system' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
 
@@ -554,7 +567,8 @@ describe('World Event Emitter', () => {
                 },
                 array: [1, 2, 3],
                 boolean: true,
-                number: 42.5
+                number: 42.5,
+                actionIntent: VALID_ACTION_INTENT
             }
 
             const options: EmitWorldEventOptions = {
@@ -576,7 +590,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: { playerId: 'player-1' },
+                payload: { playerId: 'player-1', actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player', id: '12345678-1234-4234-8234-123456789abc' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -595,7 +609,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' }
                 // correlationId intentionally omitted
             }
@@ -613,7 +627,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -633,7 +647,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -670,7 +684,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:12345678-1234-4234-8234-123456789abc',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -708,7 +722,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111',
                 operationId: 'op-12345'
@@ -724,7 +738,7 @@ describe('World Event Emitter', () => {
             const options: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-                payload: { key: 'value' },
+                payload: { key: 'value', actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -741,7 +755,7 @@ describe('World Event Emitter', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -749,7 +763,7 @@ describe('World Event Emitter', () => {
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
             }
@@ -766,7 +780,7 @@ describe('World Event Emitter', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -774,7 +788,7 @@ describe('World Event Emitter', () => {
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
             }
@@ -794,7 +808,7 @@ describe('World Event Emitter', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -802,7 +816,7 @@ describe('World Event Emitter', () => {
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
             }
@@ -821,7 +835,7 @@ describe('World Event Emitter', () => {
             const options1: EmitWorldEventOptions = {
                 eventType: 'Player.Move',
                 scopeKey: 'loc:dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '11111111-1111-4111-8111-111111111111'
             }
@@ -829,7 +843,7 @@ describe('World Event Emitter', () => {
             const options2: EmitWorldEventOptions = {
                 eventType: 'Player.Look',
                 scopeKey: 'loc:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: '22222222-2222-4222-8222-222222222222'
             }
@@ -846,5 +860,106 @@ describe('World Event Emitter', () => {
             const batchResults = prepareBatchEnqueueMessages([])
             assert.strictEqual(batchResults.length, 0)
         })
+    })
+})
+
+describe('validateWorldEventEnvelope – player-actor actionIntent enforcement', () => {
+    // A complete base envelope for a player actor (without actionIntent)
+    const basePlayerEnvelope = {
+        eventId: '11111111-1111-4111-8111-111111111111',
+        type: 'Player.Move',
+        occurredUtc: '2025-01-01T00:00:00.000Z',
+        actor: { kind: 'player', id: '22222222-2222-4222-8222-222222222222' },
+        correlationId: '33333333-3333-4333-8333-333333333333',
+        idempotencyKey: 'player:Player.Move:loc:test:12345',
+        version: 1,
+        payload: {} as Record<string, unknown>
+    }
+
+    it('should reject player-actor envelope with missing actionIntent', () => {
+        assert.throws(
+            () => validateWorldEventEnvelope({ ...basePlayerEnvelope, payload: {} }),
+            (err: unknown) => {
+                assert.ok(err instanceof Error)
+                const issues = (err as { issues?: unknown[] }).issues
+                assert.ok(Array.isArray(issues) && issues.length > 0, 'Should have validation issues')
+                const issue = issues[0] as { message: string; path: unknown[] }
+                assert.ok(issue.message.includes('actionIntent'), `Error should mention actionIntent, got: ${issue.message}`)
+                assert.deepStrictEqual(issue.path, ['payload', 'actionIntent'])
+                return true
+            }
+        )
+    })
+
+    it('should reject player-actor envelope with null actionIntent', () => {
+        assert.throws(
+            () => validateWorldEventEnvelope({ ...basePlayerEnvelope, payload: { actionIntent: null } }),
+            (err: unknown) => {
+                assert.ok(err instanceof Error)
+                const issues = (err as { issues?: unknown[] }).issues
+                assert.ok(Array.isArray(issues) && issues.length > 0)
+                const issue = issues[0] as { message: string }
+                assert.ok(issue.message.includes('actionIntent'))
+                return true
+            }
+        )
+    })
+
+    it('should reject player-actor envelope with empty-object actionIntent', () => {
+        assert.throws(
+            () => validateWorldEventEnvelope({ ...basePlayerEnvelope, payload: { actionIntent: {} } }),
+            (err: unknown) => {
+                assert.ok(err instanceof Error)
+                const issues = (err as { issues?: unknown[] }).issues
+                assert.ok(Array.isArray(issues) && issues.length > 0)
+                const issue = issues[0] as { message: string }
+                assert.ok(issue.message.includes('actionIntent'))
+                return true
+            }
+        )
+    })
+
+    it('should accept player-actor envelope with valid actionIntent', () => {
+        const validActionIntent = {
+            rawInput: 'go north',
+            parsedIntent: { verb: 'move' },
+            validationResult: { success: true }
+        }
+        const envelope = validateWorldEventEnvelope({
+            ...basePlayerEnvelope,
+            payload: { actionIntent: validActionIntent }
+        })
+        assert.ok(envelope)
+        assert.strictEqual(envelope.actor.kind, 'player')
+    })
+
+    it('safeValidateWorldEventEnvelope: returns failure for player-actor envelope missing actionIntent', () => {
+        const result = safeValidateWorldEventEnvelope({ ...basePlayerEnvelope, payload: {} })
+        assert.strictEqual(result.success, false)
+        if (!result.success) {
+            const issue = result.error.issues[0]
+            assert.ok(issue.message.includes('actionIntent'), `Error should mention actionIntent, got: ${issue.message}`)
+            assert.deepStrictEqual(issue.path, ['payload', 'actionIntent'])
+        }
+    })
+
+    it('safeValidateWorldEventEnvelope: returns failure for player-actor envelope with null actionIntent', () => {
+        const result = safeValidateWorldEventEnvelope({ ...basePlayerEnvelope, payload: { actionIntent: null } })
+        assert.strictEqual(result.success, false)
+        if (!result.success) {
+            const issue = result.error.issues[0]
+            assert.ok(issue.message.includes('actionIntent'))
+        }
+    })
+
+    it('should allow non-player actor envelopes without actionIntent', () => {
+        for (const kind of ['npc', 'system', 'ai'] as const) {
+            const envelope = validateWorldEventEnvelope({
+                ...basePlayerEnvelope,
+                actor: { kind },
+                payload: {} // no actionIntent – allowed for non-player actors
+            })
+            assert.strictEqual(envelope.actor.kind, kind, `Non-player actor kind '${kind}' should be allowed without actionIntent`)
+        }
     })
 })

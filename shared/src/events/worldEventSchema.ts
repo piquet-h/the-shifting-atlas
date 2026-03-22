@@ -91,19 +91,44 @@ export type WorldEventType = z.infer<typeof WorldEventTypeSchema>
  *
  * Validates required fields per contract doc Table "Required Fields".
  * Optional fields (ingestedUtc, causationId) are marked as such.
+ *
+ * Cross-field constraint:
+ * - Player-actor envelopes (actor.kind === 'player') MUST include payload.actionIntent.
+ *   This ensures replay and audit can always recover what the player tried to do.
+ *   Null, undefined, or empty-object actionIntent values are all rejected.
  */
-export const WorldEventEnvelopeSchema = z.object({
-    eventId: z.string().uuid(),
-    type: WorldEventTypeSchema,
-    occurredUtc: z.string().datetime(),
-    ingestedUtc: z.string().datetime().optional(),
-    actor: ActorSchema,
-    correlationId: z.string().uuid(),
-    causationId: z.string().uuid().optional(),
-    idempotencyKey: z.string().min(1),
-    version: z.number().int().positive(),
-    payload: z.record(z.string(), z.unknown())
-})
+export const WorldEventEnvelopeSchema = z
+    .object({
+        eventId: z.string().uuid(),
+        type: WorldEventTypeSchema,
+        occurredUtc: z.string().datetime(),
+        ingestedUtc: z.string().datetime().optional(),
+        actor: ActorSchema,
+        correlationId: z.string().uuid(),
+        causationId: z.string().uuid().optional(),
+        idempotencyKey: z.string().min(1),
+        version: z.number().int().positive(),
+        payload: z.record(z.string(), z.unknown())
+    })
+    .superRefine((data, ctx) => {
+        if (data.actor.kind === 'player') {
+            const actionIntent = data.payload['actionIntent']
+            const isMissing = actionIntent === undefined || actionIntent === null
+            const isEmpty =
+                !isMissing &&
+                typeof actionIntent === 'object' &&
+                !Array.isArray(actionIntent) &&
+                Object.keys(actionIntent as Record<string, unknown>).length === 0
+
+            if (isMissing || isEmpty) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'Player-actor envelopes require payload.actionIntent for replay and audit trail',
+                    path: ['payload', 'actionIntent']
+                })
+            }
+        }
+    })
 
 export type WorldEventEnvelope = z.infer<typeof WorldEventEnvelopeSchema>
 

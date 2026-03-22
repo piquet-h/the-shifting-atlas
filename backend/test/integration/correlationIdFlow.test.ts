@@ -21,6 +21,13 @@ import { __resetIdempotencyCacheForTests, queueProcessWorldEvent } from '../../s
 import { InMemoryWorldEventPublisher } from '../../src/worldEvents/worldEventPublisher.js'
 import { UnitTestFixture } from '../helpers/UnitTestFixture.js'
 
+/** Minimal valid ActionIntent fixture for player-actor envelopes in tests. */
+const VALID_ACTION_INTENT = {
+    rawInput: 'go north',
+    parsedIntent: { verb: 'move' },
+    validationResult: { success: true }
+}
+
 describe('CorrelationId Flow Integration', () => {
     let fixture: UnitTestFixture
     const TEST_LOCATION_ID = '550e8400-e29b-41d4-a716-446655440000'
@@ -50,7 +57,8 @@ describe('CorrelationId Flow Integration', () => {
                     playerId: '550e8400-e29b-41d4-a716-446655440010',
                     fromLocationId: TEST_LOCATION_FROM_ID,
                     toLocationId: TEST_LOCATION_TO_ID,
-                    direction: 'north'
+                    direction: 'north',
+                    actionIntent: VALID_ACTION_INTENT
                 },
                 actor: {
                     kind: 'player',
@@ -96,7 +104,7 @@ describe('CorrelationId Flow Integration', () => {
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Look',
                 scopeKey: `loc:${TEST_LOCATION_ID}`,
-                payload: { locationId: TEST_LOCATION_ID },
+                payload: { locationId: TEST_LOCATION_ID, actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' }
                 // correlationId intentionally omitted
             })
@@ -133,7 +141,7 @@ describe('CorrelationId Flow Integration', () => {
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Move',
                 scopeKey: `loc:${TEST_LOCATION_ID}`,
-                payload: { direction: 'north' },
+                payload: { direction: 'north', actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId: envelopeCorrelationId
             })
@@ -175,7 +183,7 @@ describe('CorrelationId Flow Integration', () => {
             const emitResult = emitWorldEvent({
                 eventType: 'Player.Move',
                 scopeKey: `loc:${TEST_LOCATION_ID}`,
-                payload: {},
+                payload: { actionIntent: VALID_ACTION_INTENT },
                 actor: { kind: 'player' },
                 correlationId,
                 idempotencyKey: 'test-duplicate-correlation'
@@ -219,7 +227,7 @@ describe('CorrelationId Flow Integration', () => {
                 const emitResult = emitWorldEvent({
                     eventType: 'Player.Look',
                     scopeKey: `loc:${TEST_LOCATION_ID}`,
-                    payload: { locationId: TEST_LOCATION_ID },
+                    payload: { locationId: TEST_LOCATION_ID, actionIntent: VALID_ACTION_INTENT },
                     actor: { kind: 'player', id: '12345678-1234-4234-8234-123456789abc' },
                     correlationId,
                     idempotencyKey: 'autodrain-world-event-correlation'

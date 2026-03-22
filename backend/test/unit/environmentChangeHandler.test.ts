@@ -42,7 +42,12 @@ describe('EnvironmentChangeHandler', () => {
                 changeType: 'fire',
                 severity: 'moderate',
                 description: 'Fire has broken out in the forest',
-                duration: 'temporary'
+                duration: 'temporary',
+                actionIntent: {
+                    rawInput: 'set fire to the forest',
+                    parsedIntent: { verb: 'ignite' },
+                    validationResult: { success: true }
+                }
             },
             ...overrides
         }
