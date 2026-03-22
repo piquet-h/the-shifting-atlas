@@ -347,37 +347,22 @@ Atomic issues: exactly 1 scope + 1 type label.
 Epics: exactly 1 scope label + the coordination label `epic` (no type label applied).
 Scopes: `scope:core|world|traversal|ai|mcp|systems|observability|devx|security`.
 Types (atomic only): `feature|enhancement|refactor|infra|docs|spike|test`.
-Milestones: M0 Foundation → M7 Post-MVP (narrative stages). Can add more. If so, add here and to Section 8.1 table
+Milestones: M0 Foundation → M7 Post-MVP (narrative stages). Can add more.
 Status field: `Todo|In progress|Done`. Prioritize by milestone, dependency readiness, and scope impact.
 
 ### 8.1 Milestone ID vs Name Reference (IMPORTANT)
+
+**Authoritative milestone list (single source of truth):** https://github.com/piquet-h/the-shifting-atlas/milestones?direction=asc&sort=title&state=open
+
+Closed milestones: https://github.com/piquet-h/the-shifting-atlas/milestones?state=closed
+
+**Do NOT duplicate milestone data in this file.** Always look up milestones from the API or the links above.
 
 **Milestones have both a numeric ID ("number") and a display title.**
 
 - **Searching/filtering (GitHub search syntax):** use the milestone _title_ (for example: `milestone:"M1 Traversal"`).
 - **Assigning/updating milestones via API:** use the milestone _number_.
-
-| Milestone Name                 | Milestone ID | Status   | Focus                                                                 | Search Example                                                  |
-| ------------------------------ | ------------ | -------- | --------------------------------------------------------------------- | --------------------------------------------------------------- |
-| M0 Foundation                  | 1            | CLOSED   | Bootstrap, ping, telemetry scaffold                                   | `milestone:"M0 Foundation"` or filter by ID 1                   |
-| M1 Traversal                   | 2            | CLOSED   | Location persistence, exits, move/look                                | `milestone:"M1 Traversal"` or filter by ID 2                    |
-| M2 Data Foundations            | 3            | CLOSED   | SQL API containers, player cutover (ADR-004), telemetry consolidation | `milestone:"M2 Data Foundations"` or filter by ID 3             |
-| M3a Event Backbone             | 11           | CLOSED   | Queue processing, idempotency, DLQ, correlation                       | `milestone:"M3a Event Backbone"` or filter by ID 11             |
-| M3b Player UI & Telemetry      | 12           | CLOSED   | SWA auth, game view, navigation, frontend↔backend correlation         | `milestone:"M3b Player UI & Telemetry"` or filter by ID 12      |
-| M3c Temporal PI-0              | 13           | CLOSED   | WorldClock, PlayerClock, durations, reconcile policies                | `milestone:"M3c Temporal PI-0"` or filter by ID 13              |
-| M4a: AI Infrastructure         | 5            | CLOSED   | AI foundations + infra scaffolding                                    | `milestone:"M4a: AI Infrastructure"` or filter by ID 5          |
-| M4b World Generation           | 14           | Active   | World expansion orchestration, area generation, reconnection          | `milestone:"M4b World Generation"` or filter by ID 14           |
-| M4c Agent Sandbox (Write-lite) | 15           | Active   | Write-lite agent sandbox + safety rails                               | `milestone:"M4c Agent Sandbox (Write-lite)"` or filter by ID 15 |
-| M5 Quality & Depth             | 10           | CLOSED   | Layering engine, dashboards, alerts, integrity monitoring             | `milestone:"M5 Quality & Depth"` or filter by ID 10             |
-| M5a Observability              | 16           | Active   | App Insights dashboards/workbooks/alerts                              | `milestone:"M5a Observability"` or filter by ID 16              |
-| M5b Layering                   | 17           | Active   | Description layering + variation                                      | `milestone:"M5b Layering"` or filter by ID 17                   |
-| M6 Systems                     | 7            | CLOSED   | Superseded by M6a/M6b/M6c/M6d split milestones                        | `milestone:"M6 Systems"` or filter by ID 7                      |
-| M6a Dungeons                   | 18           | Active   | Dungeon infrastructure, runs, lifecycle                               | `milestone:"M6a Dungeons"` or filter by ID 18                   |
-| M6b Humor & Promotion          | 19           | Active   | Humor feedback + entity promotion pipeline                            | `milestone:"M6b Humor & Promotion"` or filter by ID 19          |
-| M6c DevX                       | 20           | Active   | Developer experience improvements                                     | `milestone:"M6c DevX"` or filter by ID 20                       |
-| M6d Procedural Dungeons        | 21           | Active   | Runtime dungeon template generation (queue-triggered)                 | `milestone:"M6d Procedural Dungeons"` or filter by ID 21        |
-| M7 Dungeon Runs (Deprecated)   | 8            | CLOSED   | Deprecated: replaced by M6a Dungeons                                  | `milestone:"M7 Dungeon Runs (Deprecated)"` or filter by ID 8    |
-| M7 Post-MVP Extensibility      | 9            | Planning | Multiplayer, quests, economy, AI write path, region sharding          | `milestone:"M7 Post-MVP Extensibility"` or filter by ID 9       |
+- **To discover a milestone's number:** call `gh api "repos/piquet-h/the-shifting-atlas/milestones?state=all&per_page=100"` and find the `number` field.
 
 **Example confusion to avoid:**
 
