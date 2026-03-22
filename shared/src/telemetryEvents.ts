@@ -206,6 +206,8 @@ export const GAME_EVENT_NAMES = [
     'PlayerCommand.ParseSucceeded', // Command parsed successfully - properties: { intentCount, ambiguityCount, sequenceType, latencyMs }
     'PlayerCommand.ParseFailed', // Command parse failed - properties: { failurePhase, reasonCode }
     'PlayerCommand.AmbiguityDetected', // Ambiguities flagged during parse - properties: { ambiguityCount, criticalCount }
+    // HTTP command resolution endpoint (POST /api/player/command)
+    'PlayerCommand.Resolved', // Command resolved to an action plan by the HTTP endpoint - properties: { actionKind, canonicalWritesPlanned, needsClarification, correlationId, latencyMs }
     // Agent proposal lifecycle (minimal agent runtime - sense→decide→propose loop)
     'Agent.Proposal.Received', // Proposal submission received - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId, causationId? }
     'Agent.Proposal.Accepted', // Proposal passed all validation checks - properties: { proposalId, actorKind, actionCount, decisionLatencyMs, proposalCorrelationId }
