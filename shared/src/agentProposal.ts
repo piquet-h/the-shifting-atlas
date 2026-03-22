@@ -43,7 +43,15 @@ export const AgentProposalEnvelopeSchema = z.object({
     version: z.number().int().positive(),
     issuedUtc: z.string().datetime(),
     actor: ProposalActorSchema,
-    /** Carried for traceability; not re-validated here. */
+    /**
+     * Canonical ActionIntent for the proposal — scoped to the envelope as a whole
+     * (not per individual action). Represents the player-facing or agent-facing trigger
+     * that caused this proposal to be issued.
+     *
+     * Required for ai actor proposals (which represent player-initiated actions).
+     * Optional for system and npc actors (which may operate autonomously).
+     * Schema-level validation of rawInput + verb is enforced by ActionIntentSchema.
+     */
     intent: ActionIntentSchema.optional(),
     correlationId: z.string().uuid(),
     /** ID of the world event or request that triggered this proposal. */
@@ -58,7 +66,8 @@ export enum ProposalRejectionCode {
     MISSING_REQUIRED_PARAM = 'MISSING_REQUIRED_PARAM',
     OUT_OF_SCOPE = 'OUT_OF_SCOPE',
     DISALLOWED_ACTION_TYPE = 'DISALLOWED_ACTION_TYPE',
-    SCHEMA_INVALID = 'SCHEMA_INVALID'
+    SCHEMA_INVALID = 'SCHEMA_INVALID',
+    MISSING_INTENT = 'MISSING_INTENT'
 }
 
 export interface ProposalRejectionReason {
@@ -132,6 +141,16 @@ function validateScope(action: ProposedAction): ProposalRejectionReason[] {
 // Never throws — callers check result.outcome.
 export function validateAgentProposal(envelope: AgentProposalEnvelope): ProposalValidationResult {
     const allReasons: ProposalRejectionReason[] = []
+
+    // AI actor proposals represent player-initiated actions and must carry ActionIntent
+    // so that the proposal persistence + replay harness can reconstruct the triggering intent.
+    if (envelope.actor.kind === 'ai' && !envelope.intent) {
+        allReasons.push({
+            code: ProposalRejectionCode.MISSING_INTENT,
+            message: 'ai actor proposals must include an intent (rawInput + parsedIntent.verb) to enable replay and auditability',
+            actionType: 'envelope'
+        })
+    }
 
     for (const action of envelope.proposedActions) {
         const scopeReasons = validateScope(action)
