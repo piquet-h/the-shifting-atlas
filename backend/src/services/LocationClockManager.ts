@@ -75,7 +75,7 @@ export class LocationClockManager implements ILocationClockManager {
      * MVP: Returns empty array - full implementation requires world events integration
      */
     async getOccupantsAtTick(locationId: string, tick: number): Promise<string[]> {
-        // TODO: Implement cross-reference with world events container
+        // TODO(#696): Implement cross-reference with world events container
         // Need to query:
         // 1. Player location history (which players were at locationId around tick)
         // 2. Player clock states (filter to those whose clock includes tick)

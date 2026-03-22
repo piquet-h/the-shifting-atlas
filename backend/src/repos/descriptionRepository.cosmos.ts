@@ -11,7 +11,7 @@ import type { DescriptionLayer, IDescriptionRepository } from './descriptionRepo
  */
 @injectable()
 export class CosmosDescriptionRepository implements IDescriptionRepository {
-    // TODO: Inject Cosmos SQL client when implementing
+    // TODO(#520): Inject Cosmos SQL client when implementing
     private fallback = new Map<string, DescriptionLayer>()
 
     constructor(@inject(TelemetryService) protected telemetryService: TelemetryService) {}
