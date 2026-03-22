@@ -152,5 +152,56 @@ export const handlers = [
                 echo: body.message || 'pong'
             }
         })
+    }),
+
+    // ResolvePlayerCommand endpoint (non-mutating)
+    http.post('/api/player/command', async ({ request }) => {
+        const body = (await request.json()) as { playerId?: string; inputText?: string }
+        const text = body.inputText?.trim().toLowerCase() ?? ''
+
+        // Default: return Unknown for unrecognised input
+        let actionKind: 'Move' | 'Look' | 'Unknown' = 'Unknown'
+        let direction: string | undefined
+
+        if (text.startsWith('go ') || text.startsWith('move ') || text.startsWith('walk ')) {
+            const parts = text.split(/\s+/)
+            const dir = parts[parts.length - 1]
+            const validDirs = [
+                'north',
+                'south',
+                'east',
+                'west',
+                'northeast',
+                'northwest',
+                'southeast',
+                'southwest',
+                'up',
+                'down',
+                'in',
+                'out'
+            ]
+            if (validDirs.includes(dir)) {
+                actionKind = 'Move'
+                direction = dir
+            }
+        } else if (text.includes('look') || text.includes('examine') || text.includes('survey')) {
+            actionKind = 'Look'
+        }
+
+        return HttpResponse.json({
+            success: true,
+            data: {
+                actionKind,
+                ...(direction ? { direction } : {}),
+                presentationMode: 'Auto',
+                responseTempo: 'Auto',
+                canonicalWritesPlanned: actionKind === 'Move',
+                parsedIntent: {
+                    verb: actionKind === 'Move' ? 'move' : actionKind === 'Look' ? 'examine' : null,
+                    confidence: actionKind === 'Unknown' ? 0 : 0.9,
+                    needsClarification: false
+                }
+            }
+        })
     })
 ]
