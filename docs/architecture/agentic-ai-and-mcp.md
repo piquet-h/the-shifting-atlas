@@ -1,6 +1,6 @@
 # Agentic AI & Model Context Protocol (MCP) Architecture
 
-> **Status** (2026-03-15): IMPLEMENTED (M4c complete). Read-only MCP tools are live (`WorldContext-*`, `Lore-*`). The write-lite agent sandbox is implemented: `AgentStepHandler` (autonomous queue loop), `AgentProposalApplicator` (write gate), and `POST /api/agent/propose` (external agent entry point) are all in production. See [`agent-sandbox-contracts.md`](./agent-sandbox-contracts.md) for the full pipeline and safety gates. Write-capable MCP surfaces remain intentionally deferred — all agent-sourced mutations flow through the HTTP/queue proposal+validate+apply pipeline, not via MCP tools.
+> **Status** (2026-03-21): IMPLEMENTED (M4c complete). MCP tools live: `WorldContext-*`, `Lore-*`, `IntentParser-*`, `NarrativeGenerator-*`, `WorldOperations-*`. The write-lite agent sandbox is implemented: `AgentStepHandler` (autonomous queue loop), `AgentProposalApplicator` (write gate), and `POST /api/agent/propose` (external agent entry point) are all in production. See [`agent-sandbox-contracts.md`](./agent-sandbox-contracts.md) for the full pipeline and safety gates. Write-capable MCP surfaces remain intentionally deferred — all agent-sourced mutations flow through the HTTP/queue proposal+validate+apply pipeline, not via MCP tools.
 
 > **Important**: This architecture is intentionally **agent-runtime-agnostic at the contract level**, but this repo’s execution posture is **Foundry-first**.
 >
@@ -188,6 +188,58 @@ Registered in [`backend/src/mcp/lore-memory/lore-memory.ts`](../../backend/src/m
 Notes:
 
 - `Lore-searchLore` delegates to the configured `ILoreRepository`. In some environments this may return an empty array until semantic search is implemented.
+
+#### IntentParser server (read-only, command parsing)
+
+Registered in [`backend/src/mcp/intent-parser/intent-parser.ts`](../../backend/src/mcp/intent-parser/intent-parser.ts).
+
+| Tool ID                    | toolName        | Arguments (MCP `arguments`)                                                                   | Result (JSON)                                              |
+| -------------------------- | --------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `IntentParser-parseCommand` | `parse-command` | `{ "text": string, "playerId"?: string, "locationId"?: string }` | `ParsedCommand` with `intents[]`, confidence scores, and `ambiguities[]` |
+
+Notes:
+
+- `text` is required (max 500 chars). `playerId` and `locationId` are optional telemetry correlation hints.
+- Uses heuristic regex/keyword extraction (PI-0 — no AI model calls). Deterministic and low-latency.
+- Returns an ordered `Intent[]` array with confidence scores; ambiguity issues surfaced in `ambiguities[]`.
+
+#### NarrativeGenerator server (advisory narration, optional AI enrichment)
+
+Registered in [`backend/src/mcp/narrative-generator/narrative-generator.ts`](../../backend/src/mcp/narrative-generator/narrative-generator.ts).
+
+All tools return `{ mode, narrative, inputs, fallbackReason? }` JSON. `mode` is `"ai"` or `"template"`. Output is **advisory only** — no canonical state changes.
+
+| Tool ID                                | toolName             | Key Arguments (all optional)                                                       | Result (JSON)                                             |
+| -------------------------------------- | -------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `NarrativeGenerator-health`            | `health`             | `{}`                                                                               | `{ "ok": true, "service": "narrative-generator" }`        |
+| `NarrativeGenerator-generateAmbience`  | `generate-ambience`  | `locationName, timeOfDay, weather, mood, preferAi`                                 | `{ mode, narrative, inputs }`                             |
+| `NarrativeGenerator-narrateAction`     | `narrate-action`     | `actionVerb, targetName, locationName, outcome, preferAi`                          | `{ mode, narrative, inputs }`                             |
+| `NarrativeGenerator-narrateDiscovery`  | `narrate-discovery`  | `discoveryKind, subjectName, locationName, preferAi`                               | `{ mode, narrative, inputs }`                             |
+| `NarrativeGenerator-narrateEncounter`  | `narrate-encounter`  | `encounterKind, npcName, locationName, tension, preferAi`                          | `{ mode, narrative, inputs }`                             |
+| `NarrativeGenerator-generateRumor`     | `generate-rumor`     | `subject, locationName, tone, preferAi`                                            | `{ mode, narrative, inputs }`                             |
+
+Notes:
+
+- All arguments are optional; missing inputs normalize to safe defaults.
+- When `preferAi` is `true` (default), the tool attempts AI generation first with bounded-claim guardrails, then falls back to a deterministic template.
+- Canonical-claim detection: if AI output contains exit/item/NPC arrival claims, it is blocked and `fallbackReason: "canonical_claim_blocked"` is returned with a template response.
+- `generate-rumor` output is explicitly framed as hearsay — it may be diegetically false. Never treat as authoritative world state.
+
+#### WorldOperations server (operator entrypoint)
+
+Registered in [`backend/src/mcp/world-operations/world-operations.ts`](../../backend/src/mcp/world-operations/world-operations.ts).
+
+| Tool ID                                  | toolName                  | Key Arguments                                                                             | Result (JSON)                              |
+| ---------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `WorldOperations-triggerAreaGeneration`  | `trigger-area-generation` | `mode` (required), `budgetLocations` (required), `anchorLocationId?, realmHints?, idempotencyKey?` | Enqueue confirmation with `correlationId` |
+
+Notes:
+
+- `mode` must be `"urban"`, `"wilderness"`, or `"auto"` (inferred from anchor context).
+- `budgetLocations` is clamped to `[1, MAX_BUDGET_LOCATIONS]` (currently 20).
+- Emits a `World.Location.BatchGenerate` event; does not return generated locations directly.
+- Repeated calls with the same `idempotencyKey` produce a stable event key — prevents duplicate area expansion within a short window.
+- **Operator-only surface**: not intended for player-facing agent runtimes.
 
 #### Prompt templates (NOT an MCP server)
 
@@ -500,8 +552,10 @@ The table below lists the primary MCP servers / backend helpers with their purpo
 | ------------------------------------ | -----------------: | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | WorldContext-\*                      |     M4 (read-only) | getLocationContext(locationId,tick), getPlayerContext(playerId,tick), getSpatialContext(locationId,depth), getRecentEvents(scope,scopeId,limit) | Read-only; allow-list for agents; rate-limited; returns structured facts                               |
 | Lore-\*                              |                 M4 | searchLore(query,k), getCanonicalFact(factId)                                                                                                   | Vector store access; sanitized snippets; auth via backend helper                                       |
+| IntentParser-\*                      |                M4c | parseCommand(text) → ParsedCommand with Intent[]                                                                                                | Deterministic heuristic (no AI); read-only; low-latency                                                |
+| NarrativeGenerator-\*                |                M4c | generateAmbience, narrateAction, narrateDiscovery, narrateEncounter, generateRumor                                                              | AI-first with canonical-claim guardrails + template fallback; advisory only; no canonical writes       |
+| WorldOperations-\*                   |                M4c | triggerAreaGeneration(mode,budgetLocations) → enqueue confirmation                                                                              | Operator-only; enqueues BatchGenerate event; idempotency key supported                                 |
 | classification-mcp                   |        M4 (future) | classifyIntent(utterance), moderateContent(text)                                                                                                | Requires model usage telemetry; used in Validation & Policy                                            |
-| intent-parser (backend helper)       |              M3/M4 | parseToActionFrame(text,context) → ActionFrame[]                                                                                                | Prefer server-side implementation; minimal WorldContext calls for resolution                           |
 | prompt templates (shared)            |   shared (not MCP) | getWorldTemplate(key) (seed); planned: getTemplate(name,version), listTemplates(tag), computePromptHash(template)                               | Templates live in `shared/src/prompts/`; not exposed as MCP; backend helper endpoints only for tooling |
 | world-mutation / proposal API        |         M5 (gated) | proposeAction(playerId,actionEnvelope), enqueueWorldEvent(type,payload)                                                                         | Protected; proposals must pass Validation & Policy gates before persistence                            |
 | simulation-planner                   | optional (offline) | generateArc(seed,constraints)                                                                                                                   | Offline tooling only; not live gameplay                                                                |

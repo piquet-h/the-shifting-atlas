@@ -1,5 +1,12 @@
 import { app } from '@azure/functions'
-import { generateAmbience, health, narrateAction, narrateDiscovery } from '../../handlers/mcp/narrative-generator/narrative-generator.js'
+import {
+    generateAmbience,
+    generateRumor,
+    health,
+    narrateAction,
+    narrateDiscovery,
+    narrateEncounter
+} from '../../handlers/mcp/narrative-generator/narrative-generator.js'
 
 app.mcpTool('NarrativeGenerator-health', {
     toolName: 'health',
@@ -120,4 +127,78 @@ app.mcpTool('NarrativeGenerator-narrateDiscovery', {
         }
     ],
     handler: narrateDiscovery
+})
+
+app.mcpTool('NarrativeGenerator-narrateEncounter', {
+    toolName: 'narrate-encounter',
+    description:
+        'Generate short encounter narration text for a meeting or confrontation (NPC, tension, kind). Read-only; no canonical world changes. Uses deterministic templates with optional AI enrichment.',
+    toolProperties: [
+        {
+            propertyName: 'encounterKind',
+            propertyType: 'string',
+            description: 'Optional. Nature of the encounter, e.g. "ambush", "trade", "curiosity", "hostile".',
+            isRequired: false
+        },
+        {
+            propertyName: 'npcName',
+            propertyType: 'string',
+            description: 'Optional. Name or description of the entity encountered, e.g. "a hooded figure", "the gate guard".',
+            isRequired: false
+        },
+        {
+            propertyName: 'locationName',
+            propertyType: 'string',
+            description: 'Optional. Human-readable location name where the encounter occurred.',
+            isRequired: false
+        },
+        {
+            propertyName: 'tension',
+            propertyType: 'string',
+            description: 'Optional. Tension or mood cue, e.g. "hostile", "wary", "curious", "friendly".',
+            isRequired: false
+        },
+        {
+            propertyName: 'preferAi',
+            propertyType: 'boolean',
+            description:
+                'Optional. When true (default), attempts AI narration first with bounded-claim guardrails, then falls back to template mode.',
+            isRequired: false
+        }
+    ],
+    handler: narrateEncounter
+})
+
+app.mcpTool('NarrativeGenerator-generateRumor', {
+    toolName: 'generate-rumor',
+    description:
+        'Generate advisory world-flavor rumor text based on a subject, location, and tone. Output is advisory only — not authoritative world state. Uses deterministic templates with optional AI enrichment.',
+    toolProperties: [
+        {
+            propertyName: 'subject',
+            propertyType: 'string',
+            description: 'Optional. What the rumor concerns, e.g. "the collapsed northern bridge", "a missing merchant".',
+            isRequired: false
+        },
+        {
+            propertyName: 'locationName',
+            propertyType: 'string',
+            description: 'Optional. Human-readable location name where the rumor is heard.',
+            isRequired: false
+        },
+        {
+            propertyName: 'tone',
+            propertyType: 'string',
+            description: 'Optional. Tone of the rumor, e.g. "fearful", "excited", "skeptical", "hushed".',
+            isRequired: false
+        },
+        {
+            propertyName: 'preferAi',
+            propertyType: 'boolean',
+            description:
+                'Optional. When true (default), attempts AI rumor generation first with bounded-claim guardrails, then falls back to template mode.',
+            isRequired: false
+        }
+    ],
+    handler: generateRumor
 })

@@ -48,6 +48,34 @@ type DiscoveryInput = {
     locationName: string
 }
 
+type NarrateEncounterArgs = {
+    encounterKind?: string
+    npcName?: string
+    locationName?: string
+    tension?: string
+    preferAi?: boolean
+}
+
+type EncounterInput = {
+    encounterKind: string
+    npcName: string
+    locationName: string
+    tension: string
+}
+
+type GenerateRumorArgs = {
+    subject?: string
+    locationName?: string
+    tone?: string
+    preferAi?: boolean
+}
+
+type RumorInput = {
+    subject: string
+    locationName: string
+    tone: string
+}
+
 const DEFAULTS: Readonly<AmbienceInput> = {
     locationName: 'the surrounding area',
     timeOfDay: 'an uncertain hour',
@@ -66,6 +94,19 @@ const DISCOVERY_DEFAULTS: Readonly<DiscoveryInput> = {
     discoveryKind: 'something',
     subjectName: 'an unidentified thing',
     locationName: 'the surrounding area'
+}
+
+const ENCOUNTER_DEFAULTS: Readonly<EncounterInput> = {
+    encounterKind: 'unexpected',
+    npcName: 'an unknown figure',
+    locationName: 'the surrounding area',
+    tension: 'uneasy'
+}
+
+const RUMOR_DEFAULTS: Readonly<RumorInput> = {
+    subject: 'something unseen',
+    locationName: 'these parts',
+    tone: 'uncertain'
 }
 
 const AMBIENCE_TEMPLATES: readonly string[] = [
@@ -87,6 +128,20 @@ const DISCOVERY_TEMPLATES: readonly string[] = [
     'Hidden within {locationName}, {subjectName} reveals itself as a {discoveryKind}.',
     'Your eye catches {subjectName}, a {discoveryKind} noticed for the first time in {locationName}.',
     'Something shifts in {locationName}: {subjectName} makes its presence known — a {discoveryKind}.'
+]
+
+const ENCOUNTER_TEMPLATES: readonly string[] = [
+    'In {locationName}, {npcName} stands at an uneasy distance — a {encounterKind} encounter that leaves the air feeling {tension}.',
+    'You come face to face with {npcName} at {locationName}. The {encounterKind} between you carries an unmistakable {tension} edge.',
+    '{npcName} emerges at {locationName}, the {encounterKind} unfolding with a {tension} undercurrent that sets you on guard.',
+    'The {encounterKind} at {locationName} brings {npcName} into sharp focus, a {tension} tension threading the moment.'
+]
+
+const RUMOR_TEMPLATES: readonly string[] = [
+    'They say {subject} — though the story shifts with every ear near {locationName}, none certain of the truth.',
+    'Near {locationName}, {tone} voices speak of {subject}, though no one claims to have witnessed it firsthand.',
+    'Rumour holds that {subject}. The {tone} talk around {locationName} repeats it, but memory and myth have a way of blurring here.',
+    'Word passes quietly through {locationName}: {subject}. A {tone} tale, perhaps — but where there is smoke, there is sometimes fire.'
 ]
 
 const CANONICAL_CLAIM_PATTERNS: readonly RegExp[] = [
@@ -139,6 +194,23 @@ function normalizeDiscoveryInput(args?: NarrateDiscoveryArgs): DiscoveryInput {
     }
 }
 
+function normalizeEncounterInput(args?: NarrateEncounterArgs): EncounterInput {
+    return {
+        encounterKind: normalizeOptionalString(args?.encounterKind) ?? ENCOUNTER_DEFAULTS.encounterKind,
+        npcName: normalizeOptionalString(args?.npcName) ?? ENCOUNTER_DEFAULTS.npcName,
+        locationName: normalizeOptionalString(args?.locationName) ?? ENCOUNTER_DEFAULTS.locationName,
+        tension: normalizeOptionalString(args?.tension) ?? ENCOUNTER_DEFAULTS.tension
+    }
+}
+
+function normalizeRumorInput(args?: GenerateRumorArgs): RumorInput {
+    return {
+        subject: normalizeOptionalString(args?.subject) ?? RUMOR_DEFAULTS.subject,
+        locationName: normalizeOptionalString(args?.locationName) ?? RUMOR_DEFAULTS.locationName,
+        tone: normalizeOptionalString(args?.tone) ?? RUMOR_DEFAULTS.tone
+    }
+}
+
 function deterministicIndex(input: string, modulo: number): number {
     // djb2 hash for stable, fast deterministic selection.
     let hash = 5381
@@ -172,6 +244,18 @@ function renderDiscoveryTemplate(template: string, input: DiscoveryInput): strin
         .replaceAll('{locationName}', input.locationName)
 }
 
+function renderEncounterTemplate(template: string, input: EncounterInput): string {
+    return template
+        .replaceAll('{encounterKind}', input.encounterKind)
+        .replaceAll('{npcName}', input.npcName)
+        .replaceAll('{locationName}', input.locationName)
+        .replaceAll('{tension}', input.tension)
+}
+
+function renderRumorTemplate(template: string, input: RumorInput): string {
+    return template.replaceAll('{subject}', input.subject).replaceAll('{locationName}', input.locationName).replaceAll('{tone}', input.tone)
+}
+
 function hasCanonicalClaimRisk(text: string): boolean {
     for (const pattern of CANONICAL_CLAIM_PATTERNS) {
         if (pattern.test(text)) return true
@@ -194,6 +278,10 @@ type AIGenerationResult = {
  * Extension scope (#763):
  * - narrateAction
  * - narrateDiscovery
+ *
+ * Extension scope (#836):
+ * - narrateEncounter
+ * - generateRumor
  */
 @injectable()
 export class NarrativeGeneratorHandler {
@@ -335,6 +423,103 @@ export class NarrativeGeneratorHandler {
         })
     }
 
+    async narrateEncounter(toolArguments: unknown, context: InvocationContext): Promise<string> {
+        void context
+
+        const toolArgs = toolArguments as ToolArgs<NarrateEncounterArgs>
+        const input = normalizeEncounterInput(toolArgs?.arguments)
+        const preferAi = normalizeOptionalBoolean(toolArgs?.arguments?.preferAi) ?? true
+
+        let fallbackReason: 'ai_unavailable' | 'canonical_claim_blocked' | undefined
+
+        if (preferAi && this.aiClient) {
+            const prompt = [
+                'You write brief encounter narration for a fantasy text adventure.',
+                'Constraints:',
+                '- Keep output to 1-2 sentences.',
+                '- Frame the dramatic tension and sensory details of the encounter.',
+                '- Do NOT invent canonical state changes (no new exits, items, NPC arrivals, or structural world facts).',
+                '- Keep details ephemeral and encounter-forward.',
+                '',
+                `Encounter kind: ${input.encounterKind}`,
+                `NPC: ${input.npcName}`,
+                `Location: ${input.locationName}`,
+                `Tension: ${input.tension}`
+            ].join('\n')
+
+            const aiAttempt = await this.tryGenerateAI(prompt)
+            if (aiAttempt.narrative) {
+                return JSON.stringify({
+                    mode: 'ai',
+                    narrative: aiAttempt.narrative,
+                    inputs: input
+                })
+            }
+            fallbackReason = aiAttempt.fallbackReason
+        }
+
+        const salt = `${input.encounterKind}|${input.npcName}|${input.locationName}|${input.tension}`
+        const templateIndex = deterministicIndex(salt, ENCOUNTER_TEMPLATES.length)
+        const narrative = renderEncounterTemplate(ENCOUNTER_TEMPLATES[templateIndex], input)
+
+        return JSON.stringify({
+            mode: 'template',
+            templateIndex,
+            narrative,
+            inputs: input,
+            fallbackReason
+        })
+    }
+
+    async generateRumor(toolArguments: unknown, context: InvocationContext): Promise<string> {
+        void context
+
+        const toolArgs = toolArguments as ToolArgs<GenerateRumorArgs>
+        const input = normalizeRumorInput(toolArgs?.arguments)
+        const preferAi = normalizeOptionalBoolean(toolArgs?.arguments?.preferAi) ?? true
+
+        let fallbackReason: 'ai_unavailable' | 'canonical_claim_blocked' | undefined
+
+        if (preferAi && this.aiClient) {
+            const prompt = [
+                'You write brief rumor text for a fantasy text adventure.',
+                'Constraints:',
+                '- Keep output to 1-2 sentences.',
+                '- Frame the content as hearsay with uncertainty — use hedging phrases such as "they say", "it is rumoured", "people whisper".',
+                '- Do NOT assert canonical world facts (no new exits, items, NPC arrivals, or structural world changes).',
+                '- The rumor is advisory only; it may be false or distorted.',
+                '',
+                `Subject: ${input.subject}`,
+                `Location heard: ${input.locationName}`,
+                `Tone: ${input.tone}`
+            ].join('\n')
+
+            const aiAttempt = await this.tryGenerateAI(prompt)
+            if (aiAttempt.narrative) {
+                return JSON.stringify({
+                    mode: 'ai',
+                    advisory: true,
+                    narrative: aiAttempt.narrative,
+                    inputs: input
+                })
+            }
+            fallbackReason = aiAttempt.fallbackReason
+        }
+
+        const salt = `${input.subject}|${input.locationName}|${input.tone}`
+        const templateIndex = deterministicIndex(salt, RUMOR_TEMPLATES.length)
+        const narrative = renderRumorTemplate(RUMOR_TEMPLATES[templateIndex], input)
+
+        return JSON.stringify({
+            mode: 'template',
+            advisory: true,
+            templateIndex,
+            narrative,
+            inputs: input,
+            fallbackReason
+        })
+    }
+
     private async tryGenerateAIAmbience(input: AmbienceInput): Promise<AIGenerationResult> {
         const prompt = [
             'You write atmospheric fantasy ambience text for a text adventure.',
@@ -392,4 +577,16 @@ export async function narrateDiscovery(toolArguments: unknown, context: Invocati
     const container = context.extraInputs.get('container') as Container
     const handler = container.get(NarrativeGeneratorHandler)
     return handler.narrateDiscovery(toolArguments, context)
+}
+
+export async function narrateEncounter(toolArguments: unknown, context: InvocationContext): Promise<string> {
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(NarrativeGeneratorHandler)
+    return handler.narrateEncounter(toolArguments, context)
+}
+
+export async function generateRumor(toolArguments: unknown, context: InvocationContext): Promise<string> {
+    const container = context.extraInputs.get('container') as Container
+    const handler = container.get(NarrativeGeneratorHandler)
+    return handler.generateRumor(toolArguments, context)
 }
