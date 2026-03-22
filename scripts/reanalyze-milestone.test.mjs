@@ -85,3 +85,66 @@ test('computeUpdatedDescription: recognizes delivery-slices template without inj
     assert.equal(updatedDescription.includes('### Slice 0 — Prerequisites (infra)'), false)
     assert.ok(updatedDescription.includes('### Slice 1 — Runtime'))
 })
+
+test('computeUpdatedDescription: treats state_reason=not_planned as superseded', () => {
+    const repo = 'piquet-h/the-shifting-atlas'
+    const milestone = {
+        number: 17,
+        title: 'M5b Layering',
+        state: 'open',
+        description: [
+            'Layer validation, ambient context, description composition',
+            '',
+            '## Delivery slices',
+            '',
+            '### Slice 1 — M5b Layering',
+            '',
+            'Order:',
+            '1. #442 Core Layer Validation Rules'
+        ].join('\n')
+    }
+
+    const issues = [
+        makeIssue({ number: 442, title: 'Core Layer Validation Rules', state: 'open', labels: ['feature', 'scope:world'] }),
+        { number: 157, title: 'Core Layer Validation Rules', state: 'closed', state_reason: 'not_planned', labels: ['feature', 'scope:world'], body: 'Closing as duplicate of #442' },
+        { number: 158, title: 'Similarity & Duplicate Layer Detection', state: 'closed', state_reason: 'not_planned', labels: ['feature', 'scope:world'], body: 'Duplicate issue' }
+    ]
+
+    const { summary } = computeUpdatedDescription({ repo, milestone, issues })
+
+    assert.deepEqual(summary.supersededInMilestone.sort(), [157, 158])
+    assert.equal(summary.issuesInMilestone, 1) // only #442 is effective
+})
+
+test('computeUpdatedDescription: closed completed issues do not appear as gaps', () => {
+    const repo = 'piquet-h/the-shifting-atlas'
+    const milestone = {
+        number: 15,
+        title: 'M4c Agent Sandbox (Write-lite)',
+        state: 'open',
+        description: [
+            'Focus: agent sandbox',
+            '',
+            '## Delivery slices',
+            '',
+            '### Slice 1 — M4c Agent Sandbox (Write-lite)',
+            '',
+            'Order:',
+            '1. #781 feature(ai): ResolvePlayerCommand endpoint'
+        ].join('\n')
+    }
+
+    const issues = [
+        makeIssue({ number: 781, title: 'feature(ai): ResolvePlayerCommand endpoint', state: 'open', labels: ['feature', 'scope:ai'] }),
+        // Closed completed issue — should NOT appear as a gap
+        { number: 703, title: 'feat(ai): Minimal agent runtime', state: 'closed', state_reason: 'completed', labels: ['feature', 'scope:ai'], body: '' },
+        { number: 788, title: 'feature(core): Define ActionIntent contract', state: 'closed', state_reason: 'completed', labels: ['feature', 'scope:core'], body: '' }
+    ]
+
+    const { summary } = computeUpdatedDescription({ repo, milestone, issues })
+
+    // Completed issues are effective (not superseded) but should not be gaps
+    assert.equal(summary.issuesInMilestone, 3)
+    assert.deepEqual(summary.gaps, [])
+    assert.deepEqual(summary.unplacedGaps, [])
+})

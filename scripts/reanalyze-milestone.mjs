@@ -305,8 +305,10 @@ export function computeUpdatedDescription({ repo, milestone, issues }) {
     const inDescriptionOrder = parseOrderedIssueNumbers(description)
     const referencedInDescription = parseReferencedIssueNumbers(description)
 
-    const gaps = effectiveIssues.filter((i) => !referencedInDescription.has(i.number))
-    const unordered = effectiveIssues.filter((i) => !inDescriptionOrder.has(i.number))
+    // Gap analysis only applies to open issues — closed completed issues are done, not misplaced.
+    const openEffective = effectiveIssues.filter((i) => i.state === 'open')
+    const gaps = openEffective.filter((i) => !referencedInDescription.has(i.number))
+    const unordered = openEffective.filter((i) => !inDescriptionOrder.has(i.number))
 
     const missingFromMilestone = [...inDescriptionOrder].filter((n) => !inMilestone.has(n)).sort((a, b) => a - b)
 
@@ -475,6 +477,10 @@ function isEpic(issue) {
 
 function isSuperseded(issue) {
     if (issue.state !== 'closed') return false
+
+    // Issues closed as "not planned" are superseded/duplicate by convention.
+    if (issue.state_reason === 'not_planned') return true
+
     const title = issue.title.toLowerCase()
     const body = (issue.body ?? '').toLowerCase()
 
@@ -527,6 +533,7 @@ function main() {
             number: i.number,
             title: i.title,
             state: i.state,
+            state_reason: i.state_reason ?? null,
             body: i.body,
             labels: (i.labels ?? []).map((l) => l.name)
         }))
