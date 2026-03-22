@@ -307,6 +307,7 @@ Function naming: `<Trigger><Action>` pattern enforced by ESLint rule `azure-func
   Single responsibility per Function.
   Telemetry event names centralized (no inline literals).
   Comment only domain nuance or cross-service contract.
+  TODO comments: use `TODO(#NNN)` format referencing an open GitHub issue. CI enforces this via `scripts/verify-todo-issue-alignment.mjs`. When closing an issue, clean up its TODO references. Scripts and test files are exempt from the issue-reference requirement but stale references are still flagged.
   Formatting & linting: Prettier (authoritative formatting) + ESLint (correctness & custom domain rules). See `./copilot-language-style.md` for exact Prettier settings. When prettier errors appear in CI, run `npm run format` to auto-fix (do not manually edit spacing/semicolons).
 
 ---
@@ -488,6 +489,10 @@ Any new scope/milestone: update labels + roadmap + this file (minimal diff) + re
 ## 12. Anti‑Patterns
 
 Polling loops; inline telemetry names; multiple scope labels; lore dumps in code; uncontrolled edge duplication; skipping direction validation; **file-based shared package references (use registry; `verify:invariants`)**; **long-running timers without `.unref()` (lint: `timer-unref-required`)**; **HTTP handlers blocking on queue event processing**; **synchronous AI generation in HTTP response path**.
+
+### TODO Comment Anti-Pattern
+
+TODO comments without issue references drift silently. Every TODO in runtime source (.ts, .tsx) MUST use `TODO(#NNN)` format. When creating an issue from a TODO, include the file path and line in the issue body so the closer knows what to clean up. CI check: `scripts/verify-todo-issue-alignment.mjs`.
 
 ### Timer/Interval Anti-Pattern
 

@@ -1,9 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 /**
  * LiveAnnouncer
  * Minimal scaffold for future world event announcements.
- * TODO: Extend with queue subscription + debounced batching.
+ * TODO(#973): Extend with queue subscription + debounced batching.
  */
 export default function LiveAnnouncer(): React.ReactElement {
     const politeRef = useRef<HTMLDivElement | null>(null)

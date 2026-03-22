@@ -12,12 +12,11 @@
  */
 
 import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dirname } from 'node:path'
-import type { PromptTemplateFile, PromptBundle } from './schema.js'
-import { validatePromptTemplate, validatePromptBundle } from './schema.js'
 import { computeTemplateHash } from './canonicalize.js'
+import type { PromptBundle, PromptTemplateFile } from './schema.js'
+import { validatePromptBundle, validatePromptTemplate } from './schema.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -151,7 +150,7 @@ export class PromptLoader {
             }
         }
 
-        // TODO: For file-based source, would need to hash all files
+        // NOTE: For file-based source, would need to hash all files (low priority; bundle mode is primary)
         // For now, return null (caller should use getById then verify hash)
         return null
     }

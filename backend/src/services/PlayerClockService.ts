@@ -136,7 +136,7 @@ export class PlayerClockService implements IPlayerClockAPI {
         // NOTE: locationId parameter accepted for interface contract but not currently validated
         // LocationClockManager (separate issue) will provide location-specific anchors
         // For now, use world clock as proxy for all location anchors
-        // TODO: When LocationClockManager is implemented, validate locationId and use location-specific anchor
+        // TODO(#696): When LocationClockManager is implemented, validate locationId and use location-specific anchor
         const worldClockTick = await this.worldClockService.getCurrentTick()
 
         // Get player clock (initialize to 0 if undefined)

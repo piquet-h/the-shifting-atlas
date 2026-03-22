@@ -133,7 +133,7 @@ export default function GameView({ className }: GameViewProps): React.ReactEleme
     })
 
     // Derive player stats from location (no useEffect needed)
-    // TODO: Replace hardcoded health/inventory with real API data
+    // TODO(#972): Replace hardcoded health/inventory with real API data
     const playerStats: PlayerStats | null = location
         ? {
               health: PLACEHOLDER_HEALTH,

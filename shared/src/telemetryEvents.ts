@@ -221,8 +221,9 @@ export const GAME_EVENT_NAMES = [
     'Agent.Step.Processed', // Step handler completed (success or noop) - properties: { entityId, entityKind, locationId, stepSequence, outcome, latencyMs, correlationId, causationId? }
     'Agent.Step.LatencyExceeded', // Step exceeded latency budget - properties: { entityId, entityKind, latencyMs, budgetMs, correlationId }
     'Agent.Step.CostExceeded', // Step exceeded cost budget - properties: { entityId, entityKind, estimatedCostMicros, costBudgetMicros, correlationId }
-    // TODO(#703): Agent.Step.EntityNotFound is reserved for when AgentStepHandler gains an entity
+    // Agent.Step.EntityNotFound is reserved for when AgentStepHandler gains an entity
     // repository lookup. Not yet emitted; registered here so the telemetry name is valid once used.
+    // (Originally planned in #703, which delivered the minimal agent runtime without entity lookup.)
     'Agent.Step.EntityNotFound', // Entity no longer exists at step time (noop) - properties: { entityId, entityKind, correlationId }
     // Agent loop observability (sense→decide→act phases — issue #706)
     'Agent.Step.SenseCompleted', // Sense phase done - properties: { entityId, locationId, hasAmbientLayer, tick, correlationId }

@@ -90,7 +90,7 @@ export class ActionRegistry implements IActionRegistry {
 
         if (!action) {
             // Unknown action type: return default duration
-            // TODO: Emit warning telemetry (deferred - telemetry integration pending)
+            // TODO(#696): Emit warning telemetry (deferred - telemetry integration pending)
             console.warn(`Unknown action type "${actionType}", returning default duration ${DEFAULT_DURATION_MS}ms`)
             return DEFAULT_DURATION_MS
         }
