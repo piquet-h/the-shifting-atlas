@@ -71,7 +71,12 @@ describe('World Event Processing Integration', () => {
                 playerId: uuidv4(),
                 fromLocationId: 'loc-1',
                 toLocationId: 'loc-2',
-                direction: 'north'
+                direction: 'north',
+                actionIntent: {
+                    rawInput: 'go north',
+                    parsedIntent: { verb: 'move' },
+                    validationResult: { success: true }
+                }
             },
             ...overrides
         }
@@ -97,7 +102,12 @@ describe('World Event Processing Integration', () => {
                     playerId,
                     fromLocationId: 'loc-1',
                     toLocationId: 'loc-2',
-                    direction: 'north'
+                    direction: 'north',
+                    actionIntent: {
+                        rawInput: 'go north',
+                        parsedIntent: { verb: 'move' },
+                        validationResult: { success: true }
+                    }
                 },
                 actor: {
                     kind: 'player',
@@ -611,7 +621,13 @@ describe('World Event Processing Integration', () => {
             const result = emitWorldEvent({
                 eventType: 'Player.Move',
                 scopeKey: `loc:${uuidv4()}`,
-                payload: {},
+                payload: {
+                    actionIntent: {
+                        rawInput: 'go north',
+                        parsedIntent: { verb: 'move' },
+                        validationResult: { success: true }
+                    }
+                },
                 actor: { kind: 'player', id: uuidv4() }
                 // No correlationId provided
             })
