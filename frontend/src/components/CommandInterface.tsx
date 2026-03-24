@@ -2,13 +2,32 @@ import type { LocationResponse, PingRequest, PingResponse } from '@piquet-h/shar
 import { forwardRef, useCallback, useImperativeHandle, useState } from 'react'
 import { usePlayer } from '../contexts/PlayerContext'
 import { getSessionId, trackGameEventClient } from '../services/telemetry'
-import { buildHeaders, buildLocationUrl, buildMoveRequest } from '../utils/apiClient'
+import { buildHeaders, buildLocationUrl, buildMoveRequest, buildResolveCommandRequest } from '../utils/apiClient'
 import { extractErrorMessage } from '../utils/apiResponse'
 import { buildCorrelationHeaders, buildSessionHeaders, generateCorrelationId } from '../utils/correlation'
 import { unwrapEnvelope } from '../utils/envelope'
 import CommandInput from './CommandInput'
 import CommandOutput, { CommandRecord } from './CommandOutput'
 import type { Direction } from './hooks/useGameNavigationFlow'
+
+/** Resolution data returned by POST /api/player/command */
+interface CommandResolution {
+    actionKind: 'Move' | 'Look' | 'Unknown'
+    direction?: string
+    canonicalWritesPlanned: boolean
+    parsedIntent: {
+        verb: string | null
+        confidence: number
+        needsClarification: boolean
+        ambiguities?: Array<{
+            id: string
+            spanText: string
+            issueType: string
+            suggestions: string[]
+            critical: boolean
+        }>
+    }
+}
 
 const VALID_DIRECTIONS = new Set<string>([
     'north',
@@ -217,7 +236,120 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
                         }
                     }
                 } else {
-                    response = `Unrecognized command: ${raw}`
+                    // Free-form input: route through ResolvePlayerCommand (non-mutating) then
+                    // invoke the appropriate canonical endpoint based on the resolved actionKind.
+                    if (!playerGuid) {
+                        throw new Error(
+                            'Cannot process command yet - your session is still initializing. Please wait a moment and try again.'
+                        )
+                    }
+                    const correlationId = generateCorrelationId()
+                    const resolveReq = buildResolveCommandRequest(playerGuid, raw.trim())
+                    const resolveHeaders = buildHeaders({
+                        'Content-Type': 'application/json',
+                        ...buildCorrelationHeaders(correlationId),
+                        ...buildSessionHeaders(getSessionId())
+                    })
+                    const resolveRes = await fetch(resolveReq.url, {
+                        method: resolveReq.method,
+                        headers: resolveHeaders,
+                        body: JSON.stringify(resolveReq.body)
+                    })
+                    const resolveJson = await resolveRes.json().catch(() => ({}))
+                    const unwrappedResolve = unwrapEnvelope<CommandResolution>(resolveJson)
+
+                    if (!resolveRes.ok || (unwrappedResolve.isEnvelope && !unwrappedResolve.success)) {
+                        latencyMs = Math.round(performance.now() - start)
+                        error = extractErrorMessage(resolveRes, resolveJson, unwrappedResolve)
+                    } else {
+                        // Use the correlation ID echoed back by the resolver for follow-on calls.
+                        const canonicalCorrelationId = unwrappedResolve.correlationId ?? correlationId
+                        const resolution = unwrappedResolve.data
+
+                        if (resolution?.actionKind === 'Move' && resolution.direction) {
+                            // Resolved to a movement: invoke the canonical move endpoint.
+                            const moveRequest = buildMoveRequest(playerGuid, resolution.direction)
+                            const moveHeaders = buildHeaders({
+                                'Content-Type': 'application/json',
+                                'x-player-guid': playerGuid,
+                                ...buildCorrelationHeaders(canonicalCorrelationId),
+                                ...buildSessionHeaders(getSessionId())
+                            })
+                            trackGameEventClient('UI.Move.Command', {
+                                correlationId: canonicalCorrelationId,
+                                direction: resolution.direction,
+                                fromLocationId: currentLocationId || null
+                            })
+                            const moveRes = await fetch(moveRequest.url, {
+                                method: moveRequest.method,
+                                headers: moveHeaders,
+                                body: JSON.stringify(moveRequest.body)
+                            })
+                            const moveJson = await moveRes.json().catch(() => ({}))
+                            latencyMs = Math.round(performance.now() - start)
+                            const unwrappedMove = unwrapEnvelope<LocationResponse & { travel?: { durationMs?: number } }>(moveJson)
+                            if (!moveRes.ok || (unwrappedMove.isEnvelope && !unwrappedMove.success)) {
+                                const jsonObj = moveJson as Record<string, unknown>
+                                const errorObj = jsonObj?.error as Record<string, unknown> | undefined
+                                const errorCode = unwrappedMove.error?.code || errorObj?.code
+                                if (errorCode === 'ExitGenerationRequested') {
+                                    response = 'The path is still being revealed. Please wait…'
+                                } else {
+                                    error = extractErrorMessage(moveRes, moveJson, unwrappedMove)
+                                }
+                            } else {
+                                const loc = unwrappedMove.data
+                                if (loc) {
+                                    travelMs = typeof loc.travel?.durationMs === 'number' ? loc.travel.durationMs : undefined
+                                    updateCurrentLocationId(loc.id)
+                                    response = formatMoveResponse(resolution.direction, loc)
+                                } else {
+                                    error = 'Malformed move response'
+                                }
+                            }
+                        } else if (resolution?.actionKind === 'Look') {
+                            // Resolved to a look: invoke the canonical location endpoint.
+                            const locationToFetch = currentLocationId
+                            const url = buildLocationUrl(locationToFetch)
+                            const lookHeaders = buildHeaders({
+                                ...buildCorrelationHeaders(canonicalCorrelationId),
+                                ...buildSessionHeaders(getSessionId())
+                            })
+                            trackGameEventClient('UI.Location.Look', {
+                                correlationId: canonicalCorrelationId,
+                                locationId: locationToFetch || null
+                            })
+                            const lookRes = await fetch(url, { headers: lookHeaders })
+                            const lookJson = await lookRes.json().catch(() => ({}))
+                            latencyMs = Math.round(performance.now() - start)
+                            const unwrappedLook = unwrapEnvelope<LocationResponse>(lookJson)
+                            if (!lookRes.ok || (unwrappedLook.isEnvelope && !unwrappedLook.success)) {
+                                error = extractErrorMessage(lookRes, lookJson, unwrappedLook)
+                            } else {
+                                const loc = unwrappedLook.data
+                                if (loc) {
+                                    updateCurrentLocationId(loc.id)
+                                    const exits: string | undefined = Array.isArray(loc.exits)
+                                        ? loc.exits.map((e) => e.direction).join(', ')
+                                        : undefined
+                                    response = `${loc.name}: ${loc.description.text}${exits ? ` (Exits: ${exits})` : ''}`
+                                } else {
+                                    error = 'Malformed location response'
+                                }
+                            }
+                        } else {
+                            // Unknown or clarification needed: safe feedback only, no canonical writes.
+                            latencyMs = Math.round(performance.now() - start)
+                            const needsClarification = resolution?.parsedIntent.needsClarification
+                            const ambiguities = resolution?.parsedIntent.ambiguities
+                            if (needsClarification && ambiguities?.length) {
+                                const amb = ambiguities[0]
+                                response = `Not sure what you mean by "${amb.spanText}". Try: ${amb.suggestions.slice(0, 2).join(', ')}`
+                            } else {
+                                response = `Not sure how to do that. Try: ping, look, move <direction>, or clear.`
+                            }
+                        }
+                    }
                 }
             } catch (err) {
                 error = err instanceof Error ? err.message : 'Unknown error'
@@ -283,7 +415,8 @@ const CommandInterface = forwardRef<CommandInterfaceHandle, CommandInterfaceProp
             />
             <p className="mt-2 text-responsive-sm text-slate-300">
                 Commands: <code className="code-inline">ping</code>, <code className="code-inline">look</code>,{' '}
-                <code className="code-inline">move &lt;direction&gt;</code>, <code className="code-inline">clear</code>.
+                <code className="code-inline">move &lt;direction&gt;</code>, <code className="code-inline">clear</code>, or free-form text
+                (e.g., <code className="code-inline">go north</code>).
             </p>
         </div>
     )

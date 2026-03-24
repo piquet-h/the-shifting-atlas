@@ -56,6 +56,26 @@ export function buildMoveRequest(playerId: string | null, direction: string): { 
 }
 
 /**
+ * Build URL and body for the ResolvePlayerCommand endpoint
+ * POST /api/player/command with body { playerId, inputText }
+ * Non-mutating: resolves free-form input to an action kind without performing writes.
+ * @throws Error if playerId is not a valid GUID
+ */
+export function buildResolveCommandRequest(
+    playerId: string,
+    inputText: string
+): { url: string; method: string; body: { playerId: string; inputText: string } } {
+    if (!isValidGuid(playerId)) {
+        throw new Error('Player ID must be a valid GUID')
+    }
+    return {
+        url: '/api/player/command',
+        method: 'POST',
+        body: { playerId, inputText }
+    }
+}
+
+/**
  * Build headers for API requests
  */
 export function buildHeaders(additionalHeaders?: Record<string, string>): HeadersInit {

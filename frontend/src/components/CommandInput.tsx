@@ -88,12 +88,8 @@ export default function CommandInput({
             return { valid: true }
         }
 
-        const closest = findClosestMatch(command, KNOWN_COMMANDS)
-        return {
-            valid: false,
-            error: `Unknown command: "${command}"`,
-            suggestion: closest ? `Did you mean "${closest}"?` : 'Try: ping, look, move <direction>, or clear'
-        }
+        // Free-form input is allowed; it will be routed through the command resolver.
+        return { valid: true }
     }
 
     // Update autocomplete options based on input
