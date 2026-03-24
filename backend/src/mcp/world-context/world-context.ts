@@ -9,7 +9,7 @@ import {
 } from '../../handlers/mcp/world-context/world-context.js'
 
 app.mcpTool('WorldContext-health', {
-    toolName: 'health',
+    toolName: 'world-context-health',
     description: 'Health check tool for the World Context MCP surface.',
     toolProperties: [],
     handler: health

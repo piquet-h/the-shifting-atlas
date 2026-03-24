@@ -9,7 +9,7 @@ import {
 } from '../../handlers/mcp/narrative-generator/narrative-generator.js'
 
 app.mcpTool('NarrativeGenerator-health', {
-    toolName: 'health',
+    toolName: 'narrative-generator-health',
     description: 'Health check tool for the Narrative Generator MCP surface.',
     toolProperties: [],
     handler: health
