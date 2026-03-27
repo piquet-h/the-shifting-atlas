@@ -124,7 +124,7 @@ These are not necessarily player traversal nodes. They are authoritative spatial
 
 Practical note:
 
-The first-pass implementation may treat The Long Reach as the topmost seeded macro-geography anchor beneath the world shell, with Mosswell-area macro regions nested within or adjacent to it according to the chosen graph schema.
+The persistence strategy for macro geography has been decided in [ADR-010](../adr/ADR-010-macro-geography-persistence-strategy.md): JSON atlas files remain the authoritative source. Macro context is projected onto Gremlin location vertices via `macro:area:`, `macro:route:`, and `macro:water:` tags at seed time rather than as dedicated graph vertices. The Long Reach and Mosswell-area macro regions are represented in `theLongReachMacroAtlas.json` and `mosswellMacroAtlas.json` accordingly.
 
 ### Layer 2 — Local traversal graph
 
@@ -149,27 +149,45 @@ Pending exits, synthetic future nodes, and generation requests should inherit:
 - edge archetype / structural class,
 - explicit local overrides when necessary.
 
-## Graph Shape
+## Graph Shape (Decided — see ADR-010)
 
-Preferred implementation: **same Gremlin graph, new vertex and edge types**.
+**Authoritative source: JSON atlas files.** Macro geography is NOT promoted to dedicated Gremlin vertices at this time.
 
-Do **not** introduce a separate geography database for this transition unless a later, explicit ADR justifies it.
+This was evaluated in spike [#962](https://github.com/piquet-h/the-shifting-atlas/issues/962) and decided in [ADR-010](../adr/ADR-010-macro-geography-persistence-strategy.md) (Accepted 2026-03-26). The rationale: tags-as-projection already achieves the primary goal with no extra RU cost or dual-authority risk.
 
-### Candidate macro vertex labels
+### Current model: tags-as-projection
 
-- `macro-region`
-- `route-corridor` (optional if route continuity needs first-class graph representation)
+Macro context tags (`macro:area:<ref>`, `macro:route:<ref>`, `macro:water:<ref>`) are stamped onto Gremlin location vertices at seed time via `applyMacroAtlasBindings()`. Runtime resolution (`resolveMacroGenerationContext()`) reads these tags — no separate Gremlin traversal to a macro vertex is needed.
 
-### Candidate edges
+```
+JSON atlas files (bundled at build time)
+  │
+  ├─▶ macroAtlasBindings.ts  ─▶  applyMacroAtlasBindings()
+  │       Runs at seed time: stamps macro context tags onto Gremlin location vertices
+  │       Tags applied: macro:area:<ref>, macro:route:<ref>, macro:water:<ref>
+  │
+  └─▶ macroGenerationContext.ts  ─▶  resolveMacroGenerationContext()
+          Called at runtime from BatchGenerateHandler, reads tags already on location vertices
+          Derives: areaRef, routeRefs, waterContext, directionTerrainTrend,
+                   routeContinuityHint, preferredFutureNodePrefix, barrierSemantics
+          Used by: planAtlasAwareFutureLocation(), selectAtlasAwareTerrain(),
+                   selectAtlasAwareExpansionDirections(), scoreAtlasAwareReconnectionCandidate()
+```
 
-- `within`
-- `fronts`
-- directional adjacency edges (or equivalent directional properties)
-- optional route continuity edges such as `continues_into` / `route_through`
+The atlas files are loaded once at process start (module-level imports), not per-request. At runtime, the JSON is only consulted to resolve label names and barrier text — the tags already on the location vertices carry the authoritative structural references.
 
-The exact schema is implementation detail, but the high-level invariant is stable:
+The high-level invariant remains:
 
-> local nodes fit into a pre-existing atlas; they do not invent macro geography from scratch during frontier expansion.
+> Local nodes fit into a pre-existing atlas; they do not invent macro geography from scratch during frontier expansion.
+
+### Deferred: Gremlin macro vertex layer
+
+The following vertex/edge types were evaluated and deferred pending the revisit triggers in ADR-010:
+
+- `macro-region` (vertex), `route-corridor` (vertex, optional)
+- `within`, `fronts`, directional adjacency edges, `continues_into` / `route_through` (edges)
+
+Revisit via ADR-011 when any ADR-010 revisit trigger fires (multi-settlement cross-area traversal, AI-minted macro areas, expanded Gremlin RU budget, or JSON atlas > 200 nodes per file). See tracking issue [#984](https://github.com/piquet-h/the-shifting-atlas/issues/984).
 
 ## Identity and Reference Conventions
 
@@ -355,4 +373,4 @@ These references exist to keep implementation aligned with the documented target
 
 ---
 
-_Last updated: 2026-03-07_
+_Last updated: 2026-03-27 — Graph Shape section updated to reflect ADR-010 decision_

@@ -441,6 +441,9 @@ resource cosmosGraphAccount 'Microsoft.DocumentDB/databaseAccounts@2025-04-15' =
           }
         }
         options: {
+          // ADR-010 T3: the sustained-high-RU alert (alert-ru-utilization.bicep) is the primary
+          // signal for re-evaluating macro geography Gremlin promotion before a budget increase.
+          // If you are increasing this value, confirm the alert was reviewed first per #984.
           throughput: 400
         }
       }

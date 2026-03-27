@@ -30,8 +30,13 @@ const ISSUE_TYPES = [
     'seed-location-id-format',
     'seed-exit-target-id-format',
     'atlas-semantic-id-format',
-    'atlas-reference-integrity'
+    'atlas-reference-integrity',
+    'atlas-node-count-threshold'
 ]
+// ADR-010 revisit trigger T4: if either atlas file exceeds this node count, in-process
+// O(n) scan performance becomes measurable and Gremlin promotion should be re-evaluated.
+// See: docs/adr/ADR-010-macro-geography-persistence-strategy.md, issue #984.
+const ATLAS_NODE_COUNT_WARN_THRESHOLD = 200
 const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function readJson(relativePath) {
@@ -127,6 +132,16 @@ function collectAtlasIssues(issues) {
         const edges = Array.isArray(atlas?.macroGraph?.edges) ? atlas.macroGraph.edges : []
         const routes = Array.isArray(atlas?.macroGraph?.continuityRoutes) ? atlas.macroGraph.continuityRoutes : []
         const trendProfiles = Array.isArray(atlas?.macroGraph?.directionalTrendProfiles) ? atlas.macroGraph.directionalTrendProfiles : []
+
+        if (nodes.length >= ATLAS_NODE_COUNT_WARN_THRESHOLD) {
+            pushIssue(issues, {
+                type: 'atlas-node-count-threshold',
+                file,
+                count: nodes.length,
+                threshold: ATLAS_NODE_COUNT_WARN_THRESHOLD,
+                message: `${file} has ${nodes.length} macro nodes (>= ${ATLAS_NODE_COUNT_WARN_THRESHOLD}). ADR-010 revisit trigger T4 has fired — evaluate Gremlin macro vertex promotion per issue #984.`
+            })
+        }
 
         const nodeIds = new Set(nodes.map((node) => node?.id).filter((id) => typeof id === 'string'))
         const barrierIds = new Set(

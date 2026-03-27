@@ -73,3 +73,4 @@ Configure Service Bus via:
 - Do not create Cosmos/Service Bus clients per invocation; reuse module-scope singletons.
 - Keep `@piquet-h/shared` on published registry versions, not `file:` references (warned by `verify:invariants`).
 - Long-lived retained timers should call `.unref()`; lint now warns via `timer-unref-required`.
+- **Macro geography is authoritative in JSON atlas files (ADR-010).** Do not write macro area context to Gremlin vertices and do not add graph traversals to resolve macro areas. Resolution goes through `resolveMacroGenerationContext()` in `services/macroGenerationContext.ts`, which reads `macro:area:` / `macro:route:` / `macro:water:` tags from location vertices stamped at seed time. If you need to extend this for multi-settlement or runtime AI minting, read the `TODO(#984)` at the top of that file first.

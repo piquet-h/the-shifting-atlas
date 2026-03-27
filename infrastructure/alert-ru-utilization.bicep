@@ -34,7 +34,7 @@ resource alertRuUtilization 'Microsoft.Insights/scheduledQueryRules@2023-03-15-p
   location: location
   properties: {
     displayName: 'Sustained High RU Utilization'
-    description: 'Alert fires when RU utilization exceeds 70%. Auto-resolves when RU% drops below 65%. References ADR-002 partition pressure thresholds.'
+    description: 'RU utilization >70% sustained across 3 consecutive 5-min windows. Auto-resolves below 65%. ADR-002 partition pressure threshold. --- ADR-010 T3 ACTION REQUIRED: sustained firing of this alert before a throughput increase means macro geography Gremlin vertex promotion must be evaluated first. Open https://github.com/piquet-h/the-shifting-atlas/issues/984 and tick T3 before proceeding.'
     enabled: enabled
     severity: 2 // Warning
     evaluationFrequency: 'PT5M' // Evaluate every 5 minutes

@@ -6,6 +6,9 @@ import {
     type ForbiddenExitEntry,
     type TerrainType
 } from '@piquet-h/shared'
+// TODO(#984) ADR-010 revisit triggers T1/T2: if multi-settlement cross-area traversal queries
+// are needed at runtime, or if AI generation must mint new macro areas without a deploy,
+// this module must be replaced with a Gremlin-backed alternative. See ADR-010 and issue #984.
 import mosswellMacroAtlas from '../data/mosswellMacroAtlas.json' with { type: 'json' }
 import theLongReachMacroAtlas from '../data/theLongReachMacroAtlas.json' with { type: 'json' }
 

@@ -52,74 +52,39 @@ The current tag-propagation model already achieves the primary goal: macro conte
 
 ## Rationale
 
-### Scenario Analysis: Where Gremlin-Native Macro Geography Would Help
+No evaluated scenario requires Gremlin-native macro geography at this stage. The key scenarios and why the current model is sufficient:
 
-| Scenario | Benefit of Gremlin promotion | Current mitigating mechanism |
-|---|---|---|
-| Cross-area traversal query (e.g., "find path from Area A to B") | Single graph traversal, no file load | Not yet needed; all active traversal is within one settlement area |
-| Dynamic macro context update (AI adds a new area) | Graph write, immediately live | AI-generated locations inherit propagated tags; new atlas areas require explicit file authoring regardless |
-| Multi-region expansion (new areas not yet in seed files) | Graph is authority; new regions discoverable via traversal | Expansion is planned and authored; files are updated when new areas are designed |
-| Runtime macro graph introspection endpoint | No file loading, full graph query | Not yet a product requirement |
-| Cost: macro nodes per generation batch | Zero RU uplift for already-persisted tags | Tags already on location vertices; JSON read is in-process, zero network cost |
+| Scenario                             | Why deferred                                                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Cross-area traversal query           | Not needed; all active traversal is within one settlement area                                                                   |
+| AI-minted new areas                  | New areas require file authoring regardless of storage model; minting stable semantic IDs for Gremlin is unsolved in both models |
+| Multi-region expansion               | Expansion is planned and hand-authored; files are updated when new areas are designed                                            |
+| Runtime macro introspection endpoint | Not a current product requirement                                                                                                |
 
-None of these scenarios is a current blocker. The first (cross-area traversal) becomes relevant when multi-settlement or multi-region generation is active; that milestone has not started.
+Gremlin promotion carries significant friction: dual-authority window during migration, the need to design a new semantic ID scheme (macro vertices cannot use GUIDs — location tags already reference semantic keys like `macro:area:lr-area-mosswell-fiordhead`), 6–16 extra Gremlin reads per batch event on an already-constrained RU budget (ADR-002), and a seeding ordering dependency that complicates the bootstrap script. None of the benefits materialise until multi-settlement traversal or runtime dynamic area creation is required.
 
-### Risks of Gremlin Promotion (Enumerated)
-
-1. **Dual-authority window.** Until all JSON logic is removed, both files and graph must be kept in sync. Any divergence causes subtle generation drift (the graph is queried for topology but the file has different barrier semantics, or vice versa). This window can persist for weeks across partial migrations.
-
-2. **Migration complexity.** Macro atlas nodes and edges must be ingested into Gremlin with stable semantic IDs (not GUIDs), because location tags reference them by semantic key (e.g., `macro:area:lr-area-mosswell-fiordhead`). This requires a new ID scheme for macro vertices distinct from location GUIDs, which has not been designed.
-
-3. **RU cost increase.** Every `resolveMacroGenerationContext()` call (invoked per-direction per-batch) would become a Gremlin traversal instead of an in-process array scan. At current batch sizes (2–4 locations per trigger), this represents 6–16 extra Gremlin reads per batch event, on a container already under single-partition RU pressure (see ADR-002).
-
-4. **Sync drift.** The JSON files currently serve as human-readable design documents as well as runtime data sources. Promoting to Gremlin without removing the files creates two writeable surfaces. If a designer edits a JSON file expecting immediate effect, the change will not propagate until a re-seed is run, violating the expectation that the file is authoritative.
-
-5. **Cold-start / seeding dependency.** Seeding would become self-referential: the seed script must ingest macro vertices before seeding location vertices that reference them. This ordering constraint complicates the bootstrap script and adds a new class of idempotency failure.
-
-6. **No runtime dynamic writes yet.** The atlas is a design-time artifact. No current system writes to it at runtime. The complexity of Gremlin management (vertex lifecycle, partition key assignment for macro nodes, traversal query authoring) would be incurred purely for a possible future benefit.
-
-### Hybrid Model Feasibility
-
-The issue explicitly asks to evaluate a hybrid where **JSON files seed Gremlin at deploy time but Gremlin is authoritative at runtime**.
-
-This model is technically feasible but introduces every risk above without eliminating file authoring. The design pipeline remains file-first (designers edit JSON to add areas), so the files never actually become secondary — they remain the real source of truth. The seeding step becomes an obligation rather than a convenience.
-
-**For new areas added by AI generation:** Neither the JSON model nor the Gremlin model handles purely AI-generated macro areas gracefully. In the JSON model, a new area requires a PR to add a JSON node. In the Gremlin model, a new area requires a Gremlin write with a stable semantic ID that the generation system must mint. The Gremlin model is marginally more automation-friendly here, but the problem of minting stable semantic IDs for AI-generated macro areas is unsolved in either model.
-
-**Assessment:** The hybrid adds seeding complexity and dual-authority risk while the design pipeline remains file-first. It is not recommended until there is a concrete requirement for runtime dynamic macro area creation.
-
-### Why the Current Model Works
-
-- **Tags-as-projection:** Macro context tags (`macro:area:`, `macro:route:`, `macro:water:`) are stamped onto Gremlin location vertices at seed time. Any graph traversal that reaches a location vertex implicitly carries macro context. This is a projection of the JSON graph into Gremlin without a formal macro vertex layer.
-- **Process-local reads:** JSON files are imported at module load time. All macro lookups are in-process O(n) scans over small arrays (< 20 nodes per atlas). No network hop, no RU charge, no serialization overhead — cost is negligible relative to the downstream Gremlin traversal and AI generation steps.
-- **No cross-atlas joins yet:** No current query needs to traverse from a location vertex to a macro area vertex and then onward. When that need arises, the tags already support it via `macro:area:<ref>` filtering.
+The tags-as-projection model already achieves the core goal without these costs: macro context tags (`macro:area:`, `macro:route:`, `macro:water:`) stamped onto location vertices at seed time carry the structural references implicitly into every graph traversal. Macro lookups are in-process O(n) scans over small arrays — no network hop, no RU charge. See [`docs/architecture/macro-atlas-and-seed-redesign.md`](../architecture/macro-atlas-and-seed-redesign.md) for the full data flow and implementation model.
 
 ---
 
-## Consequences
+## Accepted Trade-offs
 
-### Positive
-
-- Zero migration work; no dual-authority risk.
-- Zero RU cost uplift for macro context resolution during generation batches.
-- JSON files remain the single, human-readable design document for macro topology; designers edit them directly.
-- Tag propagation already provides implicit macro context on Gremlin vertices without a formal macro vertex layer.
-- Seeding pipeline stays simple; no new vertex ordering constraints.
-
-### Negative / Accepted Trade-offs
-
-- **Cross-area traversal query is not natively expressible in Gremlin.** If a future feature requires "find me all locations in macro area X" as a first-class graph traversal, it must either filter on the `macro:area:` tag value (supported but not a graph edge traversal) or wait for Gremlin promotion. Tag-based filtering is sufficient for M4 scenarios.
-- **New atlas areas require a code PR.** There is no runtime mechanism to add a macro area without editing a JSON file and redeploying. This is acceptable while the world is single-settlement.
-- **AI-generated macro expansion is not supported.** If AI generation should be able to mint new macro areas dynamically (beyond the current frontier depth model), the JSON model cannot accommodate this without a deploy cycle. This is an explicit out-of-scope for M4.
+- Cross-area traversal is expressed as tag-value filtering, not native graph traversal. Sufficient for M4.
+- New atlas areas require a code PR; no runtime mechanism exists to add a macro area without redeploying. Acceptable while the world is single-settlement.
+- AI-generated macro expansion (minting new areas dynamically) is not supported. Out of scope for M4.
 
 ### Revisit Triggers
 
-Revisit this decision (and potentially produce ADR-011 for Gremlin promotion) when **any one** of the following becomes true:
+Revisit this decision (and potentially produce ADR-011 for Gremlin promotion) when **any one** of the following becomes true. Each trigger has an active enforcement mechanism so it surfaces at the point the condition is met — not from memory.
 
-1. Multi-settlement generation is active and cross-area traversal queries are needed at runtime.
-2. AI generation must mint new macro areas dynamically without a deploy (runtime macro area creation requirement).
-3. Gremlin RU budget is expanded to accommodate macro reads (e.g., after region-based partitioning from ADR-002 is implemented).
-4. The number of atlas JSON nodes exceeds 200 per file, making in-process scan performance measurable.
+| #   | Condition                                                                                                       | How it surfaces                                                                                                                                                                                                                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | Multi-settlement generation is active and cross-area traversal queries are needed at runtime.                   | `TODO(#984)` comment on the JSON import lines in `backend/src/services/macroGenerationContext.ts`. Any engineer extending that module for multi-settlement will see the note.                                                                                                                             |
+| T2  | AI generation must mint new macro areas dynamically without a deploy (runtime macro area creation requirement). | Same `TODO(#984)` in `macroGenerationContext.ts` — the file that would need a Gremlin-backed alternative.                                                                                                                                                                                                 |
+| T3  | Gremlin RU budget is explicitly increased above 400 RU/s for the world graph.                                   | The `alert-ru-utilization` Azure Monitor alert fires at sustained ≥70% RU. Its description contains a direct link to [#984](https://github.com/piquet-h/the-shifting-atlas/issues/984) with an explicit action statement. No separate check needed — the alert fires before the budget increase decision. |
+| T4  | Either `mosswellMacroAtlas.json` or `theLongReachMacroAtlas.json` exceeds 200 nodes.                            | `verify-runtime-invariants.mjs` emits an `atlas-node-count-threshold` warning on every CI run when the threshold is crossed. No manual check required.                                                                                                                                                    |
+
+Tracking issue: [#984](https://github.com/piquet-h/the-shifting-atlas/issues/984) (M7 Post-MVP). When any trigger fires, evaluate via a spike and, if warranted, produce ADR-011 before proceeding with Gremlin promotion work.
 
 ---
 
