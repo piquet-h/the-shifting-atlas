@@ -71,6 +71,7 @@ Then branch based on the question:
 - **Macro geography / frontier coherence** → `architecture/macro-atlas-and-seed-redesign.md`
 - **Events / async** → `architecture/world-event-contract.md`, `architecture/event-classification-matrix.md`
 - **Frontend ↔ backend contract** → `architecture/frontend-api-contract.md`
+- **Why a decision was made** → `adr/README.md` (ADR index)
 
 ## Documentation hierarchy (MECE by altitude)
 
@@ -81,7 +82,7 @@ Then branch based on the question:
 | Concepts               | 45,000 ft (↯) | `concept/`                                            | Immutable semantics & vocabulary            |
 | Design Modules         | 40,000 ft     | `design-modules/`                                     | Gameplay systems and invariants             |
 | Architecture           | 30,000 ft     | `architecture/`                                       | Technical design and contracts              |
-| Arch. Decisions (ADRs) | 35,000 ft     | `adr/`                                                | Rationale for lasting architectural choices |
+| Arch. Decisions (ADRs) | 35,000 ft     | [`adr/README.md`](adr/README.md)                      | Rationale for lasting architectural choices |
 | Workflows              | 25,000 ft     | `workflows/`                                          | Runtime orchestration & validation gates    |
 | Roadmap                | 20,000 ft     | `roadmap.md`                                          | Milestones and dependency-driven sequencing |
 | Developer Workflow     | 15,000 ft     | `developer-workflow/`                                 | Local dev, CI/CD, testing, conventions      |
