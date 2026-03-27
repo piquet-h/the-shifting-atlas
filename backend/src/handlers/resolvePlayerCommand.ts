@@ -242,10 +242,6 @@ export class ResolvePlayerCommandHandler extends BaseHandler {
         }
 
         // --- Emit single low-cardinality resolved event ---
-        // TODO(#971): replace with this.track('PlayerCommand.Resolved', ...) once @piquet-h/shared
-        // is republished with the event added to GAME_EVENT_NAMES (see shared/src/telemetryEvents.ts).
-        // Using this.telemetry.trackEvent() directly to avoid the GameEventName type constraint
-        // in the currently installed package version.
         this.telemetry.trackEvent({
             name: 'PlayerCommand.Resolved',
             properties: {
