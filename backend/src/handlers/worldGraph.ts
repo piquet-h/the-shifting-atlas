@@ -8,12 +8,15 @@
  *   { nodes: WorldGraphNode[], edges: WorldGraphEdge[] }
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import type { Direction } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable, optional } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
 import type { IPersistenceConfig } from '../persistenceConfig.js'
 import type { ILocationRepository } from '../repos/locationRepository.js'
 import type { ITelemetryClient } from '../telemetry/ITelemetryClient.js'
+import type { FrontierStructuralArchetype, PendingExitMetadata } from '../services/frontierContext.js'
+import { buildAtlasAwarePendingMetadata, resolveMacroGenerationContext } from '../services/macroGenerationContext.js'
 import { BaseHandler } from './base/BaseHandler.js'
 import { internalErrorResponse, okResponse } from './utils/responseBuilder.js'
 
@@ -21,6 +24,12 @@ export interface WorldGraphNode {
     id: string
     name: string
     tags?: string[]
+    /**
+     * Structural classification for pending/synthetic frontier nodes.
+     * Absent on real (materialized) location nodes.
+     * Machine-readable complement to the human-readable `name`.
+     */
+    structuralClass?: FrontierStructuralArchetype
 }
 
 export interface WorldGraphEdge {
@@ -32,6 +41,13 @@ export interface WorldGraphEdge {
     pending?: boolean
     /** When true, this exit is currently locked. Movement through it returns a soft denial. Future UI can show a lock icon. */
     locked?: boolean
+    /**
+     * Structured frontier context for pending edges.
+     * Present when `pending === true` and macro context is derivable from source node tags.
+     * Carries deterministic atlas-derived metadata so consumers do not need to
+     * reverse-engineer intent from the human-readable reason string.
+     */
+    frontierContext?: PendingExitMetadata
 }
 
 export interface WorldGraphResponse {
@@ -43,19 +59,14 @@ export interface WorldGraphResponse {
 const TRAVEL_DURATION_ABSENT = -1
 const PENDING_NODE_NAME = 'Unexplored Open Plain'
 
-function pendingNodeName(direction: string): string {
-    switch (direction) {
-        case 'in':
-            return 'Unexplored Interior'
-        case 'out':
-            return 'Unexplored Exterior Approach'
-        case 'up':
-            return 'Unexplored Upper Level'
-        case 'down':
-            return 'Unexplored Lower Level'
-        default:
-            return PENDING_NODE_NAME
-    }
+function pendingNodeName(direction: string, archetype?: FrontierStructuralArchetype): string {
+    if (direction === 'in') return 'Unexplored Interior'
+    if (direction === 'out') return 'Unexplored Exterior Approach'
+    if (direction === 'up') return 'Unexplored Upper Level'
+    if (direction === 'down') return 'Unexplored Lower Level'
+    // Use archetype to distinguish waterfront from generic overland when available
+    if (archetype === 'waterfront') return 'Unexplored Waterfront'
+    return PENDING_NODE_NAME
 }
 
 function pendingNodeId(fromId: string, direction: string): string {
@@ -130,12 +141,17 @@ export class WorldGraphHandler extends BaseHandler {
                     for (const [direction, reason] of Object.entries(pending)) {
                         if (!reason || hardDirections.has(direction)) continue
 
+                        // Derive structured context from source node tags + direction.
+                        const macroCtx = resolveMacroGenerationContext(loc.tags, direction as Direction)
+                        const frontierCtx = buildAtlasAwarePendingMetadata(macroCtx)
+
                         const syntheticId = pendingNodeId(loc.id, direction)
                         if (!nodeById.has(syntheticId)) {
                             nodeById.set(syntheticId, {
                                 id: syntheticId,
-                                name: pendingNodeName(direction),
-                                tags: ['pending:synthetic']
+                                name: pendingNodeName(direction, frontierCtx.structuralArchetype),
+                                tags: ['pending:synthetic'],
+                                structuralClass: frontierCtx.structuralArchetype
                             })
                         }
 
@@ -143,7 +159,8 @@ export class WorldGraphHandler extends BaseHandler {
                             fromId: loc.id,
                             toId: syntheticId,
                             direction,
-                            pending: true
+                            pending: true,
+                            frontierContext: frontierCtx
                         })
                     }
                 }
@@ -219,15 +236,23 @@ export class WorldGraphHandler extends BaseHandler {
             for (const [fromId, pending] of locationPendingById.entries()) {
                 const hardDirections = hardDirectionsBySource.get(fromId) ?? new Set<string>()
 
+                // Source node tags are available via nodesById; use them to derive
+                // structured frontier context on-demand.
+                const sourceTags = nodesById.get(fromId)?.tags
+
                 for (const [direction, reason] of Object.entries(pending)) {
                     if (!reason || hardDirections.has(direction)) continue
+
+                    const macroCtx = resolveMacroGenerationContext(sourceTags, direction as Direction)
+                    const frontierCtx = buildAtlasAwarePendingMetadata(macroCtx)
 
                     const syntheticId = pendingNodeId(fromId, direction)
                     if (!nodesById.has(syntheticId)) {
                         nodesById.set(syntheticId, {
                             id: syntheticId,
-                            name: pendingNodeName(direction),
-                            tags: ['pending:synthetic']
+                            name: pendingNodeName(direction, frontierCtx.structuralArchetype),
+                            tags: ['pending:synthetic'],
+                            structuralClass: frontierCtx.structuralArchetype
                         })
                     }
 
@@ -235,7 +260,8 @@ export class WorldGraphHandler extends BaseHandler {
                         fromId,
                         toId: syntheticId,
                         direction,
-                        pending: true
+                        pending: true,
+                        frontierContext: frontierCtx
                     })
                 }
             }

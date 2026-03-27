@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+    buildAtlasAwarePendingMetadata,
     buildAtlasConstrainedExitAvailability,
     planAtlasAwareFutureLocation,
     resolveMacroGenerationContext,
@@ -128,4 +129,95 @@ test('planAtlasAwareFutureLocation: carries frontier depth forward, avoids exact
     assert.notEqual(plan.name, 'Soundside Southward Reach')
     assert.ok(plan.description.trim().length > 0)
     assert.ok(plan.description.includes('south') || plan.description.includes('Soundside'))
+})
+
+test('buildAtlasAwarePendingMetadata: interior direction ("in") produces interior structural archetype', () => {
+    const context = resolveMacroGenerationContext(['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead'], 'in')
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    assert.equal(metadata.structuralArchetype, 'interior')
+    assert.equal(metadata.macroAreaRef, 'lr-area-mosswell-fiordhead')
+})
+
+test('buildAtlasAwarePendingMetadata: vertical direction ("up") produces vertical structural archetype', () => {
+    const context = resolveMacroGenerationContext(['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead'], 'up')
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    assert.equal(metadata.structuralArchetype, 'vertical')
+})
+
+test('buildAtlasAwarePendingMetadata: vertical direction ("down") produces vertical structural archetype', () => {
+    const context = resolveMacroGenerationContext(['settlement:mosswell'], 'down')
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    assert.equal(metadata.structuralArchetype, 'vertical')
+})
+
+test('buildAtlasAwarePendingMetadata: waterfront direction ("west") with water context produces waterfront archetype', () => {
+    const context = resolveMacroGenerationContext(
+        [
+            'settlement:mosswell',
+            'macro:area:lr-area-mosswell-fiordhead',
+            'macro:route:mw-route-harbor-to-delta',
+            'macro:water:fjord-sound-head'
+        ],
+        'west'
+    )
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    assert.equal(metadata.structuralArchetype, 'waterfront')
+    assert.equal(metadata.waterSemantics, 'fjord-sound-head')
+    assert.ok(metadata.barrierSemantics && metadata.barrierSemantics.length > 0)
+})
+
+test('buildAtlasAwarePendingMetadata: overland direction ("north") without water context produces overland archetype', () => {
+    const context = resolveMacroGenerationContext(
+        ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead', 'macro:route:mw-route-harbor-to-northgate'],
+        'north'
+    )
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    assert.equal(metadata.structuralArchetype, 'overland')
+    assert.equal(metadata.macroAreaRef, 'lr-area-mosswell-fiordhead')
+    assert.ok(metadata.routeLineage && metadata.routeLineage.includes('mw-route-harbor-to-northgate'))
+    assert.ok(metadata.terrainTrend && metadata.terrainTrend.length > 0)
+})
+
+test('buildAtlasAwarePendingMetadata: interior direction with waterContext still produces interior (direction precedence)', () => {
+    const context = resolveMacroGenerationContext(
+        ['settlement:mosswell', 'macro:area:lr-area-mosswell-fiordhead', 'macro:water:fjord-sound-head'],
+        'in'
+    )
+
+    const metadata = buildAtlasAwarePendingMetadata(context)
+
+    // Direction-based archetypes (interior/vertical) take precedence over water context
+    assert.equal(metadata.structuralArchetype, 'interior')
+})
+
+test('planAtlasAwareFutureLocation: includes pendingExitContext with structured metadata when exits are available', () => {
+    const plan = planAtlasAwareFutureLocation('open-plain', 'north', [
+        'settlement:mosswell',
+        'macro:area:lr-area-mosswell-fiordhead',
+        'macro:route:mw-route-harbor-to-northgate',
+        'macro:water:fjord-sound-head'
+    ])
+
+    // Plan must carry structured context alongside the legacy string reason
+    assert.ok(plan.pendingExitContext, 'pendingExitContext should be populated')
+    const directions = Object.keys(plan.pendingExitContext!)
+    assert.ok(directions.length > 0, 'at least one pending direction must have structured context')
+
+    // Each structured entry must have a valid archetype
+    for (const [, meta] of Object.entries(plan.pendingExitContext!)) {
+        assert.ok(
+            ['overland', 'waterfront', 'interior', 'vertical', 'portal'].includes(meta.structuralArchetype),
+            `unexpected archetype: ${meta.structuralArchetype}`
+        )
+    }
 })

@@ -11,6 +11,7 @@ import {
 // this module must be replaced with a Gremlin-backed alternative. See ADR-010 and issue #984.
 import mosswellMacroAtlas from '../data/mosswellMacroAtlas.json' with { type: 'json' }
 import theLongReachMacroAtlas from '../data/theLongReachMacroAtlas.json' with { type: 'json' }
+import { inferStructuralArchetype, type PendingExitMetadata } from './frontierContext.js'
 
 interface DirectionalTrendProfile {
     anchorNode: string
@@ -76,8 +77,22 @@ export interface AtlasAwareFutureLocationPlan {
     description: string
     tags: string[]
     exitAvailability?: ExitAvailabilityMetadata
+    /**
+     * Structured frontier context for each pending exit direction.
+     *
+     * Keys correspond to directions that appear in `exitAvailability.pending`.
+     * Carries deterministic atlas-derived metadata so downstream consumers
+     * (narration, map visualisation, batch generation) can consume structured
+     * context rather than parsing the human-readable reason strings.
+     *
+     * Absent when no pending exits are available.
+     */
+    pendingExitContext?: Partial<Record<Direction, PendingExitMetadata>>
     macroContext: MacroGenerationContext
 }
+
+// Re-export frontier context types so callers only need one import.
+export type { FrontierStructuralArchetype, PendingExitMetadata } from './frontierContext.js'
 
 const ALL_ATLASES = [mosswellMacroAtlas as MacroAtlasLike, theLongReachMacroAtlas as MacroAtlasLike]
 
@@ -480,6 +495,27 @@ export function buildAtlasAwarePendingDescription(terrain: TerrainType, context:
     return parts.join(' ')
 }
 
+/**
+ * Build structured {@link PendingExitMetadata} from an already-resolved
+ * {@link MacroGenerationContext}.
+ *
+ * This is the canonical way to obtain inspectable frontier context for a
+ * pending exit direction.  It does not generate narrative prose; use
+ * {@link buildAtlasAwarePendingDescription} for that.
+ *
+ * @param context - Resolved macro context for the expansion direction.
+ */
+export function buildAtlasAwarePendingMetadata(context: MacroGenerationContext): PendingExitMetadata {
+    return {
+        structuralArchetype: inferStructuralArchetype(context.expansionDirection, context.waterContext),
+        macroAreaRef: context.areaRef,
+        routeLineage: context.routeRefs.length > 0 ? context.routeRefs : undefined,
+        terrainTrend: context.directionTerrainTrend,
+        waterSemantics: context.waterContext,
+        barrierSemantics: context.barrierSemantics.length > 0 ? context.barrierSemantics : undefined
+    }
+}
+
 export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: string): string[] {
     const propagated = (tags || []).filter(
         (tag) =>
@@ -513,12 +549,27 @@ export function planAtlasAwareFutureLocation(
     const backDirection = getOppositeDirection(expansionDirection)
     const availability = buildAtlasConstrainedExitAvailability(selectedTerrain, macroContext, backDirection, tags)
 
+    // Build structured pending exit context alongside the legacy string reasons.
+    // Keys correspond to directions in availability.pending.
+    // Use Object.entries to iterate as [string, string] pairs and cast each key
+    // individually — Object.keys() returns string[], but every key in availability.pending
+    // is a Direction because buildAtlasConstrainedExitAvailability only adds Direction keys.
+    const pendingExitContext: Partial<Record<Direction, PendingExitMetadata>> = {}
+    if (availability.pending) {
+        for (const [dir] of Object.entries(availability.pending)) {
+            const direction = dir as Direction
+            const dirContext = resolveMacroGenerationContext(tags, direction)
+            pendingExitContext[direction] = buildAtlasAwarePendingMetadata(dirContext)
+        }
+    }
+
     return {
         terrain: selectedTerrain,
         name,
         description,
         tags,
         exitAvailability: availability.pending || availability.forbidden ? availability : undefined,
+        pendingExitContext: Object.keys(pendingExitContext).length > 0 ? pendingExitContext : undefined,
         macroContext
     }
 }
