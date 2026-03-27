@@ -50,6 +50,20 @@ The current tag-propagation model already achieves the primary goal: macro conte
 
 ---
 
+## Authority Model
+
+Use this table to answer macro geography questions without reading ADR history.
+
+| Question | Authoritative source | How to resolve |
+| -------- | -------------------- | -------------- |
+| What area is this location in? | `macro:area:<ref>` tag on the Gremlin location vertex | Read the `macro:area:` tag value; look up the human-readable label in `mosswellMacroAtlas.json` or `theLongReachMacroAtlas.json` |
+| What route corridors pass through this location? | `macro:route:<ref>` tags on the Gremlin location vertex | Read all `macro:route:` tag values; resolve details in the atlas JSON |
+| What water body is adjacent? | `macro:water:<ref>` tags on the Gremlin location vertex | Read all `macro:water:` tag values; resolve details in the atlas JSON |
+| What are the macro region boundaries and adjacency relationships? | JSON atlas files (`mosswellMacroAtlas.json`, `theLongReachMacroAtlas.json`) | Read the JSON files — these are the authoritative structural source; no Gremlin traversal needed |
+| What generation context should a new location inherit (terrain trend, route hint, barrier)? | Derived at runtime from the tags above | Call `resolveMacroGenerationContext()` in `macroGenerationContext.ts`; it reads the vertex tags and resolves against the atlas JSON |
+
+---
+
 ## Rationale
 
 No evaluated scenario requires Gremlin-native macro geography at this stage. The key scenarios and why the current model is sufficient:
