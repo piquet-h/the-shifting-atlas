@@ -278,10 +278,9 @@ function processSingleMilestone(args) {
 }
 
 function processAllMilestones(args) {
-    const milestonesRes = runGhWithFallback(
-        ['api', '--paginate', `repos/${args.repo}/milestones`, '-f', 'state=open', '-f', 'per_page=100'],
-        { verbose: args.verbose }
-    )
+    const milestonesRes = runGhWithFallback(['api', '-X', 'GET', '--paginate', `repos/${args.repo}/milestones`, '-f', 'state=open'], {
+        verbose: args.verbose
+    })
     if (!milestonesRes.ok) {
         console.error(milestonesRes.stderr || milestonesRes.stdout)
         process.exit(1)

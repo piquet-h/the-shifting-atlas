@@ -24,7 +24,8 @@ Template:
 Automation:
 
 - `scripts/ensure-milestone-has-delivery-slices.mjs` bootstraps the `Delivery slices` section and keeps issue titles in sync.
-- `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it preserves the slice structure and refreshes the impact block deterministically.
+- `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it preserves the slice structure and refreshes the impact block deterministically. Use `--all` to reanalyze all open milestones at once.
+- `scripts/lib/milestone-delivery-description.mjs` is the shared engine (issue classification, dependency graph, description parsing, rendering) consumed by `reanalyze-milestone.mjs`.
 
 ## How to answer common questions
 
