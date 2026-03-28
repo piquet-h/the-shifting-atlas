@@ -63,7 +63,9 @@
                 "tags": [
                     "west-coast",
                     "high-relief"
-                ]
+                ],
+                "authoringReadiness": "blocked",
+                "entrySegmentRef": "lr-corridor-westwall-shelf"
             },
             {
                 "id": "lr-area-mosswell-fiordhead",
@@ -123,7 +125,8 @@
                 "tags": [
                     "northern-reach",
                     "approach-highlands"
-                ]
+                ],
+                "authoringReadiness": "partial"
             },
             {
                 "id": "lr-area-icefall-uplands",
@@ -152,7 +155,9 @@
                 "tags": [
                     "east-of-divide",
                     "transition-zone"
-                ]
+                ],
+                "authoringReadiness": "partial",
+                "entrySegmentRef": "lr-area-braidwater-basin"
             },
             {
                 "id": "lr-area-braidwater-basin",
@@ -269,7 +274,9 @@
                 "tags": [
                     "north-road-lineage",
                     "frontier-launch"
-                ]
+                ],
+                "authoringReadiness": "ready",
+                "entrySegmentRef": "lr-area-northwatch-ranges"
             },
             {
                 "id": "lr-corridor-westwall-shelf",
@@ -441,6 +448,66 @@
                     "lr-barrier-fiord-deeps",
                     "lr-barrier-rainward-cliffwall"
                 ]
+            },
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-corridor-northgate-valley",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "north",
+                    "threshold": "Exit Mosswell Fiordhead Basin; enter Northgate Valley corridor following north-road lineage",
+                    "destinationAreaRef": "lr-corridor-northgate-valley",
+                    "destinationReadiness": "ready",
+                    "entrySegmentRef": "lr-area-northwatch-ranges",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-area-eastfall-foothills",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "east",
+                    "threshold": "Shelf footslopes beyond Mosswell yield to broader Long Reach eastfall foothills",
+                    "destinationAreaRef": "lr-area-eastfall-foothills",
+                    "destinationReadiness": "partial",
+                    "entrySegmentRef": "lr-area-braidwater-basin",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-area-fiordmarch-west",
+                "relation": "macro-transition",
+                "traversal": "constrained",
+                "barrierRefs": [
+                    "lr-barrier-fiord-deeps",
+                    "lr-barrier-rainward-cliffwall"
+                ],
+                "transition": {
+                    "direction": "west",
+                    "threshold": "Fiordmarch west coast; movement constrained by fiord deeps and rainward cliffwall",
+                    "destinationAreaRef": "lr-area-fiordmarch-west",
+                    "destinationReadiness": "blocked",
+                    "entrySegmentRef": "lr-corridor-westwall-shelf",
+                    "requiresRouteHandoff": false
+                }
+            },
+            {
+                "from": "lr-area-mosswell-fiordhead",
+                "to": "lr-corridor-southfork-vale",
+                "relation": "macro-transition",
+                "traversal": "open",
+                "transition": {
+                    "direction": "south",
+                    "threshold": "Mosswell farmland edge transitions to Long Reach southfork vale and upland roughness",
+                    "destinationAreaRef": "lr-corridor-southfork-vale",
+                    "destinationReadiness": "partial",
+                    "requiresRouteHandoff": true,
+                    "handoffRouteRef": "lr-route-mosswell-southfork"
+                }
             },
             {
                 "from": "lr-area-fiordmarch-west",

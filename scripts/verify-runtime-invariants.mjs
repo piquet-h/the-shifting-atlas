@@ -31,13 +31,18 @@ const ISSUE_TYPES = [
     'seed-exit-target-id-format',
     'atlas-semantic-id-format',
     'atlas-reference-integrity',
-    'atlas-node-count-threshold'
+    'atlas-node-count-threshold',
+    'atlas-transition-invalid',
+    'atlas-transition-reference-integrity',
+    'atlas-transition-contradiction'
 ]
 // ADR-010 revisit trigger T4: if either atlas file exceeds this node count, in-process
 // O(n) scan performance becomes measurable and Gremlin promotion should be re-evaluated.
 // See: docs/adr/ADR-010-macro-geography-persistence-strategy.md, issue #984.
 const ATLAS_NODE_COUNT_WARN_THRESHOLD = 200
 const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const VALID_DIRECTIONS = new Set(['north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest', 'up', 'down', 'in', 'out'])
+const VALID_READINESS_STATES = new Set(['ready', 'partial', 'blocked', 'deferred'])
 
 function readJson(relativePath) {
     return JSON.parse(readFileSync(resolve(ROOT, relativePath), 'utf8'))
@@ -116,11 +121,152 @@ function validateReferenceMembership(issues, file, fieldPath, value, validValues
     }
 }
 
+/**
+ * Validate transition metadata on a macro-transition edge.
+ *
+ * Checks:
+ *   - Required fields are present (direction, threshold, destinationAreaRef, destinationReadiness).
+ *   - `direction` is a known Direction value.
+ *   - `destinationReadiness` is a valid AreaReadinessState value.
+ *   - Neither `direction` nor `destinationAreaRef` uses a runtime GUID.
+ *   - `destinationAreaRef` references a real node across all known atlases.
+ *   - `entrySegmentRef` and `handoffRouteRef`, when present, are not runtime GUIDs.
+ *   - If `requiresRouteHandoff` is true, `handoffRouteRef` must also be present.
+ *   - Contradiction: `traversal` is `'blocked'` but `destinationReadiness` is `'ready'`.
+ */
+function validateTransitionMetadata(issues, file, edgeFieldPath, transition, traversal, allAtlasNodeIds) {
+    if (!transition || typeof transition !== 'object') {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: edgeFieldPath + '.transition',
+            message: `${file} macro-transition edge at ${edgeFieldPath} is missing a "transition" object.`
+        })
+        return
+    }
+
+    const fieldPath = edgeFieldPath + '.transition'
+
+    // Required: direction
+    if (typeof transition.direction !== 'string' || transition.direction.trim() === '') {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.direction',
+            message: `${file} transition at ${fieldPath} is missing required field "direction".`
+        })
+    } else if (!VALID_DIRECTIONS.has(transition.direction)) {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.direction',
+            value: transition.direction,
+            message: `${file} transition at ${fieldPath} has unrecognised direction ${JSON.stringify(transition.direction)}.`
+        })
+    }
+
+    if (isGuid(transition.direction)) {
+        validateSemanticAtlasReference(issues, file, fieldPath + '.direction', transition.direction)
+    }
+
+    // Required: threshold
+    if (typeof transition.threshold !== 'string' || transition.threshold.trim() === '') {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.threshold',
+            message: `${file} transition at ${fieldPath} is missing required field "threshold".`
+        })
+    }
+
+    // Required: destinationAreaRef
+    if (typeof transition.destinationAreaRef !== 'string' || transition.destinationAreaRef.trim() === '') {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.destinationAreaRef',
+            message: `${file} transition at ${fieldPath} is missing required field "destinationAreaRef".`
+        })
+    } else {
+        validateSemanticAtlasReference(issues, file, fieldPath + '.destinationAreaRef', transition.destinationAreaRef)
+        if (!allAtlasNodeIds.has(transition.destinationAreaRef)) {
+            pushIssue(issues, {
+                type: 'atlas-transition-reference-integrity',
+                file,
+                fieldPath: fieldPath + '.destinationAreaRef',
+                value: transition.destinationAreaRef,
+                message: `${file} transition at ${fieldPath}.destinationAreaRef references unknown destination area ${JSON.stringify(transition.destinationAreaRef)}. Must match a node in any known atlas.`
+            })
+        }
+    }
+
+    // Required: destinationReadiness
+    if (typeof transition.destinationReadiness !== 'string' || transition.destinationReadiness.trim() === '') {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.destinationReadiness',
+            message: `${file} transition at ${fieldPath} is missing required field "destinationReadiness".`
+        })
+    } else if (!VALID_READINESS_STATES.has(transition.destinationReadiness)) {
+        pushIssue(issues, {
+            type: 'atlas-transition-invalid',
+            file,
+            fieldPath: fieldPath + '.destinationReadiness',
+            value: transition.destinationReadiness,
+            message: `${file} transition at ${fieldPath} has invalid destinationReadiness ${JSON.stringify(transition.destinationReadiness)}. Must be one of: ready, partial, blocked, deferred.`
+        })
+    }
+
+    // Optional: entrySegmentRef must be a semantic key, not a GUID
+    if (transition.entrySegmentRef !== undefined) {
+        validateSemanticAtlasReference(issues, file, fieldPath + '.entrySegmentRef', transition.entrySegmentRef)
+        if (typeof transition.entrySegmentRef === 'string' && !allAtlasNodeIds.has(transition.entrySegmentRef)) {
+            pushIssue(issues, {
+                type: 'atlas-transition-reference-integrity',
+                file,
+                fieldPath: fieldPath + '.entrySegmentRef',
+                value: transition.entrySegmentRef,
+                message: `${file} transition at ${fieldPath}.entrySegmentRef references unknown entrySegmentRef ${JSON.stringify(transition.entrySegmentRef)}. Must match a node in any known atlas.`
+            })
+        }
+    }
+
+    // Optional: handoffRouteRef must be a semantic key, not a GUID
+    if (transition.handoffRouteRef !== undefined) {
+        validateSemanticAtlasReference(issues, file, fieldPath + '.handoffRouteRef', transition.handoffRouteRef)
+    }
+
+    // Contradiction: requiresRouteHandoff=true requires handoffRouteRef
+    if (transition.requiresRouteHandoff === true && !transition.handoffRouteRef) {
+        pushIssue(issues, {
+            type: 'atlas-transition-contradiction',
+            file,
+            fieldPath,
+            message: `${file} transition at ${fieldPath} has requiresRouteHandoff=true but no handoffRouteRef is provided.`
+        })
+    }
+
+    // Contradiction: traversal=blocked but destinationReadiness=ready
+    if (traversal === 'blocked' && transition.destinationReadiness === 'ready') {
+        pushIssue(issues, {
+            type: 'atlas-transition-contradiction',
+            file,
+            fieldPath,
+            message: `${file} transition at ${fieldPath} has traversal "blocked" but destinationReadiness "ready" — a blocked traversal edge should not indicate a ready destination.`
+        })
+    }
+}
+
 function collectAtlasIssues(issues) {
     const longReachAtlas = readOptionalJson(DATA_FILES.longReachAtlas)
     const mosswellAtlas = readOptionalJson(DATA_FILES.mosswellAtlas)
 
     const longReachNodeIds = new Set((longReachAtlas?.macroGraph?.nodes || []).map((node) => node?.id).filter((id) => typeof id === 'string'))
+
+    // Combined node IDs across all known atlases — used for cross-file transition reference checks.
+    const mosswellNodeIds = new Set((mosswellAtlas?.macroGraph?.nodes || []).map((node) => node?.id).filter((id) => typeof id === 'string'))
+    const allAtlasNodeIds = new Set([...longReachNodeIds, ...mosswellNodeIds])
 
     for (const [file, atlas] of [
         [DATA_FILES.longReachAtlas, longReachAtlas],
@@ -157,21 +303,35 @@ function collectAtlasIssues(issues) {
         })
 
         edges.forEach((edge, index) => {
-            validateSemanticAtlasReference(issues, file, `macroGraph.edges[${index}].from`, edge?.from)
-            validateSemanticAtlasReference(issues, file, `macroGraph.edges[${index}].to`, edge?.to)
-            validateReferenceMembership(issues, file, `macroGraph.edges[${index}].from`, edge?.from, nodeIds, 'atlas node')
-            validateReferenceMembership(issues, file, `macroGraph.edges[${index}].to`, edge?.to, nodeIds, 'atlas node')
+            const edgeFieldPath = `macroGraph.edges[${index}]`
+            const isMacroTransition = edge?.relation === 'macro-transition'
+
+            validateSemanticAtlasReference(issues, file, `${edgeFieldPath}.from`, edge?.from)
+            validateSemanticAtlasReference(issues, file, `${edgeFieldPath}.to`, edge?.to)
+
+            // For macro-transition edges, `from` must be a within-file node but `to` may reference
+            // a node in another atlas file. Validate each accordingly.
+            validateReferenceMembership(issues, file, `${edgeFieldPath}.from`, edge?.from, nodeIds, 'atlas node')
+            if (isMacroTransition) {
+                validateReferenceMembership(issues, file, `${edgeFieldPath}.to`, edge?.to, allAtlasNodeIds, 'atlas node (any atlas)')
+            } else {
+                validateReferenceMembership(issues, file, `${edgeFieldPath}.to`, edge?.to, nodeIds, 'atlas node')
+            }
 
             for (const [barrierIndex, barrierRef] of (edge?.barrierRefs || []).entries()) {
-                validateSemanticAtlasReference(issues, file, `macroGraph.edges[${index}].barrierRefs[${barrierIndex}]`, barrierRef)
+                validateSemanticAtlasReference(issues, file, `${edgeFieldPath}.barrierRefs[${barrierIndex}]`, barrierRef)
                 validateReferenceMembership(
                     issues,
                     file,
-                    `macroGraph.edges[${index}].barrierRefs[${barrierIndex}]`,
+                    `${edgeFieldPath}.barrierRefs[${barrierIndex}]`,
                     barrierRef,
                     barrierIds,
                     'atlas barrier'
                 )
+            }
+
+            if (isMacroTransition) {
+                validateTransitionMetadata(issues, file, edgeFieldPath, edge?.transition, edge?.traversal, allAtlasNodeIds)
             }
         })
 

@@ -29,11 +29,90 @@ interface ContinuityRoute {
     }
 }
 
+/**
+ * Authoring readiness state for a macro atlas area destination.
+ *
+ * Indicates how complete the destination area is for runtime handoff.
+ * This is the canonical vocabulary shared by atlas data, validation tooling,
+ * and runtime consumers.
+ *
+ * - `ready`:    Destination is authored and eligible for runtime area handoff.
+ * - `partial`:  Destination has a skeleton but needs further authoring before
+ *               full handoff. Runtime may enter but should degrade gracefully.
+ * - `blocked`:  Destination is intentionally not ready; handoff must not occur.
+ * - `deferred`: Destination authoring is deliberately deferred to a later pass.
+ */
+export type AreaReadinessState = 'ready' | 'partial' | 'blocked' | 'deferred'
+
+/**
+ * Transition metadata on a macro atlas edge.
+ *
+ * Carried by edges that represent an area handoff point — where repeated
+ * frontier travel may cross from one macro area into a neighbouring one.
+ * Runtime consumers use this to decide whether to stay in current-area
+ * continuation mode or commit to the new area.
+ *
+ * This shape is intentionally stable so overlay/reporting tooling and
+ * runtime handlers share the same vocabulary without coupling to internal
+ * implementation details.
+ */
+export interface TransitionMetadata {
+    /**
+     * Cardinal or ordinal direction label for this outbound transition.
+     * Matches a valid {@link Direction} value.
+     */
+    direction: string
+    /**
+     * Short human-readable description of the crossing condition.
+     * Describes what geographic or authoring threshold is crossed.
+     */
+    threshold: string
+    /**
+     * Semantic reference key of the destination macro area node.
+     * May reference a node in a different atlas file (cross-file transition).
+     * Must NOT be a runtime GUID.
+     */
+    destinationAreaRef: string
+    /**
+     * Authoring readiness state of the destination area at the time this
+     * edge was authored. Runtime must not commit to an area handoff if
+     * the value is `'blocked'` or `'deferred'`.
+     */
+    destinationReadiness: AreaReadinessState
+    /**
+     * Optional semantic reference to the first segment the runtime should
+     * use inside the destination area upon entry.
+     */
+    entrySegmentRef?: string
+    /**
+     * Whether a route handoff must be evaluated at this transition point.
+     * If true, `handoffRouteRef` should be provided for the runtime to
+     * resolve the continuation route.
+     */
+    requiresRouteHandoff?: boolean
+    /**
+     * Atlas route reference key for the continuation route in the destination.
+     * Required when `requiresRouteHandoff` is true.
+     */
+    handoffRouteRef?: string
+}
+
 interface MacroNode {
     /** Atlas node reference key (semantic ID, not a runtime location GUID). */
     id: string
     name: string
     nodeClass?: string
+    /**
+     * Explicit authoring readiness state for this area as a transition destination.
+     * Used by runtime and tooling to determine handoff eligibility.
+     */
+    authoringReadiness?: AreaReadinessState
+    /**
+     * Semantic reference to the recommended entry segment within this area.
+     * Points to the first macro node the runtime should use when entering
+     * this area from an outbound transition edge.
+     */
+    entrySegmentRef?: string
 }
 
 interface MacroEdge {
@@ -41,7 +120,15 @@ interface MacroEdge {
     from: string
     /** Destination atlas node reference key. */
     to: string
+    relation?: string
+    traversal?: string
     barrierRefs?: string[]
+    lineage?: string
+    /**
+     * Transition metadata for edges that represent an area handoff point.
+     * Present only on edges where `relation` is `'macro-transition'`.
+     */
+    transition?: TransitionMetadata
 }
 
 interface MacroAtlasLike {
@@ -51,6 +138,24 @@ interface MacroAtlasLike {
         directionalTrendProfiles?: DirectionalTrendProfile[]
         continuityRoutes?: ContinuityRoute[]
     }
+}
+
+/**
+ * A resolved outbound macro-transition edge for a given source area and direction.
+ *
+ * Returned by {@link resolveAreaTransitionEdge} for runtime consumers that need
+ * to determine whether to commit to a new macro area rather than remaining in
+ * current-area continuation mode.
+ */
+export interface MacroTransitionEdge {
+    /** Semantic reference of the source atlas node. */
+    fromNodeId: string
+    /** Traversal classification of the edge (e.g. `'open'`, `'constrained'`, `'blocked'`). */
+    traversal?: string
+    /** Barrier node references on the edge, if any. */
+    barrierRefs?: string[]
+    /** Transition metadata for this area handoff point. */
+    transition: TransitionMetadata
 }
 
 export interface MacroGenerationContext {
@@ -514,6 +619,44 @@ export function buildAtlasAwarePendingMetadata(context: MacroGenerationContext):
         waterSemantics: context.waterContext,
         barrierSemantics: context.barrierSemantics.length > 0 ? context.barrierSemantics : undefined
     }
+}
+
+/**
+ * Resolve the outbound {@link MacroTransitionEdge} for a given source area node and direction.
+ *
+ * Scans all loaded atlases for a `macro-transition` edge whose `from` matches
+ * `areaRef` and whose `transition.direction` matches `direction`.
+ *
+ * Returns `undefined` when no authored transition edge exists — callers should
+ * treat this as "remain in current-area continuation mode" rather than assuming
+ * a handoff is possible.
+ *
+ * Runtime handlers use this to decide whether repeated frontier travel can
+ * enter a new macro area versus staying in the current one.  See also
+ * {@link TransitionMetadata.destinationReadiness} — runtime must not commit
+ * to a handoff when the value is `'blocked'` or `'deferred'`.
+ *
+ * @param areaRef   - Semantic atlas area reference key (e.g. from a `macro:area:` tag).
+ * @param direction - Expansion direction to look up.
+ */
+export function resolveAreaTransitionEdge(areaRef: string | undefined, direction: Direction): MacroTransitionEdge | undefined {
+    if (!areaRef) return undefined
+
+    for (const atlas of ALL_ATLASES) {
+        const edges = atlas.macroGraph?.edges ?? []
+        for (const edge of edges) {
+            if (edge.from === areaRef && edge.relation === 'macro-transition' && edge.transition?.direction === direction) {
+                return {
+                    fromNodeId: edge.from,
+                    traversal: edge.traversal,
+                    barrierRefs: edge.barrierRefs,
+                    transition: edge.transition
+                }
+            }
+        }
+    }
+
+    return undefined
 }
 
 export function getMacroPropagationTags(tags: string[] | undefined, realmKey?: string): string[] {
