@@ -5,6 +5,7 @@ import {
     buildAtlasAwarePendingMetadata,
     buildAtlasConstrainedExitAvailability,
     planAtlasAwareFutureLocation,
+    resolveAreaTransitionEdge,
     resolveMacroGenerationContext,
     scoreAtlasAwareReconnectionCandidate,
     selectAtlasAwareExpansionDirections,
@@ -220,4 +221,62 @@ test('planAtlasAwareFutureLocation: includes pendingExitContext with structured 
             `unexpected archetype: ${meta.structuralArchetype}`
         )
     }
+})
+
+// ---------------------------------------------------------------------------
+// resolveAreaTransitionEdge — destination readiness tests (#892 / #903)
+// ---------------------------------------------------------------------------
+
+test('resolveAreaTransitionEdge: returns "ready" destination for northward Mosswell Fiordhead transition', () => {
+    const edge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'north')
+
+    assert.ok(edge, 'Expected a macro-transition edge for north from Mosswell Fiordhead')
+    assert.equal(edge.transition.destinationReadiness, 'ready')
+    assert.equal(edge.transition.destinationAreaRef, 'lr-corridor-northgate-valley')
+    assert.equal(edge.traversal, 'open')
+})
+
+test('resolveAreaTransitionEdge: returns "blocked" destination for westward Mosswell Fiordhead transition', () => {
+    const edge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'west')
+
+    assert.ok(edge, 'Expected a macro-transition edge for west from Mosswell Fiordhead')
+    assert.equal(edge.transition.destinationReadiness, 'blocked')
+    assert.equal(edge.transition.destinationAreaRef, 'lr-area-fiordmarch-west')
+    assert.equal(edge.traversal, 'constrained')
+    // Blocked transition should include barrier refs from the atlas edge
+    assert.ok(edge.barrierRefs && edge.barrierRefs.length > 0, 'Blocked transition should carry barrier refs')
+})
+
+test('resolveAreaTransitionEdge: returns "partial" destination for eastward Mosswell Fiordhead transition', () => {
+    const edge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'east')
+
+    assert.ok(edge, 'Expected a macro-transition edge for east from Mosswell Fiordhead')
+    assert.equal(edge.transition.destinationReadiness, 'partial')
+    assert.equal(edge.transition.destinationAreaRef, 'lr-area-eastfall-foothills')
+})
+
+test('resolveAreaTransitionEdge: returns undefined for direction with no authored transition', () => {
+    // No transition edge exists for southeast from Mosswell Fiordhead
+    const edge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'southeast')
+
+    assert.equal(edge, undefined, 'No macro-transition edge should exist for southeast')
+})
+
+test('resolveAreaTransitionEdge: returns undefined for undefined areaRef', () => {
+    const edge = resolveAreaTransitionEdge(undefined, 'north')
+
+    assert.equal(edge, undefined, 'Should return undefined when areaRef is absent')
+})
+
+test('resolveAreaTransitionEdge: ready vs blocked destinations are distinguishable in the same area', () => {
+    // Mosswell Fiordhead has both ready (north) and blocked (west) transition edges
+    const readyEdge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'north')
+    const blockedEdge = resolveAreaTransitionEdge('lr-area-mosswell-fiordhead', 'west')
+
+    assert.ok(readyEdge, 'ready edge must be present')
+    assert.ok(blockedEdge, 'blocked edge must be present')
+    assert.equal(readyEdge.transition.destinationReadiness, 'ready')
+    assert.equal(blockedEdge.transition.destinationReadiness, 'blocked')
+    // Runtime can distinguish and branch on readiness without parsing threshold strings
+    assert.notEqual(readyEdge.transition.destinationReadiness, blockedEdge.transition.destinationReadiness)
 })
