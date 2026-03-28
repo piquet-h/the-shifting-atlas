@@ -165,10 +165,6 @@ function validateTransitionMetadata(issues, file, edgeFieldPath, transition, tra
         })
     }
 
-    if (isGuid(transition.direction)) {
-        validateSemanticAtlasReference(issues, file, fieldPath + '.direction', transition.direction)
-    }
-
     // Required: threshold
     if (typeof transition.threshold !== 'string' || transition.threshold.trim() === '') {
         pushIssue(issues, {
@@ -221,7 +217,7 @@ function validateTransitionMetadata(issues, file, edgeFieldPath, transition, tra
     // Optional: entrySegmentRef must be a semantic key, not a GUID
     if (transition.entrySegmentRef !== undefined) {
         validateSemanticAtlasReference(issues, file, fieldPath + '.entrySegmentRef', transition.entrySegmentRef)
-        if (typeof transition.entrySegmentRef === 'string' && !allAtlasNodeIds.has(transition.entrySegmentRef)) {
+        if (!allAtlasNodeIds.has(transition.entrySegmentRef)) {
             pushIssue(issues, {
                 type: 'atlas-transition-reference-integrity',
                 file,
