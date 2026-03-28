@@ -1,27 +1,175 @@
-/**
- * Shared engine for milestone delivery description parsing and rendering.
- *
- * Exported from here and imported by reanalyze-milestone.mjs and any future scripts.
- * Keeps parsing/rendering logic DRY and testable in isolation.
- */
-
 const AUTO_BLOCK_ID = 'milestone-impact-report'
-const AUTO_BLOCK_START = `<!-- AUTO-GENERATED: ${AUTO_BLOCK_ID}:start -->`
-const AUTO_BLOCK_END = `<!-- AUTO-GENERATED: ${AUTO_BLOCK_ID}:end -->`
-const PLACEHOLDER_LINE = '- (add issues, then reorder)'
+export const AUTO_BLOCK_START = `<!-- AUTO-GENERATED: ${AUTO_BLOCK_ID}:start -->`
+export const AUTO_BLOCK_END = `<!-- AUTO-GENERATED: ${AUTO_BLOCK_ID}:end -->`
+export const PLACEHOLDER_LINE = '- (add issues, then reorder)'
 
-// ── Issue classification ──────────────────────────────────────────────────────
+const EXECUTABLE_TYPE_PRIORITY = ['infra', 'feature', 'enhancement', 'refactor', 'spike', 'test', 'docs']
 
-export function isInfra(issue) {
-    const labels = new Set(issue.labels)
-    const title = issue.title.toLowerCase()
-    return (
-        labels.has('infra') ||
-        title.startsWith('infra(') ||
-        /\bprovision\b/.test(title) ||
-        /\brbac\b/.test(title) ||
-        /app settings/.test(title)
-    )
+function normalizeIssue(issue) {
+    return {
+        ...issue,
+        labels: [...(issue.labels ?? [])],
+        blockedBy: [...(issue.blockedBy ?? [])],
+        body: issue.body ?? '',
+        state_reason: issue.state_reason ?? null
+    }
+}
+
+export function hasDeliverySlices(description) {
+    return /^##\s+Delivery slices\b/m.test(description ?? '')
+}
+
+export function extractDepsFromBody(issueBody) {
+    const deps = new Set()
+    if (!issueBody) return deps
+
+    const patterns = [/\bblocked\s+by\s+#(\d+)/gi, /\bdepends\s+on\s+#(\d+)/gi, /\brequires\s+#(\d+)/gi]
+
+    for (const pattern of patterns) {
+        for (const match of issueBody.matchAll(pattern)) {
+            deps.add(Number(match[1]))
+        }
+    }
+
+    return deps
+}
+
+export function buildDependencyGraph(issues, subIssuesByNumber = new Map()) {
+    const graph = new Map()
+
+    for (const issue of issues ?? []) {
+        graph.set(issue.number, extractDepsFromBody(issue.body ?? ''))
+    }
+
+    for (const [parentNumber, subIssues] of subIssuesByNumber) {
+        for (const subIssue of subIssues ?? []) {
+            if (!graph.has(subIssue.number)) {
+                graph.set(subIssue.number, new Set())
+            }
+            graph.get(subIssue.number).add(parentNumber)
+        }
+    }
+
+    return graph
+}
+
+export function parseOrderedIssueNumbers(description) {
+    const ordered = []
+    const seen = new Set()
+    const lines = (description ?? '').split(/\r?\n/)
+    let inOrderBlock = false
+    let startedItems = false
+
+    for (const line of lines) {
+        if (/^\s*Order:\s*$/.test(line)) {
+            inOrderBlock = true
+            startedItems = false
+            continue
+        }
+
+        if (!inOrderBlock) continue
+
+        if (/^\s*(##|###)\s+/.test(line)) {
+            inOrderBlock = false
+            startedItems = false
+            continue
+        }
+
+        if (!line.trim()) {
+            if (startedItems) {
+                inOrderBlock = false
+                startedItems = false
+            }
+            continue
+        }
+
+        const match = line.match(/^\s*(?:\d+\.|-|\*)\s+#(\d+)\b/)
+        if (match) {
+            const number = Number(match[1])
+            if (!seen.has(number)) {
+                ordered.push(number)
+                seen.add(number)
+            }
+            startedItems = true
+            continue
+        }
+
+        if (startedItems) {
+            inOrderBlock = false
+            startedItems = false
+        }
+    }
+
+    return ordered
+}
+
+export function parseCoordinatorIssueNumbers(description) {
+    const coordinators = []
+    const seen = new Set()
+    const lines = (description ?? '').split(/\r?\n/)
+    let inCoordinatorBlock = false
+
+    for (const line of lines) {
+        if (/^\s*Coordinator:\s*$/.test(line)) {
+            inCoordinatorBlock = true
+            continue
+        }
+
+        if (!inCoordinatorBlock) continue
+
+        if (/^\s*(##|###)\s+/.test(line) || /^\s*Order:\s*$/.test(line)) {
+            inCoordinatorBlock = false
+            continue
+        }
+
+        if (!line.trim()) continue
+
+        const match = line.match(/^\s*(?:\d+\.|-|\*)\s+#(\d+)\b/)
+        if (match) {
+            const number = Number(match[1])
+            if (!seen.has(number)) {
+                coordinators.push(number)
+                seen.add(number)
+            }
+            continue
+        }
+
+        inCoordinatorBlock = false
+    }
+
+    return coordinators
+}
+
+export function topologicalLayers(nodes, dependencyGraph) {
+    const sortedNodes = [...nodes].sort((a, b) => a - b)
+    const depMap = new Map(sortedNodes.map((node) => [node, new Set(dependencyGraph.get(node) ?? [])]))
+    const remaining = new Set(sortedNodes)
+    const layers = []
+
+    while (remaining.size > 0) {
+        const ready = [...remaining].filter((node) => (depMap.get(node) ?? new Set()).size === 0).sort((a, b) => a - b)
+        if (ready.length === 0) {
+            break
+        }
+
+        layers.push(ready)
+
+        for (const node of ready) {
+            remaining.delete(node)
+        }
+
+        for (const node of remaining) {
+            const deps = depMap.get(node)
+            for (const readyNode of ready) {
+                deps.delete(readyNode)
+            }
+        }
+    }
+
+    return {
+        layers,
+        remaining: [...remaining].sort((a, b) => a - b)
+    }
 }
 
 export function isEpic(issue) {
@@ -30,11 +178,10 @@ export function isEpic(issue) {
 
 export function isSuperseded(issue) {
     if (issue.state !== 'closed') return false
-
     if (issue.state_reason === 'not_planned') return true
 
     const title = issue.title.toLowerCase()
-    const body = (issue.body ?? '').toLowerCase()
+    const body = issue.body.toLowerCase()
 
     return (
         title.includes('duplicate') ||
@@ -44,320 +191,28 @@ export function isSuperseded(issue) {
     )
 }
 
-export function isTest(issue) {
-    return new Set(issue.labels).has('test')
+function isClosedGroundwork(issue) {
+    return issue.state === 'closed' && !isSuperseded(issue)
 }
 
-export function isDocs(issue) {
-    return new Set(issue.labels).has('docs')
-}
-
-// ── Dependency parsing ────────────────────────────────────────────────────────
-
-/**
- * Parse explicit dependency patterns from an issue body.
- * Recognised patterns (case-insensitive):
- *   Blocked by #N  |  Depends on #N  |  Requires #N
- */
-export function extractDepsFromBody(issueBody) {
-    const deps = new Set()
-    if (!issueBody) return deps
-
-    const patterns = [/\bblocked\s+by\s+#(\d+)/gi, /\bdepends\s+on\s+#(\d+)/gi, /\brequires\s+#(\d+)/gi]
-
-    for (const re of patterns) {
-        for (const m of issueBody.matchAll(re)) {
-            deps.add(Number(m[1]))
-        }
+function issueTypePriority(issue) {
+    const labels = new Set(issue.labels)
+    for (let idx = 0; idx < EXECUTABLE_TYPE_PRIORITY.length; idx++) {
+        if (labels.has(EXECUTABLE_TYPE_PRIORITY[idx])) return idx
     }
-
-    return deps
+    return EXECUTABLE_TYPE_PRIORITY.length
 }
 
-/**
- * Build a dependency graph from issue bodies and sub-issue relationships.
- *
- * @param {Array} issues - Array of issue objects with .number and .body
- * @param {Map<number, Array>} subIssuesByNumber - Map of parent issue number → sub-issue objects
- * @returns {Map<number, Set<number>>} key=issue number, value=Set of issue numbers this issue depends on
- */
-export function buildDependencyGraph(issues, subIssuesByNumber) {
-    const graph = new Map()
-
-    for (const issue of issues) {
-        const deps = extractDepsFromBody(issue.body ?? '')
-        graph.set(issue.number, deps)
-    }
-
-    // Sub-issues depend on their parent (parent must start before sub-issues are actioned).
-    if (subIssuesByNumber) {
-        for (const [parentNum, subIssues] of subIssuesByNumber) {
-            for (const sub of subIssues ?? []) {
-                if (!graph.has(sub.number)) graph.set(sub.number, new Set())
-                graph.get(sub.number).add(parentNum)
-            }
-        }
-    }
-
-    return graph
-}
-
-/**
- * Topological layer sort.
- *
- * @param {number[]} issueNumbers
- * @param {Map<number, Set<number>>} depGraph
- * @returns {Array<number[]>} Layers; layer[0] has no deps, later layers depend on earlier.
- */
-export function topologicalLayers(issueNumbers, depGraph) {
-    const nums = [...issueNumbers]
-    const inSet = new Set(nums)
-
-    // Filter deps to only those within the provided set.
-    const effectiveDeps = new Map()
-    for (const n of nums) {
-        const rawDeps = depGraph.get(n) ?? new Set()
-        effectiveDeps.set(n, new Set([...rawDeps].filter((d) => inSet.has(d))))
-    }
-
-    const layers = []
-    const placed = new Set()
-    const remaining = new Set(nums)
-
-    while (remaining.size > 0) {
-        const layer = []
-        for (const n of remaining) {
-            const unplaced = [...(effectiveDeps.get(n) ?? [])].filter((d) => !placed.has(d))
-            if (unplaced.length === 0) layer.push(n)
-        }
-
-        if (layer.length === 0) {
-            // Cycle detected — dump everything remaining to avoid infinite loop.
-            layers.push([...remaining].sort((a, b) => a - b))
-            break
-        }
-
-        layer.sort((a, b) => a - b)
-        layers.push(layer)
-        for (const n of layer) {
-            placed.add(n)
-            remaining.delete(n)
-        }
-    }
-
-    return layers
-}
-
-// ── Description parsing ───────────────────────────────────────────────────────
-
-/**
- * Parse issue numbers listed inside `Order:` blocks.
- *
- * FIXED: Tolerates blank lines between `Order:` and the first list item.
- * Block termination rules:
- *   - A `##` or `###` header always terminates.
- *   - A non-blank, non-item line terminates ONLY after at least one item has been seen.
- *   - Blank lines are skipped (never terminate prematurely).
- */
-export function parseOrderedIssueNumbers(description) {
-    const ordered = new Set()
-    const lines = description.split(/\r?\n/)
-    let inOrderBlock = false
-    let hasSeenItem = false
-
-    for (const line of lines) {
-        if (/^\s*Order:\s*$/.test(line)) {
-            inOrderBlock = true
-            hasSeenItem = false
-            continue
-        }
-
-        if (/^\s*(##|###)\s+/.test(line)) {
-            inOrderBlock = false
-            hasSeenItem = false
-            continue
-        }
-
-        if (!inOrderBlock) continue
-
-        // Blank lines: skip without terminating (tolerates blank after Order:).
-        if (/^\s*$/.test(line)) continue
-
-        const m = line.match(/#(\d+)/)
-        if (m) {
-            ordered.add(Number(m[1]))
-            hasSeenItem = true
-            continue
-        }
-
-        // Non-blank, non-item line: terminate only if we've already seen an item.
-        if (hasSeenItem) {
-            inOrderBlock = false
-            hasSeenItem = false
-        }
-    }
-
-    return ordered
-}
-
-/**
- * Parse issue numbers listed in `Coordinator:` blocks.
- * Block ends at a blank line (after items have been seen) or a new header.
- */
-export function parseCoordinatorIssueNumbers(description) {
-    const coordinators = new Set()
-    const lines = description.split(/\r?\n/)
-    let inCoordBlock = false
-    let hasSeenItem = false
-
-    for (const line of lines) {
-        if (/^\s*Coordinator:\s*$/.test(line)) {
-            inCoordBlock = true
-            hasSeenItem = false
-            continue
-        }
-
-        if (/^\s*(##|###)\s+/.test(line)) {
-            inCoordBlock = false
-            hasSeenItem = false
-            continue
-        }
-
-        if (!inCoordBlock) continue
-
-        // Blank line after items → terminate.
-        if (/^\s*$/.test(line)) {
-            if (hasSeenItem) {
-                inCoordBlock = false
-                hasSeenItem = false
-            }
-            continue
-        }
-
-        const m = line.match(/#(\d+)/)
-        if (m) {
-            coordinators.add(Number(m[1]))
-            hasSeenItem = true
-            continue
-        }
-
-        if (hasSeenItem) {
-            inCoordBlock = false
-            hasSeenItem = false
-        }
-    }
-
-    return coordinators
-}
-
-/** All `#N` mentions anywhere in the description (used for drift detection). */
-export function parseReferencedIssueNumbers(description) {
-    const referenced = new Set()
-    for (const m of description.matchAll(/#(\d+)/g)) {
-        referenced.add(Number(m[1]))
-    }
-    return referenced
-}
-
-// ── Private rendering helpers ─────────────────────────────────────────────────
-
-function hasSliceStructure(description) {
-    return /^##\s+Delivery slices\b/m.test(description) && /^###\s+Slice\s+\d+\b/m.test(description)
-}
-
-function findSectionRange(lines, headerPredicate) {
-    const start = lines.findIndex(headerPredicate)
-    if (start === -1) return null
-
-    let end = lines.length
-    for (let i = start + 1; i < lines.length; i++) {
-        if (/^##\s+/.test(lines[i])) {
-            end = i
-            break
-        }
-    }
-
-    return { start, end }
-}
-
-function ensureSlice0(lines) {
-    if (lines.some((l) => /^###\s+Slice\s+0\b/.test(l))) return lines
-
-    const deliverySlicesIdx = lines.findIndex((l) => /^##\s+Delivery slices\b/.test(l))
-    const firstSliceIdx = lines.findIndex((l, idx) => idx > deliverySlicesIdx && /^###\s+Slice\s+\d+\b/.test(l))
-
-    const slice0Block = [
-        '### Slice 0 — Prerequisites (infra)',
-        '',
-        'Order:',
-        PLACEHOLDER_LINE,
-        '',
-        'Notes:',
-        '- Local / low-cost environments may run with Azure OpenAI disabled and rely on safe fallbacks.',
-        '- If the milestone requires real AOAI-backed generation (not fallback-only), infra must be complete.',
-        ''
-    ]
-
-    const out = [...lines]
-    const idx = firstSliceIdx === -1 ? out.length : firstSliceIdx
-    out.splice(idx, 0, ...slice0Block)
-    return out
-}
-
-function rewriteSlice0Order(lines, infraIssues) {
-    const range = findSectionRange(lines, (l) => /^##\s+Slice\s+0\b/.test(l))
-    if (!range) return lines
-
-    const sliceLines = lines.slice(range.start, range.end)
-
-    const orderIdx = sliceLines.findIndex((l) => /^Order:\s*$/.test(l))
-    if (orderIdx === -1) return lines
-
-    let listStart = orderIdx + 1
-    while (listStart < sliceLines.length && /^\s*$/.test(sliceLines[listStart])) listStart++
-
-    let listEnd = listStart
-    while (listEnd < sliceLines.length) {
-        const l = sliceLines[listEnd]
-        const isItem = /^\s*(\d+\.|-|\*)\s*#\d+/.test(l)
-        if (!isItem) break
-        listEnd++
-    }
-
-    const merged = [...infraIssues].sort((a, b) => a.number - b.number).map((issue, idx) => `${idx + 1}. #${issue.number} ${issue.title}`)
-
-    const updatedSlice = [...sliceLines]
-    updatedSlice.splice(listStart, listEnd - listStart, ...merged)
-
-    const out = [...lines]
-    out.splice(range.start, range.end - range.start, ...updatedSlice)
-    return out
-}
-
-function upsertSection(lines, header, bodyLines) {
-    const headerRe = new RegExp(`^##\\s+${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`)
-    const range = findSectionRange(lines, (l) => headerRe.test(l))
-
-    const section = [`## ${header}`, '', ...bodyLines, '']
-
-    if (!range) {
-        return [...lines, '', ...section]
-    }
-
-    const out = [...lines]
-    out.splice(range.start, range.end - range.start, ...section)
-    return out
-}
-
-function formatGap(issue) {
-    const labels = issue.labels.length > 0 ? ` (labels: ${issue.labels.join(', ')})` : ''
-    return `- #${issue.number} ${issue.title}${labels}`
+function compareExecutableIssues(a, b) {
+    const priorityDelta = issueTypePriority(a) - issueTypePriority(b)
+    if (priorityDelta !== 0) return priorityDelta
+    return a.number - b.number
 }
 
 function countByKey(values) {
     const counts = new Map()
-    for (const v of values) {
-        counts.set(v, (counts.get(v) ?? 0) + 1)
+    for (const value of values) {
+        counts.set(value, (counts.get(value) ?? 0) + 1)
     }
     return [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
 }
@@ -368,199 +223,351 @@ function formatCountsInline(countEntries) {
 }
 
 function issueUrl(repo, number) {
-    return `https://github.com/${repo}/issues/${number}`
+    return repo ? `https://github.com/${repo}/issues/${number}` : null
 }
 
-function formatIssueLine(repo, issue) {
-    return `- [#${issue.number}](${issueUrl(repo, issue.number)}) ${issue.title}`
+function formatIssueReference(repo, issue) {
+    const url = issueUrl(repo, issue.number)
+    if (!url) return `#${issue.number} ${issue.title}`
+    return `[#${issue.number}](${url}) ${issue.title}`
 }
 
-// ── Public rendering ──────────────────────────────────────────────────────────
+function renderIssueList(repo, issues, numbered = false) {
+    if (issues.length === 0) {
+        return [numbered ? PLACEHOLDER_LINE : '- (none)']
+    }
 
-export function buildImpactReportMarkdown({ repo, milestone, issues, superseded }) {
-    const effectiveIssues = issues.filter((i) => !isSuperseded(i))
-    const open = effectiveIssues.filter((i) => i.state === 'open')
-    const closed = effectiveIssues.filter((i) => i.state === 'closed')
+    return issues.map((issue, index) => {
+        const prefix = numbered ? `${index + 1}. ` : '- '
+        return `${prefix}${formatIssueReference(repo, issue)}`
+    })
+}
 
-    const typeLabels = effectiveIssues
-        .map((i) => i.labels)
+function buildDependencyGraphData(openIssues) {
+    const openByNumber = new Map(openIssues.map((issue) => [issue.number, issue]))
+    const dependencyGraph = new Map()
+    const milestoneBlockedBy = new Map()
+    const externalBlockedBy = new Map()
+
+    for (const issue of openIssues) {
+        const milestoneBlockers = []
+        const externalBlockers = []
+
+        for (const blocker of issue.blockedBy) {
+            if (openByNumber.has(blocker.number)) {
+                milestoneBlockers.push(blocker.number)
+                continue
+            }
+
+            if (blocker.state !== 'closed') {
+                externalBlockers.push(blocker)
+            }
+        }
+
+        milestoneBlockers.sort((a, b) => a - b)
+        externalBlockers.sort((a, b) => a.number - b.number)
+
+        dependencyGraph.set(issue.number, new Set(milestoneBlockers))
+        milestoneBlockedBy.set(issue.number, milestoneBlockers)
+        externalBlockedBy.set(issue.number, externalBlockers)
+    }
+
+    return {
+        dependencyGraph,
+        milestoneBlockedBy,
+        externalBlockedBy
+    }
+}
+
+function directDependencyViolations(layerIssues, milestoneBlockedBy, positionByIssue) {
+    const violations = []
+    for (const issue of layerIssues) {
+        for (const blocker of milestoneBlockedBy.get(issue.number) ?? []) {
+            if ((positionByIssue.get(blocker) ?? -1) > (positionByIssue.get(issue.number) ?? -1)) {
+                violations.push({ blocker, blocked: issue.number })
+            }
+        }
+    }
+    return violations.sort((a, b) => a.blocked - b.blocked || a.blocker - b.blocker)
+}
+
+function buildSliceData(openIssues) {
+    const { dependencyGraph, milestoneBlockedBy, externalBlockedBy } = buildDependencyGraphData(openIssues)
+    const externalBlocked = openIssues
+        .filter((issue) => (externalBlockedBy.get(issue.number) ?? []).length > 0)
+        .sort(compareExecutableIssues)
+
+    const layerCandidates = openIssues
+        .filter((issue) => (externalBlockedBy.get(issue.number) ?? []).length === 0)
+        .map((issue) => issue.number)
+
+    const { layers, remaining } = topologicalLayers(layerCandidates, dependencyGraph)
+    const issueByNumber = new Map(openIssues.map((issue) => [issue.number, issue]))
+    const layerIndexByNumber = new Map()
+
+    layers.forEach((layer, layerIndex) => {
+        for (const number of layer) {
+            layerIndexByNumber.set(number, layerIndex)
+        }
+    })
+
+    const slices = layers.map((numbers, layerIndex) => {
+        const layerIssues = numbers.map((number) => issueByNumber.get(number))
+        const coordinators = layerIssues.filter(isEpic).sort((a, b) => a.number - b.number)
+        const executable = layerIssues.filter((issue) => !isEpic(issue)).sort(compareExecutableIssues)
+        const positionByIssue = new Map(executable.map((issue, idx) => [issue.number, idx]))
+        const dependencyViolations = directDependencyViolations(executable, milestoneBlockedBy, positionByIssue)
+        const dependsOnSlices = new Set()
+
+        for (const issue of layerIssues) {
+            for (const blocker of milestoneBlockedBy.get(issue.number) ?? []) {
+                const blockerLayer = layerIndexByNumber.get(blocker)
+                if (blockerLayer !== undefined && blockerLayer < layerIndex) {
+                    dependsOnSlices.add(blockerLayer + 1)
+                }
+            }
+        }
+
+        return {
+            index: layerIndex + 1,
+            title: `Dependency layer ${layerIndex + 1}`,
+            coordinators,
+            executable,
+            dependsOnSlices: [...dependsOnSlices].sort((a, b) => a - b),
+            dependencyViolations
+        }
+    })
+
+    return {
+        slices,
+        externalBlocked,
+        dependencyConflicts: remaining.map((number) => issueByNumber.get(number)).sort(compareExecutableIssues),
+        milestoneBlockedBy
+    }
+}
+
+export function buildImpactReportMarkdown({ repo, milestone, openIssues, closedGroundwork, superseded }) {
+    const typeLabels = openIssues
+        .map((issue) => issue.labels)
         .flat()
-        .filter((l) => ['feature', 'enhancement', 'refactor', 'infra', 'docs', 'test', 'spike'].includes(l))
+        .filter((label) => EXECUTABLE_TYPE_PRIORITY.includes(label))
 
-    const scopeLabels = effectiveIssues
-        .map((i) => i.labels)
+    const scopeLabels = openIssues
+        .map((issue) => issue.labels)
         .flat()
-        .filter((l) => l.startsWith('scope:'))
+        .filter((label) => label.startsWith('scope:'))
 
-    const milestoneUrl = `https://github.com/${repo}/milestone/${milestone.number}`
-
-    const maxList = 25
-    const openList = open
-        .slice()
-        .sort((a, b) => a.number - b.number)
-        .slice(0, maxList)
-        .map((i) => formatIssueLine(repo, i))
-    const openMore = open.length > maxList ? open.length - maxList : 0
-
-    const supersededList = superseded
-        .slice()
-        .sort((a, b) => a.number - b.number)
-        .slice(0, maxList)
-        .map((i) => formatIssueLine(repo, i))
-    const supersededMore = superseded.length > maxList ? superseded.length - maxList : 0
-
+    const milestoneUrl = issueUrl(repo, milestone.number)?.replace(`/issues/${milestone.number}`, `/milestone/${milestone.number}`)
     const lines = []
+
     lines.push('## Delivery impact report (auto)')
     lines.push('')
-    lines.push(`Milestone: **${milestone.title}** (#[${milestone.number}](${milestoneUrl})) — state: **${milestone.state}**`)
+    if (milestoneUrl) {
+        lines.push(`Milestone: **${milestone.title}** (#[${milestone.number}](${milestoneUrl})) — state: **${milestone.state}**`)
+    } else {
+        lines.push(`Milestone: **${milestone.title}** (#${milestone.number}) — state: **${milestone.state}**`)
+    }
     lines.push('')
     lines.push('Issue summary (excluding PRs):')
-    lines.push(`- Total (effective): ${effectiveIssues.length}`)
-    lines.push(`- Closed: ${closed.length}`)
-    lines.push(`- Open: ${open.length}`)
-
-    if (milestone.state === 'closed' && open.length > 0) {
-        lines.push('')
-        lines.push('⚠️ Milestone is closed but still has open issues. Consider moving these to a follow-up milestone.')
-    }
-
+    lines.push(`- Open: ${openIssues.length}`)
+    lines.push(`- Closed groundwork: ${closedGroundwork.length}`)
+    lines.push(`- Superseded / not planned: ${superseded.length}`)
     lines.push('')
-    lines.push(`Milestone board: ${milestoneUrl}`)
-    lines.push('')
-    lines.push('Label breakdown (effective issues):')
+    lines.push('Label breakdown (open issues):')
     lines.push(`- Types: ${formatCountsInline(countByKey(typeLabels))}`)
     lines.push(`- Scopes: ${formatCountsInline(countByKey(scopeLabels))}`)
-
-    lines.push('')
-    lines.push('Carryover candidates (open):')
-    if (openList.length === 0) {
-        lines.push('- (none)')
-    } else {
-        lines.push(...openList)
-        if (openMore > 0) lines.push(`- …and ${openMore} more`)
-    }
-
-    if (superseded.length > 0) {
-        lines.push('')
-        lines.push('Superseded / duplicates (closed):')
-        lines.push(...supersededList)
-        if (supersededMore > 0) lines.push(`- …and ${supersededMore} more`)
-    }
-
     lines.push('')
     lines.push('_This section is auto-generated and will be overwritten on re-run. Put human context above this block._')
 
     return lines.join('\n')
 }
 
-export function upsertAutoGeneratedBlock(description, blockMarkdown) {
-    const startIdx = description.indexOf(AUTO_BLOCK_START)
-    const endIdx = description.indexOf(AUTO_BLOCK_END)
+function renderDependencySummaryLines({ repo, slices, externalBlocked, dependencyConflicts, openEpics, closedGroundwork }) {
+    const lines = []
+    lines.push('## Dependency summary')
+    lines.push('')
+    lines.push(`- Open coordinator epics: ${openEpics.length}`)
+    lines.push(`- Closed groundwork: ${closedGroundwork.length}`)
+    lines.push(`- Dependency layers: ${Math.max(slices.length, 1)}`)
+    lines.push(`- Blocked outside this milestone: ${externalBlocked.length}`)
+    lines.push(`- Dependency conflicts: ${dependencyConflicts.length}`)
 
-    const normalizedBlock = [AUTO_BLOCK_START, blockMarkdown.trimEnd(), AUTO_BLOCK_END].join('\n')
-
-    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-        const before = description.slice(0, startIdx).trimEnd()
-        const after = description.slice(endIdx + AUTO_BLOCK_END.length).trimStart()
-        const sep1 = before.length > 0 ? '\n\n' : ''
-        const sep2 = after.length > 0 ? '\n\n' : ''
-        return `${before}${sep1}${normalizedBlock}${sep2}${after}`.trimEnd()
+    if (externalBlocked.length > 0) {
+        lines.push('')
+        lines.push('External blockers:')
+        for (const issue of externalBlocked) {
+            const blockers = issue.blockedBy.filter((blocker) => blocker.state !== 'closed')
+            const blockerSummary = blockers.map((blocker) => `#${blocker.number} ${blocker.title}`).join(', ')
+            lines.push(`- ${formatIssueReference(repo, issue)} blocked by ${blockerSummary}`)
+        }
     }
 
-    const base = description.trimEnd()
-    if (base.length === 0) return normalizedBlock
-    return `${base}\n\n${normalizedBlock}`
+    if (dependencyConflicts.length > 0) {
+        lines.push('')
+        lines.push('Dependency conflicts requiring a manual decision:')
+        for (const issue of dependencyConflicts) {
+            lines.push(`- ${formatIssueReference(repo, issue)}`)
+        }
+    }
+
+    return lines
 }
 
-// ── Main engine ───────────────────────────────────────────────────────────────
+function renderClosedGroundworkSection(repo, closedGroundwork) {
+    const lines = []
+    lines.push('## Closed groundwork')
+    lines.push('')
+    lines.push(...renderIssueList(repo, closedGroundwork, false))
+    return lines
+}
 
-/**
- * Produce an updated milestone description deterministically.
- *
- * Conservative contract:
- *   - When no dependency data is provided (`subIssuesByNumber` empty), existing
- *     `Order:` blocks are preserved exactly — nothing is reordered.
- *   - Gap detection uses `parseOrderedIssueNumbers` (not raw `#N` mentions) so
- *     issues referenced only in notes are not mistaken for ordered items.
- *   - Open epics not in any `Order:` block are surfaced as coordinator annotations,
- *     not as unplaced gaps.
- *
- * @param {{ repo, milestone, issues, subIssuesByNumber, existingDescription }} opts
- * @returns {{ description: string, summary: object }}
- */
-export function buildCanonicalDescription({ repo, milestone, issues, existingDescription }) {
-    const description = existingDescription ?? ''
+function renderSliceSection(repo, slices) {
+    const lines = []
+    lines.push('## Delivery slices')
+    lines.push('')
 
-    const superseded = issues.filter(isSuperseded)
-    const effectiveIssues = issues.filter((i) => !isSuperseded(i))
-
-    const inMilestone = new Set(effectiveIssues.map((i) => i.number))
-    const inOrderedSet = parseOrderedIssueNumbers(description)
-    const inCoordinatorSet = parseCoordinatorIssueNumbers(description)
-    const referencedInDescription = parseReferencedIssueNumbers(description)
-
-    // Gap analysis: only open issues can be misplaced.
-    const openEffective = effectiveIssues.filter((i) => i.state === 'open')
-
-    // Unordered = open issues not in any Order block (includes epics).
-    const unordered = openEffective.filter((i) => !inOrderedSet.has(i.number))
-
-    // Gaps = non-epic open issues not in any Order block (epics handled separately).
-    const gaps = openEffective.filter((i) => !inOrderedSet.has(i.number) && !isEpic(i))
-
-    // Open epics not placed in either an Order block or a Coordinator section.
-    const openEpicsUnplaced = openEffective.filter((i) => isEpic(i) && !inOrderedSet.has(i.number) && !inCoordinatorSet.has(i.number))
-
-    const missingFromMilestone = [...inOrderedSet].filter((n) => !inMilestone.has(n)).sort((a, b) => a - b)
-
-    const infraUnordered = unordered.filter(isInfra)
-    const unplaced = gaps.filter((i) => !isInfra(i))
-
-    let lines = description.split(/\r?\n/)
-
-    if (hasSliceStructure(description)) {
-        if (/^###\s+Slice\s+0\b/m.test(description) || infraUnordered.length > 0) {
-            lines = ensureSlice0(lines)
-            lines = rewriteSlice0Order(lines, infraUnordered)
-        }
-
-        if (openEpicsUnplaced.length > 0) {
-            lines = upsertSection(lines, 'Coordinators (epics)', openEpicsUnplaced.sort((a, b) => a.number - b.number).map(formatGap))
-        }
-
-        if (unplaced.length > 0) {
-            lines = upsertSection(lines, 'Unplaced gaps (needs decision)', unplaced.sort((a, b) => a.number - b.number).map(formatGap))
-        }
-
-        if (missingFromMilestone.length > 0) {
-            lines = upsertSection(
-                lines,
-                'Ordering drift (in description but not in milestone)',
-                missingFromMilestone.map((n) => `- #${n}`)
-            )
-        }
+    if (slices.length === 0) {
+        lines.push('### Slice 1 — Dependency layer 1')
+        lines.push('')
+        lines.push('Order:')
+        lines.push('')
+        lines.push(PLACEHOLDER_LINE)
+        return lines
     }
 
-    const baseDescription = lines
-        .join('\n')
-        .replace(/\n{3,}/g, '\n\n')
-        .trimEnd()
-    const impactBlock = buildImpactReportMarkdown({ repo, milestone, issues, superseded })
-    const finalDescription = upsertAutoGeneratedBlock(baseDescription, impactBlock)
+    for (const slice of slices) {
+        lines.push(`### Slice ${slice.index} — ${slice.title}`)
+        lines.push('')
+
+        if (slice.dependsOnSlices.length > 0) {
+            lines.push('Depends on:')
+            for (const dependencySlice of slice.dependsOnSlices) {
+                lines.push(`- Slice ${dependencySlice} complete`)
+            }
+            lines.push('')
+        }
+
+        if (slice.coordinators.length > 0) {
+            lines.push('Coordinator:')
+            lines.push(...renderIssueList(repo, slice.coordinators, false))
+            lines.push('')
+        }
+
+        lines.push('Order:')
+        lines.push('')
+        lines.push(...renderIssueList(repo, slice.executable, true))
+        lines.push('')
+    }
+
+    return lines
+}
+
+function renderExternalBlockedSection(repo, externalBlocked) {
+    if (externalBlocked.length === 0) return []
+
+    const lines = []
+    lines.push('## Blocked outside this milestone')
+    lines.push('')
+    for (const issue of externalBlocked) {
+        lines.push(`- ${formatIssueReference(repo, issue)}`)
+        for (const blocker of issue.blockedBy.filter((candidate) => candidate.state !== 'closed').sort((a, b) => a.number - b.number)) {
+            lines.push(`  - blocked by #${blocker.number} ${blocker.title}`)
+        }
+    }
+    return lines
+}
+
+function renderDependencyConflictSection(repo, dependencyConflicts) {
+    if (dependencyConflicts.length === 0) return []
+
+    const lines = []
+    lines.push('## Dependency conflicts (needs decision)')
+    lines.push('')
+    lines.push(...renderIssueList(repo, dependencyConflicts, false))
+    return lines
+}
+
+export function generateMilestoneDescription({ repo, milestone, issues }) {
+    const normalizedIssues = (issues ?? []).map(normalizeIssue)
+    const superseded = normalizedIssues.filter(isSuperseded).sort((a, b) => a.number - b.number)
+    const effectiveIssues = normalizedIssues.filter((issue) => !isSuperseded(issue))
+    const openIssues = effectiveIssues.filter((issue) => issue.state === 'open').sort(compareExecutableIssues)
+    const openEpics = openIssues.filter(isEpic)
+    const closedGroundwork = effectiveIssues.filter(isClosedGroundwork).sort((a, b) => a.number - b.number)
+    const { slices, externalBlocked, dependencyConflicts, milestoneBlockedBy } = buildSliceData(openIssues)
+    const dependencyViolations = slices.map((slice) => slice.dependencyViolations).flat()
+
+    const descriptionLines = [
+        `${milestone.title} delivery plan is machine-generated from GitHub milestone membership and formal dependencies.`,
+        '',
+        'Edit issues, epics, and dependency links; rerun the milestone scripts instead of hand-editing this description.',
+        '',
+        ...renderDependencySummaryLines({ repo, slices, externalBlocked, dependencyConflicts, openEpics, closedGroundwork }),
+        '',
+        ...renderClosedGroundworkSection(repo, closedGroundwork),
+        '',
+        ...renderSliceSection(repo, slices),
+        ...(() => {
+            const externalLines = renderExternalBlockedSection(repo, externalBlocked)
+            return externalLines.length > 0 ? ['', ...externalLines] : []
+        })(),
+        ...(() => {
+            const conflictLines = renderDependencyConflictSection(repo, dependencyConflicts)
+            return conflictLines.length > 0 ? ['', ...conflictLines] : []
+        })(),
+        '',
+        AUTO_BLOCK_START,
+        buildImpactReportMarkdown({ repo, milestone, openIssues, closedGroundwork, superseded }),
+        AUTO_BLOCK_END
+    ]
+
+    const updatedDescription = descriptionLines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()
+    const orderedIssueNumbers = parseOrderedIssueNumbers(updatedDescription)
+    const coordinatorIssueNumbers = parseCoordinatorIssueNumbers(updatedDescription)
 
     const summary = {
         milestone: { number: milestone.number, title: milestone.title, state: milestone.state },
         issuesInMilestone: effectiveIssues.length,
-        orderedInDescription: inOrderedSet.size,
-        referencedInDescription: referencedInDescription.size,
-        supersededInMilestone: superseded.map((s) => s.number),
-        gaps: gaps.map((g) => g.number),
-        infraUnordered: infraUnordered.map((g) => g.number),
-        epicGaps: openEpicsUnplaced.map((g) => g.number),
-        unplacedGaps: unplaced.map((g) => g.number),
-        missingFromMilestone,
-        usedSliceTemplate: hasSliceStructure(description)
+        orderedInDescription: orderedIssueNumbers.length,
+        referencedInDescription: orderedIssueNumbers.length + coordinatorIssueNumbers.length + closedGroundwork.length,
+        supersededInMilestone: superseded.map((issue) => issue.number),
+        gaps: [],
+        infraUnordered: [],
+        epicGaps: [],
+        unplacedGaps: [],
+        missingFromMilestone: [],
+        usedSliceTemplate: true,
+        dependencyViolations,
+        dependencyConflicts: dependencyConflicts.map((issue) => issue.number),
+        externalBlocked: externalBlocked.map((issue) => issue.number),
+        dependencyGraph: Object.fromEntries([...milestoneBlockedBy.entries()].map(([issueNumber, blockers]) => [issueNumber, [...blockers]]))
     }
 
-    return { description: finalDescription, summary }
+    return { updatedDescription, summary }
+}
+
+export function buildCanonicalDescription({ repo, milestone, issues, existingDescription }) {
+    const effectiveMilestone = {
+        ...milestone,
+        description: existingDescription ?? milestone.description ?? ''
+    }
+
+    const { updatedDescription, summary } = generateMilestoneDescription({
+        repo,
+        milestone: effectiveMilestone,
+        issues
+    })
+
+    return {
+        description: updatedDescription,
+        summary
+    }
+}
+
+export function buildDeliverySlicesTemplate({ repo, milestoneNumber, milestoneTitle, issues }) {
+    return generateMilestoneDescription({
+        repo,
+        milestone: { number: milestoneNumber ?? 0, title: milestoneTitle, state: 'open' },
+        issues
+    }).updatedDescription
 }

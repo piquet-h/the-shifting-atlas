@@ -14,6 +14,8 @@ test('hasDeliverySlices detects existing section', () => {
 
 test('buildDeliverySlicesTemplate includes open issues in numeric order', () => {
     const md = buildDeliverySlicesTemplate({
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 16,
         milestoneTitle: 'M5 Quality & Depth',
         issues: [
             { number: 10, title: 'Closed', state: 'closed' },
@@ -22,22 +24,27 @@ test('buildDeliverySlicesTemplate includes open issues in numeric order', () => 
         ]
     })
 
+    assert.ok(md.startsWith('M5 Quality & Depth delivery plan is machine-generated'))
     assert.ok(md.includes('## Delivery slices'))
-    assert.ok(md.includes('### Slice 1 — M5 Quality & Depth'))
-    assert.ok(md.includes('1. #1 A'))
-    assert.ok(md.includes('2. #2 B'))
-    assert.equal(md.includes('#10'), false)
+    assert.ok(md.includes('### Slice 1 — Dependency layer 1'))
+    assert.ok(md.includes('1. [#1]'))
+    assert.ok(md.includes('2. [#2]'))
+    assert.ok(md.includes('## Closed groundwork'))
+    assert.ok(md.includes('Closed'))
 })
 
 test('ensureDescriptionHasDeliverySlices appends template if missing', () => {
     const out = ensureDescriptionHasDeliverySlices({
-        description: 'Focus line.',
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
+        description: 'Focus line that should be replaced.',
         milestoneTitle: 'M6 Systems',
         issues: []
     })
 
-    assert.ok(out.startsWith('Focus line.'))
+    assert.ok(out.startsWith('M6 Systems delivery plan is machine-generated'))
     assert.ok(out.includes('## Delivery slices'))
+    assert.ok(out.includes('- (add issues, then reorder)'))
 })
 
 test('ensureDescriptionHasDeliverySlices is idempotent (with same issues)', () => {
@@ -47,12 +54,16 @@ test('ensureDescriptionHasDeliverySlices is idempotent (with same issues)', () =
     ]
 
     const first = ensureDescriptionHasDeliverySlices({
-        description: 'Focus\n\n## Delivery slices\n\n### Slice 1 — X\n\nOrder:\n1. #1 A',
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
+        description: 'Legacy text',
         milestoneTitle: 'Ignored',
         issues
     })
 
     const second = ensureDescriptionHasDeliverySlices({
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
         description: first,
         milestoneTitle: 'Ignored',
         issues
@@ -63,14 +74,9 @@ test('ensureDescriptionHasDeliverySlices is idempotent (with same issues)', () =
 
 test('ensureDescriptionHasDeliverySlices: adds missing open issues to the order', () => {
     const out = ensureDescriptionHasDeliverySlices({
-        description: [
-            '## Delivery slices',
-            '',
-            '### Slice 1 — X',
-            '',
-            'Order:',
-            '1. #1 A'
-        ].join('\n'),
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
+        description: '',
         milestoneTitle: 'Ignored',
         issues: [
             { number: 1, title: 'A', state: 'open' },
@@ -78,21 +84,15 @@ test('ensureDescriptionHasDeliverySlices: adds missing open issues to the order'
         ]
     })
 
-    assert.ok(out.includes('1. #1 A'))
-    assert.ok(out.includes('2. #2 B'))
+    assert.ok(out.includes('1. [#1]'))
+    assert.ok(out.includes('2. [#2]'))
 })
 
 test('ensureDescriptionHasDeliverySlices: removes closed issues from the order', () => {
     const out = ensureDescriptionHasDeliverySlices({
-        description: [
-            '## Delivery slices',
-            '',
-            '### Slice 1 — X',
-            '',
-            'Order:',
-            '1. #1 A',
-            '2. #2 B'
-        ].join('\n'),
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
+        description: '',
         milestoneTitle: 'Ignored',
         issues: [
             { number: 1, title: 'A', state: 'open' },
@@ -100,24 +100,21 @@ test('ensureDescriptionHasDeliverySlices: removes closed issues from the order',
         ]
     })
 
-    assert.ok(out.includes('1. #1 A'))
-    assert.equal(out.includes('#2'), false)
+    assert.ok(out.includes('1. [#1]'))
+    assert.ok(out.includes('## Closed groundwork'))
+    assert.ok(out.includes('B'))
 })
 
 test('ensureDescriptionHasDeliverySlices: refreshes titles for open issues', () => {
     const out = ensureDescriptionHasDeliverySlices({
-        description: [
-            '## Delivery slices',
-            '',
-            '### Slice 1 — X',
-            '',
-            'Order:',
-            '1. #1 Old title'
-        ].join('\n'),
+        repo: 'piquet-h/the-shifting-atlas',
+        milestoneNumber: 18,
+        description: '',
         milestoneTitle: 'Ignored',
         issues: [{ number: 1, title: 'New title', state: 'open' }]
     })
 
-    assert.ok(out.includes('1. #1 New title'))
+    assert.ok(out.includes('1. [#1]'))
+    assert.ok(out.includes('New title'))
     assert.equal(out.includes('Old title'), false)
 })

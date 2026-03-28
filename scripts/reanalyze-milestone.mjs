@@ -1,14 +1,4 @@
 #!/usr/bin/env node
-/**
- * Reanalyze a GitHub milestone "delivery path" and keep its description in sync
- * after CRUD operations on milestone issues.
- *
- * Design goals:
- * - Deterministic output
- * - Conservative placement (unknown gaps are surfaced, not guessed)
- * - Avoid heredocs/quoting issues by using `gh api -F description=@file`
- * - Guard against `GITHUB_TOKEN` precedence causing milestone PATCH 403
- */
 
 import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -16,52 +6,61 @@ import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { buildCanonicalDescription } from './lib/milestone-delivery-description.mjs'
+import { buildCanonicalDescription, generateMilestoneDescription } from './lib/milestone-delivery-description.mjs'
 
-// Re-export for consumers that import from this script directly.
-export { buildCanonicalDescription }
+export { buildCanonicalDescription, generateMilestoneDescription }
 
 function parseArgs(argv) {
     const args = {
         repo: undefined,
         milestone: undefined,
+        all: false,
+        state: 'all',
         apply: false,
         print: false,
-        verbose: false,
-        all: false
+        strict: false,
+        verbose: false
     }
 
     for (let i = 0; i < argv.length; i++) {
-        const a = argv[i]
-        if (a === '--repo') {
+        const arg = argv[i]
+        if (arg === '--repo') {
             args.repo = argv[++i]
             continue
         }
-        if (a === '--milestone' || a === '--milestoneNumber') {
+        if (arg === '--milestone' || arg === '--milestoneNumber') {
             args.milestone = Number(argv[++i])
             continue
         }
-        if (a === '--apply' || a === '--write') {
-            args.apply = true
-            continue
-        }
-        if (a === '--print') {
-            args.print = true
-            continue
-        }
-        if (a === '--verbose') {
-            args.verbose = true
-            continue
-        }
-        if (a === '--all') {
+        if (arg === '--all') {
             args.all = true
             continue
         }
-        if (a === '--help' || a === '-h') {
+        if (arg === '--state') {
+            args.state = argv[++i]
+            continue
+        }
+        if (arg === '--apply' || arg === '--write') {
+            args.apply = true
+            continue
+        }
+        if (arg === '--print') {
+            args.print = true
+            continue
+        }
+        if (arg === '--strict') {
+            args.strict = true
+            continue
+        }
+        if (arg === '--verbose') {
+            args.verbose = true
+            continue
+        }
+        if (arg === '--help' || arg === '-h') {
             args.help = true
             continue
         }
-        throw new Error(`Unknown arg: ${a}`)
+        throw new Error(`Unknown arg: ${arg}`)
     }
 
     return args
@@ -69,8 +68,7 @@ function parseArgs(argv) {
 
 function usage() {
     return `Usage:
-  node scripts/reanalyze-milestone.mjs --repo <owner/repo> --milestone <number> [--print] [--apply]
-  node scripts/reanalyze-milestone.mjs --repo <owner/repo> --all [--print] [--apply]
+  node scripts/reanalyze-milestone.mjs --repo <owner/repo> (--milestone <number> | --all [--state <open|closed|all>]) [--print] [--apply] [--strict]
 
 Examples:
   # Preview a single milestone
@@ -79,24 +77,24 @@ Examples:
   # Apply to a single milestone
   node scripts/reanalyze-milestone.mjs --repo piquet-h/the-shifting-atlas --milestone 14 --apply
 
-  # Bulk preview all open milestones
-  node scripts/reanalyze-milestone.mjs --repo piquet-h/the-shifting-atlas --all --print
+  # Bulk preview all milestones
+  node scripts/reanalyze-milestone.mjs --repo piquet-h/the-shifting-atlas --all --state all --print
 
-  # Bulk apply all open milestones
-  node scripts/reanalyze-milestone.mjs --repo piquet-h/the-shifting-atlas --all --apply
+  # Bulk apply all milestones
+  node scripts/reanalyze-milestone.mjs --repo piquet-h/the-shifting-atlas --all --state all --apply
 
 Notes:
   - Uses GitHub CLI (gh). If milestone PATCH fails with 403 due to env token precedence,
     the script will retry with GITHUB_TOKEN/GH_TOKEN removed.
-  - Sub-issues are fetched for milestones with <50 issues to inform dependency ordering.
+  - Strict mode fails if dependency conflicts, dependency-order violations, or external blockers remain.
 `
 }
 
 function removeEnvTokenPrecedence(env) {
-    const e = { ...env }
-    delete e.GITHUB_TOKEN
-    delete e.GH_TOKEN
-    return e
+    const nextEnv = { ...env }
+    delete nextEnv.GITHUB_TOKEN
+    delete nextEnv.GH_TOKEN
+    return nextEnv
 }
 
 function runGh(args, { env, verbose }) {
@@ -107,7 +105,6 @@ function runGh(args, { env, verbose }) {
     })
 
     if (verbose) {
-        // Avoid dumping tokens; only print command + exit code.
         console.error(`[gh] gh ${args.join(' ')} (exit ${result.status ?? 'null'})`)
         if (result.stderr) console.error(result.stderr.trimEnd())
     }
@@ -120,235 +117,128 @@ function runGh(args, { env, verbose }) {
     }
 }
 
-function isToken403(res) {
+function isToken403(result) {
     return (
-        res.status !== 0 &&
-        (res.stdout.includes('Resource not accessible by personal access token') ||
-            res.stderr.includes('Resource not accessible by personal access token') ||
-            res.stdout.includes('HTTP 403') ||
-            res.stderr.includes('HTTP 403'))
+        result.status !== 0 &&
+        (result.stdout.includes('Resource not accessible by personal access token') ||
+            result.stderr.includes('Resource not accessible by personal access token') ||
+            result.stdout.includes('HTTP 403') ||
+            result.stderr.includes('HTTP 403'))
     )
 }
 
 function runGhWithFallback(args, { verbose }) {
     const primary = runGh(args, { env: process.env, verbose })
     if (primary.ok) return primary
-
     if (!isToken403(primary)) return primary
 
     const fallback = runGh(args, { env: removeEnvTokenPrecedence(process.env), verbose })
     if (fallback.ok) return fallback
 
-    // Prefer the original error message, but include the fallback if different.
-    const combined = {
+    return {
         ...primary,
-        stderr:
-            primary.stderr + (fallback.stderr && fallback.stderr !== primary.stderr ? `\n--- fallback stderr ---\n${fallback.stderr}` : ''),
-        stdout:
-            primary.stdout + (fallback.stdout && fallback.stdout !== primary.stdout ? `\n--- fallback stdout ---\n${fallback.stdout}` : '')
-    }
-    return combined
-}
-
-/**
- * Fetch sub-issues for a single issue. Returns empty array on 404/error.
- */
-function fetchSubIssues(repo, issueNum, { verbose }) {
-    const res = runGhWithFallback(['api', `repos/${repo}/issues/${issueNum}/sub_issues`], { verbose })
-    if (!res.ok) return []
-    try {
-        const parsed = JSON.parse(res.stdout)
-        return Array.isArray(parsed) ? parsed : []
-    } catch {
-        return []
+        stderr: primary.stderr + (fallback.stderr && fallback.stderr !== primary.stderr ? `\n--- fallback stderr ---\n${fallback.stderr}` : ''),
+        stdout: primary.stdout + (fallback.stdout && fallback.stdout !== primary.stdout ? `\n--- fallback stdout ---\n${fallback.stdout}` : '')
     }
 }
 
-/**
- * Fetch sub-issues for all issues in a milestone (only when issue count < 50).
- * Returns Map<issueNumber, Array<{number, title}>>
- */
-function fetchSubIssueMap(repo, issues, { verbose }) {
-    const subIssuesByNumber = new Map()
-    if (issues.length >= 50) return subIssuesByNumber
-
-    for (const issue of issues) {
-        const subs = fetchSubIssues(repo, issue.number, { verbose })
-        if (subs.length > 0) {
-            subIssuesByNumber.set(
-                issue.number,
-                subs.map((s) => ({ number: s.number, title: s.title }))
-            )
-        }
+function fetchJson(args, verbose) {
+    const result = runGhWithFallback(args, { verbose })
+    if (!result.ok) {
+        throw new Error(result.stderr || result.stdout)
     }
-
-    return subIssuesByNumber
+    return JSON.parse(result.stdout)
 }
 
-function fetchMilestoneIssues(repo, milestoneNumber, { verbose }) {
-    const issuesRes = runGhWithFallback(
-        ['api', '-X', 'GET', '--paginate', `repos/${repo}/issues`, '-f', `milestone=${milestoneNumber}`, '-f', 'state=all'],
-        { verbose }
-    )
-    if (!issuesRes.ok) return { ok: false, error: issuesRes.stderr || issuesRes.stdout }
+function fetchMilestones(repo, state, verbose) {
+    return fetchJson(['api', `repos/${repo}/milestones?state=${state}&per_page=100`], verbose).map((milestone) => ({
+        number: milestone.number,
+        title: milestone.title,
+        state: milestone.state,
+        description: milestone.description ?? ''
+    }))
+}
 
-    const rawIssues = JSON.parse(issuesRes.stdout)
-    const issues = rawIssues
-        .filter((i) => !i.pull_request)
-        .map((i) => ({
-            number: i.number,
-            title: i.title,
-            state: i.state,
-            state_reason: i.state_reason ?? null,
-            body: i.body,
-            labels: (i.labels ?? []).map((l) => l.name)
+function fetchMilestone(repo, milestoneNumber, verbose) {
+    const milestone = fetchJson(['api', `repos/${repo}/milestones/${milestoneNumber}`], verbose)
+    return {
+        number: milestone.number,
+        title: milestone.title,
+        state: milestone.state,
+        description: milestone.description ?? ''
+    }
+}
+
+function fetchMilestoneIssues(repo, milestoneNumber, verbose) {
+    const rawIssues = fetchJson(['api', '-X', 'GET', '--paginate', `repos/${repo}/issues`, '-f', `milestone=${milestoneNumber}`, '-f', 'state=all'], verbose)
+    return rawIssues
+        .filter((issue) => !issue.pull_request)
+        .map((issue) => ({
+            number: issue.number,
+            title: issue.title,
+            state: issue.state,
+            state_reason: issue.state_reason ?? null,
+            body: issue.body ?? '',
+            labels: (issue.labels ?? []).map((label) => label.name)
         }))
-
-    return { ok: true, issues }
 }
 
-function applyMilestoneDescription(repo, milestoneNumber, description, { verbose }) {
-    const tmpFile = path.join(os.tmpdir(), `milestone-${milestoneNumber}-description.txt`)
-    fs.writeFileSync(tmpFile, description, 'utf8')
+function fetchIssueBlockedBy(repo, issueNumber, verbose) {
+    return fetchJson(['api', `repos/${repo}/issues/${issueNumber}/dependencies/blocked_by`], verbose).map((issue) => ({
+        number: issue.number,
+        title: issue.title,
+        state: issue.state,
+        milestoneNumber: issue.milestone?.number ?? null
+    }))
+}
 
-    return runGhWithFallback(['api', '-X', 'PATCH', `repos/${repo}/milestones/${milestoneNumber}`, '-F', `description=@${tmpFile}`], {
+function hydrateIssueDependencies(repo, issues, verbose) {
+    return issues.map((issue) => ({
+        ...issue,
+        blockedBy: fetchIssueBlockedBy(repo, issue.number, verbose)
+    }))
+}
+
+function applyMilestoneDescription(repo, milestoneNumber, description, verbose) {
+    const tempFile = path.join(os.tmpdir(), `milestone-${milestoneNumber}-description.txt`)
+    fs.writeFileSync(tempFile, description, 'utf8')
+
+    const patchResult = runGhWithFallback(['api', '-X', 'PATCH', `repos/${repo}/milestones/${milestoneNumber}`, '-F', `description=@${tempFile}`], {
         verbose
     })
+
+    if (!patchResult.ok) {
+        throw new Error(patchResult.stderr || patchResult.stdout)
+    }
 }
 
-/**
- * Thin wrapper kept for backward compatibility with tests and external callers.
- * Delegates to buildCanonicalDescription with an empty sub-issue map.
- */
 export function computeUpdatedDescription({ repo, milestone, issues }) {
-    const { description: updatedDescription, summary } = buildCanonicalDescription({
-        repo,
-        milestone,
-        issues,
-        subIssuesByNumber: new Map(),
-        existingDescription: milestone.description ?? ''
-    })
-    return { updatedDescription, summary }
+    return generateMilestoneDescription({ repo, milestone, issues })
 }
 
-function processSingleMilestone(args) {
-    const milestoneRes = runGhWithFallback(['api', `repos/${args.repo}/milestones/${args.milestone}`], { verbose: args.verbose })
-    if (!milestoneRes.ok) {
-        console.error(milestoneRes.stderr || milestoneRes.stdout)
-        process.exit(1)
-    }
+function processMilestone({ repo, milestone, apply, print, strict, verbose }) {
+    const hydratedIssues = hydrateIssueDependencies(repo, fetchMilestoneIssues(repo, milestone.number, verbose), verbose)
+    const { updatedDescription, summary } = computeUpdatedDescription({ repo, milestone, issues: hydratedIssues })
+    const changed = updatedDescription.trimEnd() !== (milestone.description ?? '').trimEnd()
 
-    const milestone = JSON.parse(milestoneRes.stdout)
+    console.error(JSON.stringify({ ...summary, milestone: milestone.number, title: milestone.title, changed, willApply: apply }, null, 2))
 
-    const { ok, issues, error } = fetchMilestoneIssues(args.repo, args.milestone, { verbose: args.verbose })
-    if (!ok) {
-        console.error(error)
-        process.exit(1)
-    }
-
-    const subIssuesByNumber = fetchSubIssueMap(args.repo, issues, { verbose: args.verbose })
-
-    const { description: updatedDescription, summary } = buildCanonicalDescription({
-        repo: args.repo,
-        milestone,
-        issues,
-        subIssuesByNumber,
-        existingDescription: milestone.description ?? ''
-    })
-
-    console.error(JSON.stringify({ ...summary, willApply: args.apply }, null, 2))
-
-    if (args.print && !args.apply) {
-        console.log(updatedDescription)
-    }
-
-    if (!args.apply) return
-
-    const patchRes = applyMilestoneDescription(args.repo, args.milestone, updatedDescription, { verbose: args.verbose })
-    if (!patchRes.ok) {
-        console.error(patchRes.stderr || patchRes.stdout)
-        process.exit(1)
-    }
-
-    if (args.print) {
-        console.log(updatedDescription)
-    }
-
-    console.error(`Updated milestone #${args.milestone} (${milestone.title}).`)
-}
-
-function processAllMilestones(args) {
-    const milestonesRes = runGhWithFallback(['api', '-X', 'GET', '--paginate', `repos/${args.repo}/milestones`, '-f', 'state=open'], {
-        verbose: args.verbose
-    })
-    if (!milestonesRes.ok) {
-        console.error(milestonesRes.stderr || milestonesRes.stdout)
-        process.exit(1)
-    }
-
-    const milestones = JSON.parse(milestonesRes.stdout)
-    const results = []
-
-    for (const ms of milestones) {
-        const milestone = {
-            number: ms.number,
-            title: ms.title,
-            state: ms.state,
-            description: ms.description ?? ''
-        }
-
-        const { ok, issues, error } = fetchMilestoneIssues(args.repo, ms.number, { verbose: args.verbose })
-        if (!ok) {
-            console.error(`Failed to fetch issues for milestone ${ms.number}: ${error}`)
-            results.push({ milestone: ms.number, title: ms.title, error: 'fetch-failed' })
-            continue
-        }
-
-        const subIssuesByNumber = fetchSubIssueMap(args.repo, issues, { verbose: args.verbose })
-
-        const { description: updatedDescription, summary } = buildCanonicalDescription({
-            repo: args.repo,
-            milestone,
-            issues,
-            subIssuesByNumber,
-            existingDescription: milestone.description
-        })
-
-        const changed = updatedDescription.trimEnd() !== milestone.description.trimEnd()
-        results.push({ milestone: ms.number, title: ms.title, changed })
-
-        if (args.verbose) {
-            console.error(JSON.stringify({ ...summary, willApply: args.apply }, null, 2))
-        }
-
-        if (args.print) {
-            console.log(`\n# Milestone ${ms.number}: ${ms.title}\n`)
-            console.log(updatedDescription)
-        }
-
-        if (args.apply && changed) {
-            const patchRes = applyMilestoneDescription(args.repo, ms.number, updatedDescription, { verbose: args.verbose })
-            if (!patchRes.ok) {
-                console.error(`Failed to patch milestone ${ms.number}: ${patchRes.stderr || patchRes.stdout}`)
-                results[results.length - 1].patchError = true
-            } else {
-                console.error(`Updated milestone #${ms.number} (${ms.title}).`)
-            }
-        }
-    }
-
-    console.error(
-        JSON.stringify(
-            {
-                milestonesProcessed: milestones.length,
-                changedCount: results.filter((r) => r.changed).length,
-                applied: args.apply,
-                results: results.map((r) => ({ milestone: r.milestone, title: r.title, changed: r.changed ?? false }))
-            },
-            null,
-            2
+    if (strict && (summary.dependencyConflicts.length > 0 || summary.dependencyViolations.length > 0 || summary.externalBlocked.length > 0)) {
+        throw new Error(
+            `Strict validation failed for milestone #${milestone.number}: conflicts=${summary.dependencyConflicts.length}, violations=${summary.dependencyViolations.length}, externalBlocked=${summary.externalBlocked.length}`
         )
-    )
+    }
+
+    if (print) {
+        console.log(updatedDescription)
+    }
+
+    if (apply && changed) {
+        applyMilestoneDescription(repo, milestone.number, updatedDescription, verbose)
+        console.error(`Updated milestone #${milestone.number} (${milestone.title}).`)
+    }
+
+    return { milestone: milestone.number, title: milestone.title, changed }
 }
 
 function main() {
@@ -360,19 +250,42 @@ function main() {
     }
 
     if (!args.repo) throw new Error('Missing --repo <owner/repo>')
+    if (args.all && !['open', 'closed', 'all'].includes(args.state)) throw new Error('Invalid --state; use open, closed, or all')
+    if (!args.all && (!args.milestone || Number.isNaN(args.milestone))) throw new Error('Missing/invalid --milestone <number>')
 
-    if (args.all) {
-        processAllMilestones(args)
-        return
+    const milestones = args.all ? fetchMilestones(args.repo, args.state, args.verbose) : [fetchMilestone(args.repo, args.milestone, args.verbose)]
+    const results = []
+
+    for (const milestone of milestones) {
+        results.push(
+            processMilestone({
+                repo: args.repo,
+                milestone,
+                apply: args.apply,
+                print: args.print && !args.all,
+                strict: args.strict,
+                verbose: args.verbose
+            })
+        )
     }
 
-    if (!args.milestone || Number.isNaN(args.milestone)) throw new Error('Missing/invalid --milestone <number>')
-
-    processSingleMilestone(args)
+    if (args.all) {
+        console.error(
+            JSON.stringify(
+                {
+                    milestonesConsidered: results.length,
+                    updatedCount: results.filter((result) => result.changed).length,
+                    results
+                },
+                null,
+                2
+            )
+        )
+    }
 }
 
 function isEntrypoint() {
-    // When imported (e.g., from node:test), we must not execute CLI behavior.
+    if (!process.argv[1]) return false
     return import.meta.url === pathToFileURL(process.argv[1]).href
 }
 

@@ -8,7 +8,7 @@ description: Keeps GitHub milestone descriptions in sync with milestone issue CR
 Use this skill when you are asked to:
 
 - Add/remove/move/close/split issues in a GitHub milestone (CRUD), **and** keep the milestone description as the authoritative delivery path.
-- Detect “gaps”: issues that are in the milestone but not represented in the milestone’s slice ordering.
+- Regenerate milestone descriptions from the milestone’s issue/dependency graph.
 - Update the milestone description deterministically while avoiding the repo’s common pitfalls:
     - auth context surprises (`GITHUB_TOKEN` precedence)
     - heredoc / quoting failures
@@ -63,8 +63,8 @@ Bulk mode (all open milestones at once):
 
 The script:
 
-- treats existing `Order:` blocks as the planned delivery path
-- detects milestone “gaps” and updates supporting sections deterministically
+- regenerates a full milestone description from GitHub issue/dependency data
+- computes dependency layers from formal GitHub `blocked_by` relationships
 - retries milestone updates if token precedence causes 403
 - treats closed duplicate/split issues as **superseded** planning noise and reports them for cleanup
 - shared parsing/rendering logic lives in `scripts/lib/milestone-delivery-description.mjs` (authoritative module for issue classification, dependency graph, description parsing, and rendering)
@@ -84,78 +84,71 @@ Notes:
 - GitHub’s “issues” endpoint includes PRs; filter out items with `pull_request` if you only want issues.
 - If you need to preserve PRs in planning, keep them but label them explicitly.
 
-### 2) Parse existing slice ordering from milestone description
+### 2) Gather dependency evidence
 
-Goal: treat the milestone description as the “planned order” and compare it to reality.
+Goal: build the plan from formal GitHub data rather than from legacy AI-written slice prose.
 
-Look for a structure like:
+Fetch for each issue in the milestone:
 
-- `## Slice ...`
-- `Order:` followed by lines containing `#<issueNumber>`
+- `gh api repos/<owner>/<repo>/issues/<issueNumber>/dependencies/blocked_by`
 
-Extract:
+Classify results into:
 
-- slice names
-- slice order lists (issue numbers)
-- optional “Coordinator” / “Epic” references
+- open executable issues
+- open coordinator epics
+- closed groundwork
+- superseded / not planned
+- blocked outside this milestone
+- dependency conflicts
 
 ### 3) Reanalyze and compute the updated delivery path
 
 Produce a new ordered plan that is:
 
 - **deterministic** (same inputs → same output)
-- **conservative** (don’t guess when uncertain; instead, surface “Unplaced gaps”)
+- **conservative** (don’t guess when uncertain; instead, surface dependency conflicts)
 
-#### 3a) Detect gaps
+#### 3a) Classify milestone issues
 
 Compute:
 
-- `inMilestone`: all issue numbers currently assigned to the milestone
-- `inDescriptionOrder`: all issue numbers referenced in any `Order:` block (presence in `Order:` blocks is the sole criterion — being mentioned elsewhere in the description does not count)
+- `open executable issues`
+- `open coordinator epics`
+- `closed groundwork`
+- `superseded / not planned`
+- `blocked outside this milestone`
+- `dependency conflicts`
 
-Gaps:
+#### 3b) Build dependency layers
 
-- `gaps = inMilestone - inDescriptionOrder`
+Topologically layer the open milestone issues using formal `blocked_by` links:
 
-Epic handling: issues labeled `epic` that are absent from `Order:` blocks are surfaced as `Coordinator:` annotations on the slice they govern, not as unplaced gaps.
+- coordinators (epics) stay in the graph, but render under `Coordinator:` rather than `Order:`
+- closed blockers are treated as satisfied
+- open blockers outside the milestone are rendered under `Blocked outside this milestone`
+- cycles or unresolved graph fragments are rendered under `Dependency conflicts (needs decision)`
 
-Also detect drift:
+Tie-breakers inside a dependency layer:
 
-- `missingFromMilestone = inDescriptionOrder - inMilestone` (remove from ordering or flag)
+- `infra`
+- `feature|enhancement|refactor|spike`
+- `test`
+- `docs`
+- issue number
 
-#### 3b) Place gaps (heuristics, in priority order)
+#### 3c) Render the canonical description
 
-1. **Prerequisites / Infra slice**
-    - If issue has label `infra` OR title prefix `infra(` OR mentions “Provision”, “RBAC”, “app settings wiring” → place into `Slice 0 — Prerequisites (infra)`.
+Use the generated structure from `scripts/lib/milestone-delivery-description.mjs`:
 
-2. **Coordinator / Epic**
-    - If issue has label `epic` → place under a `Coordinator:` annotation for the slice it clearly governs (format: `Coordinator: #<issue> <title>`).
-    - Do not interleave epics into `Order:` unless your repo treats epics as executable tasks.
+- intro (machine-generated)
+- `## Dependency summary`
+- `## Closed groundwork`
+- `## Delivery slices`
+- optional `## Blocked outside this milestone`
+- optional `## Dependency conflicts (needs decision)`
+- auto-generated impact block
 
-3. **Testing / Docs**
-    - If label `test` → near the end of its relevant slice (after the behavior change it validates).
-    - If label `docs` → last or near-last in its slice.
-
-4. **Scope-based placement**
-    - `scope:observability` after core behavior exists but before closing the slice.
-    - `scope:world` vs `scope:ai` vs `scope:mcp` should usually follow the milestone’s slice taxonomy.
-
-5. **Uncertain placement**
-    - If a gap can’t be confidently placed, list it in an explicit “Unplaced gaps (needs decision)” section.
-
-#### 3b-dep) Dependency-aware ordering
-
-The script fetches sub-issues for each epic via:
-
-- `gh api repos/<owner>/<repo>/issues/<num>/sub_issues`
-
-It also parses explicit dependency patterns from issue bodies:
-
-- `Blocked by #N`, `Depends on #N`, `Requires #N`
-
-These are used to build a topological sort (dependency layers) that informs slice ordering when data is present. If no dependency data is found, the script falls back to preserving the existing `Order:` block sequence unchanged.
-
-#### 3c) Handle duplicates / splits
+#### 3d) Handle duplicates / splits
 
 If an issue is marked duplicate/superseded (common after splitting):
 
@@ -182,24 +175,28 @@ Re-fetch and compare:
 
 Acceptance checks:
 
-- Description contains all slices and their `Order:` blocks.
-- Every issue in milestone is either:
-    - placed in an `Order:` block, or
-    - referenced as a coordinator, or
-    - listed under “Unplaced gaps”.
+- Description contains the generated dependency summary, delivery slices, and impact block.
+- Every open issue is either:
+    - placed in a dependency layer, or
+    - listed under `Blocked outside this milestone`, or
+    - listed under `Dependency conflicts (needs decision)`.
+- Re-running the command is idempotent.
+- `--strict` fails when unresolved blockers/conflicts remain.
 
 ## Output template (recommended)
 
 Within the milestone description, use a stable structure:
 
-- Intro (1–2 lines)
-- `## Slice 0 — Prerequisites (infra)`
-- `## Exit criteria ...`
+- Intro (machine-generated)
+- `## Dependency summary`
+- `## Closed groundwork`
 - `## Delivery slices`
-    - `### Slice 1 ...` (+ optional `Coordinator:`)
-    - `### Slice 2 ...`
-    - ...
-- Optional `## Unplaced gaps (needs decision)`
+    - `### Slice N — Dependency layer N`
+    - optional `Depends on:`
+    - optional `Coordinator:`
+    - `Order:`
+- Optional `## Blocked outside this milestone`
+- Optional `## Dependency conflicts (needs decision)`
 
 ## Notes
 

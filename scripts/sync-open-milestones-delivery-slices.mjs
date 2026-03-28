@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 /**
- * Sync open milestone delivery-slices descriptions.
- *
- * Triggered by issue events (milestoned/demilestoned/edited/closed/reopened) to prevent drift:
- * - Adds missing open issues into an Order list
- * - Removes closed issues from Order lists
- * - Refreshes titles in Order lists
- *
- * Deterministic: no AI, no reordering beyond preserving existing order and appending missing issues.
+ * Sync open milestone descriptions deterministically from milestone membership
+ * and formal GitHub issue dependencies.
  */
 
 import { pathToFileURL } from 'node:url'
@@ -63,6 +57,7 @@ Env:
 }
 
 function isEntrypoint() {
+    if (!process.argv[1]) return false
     return import.meta.url === pathToFileURL(process.argv[1]).href
 }
 
@@ -133,7 +128,10 @@ async function listMilestoneIssues({ base, milestoneNumber }) {
             .map((i) => ({
                 number: i.number,
                 title: i.title,
-                state: i.state
+                state: i.state,
+                state_reason: i.state_reason ?? null,
+                body: i.body ?? '',
+                labels: (i.labels ?? []).map((label) => label.name)
             }))
 
         all.push(...issuesOnly)
@@ -142,6 +140,27 @@ async function listMilestoneIssues({ base, milestoneNumber }) {
     }
 
     return all
+}
+
+async function fetchIssueBlockedBy({ base, issueNumber }) {
+    const deps = await ghGetJson(`${base}/issues/${issueNumber}/dependencies/blocked_by`)
+    return deps.map((issue) => ({
+        number: issue.number,
+        title: issue.title,
+        state: issue.state,
+        milestoneNumber: issue.milestone?.number ?? null
+    }))
+}
+
+async function hydrateIssueDependencies({ base, issues }) {
+    const hydrated = []
+    for (const issue of issues) {
+        hydrated.push({
+            ...issue,
+            blockedBy: await fetchIssueBlockedBy({ base, issueNumber: issue.number })
+        })
+    }
+    return hydrated
 }
 
 async function main() {
@@ -160,9 +179,11 @@ async function main() {
     const results = []
 
     for (const m of openMilestones) {
-        const issues = await listMilestoneIssues({ base, milestoneNumber: m.number })
+        const issues = await hydrateIssueDependencies({ base, issues: await listMilestoneIssues({ base, milestoneNumber: m.number }) })
 
         const updated = ensureDescriptionHasDeliverySlices({
+            repo: args.repo,
+            milestoneNumber: m.number,
             description: m.description,
             milestoneTitle: m.title,
             issues

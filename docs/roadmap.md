@@ -12,10 +12,13 @@ This file is a **pointer doc** only. If you find yourself adding issue-number li
 
 ## Canonical delivery order (within a milestone)
 
-Milestone descriptions use a single enforced format:
+Milestone descriptions are machine-generated from GitHub milestone membership plus formal dependency links and use a single enforced format:
 
+- `## Dependency summary`
+- `## Closed groundwork`
 - `## Delivery slices`
-- Per-slice `Order:` lists (the ordered plan)
+- Per-slice `Coordinator:` and `Order:` blocks (the ordered plan)
+- Optional external-blocker / dependency-conflict sections when the graph is not fully runnable
 
 Template:
 
@@ -23,9 +26,10 @@ Template:
 
 Automation:
 
-- `scripts/ensure-milestone-has-delivery-slices.mjs` bootstraps the `Delivery slices` section and keeps issue titles in sync.
-- `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it preserves the slice structure and refreshes the impact block deterministically. Use `--all` to reanalyze all open milestones at once.
-- `scripts/lib/milestone-delivery-description.mjs` is the shared engine (issue classification, dependency graph, description parsing, rendering) consumed by `reanalyze-milestone.mjs`.
+- `scripts/ensure-milestone-has-delivery-slices.mjs` bootstraps a deterministic generated milestone description when a milestone is created.
+- `scripts/sync-open-milestones-delivery-slices.mjs` re-syncs open milestone descriptions when issue membership or titles change.
+- `scripts/reanalyze-milestone.mjs` is the follow-up tool after milestone CRUD (issues added/removed/reordered/split); it regenerates dependency-first slices and can run in bulk via `--all --state <open|closed|all>`.
+- `scripts/lib/milestone-delivery-description.mjs` is the shared engine (issue classification, dependency graph, parsing helpers, rendering) consumed by the milestone scripts.
 
 ## How to answer common questions
 
