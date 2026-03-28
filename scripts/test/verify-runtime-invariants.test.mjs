@@ -280,3 +280,295 @@ test('verify-runtime-invariants: fails when an atlas semantic id is replaced wit
         await rm(root, { recursive: true, force: true })
     }
 })
+
+// ---------------------------------------------------------------------------
+// Macro-transition edge validation tests
+// ---------------------------------------------------------------------------
+
+function buildValidAtlasDataWithTransition(transitionOverrides = {}) {
+    const data = buildValidAtlasData()
+    const transitionEdge = {
+        from: 'lr-area-mosswell-fiordhead',
+        to: 'lr-barrier-fiord-deeps',
+        relation: 'macro-transition',
+        traversal: 'open',
+        transition: {
+            direction: 'north',
+            threshold: 'Exit Mosswell; enter northern corridor',
+            destinationAreaRef: 'lr-barrier-fiord-deeps',
+            destinationReadiness: 'ready',
+            ...transitionOverrides
+        }
+    }
+    data['backend/src/data/theLongReachMacroAtlas.json'].macroGraph.edges.push(transitionEdge)
+    return data
+}
+
+test('verify-runtime-invariants: accepts valid macro-transition edge metadata', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition()
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 0)
+
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['atlas-transition-invalid'], 0)
+        assert.equal(payload.counts['atlas-transition-reference-integrity'], 0)
+        assert.equal(payload.counts['atlas-transition-contradiction'], 0)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when macro-transition edge is missing transition object', async () => {
+    const dataFiles = buildValidAtlasData()
+    dataFiles['backend/src/data/theLongReachMacroAtlas.json'].macroGraph.edges.push({
+        from: 'lr-area-mosswell-fiordhead',
+        to: 'lr-barrier-fiord-deeps',
+        relation: 'macro-transition',
+        traversal: 'open'
+        // transition intentionally omitted
+    })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['atlas-transition-invalid'], 1)
+        assert.match(payload.issues.find((i) => i.type === 'atlas-transition-invalid').message, /missing a "transition" object/i)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition direction is missing', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ direction: undefined })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-transition-invalid'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-transition-invalid' && /direction/.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition direction is not a recognised value', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ direction: 'diagonally-sideways' })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-transition-invalid'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-transition-invalid' && /unrecognised direction/i.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition threshold is missing', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ threshold: '' })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-transition-invalid'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-transition-invalid' && /threshold/.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition destinationReadiness is invalid', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ destinationReadiness: 'maybe-someday' })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-transition-invalid'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-transition-invalid' && /destinationReadiness/.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition destinationAreaRef references unknown node', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ destinationAreaRef: 'lr-area-does-not-exist' })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-transition-reference-integrity'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-transition-reference-integrity' && /destinationAreaRef/.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when transition destinationAreaRef is a GUID', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ destinationAreaRef: '22222222-2222-2222-2222-222222222222' })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.ok(payload.counts['atlas-semantic-id-format'] >= 1)
+        assert.ok(payload.issues.some((i) => i.type === 'atlas-semantic-id-format' && /destinationAreaRef/.test(i.message)))
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when requiresRouteHandoff is true but handoffRouteRef is absent', async () => {
+    const dataFiles = buildValidAtlasDataWithTransition({ requiresRouteHandoff: true })
+    // handoffRouteRef is absent
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['atlas-transition-contradiction'], 1)
+        assert.match(payload.issues.find((i) => i.type === 'atlas-transition-contradiction').message, /requiresRouteHandoff.*handoffRouteRef/i)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: fails when traversal is blocked but destinationReadiness is ready', async () => {
+    const dataFiles = buildValidAtlasData()
+    dataFiles['backend/src/data/theLongReachMacroAtlas.json'].macroGraph.edges.push({
+        from: 'lr-area-mosswell-fiordhead',
+        to: 'lr-barrier-fiord-deeps',
+        relation: 'macro-transition',
+        traversal: 'blocked',
+        transition: {
+            direction: 'west',
+            threshold: 'Blocked by cliffwall',
+            destinationAreaRef: 'lr-barrier-fiord-deeps',
+            destinationReadiness: 'ready'
+        }
+    })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 1)
+
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['atlas-transition-contradiction'], 1)
+        assert.match(
+            payload.issues.find((i) => i.type === 'atlas-transition-contradiction').message,
+            /traversal "blocked".*destinationReadiness "ready"/i
+        )
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
+
+test('verify-runtime-invariants: accepts macro-transition with cross-file destinationAreaRef from mosswell to long-reach', async () => {
+    const dataFiles = buildValidAtlasData()
+    // Add a mosswell-side macro-transition edge referencing a Long Reach node
+    dataFiles['backend/src/data/mosswellMacroAtlas.json'].macroGraph.edges.push({
+        from: 'mw-area-fjord-sound-head',
+        to: 'lr-area-mosswell-fiordhead',
+        relation: 'macro-transition',
+        traversal: 'open',
+        transition: {
+            direction: 'north',
+            threshold: 'Exit Mosswell settlement atlas into Long Reach macro geography',
+            destinationAreaRef: 'lr-area-mosswell-fiordhead',
+            destinationReadiness: 'ready'
+        }
+    })
+
+    const root = await createFixtureRepo({
+        backendDependency: '^0.3.141',
+        frontendDependency: '^0.3.141',
+        dataFiles
+    })
+
+    try {
+        const result = await runVerifier(root, ['--strict', '--json'])
+        assert.equal(result.exitCode, 0)
+
+        const payload = JSON.parse(result.stdout)
+        assert.equal(payload.counts['atlas-transition-invalid'], 0)
+        assert.equal(payload.counts['atlas-transition-reference-integrity'], 0)
+        assert.equal(payload.counts['atlas-transition-contradiction'], 0)
+    } finally {
+        await rm(root, { recursive: true, force: true })
+    }
+})
