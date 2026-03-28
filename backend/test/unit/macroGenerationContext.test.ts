@@ -243,7 +243,7 @@ test('resolveAreaTransitionEdge: returns "blocked" destination for westward Moss
     assert.equal(edge.transition.destinationReadiness, 'blocked')
     assert.equal(edge.transition.destinationAreaRef, 'lr-area-fiordmarch-west')
     assert.equal(edge.traversal, 'constrained')
-    // Blocked destinations must also surface barrier context when present
+    // Blocked transition should include barrier refs from the atlas edge
     assert.ok(edge.barrierRefs && edge.barrierRefs.length > 0, 'Blocked transition should carry barrier refs')
 })
 
