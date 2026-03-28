@@ -56,12 +56,18 @@ Use the repo script to reanalyze and (optionally) update the milestone descripti
 - Apply:
     - `node scripts/reanalyze-milestone.mjs --repo <owner>/<repo> --milestone <milestoneNumber> --apply`
 
+Bulk mode (all open milestones at once):
+
+- Preview all: `node scripts/reanalyze-milestone.mjs --repo <owner>/<repo> --all --print`
+- Apply all: `node scripts/reanalyze-milestone.mjs --repo <owner>/<repo> --all --apply`
+
 The script:
 
 - treats existing `Order:` blocks as the planned delivery path
 - detects milestone “gaps” and updates supporting sections deterministically
 - retries milestone updates if token precedence causes 403
 - treats closed duplicate/split issues as **superseded** planning noise and reports them for cleanup
+- shared parsing/rendering logic lives in `scripts/lib/milestone-delivery-description.mjs` (authoritative module for issue classification, dependency graph, description parsing, and rendering)
 
 ### 1) Gather evidence (milestone + issues)
 
@@ -105,11 +111,13 @@ Produce a new ordered plan that is:
 Compute:
 
 - `inMilestone`: all issue numbers currently assigned to the milestone
-- `inDescriptionOrder`: all issue numbers referenced in any `Order:` block
+- `inDescriptionOrder`: all issue numbers referenced in any `Order:` block (presence in `Order:` blocks is the sole criterion — being mentioned elsewhere in the description does not count)
 
 Gaps:
 
 - `gaps = inMilestone - inDescriptionOrder`
+
+Epic handling: issues labeled `epic` that are absent from `Order:` blocks are surfaced as `Coordinator:` annotations on the slice they govern, not as unplaced gaps.
 
 Also detect drift:
 
@@ -121,7 +129,7 @@ Also detect drift:
     - If issue has label `infra` OR title prefix `infra(` OR mentions “Provision”, “RBAC”, “app settings wiring” → place into `Slice 0 — Prerequisites (infra)`.
 
 2. **Coordinator / Epic**
-    - If issue has label `epic` → place under a `Coordinator:` section for the slice it clearly governs.
+    - If issue has label `epic` → place under a `Coordinator:` annotation for the slice it clearly governs (format: `Coordinator: #<issue> <title>`).
     - Do not interleave epics into `Order:` unless your repo treats epics as executable tasks.
 
 3. **Testing / Docs**
@@ -134,6 +142,18 @@ Also detect drift:
 
 5. **Uncertain placement**
     - If a gap can’t be confidently placed, list it in an explicit “Unplaced gaps (needs decision)” section.
+
+#### 3b-dep) Dependency-aware ordering
+
+The script fetches sub-issues for each epic via:
+
+- `gh api repos/<owner>/<repo>/issues/<num>/sub_issues`
+
+It also parses explicit dependency patterns from issue bodies:
+
+- `Blocked by #N`, `Depends on #N`, `Requires #N`
+
+These are used to build a topological sort (dependency layers) that informs slice ordering when data is present. If no dependency data is found, the script falls back to preserving the existing `Order:` block sequence unchanged.
 
 #### 3c) Handle duplicates / splits
 

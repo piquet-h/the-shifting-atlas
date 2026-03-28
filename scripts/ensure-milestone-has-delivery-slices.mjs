@@ -163,13 +163,7 @@ function ensureInboxSlice({ lines, deliveryBounds }) {
     if (existing) return lines
 
     // Insert the inbox slice right before the end of the Delivery slices section.
-    const insertion = [
-        '',
-        `### ${INBOX_SLICE_HEADER}`,
-        '',
-        'Order:',
-        PLACEHOLDER_LINE
-    ]
+    const insertion = ['', `### ${INBOX_SLICE_HEADER}`, '', 'Order:', PLACEHOLDER_LINE]
 
     const out = [...lines]
     out.splice(deliveryBounds.end, 0, ...insertion)
