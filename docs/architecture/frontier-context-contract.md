@@ -99,6 +99,44 @@ AI generation **must not** write to `macro:area:`, `macro:route:`, or `macro:wat
 
 These are intended for exceptional cases where geography requires a deliberate discontinuity (e.g. a mountain pass that crosses an atlas area boundary).
 
+## Area transition readiness (`AreaReadinessState`)
+
+When frontier travel reaches the boundary of a macro area, the atlas may contain a `macro-transition` edge pointing at a neighbouring area.  Each transition edge carries a `destinationReadiness` field that tells runtime and tooling how to treat the destination.
+
+### Vocabulary
+
+| State      | Runtime meaning                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| `ready`    | Destination area is fully authored and eligible for runtime area handoff.  Runtime may commit to the new area.    |
+| `partial`  | Destination has a skeleton (entry segment, basic structure) but needs further authoring.  Runtime may enter but should degrade gracefully — generic prose and placeholder geography are acceptable. |
+| `blocked`  | Destination is intentionally not ready.  Handoff **must not** occur; the transition is an explicit authoring boundary.  Runtime should treat the direction as a soft wall — the player can see that "something is there" but cannot cross. |
+| `deferred` | Destination authoring is deliberately deferred to a later milestone or content pass.  Behaves identically to `blocked` at runtime but signals a different editorial intent (postponed, not rejected). |
+
+### Blocked transitions as authoring boundaries
+
+A `blocked` or `deferred` transition is not a bug — it is an intentional content boundary.  Runtime consumers must **never** silently convert a blocked transition into generic continuation (i.e. keep generating open-terrain locations as though no boundary exists).
+
+When `resolveAreaTransitionEdge` returns a transition with `destinationReadiness === 'blocked'` or `'deferred'`:
+
+1. The direction may still appear in `exitAvailability.pending` (the player can see a road heading that way), but the pending reason string should indicate that the way is impassable or not yet open.
+2. `buildAtlasConstrainedExitAvailability` may convert the direction to `exitAvailability.forbidden` if barrier refs on the transition edge make traversal impossible.
+3. Debug and map surfaces should display the destination area ref and readiness state so authors can see exactly where a content boundary lies.
+
+### Contradiction guard
+
+The runtime invariant checker (`scripts/verify-runtime-invariants.mjs`) flags a contradiction if a transition edge has `traversal: 'blocked'` but `destinationReadiness: 'ready'` — a blocked edge should not indicate a ready destination.
+
+### Inspecting transition edges
+
+`resolveAreaTransitionEdge(areaRef, direction)` returns a `MacroTransitionEdge` (or `undefined`) carrying the full `TransitionMetadata`, including `destinationReadiness`.  Callers branch on readiness without parsing human-readable `threshold` strings:
+
+```ts
+const edge = resolveAreaTransitionEdge(areaRef, direction)
+if (!edge) { /* no authored transition — stay in current-area continuation */ }
+else if (edge.transition.destinationReadiness === 'ready') { /* commit to handoff */ }
+else { /* blocked / partial / deferred — remain in current area, surface boundary */ }
+```
+
 ## Surfaced in API responses
 
 The world graph endpoint (`GET /api/world/graph`) surfaces structured context on every pending edge and its synthetic placeholder node:
@@ -130,8 +168,9 @@ Consumers must handle absent optional fields gracefully and fall back to conserv
 ## Related
 
 - `backend/src/services/frontierContext.ts` — type definitions and `inferStructuralArchetype`
-- `backend/src/services/macroGenerationContext.ts` — `buildAtlasAwarePendingMetadata`, `planAtlasAwareFutureLocation`
+- `backend/src/services/macroGenerationContext.ts` — `buildAtlasAwarePendingMetadata`, `planAtlasAwareFutureLocation`, `resolveAreaTransitionEdge`, `AreaReadinessState`
 - `backend/src/handlers/worldGraph.ts` — surfaces `structuralClass` and `frontierContext` in the world graph API
+- `scripts/verify-runtime-invariants.mjs` — validates `destinationReadiness` values and transition contradiction guards
 - `docs/concept/exit-intent-capture.md` — exit availability states (hard / pending / forbidden)
 - `docs/design-modules/world-spatial-generation.md` — reconnection invariants and AI generation trigger points
 - Issue [#892](https://github.com/piquet-h/the-shifting-atlas/issues/892) — progenitor tracking issue
