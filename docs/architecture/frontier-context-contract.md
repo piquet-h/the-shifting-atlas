@@ -112,6 +112,17 @@ When frontier travel reaches the boundary of a macro area, the atlas may contain
 | `blocked`  | Destination is intentionally not ready.  Handoff **must not** occur; the transition is an explicit authoring boundary.  Runtime should treat the direction as a soft wall — the player can see that "something is there" but cannot cross. |
 | `deferred` | Destination authoring is deliberately deferred to a later milestone or content pass.  Behaves identically to `blocked` at runtime but signals a different editorial intent (postponed, not rejected). |
 
+### Authoring-workflow designations
+
+The four `AreaReadinessState` values above are the canonical runtime vocabulary.  Two additional _authoring-workflow_ labels describe specific points in the content pipeline; they are expressed through the runtime states but carry extra semantic intent for tooling and planning:
+
+| Designation | Maps to runtime state | Meaning |
+|---|---|---|
+| `transition-ready` | `partial` (with `entrySegmentRef` set) | The area can accept the first cross-area arrival.  The entry segment is authored, barriers are defined, and the runtime can commit to the handoff — but broader area authoring is still in progress.  An area moves from `transition-ready` to `ready` when the full content pass is complete. |
+| `next-to-author` | `blocked` or `deferred` | Editorial signal that this area is the next scheduled authoring target in the milestone/roadmap pipeline.  Expressed at the atlas level by setting `authoringReadiness: 'blocked'` or `'deferred'` while roadmap tracking identifies it as the next content priority.  Once the entry segment is authored, the area transitions to `transition-ready` (`partial`). |
+
+These designations are informational — they do not change the runtime branching behaviour described in § [Inspecting transition edges](#inspecting-transition-edges).  Runtime consumers always branch on the four `AreaReadinessState` code values; the authoring-workflow labels are for human authors, overlay renderers, and planning tooling.
+
 ### Blocked transitions as authoring boundaries
 
 A `blocked` or `deferred` transition is not a bug — it is an intentional content boundary.  Runtime consumers must **never** silently convert a blocked transition into generic continuation (i.e. keep generating open-terrain locations as though no boundary exists).
@@ -145,16 +156,27 @@ The world graph endpoint (`GET /api/world/graph`) surfaces structured context on
 - `WorldGraphNode.structuralClass: FrontierStructuralArchetype` — present on all synthetic pending nodes (tagged `pending:synthetic`).
 - `WorldGraphNode.name` — archetype-aware: `'Unexplored Waterfront'` for waterfront directions, `'Unexplored Interior'` for interior, `'Unexplored Upper Level'` / `'Unexplored Lower Level'` for vertical, `'Unexplored Open Plain'` for overland.
 
-## Precedence for conflicting nearby cues
+## Frontier context precedence stack
 
-When multiple macro tags are present (e.g. both `macro:area:harbor` and `macro:area:market` on adjacent nodes), the following precedence applies:
+The frontier context for a pending exit direction is assembled by layering signals from least-specific to most-specific.  Each higher layer may override those below.  The full ordered stack (lowest to highest precedence):
 
-1. **Route lineage** (`macro:route:`) — strongest continuity signal; overrides bare area trend.
-2. **Named water body** (`macro:water:`) — influences archetype and terrain bias.
-3. **Area directional trend** (`macro:area:`) — applies terrain bias based on the atlas trend profile for the expansion direction.
-4. **Barrier semantics** — applied last; can convert a pending direction to forbidden (e.g. fiord cliff walls blocking westward expansion).
+| # | Layer | Source | Effect |
+|---|-------|--------|--------|
+| 1 | **Macro trend** | `macro:area:` tag → atlas `directionalTrendProfiles` | Baseline terrain and directional bias for the expansion direction |
+| 2 | **Route continuity** | `macro:route:` tags → atlas `continuityRoutes` | Overrides bare area trend; preserves route naming and frontier policy |
+| 3 | **Local override** | Source node's own `macro:area:` tag (self-referential) | Source node's own area ref wins over any conflicting context from adjacent nodes |
+| 4 | **Barrier semantics** | Atlas edge `barrierRefs` | Applied after terrain/route resolution; converts a pending direction to forbidden when a named barrier blocks it (e.g. a fiord cliff wall) |
+| 5 | **Explicit authored exception** | `overrideFlags` on `PendingExitMetadata` | Highest priority; allows deliberate discontinuity (e.g. a mountain pass crossing an atlas area boundary) |
 
-When two area refs conflict (mixed adjacency), the area ref carried by the source node's own `macro:area:` tag wins.  Atlas edge barriers from both areas are merged.
+> **ADR-010 note:** This entire precedence stack operates against _JSON-backed context_, not Gremlin graph traversal.  Runtime reads `macro:area:`, `macro:route:`, and `macro:water:` tags already stamped onto Gremlin location vertices at seed time, then resolves label names, trend profiles, and barrier text against the bundled JSON atlas files.  No additional Gremlin hops are required.  See [ADR-010](../adr/ADR-010-macro-geography-persistence-strategy.md) for the full rationale.
+
+### Conflict resolution when multiple tags are present
+
+When multiple area refs appear on adjacent nodes (e.g. both `macro:area:harbor` and `macro:area:market` nearby), the following resolution applies:
+
+1. The source node's own `macro:area:` tag wins (layer 3 above).  Neighbour area refs do not override.
+2. Named water body (`macro:water:`) influences archetype and terrain bias independently.
+3. Atlas edge barriers from all contributing areas are **merged** — barriers accumulate rather than override.
 
 ## Interior and vertical frontier cases
 
@@ -171,6 +193,7 @@ Consumers must handle absent optional fields gracefully and fall back to conserv
 - `backend/src/services/macroGenerationContext.ts` — `buildAtlasAwarePendingMetadata`, `planAtlasAwareFutureLocation`, `resolveAreaTransitionEdge`, `AreaReadinessState`
 - `backend/src/handlers/worldGraph.ts` — surfaces `structuralClass` and `frontierContext` in the world graph API
 - `scripts/verify-runtime-invariants.mjs` — validates `destinationReadiness` values and transition contradiction guards
+- `docs/adr/ADR-010-macro-geography-persistence-strategy.md` — persistence strategy for macro geography; establishes that the precedence stack resolves against JSON atlas files, not Gremlin vertices
 - `docs/concept/exit-intent-capture.md` — exit availability states (hard / pending / forbidden)
 - `docs/design-modules/world-spatial-generation.md` — reconnection invariants and AI generation trigger points
 - Issue [#892](https://github.com/piquet-h/the-shifting-atlas/issues/892) — progenitor tracking issue
