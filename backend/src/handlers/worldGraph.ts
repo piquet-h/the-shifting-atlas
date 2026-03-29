@@ -26,9 +26,14 @@ export interface WorldGraphNode {
     name: string
     tags?: string[]
     /**
-     * Structural classification for pending/synthetic frontier nodes.
-     * Absent on real (materialized) location nodes.
-     * Machine-readable complement to the human-readable `name`.
+     * Structural classification for frontier nodes.
+     *
+     * Present on:
+     * - All synthetic pending nodes (tagged `pending:synthetic`) — inferred from direction.
+     * - Materialized stubs generated from interior or vertical exits (tagged
+     *   `interior:generated` or `vertical:generated` by {@link planAtlasAwareFutureLocation}).
+     *
+     * Absent on fully authored real location nodes.
      */
     structuralClass?: FrontierStructuralArchetype
 }
@@ -91,6 +96,21 @@ function forbiddenNodeId(fromId: string, direction: string): string {
     return `forbidden:${fromId}:${direction}`
 }
 
+/**
+ * Derive the structural class for a real (materialized) location node from its tags.
+ *
+ * Returns `'interior'` for locations tagged `interior:generated` (stubs created by
+ * expanding an `in`/`out` exit), `'vertical'` for locations tagged `vertical:generated`
+ * (stubs created by expanding an `up`/`down` exit), and `undefined` for fully authored
+ * real locations that carry no structural archetype tag.
+ */
+function deriveStructuralClassFromTags(tags?: string[]): FrontierStructuralArchetype | undefined {
+    if (!tags) return undefined
+    if (tags.includes('interior:generated')) return 'interior'
+    if (tags.includes('vertical:generated')) return 'vertical'
+    return undefined
+}
+
 function forbiddenNodeName(motif?: ForbiddenExitMotif): string {
     const motifNames: Record<ForbiddenExitMotif, string> = {
         cliff: 'Impassable Cliff',
@@ -130,7 +150,8 @@ export class WorldGraphHandler extends BaseHandler {
                         {
                             id: loc.id,
                             name: loc.name || 'Unknown',
-                            tags: loc.tags
+                            tags: loc.tags,
+                            structuralClass: deriveStructuralClassFromTags(loc.tags)
                         }
                     ])
                 )
@@ -265,7 +286,7 @@ export class WorldGraphHandler extends BaseHandler {
                 const name = Array.isArray(v.name) ? String((v.name as unknown[])[0]) : String(v.name || 'Unknown')
                 const tags = Array.isArray(v.tags) ? (v.tags as string[]) : undefined
 
-                nodesById.set(id, { id, name, tags })
+                nodesById.set(id, { id, name, tags, structuralClass: deriveStructuralClassFromTags(tags) })
 
                 const pendingRaw = Array.isArray(v.exitAvailabilityPendingJson)
                     ? v.exitAvailabilityPendingJson[0]

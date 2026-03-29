@@ -409,4 +409,225 @@ describe('WorldGraphHandler Integration', () => {
             assert.equal(targetNode?.name, expectedName, `Expected pending ${direction} node name to be direction-aware`)
         }
     })
+
+    it('synthetic pending nodes for interior/vertical directions carry structuralClass', async () => {
+        const sourceId = '99990000-1111-2222-3333-777777777777'
+
+        await locationRepo.upsert({
+            id: sourceId,
+            name: 'The Rusty Lantern Tavern',
+            description: 'A modest tavern with a door inside and a trapdoor to the cellar.',
+            exits: [],
+            exitAvailability: {
+                pending: {
+                    in: 'A heavy wooden door leads into the common room.',
+                    down: 'A trapdoor in the corner leads to the cellar.'
+                }
+            },
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(WorldGraphHandler)
+
+        const req = TestMocks.createHttpRequest({ method: 'GET', url: 'http://localhost/api/world/graph' }) as HttpRequest
+        const context = TestMocks.createInvocationContext({
+            invocationId: 'test-wg-interior-vertical-structuralclass'
+        }) as unknown as InvocationContext
+        ;(context.extraInputs as unknown as Map<string, unknown>).set('container', container)
+
+        const response = await handler.handle(req, context)
+        assert.equal(response.status, 200)
+
+        const body = response.jsonBody as {
+            success: boolean
+            data?: {
+                nodes: Array<{ id: string; name: string; tags?: string[]; structuralClass?: string }>
+                edges: Array<{ fromId: string; toId: string; direction: string; pending?: boolean }>
+            }
+        }
+
+        assert.equal(body.success, true)
+        assert.ok(body.data)
+
+        // Interior pending exit: structuralClass must be 'interior'
+        const inEdge = body.data!.edges.find((e) => e.fromId === sourceId && e.direction === 'in')
+        assert.ok(inEdge, 'Expected pending in edge from cottage/tavern source')
+        const interiorNode = body.data!.nodes.find((n) => n.id === inEdge!.toId)
+        assert.ok(interiorNode, 'Expected synthetic node for pending in exit')
+        assert.equal(interiorNode!.structuralClass, 'interior', 'Synthetic in-exit node must carry structuralClass "interior"')
+
+        // Vertical pending exit: structuralClass must be 'vertical'
+        const downEdge = body.data!.edges.find((e) => e.fromId === sourceId && e.direction === 'down')
+        assert.ok(downEdge, 'Expected pending down edge from tavern source')
+        const verticalNode = body.data!.nodes.find((n) => n.id === downEdge!.toId)
+        assert.ok(verticalNode, 'Expected synthetic node for pending down exit')
+        assert.equal(verticalNode!.structuralClass, 'vertical', 'Synthetic down-exit node must carry structuralClass "vertical"')
+    })
+
+    it('materialized interior stub carries structuralClass "interior" derived from interior:generated tag', async () => {
+        const sourceId = '99990000-1111-2222-3333-888888888888'
+        const stubId = '99990000-1111-2222-3333-999999999999'
+
+        // Simulate a fully materialized interior stub (as would be created by queueProcessExitGenerationHint)
+        await locationRepo.upsert({
+            id: sourceId,
+            name: 'Village Cottage',
+            description: 'A small stone cottage.',
+            exits: [{ direction: 'in', to: stubId }],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: stubId,
+            name: 'Unexplored Interior',
+            description: 'Unexplored Interior waits beyond the threshold, its interior yet to be explored.',
+            terrain: 'open-plain',
+            // Tags as produced by planAtlasAwareFutureLocation for an in-direction expansion
+            tags: ['settlement:mosswell', 'frontier:depth:1', 'interior:generated'],
+            exits: [{ direction: 'out', to: sourceId }],
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(WorldGraphHandler)
+
+        const req = TestMocks.createHttpRequest({ method: 'GET', url: 'http://localhost/api/world/graph' }) as HttpRequest
+        const context = TestMocks.createInvocationContext({
+            invocationId: 'test-wg-materialized-interior-stub'
+        }) as unknown as InvocationContext
+        ;(context.extraInputs as unknown as Map<string, unknown>).set('container', container)
+
+        const response = await handler.handle(req, context)
+        assert.equal(response.status, 200)
+
+        const body = response.jsonBody as {
+            success: boolean
+            data?: { nodes: Array<{ id: string; name: string; tags?: string[]; structuralClass?: string }>; edges: unknown[] }
+        }
+
+        assert.equal(body.success, true)
+        assert.ok(body.data)
+
+        const stubNode = body.data!.nodes.find((n) => n.id === stubId)
+        assert.ok(stubNode, 'Materialized interior stub node must be present')
+        assert.equal(stubNode!.structuralClass, 'interior', 'Materialized interior stub must carry structuralClass "interior"')
+    })
+
+    it('materialized vertical stub carries structuralClass "vertical" derived from vertical:generated tag', async () => {
+        const sourceId = '99990000-aaaa-bbbb-cccc-aaaaaaaaaaaa'
+        const stubId = '99990000-aaaa-bbbb-cccc-bbbbbbbbbbbb'
+
+        await locationRepo.upsert({
+            id: sourceId,
+            name: 'Cliff Base',
+            description: 'At the foot of the cliff, a narrow stairway leads upward.',
+            exits: [{ direction: 'up', to: stubId }],
+            version: 1
+        })
+        await locationRepo.upsert({
+            id: stubId,
+            name: 'Unexplored Upper Level',
+            description: 'Unexplored Upper Level above, where a passage ascends into unmapped territory.',
+            terrain: 'hilltop',
+            tags: ['frontier:depth:1', 'vertical:generated'],
+            exits: [{ direction: 'down', to: sourceId }],
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(WorldGraphHandler)
+
+        const req = TestMocks.createHttpRequest({ method: 'GET', url: 'http://localhost/api/world/graph' }) as HttpRequest
+        const context = TestMocks.createInvocationContext({
+            invocationId: 'test-wg-materialized-vertical-stub'
+        }) as unknown as InvocationContext
+        ;(context.extraInputs as unknown as Map<string, unknown>).set('container', container)
+
+        const response = await handler.handle(req, context)
+        assert.equal(response.status, 200)
+
+        const body = response.jsonBody as {
+            success: boolean
+            data?: { nodes: Array<{ id: string; name: string; tags?: string[]; structuralClass?: string }>; edges: unknown[] }
+        }
+
+        assert.equal(body.success, true)
+        assert.ok(body.data)
+
+        const stubNode = body.data!.nodes.find((n) => n.id === stubId)
+        assert.ok(stubNode, 'Materialized vertical stub node must be present')
+        assert.equal(stubNode!.structuralClass, 'vertical', 'Materialized vertical stub must carry structuralClass "vertical"')
+    })
+
+    it('forbidden interior/vertical exits are correctly represented as forbidden edges with forbiddenContext', async () => {
+        // Pending vs forbidden handling for interior and vertical directions.
+        // This test ensures the same forbidden-edge contract used for overland barriers
+        // also works for non-cardinal directions.
+        const sourceId = '99990000-aaaa-bbbb-cccc-cccccccccccc'
+
+        await locationRepo.upsert({
+            id: sourceId,
+            name: 'Sealed Warehouse',
+            description: 'The door is barred from the inside.',
+            exits: [],
+            exitAvailability: {
+                pending: {
+                    up: 'A ladder climbs to the roof hatch.'
+                },
+                forbidden: {
+                    in: { reason: 'The door is barred and cannot be forced', motif: 'law' }
+                }
+            },
+            version: 1
+        })
+
+        const container = await fixture.getContainer()
+        const handler = container.get(WorldGraphHandler)
+
+        const req = TestMocks.createHttpRequest({ method: 'GET', url: 'http://localhost/api/world/graph' }) as HttpRequest
+        const context = TestMocks.createInvocationContext({ invocationId: 'test-wg-forbidden-interior' }) as unknown as InvocationContext
+        ;(context.extraInputs as unknown as Map<string, unknown>).set('container', container)
+
+        const response = await handler.handle(req, context)
+        assert.equal(response.status, 200)
+
+        const body = response.jsonBody as {
+            success: boolean
+            data?: {
+                nodes: Array<{ id: string; name: string; tags?: string[] }>
+                edges: Array<{
+                    fromId: string
+                    toId: string
+                    direction: string
+                    pending?: boolean
+                    forbidden?: boolean
+                    forbiddenContext?: { reason: string; motif?: string }
+                    frontierContext?: PendingExitMetadata
+                }>
+            }
+        }
+
+        assert.equal(body.success, true)
+        assert.ok(body.data)
+
+        const sourceEdges = body.data!.edges.filter((e) => e.fromId === sourceId)
+
+        // Pending vertical (up) exit must carry interior structuralArchetype in frontierContext
+        const upEdge = sourceEdges.find((e) => e.direction === 'up')
+        assert.ok(upEdge, 'Expected pending up edge')
+        assert.equal(upEdge!.pending, true, 'up edge must be pending')
+        assert.equal(upEdge!.frontierContext?.structuralArchetype, 'vertical', 'up frontierContext.structuralArchetype must be vertical')
+
+        // Forbidden interior (in) exit must be marked forbidden with motif, not pending
+        const inEdge = sourceEdges.find((e) => e.direction === 'in')
+        assert.ok(inEdge, 'Expected forbidden in edge')
+        assert.equal(inEdge!.forbidden, true, 'in edge must be forbidden')
+        assert.equal(inEdge!.pending, undefined, 'Forbidden in edge must not carry pending flag')
+        assert.equal(inEdge!.forbiddenContext?.motif, 'law', 'Forbidden in edge must carry correct motif')
+
+        // Forbidden synthetic node must be tagged forbidden:synthetic (not pending:synthetic)
+        const forbiddenNode = body.data!.nodes.find((n) => n.id === inEdge!.toId)
+        assert.ok(forbiddenNode, 'Forbidden synthetic node for in direction must exist')
+        assert.ok(forbiddenNode!.tags?.includes('forbidden:synthetic'), 'Forbidden interior node must carry forbidden:synthetic tag')
+    })
 })

@@ -153,8 +153,21 @@ else { /* blocked / partial / deferred — remain in current area, surface bound
 The world graph endpoint (`GET /api/world/graph`) surfaces structured context on every pending edge and its synthetic placeholder node:
 
 - `WorldGraphEdge.frontierContext: PendingExitMetadata` — present on all edges where `pending === true`.
-- `WorldGraphNode.structuralClass: FrontierStructuralArchetype` — present on all synthetic pending nodes (tagged `pending:synthetic`).
-- `WorldGraphNode.name` — archetype-aware: `'Unexplored Waterfront'` for waterfront directions, `'Unexplored Interior'` for interior, `'Unexplored Upper Level'` / `'Unexplored Lower Level'` for vertical, `'Unexplored Open Plain'` for overland.
+- `WorldGraphNode.structuralClass: FrontierStructuralArchetype` — present on:
+  - All synthetic pending nodes (tagged `pending:synthetic`): inferred from the expansion direction.
+  - Materialized stubs generated from interior or vertical exits (tagged `interior:generated` or `vertical:generated`): derived by `deriveStructuralClassFromTags()` in the world graph handler.
+- `WorldGraphNode.name` — archetype-aware: `'Unexplored Waterfront'` for waterfront directions, `'Unexplored Interior'` / `'Unexplored Exterior Approach'` for interior, `'Unexplored Upper Level'` / `'Unexplored Lower Level'` for vertical, `'Unexplored Open Plain'` for overland.
+
+### Structural archetype tags on generated stubs
+
+When `planAtlasAwareFutureLocation` materializes a stub location for an interior or vertical exit, it stamps one of two tags onto the generated node's tag array:
+
+| Expansion direction | Tag stamped               | Derived `structuralClass` |
+| ------------------- | ------------------------- | ------------------------- |
+| `in` / `out`        | `interior:generated`      | `'interior'`              |
+| `up` / `down`       | `vertical:generated`      | `'vertical'`              |
+
+These tags are **not** propagated to subsequent frontier expansions from within the stub (`getMacroPropagationTags` only propagates `settlement:`, `macro:area:`, `macro:route:`, `macro:water:`, and `frontier:depth:` prefixes).
 
 ## Frontier context precedence stack
 
@@ -186,6 +199,14 @@ Sparse-tagged source nodes (e.g. a newly materialized hilltop with only `frontie
 - `macroAreaRef`, `routeLineage`, `terrainTrend`, `waterSemantics`, `barrierSemantics` are absent (`undefined`) when no atlas data is available.
 
 Consumers must handle absent optional fields gracefully and fall back to conservative generic copy.
+
+### Generated stubs for interior/vertical exits
+
+When `planAtlasAwareFutureLocation` is called with an interior or vertical expansion direction, the resulting stub carries:
+
+- An archetype-aware **name** (e.g. `'Unexplored Interior'` for `in`, `'Unexplored Upper Level'` for `up`) — consistent with the names used for synthetic pending nodes so the pending-to-materialized transition is seamless.
+- Archetype-appropriate **description prose** — interior stubs say "waits beyond the threshold, its interior yet to be explored"; vertical stubs describe the elevation change ("above, where a passage ascends into unmapped territory").
+- A structural **tag** (`interior:generated` or `vertical:generated`) that allows downstream consumers to derive `structuralClass` from tags without knowing the original expansion direction.
 
 ## Related
 
