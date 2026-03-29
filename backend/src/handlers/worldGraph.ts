@@ -8,7 +8,8 @@
  *   { nodes: WorldGraphNode[], edges: WorldGraphEdge[] }
  */
 import type { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
-import type { Direction } from '@piquet-h/shared'
+import type { Direction, ForbiddenExitEntry, ForbiddenExitMotif, ForbiddenExitReveal } from '@piquet-h/shared'
+import { normalizeForbiddenEntry } from '@piquet-h/shared'
 import type { Container } from 'inversify'
 import { inject, injectable, optional } from 'inversify'
 import type { IGremlinClient } from '../gremlin/gremlinClient.js'
@@ -48,6 +49,19 @@ export interface WorldGraphEdge {
      * reverse-engineer intent from the human-readable reason string.
      */
     frontierContext?: PendingExitMetadata
+    /**
+     * When true, this exit direction is permanently forbidden and will never be generated.
+     * Distinct from `pending` (which will eventually be resolved).
+     * Consumers should not prompt movement in this direction and may display a barrier indicator.
+     */
+    forbidden?: boolean
+    /**
+     * Structured barrier context for forbidden exit directions.
+     * Present when `forbidden === true`.
+     * Carries motif and reveal semantics so consumers can render contextually appropriate UI
+     * without parsing the human-readable reason string.
+     */
+    forbiddenContext?: { reason: string; motif?: ForbiddenExitMotif; reveal?: ForbiddenExitReveal }
 }
 
 export interface WorldGraphResponse {
@@ -71,6 +85,21 @@ function pendingNodeName(direction: string, archetype?: FrontierStructuralArchet
 
 function pendingNodeId(fromId: string, direction: string): string {
     return `pending:${fromId}:${direction}`
+}
+
+function forbiddenNodeId(fromId: string, direction: string): string {
+    return `forbidden:${fromId}:${direction}`
+}
+
+function forbiddenNodeName(motif?: ForbiddenExitMotif): string {
+    const motifNames: Record<ForbiddenExitMotif, string> = {
+        cliff: 'Impassable Cliff',
+        water: 'Open Water Barrier',
+        ward: 'Arcane Ward',
+        law: 'Restricted Area',
+        ruin: 'Collapsed Ruin'
+    }
+    return (motif && motifNames[motif]) || 'Impassable Barrier'
 }
 
 /**
@@ -165,6 +194,38 @@ export class WorldGraphHandler extends BaseHandler {
                     }
                 }
 
+                // Forbidden exits are permanent barriers — include them so consumers can distinguish
+                // which directions are pending (will be generated) vs permanently blocked, without
+                // parsing human-readable reason strings.
+                for (const loc of locations) {
+                    const forbidden = loc.exitAvailability?.forbidden
+                    if (!forbidden) continue
+
+                    const hardDirections = hardExitDirectionsBySource.get(loc.id) ?? new Set<string>()
+
+                    for (const [direction, rawEntry] of Object.entries(forbidden)) {
+                        if (!rawEntry || hardDirections.has(direction)) continue
+
+                        const entry = normalizeForbiddenEntry(rawEntry as ForbiddenExitEntry | string)
+                        const syntheticId = forbiddenNodeId(loc.id, direction)
+                        if (!nodeById.has(syntheticId)) {
+                            nodeById.set(syntheticId, {
+                                id: syntheticId,
+                                name: forbiddenNodeName(entry.motif),
+                                tags: ['forbidden:synthetic']
+                            })
+                        }
+
+                        edges.push({
+                            fromId: loc.id,
+                            toId: syntheticId,
+                            direction,
+                            forbidden: true,
+                            forbiddenContext: { reason: entry.reason, motif: entry.motif, reveal: entry.reveal }
+                        })
+                    }
+                }
+
                 const nodes = Array.from(nodeById.values())
 
                 this.track('World.Map.Fetched', {
@@ -196,6 +257,7 @@ export class WorldGraphHandler extends BaseHandler {
             ])
 
             const locationPendingById = new Map<string, Record<string, string>>()
+            const locationForbiddenById = new Map<string, Record<string, ForbiddenExitEntry | string>>()
 
             const nodesById = new Map<string, WorldGraphNode>()
             for (const v of rawNodes || []) {
@@ -213,6 +275,19 @@ export class WorldGraphHandler extends BaseHandler {
                     try {
                         const parsed = JSON.parse(pendingRaw) as Record<string, string>
                         locationPendingById.set(id, parsed)
+                    } catch {
+                        // ignore malformed JSON for map payload resilience; hydration path emits diagnostics
+                    }
+                }
+
+                const forbiddenRaw = Array.isArray(v.exitAvailabilityForbiddenJson)
+                    ? v.exitAvailabilityForbiddenJson[0]
+                    : v.exitAvailabilityForbiddenJson
+
+                if (typeof forbiddenRaw === 'string' && forbiddenRaw.length > 0) {
+                    try {
+                        const parsed = JSON.parse(forbiddenRaw) as Record<string, ForbiddenExitEntry | string>
+                        locationForbiddenById.set(id, parsed)
                     } catch {
                         // ignore malformed JSON for map payload resilience; hydration path emits diagnostics
                     }
@@ -262,6 +337,34 @@ export class WorldGraphHandler extends BaseHandler {
                         direction,
                         pending: true,
                         frontierContext: frontierCtx
+                    })
+                }
+            }
+
+            // Forbidden exits are permanent barriers — include them so consumers can distinguish
+            // which directions are pending (will be generated) vs permanently blocked.
+            for (const [fromId, forbidden] of locationForbiddenById.entries()) {
+                const hardDirections = hardDirectionsBySource.get(fromId) ?? new Set<string>()
+
+                for (const [direction, rawEntry] of Object.entries(forbidden)) {
+                    if (!rawEntry || hardDirections.has(direction)) continue
+
+                    const entry = normalizeForbiddenEntry(rawEntry)
+                    const syntheticId = forbiddenNodeId(fromId, direction)
+                    if (!nodesById.has(syntheticId)) {
+                        nodesById.set(syntheticId, {
+                            id: syntheticId,
+                            name: forbiddenNodeName(entry.motif),
+                            tags: ['forbidden:synthetic']
+                        })
+                    }
+
+                    edges.push({
+                        fromId,
+                        toId: syntheticId,
+                        direction,
+                        forbidden: true,
+                        forbiddenContext: { reason: entry.reason, motif: entry.motif, reveal: entry.reveal }
                     })
                 }
             }
