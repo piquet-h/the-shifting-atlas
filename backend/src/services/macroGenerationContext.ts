@@ -373,7 +373,7 @@ function directionLabel(direction: Direction): string {
     return labels[direction]
 }
 
-function scoreExpansionDirection(context: MacroGenerationContext): number {
+export function scoreExpansionDirection(context: MacroGenerationContext): number {
     const trend = context.directionTerrainTrend?.toLowerCase() || ''
     let score = 0
 

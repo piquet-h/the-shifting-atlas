@@ -513,10 +513,12 @@ export class MoveHandler extends BaseHandler {
                     // Enqueue batch generation event
                     await this.eventPublisher.enqueueEvents([prefetchResult.event])
 
-                    // Emit telemetry
+                    // Emit telemetry — selectedDirections makes the atlas-constrained selection
+                    // understandable during debugging (which directions were chosen and why).
                     this.track('World.BatchGeneration.Prefetch', {
                         rootLocationId: result.location.id,
                         pendingExitCount: prefetchResult.pendingExitCount,
+                        selectedDirections: prefetchResult.selectedDirections?.join(','),
                         correlationId: this.correlationId
                     })
                 } else if (prefetchResult.debounced) {
