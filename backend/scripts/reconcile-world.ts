@@ -19,10 +19,25 @@
  *  - Location pruning never removes locations referenced by players (future enhancement – currently blind delete).
  *    Use cautiously; recommended only before first production launch.
  */
+
+// Auto-load local settings when running against cosmos (mirrors seed-production.ts pattern)
+import { readFileSync } from 'fs'
+import { dirname, join } from 'path'
+import { fileURLToPath } from 'url'
+const __scriptDir = dirname(fileURLToPath(import.meta.url))
+const _localSettingsCosmosPath = join(__scriptDir, '../local.settings.cosmos.json')
+try {
+    const _cosmosSettings = JSON.parse(readFileSync(_localSettingsCosmosPath, 'utf8'))
+    Object.assign(process.env, _cosmosSettings.Values)
+} catch {
+    // Silently ignore if file not present; env vars may already be set externally
+}
+
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
 import { Container } from 'inversify'
 import 'reflect-metadata'
 import starterLocationsData from '../src/data/villageLocations.json' with { type: 'json' }
+import type { GremlinClientConfig } from '../src/gremlin/gremlinClient.js'
 import { setupContainer } from '../src/inversify.config.js'
 import { ILocationRepository } from '../src/repos/locationRepository.js'
 import { IPlayerRepository } from '../src/repos/playerRepository.js'
@@ -65,6 +80,19 @@ interface ReconcileOpts {
 async function reconcile(args: Args, opts?: ReconcileOpts) {
     // Use test config for memory mode, production config for cosmos
     const container = args.mode === 'memory' ? await setupTestContainer(new Container(), 'memory') : await setupContainer(new Container())
+
+    // Increase Gremlin connection timeout for local runs — DefaultAzureCredential cycles through
+    // multiple providers (IMDS probe, SharedTokenCache, VS Code, CLI) before succeeding, which
+    // easily exceeds the default 10 s timeout on a developer machine.
+    if (args.mode === 'cosmos') {
+        const existingConfig = container.get<GremlinClientConfig>('GremlinConfig')
+        container.unbind('GremlinConfig')
+        container.bind<GremlinClientConfig>('GremlinConfig').toConstantValue({
+            ...existingConfig,
+            connectionTimeoutMs: 30000
+        })
+    }
+
     const locRepo = container.get<ILocationRepository>('ILocationRepository')
     const playerRepo = container.get<IPlayerRepository>('IPlayerRepository')
 
