@@ -325,7 +325,7 @@ export class MoveHandler extends BaseHandler {
         }
 
         if (!exit || !exit.to) {
-            // TODO(#897): Check if direction is forbidden before emitting generation hint
+            // Note: check if direction is forbidden before emitting generation hint
             // When Location/LocationNode exitAvailability is wired from persistence:
             // if (from.exitAvailability?.forbidden?.[dir]) {
             //     return no-exit error without generation hint
