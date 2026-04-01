@@ -2,8 +2,10 @@
  * Frontier Selection Policy
  *
  * Determines which pending exit directions to expand when a player arrives at a frontier location.
- * Implements a deterministic cap-based selection that respects forbidden exit constraints and
- * prioritises locations explicitly marked as frontier boundaries.
+ * Implements a deterministic, atlas-aware selection that:
+ *   - Respects forbidden exit constraints (forbidden always wins)
+ *   - Prioritises atlas-significant directions (route-continuity, terrain trends) when a cap applies
+ *   - Falls back to declaration order when no atlas tags are present
  *
  * Related: docs/design-modules/world-spatial-generation.md
  * Issue: piquet-h/the-shifting-atlas#812
@@ -11,6 +13,7 @@
 
 import type { Direction } from '@piquet-h/shared'
 import type { Location } from '@piquet-h/shared'
+import { resolveMacroGenerationContext, scoreExpansionDirection } from '../services/macroGenerationContext.js'
 
 /**
  * Tag applied to locations that are explicit frontier expansion boundaries.
@@ -38,6 +41,25 @@ export interface FrontierSelectionResult {
     warnings: string[]
     /** True when the location carries the `frontier:boundary` tag. */
     isFrontierTagged: boolean
+    /**
+     * Atlas-derived direction priority scores, keyed by eligible direction.
+     * Present only when the location carries atlas tags (`macro:area:`, `macro:route:`,
+     * or `macro:water:`). Absent when no atlas information is available, in which case
+     * declaration order governs selection.
+     *
+     * Use for telemetry and debug inspection to understand why a given direction
+     * was selected or ranked over another.
+     */
+    atlasScores?: Partial<Record<Direction, number>>
+}
+
+/**
+ * Returns true when the location carries at least one macro atlas tag that enables
+ * direction scoring. Locations without these tags fall back to declaration-order selection.
+ */
+function hasAtlasTags(tags: string[] | undefined): boolean {
+    if (!tags || tags.length === 0) return false
+    return tags.some((t) => t.startsWith('macro:area:') || t.startsWith('macro:route:') || t.startsWith('macro:water:'))
 }
 
 /**
@@ -46,9 +68,12 @@ export interface FrontierSelectionResult {
  * Policy rules (applied in order):
  * 1. **Forbidden wins**: if a direction appears in both `pending` and `forbidden`,
  *    it is excluded and a diagnostic warning is recorded.
- * 2. **Cap**: at most `cap` directions are returned (declaration order is preserved
- *    for stable, reproducible behaviour).
- * 3. **Frontier tag**: the `isFrontierTagged` field on the result signals whether
+ * 2. **Atlas-aware scoring**: when the location carries atlas tags, eligible directions
+ *    are ranked by their atlas significance score (route-continuity trend, terrain trend,
+ *    barrier context) so the most coherent exits are selected first when a cap applies.
+ *    Directions with equal scores preserve declaration order as a stable tiebreaker.
+ * 3. **Cap**: at most `cap` directions are returned.
+ * 4. **Frontier tag**: the `isFrontierTagged` field on the result signals whether
  *    the location is an explicit frontier boundary; callers that process multiple
  *    locations should expand frontier-tagged locations before unmarked ones.
  *
@@ -77,6 +102,27 @@ export function selectFrontierExits(location: Location, cap: number = DEFAULT_FR
             continue
         }
         eligible.push(dir)
+    }
+
+    // Atlas-aware scoring: when the location carries macro tags, rank directions by atlas
+    // significance so route-continuity and terrain-trend directions are preferred when a cap
+    // applies. Directions with equal scores preserve declaration order (stable tiebreaker).
+    const tags = location.tags
+    if (hasAtlasTags(tags)) {
+        const scored = eligible.map((direction, index) => ({
+            direction,
+            index,
+            score: scoreExpansionDirection(resolveMacroGenerationContext(tags, direction))
+        }))
+        scored.sort((a, b) => (a.score !== b.score ? b.score - a.score : a.index - b.index))
+
+        const atlasScores: Partial<Record<Direction, number>> = {}
+        for (const { direction, score } of scored) {
+            atlasScores[direction] = score
+        }
+
+        const directions = scored.slice(0, cap).map((e) => e.direction)
+        return { directions, warnings, isFrontierTagged, atlasScores }
     }
 
     return {

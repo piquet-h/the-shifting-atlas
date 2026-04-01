@@ -199,6 +199,18 @@ export interface AtlasAwareFutureLocationPlan {
 // Re-export frontier context types so callers only need one import.
 export type { FrontierStructuralArchetype, PendingExitMetadata } from './frontierContext.js'
 
+/**
+ * Tag prefix stamped onto generated interior stubs by {@link planAtlasAwareFutureLocation}.
+ * Consumers (e.g. WorldGraph) use this to derive the structural class of a materialized
+ * interior frontier node without re-inferring the original expansion direction.
+ */
+const INTERIOR_GENERATED_TAG = 'interior:generated'
+
+/**
+ * Tag prefix stamped onto generated vertical stubs by {@link planAtlasAwareFutureLocation}.
+ */
+const VERTICAL_GENERATED_TAG = 'vertical:generated'
+
 const ALL_ATLASES = [mosswellMacroAtlas as MacroAtlasLike, theLongReachMacroAtlas as MacroAtlasLike]
 
 function unique<T>(values: T[]): T[] {
@@ -361,7 +373,7 @@ function directionLabel(direction: Direction): string {
     return labels[direction]
 }
 
-function scoreExpansionDirection(context: MacroGenerationContext): number {
+export function scoreExpansionDirection(context: MacroGenerationContext): number {
     const trend = context.directionTerrainTrend?.toLowerCase() || ''
     let score = 0
 
@@ -416,7 +428,15 @@ export function selectAtlasAwareExpansionDirections(
 export function suggestFutureNodeName(terrain: TerrainType, context: MacroGenerationContext, frontierDepth: number = 1): string {
     let baseName: string
 
-    if (context.preferredFutureNodePrefix) {
+    // Interior and vertical directions take precedence over all terrain-based naming.
+    // These names are intentionally aligned with the synthetic pending node names used by
+    // the WorldGraph handler so that the transition from pending to materialized is seamless.
+    const archetype = inferStructuralArchetype(context.expansionDirection)
+    if (archetype === 'interior') {
+        baseName = context.expansionDirection === 'in' ? 'Unexplored Interior' : 'Unexplored Exterior Approach'
+    } else if (archetype === 'vertical') {
+        baseName = context.expansionDirection === 'up' ? 'Unexplored Upper Level' : 'Unexplored Lower Level'
+    } else if (context.preferredFutureNodePrefix) {
         baseName = `${context.preferredFutureNodePrefix} ${directionLabel(context.expansionDirection)}`
     } else if (context.directionTerrainTrend?.includes('valley')) {
         baseName = `Valley Reach ${directionLabel(context.expansionDirection)}`
@@ -437,6 +457,29 @@ function buildFutureLocationDescription(
     context: MacroGenerationContext,
     frontierDepth: number
 ): string {
+    // Interior and vertical expansions require structurally distinct prose —
+    // the overland "terrain continues beyond landmarks" framing is semantically wrong
+    // for a doorway into a building or a stairway to another floor.
+    const archetype = inferStructuralArchetype(context.expansionDirection)
+
+    if (archetype === 'interior') {
+        const parts: string[] = [`${name} waits beyond the threshold, its interior yet to be explored.`]
+        if (context.barrierSemantics.length > 0) {
+            parts.push(`Nearby constraints include ${context.barrierSemantics.join(' and ')}.`)
+        }
+        return parts.join(' ')
+    }
+
+    if (archetype === 'vertical') {
+        const elevationWord = context.expansionDirection === 'up' ? 'above' : 'below'
+        const transitionWord = context.expansionDirection === 'up' ? 'ascends' : 'descends'
+        const parts: string[] = [`${name} ${elevationWord}, where a passage ${transitionWord} into unmapped territory.`]
+        if (context.barrierSemantics.length > 0) {
+            parts.push(`Nearby constraints include ${context.barrierSemantics.join(' and ')}.`)
+        }
+        return parts.join(' ')
+    }
+
     const parts: string[] = [
         `${name} lies ${context.expansionDirection}, where ${titleCaseTerrain(terrain).toLowerCase()} terrain continues beyond the last confirmed landmarks.`
     ]
@@ -685,6 +728,18 @@ export function planAtlasAwareFutureLocation(
     const propagatedTags = getMacroPropagationTags(sourceTags, realmKey)
     const nextFrontierDepth = Math.max(extractFrontierDepth(propagatedTags) + 1, 1)
     const tags = unique([...propagatedTags.filter((tag) => !tag.startsWith('frontier:depth:')), `frontier:depth:${nextFrontierDepth}`])
+
+    // Stamp a structural archetype tag onto interior and vertical stubs.
+    // This allows downstream consumers (WorldGraph, narration) to identify
+    // the structural class of a materialized node from its tags alone,
+    // without re-inferring the original expansion direction.
+    const expansionArchetype = inferStructuralArchetype(expansionDirection)
+    if (expansionArchetype === 'interior') {
+        tags.push(INTERIOR_GENERATED_TAG)
+    } else if (expansionArchetype === 'vertical') {
+        tags.push(VERTICAL_GENERATED_TAG)
+    }
+
     const macroContext = resolveMacroGenerationContext(tags, expansionDirection)
     const selectedTerrain = selectAtlasAwareTerrain(baseTerrain, macroContext)
     const name = suggestFutureNodeName(selectedTerrain, macroContext, nextFrontierDepth)
