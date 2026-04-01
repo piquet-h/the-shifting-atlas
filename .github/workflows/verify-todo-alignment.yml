@@ -20,8 +20,8 @@ jobs:
     permissions:
       issues: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
       - name: Install GitHub CLI
@@ -35,7 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/verify-todo-issue-alignment.mjs --json > todo-verify.json
       - name: Upload verification artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: todo-issue-alignment
           path: todo-verify.json
