@@ -70,6 +70,17 @@
             "type": "shell",
             "label": "bicep: build (infra/main)",
             "command": "az bicep build --file infrastructure/main.bicep"
+        },
+        {
+            "type": "shell",
+            "label": "reconcile:world:cosmos",
+            "command": "npm run reconcile:world:cosmos",
+            "isBackground": false,
+            "problemMatcher": [],
+            "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}/backend"
+            }
         }
     ]
 }
