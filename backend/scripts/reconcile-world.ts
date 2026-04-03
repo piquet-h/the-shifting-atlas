@@ -20,22 +20,12 @@
  *    Use cautiously; recommended only before first production launch.
  */
 
-// Auto-load local settings when running against cosmos (mirrors seed-production.ts pattern)
-import { readFileSync } from 'fs'
-import { dirname, join } from 'path'
-import { fileURLToPath } from 'url'
-const __scriptDir = dirname(fileURLToPath(import.meta.url))
-const _localSettingsCosmosPath = join(__scriptDir, '../local.settings.cosmos.json')
-try {
-    const _cosmosSettings = JSON.parse(readFileSync(_localSettingsCosmosPath, 'utf8'))
-    Object.assign(process.env, _cosmosSettings.Values)
-} catch {
-    // Silently ignore if file not present; env vars may already be set externally
-}
-
 import { STARTER_LOCATION_ID } from '@piquet-h/shared'
+import { readFileSync } from 'fs'
 import { Container } from 'inversify'
+import { dirname, join } from 'path'
 import 'reflect-metadata'
+import { fileURLToPath } from 'url'
 import starterLocationsData from '../src/data/villageLocations.json' with { type: 'json' }
 import type { GremlinClientConfig } from '../src/gremlin/gremlinClient.js'
 import { setupContainer } from '../src/inversify.config.js'
@@ -221,6 +211,19 @@ async function reconcile(args: Args, opts?: ReconcileOpts) {
 }
 
 async function main() {
+    // Auto-load local settings when running as CLI entry point only.
+    // This must NOT happen at module level because reconcile-world.ts is also imported by integration tests,
+    // and top-level side-effects would set PERSISTENCE_MODE=cosmos in the shared process environment,
+    // causing cosmos tests to run (and fail) in CI where no real Cosmos credentials are present.
+    const __scriptDir = dirname(fileURLToPath(import.meta.url))
+    const _localSettingsCosmosPath = join(__scriptDir, '../local.settings.cosmos.json')
+    try {
+        const _cosmosSettings = JSON.parse(readFileSync(_localSettingsCosmosPath, 'utf8'))
+        Object.assign(process.env, _cosmosSettings.Values)
+    } catch {
+        // Silently ignore if file not present; env vars may already be set externally
+    }
+
     const args = parseArgs()
     console.log(`Mode: ${args.mode}  DryRun: ${args.dryRun}  PruneExits: ${args.pruneExits}  PruneLocations: ${args.pruneLocations}`)
     await reconcile(args)
