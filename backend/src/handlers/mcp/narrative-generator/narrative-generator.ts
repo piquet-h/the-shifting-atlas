@@ -2,6 +2,7 @@ import type { InvocationContext } from '@azure/functions'
 import { Container, inject, injectable, optional } from 'inversify'
 import { TOKENS } from '../../../di/tokens.js'
 import type { IAzureOpenAIClient } from '../../../services/azureOpenAIClient.js'
+import type { EnvironmentalHintProposal } from '../../../services/frontierContext.js'
 
 type ToolArgs<T> = { arguments?: T }
 
@@ -150,6 +151,61 @@ const CANONICAL_CLAIM_PATTERNS: readonly RegExp[] = [
     /\byou\s+(?:find|discover|obtain|acquire|take)\b.{0,40}\b(?:key|sword|item|artifact|treasure|relic)\b/i,
     /\b(?:npc|merchant|guard|dragon|villager|stranger)\s+(?:arrives?|appears?|emerges?)\b/i
 ]
+
+/**
+ * Compass directions recognised as potential frontier-context cues.
+ * Captures the canonical root (e.g. "north", "east", "northeast") and
+ * allows common suffixes ("ern", "ward") without capturing them, so the
+ * captured group always yields a canonical compass token.
+ *
+ * The trailing `\b` word-boundary prevents false matches on embedded
+ * direction roots (e.g. "northernmost" does not match because the engine
+ * finds no word boundary between the optional "ern" and the following "most").
+ * Assumes standard English; irregular or archaic compass forms are not detected.
+ */
+const ENVIRONMENTAL_DIRECTION_PATTERN = /\b(north(?:east|west)?|south(?:east|west)?|east|west)(?:ern|ward)?\b/i
+
+/**
+ * Terrain keywords recognised as potential frontier-context cues.
+ * Captures the stem (e.g. "hill") and allows common plural endings
+ * ("s", "es") without capturing them.  Assumes regular English
+ * pluralisation — irregular plurals are not handled.
+ * Deliberately conservative — only geographic terrain types, not architectural.
+ */
+const ENVIRONMENTAL_TERRAIN_PATTERN =
+    /\b(hill|mountain|valley|plain|cliff|coast|shore|moor|marsh|forest|wood|river|ridge|slope|canyon|ravine|escarpment)(?:s|es)?\b/i
+
+/**
+ * Extract environmental hint proposals from AI-generated narration text.
+ *
+ * A hint is a sentence that contains **both** a compass direction term and a
+ * terrain keyword.  The combination suggests a geographic claim that may or may
+ * not be consistent with canonical atlas data and therefore requires explicit
+ * authorial review before it can be promoted.
+ *
+ * Returned proposals are **advisory only**.  They must never automatically
+ * become canonical atlas tags, directional-trend data, or `PendingExitMetadata`
+ * fields.  See docs/architecture/frontier-context-contract.md § Promotion path.
+ */
+export function extractEnvironmentalHintProposals(text: string): EnvironmentalHintProposal[] {
+    const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text]
+    const proposals: EnvironmentalHintProposal[] = []
+
+    for (const sentence of sentences) {
+        const dirMatch = ENVIRONMENTAL_DIRECTION_PATTERN.exec(sentence)
+        const terrainMatch = ENVIRONMENTAL_TERRAIN_PATTERN.exec(sentence)
+
+        if (dirMatch && terrainMatch) {
+            proposals.push({
+                text: sentence.trim(),
+                direction: dirMatch[1].toLowerCase(),
+                terrainKind: terrainMatch[1].toLowerCase()
+            })
+        }
+    }
+
+    return proposals
+}
 
 function normalizeOptionalString(input: unknown): string | undefined {
     if (typeof input !== 'string') return undefined
@@ -306,11 +362,17 @@ export class NarrativeGeneratorHandler {
         if (preferAi && this.aiClient) {
             const aiAttempt = await this.tryGenerateAIAmbience(input)
             if (aiAttempt.narrative) {
-                return JSON.stringify({
+                const environmentalHints = extractEnvironmentalHintProposals(aiAttempt.narrative)
+                const response: Record<string, unknown> = {
                     mode: 'ai',
                     narrative: aiAttempt.narrative,
                     inputs: input
-                })
+                }
+                if (environmentalHints.length > 0) {
+                    response.advisory = true
+                    response.environmentalHints = environmentalHints
+                }
+                return JSON.stringify(response)
             }
             fallbackReason = aiAttempt.fallbackReason
         }
