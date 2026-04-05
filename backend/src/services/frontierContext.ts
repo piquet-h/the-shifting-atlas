@@ -82,20 +82,15 @@ export interface PendingExitMetadata {
 
 /**
  * An environmental hint extracted from AI-generated narration.
- *
- * These are proposals only — they must never be written to atlas tags
- * automatically.  An author or tooling must review and explicitly promote a
- * proposal to a canonical `macro:area:`, route, or directional-trend entry
- * before it becomes authoritative geographic metadata.
- *
+ * Advisory only — must never be promoted to atlas tags automatically.
  * See docs/architecture/frontier-context-contract.md § Promotion path.
  */
 export interface EnvironmentalHintProposal {
     /** Raw text fragment (sentence) containing the geographic hint. */
     text: string
-    /** Inferred compass direction extracted from the text, if present (lower-case). */
+    /** Inferred compass direction, lower-case (e.g. `'north'`). */
     direction?: string
-    /** Inferred terrain category keyword extracted from the text, if present (lower-case). */
+    /** Inferred terrain keyword, lower-case (e.g. `'hill'`). */
     terrainKind?: string
 }
 

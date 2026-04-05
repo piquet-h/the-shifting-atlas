@@ -152,41 +152,12 @@ const CANONICAL_CLAIM_PATTERNS: readonly RegExp[] = [
     /\b(?:npc|merchant|guard|dragon|villager|stranger)\s+(?:arrives?|appears?|emerges?)\b/i
 ]
 
-/**
- * Compass directions recognised as potential frontier-context cues.
- * Captures the canonical root (e.g. "north", "east", "northeast") and
- * allows common suffixes ("ern", "ward") without capturing them, so the
- * captured group always yields a canonical compass token.
- *
- * The trailing `\b` word-boundary prevents false matches on embedded
- * direction roots (e.g. "northernmost" does not match because the engine
- * finds no word boundary between the optional "ern" and the following "most").
- * Assumes standard English; irregular or archaic compass forms are not detected.
- */
 const ENVIRONMENTAL_DIRECTION_PATTERN = /\b(north(?:east|west)?|south(?:east|west)?|east|west)(?:ern|ward)?\b/i
 
-/**
- * Terrain keywords recognised as potential frontier-context cues.
- * Captures the stem (e.g. "hill") and allows common plural endings
- * ("s", "es") without capturing them.  Assumes regular English
- * pluralisation — irregular plurals are not handled.
- * Deliberately conservative — only geographic terrain types, not architectural.
- */
 const ENVIRONMENTAL_TERRAIN_PATTERN =
     /\b(hill|mountain|valley|plain|cliff|coast|shore|moor|marsh|forest|wood|river|ridge|slope|canyon|ravine|escarpment)(?:s|es)?\b/i
 
-/**
- * Extract environmental hint proposals from AI-generated narration text.
- *
- * A hint is a sentence that contains **both** a compass direction term and a
- * terrain keyword.  The combination suggests a geographic claim that may or may
- * not be consistent with canonical atlas data and therefore requires explicit
- * authorial review before it can be promoted.
- *
- * Returned proposals are **advisory only**.  They must never automatically
- * become canonical atlas tags, directional-trend data, or `PendingExitMetadata`
- * fields.  See docs/architecture/frontier-context-contract.md § Promotion path.
- */
+/** Proposals are advisory only — never promote to atlas tags automatically. */
 export function extractEnvironmentalHintProposals(text: string): EnvironmentalHintProposal[] {
     const sentences = text.match(/[^.!?]+[.!?]*/g) ?? [text]
     const proposals: EnvironmentalHintProposal[] = []
